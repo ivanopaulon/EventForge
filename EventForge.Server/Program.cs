@@ -1,9 +1,12 @@
 using EventForge.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Any;
+using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
+
+// NOTE: Using Swashbuckle.AspNetCore 6.x with Microsoft.OpenApi 1.x for compatibility.
+// Version 10.x uses Microsoft.OpenApi 2.x which has breaking changes.
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,85 +70,11 @@ builder.Services.AddSwaggerGen(c =>
     c.CustomSchemaIds(type => type.FullName);
 
     // TODO: Re-enable ProblemDetails schema mapping with Microsoft.OpenApi 2.x compatible syntax
-    // The following MapType calls are commented out because they use Microsoft.OpenApi.Any types
-    // which have changed in version 2.x. Need to update to new syntax.
-    /*
-    // Add ProblemDetails schema examples
-    c.MapType<ProblemDetails>(() => new Microsoft.OpenApi.Models.OpenApiSchema
-    {
-        Type = "object",
-        Properties = new Dictionary<string, OpenApiSchema>
-        {
-            ["type"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("https://tools.ietf.org/html/rfc7231#section-6.5.1") },
-            ["title"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("One or more validation errors occurred.") },
-            ["status"] = new() { Type = "integer", Example = new Microsoft.OpenApi.Any.OpenApiInteger(400) },
-            ["detail"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("The input was not valid.") },
-            ["instance"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("/api/v1/events") },
-            ["correlationId"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("12345678-1234-1234-1234-123456789012") },
-            ["timestamp"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("2024-01-01T12:00:00Z") }
-        }
-    });
-
-    // Add validation problem details schema
-    c.MapType<ValidationProblemDetails>(() => new OpenApiSchema
-    {
-        Type = "object",
-        Properties = new Dictionary<string, OpenApiSchema>
-        {
-            ["type"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("https://tools.ietf.org/html/rfc7231#section-6.5.1") },
-            ["title"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("One or more validation errors occurred.") },
-            ["status"] = new() { Type = "integer", Example = new Microsoft.OpenApi.Any.OpenApiInteger(400) },
-            ["detail"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("See the errors property for details.") },
-            ["instance"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("/api/v1/events") },
-            ["errors"] = new()
-            {
-                Type = "object",
-                AdditionalProperties = new OpenApiSchema
-                {
-                    Type = "array",
-                    Items = new OpenApiSchema { Type = "string" }
-                },
-                Example = new Microsoft.OpenApi.Any.OpenApiObject
-                {
-                    ["Name"] = new Microsoft.OpenApi.Any.OpenApiArray
-                    {
-                        new Microsoft.OpenApi.Any.OpenApiString("The Name field is required.")
-                    }
-                }
-            },
-            ["correlationId"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("12345678-1234-1234-1234-123456789012") },
-            ["timestamp"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("2024-01-01T12:00:00Z") }
-        }
-    });
-    */
-
-    // Add JWT Authentication to Swagger
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-
-    // TODO: Re-enable when FileUploadOperationFilter is compatible with Microsoft.OpenApi 2.x
-    // c.OperationFilter<FileUploadOperationFilter>();
+    // TODO: Re-enable JWT Authentication schema with Microsoft.OpenApi 2.x compatible syntax
+    // TODO: Re-enable FileUploadOperationFilter with Microsoft.OpenApi 2.x compatible syntax
+    
+    // All advanced Swagger configuration has been temporarily commented out due to
+    // Microsoft.OpenApi 2.x breaking changes. Need to update to new API syntax.
 });
 
 builder.Services.AddCors(options =>
