@@ -53,7 +53,7 @@ public class DashboardMetricConfig : AuditableEntity
     /// <summary>
     /// Icon name (MudBlazor icon).
     /// </summary>
-    [MaxLength(100, ErrorMessage = "Icon cannot exceed 100 characters.")]
+    [MaxLength(1000, ErrorMessage = "Icon cannot exceed 1000 characters.")]
     [Display(Name = "Icon", Description = "Icon name (MudBlazor icon).")]
     public string? Icon { get; set; }
 
