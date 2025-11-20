@@ -107,6 +107,8 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.LotDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.DocumentTypeDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.DocumentHeaderDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.DocumentCounterDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.VatRateDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.VatNatureDetailViewModel>();
 
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
