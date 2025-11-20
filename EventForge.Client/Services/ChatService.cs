@@ -36,6 +36,7 @@ public interface IChatService
 
 public class ChatService : IChatService
 {
+    private const string BaseUrl = "api/v1/chat";
     private readonly IHttpClientService _httpClientService;
     private readonly SignalRService _signalRService;
     private readonly IPerformanceOptimizationService _performanceService;

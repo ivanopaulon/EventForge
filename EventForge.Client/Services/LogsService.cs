@@ -26,6 +26,7 @@ namespace EventForge.Client.Services
 
     public class LogsService : ILogsService
     {
+        private const string BaseUrl = "api/v1/logs";
         private readonly IHttpClientService _httpClientService;
         private readonly SignalRService _signalRService;
         private readonly ILogger<LogsService> _logger;

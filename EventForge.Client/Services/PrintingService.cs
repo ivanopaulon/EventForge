@@ -50,6 +50,7 @@ namespace EventForge.Client.Services
     /// </summary>
     public class PrintingService : IPrintingService
     {
+        private const string BaseUrl = "api/v1/printing";
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<PrintingService> _logger;
 

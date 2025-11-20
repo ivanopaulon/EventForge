@@ -20,6 +20,7 @@ public interface IConfigurationService
 
 public class ConfigurationService : IConfigurationService
 {
+    private const string BaseUrl = "api/v1/configuration";
     private readonly IHttpClientService _httpClientService;
     private readonly ILogger<ConfigurationService> _logger;
 

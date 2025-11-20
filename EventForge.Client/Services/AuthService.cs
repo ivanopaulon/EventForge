@@ -27,6 +27,7 @@ namespace EventForge.Client.Services
 
     public class AuthService : IAuthService
     {
+        private const string BaseUrl = "api/v1/auth";
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IJSRuntime _jsRuntime;
         private readonly ILogger<AuthService> _logger;
@@ -196,7 +197,7 @@ namespace EventForge.Client.Services
         /// Recupera i tenant disponibili per il login. Metodo leggero, con caching client-side per ridurre round-trip.
         /// Endpoint server previsto: GET /api/v1/auth/tenants
         /// </summary>
-        // Modifica: implementazione più robusta di GetAvailableTenantsAsync con timeout, retry e logging
+        // Modifica: implementazione piï¿½ robusta di GetAvailableTenantsAsync con timeout, retry e logging
         public async Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync()
         {
             try
