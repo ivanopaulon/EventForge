@@ -16,6 +16,7 @@ public class LogManagementServiceTests
 {
     private readonly Mock<IApplicationLogService> _mockApplicationLogService;
     private readonly Mock<IAuditLogService> _mockAuditLogService;
+    private readonly Mock<ILogSanitizationService> _mockLogSanitizationService;
     private readonly Mock<ILogger<LogManagementService>> _mockLogger;
     private readonly Mock<IMemoryCache> _mockCache;
     private readonly LogManagementService _service;
@@ -24,6 +25,7 @@ public class LogManagementServiceTests
     {
         _mockApplicationLogService = new Mock<IApplicationLogService>();
         _mockAuditLogService = new Mock<IAuditLogService>();
+        _mockLogSanitizationService = new Mock<ILogSanitizationService>();
         _mockLogger = new Mock<ILogger<LogManagementService>>();
         _mockCache = new Mock<IMemoryCache>();
 
@@ -38,6 +40,7 @@ public class LogManagementServiceTests
         _service = new LogManagementService(
             _mockApplicationLogService.Object,
             _mockAuditLogService.Object,
+            _mockLogSanitizationService.Object,
             _mockLogger.Object,
             _mockCache.Object,
             configuration);

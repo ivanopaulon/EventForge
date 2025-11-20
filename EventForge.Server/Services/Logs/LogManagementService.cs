@@ -133,8 +133,8 @@ public class LogManagementService : ILogManagementService
                 Items = sanitizedLogs,
                 Page = adminLogs.Page,
                 PageSize = adminLogs.PageSize,
-                TotalCount = adminLogs.TotalCount,
-                TotalPages = adminLogs.TotalPages
+                TotalCount = adminLogs.TotalCount
+                // TotalPages is calculated property
             };
         }
         catch (Exception ex)
