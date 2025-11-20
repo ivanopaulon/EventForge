@@ -101,7 +101,7 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
 
     protected override async Task<DocumentHeaderDto?> LoadEntityFromServiceAsync(Guid entityId)
     {
-        return await _documentHeaderService.GetDocumentHeaderByIdAsync(entityId);
+        return await _documentHeaderService.GetDocumentHeaderByIdAsync(entityId, false);
     }
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
