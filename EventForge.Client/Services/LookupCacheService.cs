@@ -61,20 +61,23 @@ public class LookupCacheService : ILookupCacheService
             _cache.Remove(BrandsCacheKey);
         }
 
-        return await _cache.GetOrCreateAsync(BrandsCacheKey, async entry =>
+        var result = await _cache.GetOrCreateAsync(BrandsCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
             try
             {
-                var result = await _brandService.GetBrandsAsync(1, 100);
-                return result?.Items ?? Enumerable.Empty<BrandDto>();
+                var apiResult = await _brandService.GetBrandsAsync(1, 100);
+                var brands = apiResult?.Items?.ToList() ?? new List<BrandDto>();
+                _logger.LogInformation("Loaded {Count} brands from service", brands.Count);
+                return brands;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to load brands from service");
-                return Enumerable.Empty<BrandDto>();
+                return new List<BrandDto>();
             }
-        }) ?? Enumerable.Empty<BrandDto>();
+        });
+        return result ?? new List<BrandDto>();
     }
 
     public async Task<IEnumerable<ModelDto>> GetModelsAsync(Guid? brandId = null, bool forceRefresh = false)
@@ -88,28 +91,33 @@ public class LookupCacheService : ILookupCacheService
             _cache.Remove(cacheKey);
         }
 
-        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        var result = await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
             try
             {
                 if (brandId.HasValue)
                 {
-                    var result = await _modelService.GetModelsByBrandIdAsync(brandId.Value, 1, 100);
-                    return result?.Items ?? Enumerable.Empty<ModelDto>();
+                    var apiResult = await _modelService.GetModelsByBrandIdAsync(brandId.Value, 1, 100);
+                    var models = apiResult?.Items?.ToList() ?? new List<ModelDto>();
+                    _logger.LogInformation("Loaded {Count} models from service for brand {BrandId}", models.Count, brandId.Value);
+                    return models;
                 }
                 else
                 {
-                    var result = await _modelService.GetModelsAsync(1, 100);
-                    return result?.Items ?? Enumerable.Empty<ModelDto>();
+                    var apiResult = await _modelService.GetModelsAsync(1, 100);
+                    var models = apiResult?.Items?.ToList() ?? new List<ModelDto>();
+                    _logger.LogInformation("Loaded {Count} models from service", models.Count);
+                    return models;
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to load models from service (BrandId: {BrandId})", brandId);
-                return Enumerable.Empty<ModelDto>();
+                return new List<ModelDto>();
             }
-        }) ?? Enumerable.Empty<ModelDto>();
+        });
+        return result ?? new List<ModelDto>();
     }
 
     public async Task<IEnumerable<VatRateDto>> GetVatRatesAsync(bool forceRefresh = false)
@@ -119,20 +127,23 @@ public class LookupCacheService : ILookupCacheService
             _cache.Remove(VatRatesCacheKey);
         }
 
-        return await _cache.GetOrCreateAsync(VatRatesCacheKey, async entry =>
+        var result = await _cache.GetOrCreateAsync(VatRatesCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
             try
             {
-                var result = await _financialService.GetVatRatesAsync();
-                return result?.Items ?? Enumerable.Empty<VatRateDto>();
+                var apiResult = await _financialService.GetVatRatesAsync();
+                var vatRates = apiResult?.Items?.ToList() ?? new List<VatRateDto>();
+                _logger.LogInformation("Loaded {Count} VAT rates from service", vatRates.Count);
+                return vatRates;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to load VAT rates from service");
-                return Enumerable.Empty<VatRateDto>();
+                return new List<VatRateDto>();
             }
-        }) ?? Enumerable.Empty<VatRateDto>();
+        });
+        return result ?? new List<VatRateDto>();
     }
 
     public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync(bool forceRefresh = false)
@@ -142,20 +153,23 @@ public class LookupCacheService : ILookupCacheService
             _cache.Remove(UnitsCacheKey);
         }
 
-        return await _cache.GetOrCreateAsync(UnitsCacheKey, async entry =>
+        var result = await _cache.GetOrCreateAsync(UnitsCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
             try
             {
-                var result = await _umService.GetUMsAsync(1, 100);
-                return result?.Items ?? Enumerable.Empty<UMDto>();
+                var apiResult = await _umService.GetUMsAsync(1, 100);
+                var units = apiResult?.Items?.ToList() ?? new List<UMDto>();
+                _logger.LogInformation("Loaded {Count} units of measure from service", units.Count);
+                return units;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to load units of measure from service");
-                return Enumerable.Empty<UMDto>();
+                return new List<UMDto>();
             }
-        }) ?? Enumerable.Empty<UMDto>();
+        });
+        return result ?? new List<UMDto>();
     }
 
     public async Task<BrandDto?> GetBrandByIdAsync(Guid brandId)

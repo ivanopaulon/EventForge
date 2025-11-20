@@ -79,9 +79,11 @@
     private PriceTrendDto? _priceTrend;
     private bool _isLoadingPriceTrend = false;
     private bool _priceTrendLoaded = false;
+    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
+        _isLoading = true;
         try
         {
             var vatRates = await LookupCacheService.GetVatRatesAsync();
@@ -90,6 +92,12 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Unable to load VAT rates");
+            _vatRates = new List<VatRateDto>();
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
         }
     }
 
@@ -133,6 +141,7 @@
         }
 
         StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadPriceTrendAsync()
