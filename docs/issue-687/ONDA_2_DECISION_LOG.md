@@ -29,8 +29,8 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 
 ### Phase 1: Documents ViewModels
 - [x] DocumentTypeDetailViewModel ✅ COMPLETE (PR #699)
-- [ ] DocumentHeaderDetailViewModel ⏸️ NEXT (PR #700)
-- [ ] DocumentCounterDetailViewModel ⏸️ QUEUE (PR #701)
+- [x] DocumentHeaderDetailViewModel ✅ COMPLETE (PR #700)
+- [x] DocumentCounterDetailViewModel ✅ COMPLETE (PR #700)
 
 ### Phase 2: Financial ViewModels
 - [ ] VatRateDetailViewModel ⏸️ QUEUE (PR #702)
@@ -42,9 +42,9 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 ### Build Metrics
 | Metric | Onda 1 Final | Onda 2 Target | Current | Status |
 |--------|--------------|---------------|---------|--------|
-| ViewModels | 5 | 11 (+6) | 6 | 🚀 |
-| ViewModel Tests | 35 | 77 (+42) | 42 | 🚀 |
-| Total Tests | 430 | 472 (+42) | 437 | 🚀 |
+| ViewModels | 5 | 11 (+6) | 8 | 🚀 |
+| ViewModel Tests | 35 | 77 (+42) | 56 | 🚀 |
+| Total Tests | 430 | 472 (+42) | 451 | 🚀 |
 | Test Pass Rate | 98.1% | ≥98.3% | 98.2% | ✅ |
 | Breaking Changes | 0 | 0 | 0 | ✅ |
 
@@ -55,7 +55,7 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 - ⏳ PR #699 DocumentTypeDetailViewModel avviato
 - 🎯 Target: 6 ViewModels per coverage massima Documents + Financial
 
-### 2025-11-20 21:30 UTC
+### 2025-11-20 21:30 UTC (PR #699 COMPLETE)
 - ✅ PR #699 DocumentTypeDetailViewModel COMPLETE
 - ✅ Created DocumentTypeDetailViewModel.cs with full implementation
 - ✅ Registered ViewModel in Program.cs DI container
@@ -142,13 +142,101 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 - ✅ Null-safety handled with empty collections
 - ✅ Try-catch with proper error logging
 
+### 2025-11-20 (Current Session) - PR #700
+- ✅ PR #700 DocumentHeader & DocumentCounter ViewModels COMPLETE
+- ✅ Created DocumentHeaderDetailViewModel.cs with full implementation
+- ✅ Created DocumentCounterDetailViewModel.cs with full implementation
+- ✅ Registered both ViewModels in Program.cs DI container
+- ✅ Created DocumentHeaderDetailViewModelTests.cs with 7 comprehensive tests
+- ✅ Created DocumentCounterDetailViewModelTests.cs with 7 comprehensive tests
+- ✅ All 14 new tests passing (451 total tests, 443 passing)
+- ✅ Build successful with 0 errors, 105 warnings (pre-existing)
+- ✅ Pattern consistency maintained with DocumentTypeDetailViewModel
+- ✅ Related entities loading correctly:
+  - DocumentHeader: DocumentTypes and BusinessParties dropdowns
+  - DocumentCounter: DocumentTypes dropdown
+- ✅ Structured logging implemented
+- ✅ Null safety handled properly
+- ✅ Zero breaking changes
+
+## 🔧 Technical Details - PR #700
+
+### Files Created (4 files)
+1. **EventForge.Client/ViewModels/DocumentHeaderDetailViewModel.cs**
+   - Inherits from `BaseEntityDetailViewModel<DocumentHeaderDto, CreateDocumentHeaderDto, UpdateDocumentHeaderDto>`
+   - Uses `IDocumentHeaderService`, `IDocumentTypeService`, and `IBusinessPartyService`
+   - Implements all abstract methods
+   - Loads DocumentTypes and BusinessParties for dropdowns
+   - Handles complex DocumentHeader entity with 40+ properties
+
+2. **EventForge.Client/ViewModels/DocumentCounterDetailViewModel.cs**
+   - Inherits from `BaseEntityDetailViewModel<DocumentCounterDto, CreateDocumentCounterDto, UpdateDocumentCounterDto>`
+   - Uses `IDocumentCounterService` and `IDocumentTypeService`
+   - Implements all abstract methods
+   - Loads DocumentTypes for dropdown
+   - Manages counter configuration (prefix, suffix, padding, etc.)
+
+3. **EventForge.Tests/ViewModels/DocumentHeaderDetailViewModelTests.cs** (7 tests)
+   - LoadAsync_WithValidId_LoadsEntity
+   - CreateNewEntity_ReturnsDefaultDocumentHeader
+   - SaveAsync_NewEntity_CallsCreate
+   - SaveAsync_ExistingEntity_CallsUpdate
+   - LoadRelatedEntities_LoadsDocumentTypesAndBusinessParties
+   - IsNewEntity_WithEmptyId_ReturnsTrue
+   - GetEntityId_ReturnsCorrectId
+
+4. **EventForge.Tests/ViewModels/DocumentCounterDetailViewModelTests.cs** (7 tests)
+   - LoadAsync_WithValidId_LoadsEntity
+   - CreateNewEntity_ReturnsDefaultDocumentCounter
+   - SaveAsync_NewEntity_CallsCreate
+   - SaveAsync_ExistingEntity_CallsUpdate
+   - LoadRelatedEntities_LoadsDocumentTypes
+   - IsNewEntity_WithEmptyId_ReturnsTrue
+   - GetEntityId_ReturnsCorrectId
+
+### Files Modified (2 files)
+1. **EventForge.Client/Program.cs**
+   - Added `DocumentHeaderDetailViewModel` registration in DI container
+   - Added `DocumentCounterDetailViewModel` registration in DI container
+   - Placed after DocumentTypeDetailViewModel as part of Onda 2 section
+
+2. **docs/issue-687/ONDA_2_DECISION_LOG.md**
+   - Updated progress tracking for DocumentHeader and DocumentCounter
+   - Marked both as COMPLETE in Phase 1
+   - Updated metrics: 8 ViewModels, 56 ViewModel tests, 451 total tests
+
+### DocumentHeader Properties (Simplified from DTO)
+```csharp
+- Guid DocumentTypeId
+- Guid BusinessPartyId
+- string Number
+- DateTime Date
+- decimal TotalGrossAmount
+- DocumentStatus Status
+- PaymentStatus PaymentStatus
+- ApprovalStatus ApprovalStatus
+- ... (40+ total properties)
+```
+
+### DocumentCounter Properties
+```csharp
+- Guid DocumentTypeId
+- string Series
+- int CurrentValue
+- int? Year
+- string? Prefix
+- int PaddingLength
+- string? FormatPattern
+- bool ResetOnYearChange
+- string? Notes
+```
+
 ## 🎯 Next Steps
 
-1. PR #700: DocumentHeaderDetailViewModel
-2. PR #701: DocumentCounterDetailViewModel
-3. PR #702: VatRateDetailViewModel
-4. PR #703: VatNatureDetailViewModel
-5. PR #704: PaymentTermDetailViewModel
+1. ~~PR #700: DocumentHeader & DocumentCounter ViewModels~~ ✅ COMPLETE
+2. PR #702: VatRateDetailViewModel (Financial ViewModels - Phase 2)
+3. PR #703: VatNatureDetailViewModel
+4. PR #704: PaymentTermDetailViewModel
 
 ## 🔍 Known Pattern Characteristics
 
