@@ -44,5 +44,12 @@ namespace EventForge.DTOs.Warehouse
         /// </summary>
         [StringLength(200)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// When true, automatically merges this row with existing rows for the same product and location.
+        /// Quantities are summed respecting unit conversion factors.
+        /// Default is false to maintain backward compatibility.
+        /// </summary>
+        public bool MergeDuplicateProducts { get; set; } = false;
     }
 }
