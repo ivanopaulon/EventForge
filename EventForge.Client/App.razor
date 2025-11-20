@@ -1,9 +1,10 @@
-@* EventForge Client App.razor - Main application routing configuration
-   Routing: Standard Blazor routing with mandatory authentication redirects
-   Landing page: "/" -> Home.razor (requires authentication)
-   Authentication: All pages except /login require authentication with automatic redirects
-   
-   NOTE: I18N REMOVED - TranslationService removed to support minimal home without i18n *@
+@namespace EventForge.Client
+
+@using EventForge.Client.Layout
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
+@using EventForge.Client.Shared.Components.Drawers
+
 
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
@@ -120,7 +121,7 @@
             NoHeader = false
         };
 
-        var dialog = await DialogService.ShowAsync<Shared.Components.Dialogs.LoginDialog>("", options);
+        var dialog = await DialogService.ShowAsync<LoginDialog>("", options);
         var result = await dialog.Result;
 
         if (!result.Canceled)
