@@ -5,6 +5,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs.UnifiedInventoryDialog
+@using EventForge.Client.Shared.Components.Warehouse
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
@@ -266,6 +267,11 @@
                     </RowTemplate>
                 </MudTable>
             </MudPaper>
+
+            <!-- Barcode Assignment Audit Panel -->
+            <InventoryBarcodeAuditPanel 
+                BarcodeAssignments="_barcodeAssignments"
+                OnViewProduct="@NavigateToProduct" />
         }
     }
     else
@@ -298,6 +304,22 @@
     private MudTextField<string>? _barcodeInput;
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private bool _showOnlyAdjustments = false;
+    private List<BarcodeAssignmentInfo> _barcodeAssignments = new();
+
+    // Helper class for tracking barcode assignments during inventory session
+    private class BarcodeAssignmentInfo
+    {
+        public string Barcode { get; set; } = string.Empty;
+        public string CodeType { get; set; } = string.Empty;
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string ProductCode { get; set; } = string.Empty;
+        public Guid? ProductUnitId { get; set; }
+        public string? UnitName { get; set; }
+        public decimal ConversionFactor { get; set; } = 1m;
+        public DateTime AssignedAt { get; set; }
+        public string AssignedBy { get; set; } = string.Empty;
+    }
 
     // Empty method to avoid breaking existing calls
     private void AddOperationLog(string message, string details = "", string type = "Info")
@@ -910,7 +932,8 @@
                 LocationId = _selectedLocationId.Value,
                 Quantity = _quantity,
                 UnitOfMeasureId = unitOfMeasureId,
-                Notes = _notes
+                Notes = _notes,
+                MergeDuplicateProducts = true // Enable automatic row merging for duplicate products
             };
 
             var updatedDocument = await InventoryService.AddInventoryDocumentRowAsync(_currentDocument.Id, rowDto);
@@ -1135,6 +1158,23 @@
             // Handle assignment result from integrated search
             else
             {
+                // Try to extract assignment info using dynamic type
+                try
+                {
+                    dynamic assignResult = result.Data;
+                    if (assignResult.Action == "assigned" && assignResult.Product != null)
+                    {
+                        ProductDto assignedProduct = assignResult.Product;
+                        
+                        // Track the barcode assignment
+                        TrackBarcodeAssignment(_scannedBarcode, assignedProduct, "Barcode", null, 1m);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Could not extract assignment info from dialog result");
+                }
+                
                 // Product was assigned directly from the dialog, search again to load it
                 await SearchBarcode();
             }
@@ -1169,6 +1209,9 @@
             // Product created successfully with codes and units
             // Set the current product and show the inventory entry dialog directly
             _currentProduct = createdProduct;
+            
+            // Track the barcode assignment for the new product
+            TrackBarcodeAssignment(_scannedBarcode, createdProduct, "EAN", null, 1m);
             
             Snackbar.Add(
                 TranslationService.GetTranslation("products.productCreatedWithCodesUnits", "Prodotto creato con codici e UoM: {0}", createdProduct.Name),
@@ -1437,6 +1480,47 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private void NavigateToProduct(Guid productId)
+    {
+        NavigationManager.NavigateTo($"/products/detail/{productId}");
+    }
+
+    private void TrackBarcodeAssignment(string barcode, ProductDto product, string codeType, Guid? productUnitId, decimal conversionFactor)
+    {
+        try
+        {
+            // Limit to 500 assignments to avoid memory issues
+            if (_barcodeAssignments.Count >= 500)
+            {
+                Logger.LogWarning("Barcode assignments limit reached (500), removing oldest");
+                _barcodeAssignments.RemoveAt(0);
+            }
+
+            var assignment = new BarcodeAssignmentInfo
+            {
+                Barcode = barcode,
+                CodeType = codeType,
+                ProductId = product.Id,
+                ProductName = product.Name,
+                ProductCode = product.Code,
+                ProductUnitId = productUnitId,
+                UnitName = null, // Will be populated if needed
+                ConversionFactor = conversionFactor,
+                AssignedAt = DateTime.UtcNow,
+                AssignedBy = "Current User" // Could be enhanced with actual user info
+            };
+
+            _barcodeAssignments.Add(assignment);
+            
+            Logger.LogInformation("Barcode {Barcode} assigned to product {ProductId} with conversion factor {Factor}", 
+                barcode, product.Id, conversionFactor);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error tracking barcode assignment");
         }
     }
 }

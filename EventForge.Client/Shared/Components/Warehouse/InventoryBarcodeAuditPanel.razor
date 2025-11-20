@@ -1,0 +1,154 @@
+@using EventForge.DTOs.Products
+@inject ITranslationService TranslationService
+@inject NavigationManager NavigationManager
+
+@* Barcode Assignment Audit Panel for Inventory Sessions *@
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Outlined.Assignment" Color="Color.Info" Size="Size.Medium" />
+            <div>
+                <MudText Typo="Typo.h6">
+                    @TranslationService.GetTranslation("warehouse.barcodeAuditPanel", "Codici Assegnati")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("warehouse.barcodeAuditPanelSubtitle", "Revisione mapping barcode/prodotto creati in questa sessione")
+                </MudText>
+            </div>
+        </MudStack>
+        
+        @{
+            var assignments = GetAssignments().ToList();
+        }
+        @if (assignments.Any())
+        {
+            <MudBadge Content="@assignments.Count" Color="Color.Success" Overlap="true">
+                <MudIconButton Icon="@(_isExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
+                               Color="Color.Default"
+                               OnClick="@(() => _isExpanded = !_isExpanded)" />
+            </MudBadge>
+        }
+        else
+        {
+            <MudIconButton Icon="@(_isExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
+                           Color="Color.Default"
+                           OnClick="@(() => _isExpanded = !_isExpanded)" />
+        }
+    </MudStack>
+
+    <MudCollapse Expanded="@_isExpanded">
+        @{
+            var assignmentList = GetAssignments().ToList();
+        }
+        @if (_isLoading)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px" />
+        }
+        else if (!assignmentList.Any())
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                <MudText Typo="Typo.body2">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.noBarcodeAssignments", "Nessun codice assegnato ancora")
+                </MudText>
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="@assignmentList" 
+                      Hover="true" 
+                      Dense="true" 
+                      Striped="true"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh>
+                        <MudIcon Icon="@Icons.Material.Outlined.QrCode" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("products.barcode", "Barcode/Codice")
+                    </MudTh>
+                    <MudTh>@TranslationService.GetTranslation("products.codeType", "Tipo")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("products.product", "Prodotto")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("products.unitOfMeasure", "Unità")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("products.conversionFactor", "Fattore")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("field.assignedAt", "Assegnato il")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Barcode">
+                        <MudText Typo="Typo.body2" Style="font-family: monospace;">@context.Barcode</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Type">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.CodeType</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Product">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Unit">
+                        @if (!string.IsNullOrEmpty(context.UnitName))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.Transform">
+                                @context.UnitName
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("products.defaultUnit", "Unità base")
+                            </MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Factor">
+                        @if (context.ConversionFactor != 1m)
+                        {
+                            <MudText Typo="Typo.body2" Style="font-weight: 600; color: var(--mud-palette-warning);">
+                                x @context.ConversionFactor.ToString("0.###")
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">1</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Assigned At">
+                        <MudText Typo="Typo.caption">@context.AssignedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudTooltip Text="@TranslationService.GetTranslation("products.viewProduct", "Visualizza prodotto")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => OnViewProduct.InvokeAsync(context.ProductId))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCollapse>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public object? BarcodeAssignments { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnViewProduct { get; set; }
+
+    private bool _isExpanded = false;
+    private bool _isLoading = false;
+
+    private IEnumerable<dynamic> GetAssignments()
+    {
+        if (BarcodeAssignments == null)
+            return Enumerable.Empty<dynamic>();
+        
+        // Use dynamic to work with any list type
+        try
+        {
+            return ((IEnumerable<dynamic>)BarcodeAssignments);
+        }
+        catch
+        {
+            return Enumerable.Empty<dynamic>();
+        }
+    }
+}
