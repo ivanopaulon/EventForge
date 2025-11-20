@@ -310,12 +310,12 @@
     {
         try
         {
-            // Load active lots
-            var activeLots = await LotService.GetLotsAsync(1, 1000, null, "Active");
+            // Load active lots - use pageSize=1 since we only need the TotalCount for statistics
+            var activeLots = await LotService.GetLotsAsync(1, 1, null, "Active");
             _activeLotCount = (int)(activeLots?.TotalCount ?? 0);
 
-            // Load blocked lots  
-            var blockedLots = await LotService.GetLotsAsync(1, 1000, null, "Blocked");
+            // Load blocked lots - use pageSize=1 since we only need the TotalCount for statistics
+            var blockedLots = await LotService.GetLotsAsync(1, 1, null, "Blocked");
             _blockedLotCount = (int)(blockedLots?.TotalCount ?? 0);
 
             // Load expiring lots

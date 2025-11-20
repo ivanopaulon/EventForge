@@ -1364,7 +1364,7 @@
     {
         try
         {
-            var result = await BusinessPartyService.GetBusinessPartiesAsync(1, 1000);
+            var result = await BusinessPartyService.GetBusinessPartiesAsync(1, 100);
             _businessParties = result?.Items ?? new List<BusinessPartyDto>();
         }
         catch (Exception ex)

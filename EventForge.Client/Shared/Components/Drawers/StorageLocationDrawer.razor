@@ -464,7 +464,7 @@
     {
         try
         {
-            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 1000);
+            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 100);
             if (result != null)
             {
                 _warehouses = result.Items.ToList();
