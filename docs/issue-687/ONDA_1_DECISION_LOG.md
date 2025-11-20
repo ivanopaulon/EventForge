@@ -210,10 +210,10 @@ builder.Services.AddScoped<ProductDetailViewModel>();
 - [ ] Unit tests for Product ViewModels
 
 ### Phase 3: Warehouse ViewModels
-- [ ] WarehouseDetailViewModel
+- [x] WarehouseDetailViewModel ✅ COMPLETATO (PR #695)
 - [x] InventoryDetailViewModel ✅ COMPLETATO (PR #694)
 - [ ] Stock management ViewModels
-- [x] Unit tests for Warehouse ViewModels (InventoryDetailViewModel: 7 tests, 100% pass)
+- [x] Unit tests for Warehouse ViewModels (InventoryDetailViewModel: 7 tests, WarehouseDetailViewModel: 7 tests, 100% pass)
 
 ### Phase 4: Integration & Testing
 - [ ] Integration tests
@@ -299,6 +299,16 @@ builder.Services.AddScoped<ProductDetailViewModel>();
 ---
 
 ## 📅 Change Log
+
+### 2025-11-20 19:27 UTC
+- ✅ WarehouseDetailViewModel implementato (PR #695)
+- ✅ Pattern consolidato con terzo ViewModel
+- ✅ Related entities (StorageLocations) loading
+- ✅ Custom methods per gestione locations (AddStorageLocationAsync, DeleteStorageLocationAsync)
+- ✅ 7 unit tests creati, 100% pass rate
+- ✅ Test totali: 401/409 passing (98.0%)
+- ✅ Build: 0 errors, 105 warnings (unchanged)
+- ✅ Zero breaking changes
 
 ### 2025-11-20 18:52 UTC
 - ✅ InventoryDetailViewModel implementato (PR #694)
