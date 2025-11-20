@@ -58,16 +58,23 @@ Client logs are sent to the server via the `/api/ClientLogs` endpoint, which is 
 
 1. Client-side components use `IClientLogService` to log events
 2. Logs are batched and sent to the server via HTTP POST
-3. `ClientLogsController` receives the logs and logs them using the server's `ILogger`
-4. The server's `ILogger` is configured to use Serilog
-5. Serilog writes the logs to the same `LogDb` database
+3. `ClientLogsController` enqueues logs into the **Log Ingestion Pipeline** (async, non-blocking)
+4. `LogIngestionBackgroundService` processes logs in batches with resilience (retry + circuit breaker)
+5. Processed logs are written via Serilog to the `LogDb` database
+6. If the database is unavailable, logs are written to fallback files
 
 ### Key Points
 
 - **Both client and server logs go to the same database (LogDb)**
 - Client logs are enriched with additional context (Source: "Client", Page, UserAgent, etc.)
-- Logs are batched for efficiency
+- **Resilient processing**: Logs are queued and processed asynchronously with automatic retry
+- **Non-blocking**: API endpoints return immediately (202 Accepted)
+- **Fallback mechanism**: Logs are saved to files when database is unavailable
+- **Rate limiting**: Batch endpoint is rate-limited to 100 requests/minute per IP
+- **Health monitoring**: Check pipeline health at `/api/ClientLogs/ingestion/health`
 - Offline support: logs are stored in browser localStorage if the server is unavailable
+
+For detailed information about the ingestion pipeline, see [LOGGING_INGESTION.md](./LOGGING_INGESTION.md).
 
 ## Usage in Components
 
