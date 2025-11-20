@@ -511,12 +511,10 @@
 </style>
 
 @code {
-    [Parameter] public bool Visible { get; set; }
-    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    
     [Parameter] public DetailedHealthStatusDto? HealthData { get; set; }
-    [Parameter] public EventCallback<DetailedHealthStatusDto?> HealthDataChanged { get; set; }
     [Parameter] public DateTime? LastUpdated { get; set; }
-    [Parameter] public EventCallback<DateTime?> LastUpdatedChanged { get; set; }
     [Parameter] public EventCallback OnRefreshRequested { get; set; }
 
     // Log Management State
@@ -631,17 +629,12 @@
         
         // Update last updated timestamp
         LastUpdated = DateTime.Now;
-        if (LastUpdatedChanged.HasDelegate)
-        {
-            await LastUpdatedChanged.InvokeAsync(LastUpdated);
-        }
     }
 
-    private async Task Close()
+    private void Close()
     {
         StopAutoRefresh();
-        Visible = false;
-        await VisibleChanged.InvokeAsync(Visible);
+        MudDialog?.Close();
     }
 
     private async Task LoadLogsAsync()
