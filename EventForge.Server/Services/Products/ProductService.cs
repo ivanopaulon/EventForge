@@ -2058,6 +2058,119 @@ public class ProductService : IProductService
         return productIdsToAdd.Count;
     }
 
+    public async Task<PagedResult<ProductSupplierDto>> GetProductsBySupplierAsync(
+        Guid supplierId,
+        int page = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+        }
+
+        try
+        {
+            // Query product suppliers for this supplier
+            var query = _context.ProductSuppliers
+                .Where(ps => ps.SupplierId == supplierId &&
+                            !ps.IsDeleted &&
+                            ps.TenantId == currentTenantId.Value)
+                .Include(ps => ps.Product)
+                .Include(ps => ps.Supplier)
+                .OrderByDescending(ps => ps.Preferred)
+                .ThenBy(ps => ps.Product!.Name);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+            var skip = (page - 1) * pageSize;
+
+            var productSuppliers = await query
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            // Get product IDs to fetch latest purchase data
+            var productIds = productSuppliers.Select(ps => ps.ProductId).ToList();
+
+            // Get latest purchase prices from approved document rows
+            var latestPurchases = await _context.DocumentRows
+                .Where(dr => dr.ProductId.HasValue &&
+                            productIds.Contains(dr.ProductId.Value) &&
+                            !dr.IsDeleted &&
+                            dr.TenantId == currentTenantId.Value)
+                .Include(dr => dr.DocumentHeader)
+                    .ThenInclude(dh => dh!.DocumentType)
+                .Where(dr => dr.DocumentHeader != null &&
+                            !dr.DocumentHeader.IsDeleted &&
+                            dr.DocumentHeader.BusinessPartyId == supplierId &&
+                            dr.DocumentHeader.ApprovalStatus == EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved &&
+                            dr.DocumentHeader.DocumentType != null &&
+                            dr.DocumentHeader.DocumentType.IsStockIncrease == true &&
+                            dr.DocumentHeader.TenantId == currentTenantId.Value)
+                .GroupBy(dr => dr.ProductId!.Value)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    LastPurchasePrice = g.OrderByDescending(dr => dr.DocumentHeader!.Date)
+                                         .Select(dr => dr.UnitPrice)
+                                         .FirstOrDefault(),
+                    LastPurchaseDate = g.OrderByDescending(dr => dr.DocumentHeader!.Date)
+                                        .Select(dr => dr.DocumentHeader!.Date)
+                                        .FirstOrDefault()
+                })
+                .ToListAsync(cancellationToken);
+
+            var latestPurchaseDict = latestPurchases.ToDictionary(lp => lp.ProductId);
+
+            // Map to DTOs
+            var items = productSuppliers.Select(ps =>
+            {
+                var dto = new ProductSupplierDto
+                {
+                    Id = ps.Id,
+                    ProductId = ps.ProductId,
+                    ProductName = ps.Product?.Name,
+                    SupplierId = ps.SupplierId,
+                    SupplierName = ps.Supplier?.Name,
+                    SupplierProductCode = ps.SupplierProductCode,
+                    PurchaseDescription = ps.PurchaseDescription,
+                    UnitCost = ps.UnitCost,
+                    Currency = ps.Currency,
+                    MinOrderQty = ps.MinOrderQty,
+                    IncrementQty = ps.IncrementQty,
+                    LeadTimeDays = ps.LeadTimeDays,
+                    Preferred = ps.Preferred,
+                    Notes = ps.Notes,
+                    CreatedAt = ps.CreatedAt,
+                    CreatedBy = ps.CreatedBy
+                };
+
+                // Enrich with latest purchase data
+                if (latestPurchaseDict.TryGetValue(ps.ProductId, out var latestPurchase))
+                {
+                    dto.LastPurchasePrice = latestPurchase.LastPurchasePrice;
+                    dto.LastPurchaseDate = latestPurchase.LastPurchaseDate;
+                }
+
+                return dto;
+            }).ToList();
+
+            return new PagedResult<ProductSupplierDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting products by supplier {SupplierId}", supplierId);
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<RecentProductTransactionDto>> GetRecentProductTransactionsAsync(
         Guid productId,
         string type = "purchase",

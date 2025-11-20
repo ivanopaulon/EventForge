@@ -2122,6 +2122,44 @@ public class ProductManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Gets products by supplier with pagination, enriched with latest purchase data.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of product suppliers</returns>
+    /// <response code="200">Returns the paginated list of products</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="401">If the user is not authenticated</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("suppliers/{supplierId:guid}/supplied-products")]
+    [ProducesResponseType(typeof(PagedResult<ProductSupplierDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ProductSupplierDto>>> GetProductsBySupplier(
+        Guid supplierId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _productService.GetProductsBySupplierAsync(supplierId, page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while getting products for supplier {SupplierId}.", supplierId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving products.", ex);
+        }
+    }
+
     #region Product Document Movements and Stock Trend
 
     /// <summary>
