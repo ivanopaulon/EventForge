@@ -101,6 +101,7 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.ProductDetailViewModel>(
 builder.Services.AddScoped<EventForge.Client.ViewModels.InventoryDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.WarehouseDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.StorageLocationDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.LotDetailViewModel>();
 
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
