@@ -38,7 +38,7 @@ public class EntitySchemaProviderTests
         // Assert
         Assert.NotNull(fields);
         Assert.NotEmpty(fields);
-        
+
         // Verify key fields exist
         Assert.Contains(fields, f => f.Name == "Percentage");
         Assert.Contains(fields, f => f.Name == "Name");
@@ -55,7 +55,7 @@ public class EntitySchemaProviderTests
         // Assert
         Assert.NotNull(fields);
         Assert.NotEmpty(fields);
-        
+
         // Verify key fields exist
         Assert.Contains(fields, f => f.Name == "Name");
         Assert.Contains(fields, f => f.Name == "Code");
@@ -87,10 +87,10 @@ public class EntitySchemaProviderTests
         // Assert
         Assert.NotNull(fields);
         Assert.NotEmpty(fields);
-        
+
         // All returned fields should be numeric
         Assert.All(fields, f => Assert.True(f.IsNumeric, $"Field {f.Name} should be numeric"));
-        
+
         // Percentage should be included as it's a decimal
         Assert.Contains(fields, f => f.Name == "Percentage");
     }

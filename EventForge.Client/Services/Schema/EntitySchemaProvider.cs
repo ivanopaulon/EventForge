@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using EventForge.DTOs.Dashboard;
+using System.Reflection;
 
 namespace EventForge.Client.Services.Schema
 {
@@ -137,11 +134,11 @@ namespace EventForge.Client.Services.Schema
         {
             // Skip collections and complex navigation properties
             var propType = prop.PropertyType;
-            
+
             if (propType.IsGenericType)
             {
                 var genericTypeDef = propType.GetGenericTypeDefinition();
-                if (genericTypeDef == typeof(List<>) || 
+                if (genericTypeDef == typeof(List<>) ||
                     genericTypeDef == typeof(ICollection<>) ||
                     genericTypeDef == typeof(IEnumerable<>))
                 {
@@ -155,10 +152,10 @@ namespace EventForge.Client.Services.Schema
         private bool IsNavigableType(Type type)
         {
             var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
-            
+
             // Only navigate into custom DTO types, not primitives
-            if (underlyingType.IsPrimitive || 
-                underlyingType == typeof(string) || 
+            if (underlyingType.IsPrimitive ||
+                underlyingType == typeof(string) ||
                 underlyingType == typeof(DateTime) ||
                 underlyingType == typeof(DateTimeOffset) ||
                 underlyingType == typeof(Guid) ||
