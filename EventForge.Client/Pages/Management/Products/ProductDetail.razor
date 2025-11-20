@@ -14,106 +14,128 @@
 @inject ILogger<ProductDetail> Logger
 @implements IDisposable
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="ViewModel.IsLoading || ViewModel.IsSaving"
-                        Message="@(ViewModel.IsSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="ViewModel.IsLoading || ViewModel.IsSaving"
+                     Message="@(ViewModel.IsSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (!ViewModel.IsLoading && ViewModel.Entity == null)
-    {
-        <MudAlert Severity="Severity.Error">
-            @TranslationService.GetTranslation("product.notFound", "Prodotto non trovato")
-        </MudAlert>
-    }
-    else if (!ViewModel.IsLoading && ViewModel.Entity != null)
-    {
-        <!-- Page Header -->
-        <MudPaper Elevation="2" Class="pa-4 mb-4">
-            <div class="d-flex justify-space-between align-center">
-                <div>
-                    <div class="d-flex align-center gap-2 mb-2">
-                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
-                                       Color="Color.Primary"
-                                       OnClick="@(() => TryNavigateAway("/product-management/products"))"
-                                       Size="Size.Small" />
-                        <MudText Typo="Typo.h4">
-                            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
-                            @(ViewModel.IsNewEntity ? TranslationService.GetTranslation("product.newProduct", "Nuovo Prodotto") : ViewModel.Entity.Name)
-                        </MudText>
-                        <MudChip T="string" Size="Size.Small" Color="GetStatusColor(ViewModel.Entity.Status)">
-                            @GetStatusText(ViewModel.Entity.Status)
-                        </MudChip>
-
-                        @if (ViewModel.HasUnsavedChanges())
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
-                                @TranslationService.GetTranslation("product.unsavedChanges", "Modifiche non salvate")
-                            </MudChip>
-                        }
+@if (!ViewModel.IsLoading)
+{
+    <div class="product-page-root">
+        @if (ViewModel.Entity == null)
+        {
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+                <MudAlert Severity="Severity.Error">
+                    @TranslationService.GetTranslation("product.notFound", "Prodotto non trovato")
+                </MudAlert>
+            </MudContainer>
+        }
+        else
+        {
+            <div class="product-top">
+                <!-- Page Header -->
+                <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <div class="d-flex justify-space-between align-center flex-wrap gap-2">
+                        <div class="d-flex align-center gap-2">
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                                           Color="Color.Primary"
+                                           OnClick="@(() => TryNavigateAway("/product-management/products"))"
+                                           Size="Size.Medium"
+                                           title="@TranslationService.GetTranslation("common.back", "Indietro")" />
+                            <MudText Typo="Typo.h5">
+                                @(ViewModel.IsNewEntity ? TranslationService.GetTranslation("product.newProduct", "Nuovo Prodotto") : TranslationService.GetTranslation("product.detailTitle", "Dettaglio Prodotto"))
+                            </MudText>
+                        </div>
+                        <div class="d-flex gap-2 align-center">
+                            @if (ViewModel.HasUnsavedChanges())
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Edit">
+                                    @TranslationService.GetTranslation("product.unsavedChanges", "Modifiche non salvate")
+                                </MudChip>
+                            }
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="SaveProductAsync"
+                                       Disabled="ViewModel.IsSaving"
+                                       Size="Size.Medium">
+                                @TranslationService.GetTranslation("common.save", "Salva")
+                            </MudButton>
+                        </div>
                     </div>
                     @if (!ViewModel.IsNewEntity)
                     {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            @TranslationService.GetTranslation("field.code", "Codice"): @ViewModel.Entity.Code
-                        </MudText>
+                        <MudDivider Class="my-3" />
+                        <div class="d-flex align-center gap-4 flex-wrap">
+                            <div class="d-flex align-center gap-2">
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("field.code", "Codice"): @ViewModel.Entity.Code
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)" Icon="@GetStatusIcon(ViewModel.Entity.Status)">
+                                @GetStatusText(ViewModel.Entity.Status)
+                            </MudChip>
+                            @if (ViewModel.Entity.DefaultPrice.HasValue)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Info" Icon="@Icons.Material.Outlined.AttachMoney">
+                                    @ViewModel.Entity.DefaultPrice.Value.ToString("C2")
+                                </MudChip>
+                            }
+                        </div>
                     }
-                </div>
-                <div class="d-flex gap-2">
-                    <!-- Page now ALWAYS in edit mode -->
-                    <MudButton Variant="Variant.Filled" 
-                               Color="Color.Primary" 
-                               StartIcon="@Icons.Material.Filled.Save"
-                               OnClick="SaveProductAsync"
-                               Disabled="ViewModel.IsSaving"
-                               Size="Size.Small">
-                        @TranslationService.GetTranslation("common.save", "Salva")
-                    </MudButton>
-                </div>
+                </MudPaper>
             </div>
-        </MudPaper>
 
-        <!-- Tabs Section -->
-        <MudPaper Elevation="2" Class="pa-2">
-            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
-                    <GeneralInfoTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode"
-                                    OnProductUpdated="@HandleProductLocallyChanged"
-                                    OnProductUpdatedPersisted="@HandleProductPersistedChange" />
-                </MudTabPanel>
+            <div class="eftable-wrapper">
+                <!-- Tabs Section -->
+                <MudPaper Elevation="2" Class="pa-2">
+                    <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
+                        <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
+                            <GeneralInfoTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode"
+                                            OnProductUpdated="@HandleProductLocallyChanged"
+                                            OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                        </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.pricingFinancial", "Prezzi e Finanza")" Icon="@Icons.Material.Filled.AttachMoney">
-                    <PricingFinancialTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
-                </MudTabPanel>
+                        <MudTabPanel Text="@TranslationService.GetTranslation("product.pricingFinancial", "Prezzi e Finanza")" Icon="@Icons.Material.Filled.AttachMoney">
+                            <PricingFinancialTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
+                        </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")" Icon="@Icons.Material.Filled.Category">
-                    <ClassificationTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
-                </MudTabPanel>
+                        <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")" Icon="@Icons.Material.Filled.Category">
+                            <ClassificationTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
+                        </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" Icon="@Icons.Material.Filled.QrCode2" BadgeData="@ViewModel.ProductCodes?.Count()" BadgeDot="@(ViewModel.ProductCodes?.Any() ?? false)">
-                    <ProductCodesTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
-                </MudTabPanel>
+                        <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" Icon="@Icons.Material.Filled.QrCode2" BadgeData="@ViewModel.ProductCodes?.Count()" BadgeDot="@(ViewModel.ProductCodes?.Any() ?? false)">
+                            <ProductCodesTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                        </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" Icon="@Icons.Material.Filled.Straighten" BadgeData="@ViewModel.ProductUnits?.Count()" BadgeDot="@(ViewModel.ProductUnits?.Any() ?? false)">
-                    <ProductUnitsTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
-                </MudTabPanel>
+                        <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" Icon="@Icons.Material.Filled.Straighten" BadgeData="@ViewModel.ProductUnits?.Count()" BadgeDot="@(ViewModel.ProductUnits?.Any() ?? false)">
+                            <ProductUnitsTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                        </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" Icon="@Icons.Material.Filled.LocalShipping" BadgeData="@ViewModel.ProductSuppliers?.Count()" BadgeDot="@(ViewModel.ProductSuppliers?.Any() ?? false)">
-                    <ProductSuppliersTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
-                </MudTabPanel>
+                        <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" Icon="@Icons.Material.Filled.LocalShipping" BadgeData="@ViewModel.ProductSuppliers?.Count()" BadgeDot="@(ViewModel.ProductSuppliers?.Any() ?? false)">
+                            <ProductSuppliersTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                        </MudTabPanel>
 
-                @if (ViewModel.Entity.IsBundle)
-                {
-                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" Icon="@Icons.Material.Filled.Inventory" BadgeData="@ViewModel.BundleItems?.Count()" BadgeDot="@(ViewModel.BundleItems?.Any() ?? false)">
-                        <BundleItemsTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
-                    </MudTabPanel>
-                }
+                        @if (ViewModel.Entity.IsBundle)
+                        {
+                            <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" Icon="@Icons.Material.Filled.Inventory" BadgeData="@ViewModel.BundleItems?.Count()" BadgeDot="@(ViewModel.BundleItems?.Any() ?? false)">
+                                <BundleItemsTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                            </MudTabPanel>
+                        }
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")" Icon="@Icons.Material.Filled.Warehouse">
-                    <StockInventoryTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
-                </MudTabPanel>
-            </MudTabs>
-        </MudPaper>
-    }
-</MudContainer>
+                        <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")" Icon="@Icons.Material.Filled.Warehouse">
+                            <StockInventoryTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                        </MudTabPanel>
+                    </MudTabs>
+                </MudPaper>
+            </div>
+        }
+    </div>
+}
 
 @code {
     [Parameter] public Guid? ProductId { get; set; }
@@ -248,6 +270,15 @@
         ProductStatus.OutOfStock => Color.Error,
         ProductStatus.Deleted => Color.Dark,
         _ => Color.Default
+    };
+
+    private string GetStatusIcon(ProductStatus status) => status switch
+    {
+        ProductStatus.Active => Icons.Material.Outlined.CheckCircle,
+        ProductStatus.Suspended => Icons.Material.Outlined.Pause,
+        ProductStatus.OutOfStock => Icons.Material.Outlined.Error,
+        ProductStatus.Deleted => Icons.Material.Outlined.Delete,
+        _ => Icons.Material.Outlined.Circle
     };
 
     private string GetStatusText(ProductStatus status) => status switch
