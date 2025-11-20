@@ -20,11 +20,7 @@
             </MudItem>
 
             <MudItem xs="12">
-                @if (_isLoading)
-                {
-                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-                }
-                else if (_bundleItems == null || !_bundleItems.Any())
+                @if (_bundleItems == null || !_bundleItems.Any())
                 {
                     <MudAlert Severity="Severity.Info">
                         @TranslationService.GetTranslation("product.noBundleItems", "Nessun componente configurato per questo bundle")
@@ -72,7 +68,6 @@
 
     private IEnumerable<ProductBundleItemDto>? _bundleItems;
     private Dictionary<Guid, string> _productNames = new();
-    private bool _isLoading = true;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -84,11 +79,10 @@
 
     private async Task LoadBundleItemsAsync()
     {
-        _isLoading = true;
         try
         {
             _bundleItems = await ProductService.GetProductBundleItemsAsync(Product.Id);
-
+            
             // Load product names for display
             if (_bundleItems != null && _bundleItems.Any())
             {
@@ -99,10 +93,6 @@
         {
             Logger.LogError(ex, "Error loading bundle items for product {ProductId}", Product.Id);
             Snackbar.Add(TranslationService.GetTranslation("product.loadBundleItemsError", "Errore nel caricamento dei componenti"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
         }
     }
 

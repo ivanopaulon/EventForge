@@ -22,11 +22,7 @@
             </MudItem>
 
             <MudItem xs="12">
-                @if (_isLoading)
-                {
-                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-                }
-                else if (_productUnits == null || !_productUnits.Any())
+                @if (_productUnits == null || !_productUnits.Any())
                 {
                     <MudAlert Severity="Severity.Info">
                         @TranslationService.GetTranslation("product.noAlternativeUnits", "Nessuna unità alternativa configurata")
@@ -79,7 +75,6 @@
     public bool IsEditMode { get; set; }
 
     private IEnumerable<ProductUnitDto>? _productUnits;
-    private bool _isLoading = true;
     private IEnumerable<UMDto> _ums = Enumerable.Empty<UMDto>();
 
     protected override async Task OnParametersSetAsync()
@@ -92,7 +87,6 @@
 
     private async Task LoadUnitsAsync()
     {
-        _isLoading = true;
         try
         {
             _productUnits = await ProductService.GetProductUnitsAsync(Product.Id);
@@ -103,10 +97,6 @@
         {
             Logger.LogError(ex, "Error loading product units for product {ProductId}", Product.Id);
             Snackbar.Add(TranslationService.GetTranslation("product.loadUnitsError", "Errore nel caricamento delle unità"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
         }
     }
 
