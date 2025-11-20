@@ -1,4 +1,3 @@
-using EventForge.Client;
 using EventForge.Client.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
