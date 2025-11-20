@@ -89,6 +89,29 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Add rate limiting for client log endpoints
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("ClientLogs", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new System.Threading.RateLimiting.SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 100, // 100 requests
+                Window = TimeSpan.FromMinutes(1), // per minute
+                SegmentsPerWindow = 6, // 6 segments of 10 seconds each
+                QueueLimit = 10 // queue up to 10 requests
+            }));
+    
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsync(
+            "Rate limit exceeded for client logging. Please retry later.", 
+            cancellationToken);
+    };
+});
+
 var app = builder.Build();
 
 // Add middleware early in the pipeline
@@ -139,6 +162,9 @@ app.UseHttpsRedirection();
 
 // Enable routing BEFORE static files
 app.UseRouting();
+
+// Enable rate limiting
+app.UseRateLimiter();
 
 // Serve default document (index.html) and static files from wwwroot
 // UseDefaultFiles enables serving index.html when requesting the site root.

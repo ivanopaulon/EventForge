@@ -8,6 +8,7 @@ using EventForge.Server.Services.Dashboard;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Licensing;
+using EventForge.Server.Services.Logging;
 using EventForge.Server.Services.Logs;
 using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.PriceLists;
@@ -180,6 +181,11 @@ public static class ServiceCollectionExtensions
 
         // Register unified log management service
         _ = services.AddScoped<ILogManagementService, LogManagementService>();
+
+        // Register log ingestion services for resilient client log processing
+        _ = services.AddSingleton<LogIngestionService>();
+        _ = services.AddSingleton<ILogIngestionService>(sp => sp.GetRequiredService<LogIngestionService>());
+        _ = services.AddHostedService<LogIngestionBackgroundService>();
 
         // Register notification and chat services - Step 3 SignalR Implementation
         _ = services.AddScoped<INotificationService, NotificationService>();
