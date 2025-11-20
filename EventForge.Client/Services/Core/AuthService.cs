@@ -1,5 +1,11 @@
 using EventForge.DTOs.Auth;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 using EventForge.DTOs.Tenants;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;

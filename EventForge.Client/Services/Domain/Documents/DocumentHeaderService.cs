@@ -1,5 +1,11 @@
 using EventForge.DTOs.Common;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 using EventForge.DTOs.Documents;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 
 namespace EventForge.Client.Services.Domain.Documents;
 

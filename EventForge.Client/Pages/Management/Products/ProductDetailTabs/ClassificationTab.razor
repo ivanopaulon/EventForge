@@ -456,7 +456,7 @@
             };
 
             var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-            var dialog = await DialogService.ShowAsync<EventForge.Client.Shared.Components.ClassificationNodePicker>("", parameters, options);
+            var dialog = await DialogService.ShowAsync<EventForge.Client.Shared.Components.Domain.Products.ClassificationNodePicker>("", parameters, options);
             var result = await dialog.Result;
 
             // MudBlazor's DialogResult exposes 'Canceled' (US spelling). Cast Data safely to avoid pattern-scope issues.

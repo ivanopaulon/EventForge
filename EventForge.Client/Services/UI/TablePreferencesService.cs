@@ -1,5 +1,6 @@
 using Microsoft.JSInterop;
 using System.Text.Json;
+using EventForge.Client.Services.Core;
 
 namespace EventForge.Client.Services.UI
 {

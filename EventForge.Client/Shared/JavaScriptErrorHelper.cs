@@ -1,4 +1,4 @@
-using EventForge.Client.Services;
+using EventForge.Client.Services.Infrastructure;
 using Microsoft.JSInterop;
 using MudBlazor;
 

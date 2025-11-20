@@ -25,7 +25,7 @@ public class AuthenticationDialogService : IAuthenticationDialogService
             NoHeader = false
         };
 
-        var dialog = await _dialogService.ShowAsync<Shared.Components.Dialogs.LoginDialog>("", options);
+        var dialog = await _dialogService.ShowAsync<Shared.Components.UI.Dialogs.Common.LoginDialog>("", options);
         var result = await dialog.Result;
 
         return !result.Canceled;

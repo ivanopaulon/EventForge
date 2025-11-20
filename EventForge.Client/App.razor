@@ -120,7 +120,7 @@
             NoHeader = false
         };
 
-        var dialog = await DialogService.ShowAsync<Shared.Components.Dialogs.LoginDialog>("", options);
+        var dialog = await DialogService.ShowAsync<Shared.Components.UI.Dialogs.Common.LoginDialog>("", options);
         var result = await dialog.Result;
 
         if (!result.Canceled)

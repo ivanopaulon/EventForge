@@ -1,6 +1,15 @@
 using EventForge.DTOs.Chat;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 using EventForge.DTOs.Documents;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 using EventForge.DTOs.Notifications;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace EventForge.Client.Services.Infrastructure;

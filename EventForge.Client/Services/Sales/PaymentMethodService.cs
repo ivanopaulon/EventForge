@@ -1,4 +1,7 @@
 using EventForge.DTOs.Sales;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 
 namespace EventForge.Client.Services.Sales;
 

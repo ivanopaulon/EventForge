@@ -1,5 +1,13 @@
 using EventForge.DTOs.Chat;
+using EventForge.Client.Services.Performance;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 using EventForge.DTOs.Common;
+using EventForge.Client.Services.Performance;
+using EventForge.Client.Services.UI;
+using EventForge.Client.Services.Infrastructure;
+using EventForge.Client.Services.Core;
 
 namespace EventForge.Client.Services.Features;
 
