@@ -94,6 +94,10 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IUMService, UMService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IModelService, ModelService>();
+builder.Services.AddScoped<ILookupCacheService, LookupCacheService>();
+
+// Add ViewModels
+builder.Services.AddScoped<EventForge.Client.ViewModels.ProductDetailViewModel>();
 
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();

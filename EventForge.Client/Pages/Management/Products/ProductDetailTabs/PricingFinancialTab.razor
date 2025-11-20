@@ -4,7 +4,7 @@
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components.Warehouse
 @inject ITranslationService TranslationService
-@inject IFinancialService FinancialService
+@inject ILookupCacheService LookupCacheService
 @inject IProductService ProductService
 @inject ILogger<PricingFinancialTab> Logger
 
@@ -84,8 +84,8 @@
     {
         try
         {
-            var result = await FinancialService.GetVatRatesAsync();
-            _vatRates = result?.Items ?? Enumerable.Empty<VatRateDto>();
+            var vatRates = await LookupCacheService.GetVatRatesAsync();
+            _vatRates = vatRates.ToList();
         }
         catch (Exception ex)
         {
@@ -95,13 +95,13 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Ensure VAT rates are loaded and include the currently selected VatRate so MudSelect shows the label
+        // Ensure VAT rates are loaded
         if (_vatRates == null)
         {
             try
             {
-                var result = await FinancialService.GetVatRatesAsync();
-                _vatRates = result?.Items ?? Enumerable.Empty<VatRateDto>();
+                var vatRates = await LookupCacheService.GetVatRatesAsync();
+                _vatRates = vatRates.ToList();
             }
             catch (Exception ex)
             {
@@ -114,10 +114,10 @@
         {
             if (Product?.VatRateId.HasValue == true && _vatRates != null && !_vatRates.Any(v => v.Id == Product.VatRateId.Value))
             {
-                var single = await FinancialService.GetVatRateAsync(Product.VatRateId.Value);
-                if (single != null)
+                var vatRate = await LookupCacheService.GetVatRateByIdAsync(Product.VatRateId.Value);
+                if (vatRate != null)
                 {
-                    _vatRates = _vatRates.Append(single).ToList();
+                    _vatRates = _vatRates.Append(vatRate).ToList();
                 }
             }
         }
