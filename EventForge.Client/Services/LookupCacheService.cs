@@ -68,7 +68,8 @@ public class LookupCacheService : ILookupCacheService
             {
                 var apiResult = await _brandService.GetBrandsAsync(1, 100);
                 var brands = apiResult?.Items?.ToList() ?? new List<BrandDto>();
-                _logger.LogInformation("Loaded {Count} brands from service", brands.Count);
+                _logger.LogInformation("Loaded {Count} brands from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                    brands.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
                 return brands;
             }
             catch (Exception ex)
@@ -100,14 +101,16 @@ public class LookupCacheService : ILookupCacheService
                 {
                     var apiResult = await _modelService.GetModelsByBrandIdAsync(brandId.Value, 1, 100);
                     var models = apiResult?.Items?.ToList() ?? new List<ModelDto>();
-                    _logger.LogInformation("Loaded {Count} models from service for brand {BrandId}", models.Count, brandId.Value);
+                    _logger.LogInformation("Loaded {Count} models from service for brand {BrandId} (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                        models.Count, brandId.Value, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
                     return models;
                 }
                 else
                 {
                     var apiResult = await _modelService.GetModelsAsync(1, 100);
                     var models = apiResult?.Items?.ToList() ?? new List<ModelDto>();
-                    _logger.LogInformation("Loaded {Count} models from service", models.Count);
+                    _logger.LogInformation("Loaded {Count} models from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                        models.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
                     return models;
                 }
             }
@@ -134,7 +137,8 @@ public class LookupCacheService : ILookupCacheService
             {
                 var apiResult = await _financialService.GetVatRatesAsync(1, 100);
                 var vatRates = apiResult?.Items?.ToList() ?? new List<VatRateDto>();
-                _logger.LogInformation("Loaded {Count} VAT rates from service", vatRates.Count);
+                _logger.LogInformation("Loaded {Count} VAT rates from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                    vatRates.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
                 return vatRates;
             }
             catch (Exception ex)
@@ -160,7 +164,8 @@ public class LookupCacheService : ILookupCacheService
             {
                 var apiResult = await _umService.GetUMsAsync(1, 100);
                 var units = apiResult?.Items?.ToList() ?? new List<UMDto>();
-                _logger.LogInformation("Loaded {Count} units of measure from service", units.Count);
+                _logger.LogInformation("Loaded {Count} units of measure from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                    units.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
                 return units;
             }
             catch (Exception ex)

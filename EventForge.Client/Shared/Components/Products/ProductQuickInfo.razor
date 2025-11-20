@@ -236,7 +236,7 @@
         {
             // Load units and VAT rates in parallel
             var unitsTask = ProductService.GetUnitsOfMeasureAsync();
-            var vatRatesTask = FinancialService.GetVatRatesAsync();
+            var vatRatesTask = FinancialService.GetVatRatesAsync(1, 100);
 
             await Task.WhenAll(unitsTask, vatRatesTask);
 
