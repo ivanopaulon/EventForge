@@ -98,6 +98,7 @@ builder.Services.AddScoped<ILookupCacheService, LookupCacheService>();
 
 // Add ViewModels
 builder.Services.AddScoped<EventForge.Client.ViewModels.ProductDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.InventoryDetailViewModel>();
 
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
