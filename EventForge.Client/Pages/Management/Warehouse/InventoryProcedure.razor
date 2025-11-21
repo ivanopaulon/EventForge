@@ -678,6 +678,7 @@
         _isLoading = true;
         _currentProduct = null;
         _currentProductCode = null;
+        _currentProductUnit = null; // Reset state
 
         try
         {
@@ -696,6 +697,16 @@
             {
                 // Get conversion factor if ProductCode has a ProductUnitId (alternative unit)
                 _currentConversionFactor = await GetConversionFactorAsync(_currentProduct.Id, _currentProductCode?.ProductUnitId);
+
+                // Add user-visible log if alternative unit was detected
+                if (_currentProductUnit != null && _currentConversionFactor > 1m)
+                {
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.alternativeUnitDetected", "Unità alternativa rilevata"),
+                        $"{_currentProductUnit.UnitType} (Fattore: {_currentConversionFactor:N2})",
+                        "Info"
+                    );
+                }
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), Severity.Success);
                 AddOperationLog(
