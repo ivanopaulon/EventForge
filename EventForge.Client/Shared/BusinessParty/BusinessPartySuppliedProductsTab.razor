@@ -217,7 +217,7 @@
             CloseButton = true
         };
 
-        var dialog = await DialogService.ShowAsync<AddProductSupplierDialog>(
+        var dialog = await DialogService.ShowAsync<AssignProductToSupplierDialog>(
             TranslationService.GetTranslation("productSupplier.assignTitle", "Assegna Prodotto"),
             parameters,
             options);

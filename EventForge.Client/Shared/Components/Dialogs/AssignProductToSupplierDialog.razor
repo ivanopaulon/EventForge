@@ -1,0 +1,269 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<AssignProductToSupplierDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <!-- Product Field - Autocomplete or Readonly -->
+                <MudItem xs="12">
+                    @if (ProductId.HasValue)
+                    {
+                        <MudTextField Value="@_productName"
+                                      Label="@($"{TranslationService.GetTranslation("field.product", "Prodotto")} *")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true"
+                                      Disabled="true"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Outlined.Inventory" />
+                    }
+                    else
+                    {
+                        <MudAutocomplete T="ProductDto"
+                                         @bind-Value="_selectedProduct"
+                                         SearchFunc="@SearchProducts"
+                                         Label="@($"{TranslationService.GetTranslation("field.product", "Prodotto")} *")"
+                                         Variant="Variant.Outlined"
+                                         ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                                         Required="true"
+                                         RequiredError="@TranslationService.GetTranslation("validation.productRequired", "Il prodotto è obbligatorio")"
+                                         Adornment="Adornment.Start"
+                                         AdornmentIcon="@Icons.Material.Outlined.Inventory"
+                                         HelperText="@TranslationService.GetTranslation("productSupplier.searchProductHelper", "Cerca e seleziona il prodotto da assegnare")"
+                                         DebounceInterval="300"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="false"
+                                         ShowProgressIndicator="true">
+                            <ItemTemplate Context="product">
+                                <MudStack Row="true" Spacing="2">
+                                    <MudText Typo="Typo.body2"><strong>@product.Code</strong></MudText>
+                                    <MudText Typo="Typo.body2">@product.Name</MudText>
+                                </MudStack>
+                            </ItemTemplate>
+                        </MudAutocomplete>
+                    }
+                </MudItem>
+
+                <!-- Supplier Product Code -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.SupplierProductCode"
+                                  Label="@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="100"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Tag"
+                                  HelperText="@TranslationService.GetTranslation("productSupplier.supplierCodeHelper", "Codice prodotto del fornitore")" />
+                </MudItem>
+
+                <!-- Unit Cost -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.UnitCost"
+                                     Label="@($"{TranslationService.GetTranslation("field.unitCost", "Costo Unitario")} *")"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     RequiredError="@TranslationService.GetTranslation("validation.unitCostRequired", "Il costo unitario è obbligatorio")"
+                                     Min="0m"
+                                     Step="0.01m"
+                                     Format="N2"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.Euro"
+                                     HelperText="@TranslationService.GetTranslation("productSupplier.unitCostHelper", "Costo unitario in euro")" />
+                </MudItem>
+
+                <!-- Lead Time Days -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.LeadTimeDays"
+                                     Label="@TranslationService.GetTranslation("field.leadTimeDays", "Tempi di Consegna (giorni)")"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.Schedule"
+                                     HelperText="@TranslationService.GetTranslation("productSupplier.leadTimeHelper", "Tempo di consegna in giorni")" />
+                </MudItem>
+
+                <!-- Minimum Order Quantity -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.MinOrderQty"
+                                     Label="@TranslationService.GetTranslation("field.minOrderQty", "Quantità Minima Ordine")"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.ShoppingCart"
+                                     HelperText="@TranslationService.GetTranslation("productSupplier.minOrderQtyHelper", "Quantità minima per l'ordine")" />
+                </MudItem>
+
+                <!-- Preferred Supplier Checkbox -->
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_model.Preferred"
+                                 Label="@TranslationService.GetTranslation("field.preferred", "Fornitore Preferito")"
+                                 Color="Color.Primary" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("field.preferredHelp", "Solo un fornitore può essere marcato come preferito per prodotto")
+                    </MudText>
+                </MudItem>
+
+                <!-- Notes -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  MaxLength="500"
+                                  Counter="500"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Notes"
+                                  HelperText="@TranslationService.GetTranslation("productSupplier.notesHelper", "Note aggiuntive sull'associazione")" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Disabled="@(!_isValid || (!ProductId.HasValue && _selectedProduct == null) || _isSaving)" 
+                   OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public Guid SupplierId { get; set; }
+    [Parameter] public Guid? ProductId { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private CreateProductSupplierDto _model = new();
+    private ProductDto? _selectedProduct;
+    private string _productName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model.SupplierId = SupplierId;
+        _model.Currency = "EUR";
+
+        if (ProductId.HasValue)
+        {
+            _model.ProductId = ProductId.Value;
+            
+            // Load product name for display
+            try
+            {
+                var product = await ProductService.GetProductByIdAsync(ProductId.Value);
+                if (product != null)
+                {
+                    _productName = $"{product.Code} - {product.Name}";
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load product {ProductId}", ProductId.Value);
+            }
+        }
+    }
+
+    private async Task<IEnumerable<ProductDto>> SearchProducts(string value, CancellationToken token)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
+            {
+                return Enumerable.Empty<ProductDto>();
+            }
+
+            // NOTE: Current API does not support server-side search filtering.
+            // This performs client-side filtering on the first page of results.
+            // Consider implementing server-side search in GetProductsAsync for better performance with large datasets.
+            var result = await ProductService.GetProductsAsync(page: 1, pageSize: 20);
+            
+            if (result?.Items != null)
+            {
+                // Filter by search term (case-insensitive)
+                return result.Items.Where(p => 
+                    p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                    p.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                    (p.ShortDescription != null && p.ShortDescription.Contains(value, StringComparison.OrdinalIgnoreCase))
+                ).Take(20);
+            }
+
+            return Enumerable.Empty<ProductDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching products with term {SearchTerm}", value);
+            return Enumerable.Empty<ProductDto>();
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (ProductId.HasValue)
+        {
+            _model.ProductId = ProductId.Value;
+        }
+        else if (_selectedProduct != null)
+        {
+            _model.ProductId = _selectedProduct.Id;
+        }
+        else
+        {
+            Snackbar.Add(TranslationService.GetTranslation("validation.productRequired", "Il prodotto è obbligatorio"), Severity.Error);
+            return;
+        }
+
+        // Validate unit cost is provided
+        if (!_model.UnitCost.HasValue || _model.UnitCost.Value <= 0)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("validation.unitCostRequired", "Il costo unitario è obbligatorio"), Severity.Error);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            var result = await ProductService.CreateProductSupplierAsync(_model);
+            if (result != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.productAssignedSuccessfully", "Prodotto assegnato al fornitore con successo"), 
+                    Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.productAssignFailed", "Errore durante l'assegnazione del prodotto"), 
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to assign product to supplier {SupplierId}", SupplierId);
+            var errorMessage = TranslationService.GetTranslation("messages.productAssignFailed", "Errore durante l'assegnazione del prodotto");
+            Snackbar.Add($"{errorMessage}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}
