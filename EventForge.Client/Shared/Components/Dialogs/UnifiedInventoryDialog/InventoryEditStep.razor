@@ -88,7 +88,7 @@
                                         AdornmentIcon="@Icons.Material.Outlined.Inventory2"
                                         @ref="_quantityField"
                                         ValueChanged="@OnAlternativeUnitChanged"
-                                        HelperText="@($"1 {State.ProductUnit?.UnitType} = {State.ConversionFactor:N2} pezzi")" />
+                                        HelperText="@($"1 {State.ProductUnit?.UnitType} = {State.ConversionFactor:N2} {TranslationService.GetTranslation("warehouse.baseUnits", "unità base")}")" />
                     </MudItem>
                     <MudItem xs="6">
                         <MudNumericField T="decimal"
