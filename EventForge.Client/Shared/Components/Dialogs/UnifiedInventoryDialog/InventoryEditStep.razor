@@ -54,7 +54,7 @@
                 </MudSelect>
             }
 
-            @if (State.ConversionFactor > 1 && State.ProductUnit != null)
+            @if (State.ConversionFactor > 1m && State.ProductUnit != null)
             {
                 <!-- Alternative unit detected - show dual input fields -->
                 <MudAlert Severity="Severity.Info" Class="mb-3" Dense="true">
@@ -232,7 +232,7 @@
         _notesChangedCallback = EventCallback.Factory.Create<string>(this, HandleNotesChanged);
         
         // Initialize alternative unit quantity if conversion factor > 1
-        if (State.ConversionFactor > 1)
+        if (State.ConversionFactor > 1m)
         {
             _quantityAlternative = Math.Round(State.DraftQuantity / State.ConversionFactor, 2);
         }
@@ -275,7 +275,7 @@
     private async Task OnBaseUnitChanged(decimal value)
     {
         State.DraftQuantity = value;
-        if (State.ConversionFactor > 0)
+        if (State.ConversionFactor > 0m)
         {
             _quantityAlternative = Math.Round(value / State.ConversionFactor, 2);
         }
