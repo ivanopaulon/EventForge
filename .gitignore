@@ -379,3 +379,13 @@ EventForge.Server/app.db*
 EventForge.Client/appsettings.Syncfusion.Development.json
 /EventForge.Client/appsettings.Syncfusion.Development.json.sample
 *.bak
+
+# Playwright artifacts
+bin/Debug/**/playwright/
+bin/Release/**/playwright/
+.playwright/
+playwright-report/
+test-results/
+screenshots/
+*.mp4
+*.webm

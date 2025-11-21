@@ -1,0 +1,105 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  E2E_BASE_URL: 'http://localhost:5050'
+  E2E_API_URL: 'http://localhost:5000'
+
+jobs:
+  e2e-tests:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Start EventForge Server
+      run: |
+        cd EventForge.Server
+        dotnet run --no-build --configuration Release &
+        echo "SERVER_PID=$!" >> $GITHUB_ENV
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+        ASPNETCORE_URLS: http://localhost:5000
+
+    - name: Start EventForge Client
+      run: |
+        cd EventForge.Client
+        dotnet run --no-build --configuration Release &
+        echo "CLIENT_PID=$!" >> $GITHUB_ENV
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+        ASPNETCORE_URLS: http://localhost:5050
+
+    - name: Wait for application to be ready
+      run: |
+        echo "Waiting for server to be ready..."
+        timeout 120 bash -c 'until curl -s http://localhost:5000/health > /dev/null 2>&1 || curl -s http://localhost:5000 > /dev/null 2>&1; do sleep 2; done' || true
+        echo "Waiting for client to be ready..."
+        timeout 120 bash -c 'until curl -s http://localhost:5050 > /dev/null 2>&1; do sleep 2; done' || true
+        sleep 10
+        echo "Applications should be ready"
+
+    - name: Install Playwright Browsers
+      run: |
+        cd EventForge.Tests.E2E
+        dotnet build
+        pwsh bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+    - name: Run E2E Tests
+      run: dotnet test EventForge.Tests.E2E/EventForge.Tests.E2E.csproj --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --verbosity normal
+      env:
+        E2E_BASE_URL: ${{ env.E2E_BASE_URL }}
+        E2E_API_URL: ${{ env.E2E_API_URL }}
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: '**/TestResults/*.trx'
+        retention-days: 30
+
+    - name: Upload Screenshots
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-screenshots
+        path: '**/screenshots/*.png'
+        retention-days: 30
+
+    - name: Stop applications
+      if: always()
+      run: |
+        if [ ! -z "$SERVER_PID" ]; then kill $SERVER_PID 2>/dev/null || true; fi
+        if [ ! -z "$CLIENT_PID" ]; then kill $CLIENT_PID 2>/dev/null || true; fi
+
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "## E2E Test Results" >> $GITHUB_STEP_SUMMARY
+        if [ -f EventForge.Tests.E2E/TestResults/test-results.trx ]; then
+          echo "Test results file found" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Test results file not found" >> $GITHUB_STEP_SUMMARY
+        fi
