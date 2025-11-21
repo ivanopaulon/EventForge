@@ -217,7 +217,7 @@
             CloseButton = true
         };
 
-        var dialog = await DialogService.ShowAsync<AddProductSupplierDialog>(
+        var dialog = await DialogService.ShowAsync<AssignProductToSupplierDialog>(
             TranslationService.GetTranslation("productSupplier.assignTitle", "Assegna Prodotto"),
             parameters,
             options);
@@ -227,6 +227,9 @@
         if (!result.Canceled && _table != null)
         {
             await _table.ReloadServerData();
+            Snackbar.Add(
+                TranslationService.GetTranslation("productSupplier.assignSuccess", "Prodotto assegnato al fornitore con successo"),
+                Severity.Success);
         }
     }
 
