@@ -185,7 +185,9 @@
                 return Enumerable.Empty<ProductDto>();
             }
 
-            // Use GetProductsAsync with search parameters
+            // NOTE: Current API does not support server-side search filtering.
+            // This performs client-side filtering on the first page of results.
+            // Consider implementing server-side search in GetProductsAsync for better performance with large datasets.
             var result = await ProductService.GetProductsAsync(page: 1, pageSize: 20);
             
             if (result?.Items != null)
