@@ -2100,6 +2100,7 @@
     "deleteFacilityError": "Errore nell'eliminazione del magazzino",
     "deleteLocationError": "Errore nell'eliminazione dell'ubicazione",
     "description": "Descrizione",
+    "dualInputHelp": "Puoi inserire la quantità in entrambe le unità. Il sistema salverà sempre il valore in unità base.",
     "expireInDays": "Scade tra {0} giorni",
     "expired": "Scaduto",
     "expiringLots": "Lotti in scadenza",
