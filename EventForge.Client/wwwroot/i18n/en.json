@@ -167,6 +167,7 @@
   },
   "auth": {
     "authenticationRequired": "Authentication Required",
+    "connectingToServer": "Connecting to server...",
     "forgotPassword": "Forgot password?",
     "goToLogin": "Go to Login",
     "login": "Login",
@@ -180,6 +181,7 @@
     "logoutError": "Logout error: {0}",
     "logoutSuccess": "Successfully logged out",
     "noTenants": "No tenants available",
+    "noTenantsAvailable": "No tenants available. Please contact your administrator.",
     "password": "Password",
     "passwordRequired": "Password is required",
     "pleaseLogin": "Please log in to access this page.",

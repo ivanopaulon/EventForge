@@ -10,88 +10,94 @@
         <MudImage Src="/eventforgetitle.svg" Alt="EventForge Logo"></MudImage>
     </TitleContent>
     <DialogContent>
-        <PageLoadingOverlay Visible="_isLoading"
+        <!-- Overlay during login submission -->
+        <PageLoadingOverlay IsVisible="_isLoading"
                             Message="@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")" />
 
+        <!-- Overlay during initial tenant loading -->
+        <PageLoadingOverlay IsVisible="_isLoadingTenants"
+                            Message="@TranslationService.GetTranslation("auth.connectingToServer", "Connessione al server...")" />
 
-        <MudForm @ref="form"
-                 @bind-IsValid="@_isFormValid"
-                 role="form"
-                 aria-label="Modulo di accesso">
-            <MudStack Spacing="3" Class="mt-4">
-                <!-- Tenant selector -->
-                @if (_isLoadingTenants)
-                {
-                    <MudSkeleton Height="56px" />
-                }
-                else if (_tenants?.Any() == true)
-                {
-                    <MudSelect T="string"
-                               Class="ef-select" 
-                               @bind-Value="_selectedTenantId"
-                               Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
-                               Variant="Variant.Outlined"
-                               Required="true"
-                               RequiredError="@TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant")"
-                               Disabled="_isLoading"
-                               Dense="true"
-                               Placeholder="@TranslationService.GetTranslation("auth.selectTenantPlaceholder", "Scegli tenant...")"
-                               For="@(() => _selectedTenantId)">
-                        @foreach (var t in _tenants)
-                        {
-                            <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
-                        }
-                    </MudSelect>
-                }
-                else
-                {
-                    <MudAlert Severity="Severity.Info">
-                        @TranslationService.GetTranslation("auth.noTenants", "Nessun tenant disponibile. Contatta l'amministratore.")
-                    </MudAlert>
-                }
+        @if (!_isLoadingTenants)
+        {
+            <MudForm @ref="form"
+                     @bind-IsValid="@_isFormValid"
+                     role="form"
+                     aria-label="Modulo di accesso">
+                <MudStack Spacing="3" Class="mt-4">
+                    <!-- Tenant selector -->
+                    @if (_tenants?.Any() == true)
+                    {
+                        <MudSelect T="string"
+                                   Class="ef-select" 
+                                   @bind-Value="_selectedTenantId"
+                                   Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   RequiredError="@TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant")"
+                                   Disabled="_isLoading"
+                                   Dense="true"
+                                   Placeholder="@TranslationService.GetTranslation("auth.selectTenantPlaceholder", "Scegli tenant...")"
+                                   For="@(() => _selectedTenantId)">
+                            @foreach (var t in _tenants)
+                            {
+                                <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning">
+                            @TranslationService.GetTranslation("auth.noTenantsAvailable", "Nessun tenant disponibile. Contatta l'amministratore.")
+                        </MudAlert>
+                    }
 
-                <MudTextField @bind-Value="_loginRequest.Username"
-                              Class="ef-input"
-                              For="@(() => _loginRequest.Username)"
-                              Label="@TranslationService.GetTranslation("auth.username", "Username")"
-                              Variant="Variant.Outlined"
-                              Required="true"
-                              RequiredError="@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")"
-                              Disabled="_isLoading"
-                              autocomplete="username"
-                              InputType="InputType.Text"
-                              Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="_loginRequest.Username"
+                                  Class="ef-input"
+                                  For="@(() => _loginRequest.Username)"
+                                  Label="@TranslationService.GetTranslation("auth.username", "Username")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")"
+                                  Disabled="_isLoading"
+                                  autocomplete="username"
+                                  InputType="InputType.Text"
+                                  Margin="Margin.Dense" />
 
-                <MudTextField @bind-Value="_loginRequest.Password"
-                              Class="ef-input"
-                              For="@(() => _loginRequest.Password)"
-                              Label="@TranslationService.GetTranslation("auth.password", "Password")"
-                              Variant="Variant.Outlined"
-                              InputType="InputType.Password"
-                              Required="true"
-                              RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
-                              Disabled="_isLoading"
-                              autocomplete="current-password"
-                              Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="_loginRequest.Password"
+                                  Class="ef-input"
+                                  For="@(() => _loginRequest.Password)"
+                                  Label="@TranslationService.GetTranslation("auth.password", "Password")"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
+                                  Disabled="_isLoading"
+                                  autocomplete="current-password"
+                                  Margin="Margin.Dense" />
 
-                <MudCheckBox T="bool"
-                             @bind-Value="_loginRequest.RememberMe"
-                             Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
-                             Disabled="_isLoading" />
-            </MudStack>
-        </MudForm>
+                    <MudCheckBox T="bool"
+                                 @bind-Value="_loginRequest.RememberMe"
+                                 Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
+                                 Disabled="_isLoading" />
+                </MudStack>
+            </MudForm>
+        }
     </DialogContent>
     <DialogActions>
-        <MudButton ButtonType="ButtonType.Button"
-                   Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   Size="Size.Medium"
-                   FullWidth="true"
-                   OnClick="HandleLogin"
-                   Disabled="@(!_isFormValid || _isLoading)"
-                   aria-label="Accedi al sistema">
-            @TranslationService.GetTranslation("auth.login", "Login")
-        </MudButton>
+        @if (!_isLoadingTenants)
+        {
+            <MudButton ButtonType="ButtonType.Button"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       FullWidth="true"
+                       OnClick="HandleLogin"
+                       Disabled="@(!_isFormValid || _isLoading || !_tenants.Any())"
+                       aria-label="Accedi al sistema">
+                @TranslationService.GetTranslation("auth.login", "Login")
+            </MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -117,6 +123,8 @@
         try
         {
             _isLoadingTenants = true;
+            StateHasChanged(); // Force UI update
+            
             _tenants = (await AuthService.GetAvailableTenantsAsync()).ToList();
 
             // Auto-select first tenant if none chosen
@@ -127,13 +135,16 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("auth.tenantsLoadError", "Errore nel caricamento dei tenant: {0}", ex.Message), Severity.Error);
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.tenantsLoadError", 
+                    "Errore nel caricamento dei tenant: {0}", ex.Message), 
+                Severity.Error);
             _tenants = new List<TenantResponseDto>();
         }
         finally
         {
             _isLoadingTenants = false;
-            StateHasChanged();
+            StateHasChanged(); // Force UI update
         }
     }
 
@@ -146,7 +157,9 @@
         // Ensure tenant selected
         if (string.IsNullOrWhiteSpace(_selectedTenantId))
         {
-            Snackbar.Add(TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"), Severity.Warning);
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"), 
+                Severity.Warning);
             return;
         }
 
@@ -154,28 +167,39 @@
         _loginRequest.TenantCode = _selectedTenantId;
 
         _isLoading = true;
+        StateHasChanged(); // Force UI update
+        
         try
         {
             var result = await AuthService.LoginAsync(_loginRequest);
             if (result != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"), Severity.Success);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"), 
+                    Severity.Success);
                 
                 // Close dialog with success result
                 MudDialog.Close(DialogResult.Ok(true));
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("auth.loginFailed", "Login failed. Please check your credentials."), Severity.Error);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("auth.loginFailed", 
+                        "Login failed. Please check your credentials."), 
+                    Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("auth.loginError", "Login error: {0}", ex.Message), Severity.Error);
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.loginError", 
+                    "Errore durante il login: {0}", ex.Message), 
+                Severity.Error);
         }
         finally
         {
             _isLoading = false;
+            StateHasChanged(); // Force UI update
         }
     }
 }
