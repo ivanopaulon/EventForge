@@ -2061,7 +2061,9 @@
     "quantityBase": "{0} (base unit)",
     "syncNote": "Modify one of the two fields, the other updates automatically",
     "baseUnits": "base units",
-    "baseUnitsLabel": "Base units"
+    "baseUnitsLabel": "Base units",
+    "conversionInfo": "1 {0} = {1} {2}",
+    "dualInputHelp": "You can enter quantity in either unit. The system will always save the value in base units."
   },
   "documentType": {
     "management": "Document Type Management",

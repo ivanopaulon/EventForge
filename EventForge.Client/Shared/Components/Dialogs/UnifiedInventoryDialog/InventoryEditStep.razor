@@ -4,6 +4,7 @@
 @using EventForge.Client.Shared.Components.Products
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
+@inject ILogger<InventoryEditStep> Logger
 
 <MudStack Spacing="3">
     <!-- Product Quick Info with inline editing -->
@@ -65,12 +66,20 @@
                     </MudText>
                 </MudAlert>
                 
+                <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Text" Class="mb-2" Style="padding-left: 8px;">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        <MudIcon Icon="@Icons.Material.Outlined.Lightbulb" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("warehouse.dualInputHelp", "Puoi inserire la quantità in entrambe le unità. Il sistema salverà sempre il valore in unità base.")
+                    </MudText>
+                </MudAlert>
+                
                 <MudGrid Spacing="2">
                     <MudItem xs="6">
                         <MudNumericField T="decimal"
                                         Value="@_quantityAlternative"
                                         Label="@State.ProductUnit.UnitType"
                                         Variant="Variant.Outlined"
+                                        Immediate="false"
                                         Min="0"
                                         Step="1m"
                                         Required="true"
@@ -78,20 +87,23 @@
                                         Adornment="Adornment.Start"
                                         AdornmentIcon="@Icons.Material.Outlined.Inventory2"
                                         @ref="_quantityField"
-                                        ValueChanged="@OnAlternativeUnitChanged" />
+                                        ValueChanged="@OnAlternativeUnitChanged"
+                                        HelperText="@($"1 {State.ProductUnit?.UnitType} = {State.ConversionFactor:N2} {TranslationService.GetTranslation("warehouse.baseUnits", "unità base")}")" />
                     </MudItem>
                     <MudItem xs="6">
                         <MudNumericField T="decimal"
                                         Value="@State.DraftQuantity"
                                         Label="@TranslationService.GetTranslation("warehouse.baseUnitsLabel", "Unità base")"
                                         Variant="Variant.Outlined"
+                                        Immediate="false"
                                         Min="0"
                                         Step="1m"
                                         Required="true"
                                         RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                         Adornment="Adornment.Start"
                                         AdornmentIcon="@Icons.Material.Outlined.Inventory"
-                                        ValueChanged="@OnBaseUnitChanged" />
+                                        ValueChanged="@OnBaseUnitChanged"
+                                        HelperText="@(_quantityAlternative > 0 ? $"= {_quantityAlternative:N2} {State.ProductUnit?.UnitType}" : "")" />
                     </MudItem>
                 </MudGrid>
                 
@@ -231,10 +243,15 @@
         _quantityChangedCallback = EventCallback.Factory.Create<decimal>(this, HandleQuantityChanged);
         _notesChangedCallback = EventCallback.Factory.Create<string>(this, HandleNotesChanged);
         
-        // Initialize alternative unit quantity if conversion factor > 1
-        if (State.ConversionFactor > 1m)
+        if (State.ConversionFactor > 0m && State.DraftQuantity > 0m)
         {
             _quantityAlternative = Math.Round(State.DraftQuantity / State.ConversionFactor, 2);
+            Logger.LogDebug("Init: {Alt} {Unit} = {Base} base", 
+                _quantityAlternative, State.ProductUnit?.UnitType, State.DraftQuantity);
+        }
+        else
+        {
+            _quantityAlternative = 0m;
         }
     }
 
@@ -267,18 +284,41 @@
     // Bidirectional conversion methods for alternative units
     private async Task OnAlternativeUnitChanged(decimal value)
     {
+        value = Math.Max(0, value);
         _quantityAlternative = value;
-        State.DraftQuantity = value * State.ConversionFactor;
+        
+        if (State.ConversionFactor > 0m)
+        {
+            State.DraftQuantity = value * State.ConversionFactor;
+            Logger.LogDebug("Alternative unit: {Alt} {Unit} → {Base} base", 
+                value, State.ProductUnit?.UnitType, State.DraftQuantity);
+        }
+        else
+        {
+            Logger.LogWarning("Invalid ConversionFactor {Factor}", State.ConversionFactor);
+            State.DraftQuantity = value;
+        }
+        
         await NotifyDraftChanged();
     }
 
     private async Task OnBaseUnitChanged(decimal value)
     {
+        value = Math.Max(0, value);
         State.DraftQuantity = value;
+        
         if (State.ConversionFactor > 0m)
         {
             _quantityAlternative = Math.Round(value / State.ConversionFactor, 2);
+            Logger.LogDebug("Base unit: {Base} → {Alt} {Unit}", 
+                value, _quantityAlternative, State.ProductUnit?.UnitType);
         }
+        else
+        {
+            Logger.LogWarning("Invalid ConversionFactor {Factor}", State.ConversionFactor);
+            _quantityAlternative = 0m;
+        }
+        
         await NotifyDraftChanged();
     }
 
