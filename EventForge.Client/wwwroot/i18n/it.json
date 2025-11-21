@@ -2359,7 +2359,12 @@
     },
     "mergeDuplicates": "Somma quantità se articolo già presente",
     "mergeDuplicatesHelp": "Quando attivo, se aggiungi lo stesso prodotto più volte, la quantità verrà sommata alla riga esistente invece di creare una nuova riga",
-    "addAndContinue": "Aggiungi e Continua"
+    "addAndContinue": "Aggiungi e Continua",
+    "alternativeUnitDetected": "Unità Alternativa Rilevata",
+    "quantityBase": "{0} (unità base)",
+    "syncNote": "Modifica uno dei due campi, l'altro si aggiorna automaticamente",
+    "baseUnits": "unità base",
+    "baseUnitsLabel": "Unità base"
   },
   "documentType": {
     "management": "Gestione Tipi Documento",

@@ -54,17 +54,69 @@
                 </MudSelect>
             }
 
-            <MudNumericField T="decimal"
-                            Value="@State.DraftQuantity"
-                            Label="@GetQuantityLabel()"
-                            Variant="Variant.Outlined"
-                            Min="0"
-                            Required="true"
-                            RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
-                            Adornment="Adornment.Start"
-                            AdornmentIcon="@Icons.Material.Outlined.Numbers"
-                            @ref="_quantityField"
-                            ValueChanged="@_quantityChangedCallback" />
+            @if (State.ConversionFactor > 1m && State.ProductUnit != null)
+            {
+                <!-- Alternative unit detected - show dual input fields -->
+                <MudAlert Severity="Severity.Info" Class="mb-3" Dense="true">
+                    <MudText Typo="Typo.body2">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("warehouse.alternativeUnitDetected", "Unità Alternativa Rilevata"): 
+                        <strong>1 @State.ProductUnit.UnitType = @State.ConversionFactor @TranslationService.GetTranslation("warehouse.baseUnits", "unità base")</strong>
+                    </MudText>
+                </MudAlert>
+                
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudNumericField T="decimal"
+                                        Value="@_quantityAlternative"
+                                        Label="@State.ProductUnit.UnitType"
+                                        Variant="Variant.Outlined"
+                                        Min="0"
+                                        Step="1m"
+                                        Required="true"
+                                        RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                        Adornment="Adornment.Start"
+                                        AdornmentIcon="@Icons.Material.Outlined.Inventory2"
+                                        @ref="_quantityField"
+                                        ValueChanged="@OnAlternativeUnitChanged" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField T="decimal"
+                                        Value="@State.DraftQuantity"
+                                        Label="@TranslationService.GetTranslation("warehouse.baseUnitsLabel", "Unità base")"
+                                        Variant="Variant.Outlined"
+                                        Min="0"
+                                        Step="1m"
+                                        Required="true"
+                                        RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                        Adornment="Adornment.Start"
+                                        AdornmentIcon="@Icons.Material.Outlined.Inventory"
+                                        ValueChanged="@OnBaseUnitChanged" />
+                    </MudItem>
+                </MudGrid>
+                
+                <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Outlined">
+                    <MudText Typo="Typo.caption">
+                        <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("warehouse.syncNote", "Modifica uno dei due campi, l'altro si aggiorna automaticamente")
+                    </MudText>
+                </MudAlert>
+            }
+            else
+            {
+                <!-- Base unit only - show single field -->
+                <MudNumericField T="decimal"
+                                Value="@State.DraftQuantity"
+                                Label="@GetQuantityLabel()"
+                                Variant="Variant.Outlined"
+                                Min="0"
+                                Required="true"
+                                RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                Adornment="Adornment.Start"
+                                AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                                @ref="_quantityField"
+                                ValueChanged="@_quantityChangedCallback" />
+            }
 
             <MudTextField Value="@State.DraftNotes"
                          Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"
@@ -110,6 +162,9 @@
     private MudNumericField<decimal>? _quantityField;
     private ProductQuickInfo? _productQuickInfo;
     private bool _isFormValid;
+    
+    // For alternative unit dual input
+    private decimal _quantityAlternative;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -175,6 +230,12 @@
         _locationChangedCallback = EventCallback.Factory.Create<Guid?>(this, HandleLocationChanged);
         _quantityChangedCallback = EventCallback.Factory.Create<decimal>(this, HandleQuantityChanged);
         _notesChangedCallback = EventCallback.Factory.Create<string>(this, HandleNotesChanged);
+        
+        // Initialize alternative unit quantity if conversion factor > 1
+        if (State.ConversionFactor > 1m)
+        {
+            _quantityAlternative = Math.Round(State.DraftQuantity / State.ConversionFactor, 2);
+        }
     }
 
     private async Task HandleLocationChanged(Guid? value)
@@ -201,6 +262,24 @@
         {
             await OnDraftChanged.InvokeAsync();
         }
+    }
+
+    // Bidirectional conversion methods for alternative units
+    private async Task OnAlternativeUnitChanged(decimal value)
+    {
+        _quantityAlternative = value;
+        State.DraftQuantity = value * State.ConversionFactor;
+        await NotifyDraftChanged();
+    }
+
+    private async Task OnBaseUnitChanged(decimal value)
+    {
+        State.DraftQuantity = value;
+        if (State.ConversionFactor > 0m)
+        {
+            _quantityAlternative = Math.Round(value / State.ConversionFactor, 2);
+        }
+        await NotifyDraftChanged();
     }
 
     private async Task OnProductUpdatedAsync()

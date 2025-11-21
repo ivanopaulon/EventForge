@@ -38,6 +38,11 @@ public class InventoryDialogState
     public decimal ConversionFactor { get; set; } = 1m;
 
     /// <summary>
+    /// Product unit information (for alternative units)
+    /// </summary>
+    public ProductUnitDto? ProductUnit { get; set; }
+
+    /// <summary>
     /// Whether the dialog is in saving state
     /// </summary>
     public bool IsSaving { get; set; }

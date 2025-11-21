@@ -166,6 +166,9 @@
     public decimal ConversionFactor { get; set; } = 1m;
 
     [Parameter]
+    public ProductUnitDto? ProductUnit { get; set; }
+
+    [Parameter]
     public bool IsEditMode { get; set; } = false;
 
     [Parameter]
@@ -191,6 +194,7 @@
         // Initialize state
         State.Product = InitialProduct;
         State.ConversionFactor = ConversionFactor;
+        State.ProductUnit = ProductUnit;
         State.IsEditMode = IsEditMode;
         
         // Start in Edit mode if requested (for fast inventory entry)
