@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Business
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @using MudBlazor
 @inject IProductService ProductService
 @inject ITranslationService TranslationService
@@ -31,14 +32,17 @@
                 </MudStack>
             </MudPaper>
 
-            <MudTable T="ProductWithAssociationDto"
-                      Items="@_filteredProducts"
-                      Dense="true"
-                      Hover="true"
-                      MultiSelection="true"
-                      @bind-SelectedItems="_selectedProducts"
-                      FixedHeader="true"
-                      Height="calc(100vh - 300px)">
+            <EFTable @ref="_efTable"
+                     TItem="ProductWithAssociationDto"
+                     Items="@_filteredProducts"
+                     MultiSelection="true"
+                     SelectedItems="@_selectedProducts"
+                     SelectedItemsChanged="@OnSelectedItemsChanged"
+                     ComponentKey="ManageSupplierProducts"
+                     InitialColumnConfigurations="@_initialColumns"
+                     Height="calc(100vh - 400px)"
+                     ShowColumnConfiguration="false"
+                     AllowDragDropGrouping="false">
                 <ToolBarContent>
                     <MudText Typo="Typo.h6">@TranslationService.GetTranslation("supplier.selectProducts", "Seleziona Prodotti")</MudText>
                     <MudSpacer />
@@ -51,58 +55,67 @@
                                   Class="mt-0"
                                   Clearable="true" />
                 </ToolBarContent>
-                <ColGroup>
-                    <col style="width: 50px;" />  <!-- Checkbox -->
-                    <col style="width: 150px;" /> <!-- Code -->
-                    <col />                        <!-- Name -->
-                    <col style="width: 300px;" />  <!-- Description -->
-                    <col style="width: 120px;" />  <!-- Status -->
-                    <col style="width: 120px;" />  <!-- Cost -->
-                </ColGroup>
-                <HeaderContent>
-                    <MudTh>
-                        <MudCheckBox T="bool"
-                                    Checked="@_selectAll"
-                                    CheckedChanged="@OnSelectAllChanged"
-                                    Color="Color.Primary" />
-                    </MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="new Func<ProductWithAssociationDto, object>(x => x.Code ?? string.Empty)">
-                            @TranslationService.GetTranslation("product.code", "Codice")
-                        </MudTableSortLabel>
-                    </MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="new Func<ProductWithAssociationDto, object>(x => x.Name)">
-                            @TranslationService.GetTranslation("product.name", "Nome")
-                        </MudTableSortLabel>
-                    </MudTh>
-                    <MudTh>@TranslationService.GetTranslation("product.description", "Descrizione")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("common.status", "Stato")</MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="new Func<ProductWithAssociationDto, object>(x => x.UnitCost ?? 0)">
-                            @TranslationService.GetTranslation("product.cost", "Costo")
-                        </MudTableSortLabel>
-                    </MudTh>
+                <HeaderContent Context="columnConfigurations">
+                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                    {
+                        @if (column.PropertyName == "Code")
+                        {
+                            <EFTableColumnHeader TItem="ProductWithAssociationDto" PropertyName="Code" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ProductWithAssociationDto, object>(x => x.Code ?? string.Empty))">
+                                    @TranslationService.GetTranslation("product.code", "Codice")
+                                </MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Name")
+                        {
+                            <EFTableColumnHeader TItem="ProductWithAssociationDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ProductWithAssociationDto, object>(x => x.Name))">
+                                    @TranslationService.GetTranslation("product.name", "Nome")
+                                </MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Description")
+                        {
+                            <EFTableColumnHeader TItem="ProductWithAssociationDto" PropertyName="Description" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ProductWithAssociationDto, object>(x => x.Description ?? string.Empty))">
+                                    @TranslationService.GetTranslation("product.description", "Descrizione")
+                                </MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Status")
+                        {
+                            <EFTableColumnHeader TItem="ProductWithAssociationDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ProductWithAssociationDto, object>(x => x.IsAssociated))">
+                                    @TranslationService.GetTranslation("common.status", "Stato")
+                                </MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "UnitCost")
+                        {
+                            <EFTableColumnHeader TItem="ProductWithAssociationDto" PropertyName="UnitCost" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ProductWithAssociationDto, object>(x => x.UnitCost ?? 0))">
+                                    @TranslationService.GetTranslation("product.cost", "Costo")
+                                </MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                    }
                 </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Select">
-                        <!-- Checkbox handled by MultiSelection -->
-                    </MudTd>
+                <RowTemplate Context="item">
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.code", "Codice")">
-                        <MudText Typo="Typo.body2">@context.Code</MudText>
+                        <MudText Typo="Typo.body2">@item.Code</MudText>
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.name", "Nome")">
                         <MudText Typo="Typo.body2">
-                            <strong>@context.Name</strong>
+                            <strong>@item.Name</strong>
                         </MudText>
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.description", "Descrizione")">
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                            @(context.Description ?? "-")
+                            @(item.Description ?? "-")
                         </MudText>
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("common.status", "Stato")">
-                        @if (context.IsAssociated)
+                        @if (item.IsAssociated)
                         {
                             <MudChip T="string" Size="Size.Small" Color="Color.Success">
                                 @TranslationService.GetTranslation("supplier.associated", "Associato")
@@ -116,9 +129,9 @@
                         }
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.cost", "Costo")">
-                        @if (context.UnitCost.HasValue)
+                        @if (item.UnitCost.HasValue)
                         {
-                            <MudText Typo="Typo.body2">@context.UnitCost.Value.ToString("C2")</MudText>
+                            <MudText Typo="Typo.body2">@item.UnitCost.Value.ToString("C2")</MudText>
                         }
                         else
                         {
@@ -129,7 +142,7 @@
                 <NoRecordsContent>
                     <MudText>@TranslationService.GetTranslation("supplier.noProductsFound", "Nessun prodotto trovato")</MudText>
                 </NoRecordsContent>
-            </MudTable>
+            </EFTable>
         }
     </DialogContent>
     <DialogActions>
@@ -160,12 +173,22 @@
     [Parameter, EditorRequired]
     public string SupplierName { get; set; } = string.Empty;
 
+    private EFTable<ProductWithAssociationDto> _efTable = null!;
     private List<ProductWithAssociationDto> _products = new();
     private HashSet<ProductWithAssociationDto> _selectedProducts = new();
     private bool _isLoading = true;
     private bool _isSaving = false;
     private string _searchTerm = string.Empty;
     private bool _selectAll = false;
+
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3 },
+        new() { PropertyName = "UnitCost", DisplayName = "Costo", IsVisible = true, Order = 4 }
+    };
 
     private IEnumerable<ProductWithAssociationDto> _filteredProducts =>
         string.IsNullOrWhiteSpace(_searchTerm)
@@ -221,6 +244,12 @@
         return product.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                (product.Code != null && product.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
                (product.Description != null && product.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void OnSelectedItemsChanged(HashSet<ProductWithAssociationDto> items)
+    {
+        _selectedProducts = items;
+        StateHasChanged();
     }
 
     private void OnSelectAllChanged(bool value)
