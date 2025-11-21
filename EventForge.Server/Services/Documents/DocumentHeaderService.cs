@@ -1,4 +1,5 @@
 using EventForge.DTOs.Documents;
+using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Mappers;
 using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.Warehouse;
@@ -763,6 +764,23 @@ public class DocumentHeaderService : IDocumentHeaderService
             _logger.LogInformation("Document row {RowId} added to document {DocumentHeaderId} by {User}.",
                 row.Id, createDto.DocumentHeaderId, currentUser);
 
+            // Auto-create or update ProductSupplier for purchase documents
+            if (row.ProductId.HasValue && documentHeader.BusinessPartyId != Guid.Empty)
+            {
+                var docType = await _context.DocumentTypes
+                    .FirstOrDefaultAsync(dt => dt.Id == documentHeader.DocumentTypeId && !dt.IsDeleted, cancellationToken);
+                
+                if (docType?.IsStockIncrease == true)
+                {
+                    await EnsureProductSupplierAsync(
+                        row.ProductId.Value,
+                        documentHeader.BusinessPartyId,
+                        row.UnitPrice,
+                        currentUser,
+                        cancellationToken);
+                }
+            }
+
             // If document is already approved, create stock movement immediately
             if (documentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved && row.ProductId.HasValue)
             {
@@ -1374,6 +1392,56 @@ public class DocumentHeaderService : IDocumentHeaderService
         {
             _logger.LogError(ex, "Error synchronizing stock movement dates for document {DocumentHeaderId}.", documentHeaderId);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Ensures a ProductSupplier relationship exists for the given product and supplier.
+    /// If it exists, updates the last purchase price and date. If not, creates a new one.
+    /// </summary>
+    private async Task EnsureProductSupplierAsync(Guid productId, Guid supplierId, 
+        decimal unitPrice, string currentUser, CancellationToken ct)
+    {
+        try
+        {
+            var existing = await _context.Set<ProductSupplier>()
+                .FirstOrDefaultAsync(ps => ps.ProductId == productId && 
+                    ps.SupplierId == supplierId && !ps.IsDeleted, ct);
+
+            if (existing != null)
+            {
+                existing.LastPurchasePrice = unitPrice;
+                existing.LastPurchaseDate = DateTime.UtcNow;
+                existing.ModifiedBy = currentUser;
+                existing.ModifiedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                var tenantId = _tenantContext.CurrentTenantId.Value;
+                _context.Set<ProductSupplier>().Add(new ProductSupplier
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = productId,
+                    SupplierId = supplierId,
+                    TenantId = tenantId,
+                    UnitCost = unitPrice,
+                    LastPurchasePrice = unitPrice,
+                    LastPurchaseDate = DateTime.UtcNow,
+                    IsActive = true,
+                    CreatedBy = currentUser,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await _context.SaveChangesAsync(ct);
+            
+            _logger.LogInformation("ProductSupplier ensured for Product {ProductId} and Supplier {SupplierId}.", 
+                productId, supplierId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error ensuring ProductSupplier for Product {ProductId} and Supplier {SupplierId}.", 
+                productId, supplierId);
+            // Don't throw - this is a non-critical operation
         }
     }
 }
