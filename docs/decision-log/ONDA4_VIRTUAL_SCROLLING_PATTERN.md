@@ -267,8 +267,8 @@ To apply this pattern to other pages:
 
 ### Authors
 
-- Implementation: GitHub Copilot
-- Review: @ivanopaulon
+- Implementation: @ivanopaulon (via GitHub Copilot)
+- Review: EventForge Team
 
 ---
 
