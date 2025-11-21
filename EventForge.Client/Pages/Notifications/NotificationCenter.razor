@@ -1,10 +1,11 @@
 @page "/notifications"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Notifications
+@using EventForge.Client.Services
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject INotificationService NotificationService
-@inject SignalRService SignalRService
+@inject IRealtimeService RealtimeService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -368,10 +369,10 @@
     {
         try
         {
-            // Start SignalR connections if not already started
-            if (!SignalRService.IsNotificationConnected)
+            // Start real-time connections if not already started
+            if (!RealtimeService.IsNotificationConnected)
             {
-                await SignalRService.StartNotificationConnectionAsync();
+                await RealtimeService.StartNotificationConnectionAsync();
             }
 
             // Subscribe to real-time events

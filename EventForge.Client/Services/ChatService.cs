@@ -38,30 +38,30 @@ public class ChatService : IChatService
 {
     private const string BaseUrl = "api/v1/chat";
     private readonly IHttpClientService _httpClientService;
-    private readonly SignalRService _signalRService;
+    private readonly IRealtimeService _realtimeService;
     private readonly IPerformanceOptimizationService _performanceService;
     private readonly ILogger<ChatService> _logger;
 
     public ChatService(
         IHttpClientService httpClientService,
-        SignalRService signalRService,
+        IRealtimeService realtimeService,
         IPerformanceOptimizationService performanceService,
         ILogger<ChatService> logger)
     {
         _httpClientService = httpClientService;
-        _signalRService = signalRService;
+        _realtimeService = realtimeService;
         _performanceService = performanceService;
         _logger = logger;
 
-        // Subscribe to SignalR events
-        _signalRService.ChatCreated += OnChatCreated;
-        _signalRService.MessageReceived += OnMessageReceived;
-        _signalRService.MessageEdited += OnMessageEdited;
-        _signalRService.MessageDeleted += OnMessageDeleted;
-        _signalRService.MessageRead += OnMessageRead;
-        _signalRService.TypingIndicator += OnTypingIndicator;
-        _signalRService.UserJoinedChat += OnUserJoinedChat;
-        _signalRService.UserLeftChat += OnUserLeftChat;
+        // Subscribe to real-time events
+        _realtimeService.ChatCreated += OnChatCreated;
+        _realtimeService.MessageReceived += OnMessageReceived;
+        _realtimeService.MessageEdited += OnMessageEdited;
+        _realtimeService.MessageDeleted += OnMessageDeleted;
+        _realtimeService.MessageRead += OnMessageRead;
+        _realtimeService.TypingIndicator += OnTypingIndicator;
+        _realtimeService.UserJoinedChat += OnUserJoinedChat;
+        _realtimeService.UserLeftChat += OnUserLeftChat;
     }
 
     #region Events
@@ -254,9 +254,9 @@ public class ChatService : IChatService
                 $"{DebounceKeys.TYPING_INDICATOR}_{chatId}",
                 async () =>
                 {
-                    if (_signalRService.IsChatConnected)
+                    if (_realtimeService.IsChatConnected)
                     {
-                        await _signalRService.SendTypingIndicatorAsync(chatId, isTyping);
+                        await _realtimeService.SendTypingIndicatorAsync(chatId, isTyping);
                     }
                     return true;
                 },

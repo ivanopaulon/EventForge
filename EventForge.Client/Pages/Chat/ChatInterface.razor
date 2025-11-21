@@ -1,11 +1,12 @@
 @page "/chat"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Chat
+@using EventForge.Client.Services
 @using Microsoft.JSInterop
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IChatService ChatService
-@inject SignalRService SignalRService
+@inject IRealtimeService RealtimeService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -349,10 +350,10 @@
             var userInfo = await AuthService.GetCurrentUserAsync();
             _currentUserId = userInfo?.Id ?? Guid.Empty;
 
-            // Start SignalR connections if not already started
-            if (!SignalRService.IsChatConnected)
+            // Start real-time connections if not already started
+            if (!RealtimeService.IsChatConnected)
             {
-                await SignalRService.StartChatConnectionAsync();
+                await RealtimeService.StartChatConnectionAsync();
             }
 
             // Subscribe to real-time events

@@ -67,7 +67,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthenticationDialogService, AuthenticationDialogService>();
 builder.Services.AddScoped<SignalRService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
-builder.Services.AddScoped<OptimizedSignalRService>();
+builder.Services.AddScoped<IRealtimeService, OptimizedSignalRService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();

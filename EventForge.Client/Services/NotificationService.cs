@@ -32,23 +32,22 @@ public class NotificationService : INotificationService
 {
     private const string BaseUrl = "api/v1/notifications";
     private readonly IHttpClientService _httpClientService;
-    private readonly SignalRService _signalRService;
+    private readonly IRealtimeService _realtimeService;
     private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
         IHttpClientService httpClientService,
-        SignalRService signalRService,
+        IRealtimeService realtimeService,
         ILogger<NotificationService> logger)
     {
         _httpClientService = httpClientService;
-        _signalRService = signalRService;
+        _realtimeService = realtimeService;
         _logger = logger;
 
-        // Subscribe to SignalR events
-        _signalRService.NotificationReceived += OnNotificationReceived;
-        _signalRService.NotificationAcknowledged += OnNotificationAcknowledged;
-        _signalRService.NotificationArchived += OnNotificationArchived;
-        _signalRService.NotificationStatsReceived += OnStatsReceived;
+        // Subscribe to real-time events
+        _realtimeService.NotificationReceived += OnNotificationReceived;
+        _realtimeService.NotificationAcknowledged += OnNotificationAcknowledged;
+        _realtimeService.NotificationArchived += OnNotificationArchived;
     }
 
     #region Events

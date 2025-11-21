@@ -28,16 +28,16 @@ namespace EventForge.Client.Services
     {
         private const string BaseUrl = "api/v1/logs";
         private readonly IHttpClientService _httpClientService;
-        private readonly SignalRService _signalRService;
+        private readonly IRealtimeService _realtimeService;
         private readonly ILogger<LogsService> _logger;
 
         public LogsService(
             IHttpClientService httpClientService,
-            SignalRService signalRService,
+            IRealtimeService realtimeService,
             ILogger<LogsService> logger)
         {
             _httpClientService = httpClientService;
-            _signalRService = signalRService;
+            _realtimeService = realtimeService;
             _logger = logger;
         }
 
@@ -101,7 +101,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                await _signalRService.StartAuditConnectionAsync();
+                await _realtimeService.StartAuditConnectionAsync();
                 // SignalR subscription will be implemented in future version
                 _logger.LogInformation("Application log subscription requested");
             }
@@ -116,7 +116,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                await _signalRService.StartAuditConnectionAsync();
+                await _realtimeService.StartAuditConnectionAsync();
                 // SignalR subscription will be implemented in future version
                 _logger.LogInformation("Audit log subscription requested");
             }

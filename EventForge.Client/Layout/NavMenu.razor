@@ -1,9 +1,10 @@
 ﻿@using EventForge.DTOs.Notifications
 @using EventForge.DTOs.Chat
+@using EventForge.Client.Services
 @inject IAuthService AuthService
 @inject INotificationService NotificationService
 @inject IChatService ChatService
-@inject SignalRService SignalRService
+@inject IRealtimeService RealtimeService
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
 @inject IDialogService DialogService
@@ -297,14 +298,14 @@
     {
         try
         {
-            // Start SignalR connections if not already started
-            if (!SignalRService.IsNotificationConnected)
+            // Start real-time connections if not already started
+            if (!RealtimeService.IsNotificationConnected)
             {
-                await SignalRService.StartNotificationConnectionAsync();
+                await RealtimeService.StartNotificationConnectionAsync();
             }
-            if (!SignalRService.IsChatConnected)
+            if (!RealtimeService.IsChatConnected)
             {
-                await SignalRService.StartChatConnectionAsync();
+                await RealtimeService.StartChatConnectionAsync();
             }
 
             // Get notification stats to calculate unread count
