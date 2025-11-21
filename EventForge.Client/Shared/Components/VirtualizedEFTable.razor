@@ -1,0 +1,57 @@
+@typeparam TItem
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@inject ITranslationService TranslationService
+
+<div class="virtualized-table-wrapper">
+    <Virtualize Items="@Items" 
+                Context="item" 
+                ItemSize="@ItemSize"
+                OverscanCount="@OverscanCount">
+        <ItemContent>
+            @ItemContent(item)
+        </ItemContent>
+        <Placeholder>
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="@($"{ItemSize}px")" />
+        </Placeholder>
+        <EmptyContent>
+            <div class="text-center pa-4">
+                <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
+                    @EmptyMessage
+                </MudText>
+            </div>
+        </EmptyContent>
+    </Virtualize>
+</div>
+
+@code {
+    /// <summary>
+    /// The collection of items to display.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public ICollection<TItem>? Items { get; set; }
+    
+    /// <summary>
+    /// Template for rendering each item.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> ItemContent { get; set; } = default!;
+    
+    /// <summary>
+    /// The size of each item in pixels. Used for scrolling calculations.
+    /// </summary>
+    [Parameter]
+    public float ItemSize { get; set; } = 60f;
+    
+    /// <summary>
+    /// The number of extra items to render outside the visible viewport.
+    /// Higher values improve scroll smoothness but increase memory usage.
+    /// </summary>
+    [Parameter]
+    public int OverscanCount { get; set; } = 5;
+    
+    /// <summary>
+    /// Message to display when the collection is empty.
+    /// </summary>
+    [Parameter]
+    public string EmptyMessage { get; set; } = "No items to display";
+}
