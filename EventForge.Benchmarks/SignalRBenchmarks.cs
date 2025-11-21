@@ -103,18 +103,13 @@ public class SignalRBenchmarks
         // Simulate 10 concurrent health checks
         for (int i = 0; i < 10; i++)
         {
-            healthChecks.Add(Task.Run(() =>
+            healthChecks.Add(Task.FromResult(new HealthCheckResult
             {
-                var result = new HealthCheckResult
-                {
-                    IsHealthy = true,
-                    ConnectionId = Guid.NewGuid().ToString(),
-                    Timestamp = DateTime.UtcNow,
-                    Latency = TimeSpan.FromMilliseconds(Random.Shared.Next(10, 100)),
-                    Status = "Connected"
-                };
-
-                return Task.FromResult(result);
+                IsHealthy = true,
+                ConnectionId = Guid.NewGuid().ToString(),
+                Timestamp = DateTime.UtcNow,
+                Latency = TimeSpan.FromMilliseconds(Random.Shared.Next(10, 100)),
+                Status = "Connected"
             }));
         }
 
