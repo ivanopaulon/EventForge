@@ -205,7 +205,11 @@
     private void InitializeSelection()
     {
         // Pre-select already associated products
-        _selectedProducts = _products.Where(p => p.IsAssociated).ToHashSet();
+        _selectedProducts.Clear();
+        foreach (var product in _products.Where(p => p.IsAssociated))
+        {
+            _selectedProducts.Add(product);
+        }
         _selectAll = _selectedProducts.Count == _products.Count && _products.Any();
     }
 
