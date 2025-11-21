@@ -45,6 +45,9 @@ Generated\ Files/
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 
+# Coverage and Test Results - Onda 4
+TestResults/
+
 # NUnit
 *.VisualState.xml
 TestResult.xml
@@ -142,10 +145,12 @@ _TeamCity*
 .axoCover/*
 !.axoCover/settings.json
 
-# Coverlet is a free, cross platform Code Coverage Tool
+# Coverlet is a free, cross platform Code Coverage Tool - Onda 4
 coverage*.json
 coverage*.xml
 coverage*.info
+coverage.opencover.xml
+coverage.cobertura.xml
 
 # Visual Studio code coverage results
 *.coverage
