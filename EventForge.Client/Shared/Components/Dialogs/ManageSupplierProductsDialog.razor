@@ -19,80 +19,117 @@
                 @TranslationService.GetTranslation("supplier.manageProductsDescription", "Seleziona i prodotti da associare al fornitore. I prodotti già associati sono preselezionati.")
             </MudText>
 
-            <MudTextField @bind-Value="_searchTerm"
-                          Label="@TranslationService.GetTranslation("common.search", "Cerca")"
-                          Placeholder="@TranslationService.GetTranslation("supplier.searchProducts", "Cerca prodotti...")"
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.End"
-                          AdornmentIcon="@Icons.Material.Outlined.Search"
-                          Clearable="true"
-                          Immediate="true"
-                          Class="mb-4" />
-
             <MudPaper Elevation="0" Class="pa-3 mb-3" Style="background-color: var(--mud-palette-background-grey);">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                     <MudText Typo="Typo.body2">
-                        @_selectedCount @TranslationService.GetTranslation("supplier.productsSelected", "prodotti selezionati")
+                        <strong>@_selectedProducts.Count</strong> / @_products.Count 
+                        @TranslationService.GetTranslation("supplier.productsSelected", "prodotti selezionati")
                     </MudText>
-                    <MudStack Row="true" Spacing="2">
-                        <MudButton OnClick="SelectAll" 
-                                   Size="Size.Small" 
-                                   Variant="Variant.Text"
-                                   Color="Color.Primary">
-                            @TranslationService.GetTranslation("common.selectAll", "Seleziona tutto")
-                        </MudButton>
-                        <MudButton OnClick="DeselectAll" 
-                                   Size="Size.Small" 
-                                   Variant="Variant.Text"
-                                   Color="Color.Primary">
-                            @TranslationService.GetTranslation("common.deselectAll", "Deseleziona tutto")
-                        </MudButton>
-                    </MudStack>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("supplier.selectHint", "Seleziona i prodotti da associare al fornitore")
+                    </MudText>
                 </MudStack>
             </MudPaper>
 
-            <MudPaper Elevation="1" Class="overflow-auto" Style="max-height: 500px;">
-                <MudList T="string" Clickable="true" Dense="true">
-                    @foreach (var product in _filteredProducts)
-                    {
-                        <MudListItem T="string">
-                            <MudCheckBox @bind-Value="@product.IsAssociated"
-                                         Color="Color.Primary"
-                                         Dense="true">
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                        @product.Code
-                                        @if (!string.IsNullOrEmpty(product.Description))
-                                        {
-                                            <span> - @product.Description</span>
-                                        }
-                                    </MudText>
-                                    @if (product.ProductSupplierId.HasValue)
-                                    {
-                                        <MudText Typo="Typo.caption" Color="Color.Info">
-                                            <MudIcon Icon="@Icons.Material.Outlined.Link" Size="Size.Small" />
-                                            @TranslationService.GetTranslation("supplier.alreadyAssociated", "Già associato")
-                                            @if (product.UnitCost.HasValue)
-                                            {
-                                                <span> - @product.UnitCost.Value.ToString("C")</span>
-                                            }
-                                        </MudText>
-                                    }
-                                </MudStack>
-                            </MudCheckBox>
-                        </MudListItem>
-                        <MudDivider />
-                    }
-                </MudList>
-            </MudPaper>
-
-            @if (!_filteredProducts.Any())
-            {
-                <MudAlert Severity="Severity.Info" Class="mt-3">
-                    @TranslationService.GetTranslation("supplier.noProductsFound", "Nessun prodotto trovato")
-                </MudAlert>
-            }
+            <MudTable T="ProductWithAssociationDto"
+                      Items="@_filteredProducts"
+                      Dense="true"
+                      Hover="true"
+                      MultiSelection="true"
+                      @bind-SelectedItems="_selectedProducts"
+                      FixedHeader="true"
+                      Height="calc(100vh - 300px)">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">@TranslationService.GetTranslation("supplier.selectProducts", "Seleziona Prodotti")</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_searchTerm"
+                                  Placeholder="@TranslationService.GetTranslation("common.search", "Cerca...")"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  IconSize="Size.Medium"
+                                  Immediate="true"
+                                  Class="mt-0"
+                                  Clearable="true" />
+                </ToolBarContent>
+                <ColGroup>
+                    <col style="width: 50px;" />  <!-- Checkbox -->
+                    <col style="width: 150px;" /> <!-- Code -->
+                    <col />                        <!-- Name -->
+                    <col style="width: 300px;" />  <!-- Description -->
+                    <col style="width: 120px;" />  <!-- Status -->
+                    <col style="width: 120px;" />  <!-- Cost -->
+                </ColGroup>
+                <HeaderContent>
+                    <MudTh>
+                        <MudCheckBox T="bool"
+                                    Checked="@_selectAll"
+                                    CheckedChanged="@OnSelectAllChanged"
+                                    Color="Color.Primary" />
+                    </MudTh>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="new Func<ProductWithAssociationDto, object>(x => x.Code ?? string.Empty)">
+                            @TranslationService.GetTranslation("product.code", "Codice")
+                        </MudTableSortLabel>
+                    </MudTh>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="new Func<ProductWithAssociationDto, object>(x => x.Name)">
+                            @TranslationService.GetTranslation("product.name", "Nome")
+                        </MudTableSortLabel>
+                    </MudTh>
+                    <MudTh>@TranslationService.GetTranslation("product.description", "Descrizione")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("common.status", "Stato")</MudTh>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="new Func<ProductWithAssociationDto, object>(x => x.UnitCost ?? 0)">
+                            @TranslationService.GetTranslation("product.cost", "Costo")
+                        </MudTableSortLabel>
+                    </MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Select">
+                        <!-- Checkbox handled by MultiSelection -->
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.code", "Codice")">
+                        <MudText Typo="Typo.body2">@context.Code</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.name", "Nome")">
+                        <MudText Typo="Typo.body2">
+                            <strong>@context.Name</strong>
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.description", "Descrizione")">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @(context.Description ?? "-")
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("common.status", "Stato")">
+                        @if (context.IsAssociated)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">
+                                @TranslationService.GetTranslation("supplier.associated", "Associato")
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                                @TranslationService.GetTranslation("supplier.notAssociated", "Non associato")
+                            </MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.cost", "Costo")">
+                        @if (context.UnitCost.HasValue)
+                        {
+                            <MudText Typo="Typo.body2">@context.UnitCost.Value.ToString("C2")</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">-</MudText>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>@TranslationService.GetTranslation("supplier.noProductsFound", "Nessun prodotto trovato")</MudText>
+                </NoRecordsContent>
+            </MudTable>
         }
     </DialogContent>
     <DialogActions>
@@ -124,23 +161,21 @@
     public string SupplierName { get; set; } = string.Empty;
 
     private List<ProductWithAssociationDto> _products = new();
+    private HashSet<ProductWithAssociationDto> _selectedProducts = new();
     private bool _isLoading = true;
     private bool _isSaving = false;
     private string _searchTerm = string.Empty;
+    private bool _selectAll = false;
 
     private IEnumerable<ProductWithAssociationDto> _filteredProducts =>
         string.IsNullOrWhiteSpace(_searchTerm)
             ? _products
-            : _products.Where(p =>
-                p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                (p.Code != null && p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                (p.Description != null && p.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
-
-    private int _selectedCount => _products.Count(p => p.IsAssociated);
+            : _products.Where(p => FilterProduct(p, _searchTerm));
 
     protected override async Task OnInitializedAsync()
     {
         await LoadProductsAsync();
+        InitializeSelection();
     }
 
     private async Task LoadProductsAsync()
@@ -167,19 +202,34 @@
         }
     }
 
-    private void SelectAll()
+    private void InitializeSelection()
     {
-        foreach (var product in _filteredProducts)
+        // Pre-select already associated products
+        _selectedProducts.Clear();
+        foreach (var product in _products.Where(p => p.IsAssociated))
         {
-            product.IsAssociated = true;
+            _selectedProducts.Add(product);
         }
+        _selectAll = _selectedProducts.Count == _products.Count && _products.Any();
     }
 
-    private void DeselectAll()
+    private bool FilterProduct(ProductWithAssociationDto product, string searchTerm)
     {
-        foreach (var product in _filteredProducts)
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return true;
+
+        return product.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+               (product.Code != null && product.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+               (product.Description != null && product.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void OnSelectAllChanged(bool value)
+    {
+        _selectAll = value;
+        _selectedProducts.Clear();
+        if (value)
         {
-            product.IsAssociated = false;
+            _selectedProducts.UnionWith(_products);
         }
     }
 
@@ -188,8 +238,7 @@
         _isSaving = true;
         try
         {
-            var selectedProductIds = _products
-                .Where(p => p.IsAssociated)
+            var selectedProductIds = _selectedProducts
                 .Select(p => p.ProductId)
                 .ToList();
 
