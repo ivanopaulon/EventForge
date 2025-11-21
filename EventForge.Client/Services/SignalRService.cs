@@ -9,6 +9,7 @@ namespace EventForge.Client.Services;
 /// Service for managing SignalR connections and real-time communication.
 /// Handles audit logs, notifications, and chat functionality with localization support.
 /// </summary>
+[Obsolete("This service is deprecated. Use IRealtimeService (OptimizedSignalRService) instead for better performance with connection pooling, event batching, and optimized retry logic. See docs/decision-log/ONDA4_REALTIME_SERVICE_UNIFICATION.md for migration details.")]
 public class SignalRService : IAsyncDisposable
 {
     private const string BaseUrl = "hubs";

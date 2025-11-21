@@ -67,6 +67,10 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthenticationDialogService, AuthenticationDialogService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
 builder.Services.AddScoped<IRealtimeService, OptimizedSignalRService>();
+// Register SignalRService for backward compatibility (marked as Obsolete)
+#pragma warning disable CS0618 // Type or member is obsolete
+builder.Services.AddScoped<SignalRService>();
+#pragma warning restore CS0618 // Type or member is obsolete
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();

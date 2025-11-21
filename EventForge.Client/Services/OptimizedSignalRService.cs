@@ -447,26 +447,32 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
         while (retryCount < _retryConfig.MaxRetries)
         {
+            _logger.LogInformation("Scheduling retry for {ConnectionKey} with backoff delay: {Delay}s",
+                connectionKey, delay.TotalSeconds);
+            
             await Task.Delay(delay);
 
             try
             {
                 await StartConnectionAsync(connectionKey, hubPath);
+                _logger.LogInformation("Successfully reconnected {ConnectionKey} after {RetryCount} retries",
+                    connectionKey, retryCount);
                 return; // Success
             }
             catch (Exception ex)
             {
                 retryCount++;
+                var previousDelay = delay;
                 delay = TimeSpan.FromMilliseconds(Math.Min(
                     delay.TotalMilliseconds * _retryConfig.BackoffMultiplier,
                     _retryConfig.MaxDelay.TotalMilliseconds));
 
-                _logger.LogWarning(ex, "Retry {Count}/{Max} failed for {ConnectionKey}",
-                    retryCount, _retryConfig.MaxRetries, connectionKey);
+                _logger.LogWarning(ex, "Retry {Count}/{Max} failed for {ConnectionKey}. Previous delay: {PreviousDelay}s, Next delay: {NextDelay}s",
+                    retryCount, _retryConfig.MaxRetries, connectionKey, previousDelay.TotalSeconds, delay.TotalSeconds);
             }
         }
 
-        _logger.LogError("Failed to reconnect {ConnectionKey} after {MaxRetries} attempts",
+        _logger.LogError("Failed to reconnect {ConnectionKey} after {MaxRetries} attempts with delays: 2s, 4s, 8s, 16s, 30s",
             connectionKey, _retryConfig.MaxRetries);
     }
 
