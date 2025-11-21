@@ -243,7 +243,7 @@
         _quantityChangedCallback = EventCallback.Factory.Create<decimal>(this, HandleQuantityChanged);
         _notesChangedCallback = EventCallback.Factory.Create<string>(this, HandleNotesChanged);
         
-        if (State.ConversionFactor > 1m && State.DraftQuantity > 0m)
+        if (State.ConversionFactor > 0m && State.DraftQuantity > 0m)
         {
             _quantityAlternative = Math.Round(State.DraftQuantity / State.ConversionFactor, 2);
             Logger.LogDebug("Init: {Alt} {Unit} = {Base} base", 
