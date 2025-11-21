@@ -1893,6 +1893,7 @@
     "createdAt": "Created at",
     "createdBy": "Created by",
     "description": "Description",
+    "dualInputHelp": "You can enter quantity in either unit. The system will always save the value in base units.",
     "expireInDays": "Expires in {0} days",
     "expired": "Expired",
     "expiringLots": "Expiring lots",
