@@ -2364,7 +2364,9 @@
     "quantityBase": "{0} (unità base)",
     "syncNote": "Modifica uno dei due campi, l'altro si aggiorna automaticamente",
     "baseUnits": "unità base",
-    "baseUnitsLabel": "Unità base"
+    "baseUnitsLabel": "Unità base",
+    "conversionInfo": "1 {0} = {1} {2}",
+    "dualInputHelp": "Puoi inserire la quantità in entrambe le unità. Il sistema salverà sempre il valore in unità base."
   },
   "documentType": {
     "management": "Gestione Tipi Documento",
