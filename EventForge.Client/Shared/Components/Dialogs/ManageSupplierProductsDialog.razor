@@ -222,14 +222,10 @@
     private void OnSelectAllChanged(bool value)
     {
         _selectAll = value;
+        _selectedProducts.Clear();
         if (value)
         {
-            _selectedProducts.Clear();
             _selectedProducts.UnionWith(_products);
-        }
-        else
-        {
-            _selectedProducts.Clear();
         }
     }
 
