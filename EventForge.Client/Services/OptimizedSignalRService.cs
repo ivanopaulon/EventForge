@@ -189,7 +189,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 // Optimize for mobile and high-load scenarios
                 options.SkipNegotiation = true;
                 options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
-                // Note: WebSocketConfiguration is not supported in Blazor WebAssembly (browser environment)
+                // Note: WebSocketConfiguration (including KeepAliveInterval) is not supported in Blazor WebAssembly 
+                // as it runs in browser environment. The browser handles WebSocket keep-alive automatically.
             })
             .WithAutomaticReconnect(new OptimizedRetryPolicy(new OptimizedRetryPolicy.RetryConfiguration()))
             .ConfigureLogging(logging =>
