@@ -167,6 +167,7 @@
   },
   "auth": {
     "authenticationRequired": "Autenticazione Richiesta",
+    "connectingToServer": "Connessione al server...",
     "forgotPassword": "Password dimenticata?",
     "goToLogin": "Vai al Login",
     "login": "Accedi",
@@ -180,6 +181,7 @@
     "logoutError": "Errore di disconnessione: {0}",
     "logoutSuccess": "Disconnessione avvenuta con successo",
     "noTenants": "Nessun tenant disponibile",
+    "noTenantsAvailable": "Nessun tenant disponibile. Contatta l'amministratore.",
     "password": "Password",
     "passwordRequired": "La password è obbligatoria",
     "pleaseLogin": "Effettuare l'accesso per accedere a questa pagina.",
