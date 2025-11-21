@@ -93,7 +93,7 @@
                        Size="Size.Medium"
                        FullWidth="true"
                        OnClick="HandleLogin"
-                       Disabled="@(!_isFormValid || _isLoading || !_tenants.Any())"
+                       Disabled="@(!_isFormValid || _isLoading || _tenants?.Any() != true)"
                        aria-label="Accedi al sistema">
                 @TranslationService.GetTranslation("auth.login", "Login")
             </MudButton>
