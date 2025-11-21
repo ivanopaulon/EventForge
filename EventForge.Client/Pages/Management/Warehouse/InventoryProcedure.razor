@@ -678,6 +678,7 @@
         _isLoading = true;
         _currentProduct = null;
         _currentProductCode = null;
+        _currentProductUnit = null; // Reset state
 
         try
         {
@@ -696,6 +697,35 @@
             {
                 // Get conversion factor if ProductCode has a ProductUnitId (alternative unit)
                 _currentConversionFactor = await GetConversionFactorAsync(_currentProduct.Id, _currentProductCode?.ProductUnitId);
+
+                // Load ProductUnit if ProductUnitId is present (enables dual input fields)
+                if (_currentProductCode?.ProductUnitId != null)
+                {
+                    try
+                    {
+                        _currentProductUnit = await ProductService.GetProductUnitByIdAsync(_currentProductCode.ProductUnitId.Value);
+                        
+                        if (_currentProductUnit != null)
+                        {
+                            Logger.LogInformation(
+                                "Alternative unit detected: {UnitType} (Factor: {Factor})",
+                                _currentProductUnit.UnitType,
+                                _currentConversionFactor
+                            );
+                            
+                            AddOperationLog(
+                                TranslationService.GetTranslation("warehouse.alternativeUnitDetected", "Unità alternativa rilevata"),
+                                $"{_currentProductUnit.UnitType} (Fattore: {_currentConversionFactor:N2})",
+                                "Info"
+                            );
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to load ProductUnit {ProductUnitId}", _currentProductCode.ProductUnitId);
+                        _currentProductUnit = null; // Graceful fallback
+                    }
+                }
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), Severity.Success);
                 AddOperationLog(
