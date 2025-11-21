@@ -1,0 +1,163 @@
+name: Quality Gate - Onda 4
+
+on:
+  pull_request:
+    branches: [master, develop]
+  push:
+    branches: [master]
+
+jobs:
+  quality-gate:
+    name: Coverage Enforcement & Metrics
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore EventForge.sln
+
+      - name: Build solution
+        run: dotnet build EventForge.sln --configuration Release --no-restore
+
+      - name: Run tests with coverage
+        run: |
+          dotnet test EventForge.sln \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults
+
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage reports
+        run: |
+          reportgenerator \
+            -reports:"TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"TestResults/coverage" \
+            -reporttypes:"Html;JsonSummary;TextSummary;Cobertura"
+
+      - name: Display coverage summary
+        if: always()
+        run: |
+          if [ -f "TestResults/coverage/Summary.txt" ]; then
+            echo "### Coverage Summary" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat TestResults/coverage/Summary.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check coverage thresholds (Onda 4)
+        run: |
+          dotnet run --project scripts/CoverageChecker/CoverageChecker.csproj -- \
+            --file TestResults/coverage/Summary.json \
+            --min-line-coverage 80 \
+            --min-branch-coverage 75 \
+            --max-missing 10
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: TestResults/coverage/Cobertura.xml
+          flags: unittests
+          name: codecov-eventforge
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Post coverage comment on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && always()
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            
+            let coverageTable = '## 📊 Coverage Report - Onda 4 Quality Gate\n\n';
+            
+            try {
+              const summaryPath = 'TestResults/coverage/Summary.json';
+              if (fs.existsSync(summaryPath)) {
+                const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+                const data = summary.summary;
+                
+                const lineCoverage = data.linecoverage.toFixed(2);
+                const branchCoverage = data.branchcoverage.toFixed(2);
+                const coveredLines = data.coveredlines;
+                const coverableLines = data.coverablelines;
+                const missingLines = coverableLines - coveredLines;
+                const missingPercent = ((missingLines / coverableLines) * 100).toFixed(2);
+                
+                const linePass = data.linecoverage >= 80;
+                const branchPass = data.branchcoverage >= 75;
+                const missingPass = parseFloat(missingPercent) <= 10;
+                
+                coverageTable += '| Metric | Value | Threshold | Status |\n';
+                coverageTable += '|--------|-------|-----------|--------|\n';
+                coverageTable += `| Line Coverage | ${lineCoverage}% | ≥ 80% | ${linePass ? '✅' : '❌'} |\n`;
+                coverageTable += `| Branch Coverage | ${branchCoverage}% | ≥ 75% | ${branchPass ? '✅' : '❌'} |\n`;
+                coverageTable += `| Missing Coverage | ${missingPercent}% | ≤ 10% | ${missingPass ? '✅' : '❌'} |\n\n`;
+                coverageTable += `**Details:**\n`;
+                coverageTable += `- Covered Lines: ${coveredLines}/${coverableLines}\n`;
+                coverageTable += `- Covered Branches: ${data.coveredbranches}/${data.totalbranches}\n\n`;
+                
+                if (linePass && branchPass && missingPass) {
+                  coverageTable += '✅ **All coverage thresholds passed!**\n';
+                } else {
+                  coverageTable += '❌ **Coverage thresholds not met. Please add more tests.**\n';
+                }
+              } else {
+                coverageTable += '⚠️ Coverage summary not found.\n';
+              }
+            } catch (error) {
+              coverageTable += `⚠️ Error reading coverage data: ${error.message}\n`;
+            }
+            
+            coverageTable += '\n---\n*Generated by Onda 4 Quality Gate*';
+            
+            // Find existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Coverage Report - Onda 4')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: coverageTable
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: coverageTable
+              });
+            }
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: TestResults/coverage/
+          retention-days: 30
