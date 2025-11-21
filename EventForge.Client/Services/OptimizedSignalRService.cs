@@ -9,7 +9,7 @@ namespace EventForge.Client.Services;
 /// Optimized SignalR service with connection pooling, event batching, and performance monitoring.
 /// Reduces latency and improves scalability for multiple users and high load scenarios.
 /// </summary>
-public class OptimizedSignalRService : IAsyncDisposable
+public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IAuthService _authService;
@@ -37,11 +37,25 @@ public class OptimizedSignalRService : IAsyncDisposable
         public double BackoffMultiplier { get; set; } = 2.0;
     }
 
-    #region Events (optimized with batching)
+    #region Events - Batched (optimized with batching)
     public event Action<List<object>>? BatchedAuditLogUpdates;
     public event Action<List<NotificationResponseDto>>? BatchedNotifications;
     public event Action<List<ChatMessageDto>>? BatchedChatMessages;
+    #endregion
+
+    #region Events - Individual (backward compatibility)
+    public event Action<NotificationResponseDto>? NotificationReceived;
+    public event Action<ChatMessageDto>? MessageReceived;
     public event Action<TypingIndicatorDto>? TypingIndicator;
+    public event Action<object>? AuditLogUpdated;
+    public event Action<Guid>? NotificationAcknowledged;
+    public event Action<Guid>? NotificationArchived;
+    public event Action<ChatResponseDto>? ChatCreated;
+    public event Action<EditMessageDto>? MessageEdited;
+    public event Action<object>? MessageDeleted;
+    public event Action<object>? MessageRead;
+    public event Action<object>? UserJoinedChat;
+    public event Action<object>? UserLeftChat;
     #endregion
 
     private class BatchedEvent
@@ -175,10 +189,8 @@ public class OptimizedSignalRService : IAsyncDisposable
                 // Optimize for mobile and high-load scenarios
                 options.SkipNegotiation = true;
                 options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
-                options.WebSocketConfiguration = ws =>
-                {
-                    ws.KeepAliveInterval = TimeSpan.FromSeconds(30);
-                };
+                // Note: WebSocketConfiguration (including KeepAliveInterval) is not supported in Blazor WebAssembly 
+                // as it runs in browser environment. The browser handles WebSocket keep-alive automatically.
             })
             .WithAutomaticReconnect(new OptimizedRetryPolicy(new OptimizedRetryPolicy.RetryConfiguration()))
             .ConfigureLogging(logging =>
@@ -236,13 +248,53 @@ public class OptimizedSignalRService : IAsyncDisposable
         {
             EnqueueEvent("system_notification", notification);
         });
+
+        _ = connection.On<Guid>("NotificationAcknowledged", notificationId =>
+        {
+            NotificationAcknowledged?.Invoke(notificationId);
+        });
+
+        _ = connection.On<Guid>("NotificationArchived", notificationId =>
+        {
+            NotificationArchived?.Invoke(notificationId);
+        });
     }
 
     private void RegisterChatEventHandlers(HubConnection connection)
     {
+        _ = connection.On<ChatResponseDto>("ChatCreated", chat =>
+        {
+            ChatCreated?.Invoke(chat);
+        });
+
         _ = connection.On<ChatMessageDto>("MessageReceived", message =>
         {
             EnqueueEvent("chat_message", message);
+        });
+
+        _ = connection.On<EditMessageDto>("MessageEdited", editDto =>
+        {
+            MessageEdited?.Invoke(editDto);
+        });
+
+        _ = connection.On<object>("MessageDeleted", data =>
+        {
+            MessageDeleted?.Invoke(data);
+        });
+
+        _ = connection.On<object>("MessageRead", data =>
+        {
+            MessageRead?.Invoke(data);
+        });
+
+        _ = connection.On<object>("UserJoinedChat", data =>
+        {
+            UserJoinedChat?.Invoke(data);
+        });
+
+        _ = connection.On<object>("UserLeftChat", data =>
+        {
+            UserLeftChat?.Invoke(data);
         });
 
         // Typing indicators are not batched for responsiveness
@@ -291,15 +343,25 @@ public class OptimizedSignalRService : IAsyncDisposable
                     case "audit_log":
                     case "user_status":
                         auditEvents.Add(batchedEvent.Data);
+                        // Fire individual event for backward compatibility
+                        AuditLogUpdated?.Invoke(batchedEvent.Data);
                         break;
                     case "notification":
                     case "system_notification":
                         if (batchedEvent.Data is NotificationResponseDto notification)
+                        {
                             notifications.Add(notification);
+                            // Fire individual event for backward compatibility
+                            NotificationReceived?.Invoke(notification);
+                        }
                         break;
                     case "chat_message":
                         if (batchedEvent.Data is ChatMessageDto message)
+                        {
                             chatMessages.Add(message);
+                            // Fire individual event for backward compatibility
+                            MessageReceived?.Invoke(message);
+                        }
                         break;
                 }
 
@@ -525,6 +587,262 @@ public class OptimizedSignalRService : IAsyncDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send typing indicator");
+        }
+    }
+
+    /// <summary>
+    /// Stops all SignalR connections gracefully.
+    /// </summary>
+    public async Task StopAllConnectionsAsync()
+    {
+        var stopTasks = new List<Task>();
+
+        foreach (var kvp in _connections)
+        {
+            var (key, connection) = kvp;
+            if (connection.State != HubConnectionState.Disconnected)
+            {
+                stopTasks.Add(connection.StopAsync());
+            }
+        }
+
+        await Task.WhenAll(stopTasks);
+        _connections.Clear();
+        _logger.LogInformation("All SignalR connections stopped");
+    }
+
+    /// <summary>
+    /// Starts audit connection and joins audit log group.
+    /// </summary>
+    public async Task StartAuditConnectionAsync()
+    {
+        await StartConnectionAsync("audit", "/hubs/audit-log");
+    }
+
+    /// <summary>
+    /// Starts notification connection.
+    /// </summary>
+    public async Task StartNotificationConnectionAsync()
+    {
+        await StartConnectionAsync("notification", "/hubs/notifications");
+    }
+
+    /// <summary>
+    /// Starts chat connection.
+    /// </summary>
+    public async Task StartChatConnectionAsync()
+    {
+        await StartConnectionAsync("chat", "/hubs/chat");
+    }
+
+    /// <summary>
+    /// Joins a chat room.
+    /// </summary>
+    public async Task JoinChatAsync(Guid chatId)
+    {
+        if (_connections.TryGetValue("chat", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("JoinChat", chatId);
+                _logger.LogInformation("Joined chat {ChatId}", chatId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to join chat {ChatId}", chatId);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Leaves a chat room.
+    /// </summary>
+    public async Task LeaveChatAsync(Guid chatId)
+    {
+        if (_connections.TryGetValue("chat", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("LeaveChat", chatId);
+                _logger.LogInformation("Left chat {ChatId}", chatId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to leave chat {ChatId}", chatId);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a new chat.
+    /// </summary>
+    public async Task CreateChatAsync(CreateChatDto createChatDto)
+    {
+        if (_connections.TryGetValue("chat", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("CreateChat", createChatDto);
+                _logger.LogInformation("Created {ChatType} chat with {ParticipantCount} participants",
+                    createChatDto.Type, createChatDto.ParticipantIds.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create chat");
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Edits a message.
+    /// </summary>
+    public async Task EditMessageAsync(EditMessageDto editDto)
+    {
+        if (_connections.TryGetValue("chat", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("EditMessage", editDto);
+                _logger.LogInformation("Edited message {MessageId}", editDto.MessageId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to edit message {MessageId}", editDto.MessageId);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes a message.
+    /// </summary>
+    public async Task DeleteMessageAsync(Guid messageId, string? reason = null)
+    {
+        if (_connections.TryGetValue("chat", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("DeleteMessage", messageId, reason);
+                _logger.LogInformation("Deleted message {MessageId}", messageId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete message {MessageId}", messageId);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Marks message as read.
+    /// </summary>
+    public async Task MarkMessageAsReadAsync(Guid messageId)
+    {
+        if (_connections.TryGetValue("chat", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("MarkMessageAsRead", messageId);
+                _logger.LogInformation("Marked message {MessageId} as read", messageId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to mark message {MessageId} as read", messageId);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Subscribes to specific notification types.
+    /// </summary>
+    public async Task SubscribeToNotificationTypesAsync(List<NotificationTypes> notificationTypes)
+    {
+        if (_connections.TryGetValue("notification", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("SubscribeToNotificationTypes", notificationTypes);
+                _logger.LogInformation("Subscribed to notification types: {Types}", string.Join(", ", notificationTypes));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to subscribe to notification types");
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Unsubscribes from specific notification types.
+    /// </summary>
+    public async Task UnsubscribeFromNotificationTypesAsync(List<NotificationTypes> notificationTypes)
+    {
+        if (_connections.TryGetValue("notification", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("UnsubscribeFromNotificationTypes", notificationTypes);
+                _logger.LogInformation("Unsubscribed from notification types: {Types}", string.Join(", ", notificationTypes));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to unsubscribe from notification types");
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Acknowledges a notification.
+    /// </summary>
+    public async Task AcknowledgeNotificationAsync(Guid notificationId)
+    {
+        if (_connections.TryGetValue("notification", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("AcknowledgeNotification", notificationId);
+                _logger.LogInformation("Acknowledged notification {NotificationId}", notificationId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to acknowledge notification {NotificationId}", notificationId);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Archives a notification.
+    /// </summary>
+    public async Task ArchiveNotificationAsync(Guid notificationId)
+    {
+        if (_connections.TryGetValue("notification", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("ArchiveNotification", notificationId);
+                _logger.LogInformation("Archived notification {NotificationId}", notificationId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to archive notification {NotificationId}", notificationId);
+                throw;
+            }
         }
     }
 

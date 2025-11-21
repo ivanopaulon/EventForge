@@ -1,10 +1,11 @@
 @page "/activity-feed"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Notifications
+@using EventForge.Client.Services
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject INotificationService NotificationService
-@inject SignalRService SignalRService
+@inject IRealtimeService RealtimeService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -274,7 +275,7 @@
             await LoadActivities();
             
             // Subscribe to real-time activity updates
-            SignalRService.NotificationReceived += OnNotificationReceived;
+            RealtimeService.NotificationReceived += OnNotificationReceived;
         }
         catch (Exception ex)
         {
@@ -496,6 +497,6 @@
 
     public void Dispose()
     {
-        SignalRService.NotificationReceived -= OnNotificationReceived;
+        RealtimeService.NotificationReceived -= OnNotificationReceived;
     }
 }
