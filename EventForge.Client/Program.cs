@@ -94,6 +94,7 @@ builder.Services.AddScoped<IStockService, StockService>();
 
 // Add product management services
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ISupplierSuggestionService, SupplierSuggestionService>();
 builder.Services.AddScoped<IUMService, UMService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IModelService, ModelService>();

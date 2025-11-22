@@ -1,0 +1,270 @@
+@using EventForge.DTOs.Products.SupplierSuggestion
+@using EventForge.Client.Services
+@using MudBlazor
+@inject ITranslationService TranslationService
+@inject ISupplierSuggestionService SuggestionService
+@inject ISnackbar Snackbar
+@inject ILogger<SupplierSuggestionDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+            <MudText Align="Align.Center">@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
+        }
+        else if (_response == null || _response.Suggestions.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info">
+                @TranslationService.GetTranslation("supplier.noSuggestionsAvailable", "Nessun suggerimento disponibile. Sono necessari almeno 2 fornitori per confrontare.")
+            </MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="4">
+                <!-- Header Section -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">@_response.ProductName (@_response.ProductCode)</MudText>
+                        @if (_response.PotentialSavings > 0)
+                        {
+                            <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.TrendingDown">
+                                @TranslationService.GetTranslation("supplier.potentialSavings", "Risparmio potenziale"): €@_response.PotentialSavings.ToString("N2")
+                            </MudChip>
+                        }
+                        @if (_response.RecommendedSupplier != null)
+                        {
+                            <MudAlert Severity="Severity.Success" Dense="true">
+                                <MudText Typo="Typo.body2">
+                                    <strong>@TranslationService.GetTranslation("supplier.recommendation", "Raccomandazione"):</strong> @_response.RecommendationExplanation
+                                </MudText>
+                            </MudAlert>
+                        }
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Supplier Comparison Table -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">@TranslationService.GetTranslation("supplier.comparison", "Confronto Fornitori")</MudText>
+                    <MudTable Items="_response.Suggestions" Hover="true" Dense="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>@TranslationService.GetTranslation("field.supplier", "Fornitore")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.totalScore", "Punteggio Totale")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.cost", "Costo")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.leadTime", "Tempo")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.confidence", "Affidabilità")</MudTh>
+                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.supplier", "Fornitore")">
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    @if (context.IsCurrentPreferred)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                                    }
+                                    <MudText>@context.SupplierName</MudText>
+                                    @if (_response.RecommendedSupplier?.SupplierId == context.SupplierId)
+                                    {
+                                        <MudChip T="string" Color="Color.Success" Size="Size.Small">@TranslationService.GetTranslation("common.recommended", "Consigliato")</MudChip>
+                                    }
+                                </MudStack>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.totalScore", "Punteggio Totale")">
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudProgressLinear Value="@((double)context.TotalScore)" Color="@GetScoreColor(context.TotalScore)" Size="Size.Medium" Style="width: 100px;" />
+                                    <MudText Typo="Typo.body2">@context.TotalScore.ToString("N1")</MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.cost", "Costo")">
+                                @context.Currency @context.UnitCost?.ToString("N2")
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.leadTime", "Tempo")">
+                                @context.LeadTimeDays @TranslationService.GetTranslation("common.days", "giorni")
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.confidence", "Affidabilità")">
+                                <MudChip T="string" Color="@GetConfidenceColor(context.Confidence)" Size="Size.Small">
+                                    @context.Confidence.ToString()
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Info"
+                                               Size="Size.Small"
+                                               Color="Color.Info"
+                                               OnClick="@(() => ShowDetails(context))" />
+                                @if (!context.IsCurrentPreferred)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Check"
+                                                   Size="Size.Small"
+                                                   Color="Color.Success"
+                                                   OnClick="@(() => ApplySupplier(context))" />
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+
+                <!-- Selected Supplier Details -->
+                @if (_selectedSuggestion != null)
+                {
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">@TranslationService.GetTranslation("supplier.scoreBreakdown", "Dettaglio Punteggio") - @_selectedSuggestion.SupplierName</MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="1" Class="pa-3">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("supplier.priceScore", "Punteggio Prezzo") (40%)</MudText>
+                                        <MudText Typo="Typo.h6" Color="@GetScoreColor(_selectedSuggestion.ScoreBreakdown.PriceScore)">
+                                            @_selectedSuggestion.ScoreBreakdown.PriceScore.ToString("N1")
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">@_selectedSuggestion.ScoreBreakdown.Explanations.GetValueOrDefault("Price", "")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="1" Class="pa-3">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("supplier.leadTimeScore", "Punteggio Tempo") (25%)</MudText>
+                                        <MudText Typo="Typo.h6" Color="@GetScoreColor(_selectedSuggestion.ScoreBreakdown.LeadTimeScore)">
+                                            @_selectedSuggestion.ScoreBreakdown.LeadTimeScore.ToString("N1")
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">@_selectedSuggestion.ScoreBreakdown.Explanations.GetValueOrDefault("LeadTime", "")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="1" Class="pa-3">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("supplier.reliabilityScore", "Affidabilità") (20%)</MudText>
+                                        <MudText Typo="Typo.h6" Color="@GetScoreColor(_selectedSuggestion.ScoreBreakdown.ReliabilityScore)">
+                                            @_selectedSuggestion.ScoreBreakdown.ReliabilityScore.ToString("N1")
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">@_selectedSuggestion.ScoreBreakdown.Explanations.GetValueOrDefault("Reliability", "")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="1" Class="pa-3">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("supplier.trendScore", "Trend Prezzo") (15%)</MudText>
+                                        <MudText Typo="Typo.h6" Color="@GetScoreColor(_selectedSuggestion.ScoreBreakdown.TrendScore)">
+                                            @_selectedSuggestion.ScoreBreakdown.TrendScore.ToString("N1")
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">@_selectedSuggestion.ScoreBreakdown.Explanations.GetValueOrDefault("Trend", "")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                        <MudText Typo="Typo.body2" Class="mt-3">
+                            <strong>@TranslationService.GetTranslation("supplier.reason", "Motivo"):</strong> @_selectedSuggestion.RecommendationReason
+                        </MudText>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid ProductId { get; set; }
+
+    [Parameter]
+    public EventCallback OnSupplierChanged { get; set; }
+
+    private bool _isLoading = true;
+    private SupplierSuggestionResponse? _response;
+    private SupplierSuggestion? _selectedSuggestion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSuggestionsAsync();
+    }
+
+    private async Task LoadSuggestionsAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _response = await SuggestionService.GetSupplierSuggestionsAsync(ProductId);
+            
+            if (_response?.RecommendedSupplier != null)
+            {
+                _selectedSuggestion = _response.RecommendedSupplier;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading supplier suggestions for product {ProductId}", ProductId);
+            Snackbar.Add(TranslationService.GetTranslation("supplier.loadError", "Errore nel caricamento dei suggerimenti"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ShowDetails(SupplierSuggestion suggestion)
+    {
+        _selectedSuggestion = suggestion;
+    }
+
+    private async Task ApplySupplier(SupplierSuggestion suggestion)
+    {
+        try
+        {
+            var success = await SuggestionService.ApplySuggestedSupplierAsync(
+                ProductId, suggestion.SupplierId, suggestion.RecommendationReason);
+
+            if (success)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("supplier.appliedSuccess", "Fornitore applicato con successo"),
+                    Severity.Success);
+                
+                await OnSupplierChanged.InvokeAsync();
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("supplier.applyError", "Errore nell'applicazione del fornitore"),
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error applying suggested supplier {SupplierId}", suggestion.SupplierId);
+            Snackbar.Add(
+                TranslationService.GetTranslation("supplier.applyError", "Errore nell'applicazione del fornitore"),
+                Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private Color GetScoreColor(decimal score)
+    {
+        if (score >= 80) return Color.Success;
+        if (score >= 60) return Color.Warning;
+        return Color.Error;
+    }
+
+    private Color GetConfidenceColor(ConfidenceLevel confidence)
+    {
+        return confidence switch
+        {
+            ConfidenceLevel.High => Color.Success,
+            ConfidenceLevel.Medium => Color.Warning,
+            ConfidenceLevel.Low => Color.Error,
+            _ => Color.Default
+        };
+    }
+}
