@@ -39,7 +39,10 @@
                  IsLoading="_isLoadingVatRates"
                  ComponentKey="VatRateManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ExportFormats="@(new List<string> { "Excel" })"
+                 ExcelFileName="VatRates">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")

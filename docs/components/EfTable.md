@@ -153,7 +153,9 @@
 |-----------|------|---------|-------------|
 | `ShowExport` | `bool` | `false` | Show export menu |
 | `ExportFormats` | `List<string>` | `["CSV", "Excel"]` | Available export formats |
-| `OnExport` | `EventCallback<string>` | - | Event fired when export format is selected |
+| `OnExport` | `EventCallback<string>` | - | Event fired when export format is selected (for custom handling) |
+| `EnableExcelExport` | `bool` | `true` | Enable built-in Excel export functionality |
+| `ExcelFileName` | `string` | `"Export"` | Base filename for Excel exports (timestamp will be appended) |
 
 ### Action Parameters
 | Parameter | Type | Default | Description |
@@ -457,8 +459,54 @@ When `ShowSearch` is true:
 
 When `ShowExport` is true:
 - Dropdown menu with configured formats
-- `OnExport` event passes selected format
-- Parent component handles actual export logic
+- Built-in Excel export with professional formatting
+- `OnExport` event for custom export handlers
+
+#### Built-in Excel Export
+
+The EFTable component includes professional Excel export functionality:
+
+**Features:**
+- Blue headers (#1976D2) with white text
+- Alternate row colors (#F5F5F5)
+- Auto-sized columns with minimum width of 10
+- Frozen header row
+- Auto-filters enabled
+- Cell borders for professional appearance
+- Respects column visibility and order settings
+- Auto-detects number formats (currency, decimals, dates)
+
+**Usage:**
+```razor
+<EFTable TItem="VatRateDto"
+         Items="@_vatRates"
+         ShowExport="true"
+         ExportFormats="@(new List<string> { "Excel" })"
+         ExcelFileName="VatRates"
+         ComponentKey="VatRateManagement">
+    <!-- ... -->
+</EFTable>
+```
+
+**Configuration:**
+- `EnableExcelExport="true"` (default) - Enable built-in Excel export
+- `ExcelFileName="MyData"` - Base filename for exports (timestamp appended automatically)
+- Exports use current visible columns and their order
+- Currency symbols detected from property names (Price, Cost, Amount)
+- DateTime properties formatted as "dd/mm/yyyy hh:mm"
+
+**Custom Export Handling:**
+
+If you need custom export logic, use the `OnExport` event:
+```csharp
+private async Task HandleExport(string format)
+{
+    if (format == "CSV")
+    {
+        // Custom CSV export logic
+    }
+}
+```
 
 ### Row Selection
 

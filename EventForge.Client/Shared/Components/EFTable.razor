@@ -5,6 +5,8 @@
 @inject ITranslationService TranslationService
 @inject ILogger<EFTable<TItem>> Logger
 @inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ISnackbar Snackbar
 
 @if (AllowDragDropGrouping && ServerData == null)
 {
@@ -121,9 +123,26 @@
                          Size="Size.Small">
                     @foreach (var format in ExportFormats)
                     {
-                        <MudMenuItem OnClick="@(async () => await HandleExport(format))">
-                            @format
-                        </MudMenuItem>
+                        @if (format == "Excel" && EnableExcelExport)
+                        {
+                            <MudMenuItem OnClick="@HandleExportToExcel" Disabled="@_isExporting">
+                                @if (_isExporting)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.TableView" Size="Size.Small" Class="mr-2" />
+                                }
+                                @format
+                            </MudMenuItem>
+                        }
+                        else
+                        {
+                            <MudMenuItem OnClick="@(async () => await HandleExport(format))">
+                                @format
+                            </MudMenuItem>
+                        }
                     }
                 </MudMenu>
             }
@@ -278,6 +297,9 @@
     [Parameter] public bool ShowExport { get; set; } = false;
     [Parameter] public List<string> ExportFormats { get; set; } = new() { "CSV", "Excel" };
     [Parameter] public EventCallback<string> OnExport { get; set; }
+    [Parameter] public bool EnableExcelExport { get; set; } = true;
+    [Parameter] public string ExcelFileName { get; set; } = "Export";
+    private bool _isExporting = false;
     
     // Action parameters
     [Parameter] public List<EFTableAction>? Actions { get; set; }
@@ -690,6 +712,79 @@
         {
             await OnExport.InvokeAsync(format);
         }
+    }
+
+    private async Task HandleExportToExcel()
+    {
+        if (!EnableExcelExport) return;
+        try
+        {
+            _isExporting = true;
+            StateHasChanged();
+            
+            var displayItems = GetDisplayItems().ToList();
+            if (!displayItems.Any())
+            {
+                Snackbar.Add("No data to export", Severity.Warning);
+                return;
+            }
+            
+            var columns = _columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order)
+                .Select(c => new { PropertyName = c.PropertyName, DisplayName = c.DisplayName, NumberFormat = GetExcelFormat(c.PropertyName), IsVisible = true }).ToList();
+            
+            var exportData = new
+            {
+                data = displayItems,
+                options = new
+                {
+                    fileName = !string.IsNullOrEmpty(ExcelFileName) ? ExcelFileName : Title ?? "Export",
+                    sheetName = Title ?? "Data",
+                    columns,
+                    formatting = new { headerBackgroundColor = "#1976D2", headerFontColor = "#FFFFFF", headerBold = true, headerBorders = true, alternateRowColors = true, alternateRowColor = "#F5F5F5", dataBorders = true },
+                    autoFitColumns = true,
+                    freezeHeader = true,
+                    addAutoFilter = true
+                }
+            };
+            
+            var response = await Http.PostAsJsonAsync("/api/v1/export/excel", exportData);
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"Export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
+                Snackbar.Add("Export completed!", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Export failed", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private string? GetExcelFormat(string propertyName)
+    {
+        var property = typeof(TItem).GetProperty(propertyName);
+        if (property == null) return null;
+        var propType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+        if (propType == typeof(decimal) || propType == typeof(double) || propType == typeof(float))
+        {
+            if (propertyName.Contains("Price") || propertyName.Contains("Cost") || propertyName.Contains("Amount"))
+                return "€#,##0.00";
+            return "#,##0.00";
+        }
+        if (propType == typeof(DateTime)) return "dd/mm/yyyy hh:mm";
+        if (propType == typeof(int) || propType == typeof(long)) return "#,##0";
+        return null;
     }
 
     private async Task HandleAdd()

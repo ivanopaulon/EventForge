@@ -291,6 +291,9 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IDocumentExportService, DocumentExportService>();
         _ = services.AddScoped<IDocumentRetentionService, DocumentRetentionService>();
         _ = services.AddScoped<IDocumentAccessLogService, DocumentAccessLogService>();
+        
+        // Register Excel export service
+        _ = services.AddScoped<IExcelExportService, ExcelExportService>();
 
         // Register document facade for unified API access
         _ = services.AddScoped<IDocumentFacade, DocumentFacade>();
