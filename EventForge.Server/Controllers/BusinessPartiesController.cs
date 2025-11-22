@@ -19,15 +19,18 @@ public class BusinessPartiesController : BaseApiController
 {
     private readonly IBusinessPartyService _businessPartyService;
     private readonly ISupplierProductBulkService _supplierProductBulkService;
+    private readonly ISupplierProductCsvImportService _csvImportService;
     private readonly ITenantContext _tenantContext;
 
     public BusinessPartiesController(
         IBusinessPartyService businessPartyService,
         ISupplierProductBulkService supplierProductBulkService,
+        ISupplierProductCsvImportService csvImportService,
         ITenantContext tenantContext)
     {
         _businessPartyService = businessPartyService ?? throw new ArgumentNullException(nameof(businessPartyService));
         _supplierProductBulkService = supplierProductBulkService ?? throw new ArgumentNullException(nameof(supplierProductBulkService));
+        _csvImportService = csvImportService ?? throw new ArgumentNullException(nameof(csvImportService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
@@ -728,6 +731,116 @@ public class BusinessPartiesController : BaseApiController
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while performing bulk updates.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Validates a CSV file for supplier product import.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="file">CSV file to validate</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Validation result with preview and suggestions</returns>
+    /// <response code="200">Returns the validation result</response>
+    /// <response code="400">If the file is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the supplier is not found</response>
+    [HttpPost("{supplierId:guid}/products/validate-csv")]
+    [ProducesResponseType(typeof(CsvValidationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CsvValidationResult>> ValidateCsv(
+        Guid supplierId,
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new ValidationProblemDetails
+            {
+                Title = "Invalid file",
+                Detail = "CSV file is required"
+            });
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if supplier exists
+            var exists = await _businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
+            if (!exists)
+            {
+                return CreateNotFoundProblem($"Supplier with ID {supplierId} not found.");
+            }
+
+            var result = await _csvImportService.ValidateCsvAsync(supplierId, file, null, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while validating CSV file.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Imports supplier products from a CSV file.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="file">CSV file to import</param>
+    /// <param name="options">Import options (as JSON in form data)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Import result with statistics and errors</returns>
+    /// <response code="200">Returns the import result</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the supplier is not found</response>
+    [HttpPost("{supplierId:guid}/products/import-csv")]
+    [ProducesResponseType(typeof(CsvImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CsvImportResult>> ImportCsv(
+        Guid supplierId,
+        IFormFile file,
+        [FromForm] string? options,
+        CancellationToken cancellationToken = default)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new ValidationProblemDetails
+            {
+                Title = "Invalid file",
+                Detail = "CSV file is required"
+            });
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if supplier exists
+            var exists = await _businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
+            if (!exists)
+            {
+                return CreateNotFoundProblem($"Supplier with ID {supplierId} not found.");
+            }
+
+            // Parse options from JSON
+            var importOptions = string.IsNullOrWhiteSpace(options)
+                ? new CsvImportOptions()
+                : System.Text.Json.JsonSerializer.Deserialize<CsvImportOptions>(options) ?? new CsvImportOptions();
+
+            var currentUser = GetCurrentUser();
+            var result = await _csvImportService.ImportCsvAsync(supplierId, file, importOptions, currentUser, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while importing CSV file.", ex);
         }
     }
 
