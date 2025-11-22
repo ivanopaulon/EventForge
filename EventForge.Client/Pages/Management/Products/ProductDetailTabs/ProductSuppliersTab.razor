@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
@@ -10,7 +11,14 @@
 <MudStack Spacing="3">
     <MudPaper Elevation="1" Class="pa-4">
         <MudGrid Spacing="3">
-            <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
+            <MudItem xs="12" Class="d-flex justify-space-between align-center mb-2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Info" 
+                           StartIcon="@Icons.Material.Filled.AutoAwesome" 
+                           OnClick="@OpenSupplierSuggestionsDialog"
+                           Disabled="@(_productSuppliers == null || _productSuppliers.Count() < 2)">
+                    @TranslationService.GetTranslation("supplier.getSuggestions", "Suggerimenti Fornitori")
+                </MudButton>
                 <MudButton Variant="Variant.Filled" 
                            Color="Color.Primary" 
                            StartIcon="@Icons.Material.Filled.Add" 
@@ -97,6 +105,34 @@
         {
             Logger.LogError(ex, "Error loading product suppliers for product {ProductId}", Product.Id);
             Snackbar.Add(TranslationService.GetTranslation("product.loadSuppliersError", "Errore nel caricamento dei fornitori"), Severity.Error);
+        }
+    }
+
+    private async Task OpenSupplierSuggestionsDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            { "ProductId", Product.Id },
+            { "OnSupplierChanged", EventCallback.Factory.Create(this, LoadSuppliersAsync) }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<SupplierSuggestionDialog>(
+            TranslationService.GetTranslation("supplier.suggestions", "Suggerimenti Fornitori"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadSuppliersAsync();
+            await NotifyPersisted();
         }
     }
 
