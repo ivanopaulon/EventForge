@@ -215,6 +215,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IProductService, ProductService>();
         _ = services.AddScoped<IBrandService, BrandService>();
         _ = services.AddScoped<IModelService, ModelService>();
+        _ = services.AddScoped<ISupplierProductBulkService, SupplierProductBulkService>();
 
         // Register price list services
         _ = services.AddScoped<IPriceListService, PriceListService>();
