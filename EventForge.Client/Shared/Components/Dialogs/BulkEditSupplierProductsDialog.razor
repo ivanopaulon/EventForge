@@ -279,11 +279,9 @@
         _isProcessing = true;
         try
         {
-            // Set the preferred flag if checkbox is checked
-            if (_setPreferred)
-            {
-                _request.IsPreferred = true;
-            }
+            // Set the preferred flag based on checkbox state
+            // Only set it if the checkbox has been explicitly checked, otherwise leave it null (no change)
+            _request.IsPreferred = _setPreferred ? true : null;
 
             var previews = await BusinessPartyService.PreviewBulkUpdateSupplierProductsAsync(SupplierId, _request);
             if (previews != null)
