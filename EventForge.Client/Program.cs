@@ -91,6 +91,7 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStockService, StockService>();
+builder.Services.AddScoped<ITransferOrderService, TransferOrderService>();
 
 // Add product management services
 builder.Services.AddScoped<IProductService, ProductService>();
