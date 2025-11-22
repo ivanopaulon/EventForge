@@ -1986,7 +1986,8 @@
     "viewItem": "Visualizza {0}",
     "viewLogs": "Visualizza log",
     "viewTenant": "Visualizza dettagli tenant",
-    "viewUser": "Visualizza dettagli utente"
+    "viewUser": "Visualizza dettagli utente",
+    "startImpersonation": "[NEEDS TRANSLATION] Start user impersonation"
   },
   "userMenu": {
     "ariaLabel": "Menu utente",

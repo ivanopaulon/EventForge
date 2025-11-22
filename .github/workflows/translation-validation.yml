@@ -1,0 +1,123 @@
+name: Translation Validation
+
+on:
+  pull_request:
+    paths:
+      - 'EventForge.Client/wwwroot/i18n/**'
+      - '.github/workflows/translation-validation.yml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'EventForge.Client/wwwroot/i18n/**'
+  workflow_dispatch:
+
+jobs:
+  validate-translations:
+    runs-on: ubuntu-latest
+    name: Validate Translation Completeness
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          
+      - name: Restore dependencies
+        run: dotnet restore scripts/TranslationValidator/TranslationValidator.csproj
+        
+      - name: Build TranslationValidator
+        run: dotnet build scripts/TranslationValidator/TranslationValidator.csproj --configuration Release --no-restore
+        
+      - name: Run Translation Validation
+        id: validation
+        run: |
+          dotnet run --project scripts/TranslationValidator/TranslationValidator.csproj --configuration Release --no-build -- --output missing-keys-report.json
+        continue-on-error: true
+        
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: translation-validation-report
+          path: missing-keys-report.json
+          if-no-files-found: ignore
+          
+      - name: Comment PR with validation results
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            let comment = '## ❌ Translation Validation Failed\n\n';
+            comment += 'Some translation files are incomplete. Please ensure all languages have the same keys.\n\n';
+            
+            if (fs.existsSync('missing-keys-report.json')) {
+              const report = JSON.parse(fs.readFileSync('missing-keys-report.json', 'utf8'));
+              comment += '### Missing Keys Report\n\n';
+              
+              for (const [lang, data] of Object.entries(report)) {
+                comment += `#### Language: ${lang}\n`;
+                comment += `- Total Keys: ${data.TotalKeys}\n`;
+                comment += `- Missing Keys: ${data.MissingKeys.length}\n`;
+                comment += `- Extra Keys: ${data.ExtraKeys.length}\n\n`;
+                
+                if (data.MissingKeys.length > 0) {
+                  comment += '<details><summary>Missing Keys (click to expand)</summary>\n\n';
+                  comment += '```\n';
+                  data.MissingKeys.slice(0, 50).forEach(key => {
+                    comment += `${key}\n`;
+                  });
+                  if (data.MissingKeys.length > 50) {
+                    comment += `... and ${data.MissingKeys.length - 50} more\n`;
+                  }
+                  comment += '```\n</details>\n\n';
+                }
+                
+                if (data.ExtraKeys.length > 0) {
+                  comment += '<details><summary>Extra Keys (click to expand)</summary>\n\n';
+                  comment += '```\n';
+                  data.ExtraKeys.slice(0, 50).forEach(key => {
+                    comment += `${key}\n`;
+                  });
+                  if (data.ExtraKeys.length > 50) {
+                    comment += `... and ${data.ExtraKeys.length - 50} more\n`;
+                  }
+                  comment += '```\n</details>\n\n';
+                }
+              }
+              
+              comment += '\n### How to Fix\n\n';
+              comment += '1. Run the TranslationKeyGenerator to create missing keys:\n';
+              comment += '   ```bash\n';
+              comment += '   dotnet run --project scripts/TranslationKeyGenerator\n';
+              comment += '   ```\n\n';
+              comment += '2. Review and translate the generated placeholder entries\n\n';
+              comment += '3. Run the validator to confirm:\n';
+              comment += '   ```bash\n';
+              comment += '   dotnet run --project scripts/TranslationValidator\n';
+              comment += '   ```\n';
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            
+      - name: Fail if validation failed
+        if: steps.validation.outcome == 'failure'
+        run: |
+          echo "Translation validation failed. Please fix missing/extra keys."
+          exit 1
+          
+      - name: Success message
+        if: success()
+        run: |
+          echo "✓ All translation files are complete and consistent!"
