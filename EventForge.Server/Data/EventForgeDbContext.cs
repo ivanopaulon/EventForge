@@ -74,6 +74,7 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<Brand> Brands { get; set; }
     public DbSet<Model> Models { get; set; }
     public DbSet<ProductSupplier> ProductSuppliers { get; set; }
+    public DbSet<SupplierProductPriceHistory> SupplierProductPriceHistories { get; set; }
 
     // Price List & Promotion Entities
     public DbSet<PriceList> PriceLists { get; set; }
@@ -494,6 +495,45 @@ public partial class EventForgeDbContext : DbContext
 
         _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.UnitCost).HasPrecision(18, 6);
         _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.LastPurchasePrice).HasPrecision(18, 6);
+
+        // SupplierProductPriceHistory relationships
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>()
+            .HasOne(h => h.ProductSupplier)
+            .WithMany()
+            .HasForeignKey(h => h.ProductSupplierId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>()
+            .HasOne(h => h.Supplier)
+            .WithMany()
+            .HasForeignKey(h => h.SupplierId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>()
+            .HasOne(h => h.Product)
+            .WithMany()
+            .HasForeignKey(h => h.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>()
+            .HasOne(h => h.ChangedByUser)
+            .WithMany()
+            .HasForeignKey(h => h.ChangedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // SupplierProductPriceHistory indexes for performance
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => h.SupplierId).HasDatabaseName("IX_SupplierProductPriceHistory_SupplierId");
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => h.ProductId).HasDatabaseName("IX_SupplierProductPriceHistory_ProductId");
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => h.ChangedAt).HasDatabaseName("IX_SupplierProductPriceHistory_ChangedAt");
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => h.ProductSupplierId).HasDatabaseName("IX_SupplierProductPriceHistory_ProductSupplierId");
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => new { h.SupplierId, h.ChangedAt }).HasDatabaseName("IX_SupplierProductPriceHistory_SupplierId_ChangedAt");
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => new { h.ProductId, h.ChangedAt }).HasDatabaseName("IX_SupplierProductPriceHistory_ProductId_ChangedAt");
+
+        // SupplierProductPriceHistory decimal precision
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().Property(h => h.OldUnitCost).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().Property(h => h.NewUnitCost).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().Property(h => h.PriceChange).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SupplierProductPriceHistory>().Property(h => h.PriceChangePercentage).HasPrecision(18, 6);
 
         _ = modelBuilder.Entity<Product>().HasIndex(p => p.BrandId).HasDatabaseName("IX_Product_BrandId");
         _ = modelBuilder.Entity<Product>().HasIndex(p => p.ModelId).HasDatabaseName("IX_Product_ModelId");
