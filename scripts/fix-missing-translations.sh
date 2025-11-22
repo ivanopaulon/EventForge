@@ -37,13 +37,13 @@ fi
 echo ""
 
 # Step 4: Generate missing keys
-echo "Step 3: Generating missing translation keys..."
+echo "Step 4: Generating missing translation keys..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 dotnet run --project scripts/TranslationKeyGenerator
 echo ""
 
 # Step 5: Validate again to confirm
-echo "Step 4: Validating translations after generation..."
+echo "Step 5: Validating translations after generation..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if dotnet run --project scripts/TranslationValidator; then
     echo ""
