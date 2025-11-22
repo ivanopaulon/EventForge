@@ -127,7 +127,7 @@
             CloseButton = true
         };
 
-        var dialog = await DialogService.ShowAsync<AddProductUnitDialog>(
+        var dialog = await DialogService.ShowAsync<ProductUnitDialog>(
         TranslationService.GetTranslation("product.addUnit", "Aggiungi Unità Alternativa"),
         parameters,
         options);
@@ -160,7 +160,7 @@
             CloseButton = true
         };
 
-        var dialog = await DialogService.ShowAsync<EditProductUnitDialog>(
+        var dialog = await DialogService.ShowAsync<ProductUnitDialog>(
         TranslationService.GetTranslation("product.editUnit", "Modifica Unità Alternativa"),
         parameters,
         options);

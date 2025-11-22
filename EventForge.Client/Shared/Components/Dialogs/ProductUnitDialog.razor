@@ -5,7 +5,7 @@
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
-@inject ILogger<EditProductUnitDialog> Logger
+@inject ILogger<ProductUnitDialog> Logger
 
 <MudDialog>
     <DialogContent>
@@ -99,28 +99,59 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     
-    [Parameter] public ProductUnitDto ProductUnit { get; set; } = new();
+    /// <summary>
+    /// Product ID (required for new units)
+    /// </summary>
+    [Parameter] public Guid? ProductId { get; set; }
+    
+    /// <summary>
+    /// Existing ProductUnit (for editing). If null, creates a new unit.
+    /// </summary>
+    [Parameter] public ProductUnitDto? ProductUnit { get; set; }
+    
     [Parameter] public IEnumerable<UMDto> UnitOfMeasures { get; set; } = new List<UMDto>();
+    [Parameter] public IEnumerable<ProductUnitDto> ExistingUnits { get; set; } = new List<ProductUnitDto>();
     
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isSaving;
     
     private ProductUnitDto _model = new();
+    private bool _isEditMode => ProductUnit != null;
     
     protected override void OnInitialized()
     {
-        // Clone the unit for editing
-        _model = new ProductUnitDto
+        if (_isEditMode && ProductUnit != null)
         {
-            Id = ProductUnit.Id,
-            ProductId = ProductUnit.ProductId,
-            UnitOfMeasureId = ProductUnit.UnitOfMeasureId,
-            ConversionFactor = ProductUnit.ConversionFactor,
-            UnitType = ProductUnit.UnitType,
-            Description = ProductUnit.Description,
-            Status = ProductUnit.Status
-        };
+            // Edit mode: clone the existing unit
+            _model = new ProductUnitDto
+            {
+                Id = ProductUnit.Id,
+                ProductId = ProductUnit.ProductId,
+                UnitOfMeasureId = ProductUnit.UnitOfMeasureId,
+                ConversionFactor = ProductUnit.ConversionFactor,
+                UnitType = ProductUnit.UnitType,
+                Description = ProductUnit.Description,
+                Status = ProductUnit.Status
+            };
+        }
+        else
+        {
+            // Create mode: initialize new unit
+            _model = new ProductUnitDto
+            {
+                ProductId = ProductId ?? Guid.Empty,
+                UnitType = "Pack",
+                ConversionFactor = 1m,
+                Status = ProductUnitStatus.Active
+            };
+            
+            // Set default unit of measure to first one if available
+            if (UnitOfMeasures.Any())
+            {
+                _model.UnitOfMeasureId = UnitOfMeasures.First().Id;
+            }
+        }
     }
     
     private void Cancel()
@@ -136,28 +167,55 @@
         {
             _isSaving = true;
             
-            var updateDto = new UpdateProductUnitDto
+            if (_isEditMode)
             {
-                UnitOfMeasureId = _model.UnitOfMeasureId,
-                ConversionFactor = _model.ConversionFactor,
-                UnitType = _model.UnitType,
-                Description = _model.Description,
-                Status = _model.Status
-            };
-            
-            var updatedUnit = await ProductService.UpdateProductUnitAsync(_model.Id, updateDto);
-            if (updatedUnit != null)
-            {
-                MudDialog.Close(DialogResult.Ok(updatedUnit));
+                // Update existing unit
+                var updateDto = new UpdateProductUnitDto
+                {
+                    UnitOfMeasureId = _model.UnitOfMeasureId,
+                    ConversionFactor = _model.ConversionFactor,
+                    UnitType = _model.UnitType,
+                    Description = _model.Description,
+                    Status = _model.Status
+                };
+                
+                var updatedUnit = await ProductService.UpdateProductUnitAsync(_model.Id, updateDto);
+                if (updatedUnit != null)
+                {
+                    MudDialog.Close(DialogResult.Ok(updatedUnit));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                }
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                // Create new unit
+                var createDto = new CreateProductUnitDto
+                {
+                    ProductId = _model.ProductId,
+                    UnitOfMeasureId = _model.UnitOfMeasureId,
+                    ConversionFactor = _model.ConversionFactor,
+                    UnitType = _model.UnitType,
+                    Description = _model.Description,
+                    Status = _model.Status
+                };
+                
+                var newUnit = await ProductService.CreateProductUnitAsync(createDto);
+                if (newUnit != null)
+                {
+                    MudDialog.Close(DialogResult.Ok(newUnit));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error updating product unit");
+            Logger.LogError(ex, "Error {Action} product unit", _isEditMode ? "updating" : "creating");
             Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message), Severity.Error);
         }
         finally

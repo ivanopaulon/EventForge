@@ -36,6 +36,7 @@
                  MultiSelection="true"
                  SelectedItems="_selectedProducts"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
+                 OnRowClick="@(args => NavigationManager.NavigateTo($"/product-management/products/{args.Item.Id}"))"
                  IsLoading="_isLoadingProducts"
                  ComponentKey="ProductManagement"
                  InitialColumnConfigurations="_initialColumns"

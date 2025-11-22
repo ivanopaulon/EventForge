@@ -227,6 +227,7 @@
         if (!result.Canceled && _table != null)
         {
             await _table.ReloadServerData();
+            Snackbar.Add(TranslationService.GetTranslation("productSupplier.assignSuccess", "Prodotto associato con successo"), Severity.Success);
         }
     }
 
