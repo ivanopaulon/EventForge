@@ -95,7 +95,7 @@ public class SupplierProductCsvImportServiceTests : IDisposable
     public async Task ValidateCsvAsync_WithValidCsv_ShouldReturnSuccessfulValidation()
     {
         // Arrange
-        var csvContent = "ProductCode,ProductName,UnitCost,LeadTimeDays\nP001,Product 1,100.50,5";
+        var csvContent = $"ProductCode,ProductName,UnitCost,LeadTimeDays{Environment.NewLine}P001,Product 1,100.50,5";
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
@@ -127,7 +127,7 @@ public class SupplierProductCsvImportServiceTests : IDisposable
     public async Task ValidateCsvAsync_WithMissingRequiredColumns_ShouldReturnError()
     {
         // Arrange
-        var csvContent = "Name,Description\nProduct,Some product";
+        var csvContent = $"Name,Description{Environment.NewLine}Product,Some product";
         var file = CreateFormFile(csvContent, "invalid.csv");
 
         // Act
@@ -142,7 +142,7 @@ public class SupplierProductCsvImportServiceTests : IDisposable
     public async Task ImportCsvAsync_WithValidData_ShouldCreateProductSupplierRelationship()
     {
         // Arrange
-        var csvContent = "ProductCode,ProductName,UnitCost,LeadTimeDays\nP001,Product 1,100.50,5";
+        var csvContent = $"ProductCode,ProductName,UnitCost,LeadTimeDays{Environment.NewLine}P001,Product 1,100.50,5";
         var file = CreateFormFile(csvContent, "import.csv");
         var options = new CsvImportOptions
         {
@@ -170,7 +170,7 @@ public class SupplierProductCsvImportServiceTests : IDisposable
     public async Task ImportCsvAsync_WithInvalidPrice_ShouldSkipRowAndAddError()
     {
         // Arrange
-        var csvContent = "ProductCode,ProductName,UnitCost,LeadTimeDays\nP001,Product 1,invalid,5";
+        var csvContent = $"ProductCode,ProductName,UnitCost,LeadTimeDays{Environment.NewLine}P001,Product 1,invalid,5";
         var file = CreateFormFile(csvContent, "invalid_price.csv");
         var options = new CsvImportOptions
         {
@@ -198,7 +198,7 @@ public class SupplierProductCsvImportServiceTests : IDisposable
     {
         // Arrange
         var nonExistentSupplierId = Guid.NewGuid();
-        var csvContent = "ProductCode,UnitCost\nP001,100.50";
+        var csvContent = $"ProductCode,UnitCost{Environment.NewLine}P001,100.50";
         var file = CreateFormFile(csvContent, "test.csv");
         var options = new CsvImportOptions
         {
@@ -221,7 +221,7 @@ public class SupplierProductCsvImportServiceTests : IDisposable
     public async Task ValidateCsvAsync_WithSemicolonDelimiter_ShouldDetectCorrectly()
     {
         // Arrange
-        var csvContent = "ProductCode;ProductName;UnitCost;LeadTimeDays\nP001;Product 1;100.50;5";
+        var csvContent = $"ProductCode;ProductName;UnitCost;LeadTimeDays{Environment.NewLine}P001;Product 1;100.50;5";
         var file = CreateFormFile(csvContent, "semicolon.csv");
 
         // Act

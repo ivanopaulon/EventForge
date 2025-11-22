@@ -75,7 +75,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             using var stream = file.OpenReadStream();
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
             
-            // Detect delimiter
+            // Detect delimiter from first line
             var firstLine = await reader.ReadLineAsync(cancellationToken);
             if (string.IsNullOrEmpty(firstLine))
             {
@@ -93,7 +93,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             result.FileInfo.Delimiter = delimiter;
             result.FileInfo.Encoding = reader.CurrentEncoding.WebName;
 
-            // Reset stream and parse CSV
+            // Reset stream and create new reader for CSV parsing
             stream.Position = 0;
             using var csvReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
             var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -339,8 +339,11 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
                     }
 
                     // Find product by code (case-insensitive)
-                    var product = await _context.Products
-                        .FirstOrDefaultAsync(p => p.Code.ToLower() == productCode.ToLower(), cancellationToken);
+                    // Note: Using string comparison in memory after loading to avoid case-sensitivity issues
+                    var products = await _context.Products
+                        .Where(p => p.Code != null)
+                        .ToListAsync(cancellationToken);
+                    var product = products.FirstOrDefault(p => p.Code.Equals(productCode, StringComparison.OrdinalIgnoreCase));
 
                     if (product == null)
                     {
@@ -694,8 +697,14 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         {
             return csv.GetField(columnName);
         }
-        catch
+        catch (CsvHelper.MissingFieldException ex)
         {
+            _logger.LogWarning(ex, "Column '{ColumnName}' not found in CSV", columnName);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting field value for column '{ColumnName}'", columnName);
             return null;
         }
     }
