@@ -239,17 +239,20 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
             return alertIds;
         }
 
-        // Get prices to calculate potential savings
-        var currentPrice = await _context.ProductSuppliers
+        // Get prices and currency to calculate potential savings
+        var currentSupplierData = await _context.ProductSuppliers
             .Where(ps => ps.ProductId == productId && ps.SupplierId == currentSupplierId)
-            .Select(ps => ps.UnitCost)
+            .Select(ps => new { ps.UnitCost, ps.Currency })
             .FirstOrDefaultAsync(cancellationToken);
 
-        var betterPrice = await _context.ProductSuppliers
+        var betterSupplierData = await _context.ProductSuppliers
             .Where(ps => ps.ProductId == productId && ps.SupplierId == betterSupplierId)
-            .Select(ps => ps.UnitCost)
+            .Select(ps => new { ps.UnitCost, ps.Currency })
             .FirstOrDefaultAsync(cancellationToken);
 
+        var currentPrice = currentSupplierData?.UnitCost ?? 0;
+        var betterPrice = betterSupplierData?.UnitCost ?? 0;
+        var currency = currentSupplierData?.Currency ?? "EUR";
         var potentialSavings = currentPrice > betterPrice ? currentPrice - betterPrice : 0;
 
         // Check user configurations
@@ -276,7 +279,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
                 OldPrice = currentPrice,
                 NewPrice = betterPrice,
                 PotentialSavings = potentialSavings,
-                Currency = "EUR",
+                Currency = currency,
                 AlertTitle = $"Better Supplier Available: {product.Name}",
                 AlertMessage = $"A better supplier option is available for {product.Name} ({product.Code}). " +
                               $"Consider switching from {suppliers[currentSupplierId]} to {suppliers[betterSupplierId]}. " +

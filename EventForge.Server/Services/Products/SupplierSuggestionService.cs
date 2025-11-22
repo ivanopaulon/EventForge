@@ -33,6 +33,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
     private readonly int _cacheScoresDurationMinutes;
     private readonly int _lowConfidenceThreshold;
     private readonly int _highConfidenceThreshold;
+    private readonly decimal _alertScoreDifferenceThreshold;
 
     public SupplierSuggestionService(
         EventForgeDbContext context,
@@ -61,6 +62,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         _cacheScoresDurationMinutes = _configuration.GetValue<int>("SupplierSuggestion:CacheScoresDurationMinutes", 5);
         _lowConfidenceThreshold = _configuration.GetValue<int>("SupplierSuggestion:ConfidenceThresholds:Low", 60);
         _highConfidenceThreshold = _configuration.GetValue<int>("SupplierSuggestion:ConfidenceThresholds:High", 80);
+        _alertScoreDifferenceThreshold = _configuration.GetValue<decimal>("SupplierSuggestion:AlertScoreDifferenceThreshold", 10m);
     }
 
     public async Task<SupplierSuggestionResponse> GetSupplierSuggestionsAsync(Guid productId, CancellationToken cancellationToken = default)
@@ -115,7 +117,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         // Generate alert if there's a significantly better supplier (FASE 5 integration)
         if (_alertService != null && currentPreferred != null && recommended != null && 
             recommended.SupplierId != currentPreferred.SupplierId &&
-            recommended.TotalScore > currentPreferred.TotalScore + 10) // Score difference threshold
+            recommended.TotalScore > currentPreferred.TotalScore + _alertScoreDifferenceThreshold)
         {
             try
             {
