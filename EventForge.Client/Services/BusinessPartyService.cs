@@ -1,5 +1,6 @@
 using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.Products;
 
 namespace EventForge.Client.Services
 {
@@ -39,6 +40,10 @@ namespace EventForge.Client.Services
             int pageSize = 20,
             string? sortBy = null,
             bool sortDescending = true);
+
+        // Supplier Product Bulk Operations
+        Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request);
+        Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request);
     }
 
     public class BusinessPartyService : IBusinessPartyService
@@ -202,6 +207,24 @@ namespace EventForge.Client.Services
             }
 
             return await _httpClientService.GetAsync<PagedResult<BusinessPartyProductAnalysisDto>>(query);
+        }
+
+        #endregion
+
+        #region Supplier Product Bulk Operations
+
+        public async Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request)
+        {
+            return await _httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, List<SupplierProductPreview>>(
+                $"api/v1/businessparties/{supplierId}/products/bulk-preview",
+                request);
+        }
+
+        public async Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request)
+        {
+            return await _httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, BulkUpdateResult>(
+                $"api/v1/businessparties/{supplierId}/products/bulk-update",
+                request);
         }
 
         #endregion
