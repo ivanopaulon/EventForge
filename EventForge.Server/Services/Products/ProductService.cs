@@ -1,5 +1,7 @@
+using EventForge.DTOs.PriceHistory;
 using EventForge.DTOs.Products;
 using EventForge.Server.Services.CodeGeneration;
+using EventForge.Server.Services.PriceHistory;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +17,7 @@ public class ProductService : IProductService
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<ProductService> _logger;
     private readonly IDailyCodeGenerator _codeGenerator;
+    private readonly ISupplierProductPriceHistoryService _priceHistoryService;
 
     // Default currency for product transactions
     private const string DefaultCurrency = "EUR";
@@ -27,13 +30,15 @@ public class ProductService : IProductService
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
         ILogger<ProductService> logger,
-        IDailyCodeGenerator codeGenerator)
+        IDailyCodeGenerator codeGenerator,
+        ISupplierProductPriceHistoryService priceHistoryService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _codeGenerator = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
+        _priceHistoryService = priceHistoryService ?? throw new ArgumentNullException(nameof(priceHistoryService));
     }
 
     // Product CRUD operations
@@ -1848,6 +1853,14 @@ public class ProductService : IProductService
                 }
             }
 
+            // Capture old values for price history logging
+            var oldUnitCost = productSupplier.UnitCost ?? 0;
+            var newUnitCost = updateProductSupplierDto.UnitCost ?? 0;
+            var oldLeadTimeDays = productSupplier.LeadTimeDays;
+            var newLeadTimeDays = updateProductSupplierDto.LeadTimeDays;
+            var oldCurrency = productSupplier.Currency ?? DefaultCurrency;
+            var newCurrency = updateProductSupplierDto.Currency ?? DefaultCurrency;
+
             productSupplier.ProductId = updateProductSupplierDto.ProductId;
             productSupplier.SupplierId = updateProductSupplierDto.SupplierId;
             productSupplier.SupplierProductCode = updateProductSupplierDto.SupplierProductCode;
@@ -1865,6 +1878,32 @@ public class ProductService : IProductService
             productSupplier.ModifiedAt = DateTime.UtcNow;
 
             _ = await _context.SaveChangesAsync(cancellationToken);
+
+            // Log price change if price has changed
+            if (oldUnitCost != newUnitCost && _tenantContext.CurrentUserId.HasValue)
+            {
+                try
+                {
+                    await _priceHistoryService.LogPriceChangeAsync(new PriceChangeLogRequest
+                    {
+                        ProductSupplierId = productSupplier.Id,
+                        SupplierId = productSupplier.SupplierId,
+                        ProductId = productSupplier.ProductId,
+                        OldPrice = oldUnitCost,
+                        NewPrice = newUnitCost,
+                        Currency = newCurrency,
+                        OldLeadTimeDays = oldLeadTimeDays,
+                        NewLeadTimeDays = newLeadTimeDays,
+                        ChangeSource = "Manual",
+                        UserId = _tenantContext.CurrentUserId.Value
+                    }, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail the update if price history logging fails
+                    _logger.LogWarning(ex, "Failed to log price history for ProductSupplier {Id}", id);
+                }
+            }
 
             _ = await _auditLogService.LogEntityChangeAsync(
                 "ProductSupplier",
