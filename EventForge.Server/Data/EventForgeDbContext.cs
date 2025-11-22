@@ -98,6 +98,8 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<WasteManagementRecord> WasteManagementRecords { get; set; }
     public DbSet<ProjectOrder> ProjectOrders { get; set; }
     public DbSet<ProjectMaterialAllocation> ProjectMaterialAllocations { get; set; }
+    public DbSet<TransferOrder> TransferOrders { get; set; }
+    public DbSet<TransferOrderRow> TransferOrderRows { get; set; }
 
     // Station Monitor Entities
     public DbSet<Station> Stations { get; set; }
