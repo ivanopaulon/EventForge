@@ -11,6 +11,7 @@ using EventForge.Server.Services.Licensing;
 using EventForge.Server.Services.Logging;
 using EventForge.Server.Services.Logs;
 using EventForge.Server.Services.Notifications;
+using EventForge.Server.Services.PriceHistory;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.Printing;
 using EventForge.Server.Services.Products;
@@ -215,7 +216,10 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IProductService, ProductService>();
         _ = services.AddScoped<IBrandService, BrandService>();
         _ = services.AddScoped<IModelService, ModelService>();
+
+        _ = services.AddScoped<ISupplierProductPriceHistoryService, SupplierProductPriceHistoryService>();
         _ = services.AddScoped<ISupplierProductBulkService, SupplierProductBulkService>();
+
 
         // Register price list services
         _ = services.AddScoped<IPriceListService, PriceListService>();
