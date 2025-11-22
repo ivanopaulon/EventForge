@@ -1,0 +1,643 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@using System.Net.Http.Headers
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject HttpClient Http
+@inject ILogger<ImportCsvDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @TranslationService.GetTranslation("csvImport.title", "Import CSV - Listino Fornitore")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStepIndex" Linear="true" Color="Color.Primary" Variant="Variant.Filled">
+            
+            <!-- Step 1: Upload File -->
+            <MudStep Title="@TranslationService.GetTranslation("csvImport.step1.title", "Carica File")" 
+                     Icon="@Icons.Material.Filled.Upload">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.body1">
+                        @TranslationService.GetTranslation("csvImport.step1.description", "Seleziona il file CSV da importare")
+                    </MudText>
+                    
+                    <MudFileUpload T="IBrowserFile" OnFilesChanged="OnFileSelected" MaximumFileCount="1" 
+                                   Accept=".csv">
+                        <ActivatorContent>
+                            <MudPaper Outlined="true" Class="pa-8 d-flex flex-column align-center" Style="border-style: dashed;">
+                                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
+                                <MudText Typo="Typo.body1">
+                                    @TranslationService.GetTranslation("csvImport.dragDrop", "Trascina il file qui o clicca per selezionare")
+                                </MudText>
+                                <MudText Typo="Typo.caption">
+                                    @TranslationService.GetTranslation("csvImport.fileLimit", "File CSV, max 10 MB")
+                                </MudText>
+                            </MudPaper>
+                        </ActivatorContent>
+                    </MudFileUpload>
+
+                    @if (_selectedFile != null)
+                    {
+                        <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle" OnClose="@(() => _selectedFile = null)">
+                            @_selectedFile.Name (@FormatFileSize(_selectedFile.Size))
+                        </MudChip>
+                    }
+
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download"
+                               OnClick="@DownloadTemplate">
+                        @TranslationService.GetTranslation("csvImport.downloadTemplate", "Scarica Template CSV")
+                    </MudButton>
+                </MudStack>
+            </MudStep>
+
+            <!-- Step 2: Column Mapping -->
+            <MudStep Title="@TranslationService.GetTranslation("csvImport.step2.title", "Mappa Colonne")" 
+                     Icon="@Icons.Material.Filled.TableChart">
+                <MudStack Spacing="3">
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        @TranslationService.GetTranslation("csvImport.step2.description", "Verifica e correggi la mappatura delle colonne rilevate")
+                    </MudAlert>
+
+                    @if (_validationResult != null)
+                    {
+                        <MudSimpleTable Dense="true" Hover="true">
+                            <thead>
+                                <tr>
+                                    <th>@TranslationService.GetTranslation("csvImport.field", "Campo")</th>
+                                    <th>@TranslationService.GetTranslation("csvImport.csvColumn", "Colonna CSV")</th>
+                                    <th>@TranslationService.GetTranslation("csvImport.required", "Richiesto")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>@TranslationService.GetTranslation("product.code", "Codice Prodotto")</strong></td>
+                                    <td>
+                                        <MudSelect T="string" @bind-Value="_columnMapping.ProductCodeColumn" Dense="true" 
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                                            @foreach (var col in _validationResult.DetectedColumns)
+                                            {
+                                                <MudSelectItem Value="@col">@col</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Error">@TranslationService.GetTranslation("common.yes", "Sì")</MudChip></td>
+                                </tr>
+                                <tr>
+                                    <td>@TranslationService.GetTranslation("product.name", "Nome Prodotto")</td>
+                                    <td>
+                                        <MudSelect T="string" @bind-Value="_columnMapping.ProductNameColumn" Dense="true" 
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                                            @foreach (var col in _validationResult.DetectedColumns)
+                                            {
+                                                <MudSelectItem Value="@col">@col</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Default">@TranslationService.GetTranslation("common.no", "No")</MudChip></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>@TranslationService.GetTranslation("productSupplier.unitCost", "Costo Unitario")</strong></td>
+                                    <td>
+                                        <MudSelect T="string" @bind-Value="_columnMapping.UnitCostColumn" Dense="true" 
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                                            @foreach (var col in _validationResult.DetectedColumns)
+                                            {
+                                                <MudSelectItem Value="@col">@col</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Error">@TranslationService.GetTranslation("common.yes", "Sì")</MudChip></td>
+                                </tr>
+                                <tr>
+                                    <td>@TranslationService.GetTranslation("productSupplier.leadTime", "Lead Time (giorni)")</td>
+                                    <td>
+                                        <MudSelect T="string" @bind-Value="_columnMapping.LeadTimeDaysColumn" Dense="true" 
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                                            @foreach (var col in _validationResult.DetectedColumns)
+                                            {
+                                                <MudSelectItem Value="@col">@col</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Default">@TranslationService.GetTranslation("common.no", "No")</MudChip></td>
+                                </tr>
+                                <tr>
+                                    <td>@TranslationService.GetTranslation("productSupplier.minOrderQty", "Quantità Minima Ordine")</td>
+                                    <td>
+                                        <MudSelect T="string" @bind-Value="_columnMapping.MinOrderQuantityColumn" Dense="true" 
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                                            @foreach (var col in _validationResult.DetectedColumns)
+                                            {
+                                                <MudSelectItem Value="@col">@col</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Default">@TranslationService.GetTranslation("common.no", "No")</MudChip></td>
+                                </tr>
+                                <tr>
+                                    <td>@TranslationService.GetTranslation("productSupplier.currency", "Valuta")</td>
+                                    <td>
+                                        <MudSelect T="string" @bind-Value="_columnMapping.CurrencyColumn" Dense="true" 
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                                            @foreach (var col in _validationResult.DetectedColumns)
+                                            {
+                                                <MudSelectItem Value="@col">@col</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Default">@TranslationService.GetTranslation("common.no", "No")</MudChip></td>
+                                </tr>
+                                <tr>
+                                    <td>@TranslationService.GetTranslation("common.notes", "Note")</td>
+                                    <td>
+                                        <MudSelect T="string" @bind-Value="_columnMapping.NotesColumn" Dense="true" 
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                                            @foreach (var col in _validationResult.DetectedColumns)
+                                            {
+                                                <MudSelectItem Value="@col">@col</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Default">@TranslationService.GetTranslation("common.no", "No")</MudChip></td>
+                                </tr>
+                            </tbody>
+                        </MudSimpleTable>
+
+                        <MudDivider />
+
+                        <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("csvImport.preview", "Anteprima (prime 5 righe)")</MudText>
+                        <MudTable Items="@_validationResult.PreviewRows.Take(5)" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                            <HeaderContent>
+                                @foreach (var col in _validationResult.DetectedColumns)
+                                {
+                                    <MudTh>@col</MudTh>
+                                }
+                            </HeaderContent>
+                            <RowTemplate>
+                                @foreach (var col in _validationResult.DetectedColumns)
+                                {
+                                    <MudTd DataLabel="@col">
+                                        @(context.Values.ContainsKey(col) ? context.Values[col] : "-")
+                                    </MudTd>
+                                }
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudStack>
+            </MudStep>
+
+            <!-- Step 3: Import Options -->
+            <MudStep Title="@TranslationService.GetTranslation("csvImport.step3.title", "Opzioni Import")" 
+                     Icon="@Icons.Material.Filled.Settings">
+                <MudStack Spacing="3">
+                    <MudCheckBox @bind-Value="_importOptions.UpdateExisting" Color="Color.Primary">
+                        @TranslationService.GetTranslation("csvImport.updateExisting", "Aggiorna Prodotti Esistenti")
+                    </MudCheckBox>
+                    
+                    <MudCheckBox @bind-Value="_importOptions.CreateNew" Color="Color.Primary">
+                        @TranslationService.GetTranslation("csvImport.createNew", "Crea Nuovi Prodotti")
+                    </MudCheckBox>
+                    
+                    <MudCheckBox @bind-Value="_importOptions.SkipDuplicates" Color="Color.Primary">
+                        @TranslationService.GetTranslation("csvImport.skipDuplicates", "Salta Duplicati")
+                    </MudCheckBox>
+                    
+                    <MudCheckBox @bind-Value="_importOptions.SetAsPreferred" Color="Color.Primary">
+                        @TranslationService.GetTranslation("csvImport.setAsPreferred", "Imposta come Fornitore Preferito")
+                    </MudCheckBox>
+
+                    <MudTextField @bind-Value="_importOptions.Currency" Label="@TranslationService.GetTranslation("csvImport.defaultCurrency", "Valuta Predefinita")" 
+                                  Variant="Variant.Outlined" MaxLength="3" />
+                </MudStack>
+            </MudStep>
+
+            <!-- Step 4: Preview & Validation -->
+            <MudStep Title="@TranslationService.GetTranslation("csvImport.step4.title", "Anteprima")" 
+                     Icon="@Icons.Material.Filled.Preview">
+                <MudStack Spacing="3">
+                    @if (_validationResult != null)
+                    {
+                        <MudGrid>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="2" Class="pa-4">
+                                    <MudStack AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Description" Color="Color.Info" Size="Size.Large" />
+                                        <MudText Typo="Typo.h6">@_validationResult.FileInfo.TotalRows</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("csvImport.totalRows", "Righe Totali")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="2" Class="pa-4">
+                                    <MudStack AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                                        <MudText Typo="Typo.h6">@(_validationResult.FileInfo.TotalRows - _validationResult.ValidationErrors.Count)</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("csvImport.validRows", "Righe Valide")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="2" Class="pa-4">
+                                    <MudStack AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Large" />
+                                        <MudText Typo="Typo.h6">0</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("csvImport.warnings", "Avvisi")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="2" Class="pa-4">
+                                    <MudStack AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large" />
+                                        <MudText Typo="Typo.h6">@_validationResult.ValidationErrors.Count</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("csvImport.errors", "Errori")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+
+                        @if (_validationResult.ValidationErrors.Any())
+                        {
+                            <MudAlert Severity="Severity.Warning" Dense="true">
+                                @TranslationService.GetTranslation("csvImport.errorsWarning", "Alcune righe contengono errori e verranno saltate durante l'importazione")
+                            </MudAlert>
+
+                            <MudExpansionPanels>
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("csvImport.viewErrors", "Visualizza Errori")} ({_validationResult.ValidationErrors.Count})")">
+                                    <MudTable Items="@_validationResult.ValidationErrors" Dense="true" Hover="true">
+                                        <HeaderContent>
+                                            <MudTh>@TranslationService.GetTranslation("csvImport.row", "Riga")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("csvImport.errorType", "Tipo")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("csvImport.errorMessage", "Messaggio")</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("csvImport.row", "Riga")">@context.RowNumber</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("csvImport.errorType", "Tipo")">@context.ErrorType</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("csvImport.errorMessage", "Messaggio")">@context.ErrorMessage</MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        }
+                    }
+                </MudStack>
+            </MudStep>
+
+            <!-- Step 5: Import Results -->
+            <MudStep Title="@TranslationService.GetTranslation("csvImport.step5.title", "Risultati")" 
+                     Icon="@Icons.Material.Filled.DoneAll">
+                <MudStack Spacing="3">
+                    @if (_importInProgress)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+                        <MudText Align="Align.Center">@TranslationService.GetTranslation("csvImport.importing", "Importazione in corso...")</MudText>
+                    }
+                    else if (_importResult != null)
+                    {
+                        @if (_importResult.Success && _importResult.ErrorCount == 0)
+                        {
+                            <MudAlert Severity="Severity.Success" Dense="true">
+                                @TranslationService.GetTranslation("csvImport.successMessage", "Importazione completata con successo!")
+                            </MudAlert>
+                        }
+                        else if (_importResult.Success && _importResult.ErrorCount > 0)
+                        {
+                            <MudAlert Severity="Severity.Warning" Dense="true">
+                                @TranslationService.GetTranslation("csvImport.partialSuccess", "Importazione completata con alcuni errori")
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Error" Dense="true">
+                                @TranslationService.GetTranslation("csvImport.failed", "Importazione fallita")
+                            </MudAlert>
+                        }
+
+                        <MudGrid>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="2" Class="pa-4">
+                                    <MudStack AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Add" Color="Color.Success" Size="Size.Large" />
+                                        <MudText Typo="Typo.h6">@_importResult.CreatedCount</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("csvImport.created", "Creati")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="2" Class="pa-4">
+                                    <MudStack AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Large" />
+                                        <MudText Typo="Typo.h6">@_importResult.UpdatedCount</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("csvImport.updated", "Aggiornati")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="2" Class="pa-4">
+                                    <MudStack AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.SkipNext" Color="Color.Warning" Size="Size.Large" />
+                                        <MudText Typo="Typo.h6">@_importResult.SkippedCount</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("csvImport.skipped", "Saltati")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Elevation="2" Class="pa-4">
+                                    <MudStack AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large" />
+                                        <MudText Typo="Typo.h6">@_importResult.ErrorCount</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("csvImport.errors", "Errori")</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudPaper Elevation="2" Class="pa-4">
+                            <MudStack Spacing="2">
+                                <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("csvImport.statistics", "Statistiche")</MudText>
+                                <MudText Typo="Typo.body2">
+                                    @TranslationService.GetTranslation("csvImport.totalValue", "Valore Totale"): <strong>@_importResult.Statistics.TotalImportedValue.ToString("C2")</strong>
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    @TranslationService.GetTranslation("csvImport.avgPriceChange", "Variazione Media Prezzo"): <strong>@_importResult.Statistics.AveragePriceChange.ToString("F2")%</strong>
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    @TranslationService.GetTranslation("csvImport.processingTime", "Tempo di Elaborazione"): <strong>@_importResult.Statistics.ProcessingTime.TotalSeconds.ToString("F2")s</strong>
+                                </MudText>
+                            </MudStack>
+                        </MudPaper>
+
+                        @if (_importResult.Errors.Any())
+                        {
+                            <MudExpansionPanels>
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("csvImport.viewErrors", "Visualizza Errori")} ({_importResult.Errors.Count})")">
+                                    <MudTable Items="@_importResult.Errors" Dense="true" Hover="true">
+                                        <HeaderContent>
+                                            <MudTh>@TranslationService.GetTranslation("csvImport.row", "Riga")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("product.code", "Codice")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("csvImport.errorType", "Tipo")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("csvImport.errorMessage", "Messaggio")</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("csvImport.row", "Riga")">@context.RowNumber</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("product.code", "Codice")">@context.ProductCode</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("csvImport.errorType", "Tipo")">@context.ErrorType</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("csvImport.errorMessage", "Messaggio")">@context.ErrorMessage</MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        }
+                    }
+                </MudStack>
+            </MudStep>
+
+        </MudStepper>
+    </DialogContent>
+    <DialogActions>
+        @if (_activeStepIndex == 0)
+        {
+            <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Step1Next" 
+                       Disabled="@(_selectedFile == null)">
+                @TranslationService.GetTranslation("common.next", "Avanti")
+            </MudButton>
+        }
+        else if (_activeStepIndex == 1)
+        {
+            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Step2Next">
+                @TranslationService.GetTranslation("common.next", "Avanti")
+            </MudButton>
+        }
+        else if (_activeStepIndex == 2)
+        {
+            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _activeStepIndex++)">
+                @TranslationService.GetTranslation("common.next", "Avanti")
+            </MudButton>
+        }
+        else if (_activeStepIndex == 3)
+        {
+            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ImportCsv" 
+                       Disabled="@(!_validationResult?.IsValid ?? true)">
+                @TranslationService.GetTranslation("csvImport.import", "Importa")
+            </MudButton>
+        }
+        else if (_activeStepIndex == 4)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Close">
+                @TranslationService.GetTranslation("common.close", "Chiudi")
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public Guid SupplierId { get; set; }
+    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+
+    private MudStepper? _stepper;
+    private int _activeStepIndex = 0;
+    private IBrowserFile? _selectedFile;
+    private CsvValidationResult? _validationResult;
+    private CsvImportResult? _importResult;
+    private CsvImportOptions _importOptions = new();
+    private ColumnMapping _columnMapping = new();
+    private bool _importInProgress = false;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        StateHasChanged();
+    }
+
+    private async Task Step1Next()
+    {
+        // Validate and upload file
+        if (_selectedFile == null)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("csvImport.noFileSelected", "Seleziona un file CSV"), Severity.Warning);
+            return;
+        }
+
+        // Validate file size
+        if (_selectedFile.Size > 10 * 1024 * 1024)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("csvImport.fileTooLarge", "Il file supera i 10 MB"), Severity.Error);
+            return;
+        }
+
+        try
+        {
+            // Call validation API
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(_selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+            content.Add(fileContent, "file", _selectedFile.Name);
+
+            var response = await Http.PostAsync($"api/v1/businessparties/{SupplierId}/products/validate-csv", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _validationResult = await response.Content.ReadFromJsonAsync<CsvValidationResult>();
+                
+                if (_validationResult != null)
+                {
+                    _columnMapping = _validationResult.SuggestedMapping;
+                    
+                    if (!_validationResult.IsValid)
+                    {
+                        Snackbar.Add(TranslationService.GetTranslation("csvImport.validationFailed", "Il file contiene errori"), Severity.Warning);
+                    }
+                    
+                    // Move to next step
+                    _activeStepIndex++;
+                }
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("csvImport.validationError", "Errore durante la validazione del file"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error validating CSV file");
+            Snackbar.Add(TranslationService.GetTranslation("csvImport.validationException", "Errore durante la validazione: " + ex.Message), Severity.Error);
+        }
+    }
+
+    private void Step2Next()
+    {
+        // Validate column mapping
+        if (string.IsNullOrWhiteSpace(_columnMapping.ProductCodeColumn))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("csvImport.productCodeRequired", "La colonna Codice Prodotto è obbligatoria"), Severity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_columnMapping.UnitCostColumn))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("csvImport.unitCostRequired", "La colonna Costo Unitario è obbligatoria"), Severity.Warning);
+            return;
+        }
+
+        // Update options with mapping
+        _importOptions.ColumnMapping = _columnMapping;
+        _activeStepIndex++;
+    }
+
+    private async Task ImportCsv()
+    {
+        if (_selectedFile == null || _validationResult == null)
+        {
+            return;
+        }
+
+        _importInProgress = true;
+        StateHasChanged();
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            
+            // Add file
+            var fileContent = new StreamContent(_selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+            content.Add(fileContent, "file", _selectedFile.Name);
+
+            // Add options as JSON
+            var optionsJson = System.Text.Json.JsonSerializer.Serialize(_importOptions);
+            content.Add(new StringContent(optionsJson, System.Text.Encoding.UTF8, "application/json"), "options");
+
+            var response = await Http.PostAsync($"api/v1/businessparties/{SupplierId}/products/import-csv", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _importResult = await response.Content.ReadFromJsonAsync<CsvImportResult>();
+                
+                if (_importResult?.Success == true)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("csvImport.importSuccess", "Importazione completata con successo"), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("csvImport.importPartialSuccess", "Importazione completata con alcuni errori"), Severity.Warning);
+                }
+
+                // Move to results step
+                _activeStepIndex++;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Logger.LogError("Import failed: {Error}", error);
+                Snackbar.Add(TranslationService.GetTranslation("csvImport.importFailed", "Errore durante l'importazione"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error importing CSV file");
+            Snackbar.Add(TranslationService.GetTranslation("csvImport.importException", "Errore: " + ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _importInProgress = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DownloadTemplate()
+    {
+        try
+        {
+            // Generate CSV template
+            var csv = new System.Text.StringBuilder();
+            csv.AppendLine("ProductCode,ProductName,UnitCost,LeadTimeDays,MinOrderQuantity,Currency,Notes");
+            csv.AppendLine("SAMPLE001,Sample Product 1,100.50,5,10,EUR,Sample notes");
+            csv.AppendLine("SAMPLE002,Sample Product 2,250.00,7,5,EUR,");
+            
+            var content = csv.ToString();
+            
+            await JSRuntime.InvokeVoidAsync("downloadFile", "supplier_products_template.csv", "text/csv", content);
+            
+            Snackbar.Add(TranslationService.GetTranslation("csvImport.templateDownloaded", "Template scaricato"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error downloading template");
+            Snackbar.Add(TranslationService.GetTranslation("csvImport.downloadError", "Errore durante il download"), Severity.Error);
+        }
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void Close()
+    {
+        MudDialog?.Close(DialogResult.Ok(_importResult));
+    }
+}
