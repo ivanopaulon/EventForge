@@ -1,3 +1,4 @@
+using EventForge.Server.Services.Alerts;
 using EventForge.Server.Services.Auth.Seeders;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
@@ -223,6 +224,9 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<ISupplierSuggestionService, SupplierSuggestionService>();
 
         _ = services.AddScoped<ISupplierProductCsvImportService, SupplierProductCsvImportService>();
+
+        // Register alert services
+        _ = services.AddScoped<ISupplierPriceAlertService, SupplierPriceAlertService>();
 
 
 

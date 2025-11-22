@@ -221,6 +221,7 @@ app.MapHub<AuditLogHub>("/hubs/audit-log");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
+app.MapHub<AlertHub>("/hubs/alerts");
 
 // FALLBACK: serve index.html for any non-file, non-API route (SPA)
 app.MapFallbackToFile("index.html");
