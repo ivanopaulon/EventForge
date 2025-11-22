@@ -162,6 +162,10 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<Entities.Dashboard.DashboardConfiguration> DashboardConfigurations { get; set; }
     public DbSet<Entities.Dashboard.DashboardMetricConfig> DashboardMetricConfigs { get; set; }
 
+    // Alert Entities
+    public DbSet<Entities.Alerts.SupplierPriceAlert> SupplierPriceAlerts { get; set; }
+    public DbSet<Entities.Alerts.AlertConfiguration> AlertConfigurations { get; set; }
+
     #endregion
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -173,6 +177,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureGlobalQueryFilters(modelBuilder);
         ConfigureDocumentRelationships(modelBuilder);
         ConfigureProductAndPriceListRelationships(modelBuilder);
+        ConfigureAlertRelationships(modelBuilder);
         ConfigureStoreAndTeamRelationships(modelBuilder);
         ConfigureSalesAndOtherRelationships(modelBuilder);
         ConfigureDailySequence(modelBuilder);
@@ -551,6 +556,46 @@ public partial class EventForgeDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         _ = modelBuilder.Entity<Product>().HasIndex(p => p.ImageDocumentId).HasDatabaseName("IX_Product_ImageDocumentId");
+    }
+
+    private static void ConfigureAlertRelationships(ModelBuilder modelBuilder)
+    {
+        // SupplierPriceAlert relationships
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>()
+            .HasOne(a => a.Product)
+            .WithMany()
+            .HasForeignKey(a => a.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>()
+            .HasOne(a => a.Supplier)
+            .WithMany()
+            .HasForeignKey(a => a.SupplierId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // SupplierPriceAlert indexes for performance
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.TenantId).HasDatabaseName("IX_SupplierPriceAlert_TenantId");
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.ProductId).HasDatabaseName("IX_SupplierPriceAlert_ProductId");
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.SupplierId).HasDatabaseName("IX_SupplierPriceAlert_SupplierId");
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.Status).HasDatabaseName("IX_SupplierPriceAlert_Status");
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.CreatedAt).HasDatabaseName("IX_SupplierPriceAlert_CreatedAt");
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => new { a.TenantId, a.Status }).HasDatabaseName("IX_SupplierPriceAlert_TenantId_Status");
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => new { a.TenantId, a.Status, a.CreatedAt }).HasDatabaseName("IX_SupplierPriceAlert_TenantId_Status_CreatedAt");
+
+        // SupplierPriceAlert decimal precision
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().Property(a => a.OldPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().Property(a => a.NewPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().Property(a => a.PriceChangePercentage).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().Property(a => a.PotentialSavings).HasPrecision(18, 6);
+
+        // AlertConfiguration indexes
+        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().HasIndex(ac => ac.TenantId).HasDatabaseName("IX_AlertConfiguration_TenantId");
+        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().HasIndex(ac => new { ac.TenantId, ac.UserId }).HasDatabaseName("IX_AlertConfiguration_TenantId_UserId").IsUnique();
+
+        // AlertConfiguration decimal precision
+        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().Property(ac => ac.PriceIncreaseThresholdPercentage).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().Property(ac => ac.PriceDecreaseThresholdPercentage).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().Property(ac => ac.VolatilityThresholdPercentage).HasPrecision(18, 6);
     }
 
     private static void ConfigureStoreAndTeamRelationships(ModelBuilder modelBuilder)
