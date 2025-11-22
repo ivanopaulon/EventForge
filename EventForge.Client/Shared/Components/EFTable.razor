@@ -286,6 +286,7 @@
     [Parameter] public EventCallback<TItem> OnDelete { get; set; }
     [Parameter] public EventCallback<TItem> OnView { get; set; }
     [Parameter] public EventCallback<EFTableActionEventArgs> OnAction { get; set; }
+    [Parameter] public EventCallback<TableRowClickEventArgs<TItem>> OnRowClick { get; set; }
 
     // Appearance parameters
     [Parameter] public bool Hover { get; set; } = true;
