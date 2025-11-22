@@ -16,18 +16,17 @@ The Transfer Orders feature enables EventForge to manage stock transfers between
 ### Status Workflow
 
 ```
-Draft → Pending → Shipped → InTransit → Received → Completed
-                              ↓
-                          Cancelled
+Draft → Pending → Shipped → InTransit → Completed
+                    ↓
+                Cancelled
 ```
 
 **Status Definitions:**
 - **Draft**: Order being created (not yet in system)
 - **Pending**: Order confirmed, awaiting shipment
 - **Shipped**: Stock deducted from source, in transit
-- **InTransit**: Acknowledged as in transit
-- **Received**: Arrived at destination, stock added
-- **Completed**: Transfer fully processed
+- **InTransit**: Acknowledged as in transit (optional intermediate state)
+- **Completed**: Transfer fully processed, stock added at destination
 - **Cancelled**: Order cancelled (only before shipping)
 
 ## Database Schema
@@ -166,8 +165,9 @@ Cancels order (only if not yet shipped).
 2. Destination locations must belong to destination warehouse
 3. Creates or updates Stock entries at destination
 4. Creates StockMovement records with MovementType=Transfer
-5. Allows partial receipts (quantity received can differ from shipped)
+5. Allows quantity discrepancies (quantity received can differ from shipped)
 6. Updates order status to Completed
+7. Receiving completes the transfer and makes stock available at destination
 
 ### Cancellation Rules
 1. Only Draft or Pending orders can be cancelled

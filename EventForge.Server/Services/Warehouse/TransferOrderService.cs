@@ -362,6 +362,9 @@ public class TransferOrderService : ITransferOrderService
                 throw new InvalidOperationException($"Transfer order cannot be received. Current status: {transferOrder.Status}.");
             }
 
+            // Capture original status for audit log
+            var originalStatus = transferOrder.Status.ToString();
+
             // Process each received row
             foreach (var receiveRow in receiveDto.Rows)
             {
@@ -462,7 +465,7 @@ public class TransferOrderService : ITransferOrderService
                 transferOrder.Id, 
                 "Status", 
                 "Update", 
-                "Shipped", 
+                originalStatus, 
                 "Completed", 
                 currentUser, 
                 $"Transfer order {transferOrder.Number} received",
@@ -505,6 +508,9 @@ public class TransferOrderService : ITransferOrderService
                 throw new InvalidOperationException($"Cannot cancel transfer order in status {transferOrder.Status}.");
             }
 
+            // Capture original status for audit log
+            var originalStatus = transferOrder.Status.ToString();
+
             transferOrder.Status = TransferOrderStatus.Cancelled;
             transferOrder.ModifiedBy = currentUser;
             transferOrder.ModifiedAt = DateTime.UtcNow;
@@ -517,7 +523,7 @@ public class TransferOrderService : ITransferOrderService
                 transferOrder.Id, 
                 "Status", 
                 "Update", 
-                transferOrder.Status.ToString(), 
+                originalStatus, 
                 "Cancelled", 
                 currentUser, 
                 $"Transfer order {transferOrder.Number} cancelled",
