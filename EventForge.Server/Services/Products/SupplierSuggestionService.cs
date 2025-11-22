@@ -1,6 +1,7 @@
 using EventForge.DTOs.Products.SupplierSuggestion;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Products;
+using EventForge.Server.Services.Alerts;
 using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.PriceHistory;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _configuration;
     private readonly ILogger<SupplierSuggestionService> _logger;
+    private readonly Lazy<ISupplierPriceAlertService>? _alertService;
 
     // Configuration values
     private readonly decimal _priceWeight;
@@ -38,7 +40,8 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         ISupplierProductPriceHistoryService priceHistoryService,
         IMemoryCache cache,
         IConfiguration configuration,
-        ILogger<SupplierSuggestionService> logger)
+        ILogger<SupplierSuggestionService> logger,
+        Lazy<ISupplierPriceAlertService>? alertService = null)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
@@ -46,6 +49,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _alertService = alertService;
 
         // Load configuration
         _priceWeight = _configuration.GetValue<decimal>("SupplierSuggestion:Weights:Price", 0.4m);
@@ -107,6 +111,26 @@ public class SupplierSuggestionService : ISupplierSuggestionService
 
         // Generate explanation
         var explanation = await GenerateRecommendationExplanationAsync(recommended, product);
+
+        // Generate alert if there's a significantly better supplier (FASE 5 integration)
+        if (_alertService != null && currentPreferred != null && recommended != null && 
+            recommended.SupplierId != currentPreferred.SupplierId &&
+            recommended.TotalScore > currentPreferred.TotalScore + 10) // Score difference threshold
+        {
+            try
+            {
+                await _alertService.Value.GenerateAlertsForBetterSupplierAsync(
+                    productId,
+                    currentPreferred.SupplierId,
+                    recommended.SupplierId,
+                    cancellationToken);
+            }
+            catch (Exception alertEx)
+            {
+                _logger.LogWarning(alertEx, "Failed to generate better supplier alert for product {ProductId}", productId);
+                // Don't throw - alerts are not critical to suggestions
+            }
+        }
 
         return new SupplierSuggestionResponse
         {

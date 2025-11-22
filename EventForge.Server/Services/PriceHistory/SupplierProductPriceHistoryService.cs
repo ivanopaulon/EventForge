@@ -1,4 +1,5 @@
 using EventForge.DTOs.PriceHistory;
+using EventForge.Server.Services.Alerts;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.PriceHistory;
@@ -11,15 +12,18 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
     private readonly EventForgeDbContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<SupplierProductPriceHistoryService> _logger;
+    private readonly Lazy<ISupplierPriceAlertService>? _alertService;
 
     public SupplierProductPriceHistoryService(
         EventForgeDbContext context,
         ITenantContext tenantContext,
-        ILogger<SupplierProductPriceHistoryService> logger)
+        ILogger<SupplierProductPriceHistoryService> logger,
+        Lazy<ISupplierPriceAlertService>? alertService = null)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _alertService = alertService;
     }
 
     /// <inheritdoc/>
@@ -71,6 +75,25 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
                 request.OldPrice,
                 request.NewPrice,
                 priceChangePercentage);
+
+            // Generate alerts for price change (FASE 5 integration)
+            if (_alertService != null)
+            {
+                try
+                {
+                    await _alertService.Value.GenerateAlertsForPriceChangeAsync(
+                        request.ProductId,
+                        request.SupplierId,
+                        request.OldPrice,
+                        request.NewPrice,
+                        cancellationToken);
+                }
+                catch (Exception alertEx)
+                {
+                    _logger.LogWarning(alertEx, "Failed to generate price change alerts for product {ProductId}", request.ProductId);
+                    // Don't throw - alerts are not critical to price history logging
+                }
+            }
 
             return priceHistory.Id;
         }
