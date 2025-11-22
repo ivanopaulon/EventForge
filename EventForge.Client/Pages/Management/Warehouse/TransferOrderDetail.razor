@@ -1,0 +1,203 @@
+@page "/warehouse/transfers/{id:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Warehouse
+@attribute [Authorize]
+@inject ITransferOrderService TransferOrderService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Transfer Order Details</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (_transferOrder == null)
+    {
+        <MudAlert Severity="Severity.Error">Transfer order not found</MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudGrid>
+                <MudItem xs="12" Class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.h4">Transfer Order @_transferOrder.Number</MudText>
+                    <MudButton Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               OnClick="@(() => NavigationManager.NavigateTo("/warehouse/transfers"))">
+                        Back to List
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Order Information</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr>
+                                <td><strong>Number:</strong></td>
+                                <td>@_transferOrder.Number</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Series:</strong></td>
+                                <td>@(_transferOrder.Series ?? "N/A")</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td>
+                                    <MudChip T="string" Color="@GetStatusColor(_transferOrder.Status)" Size="Size.Small">
+                                        @_transferOrder.Status
+                                    </MudChip>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Order Date:</strong></td>
+                                <td>@_transferOrder.OrderDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            </tr>
+                            @if (_transferOrder.ShipmentDate.HasValue)
+                            {
+                                <tr>
+                                    <td><strong>Shipment Date:</strong></td>
+                                    <td>@_transferOrder.ShipmentDate.Value.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                            @if (_transferOrder.ExpectedArrivalDate.HasValue)
+                            {
+                                <tr>
+                                    <td><strong>Expected Arrival:</strong></td>
+                                    <td>@_transferOrder.ExpectedArrivalDate.Value.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                            @if (_transferOrder.ActualArrivalDate.HasValue)
+                            {
+                                <tr>
+                                    <td><strong>Actual Arrival:</strong></td>
+                                    <td>@_transferOrder.ActualArrivalDate.Value.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Warehouse Information</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr>
+                                <td><strong>Source Warehouse:</strong></td>
+                                <td>@_transferOrder.SourceWarehouseName</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Destination Warehouse:</strong></td>
+                                <td>@_transferOrder.DestinationWarehouseName</td>
+                            </tr>
+                            @if (!string.IsNullOrEmpty(_transferOrder.ShippingReference))
+                            {
+                                <tr>
+                                    <td><strong>Shipping Reference:</strong></td>
+                                    <td>@_transferOrder.ShippingReference</td>
+                                </tr>
+                            }
+                            @if (!string.IsNullOrEmpty(_transferOrder.Notes))
+                            {
+                                <tr>
+                                    <td><strong>Notes:</strong></td>
+                                    <td>@_transferOrder.Notes</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Transfer Items</MudText>
+                    <MudTable Items="@_transferOrder.Rows" Dense="true" Hover="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Product</MudTh>
+                            <MudTh>Code</MudTh>
+                            <MudTh>Source Location</MudTh>
+                            <MudTh>Dest. Location</MudTh>
+                            <MudTh>Lot</MudTh>
+                            <MudTh>Qty Ordered</MudTh>
+                            <MudTh>Qty Shipped</MudTh>
+                            <MudTh>Qty Received</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Product">@context.ProductName</MudTd>
+                            <MudTd DataLabel="Code">@context.ProductCode</MudTd>
+                            <MudTd DataLabel="Source Location">@context.SourceLocationCode</MudTd>
+                            <MudTd DataLabel="Dest. Location">@(context.DestinationLocationCode ?? "N/A")</MudTd>
+                            <MudTd DataLabel="Lot">@(context.LotCode ?? "N/A")</MudTd>
+                            <MudTd DataLabel="Qty Ordered">@context.QuantityOrdered</MudTd>
+                            <MudTd DataLabel="Qty Shipped">@context.QuantityShipped</MudTd>
+                            <MudTd DataLabel="Qty Received">@context.QuantityReceived</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Audit Information</MudText>
+                    <MudText>Created: @_transferOrder.CreatedAt.ToString("yyyy-MM-dd HH:mm") by @(_transferOrder.CreatedBy ?? "N/A")</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool _isLoading = true;
+    private TransferOrderDto? _transferOrder;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTransferOrderAsync();
+    }
+
+    private async Task LoadTransferOrderAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _transferOrder = await TransferOrderService.GetTransferOrderAsync(Id);
+            
+            if (_transferOrder == null)
+            {
+                Snackbar.Add("Transfer order not found", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading transfer order: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Pending" => Color.Warning,
+            "Shipped" => Color.Info,
+            "InTransit" => Color.Primary,
+            "Completed" => Color.Success,
+            "Cancelled" => Color.Error,
+            _ => Color.Default
+        };
+    }
+}
