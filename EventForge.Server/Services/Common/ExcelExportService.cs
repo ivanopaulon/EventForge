@@ -11,8 +11,6 @@ public class ExcelExportService : IExcelExportService
         ExcelExportOptions options,
         CancellationToken cancellationToken = default)
     {
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        
         using var package = new ExcelPackage();
         var worksheet = package.Workbook.Worksheets.Add(options.SheetName);
         
@@ -69,7 +67,7 @@ public class ExcelExportService : IExcelExportService
             }
         }
         
-        if (options.AutoFitColumns)
+        if (options.AutoFitColumns && worksheet.Dimension != null)
         {
             worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
             for (int i = 1; i <= visibleColumns.Count; i++)
