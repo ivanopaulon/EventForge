@@ -219,6 +219,7 @@ public static class ServiceCollectionExtensions
 
         _ = services.AddScoped<ISupplierProductPriceHistoryService, SupplierProductPriceHistoryService>();
         _ = services.AddScoped<ISupplierProductBulkService, SupplierProductBulkService>();
+        _ = services.AddScoped<ISupplierSuggestionService, SupplierSuggestionService>();
 
 
         // Register price list services
