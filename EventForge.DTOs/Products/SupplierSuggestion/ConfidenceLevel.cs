@@ -6,7 +6,7 @@ namespace EventForge.DTOs.Products.SupplierSuggestion
     public enum ConfidenceLevel
     {
         /// <summary>
-        /// Low confidence (score &lt; 60).
+        /// Low confidence (score < 60).
         /// </summary>
         Low,
 
@@ -16,7 +16,7 @@ namespace EventForge.DTOs.Products.SupplierSuggestion
         Medium,
 
         /// <summary>
-        /// High confidence (score &gt; 80).
+        /// High confidence (score > 80).
         /// </summary>
         High
     }
