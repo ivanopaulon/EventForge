@@ -25,6 +25,12 @@
                 </MudButton>
             }
             <MudButton Variant="Variant.Outlined"
+                      Color="Color.Success"
+                      StartIcon="@Icons.Material.Filled.UploadFile"
+                      OnClick="@OpenImportCsvDialog">
+                @TranslationService.GetTranslation("productSupplier.importCsv", "Import CSV Listino")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
                       Color="Color.Primary"
                       StartIcon="@Icons.Material.Filled.Checklist"
                       OnClick="@OpenManageProductsDialog">
@@ -362,6 +368,36 @@
         if (!result.Canceled && _table != null)
         {
             await _table.ReloadServerData();
+        }
+    }
+
+    private async Task OpenImportCsvDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            { "SupplierId", BusinessPartyId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ImportCsvDialog>(
+            TranslationService.GetTranslation("csvImport.title", "Import CSV - Listino Fornitore"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && _table != null)
+        {
+            await _table.ReloadServerData();
+            Snackbar.Add(
+                TranslationService.GetTranslation("csvImport.importComplete", "Importazione completata"),
+                Severity.Success);
         }
     }
 
