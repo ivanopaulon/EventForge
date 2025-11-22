@@ -1,6 +1,8 @@
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Products;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Business;
+using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,11 +18,16 @@ namespace EventForge.Server.Controllers;
 public class BusinessPartiesController : BaseApiController
 {
     private readonly IBusinessPartyService _businessPartyService;
+    private readonly ISupplierProductBulkService _supplierProductBulkService;
     private readonly ITenantContext _tenantContext;
 
-    public BusinessPartiesController(IBusinessPartyService businessPartyService, ITenantContext tenantContext)
+    public BusinessPartiesController(
+        IBusinessPartyService businessPartyService,
+        ISupplierProductBulkService supplierProductBulkService,
+        ITenantContext tenantContext)
     {
         _businessPartyService = businessPartyService ?? throw new ArgumentNullException(nameof(businessPartyService));
+        _supplierProductBulkService = supplierProductBulkService ?? throw new ArgumentNullException(nameof(supplierProductBulkService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
@@ -622,6 +629,105 @@ public class BusinessPartiesController : BaseApiController
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while retrieving business party product analysis.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Supplier Product Bulk Operations
+
+    /// <summary>
+    /// Previews bulk updates for supplier products without applying changes.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="request">Bulk update request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Preview of changes showing current and new values</returns>
+    /// <response code="200">Returns the preview of changes</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the supplier is not found</response>
+    [HttpPost("{supplierId:guid}/products/bulk-preview")]
+    [ProducesResponseType(typeof(List<SupplierProductPreview>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<SupplierProductPreview>>> PreviewBulkUpdateSupplierProducts(
+        Guid supplierId,
+        [FromBody] BulkUpdateSupplierProductsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if supplier exists
+            var exists = await _businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
+            if (!exists)
+            {
+                return CreateNotFoundProblem($"Supplier with ID {supplierId} not found.");
+            }
+
+            var previews = await _supplierProductBulkService.PreviewBulkUpdateAsync(supplierId, request, cancellationToken);
+            return Ok(previews);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while previewing bulk updates.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Performs bulk updates on supplier products with transaction safety.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="request">Bulk update request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result of the bulk update operation</returns>
+    /// <response code="200">Returns the result of the bulk update</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the supplier is not found</response>
+    [HttpPost("{supplierId:guid}/products/bulk-update")]
+    [ProducesResponseType(typeof(BulkUpdateResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BulkUpdateResult>> BulkUpdateSupplierProducts(
+        Guid supplierId,
+        [FromBody] BulkUpdateSupplierProductsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if supplier exists
+            var exists = await _businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
+            if (!exists)
+            {
+                return CreateNotFoundProblem($"Supplier with ID {supplierId} not found.");
+            }
+
+            var currentUser = GetCurrentUser();
+            var result = await _supplierProductBulkService.BulkUpdateSupplierProductsAsync(supplierId, request, currentUser, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while performing bulk updates.", ex);
         }
     }
 

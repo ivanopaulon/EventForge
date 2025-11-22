@@ -12,6 +12,18 @@
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h6">@TranslationService.GetTranslation("businessParty.suppliedProducts", "Prodotti Forniti")</MudText>
             <MudSpacer />
+            @if (_selectedProducts.Count > 0)
+            {
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small">
+                    @_selectedProducts.Count @TranslationService.GetTranslation("common.selected", "selezionati")
+                </MudChip>
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Secondary"
+                          StartIcon="@Icons.Material.Filled.Edit"
+                          OnClick="@OpenBulkEditDialog">
+                    @TranslationService.GetTranslation("productSupplier.bulkEdit", "Modifica Prezzi Multipla")
+                </MudButton>
+            }
             <MudButton Variant="Variant.Outlined"
                       Color="Color.Primary"
                       StartIcon="@Icons.Material.Filled.Checklist"
@@ -43,6 +55,13 @@
             </MudText>
         </ToolBarContent>
         <HeaderContent>
+            <MudTh Style="width: 50px;">
+                <MudCheckBox T="bool" 
+                            Value="@_selectAll" 
+                            ValueChanged="@((bool val) => ToggleSelectAll(val))"
+                            Color="Color.Primary"
+                            Size="Size.Small" />
+            </MudTh>
             <MudTh>@TranslationService.GetTranslation("product.code", "Codice")</MudTh>
             <MudTh>@TranslationService.GetTranslation("product.name", "Nome")</MudTh>
             <MudTh>@TranslationService.GetTranslation("productSupplier.supplierCode", "Codice Fornitore")</MudTh>
@@ -54,6 +73,13 @@
             <MudTh Style="text-align: center;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd Style="width: 50px;">
+                <MudCheckBox T="bool" 
+                            Value="@_selectedProducts.Contains(context.ProductId)" 
+                            ValueChanged="@((bool val) => ToggleSelection(context.ProductId, val))"
+                            Color="Color.Primary"
+                            Size="Size.Small" />
+            </MudTd>
             <MudTd DataLabel="@TranslationService.GetTranslation("product.code", "Codice")">
                 @context.ProductName
             </MudTd>
@@ -124,6 +150,9 @@
     private MudTable<ProductSupplierDto>? _table;
     private bool _isLoading = false;
     private int _totalCount = 0;
+    private HashSet<Guid> _selectedProducts = new();
+    private bool _selectAll = false;
+    private List<ProductSupplierDto> _currentPageProducts = new();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -149,6 +178,7 @@
             if (result != null)
             {
                 _totalCount = (int)result.TotalCount;
+                _currentPageProducts = result.Items.ToList();
 
                 return new TableData<ProductSupplierDto>
                 {
@@ -157,17 +187,94 @@
                 };
             }
 
+            _currentPageProducts = new List<ProductSupplierDto>();
             return new TableData<ProductSupplierDto> { Items = new List<ProductSupplierDto>(), TotalItems = 0 };
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading products for supplier {BusinessPartyId}", BusinessPartyId);
             Snackbar.Add(TranslationService.GetTranslation("productSupplier.loadError", "Errore nel caricamento dei prodotti"), Severity.Error);
+            _currentPageProducts = new List<ProductSupplierDto>();
             return new TableData<ProductSupplierDto> { Items = new List<ProductSupplierDto>(), TotalItems = 0 };
         }
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private void ToggleSelection(Guid productId, bool isSelected)
+    {
+        if (isSelected)
+        {
+            _selectedProducts.Add(productId);
+        }
+        else
+        {
+            _selectedProducts.Remove(productId);
+            _selectAll = false;
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleSelectAll(bool selectAll)
+    {
+        _selectAll = selectAll;
+        
+        if (selectAll)
+        {
+            foreach (var product in _currentPageProducts)
+            {
+                _selectedProducts.Add(product.ProductId);
+            }
+        }
+        else
+        {
+            foreach (var product in _currentPageProducts)
+            {
+                _selectedProducts.Remove(product.ProductId);
+            }
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OpenBulkEditDialog()
+    {
+        if (_selectedProducts.Count == 0)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("productSupplier.noProductsSelected", "Seleziona almeno un prodotto"), Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            { "SupplierId", BusinessPartyId },
+            { "SelectedProductIds", _selectedProducts.ToList() }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<BulkEditSupplierProductsDialog>(
+            TranslationService.GetTranslation("productSupplier.bulkEditTitle", "Modifica Multipla"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && _table != null)
+        {
+            _selectedProducts.Clear();
+            _selectAll = false;
+            await _table.ReloadServerData();
+            Snackbar.Add(
+                TranslationService.GetTranslation("productSupplier.bulkEditSuccess", "Aggiornamento completato"),
+                Severity.Success);
         }
     }
 
