@@ -21,30 +21,30 @@
                     <MudStack Spacing="2">
                         <MudText Typo="Typo.subtitle1" Color="Color.Primary">
                             <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2" />
-                            Riepilogo Ordine
+                            @TranslationService.GetTranslation("transferOrder.orderSummary", "Riepilogo Ordine")
                         </MudText>
                         <MudDivider />
                         <MudGrid Spacing="1">
                             <MudItem xs="6">
-                                <MudText Typo="Typo.body2"><strong>Numero:</strong></MudText>
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.numberLabel", "Numero"):</strong></MudText>
                             </MudItem>
                             <MudItem xs="6">
                                 <MudText Typo="Typo.body2">@TransferOrder?.Number</MudText>
                             </MudItem>
                             <MudItem xs="6">
-                                <MudText Typo="Typo.body2"><strong>Da:</strong></MudText>
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.fromLabel", "Da"):</strong></MudText>
                             </MudItem>
                             <MudItem xs="6">
                                 <MudText Typo="Typo.body2">@TransferOrder?.SourceWarehouseName</MudText>
                             </MudItem>
                             <MudItem xs="6">
-                                <MudText Typo="Typo.body2"><strong>A:</strong></MudText>
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.toLabel", "A"):</strong></MudText>
                             </MudItem>
                             <MudItem xs="6">
                                 <MudText Typo="Typo.body2">@TransferOrder?.DestinationWarehouseName</MudText>
                             </MudItem>
                             <MudItem xs="6">
-                                <MudText Typo="Typo.body2"><strong>Articoli:</strong></MudText>
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.itemsLabel", "Articoli"):</strong></MudText>
                             </MudItem>
                             <MudItem xs="6">
                                 <MudText Typo="Typo.body2">@TransferOrder?.Rows.Count</MudText>
@@ -82,7 +82,7 @@
                     <MudStack Spacing="2">
                         <MudText Typo="Typo.subtitle1" Color="Color.Primary">
                             <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
-                            Verifica Disponibilità
+                            @TranslationService.GetTranslation("transferOrder.stockValidation", "Verifica Disponibilità")
                         </MudText>
                         <MudDivider />
 
@@ -154,7 +154,7 @@
             }
             else
             {
-                <MudText>@TranslationService.GetTranslation("button.save", "Spedisci")</MudText>
+                <MudText>@TranslationService.GetTranslation("transferOrder.ship", "Spedisci")</MudText>
             }
         </MudButton>
     </DialogActions>
@@ -180,7 +180,7 @@
     {
         if (TransferOrder == null)
         {
-            Snackbar.Add("Ordine non valido", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"), Severity.Error);
             MudDialog.Cancel();
             return;
         }
@@ -222,7 +222,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error validating stock");
-            Snackbar.Add("Errore nella verifica dello stock", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.stockValidationError", "Errore nella verifica dello stock"), Severity.Error);
         }
         finally
         {

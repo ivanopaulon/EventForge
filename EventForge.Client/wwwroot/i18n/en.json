@@ -2433,6 +2433,7 @@
     "selectWarehouse": "Select warehouse",
     "orderDate": "Order Date",
     "series": "Series",
+    "seriesHelperText": "Optional, auto-generated if empty",
     "notes": "Notes",
     "transferItems": "Items to Transfer",
     "addItem": "Add Item",
@@ -2464,6 +2465,21 @@
     "validationSelectProduct": "Please select a product",
     "validationSelectLocation": "Please select a location",
     "validationQuantityRequired": "Quantity is required",
-    "validationQuantityPositive": "Quantity must be greater than zero"
+    "validationQuantityPositive": "Quantity must be greater than zero",
+    "orderSummary": "Order Summary",
+    "stockValidation": "Stock Availability Check",
+    "invalidOrder": "Invalid order",
+    "stockValidationError": "Error validating stock",
+    "warehousesLoadError": "Error loading warehouses",
+    "locationsLoadError": "Error loading locations",
+    "selectBothWarehouses": "Please select source and destination warehouses",
+    "itemsToReceive": "Items to Receive",
+    "numberLabel": "Number",
+    "fromLabel": "From",
+    "toLabel": "To",
+    "itemsLabel": "Items",
+    "shipmentDateLabel": "Shipment Date",
+    "ship": "Ship",
+    "receive": "Receive"
   }
 }

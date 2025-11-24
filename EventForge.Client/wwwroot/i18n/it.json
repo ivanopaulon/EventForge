@@ -2433,6 +2433,7 @@
     "selectWarehouse": "Seleziona magazzino",
     "orderDate": "Data Ordine",
     "series": "Serie",
+    "seriesHelperText": "Opzionale, si auto-genera se vuoto",
     "notes": "Note",
     "transferItems": "Articoli da Trasferire",
     "addItem": "Aggiungi Articolo",
@@ -2464,6 +2465,21 @@
     "validationSelectProduct": "Selezionare un prodotto",
     "validationSelectLocation": "Selezionare un'ubicazione",
     "validationQuantityRequired": "La quantità è obbligatoria",
-    "validationQuantityPositive": "La quantità deve essere maggiore di zero"
+    "validationQuantityPositive": "La quantità deve essere maggiore di zero",
+    "orderSummary": "Riepilogo Ordine",
+    "stockValidation": "Verifica Disponibilità",
+    "invalidOrder": "Ordine non valido",
+    "stockValidationError": "Errore nella verifica dello stock",
+    "warehousesLoadError": "Errore nel caricamento dei magazzini",
+    "locationsLoadError": "Errore nel caricamento delle ubicazioni",
+    "selectBothWarehouses": "Selezionare magazzini origine e destinazione",
+    "itemsToReceive": "Articoli da Ricevere",
+    "numberLabel": "Numero",
+    "fromLabel": "Da",
+    "toLabel": "A",
+    "itemsLabel": "Articoli",
+    "shipmentDateLabel": "Data Spedizione",
+    "ship": "Spedisci",
+    "receive": "Ricevi"
   }
 }

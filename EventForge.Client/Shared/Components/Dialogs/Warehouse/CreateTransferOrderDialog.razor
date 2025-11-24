@@ -70,7 +70,7 @@
                                       Label="@TranslationService.GetTranslation("transferOrder.series", "Serie")"
                                       Variant="Variant.Outlined"
                                       MaxLength="10"
-                                      HelperText="Opzionale, si auto-genera se vuoto" />
+                                      HelperText="@TranslationService.GetTranslation("transferOrder.seriesHelperText", "Opzionale, si auto-genera se vuoto")" />
                     </MudItem>
                 </MudGrid>
 
@@ -265,7 +265,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading warehouses");
-            Snackbar.Add("Errore nel caricamento dei magazzini", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.warehousesLoadError", "Errore nel caricamento dei magazzini"), Severity.Error);
         }
     }
 
@@ -505,7 +505,7 @@
 
         if (!_sourceWarehouseId.HasValue || !_destinationWarehouseId.HasValue)
         {
-            Snackbar.Add("Selezionare magazzini origine e destinazione", Severity.Warning);
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.selectBothWarehouses", "Selezionare magazzini origine e destinazione"), Severity.Warning);
             return;
         }
 
