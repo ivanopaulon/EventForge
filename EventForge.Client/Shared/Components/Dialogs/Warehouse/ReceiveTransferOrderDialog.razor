@@ -1,0 +1,306 @@
+@using MudBlazor
+@using EventForge.DTOs.Warehouse
+@inject ITransferOrderService TransferOrderService
+@inject IStorageLocationService StorageLocationService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<ReceiveTransferOrderDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Class="mr-2" />
+            @TranslationService.GetTranslation("transferOrder.receiveDialog", "Ricevi Ordine")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudStack Spacing="3">
+                <!-- Order Summary -->
+                <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                            <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2" />
+                            @TranslationService.GetTranslation("transferOrder.orderSummary", "Riepilogo Ordine")
+                        </MudText>
+                        <MudDivider />
+                        <MudGrid Spacing="1">
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.numberLabel", "Numero"):</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2">@TransferOrder?.Number</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.fromLabel", "Da"):</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2">@TransferOrder?.SourceWarehouseName</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.toLabel", "A"):</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2">@TransferOrder?.DestinationWarehouseName</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.shipmentDateLabel", "Data Spedizione"):</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2">@TransferOrder?.ShipmentDate?.ToString("yyyy-MM-dd")</MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Actual Arrival Date -->
+                <MudDatePicker @bind-Date="_actualArrivalDate"
+                               Label="@($"{TranslationService.GetTranslation("transferOrder.actualArrival", "Arrivo Effettivo")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               Editable="true"
+                               MinDate="@TransferOrder?.ShipmentDate" />
+
+                <!-- Per-Row Receiving Section -->
+                <MudPaper Elevation="2" Class="pa-3">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
+                            @TranslationService.GetTranslation("transferOrder.itemsToReceive", "Articoli da Ricevere")
+                        </MudText>
+                        <MudDivider />
+
+                        @if (_isLoadingLocations)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        }
+                        else
+                        {
+                            <MudTable Items="@_receiveRows" Dense="true" Hover="true" Bordered="true">
+                                <HeaderContent>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.product", "Prodotto")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.quantityShipped", "Qtà Spedita")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.destinationLocation", "Ubicazione Dest.")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.quantityReceived", "Qtà Ricevuta")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.shortage", "Differenza")</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Product">
+                                        <MudText>@context.ProductName</MudText>
+                                        <MudText Typo="Typo.caption">@context.ProductCode</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Shipped">
+                                        <MudText Style="font-weight: 600;">@context.QuantityShipped.ToString("N2")</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Destination">
+                                        <MudSelect @bind-Value="context.DestinationLocationId"
+                                                   Variant="Variant.Outlined"
+                                                   T="Guid?"
+                                                   Required="true"
+                                                   Dense="true"
+                                                   Margin="Margin.Dense">
+                                            @foreach (var location in _destinationLocations)
+                                            {
+                                                <MudSelectItem Value="@((Guid?)location.Id)">@location.Code</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </MudTd>
+                                    <MudTd DataLabel="Received">
+                                        <MudNumericField @bind-Value="context.QuantityReceived"
+                                                         Variant="Variant.Outlined"
+                                                         Min="0"
+                                                         Max="@context.QuantityShipped"
+                                                         Format="N2"
+                                                         Dense="true"
+                                                         Margin="Margin.Dense" />
+                                    </MudTd>
+                                    <MudTd DataLabel="Shortage">
+                                        @{
+                                            var shortage = context.QuantityShipped - context.QuantityReceived;
+                                            var hasShortage = shortage > 0;
+                                        }
+                                        @if (hasShortage)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.Warning">
+                                                -@shortage.ToString("N2")
+                                            </MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                                OK
+                                            </MudChip>
+                                        }
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+
+                            @if (_hasShortage)
+                            {
+                                <MudAlert Severity="Severity.Warning" Dense="true">
+                                    <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2" />
+                                    @TranslationService.GetTranslation("transferOrder.shortageWarning", "Alcune righe hanno quantità ricevuta inferiore a quella spedita")
+                                </MudAlert>
+                            }
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Disabled="@(!CanSubmit() || _isSaving)"
+                   OnClick="Submit"
+                   Variant="Variant.Filled">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                <MudText>@TranslationService.GetTranslation("transferOrder.receive", "Ricevi")</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public TransferOrderDto TransferOrder { get; set; } = null!;
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private bool _isLoadingLocations = true;
+    private bool _hasShortage = false;
+    
+    private DateTime? _actualArrivalDate = DateTime.Today;
+    
+    private ReceiveTransferOrderDto _model = new();
+    private List<ReceiveRowModel> _receiveRows = new();
+    private List<StorageLocationDto> _destinationLocations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TransferOrder == null)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"), Severity.Error);
+            MudDialog.Cancel();
+            return;
+        }
+
+        await LoadDestinationLocations();
+        InitializeReceiveRows();
+    }
+
+    private async Task LoadDestinationLocations()
+    {
+        _isLoadingLocations = true;
+        try
+        {
+            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(
+                TransferOrder.DestinationWarehouseId, 1, 100);
+            _destinationLocations = result?.Items?.Where(l => l.IsActive).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading destination locations");
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.locationsLoadError", "Errore nel caricamento delle ubicazioni"), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingLocations = false;
+        }
+    }
+
+    private void InitializeReceiveRows()
+    {
+        _receiveRows.Clear();
+        
+        foreach (var row in TransferOrder.Rows)
+        {
+            _receiveRows.Add(new ReceiveRowModel
+            {
+                RowId = row.Id,
+                ProductName = row.ProductName,
+                ProductCode = row.ProductCode,
+                QuantityShipped = row.QuantityShipped,
+                QuantityReceived = row.QuantityShipped, // Default to full quantity
+                DestinationLocationId = null
+            });
+        }
+    }
+
+    private bool CanSubmit()
+    {
+        if (!_isValid || _isLoadingLocations || !_actualArrivalDate.HasValue)
+            return false;
+
+        // Check if all rows have destination location selected
+        if (_receiveRows.Any(r => !r.DestinationLocationId.HasValue))
+            return false;
+
+        // Update shortage flag
+        _hasShortage = _receiveRows.Any(r => r.QuantityReceived < r.QuantityShipped);
+
+        return true;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        if (!CanSubmit())
+            return;
+
+        _isSaving = true;
+        try
+        {
+            _model.ActualArrivalDate = _actualArrivalDate!.Value.ToUniversalTime();
+            _model.Rows = _receiveRows.Select(r => new ReceiveTransferOrderRowDto
+            {
+                RowId = r.RowId,
+                DestinationLocationId = r.DestinationLocationId!.Value,
+                QuantityReceived = r.QuantityReceived
+            }).ToList();
+            
+            var result = await TransferOrderService.ReceiveTransferOrderAsync(TransferOrder.Id, _model);
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.receiveSuccess", "Ordine ricevuto con successo!"), Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.receiveError", "Errore nella ricezione"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error receiving transfer order");
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.receiveError", "Errore nella ricezione: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private class ReceiveRowModel
+    {
+        public Guid RowId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string ProductCode { get; set; } = string.Empty;
+        public decimal QuantityShipped { get; set; }
+        public decimal QuantityReceived { get; set; }
+        public Guid? DestinationLocationId { get; set; }
+    }
+}

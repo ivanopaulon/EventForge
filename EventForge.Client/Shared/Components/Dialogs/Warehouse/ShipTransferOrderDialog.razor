@@ -1,0 +1,286 @@
+@using MudBlazor
+@using EventForge.DTOs.Warehouse
+@inject ITransferOrderService TransferOrderService
+@inject IStockService StockService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<ShipTransferOrderDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Class="mr-2" />
+            @TranslationService.GetTranslation("transferOrder.shipDialog", "Spedisci Ordine")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudStack Spacing="3">
+                <!-- Order Summary -->
+                <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                            <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2" />
+                            @TranslationService.GetTranslation("transferOrder.orderSummary", "Riepilogo Ordine")
+                        </MudText>
+                        <MudDivider />
+                        <MudGrid Spacing="1">
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.numberLabel", "Numero"):</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2">@TransferOrder?.Number</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.fromLabel", "Da"):</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2">@TransferOrder?.SourceWarehouseName</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.toLabel", "A"):</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2">@TransferOrder?.DestinationWarehouseName</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("transferOrder.itemsLabel", "Articoli"):</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2">@TransferOrder?.Rows.Count</MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Shipment Details -->
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="_shipmentDate"
+                                       Label="@($"{TranslationService.GetTranslation("transferOrder.shipmentDate", "Data Spedizione")} *")"
+                                       Variant="Variant.Outlined"
+                                       Required="true"
+                                       Editable="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="_expectedArrivalDate"
+                                       Label="@TranslationService.GetTranslation("transferOrder.expectedArrival", "Arrivo Previsto")"
+                                       Variant="Variant.Outlined"
+                                       Editable="true"
+                                       MinDate="@_shipmentDate" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudTextField @bind-Value="_model.ShippingReference"
+                              Label="@TranslationService.GetTranslation("transferOrder.shippingReference", "Riferimento Spedizione")"
+                              Variant="Variant.Outlined"
+                              Placeholder="@TranslationService.GetTranslation("transferOrder.trackingPlaceholder", "Numero tracking, corriere...")"
+                              MaxLength="200" />
+
+                <!-- Stock Validation Section -->
+                <MudPaper Elevation="2" Class="pa-3">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
+                            @TranslationService.GetTranslation("transferOrder.stockValidation", "Verifica Disponibilità")
+                        </MudText>
+                        <MudDivider />
+
+                        @if (_isLoadingStock)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        }
+                        else
+                        {
+                            <MudTable Items="@_stockValidationRows" Dense="true" Hover="true" Bordered="true">
+                                <HeaderContent>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.product", "Prodotto")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.sourceLocation", "Ubicazione")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.quantity", "Qtà Ordinata")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.availableStock", "Stock Disponibile")</MudTh>
+                                    <MudTh>Stato</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Product">@context.ProductName</MudTd>
+                                    <MudTd DataLabel="Location">@context.SourceLocationCode</MudTd>
+                                    <MudTd DataLabel="Quantity">@context.QuantityOrdered.ToString("N2")</MudTd>
+                                    <MudTd DataLabel="Available">
+                                        <MudText Color="@(context.AvailableStock >= context.QuantityOrdered ? Color.Success : Color.Error)">
+                                            @context.AvailableStock.ToString("N2")
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Status">
+                                        @if (context.AvailableStock >= context.QuantityOrdered)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                                OK
+                                            </MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Error">
+                                                @TranslationService.GetTranslation("transferOrder.insufficientStock", "Stock insufficiente!")
+                                            </MudChip>
+                                        }
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+
+                            @if (_hasInsufficientStock)
+                            {
+                                <MudAlert Severity="Severity.Error" Dense="true">
+                                    <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2" />
+                                    @TranslationService.GetTranslation("transferOrder.insufficientStock", "Stock insufficiente per alcune righe. Impossibile procedere con la spedizione.")
+                                </MudAlert>
+                            }
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Disabled="@(!CanSubmit() || _isSaving)"
+                   OnClick="Submit"
+                   Variant="Variant.Filled">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                <MudText>@TranslationService.GetTranslation("transferOrder.ship", "Spedisci")</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public TransferOrderDto TransferOrder { get; set; } = null!;
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private bool _isLoadingStock = true;
+    private bool _hasInsufficientStock = false;
+    
+    private DateTime? _shipmentDate = DateTime.Today;
+    private DateTime? _expectedArrivalDate;
+    
+    private ShipTransferOrderDto _model = new();
+    private List<StockValidationRow> _stockValidationRows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TransferOrder == null)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"), Severity.Error);
+            MudDialog.Cancel();
+            return;
+        }
+
+        _model.ShipmentDate = DateTime.UtcNow;
+        await ValidateStock();
+    }
+
+    private async Task ValidateStock()
+    {
+        _isLoadingStock = true;
+        _stockValidationRows.Clear();
+        _hasInsufficientStock = false;
+
+        try
+        {
+            foreach (var row in TransferOrder.Rows)
+            {
+                var stocks = await StockService.GetStockAsync(1, 100, productId: row.ProductId, locationId: row.SourceLocationId, lotId: row.LotId);
+                var stock = stocks?.Items?.FirstOrDefault();
+                
+                var availableStock = stock?.AvailableQuantity ?? 0;
+                var hasEnoughStock = availableStock >= row.QuantityOrdered;
+                
+                if (!hasEnoughStock)
+                {
+                    _hasInsufficientStock = true;
+                }
+
+                _stockValidationRows.Add(new StockValidationRow
+                {
+                    ProductName = row.ProductName,
+                    SourceLocationCode = row.SourceLocationCode,
+                    QuantityOrdered = row.QuantityOrdered,
+                    AvailableStock = availableStock
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error validating stock");
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.stockValidationError", "Errore nella verifica dello stock"), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingStock = false;
+        }
+    }
+
+    private bool CanSubmit()
+    {
+        return _isValid && 
+               !_hasInsufficientStock && 
+               !_isLoadingStock &&
+               _shipmentDate.HasValue;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        if (!CanSubmit())
+            return;
+
+        _isSaving = true;
+        try
+        {
+            _model.ShipmentDate = _shipmentDate!.Value.ToUniversalTime();
+            _model.ExpectedArrivalDate = _expectedArrivalDate?.ToUniversalTime();
+            
+            var result = await TransferOrderService.ShipTransferOrderAsync(TransferOrder.Id, _model);
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipSuccess", "Ordine spedito con successo!"), Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipError", "Errore nella spedizione"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error shipping transfer order");
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipError", "Errore nella spedizione: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private class StockValidationRow
+    {
+        public string ProductName { get; set; } = string.Empty;
+        public string SourceLocationCode { get; set; } = string.Empty;
+        public decimal QuantityOrdered { get; set; }
+        public decimal AvailableStock { get; set; }
+    }
+}
