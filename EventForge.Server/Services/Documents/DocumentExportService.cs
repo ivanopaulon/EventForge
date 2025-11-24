@@ -434,15 +434,17 @@ public class DocumentExportService : IDocumentExportService
                     worksheet.Cell(currentRow, 3).Value = "TOTALS:";
                     worksheet.Cell(currentRow, 3).Style.Font.Bold = true;
 
-                    worksheet.Cell(currentRow, 4).FormulaA1 = $"SUM(D{headerRow + 1}:D{currentRow - 2})";
+                    // Note: currentRow-2 gives the last data row (currentRow was incremented after loop, then incremented again above)
+                    var lastDataRow = currentRow - 2;
+                    worksheet.Cell(currentRow, 4).FormulaA1 = $"SUM(D{headerRow + 1}:D{lastDataRow})";
                     worksheet.Cell(currentRow, 4).Style.NumberFormat.Format = "#,##0.00";
                     worksheet.Cell(currentRow, 4).Style.Font.Bold = true;
 
-                    worksheet.Cell(currentRow, 5).FormulaA1 = $"SUM(E{headerRow + 1}:E{currentRow - 2})";
+                    worksheet.Cell(currentRow, 5).FormulaA1 = $"SUM(E{headerRow + 1}:E{lastDataRow})";
                     worksheet.Cell(currentRow, 5).Style.NumberFormat.Format = "#,##0.00";
                     worksheet.Cell(currentRow, 5).Style.Font.Bold = true;
 
-                    worksheet.Cell(currentRow, 6).FormulaA1 = $"SUM(F{headerRow + 1}:F{currentRow - 2})";
+                    worksheet.Cell(currentRow, 6).FormulaA1 = $"SUM(F{headerRow + 1}:F{lastDataRow})";
                     worksheet.Cell(currentRow, 6).Style.NumberFormat.Format = "#,##0.00";
                     worksheet.Cell(currentRow, 6).Style.Font.Bold = true;
 

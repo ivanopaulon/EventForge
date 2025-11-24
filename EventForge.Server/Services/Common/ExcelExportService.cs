@@ -49,6 +49,7 @@ public class ExcelExportService : IExcelExportService
                     {
                         var cell = worksheet.Cell(excelRow, colIndex + 1);
                         var value = property.GetValue(item);
+                        // Set cell value - handle null by converting to empty string
                         if (value != null)
                             cell.Value = XLCellValue.FromObject(value);
                         else
