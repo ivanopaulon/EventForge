@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Warehouse
 @using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components.Dialogs.Warehouse
 @attribute [Authorize]
 @inject ITransferOrderService TransferOrderService
 @inject IWarehouseService WarehouseService
@@ -210,10 +211,23 @@
         }
     }
 
-    private void CreateTransferOrder()
+    private readonly DialogOptions _dialogOptions = new()
     {
-        Snackbar.Add("Create transfer order dialog not implemented yet", Severity.Info);
-        // TODO: Open CreateTransferOrderDialog
+        MaxWidth = MaxWidth.Large,
+        FullWidth = true,
+        CloseButton = true
+    };
+
+    private async Task CreateTransferOrder()
+    {
+        var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
+            "Create Transfer Order", _dialogOptions);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadTransferOrdersAsync();
+            Snackbar.Add("Transfer order created successfully", Severity.Success);
+        }
     }
 
     private void ViewDetails(Guid id)
@@ -223,14 +237,34 @@
 
     private async Task ShipOrder(TransferOrderDto order)
     {
-        Snackbar.Add("Ship transfer order dialog not implemented yet", Severity.Info);
-        // TODO: Open ShipTransferOrderDialog
+        var parameters = new DialogParameters<ShipTransferOrderDialog>
+        {
+            { x => x.TransferOrder, order }
+        };
+        var dialog = await DialogService.ShowAsync<ShipTransferOrderDialog>(
+            "Ship Transfer Order", parameters, _dialogOptions);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadTransferOrdersAsync();
+            Snackbar.Add("Transfer order shipped successfully", Severity.Success);
+        }
     }
 
     private async Task ReceiveOrder(TransferOrderDto order)
     {
-        Snackbar.Add("Receive transfer order dialog not implemented yet", Severity.Info);
-        // TODO: Open ReceiveTransferOrderDialog
+        var parameters = new DialogParameters<ReceiveTransferOrderDialog>
+        {
+            { x => x.TransferOrder, order }
+        };
+        var dialog = await DialogService.ShowAsync<ReceiveTransferOrderDialog>(
+            "Receive Transfer Order", parameters, _dialogOptions);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadTransferOrdersAsync();
+            Snackbar.Add("Transfer order received successfully", Severity.Success);
+        }
     }
 
     private async Task CancelOrder(TransferOrderDto order)

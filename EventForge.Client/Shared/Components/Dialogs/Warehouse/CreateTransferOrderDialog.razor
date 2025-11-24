@@ -1,0 +1,562 @@
+@using MudBlazor
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
+@inject ITransferOrderService TransferOrderService
+@inject IWarehouseService WarehouseService
+@inject IProductService ProductService
+@inject IStorageLocationService StorageLocationService
+@inject ILotService LotService
+@inject IStockService StockService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<CreateTransferOrderDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+            @TranslationService.GetTranslation("transferOrder.createDialog", "Crea Ordine di Trasferimento")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudStack Spacing="3">
+                <!-- Warehouse Selection -->
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudSelect Value="_sourceWarehouseId"
+                                   ValueChanged="@OnSourceWarehouseChanged"
+                                   Label="@($"{TranslationService.GetTranslation("transferOrder.sourceWarehouse", "Magazzino Origine")} *")"
+                                   Variant="Variant.Outlined"
+                                   T="Guid?"
+                                   Required="true"
+                                   RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                   Placeholder="@TranslationService.GetTranslation("transferOrder.selectWarehouse", "Seleziona magazzino")">
+                            @foreach (var warehouse in _warehouses)
+                            {
+                                <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect Value="_destinationWarehouseId"
+                                   ValueChanged="@OnDestinationWarehouseChanged"
+                                   Label="@($"{TranslationService.GetTranslation("transferOrder.destinationWarehouse", "Magazzino Destinazione")} *")"
+                                   Variant="Variant.Outlined"
+                                   T="Guid?"
+                                   Required="true"
+                                   RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                   Placeholder="@TranslationService.GetTranslation("transferOrder.selectWarehouse", "Seleziona magazzino")">
+                            @foreach (var warehouse in _warehouses)
+                            {
+                                <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Order Date and Series -->
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="4">
+                        <MudDatePicker @bind-Date="_orderDate"
+                                       Label="@($"{TranslationService.GetTranslation("transferOrder.orderDate", "Data Ordine")} *")"
+                                       Variant="Variant.Outlined"
+                                       Required="true"
+                                       Editable="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudTextField @bind-Value="_model.Series"
+                                      Label="@TranslationService.GetTranslation("transferOrder.series", "Serie")"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="10"
+                                      HelperText="Opzionale, si auto-genera se vuoto" />
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Notes -->
+                <MudTextField @bind-Value="_model.Notes"
+                              Label="@TranslationService.GetTranslation("transferOrder.notes", "Note")"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              MaxLength="500" />
+
+                <!-- Transfer Items Section -->
+                <MudPaper Elevation="2" Class="pa-3">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
+                            @TranslationService.GetTranslation("transferOrder.transferItems", "Articoli da Trasferire")
+                        </MudText>
+                        <MudDivider />
+
+                        @if (_displayRows.Any())
+                        {
+                            <MudTable Items="@_displayRows" Dense="true" Hover="true" Bordered="true">
+                                <HeaderContent>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.product", "Prodotto")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.sourceLocation", "Ubicazione Origine")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.quantity", "Quantità")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.lot", "Lotto")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("transferOrder.availableStock", "Stock")</MudTh>
+                                    <MudTh></MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Product">@context.ProductName</MudTd>
+                                    <MudTd DataLabel="Source Location">@context.SourceLocationCode</MudTd>
+                                    <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+                                    <MudTd DataLabel="Lot">@context.LotCode</MudTd>
+                                    <MudTd DataLabel="Stock">
+                                        @{
+                                            var stock = GetAvailableStock(context.SourceLocationId, context.ProductId, context.LotId);
+                                            var hasStock = stock >= context.Quantity;
+                                        }
+                                        <MudChip T="string" Size="Size.Small" Color="@(hasStock ? Color.Success : Color.Error)">
+                                            @stock.ToString("N2")
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Size="Size.Small"
+                                                       Color="Color.Error"
+                                                       OnClick="@(() => RemoveRow(context))" />
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info">
+                                @TranslationService.GetTranslation("transferOrder.validationAtLeastOneRow", "Inserire almeno un articolo")
+                            </MudAlert>
+                        }
+
+                        <!-- Add Item Form -->
+                        <MudDivider />
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" md="4">
+                                <MudAutocomplete T="ProductDto"
+                                                 Value="_newRow.Product"
+                                                 ValueChanged="@OnProductSelected"
+                                                 Label="@TranslationService.GetTranslation("transferOrder.product", "Prodotto")"
+                                                 SearchFunc="@SearchProductsAsync"
+                                                 ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                                                 Variant="Variant.Outlined"
+                                                 ShowProgressIndicator="true"
+                                                 Adornment="Adornment.Start"
+                                                 AdornmentIcon="@Icons.Material.Filled.Inventory">
+                                    <ItemTemplate Context="product">
+                                        <MudText>@product.Name</MudText>
+                                        <MudText Typo="Typo.caption">@product.Code</MudText>
+                                    </ItemTemplate>
+                                </MudAutocomplete>
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudSelect Value="@(_newRow.SourceLocationId == Guid.Empty ? (Guid?)null : _newRow.SourceLocationId)"
+                                           ValueChanged="@(async (Guid? value) => await OnSourceLocationChanged(value ?? Guid.Empty))"
+                                           Label="@TranslationService.GetTranslation("transferOrder.sourceLocation", "Ubicazione Origine")"
+                                           Variant="Variant.Outlined"
+                                           T="Guid?"
+                                           Disabled="@(_sourceLocations.Count == 0 || !_sourceWarehouseId.HasValue)">
+                                    @foreach (var location in _sourceLocations)
+                                    {
+                                        <MudSelectItem Value="@((Guid?)location.Id)">@location.Code</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="2">
+                                <MudNumericField @bind-Value="_newRow.Quantity"
+                                                 Label="@TranslationService.GetTranslation("transferOrder.quantity", "Quantità")"
+                                                 Variant="Variant.Outlined"
+                                                 Min="0.01m"
+                                                 Format="N2" />
+                            </MudItem>
+                            <MudItem xs="12" md="2">
+                                <MudSelect @bind-Value="_newRow.LotId"
+                                           Label="@TranslationService.GetTranslation("transferOrder.lot", "Lotto")"
+                                           Variant="Variant.Outlined"
+                                           T="Guid?"
+                                           Clearable="true"
+                                           Disabled="@(_lots.Count == 0 || _newRow.Product == null)">
+                                    @foreach (var lot in _lots)
+                                    {
+                                        <MudSelectItem Value="@((Guid?)lot.Id)">@lot.Code</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="1">
+                                <MudButton Color="Color.Primary"
+                                           Variant="Variant.Filled"
+                                           OnClick="AddRow"
+                                           Disabled="@(!CanAddRow())"
+                                           FullWidth="true">
+                                    <MudIcon Icon="@Icons.Material.Filled.Add" />
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+
+                        @if (_showRowValidationError)
+                        {
+                            <MudAlert Severity="Severity.Warning" Dense="true">
+                                @_rowValidationMessage
+                            </MudAlert>
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Disabled="@(!CanSubmit() || _isSaving)"
+                   OnClick="Submit"
+                   Variant="Variant.Filled">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                <MudText>@TranslationService.GetTranslation("button.create", "Crea")</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private DateTime? _orderDate = DateTime.Today;
+    
+    private CreateTransferOrderDto _model = new();
+    private Guid? _sourceWarehouseId;
+    private Guid? _destinationWarehouseId;
+    private List<StorageFacilityDto> _warehouses = new();
+    private List<StorageLocationDto> _sourceLocations = new();
+    private List<StorageLocationDto> _destinationLocations = new();
+    private List<LotDto> _lots = new();
+    private List<StockDto> _stockData = new();
+    
+    // New row being added
+    private TransferRowModel _newRow = new();
+    private bool _showRowValidationError = false;
+    private string _rowValidationMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWarehouses();
+        _model.OrderDate = DateTime.UtcNow;
+    }
+
+    private async Task LoadWarehouses()
+    {
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 100);
+            _warehouses = result?.Items?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading warehouses");
+            Snackbar.Add("Errore nel caricamento dei magazzini", Severity.Error);
+        }
+    }
+
+    private async Task OnSourceWarehouseChanged(Guid? warehouseId)
+    {
+        _sourceWarehouseId = warehouseId;
+        _sourceLocations.Clear();
+        _newRow = new TransferRowModel();
+        
+        if (warehouseId.HasValue)
+        {
+            await LoadSourceLocations(warehouseId.Value);
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OnDestinationWarehouseChanged(Guid? warehouseId)
+    {
+        _destinationWarehouseId = warehouseId;
+        _destinationLocations.Clear();
+        
+        if (warehouseId.HasValue)
+        {
+            await LoadDestinationLocations(warehouseId.Value);
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task LoadSourceLocations(Guid warehouseId)
+    {
+        try
+        {
+            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(warehouseId, 1, 100);
+            _sourceLocations = result?.Items?.Where(l => l.IsActive).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading source locations");
+        }
+    }
+
+    private async Task LoadDestinationLocations(Guid warehouseId)
+    {
+        try
+        {
+            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(warehouseId, 1, 100);
+            _destinationLocations = result?.Items?.Where(l => l.IsActive).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading destination locations");
+        }
+    }
+
+    private async Task OnProductSelected(ProductDto? product)
+    {
+        _newRow.Product = product;
+        _lots.Clear();
+        
+        if (product != null)
+        {
+            await LoadLotsForProduct(product.Id);
+            await LoadStockForProduct(product.Id);
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OnSourceLocationChanged(Guid locationId)
+    {
+        _newRow.SourceLocationId = locationId;
+        
+        if (_newRow.Product != null && locationId != Guid.Empty)
+        {
+            await LoadStockForProduct(_newRow.Product.Id);
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task LoadLotsForProduct(Guid productId)
+    {
+        try
+        {
+            var result = await LotService.GetLotsAsync(1, 100, productId, status: "Active");
+            _lots = result?.Items?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading lots");
+        }
+    }
+
+    private async Task LoadStockForProduct(Guid productId)
+    {
+        try
+        {
+            var stocks = await StockService.GetStockByProductIdAsync(productId);
+            _stockData = stocks?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading stock data");
+        }
+    }
+
+    private async Task<IEnumerable<ProductDto>> SearchProductsAsync(string searchTerm, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return Array.Empty<ProductDto>();
+
+        try
+        {
+            var result = await ProductService.GetProductsAsync(1, 50);
+            return result?.Items.Where(p =>
+                (p.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Code?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+            ) ?? Array.Empty<ProductDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching products");
+            return Array.Empty<ProductDto>();
+        }
+    }
+
+    private bool CanAddRow()
+    {
+        return _newRow.Product != null && 
+               _newRow.SourceLocationId != Guid.Empty && 
+               _newRow.Quantity > 0;
+    }
+
+    private void AddRow()
+    {
+        _showRowValidationError = false;
+        _rowValidationMessage = string.Empty;
+
+        if (!CanAddRow())
+        {
+            _showRowValidationError = true;
+            _rowValidationMessage = TranslationService.GetTranslation("transferOrder.validationSelectProduct", "Selezionare un prodotto");
+            return;
+        }
+
+        // Validate stock availability
+        var availableStock = GetAvailableStock(_newRow.SourceLocationId, _newRow.Product!.Id, _newRow.LotId);
+        if (availableStock < _newRow.Quantity)
+        {
+            _showRowValidationError = true;
+            _rowValidationMessage = TranslationService.GetTranslation("transferOrder.insufficientStock", "Stock insufficiente!");
+            return;
+        }
+
+        var sourceLocation = _sourceLocations.FirstOrDefault(l => l.Id == _newRow.SourceLocationId);
+        var lot = _newRow.LotId.HasValue ? _lots.FirstOrDefault(l => l.Id == _newRow.LotId) : null;
+
+        var row = new CreateTransferOrderRowDto
+        {
+            ProductId = _newRow.Product!.Id,
+            SourceLocationId = _newRow.SourceLocationId,
+            Quantity = _newRow.Quantity,
+            LotId = _newRow.LotId
+        };
+
+        _model.Rows.Add(row);
+        
+        // Store display info
+        var displayRow = new TransferRowDisplay
+        {
+            ProductId = _newRow.Product.Id,
+            ProductName = _newRow.Product.Name,
+            SourceLocationId = _newRow.SourceLocationId,
+            SourceLocationCode = sourceLocation?.Code ?? "",
+            Quantity = _newRow.Quantity,
+            LotId = _newRow.LotId,
+            LotCode = lot?.Code
+        };
+        _displayRows.Add(displayRow);
+
+        // Reset new row form
+        _newRow = new TransferRowModel();
+        _lots.Clear();
+        
+        StateHasChanged();
+    }
+
+    private void RemoveRow(TransferRowDisplay row)
+    {
+        var index = _displayRows.IndexOf(row);
+        if (index >= 0)
+        {
+            _displayRows.RemoveAt(index);
+            _model.Rows.RemoveAt(index);
+        }
+        
+        StateHasChanged();
+    }
+
+    private decimal GetAvailableStock(Guid locationId, Guid productId, Guid? lotId)
+    {
+        var stock = _stockData.FirstOrDefault(s =>
+            s.StorageLocationId == locationId &&
+            s.ProductId == productId &&
+            (lotId == null || s.LotId == lotId));
+        
+        return stock?.AvailableQuantity ?? 0;
+    }
+
+    private bool CanSubmit()
+    {
+        return _isValid &&
+               _sourceWarehouseId.HasValue &&
+               _destinationWarehouseId.HasValue &&
+               _sourceWarehouseId != _destinationWarehouseId &&
+               _model.Rows.Any();
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        if (!CanSubmit())
+            return;
+
+        // Final validation
+        if (_sourceWarehouseId == _destinationWarehouseId)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.validationSourceDestSame", "Magazzino origine e destinazione devono essere diversi"), Severity.Warning);
+            return;
+        }
+
+        if (!_sourceWarehouseId.HasValue || !_destinationWarehouseId.HasValue)
+        {
+            Snackbar.Add("Selezionare magazzini origine e destinazione", Severity.Warning);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            _model.SourceWarehouseId = _sourceWarehouseId.Value;
+            _model.DestinationWarehouseId = _destinationWarehouseId.Value;
+            _model.OrderDate = _orderDate?.ToUniversalTime() ?? DateTime.UtcNow;
+            
+            var result = await TransferOrderService.CreateTransferOrderAsync(_model);
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.createSuccess", "Ordine di trasferimento creato con successo!"), Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.createError", "Errore nella creazione dell'ordine"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating transfer order");
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.createError", "Errore nella creazione dell'ordine: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    // Display rows for the table (since we need to show product names, location codes, etc.)
+    private List<TransferRowDisplay> _displayRows = new();
+
+    private class TransferRowModel
+    {
+        public ProductDto? Product { get; set; }
+        public Guid SourceLocationId { get; set; }
+        public decimal Quantity { get; set; } = 1;
+        public Guid? LotId { get; set; }
+    }
+
+    private class TransferRowDisplay
+    {
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public Guid SourceLocationId { get; set; }
+        public string SourceLocationCode { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public Guid? LotId { get; set; }
+        public string? LotCode { get; set; }
+    }
+}
