@@ -1,0 +1,57 @@
+/* Classification Node Management Page - Fixed Layout with Scrollable Content */
+
+/* Moved from inline styles */
+.matched-node { 
+    background-color: rgba(255,235,59,0.15); 
+    border-radius: 4px; 
+    padding: 2px 6px; 
+    display: inline-block; 
+}
+
+.match-badge { 
+    font-size: 0.8rem; 
+    margin-left: 8px; 
+    vertical-align: middle; 
+}
+
+/* Page layout */
+.classification-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.classification-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+.classification-filters {
+    flex: 0 0 auto;
+    padding: 0 12px 12px;
+}
+
+.classification-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 12px 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .classification-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .classification-top,
+    .classification-filters {
+        padding: 8px;
+    }
+    
+    .classification-content {
+        padding: 0 8px 8px;
+    }
+}
