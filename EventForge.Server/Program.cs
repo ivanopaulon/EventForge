@@ -2,13 +2,9 @@ using EventForge.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
-using OfficeOpenXml;
 
 // NOTE: Using Swashbuckle.AspNetCore 6.x with Microsoft.OpenApi 1.x for compatibility.
 // Version 10.x uses Microsoft.OpenApi 2.x which has breaking changes.
-
-// Configure EPPlus license context
-ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 var builder = WebApplication.CreateBuilder(args);
 

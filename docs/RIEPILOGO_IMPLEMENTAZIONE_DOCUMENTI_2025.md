@@ -46,8 +46,8 @@
   - Gestione errori e logging completo
 - **Status**: ✅ Completo
 
-**2. Excel Export** 🆕
-- **Libreria**: EPPlus 7.6.0 (NonCommercial License)
+**2. Excel Export** 🆕✨
+- **Libreria**: ClosedXML 0.104.2 (MIT License) - ⚡ Migrated from EPPlus
 - **Funzionalità**:
   - Worksheet formattato con titolo e metadata
   - Header con background colorato e testo in grassetto
@@ -57,6 +57,7 @@
   - Auto-fit colonne e freeze panes
   - Riga totali evidenziata
 - **Status**: ✅ Completo
+- **Note**: Migrated to ClosedXML (MIT License) to eliminate licensing costs and fix startup errors
 
 **3. HTML Export**
 - **Status**: ✅ Già implementato
@@ -85,12 +86,12 @@
 - **Popolarità**: ~8.9k stars su GitHub
 - **Motivo scelta**: Libreria più popolare per generazione PDF in .NET, completamente gratuita e con ottima documentazione
 
-### EPPlus per Excel
-- **Versione**: 7.6.0
-- **Licenza**: Polyform NonCommercial 1.0.0 (Gratuita per uso non commerciale)
-- **Repository**: https://github.com/EPPlusSoftware/EPPlus
-- **Popolarità**: ~3.6k stars su GitHub
-- **Motivo scelta**: Libreria più usata dalla community .NET per Excel, API semplice e potente
+### ClosedXML per Excel ✨ (Aggiornato)
+- **Versione**: 0.104.2
+- **Licenza**: MIT (Open Source - completamente gratuito)
+- **Repository**: https://github.com/ClosedXML/ClosedXML
+- **Popolarità**: ~4.7k stars su GitHub
+- **Motivo scelta**: Migrato da EPPlus per eliminare costi di licenza commerciale ($299-$799/anno) e risolvere errori di avvio del server. ClosedXML offre API più intuitiva, licenza MIT senza restrizioni, e pieno supporto per formattazione Excel avanzata.
 
 ---
 
@@ -98,25 +99,36 @@
 
 ### Modifiche File
 
-**1. Directory.Packages.props**
+**1. Directory.Packages.props** ✨ (Aggiornato)
 ```xml
-<PackageVersion Include="QuestPDF" Version="2024.12.3" />
-<PackageVersion Include="EPPlus" Version="7.5.4" />
+<PackageVersion Include="QuestPDF" Version="2025.7.4" />
+<PackageVersion Include="ClosedXML" Version="0.104.2" />
 ```
 
-**2. EventForge.Server.csproj**
+**2. EventForge.Server.csproj** ✨ (Aggiornato)
 ```xml
 <PackageReference Include="QuestPDF" />
-<PackageReference Include="EPPlus" />
+<PackageReference Include="ClosedXML" />
 ```
 
-**3. DocumentExportService.cs**
-- Aggiunto using per QuestPDF e EPPlus
-- Configurato EPPlus.LicenseContext = NonCommercial
+**3. Program.cs** ✨ (Aggiornato)
+- Rimosso using per EPPlus
+- Rimossa configurazione EPPlus.LicenseContext (non più necessaria)
+- Server ora si avvia senza errori di licenza
+
+**4. DocumentExportService.cs** ✨ (Aggiornato)
+- Aggiunto using per QuestPDF e ClosedXML
+- Rimossa configurazione EPPlus.LicenseContext
 - Configurato QuestPDF.Settings.License = Community
 - Implementato metodo `ExportToPdfAsync()` completo
-- Implementato metodo `ExportToExcelAsync()` completo
+- Implementato metodo `ExportToExcelAsync()` completo con ClosedXML API
 - Gestione errori e logging per entrambi i metodi
+
+**5. ExcelExportService.cs** ✨ (Aggiornato)
+- Migrato completamente da EPPlus a ClosedXML
+- Nuova API più fluente e intuitiva
+- Gestione migliorata dei valori null
+- Supporto completo per formattazione e stili
 
 ### Build e Test
 - ✅ Build progetto completata con successo
@@ -133,12 +145,15 @@
 2. **Export Excel avanzato**: Dati strutturati con formule per analisi e reportistica
 3. **Varietà formati**: 5 formati disponibili (PDF, Excel, HTML, CSV, JSON) per ogni esigenza
 4. **Qualità enterprise**: Layout professionali e formattazione accurata
+5. **✨ Nessun costo di licenza**: Migrazione a ClosedXML elimina $299-$799/anno di costi
 
 ### Benefici Tecnici
 1. **Librerie standard industry**: Utilizzo delle librerie più popolari della community
 2. **Codice maintainable**: Implementazione pulita con gestione errori
 3. **Logging completo**: Tracciamento operazioni per debugging e audit
 4. **Zero dipendenze esterne**: Nessun servizio cloud a pagamento richiesto
+5. **✨ Licenze open source**: MIT License per entrambe le librerie (QuestPDF e ClosedXML)
+6. **✨ Server stabile**: Eliminati errori di avvio per configurazione licenza EPPlus
 
 ---
 
@@ -216,13 +231,15 @@
 L'implementazione della Issue #255 è stata completata con successo utilizzando **esclusivamente librerie open-source o gratuite per uso non commerciale**, senza necessità di servizi cloud a pagamento.
 
 ### Risultati Raggiunti
-- ✅ Export PDF professionale con QuestPDF
-- ✅ Export Excel avanzato con EPPlus
+- ✅ Export PDF professionale con QuestPDF (MIT License)
+- ✅ Export Excel avanzato con ClosedXML (MIT License) ✨
 - ✅ 5 formati export disponibili (PDF, Excel, HTML, CSV, JSON)
 - ✅ Incremento implementazione Issue #255: +25% (70% → 95%)
 - ✅ Incremento media Document Management: +5% (60% → 65%)
 - ✅ Build progetto verificato con successo
 - ✅ Documentazione aggiornata
+- ✅ ✨ Eliminati costi di licenza commerciale ($299-$799/anno)
+- ✅ ✨ Risolti errori di avvio del server per licenza EPPlus
 
 ### Limitazioni Identificate
 - ❌ OCR richiede servizi esterni a pagamento
