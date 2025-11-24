@@ -189,16 +189,32 @@
                     }
                 }
                 <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                    <ActionButtonGroup EntityName="@item.Number"
-                                       ItemDisplayName="@item.Number"
-                                       ShowView="true"
-                                       ShowEdit="@(item.Status == DocumentStatus.Draft)"
-                                       ShowAuditLog="false"
-                                       ShowToggleStatus="false"
-                                       ShowDelete="@(item.Status == DocumentStatus.Draft)"
-                                       OnView="@(() => ViewDocument(item.Id))"
-                                       OnEdit="@(() => EditDocument(item.Id))"
-                                       OnDelete="@(() => DeleteDocument(item.Id))" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => ViewDocument(item.Id))"
+                                   title="@TranslationService.GetTranslation("common.view", "Visualizza")" />
+                    @if (item.Status == DocumentStatus.Draft)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                       Size="Size.Small"
+                                       Color="Color.Info"
+                                       OnClick="@(() => EditDocument(item.Id))"
+                                       title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteDocument(item.Id))"
+                                       title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                    }
+                    @if (item.Status == DocumentStatus.Approved)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Outlined.Lock"
+                                       Size="Size.Small"
+                                       Color="Color.Warning"
+                                       OnClick="@(() => CloseDocument(item.Id))"
+                                       title="@TranslationService.GetTranslation("documents.close", "Chiudi")" />
+                    }
                 </MudTd>
             </RowTemplate>
 
@@ -238,8 +254,6 @@
     // Filter state
     private Guid? _selectedDocumentTypeId = null;
     private DocumentStatus? _selectedStatus = null;
-    private DateTime? _fromDate = null;
-    private DateTime? _toDate = null;
     private int _currentPage = 1;
     private int _pageSize = 20;
     private long _totalCount = 0;
@@ -314,10 +328,7 @@
             // Document type filter
             (!_selectedDocumentTypeId.HasValue || d.DocumentTypeId == _selectedDocumentTypeId.Value) &&
             // Status filter
-            (!_selectedStatus.HasValue || d.Status == _selectedStatus.Value) &&
-            // Date range filter
-            (!_fromDate.HasValue || d.Date >= _fromDate.Value) &&
-            (!_toDate.HasValue || d.Date <= _toDate.Value));
+            (!_selectedStatus.HasValue || d.Status == _selectedStatus.Value));
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -377,8 +388,6 @@
                 PageSize = _pageSize,
                 DocumentTypeId = _selectedDocumentTypeId,
                 Status = _selectedStatus,
-                FromDate = _fromDate,
-                ToDate = _toDate,
                 IncludeRows = false,
                 SortBy = "Date",
                 SortDirection = "desc"
@@ -414,8 +423,6 @@
     {
         _selectedDocumentTypeId = null;
         _selectedStatus = null;
-        _fromDate = null;
-        _toDate = null;
         StateHasChanged();
     }
 
