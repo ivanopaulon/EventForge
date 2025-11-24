@@ -3,6 +3,7 @@
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Shared.Components.Dialogs.Documents
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
 @inject IDocumentCounterService DocumentCounterService
@@ -15,148 +16,308 @@
 
 <PageTitle>@TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading"
-                        Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
+<PageLoadingOverlay Visible="_isLoading || _isLoadingCounters" />
 
-    <MudGrid Class="mb-4">
-        <MudItem xs="12" md="8">
-            <MudText Typo="Typo.h4">
-                <MudIcon Icon="@Icons.Material.Outlined.Pin" Class="mr-2" Size="Size.Medium" />
-                @TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")
-            </MudText>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                @TranslationService.GetTranslation("documentCounter.description", "Configura i contatori automatici per la numerazione dei documenti")
-            </MudText>
-        </MudItem>
-        <MudItem xs="12" md="4">
-            <MudStack Row="true" Justify="Justify.FlexEnd">
-                <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                           Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           OnClick="@OpenCreateDialog">
-                    @TranslationService.GetTranslation("documentCounter.create", "Nuovo Contatore")
-                </MudButton>
-            </MudStack>
-        </MudItem>
-    </MudGrid>
-
-    <!-- Filters -->
-    <MudPaper Elevation="2" Class="pa-4 mb-4">
-        <MudGrid>
-            <MudItem xs="12" md="6">
-                <MudSelect T="Guid?" 
-                           Class="ef-select"
-                           Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
-                           @bind-Value="_selectedDocumentTypeId"
-                           Clearable="true">
-                    @if (_documentTypes != null)
-                    {
-                        @foreach (var type in _documentTypes)
+@if (!_isLoading)
+{
+    <div class="document-counter-page-root">
+        <div class="document-counter-top">
+            <ManagementDashboard TItem="DocumentCounterDto" Items="_filteredCounters" Metrics="_dashboardMetrics" />
+        </div>
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                     TItem="DocumentCounterDto"
+                     Items="_filteredCounters"
+                     MultiSelection="true"
+                     SelectedItems="_selectedCounters"
+                     SelectedItemsChanged="_selectedCountersChangedCallback"
+                     IsLoading="_isLoadingCounters"
+                     ComponentKey="DocumentCounterManagement"
+                     InitialColumnConfigurations="_initialColumns"
+                     AllowDragDropGrouping="true">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h5">
+                        @TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")
+                    </MudText>
+                    <MudSpacer />
+                    <MudSelect T="Guid?" 
+                               Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
+                               Class="ef-select"
+                               @bind-Value="_selectedDocumentTypeId"
+                               @bind-Value:after="OnFilterChanged"
+                               Clearable="true"
+                               Style="min-width: 200px; margin-right: 8px;">
+                        @if (_documentTypes != null)
                         {
-                            <MudSelectItem T="Guid?" Value="@type.Id">@type.Name</MudSelectItem>
+                            @foreach (var type in _documentTypes)
+                            {
+                                <MudSelectItem T="Guid?" Value="@type.Id">@type.Name</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                    <ManagementTableToolbar ShowSelectionBadge="true"
+                                            SelectedCount="@_selectedCounters.Count"
+                                            ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowDelete="true"
+                                            CreateTooltip="documentCounter.create"
+                                            IsDisabled="_isLoadingCounters"
+                                            OnRefresh="@LoadCountersAsync"
+                                            OnCreate="@OpenCreateDialog"
+                                            OnDelete="@DeleteSelectedCounters" />
+                </ToolBarContent>
+                <HeaderContent Context="columnConfigurations">
+                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                    {
+                        @if (column.PropertyName == "DocumentTypeName")
+                        {
+                            <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="DocumentTypeName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Series")
+                        {
+                            <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Series" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Series))">@TranslationService.GetTranslation("documentCounter.series", "Serie")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Year")
+                        {
+                            <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Year" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Year ?? 0))">@TranslationService.GetTranslation("documentCounter.year", "Anno")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "CurrentValue")
+                        {
+                            <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="CurrentValue" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.CurrentValue))">@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Prefix")
+                        {
+                            <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Prefix" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Prefix ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "FormatPattern")
+                        {
+                            <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="FormatPattern" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.FormatPattern ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "ResetOnYearChange")
+                        {
+                            <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="ResetOnYearChange" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.ResetOnYearChange))">@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")</MudTableSortLabel>
+                            </EFTableColumnHeader>
                         }
                     }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudButton StartIcon="@Icons.Material.Outlined.Search"
-                           Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           OnClick="@ApplyFilters">
-                    @TranslationService.GetTranslation("common.apply", "Applica")
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Clear"
-                           Color="Color.Default"
-                           Variant="Variant.Outlined"
-                           OnClick="@ClearFilters"
-                           Class="ml-2">
-                    @TranslationService.GetTranslation("common.clearFilters", "Pulisci Filtri")
-                </MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+                    <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
 
-    <!-- Counters Table -->
-    <MudTable Items="@_filteredCounters"
-              Dense="true"
-              Hover="true"
-              Striped="true"
-              Loading="@_isLoading"
-              LoadingProgressColor="Color.Primary"
-              SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-              AllowUnsorted="false">
-        <HeaderContent>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Series))">@TranslationService.GetTranslation("documentCounter.series", "Serie")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Year ?? 0))">@TranslationService.GetTranslation("documentCounter.year", "Anno")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.CurrentValue))">@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Prefix ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.FormatPattern ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.ResetOnYearChange))">@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")</MudTableSortLabel></MudTh>
-            <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")">
-                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@context.DocumentTypeName</MudChip>
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.series", "Serie")">
-                <strong>@(string.IsNullOrEmpty(context.Series) ? "-" : context.Series)</strong>
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.year", "Anno")">
-                @(context.Year?.ToString() ?? "-")
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")">
-                <MudChip T="string" Size="Size.Small" Color="Color.Success">@context.CurrentValue</MudChip>
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")">
-                @(context.Prefix ?? "-")
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")">
-                <MudText Typo="Typo.caption">@(context.FormatPattern ?? "Default")</MudText>
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")">
-                @if (context.ResetOnYearChange)
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
-                }
-                else
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
-                }
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                               Size="Size.Small"
-                               Color="Color.Info"
-                               OnClick="@(() => OpenEditDialog(context))"
-                               title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
-                <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                               Size="Size.Small"
-                               Color="Color.Error"
-                               OnClick="@(() => DeleteCounter(context))"
-                               title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudAlert Severity="Severity.Info">
-                @TranslationService.GetTranslation("documentCounter.noCounters", "Nessun contatore trovato. Crea un nuovo contatore per iniziare.")
-            </MudAlert>
-        </NoRecordsContent>
-    </MudTable>
-</MudContainer>
+                <RowTemplate Context="item">
+                    @{
+                        var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                    }
+                    @foreach (var column in visibleColumns)
+                    {
+                        @if (column.PropertyName == "DocumentTypeName")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@item.DocumentTypeName</MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Series")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.series", "Serie")">
+                                <strong>@(string.IsNullOrEmpty(item.Series) ? "-" : item.Series)</strong>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Year")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.year", "Anno")">
+                                @(item.Year?.ToString() ?? "-")
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "CurrentValue")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success">@item.CurrentValue</MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Prefix")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")">
+                                @(item.Prefix ?? "-")
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "FormatPattern")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")">
+                                <MudText Typo="Typo.caption">@(item.FormatPattern ?? "Default")</MudText>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "ResetOnYearChange")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")">
+                                @if (item.ResetOnYearChange)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+                                }
+                            </MudTd>
+                        }
+                    }
+                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                        <ActionButtonGroup EntityName="@TranslationService.GetTranslation("documentCounter.counter", "Contatore")"
+                                           ItemDisplayName="@($"{item.DocumentTypeName} - {item.Series}")"
+                                           ShowView="false"
+                                           ShowEdit="true"
+                                           ShowDelete="true"
+                                           OnEdit="@(() => OpenEditDialog(item))"
+                                           OnDelete="@(() => DeleteCounter(item))" />
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                        <MudIcon Icon="@Icons.Material.Outlined.Pin" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                        <MudText Typo="Typo.h6" Class="mb-2">
+                            @(_counters.Any() ?
+                                TranslationService.GetTranslation("documentCounter.noCountersMatchFilters", "Nessun contatore corrisponde ai filtri applicati") :
+                                TranslationService.GetTranslation("documentCounter.noCounters", "Nessun contatore trovato. Crea un nuovo contatore per iniziare."))
+                        </MudText>
+                        @if (_counters.Any())
+                        {
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Outlined.Clear"
+                                       OnClick="@ClearFilters">
+                                @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                            </MudButton>
+                        }
+                    </div>
+                </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
 
 @code {
-    private bool _isLoading = false;
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingCounters = false;
+
+    // Data collections
     private List<DocumentCounterDto> _counters = new();
-    private List<DocumentCounterDto> _filteredCounters = new();
     private List<DocumentTypeDto> _documentTypes = new();
+    private HashSet<DocumentCounterDto> _selectedCounters = new();
+
+    // Filter state
     private Guid? _selectedDocumentTypeId = null;
 
+    // EFTable reference
+    private EFTable<DocumentCounterDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "DocumentTypeName", DisplayName = "Tipo Documento", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Series", DisplayName = "Serie", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Year", DisplayName = "Anno", IsVisible = true, Order = 2 },
+        new() { PropertyName = "CurrentValue", DisplayName = "Valore Corrente", IsVisible = true, Order = 3 },
+        new() { PropertyName = "Prefix", DisplayName = "Prefisso", IsVisible = true, Order = 4 },
+        new() { PropertyName = "FormatPattern", DisplayName = "Pattern", IsVisible = true, Order = 5 },
+        new() { PropertyName = "ResetOnYearChange", DisplayName = "Reset Anno", IsVisible = true, Order = 6 }
+    };
+
+    // Dashboard metrics
+    private List<DashboardMetric<DocumentCounterDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Contatori",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Pin,
+            Color = "primary",
+            Description = "Numero totale di contatori",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Con Reset Anno",
+            Type = MetricType.Count,
+            Filter = c => c.ResetOnYearChange,
+            Icon = Icons.Material.Outlined.Refresh,
+            Color = "info",
+            Description = "Contatori con reset automatico su cambio anno",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Anno Corrente",
+            Type = MetricType.Count,
+            Filter = c => c.Year == DateTime.Now.Year,
+            Icon = Icons.Material.Outlined.CalendarToday,
+            Color = "success",
+            Description = "Contatori per l'anno corrente",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Con Prefisso",
+            Type = MetricType.Count,
+            Filter = c => !string.IsNullOrEmpty(c.Prefix),
+            Icon = Icons.Material.Outlined.Label,
+            Color = "warning",
+            Description = "Contatori con prefisso definito",
+            Format = "N0"
+        }
+    };
+
+    // Multi-selection callback
+    private EventCallback<HashSet<DocumentCounterDto>> _selectedCountersChangedCallback => 
+        EventCallback.Factory.Create<HashSet<DocumentCounterDto>>(this, OnSelectedCountersChanged);
+
+    /// <summary>
+    /// Computed property for filtered counters based on filter criteria.
+    /// </summary>
+    private IEnumerable<DocumentCounterDto> _filteredCounters => 
+        _counters.Where(c => 
+            // Document type filter
+            !_selectedDocumentTypeId.HasValue || c.DocumentTypeId == _selectedDocumentTypeId.Value);
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedCountersChanged(HashSet<DocumentCounterDto> items)
+    {
+        _selectedCounters = items;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        await LoadDocumentTypesAsync();
-        await LoadCountersAsync();
+        try
+        {
+            await LoadDocumentTypesAsync();
+            await LoadCountersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document counters page");
+            Snackbar.Add(TranslationService.GetTranslation("documentCounter.errorLoadingPage", "Errore durante il caricamento della pagina"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task LoadDocumentTypesAsync()
@@ -173,14 +334,16 @@
         }
     }
 
+    /// <summary>
+    /// Loads document counter data.
+    /// </summary>
     private async Task LoadCountersAsync()
     {
-        _isLoading = true;
+        _isLoadingCounters = true;
         try
         {
             var counters = await DocumentCounterService.GetAllDocumentCountersAsync();
             _counters = counters?.ToList() ?? new List<DocumentCounterDto>();
-            ApplyFilters();
         }
         catch (Exception ex)
         {
@@ -189,26 +352,25 @@
         }
         finally
         {
-            _isLoading = false;
+            _isLoadingCounters = false;
         }
     }
 
-    private void ApplyFilters()
+    /// <summary>
+    /// Called when filter changes to trigger refresh.
+    /// </summary>
+    private void OnFilterChanged()
     {
-        _filteredCounters = _counters;
-
-        if (_selectedDocumentTypeId.HasValue)
-        {
-            _filteredCounters = _filteredCounters.Where(c => c.DocumentTypeId == _selectedDocumentTypeId.Value).ToList();
-        }
-
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
     private void ClearFilters()
     {
         _selectedDocumentTypeId = null;
-        ApplyFilters();
+        StateHasChanged();
     }
 
     private async Task OpenCreateDialog()
@@ -250,6 +412,71 @@
         }
     }
 
+    /// <summary>
+    /// Deletes all selected counters.
+    /// </summary>
+    private async Task DeleteSelectedCounters()
+    {
+        if (_selectedCounters.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("documentCounter.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} contatori selezionati? Questa azione non può essere annullata.", 
+            _selectedCounters.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var counter in _selectedCounters.ToList())
+                {
+                    try
+                    {
+                        await DocumentCounterService.DeleteDocumentCounterAsync(counter.Id);
+                        _counters.RemoveAll(c => c.Id == counter.Id);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting document counter {CounterId}", counter.Id);
+                    }
+                }
+                
+                _selectedCounters.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.deletedMultiple", 
+                        "{0} contatori eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.deletedMultiplePartial", 
+                        "{0} contatori eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("documentCounter.deleteError", 
+                    "Errore nell'eliminazione dei contatori: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected counters");
+            }
+        }
+    }
+
     private async Task DeleteCounter(DocumentCounterDto counter)
     {
         bool? confirmed = await DialogService.ShowMessageBox(
@@ -260,7 +487,7 @@
 
         if (confirmed == true)
         {
-            _isLoading = true;
+            _isLoadingCounters = true;
             try
             {
                 bool success = await DocumentCounterService.DeleteDocumentCounterAsync(counter.Id);
@@ -281,7 +508,7 @@
             }
             finally
             {
-                _isLoading = false;
+                _isLoadingCounters = false;
             }
         }
     }
