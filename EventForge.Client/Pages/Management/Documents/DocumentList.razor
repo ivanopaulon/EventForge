@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Documents
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IDocumentTypeService DocumentTypeService
@@ -13,38 +15,44 @@
 
 <PageTitle>@TranslationService.GetTranslation("documents.list", "Elenco Documenti")</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudGrid Class="mb-4">
-        <MudItem xs="12" md="8">
-            <MudText Typo="Typo.h4">
-                <MudIcon Icon="@Icons.Material.Outlined.Description" Class="mr-2" Size="Size.Medium" />
-                @TranslationService.GetTranslation("documents.list", "Elenco Documenti")
-            </MudText>
-        </MudItem>
-        <MudItem xs="12" md="4">
-            <MudStack Row="true" Justify="Justify.FlexEnd">
-                <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                           Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           OnClick="@CreateNewDocument">
-                    @TranslationService.GetTranslation("documents.create", "Nuovo Documento")
-                </MudButton>
-            </MudStack>
-        </MudItem>
-    </MudGrid>
-
-    <PageLoadingOverlay Visible="_isLoading"
+<PageLoadingOverlay Visible="_isLoading"
                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
+@if (!_isLoading)
+{
+    <div class="document-page-root">
+        <div class="document-top">
+            <ManagementDashboard TItem="DocumentHeaderDto"
+                                 Items="_filteredDocuments"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="Document"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
 
-    <!-- Filters -->
-    <MudPaper Elevation="2" Class="pa-4 mb-4">
-        <MudGrid>
-            <MudItem xs="12" md="3">
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="DocumentHeaderDto"
+                 Items="_filteredDocuments"
+                 MultiSelection="true"
+                 SelectedItems="_selectedDocuments"
+                 SelectedItemsChanged="_selectedDocumentsChangedCallback"
+                 OnRowClick="@(args => ViewDocument(args.Item.Id))"
+                 IsLoading="_isLoading"
+                 ComponentKey="DocumentManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("documents.list", "Elenco Documenti")
+                </MudText>
+                <MudSpacer />
                 <MudSelect T="Guid?" Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
                            Class="ef-select"
                            @bind-Value="_selectedDocumentTypeId"
-                           Clearable="true">
+                           @bind-Value:after="OnFilterChanged"
+                           Clearable="true"
+                           Style="min-width: 200px; margin-right: 8px;">
                     @if (_documentTypes != null)
                     {
                         @foreach (var type in _documentTypes)
@@ -53,126 +61,181 @@
                         }
                     }
                 </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="3">
                 <MudSelect T="DocumentStatus?" Label="@TranslationService.GetTranslation("documents.status", "Stato")"
                            Class="ef-select"
                            @bind-Value="_selectedStatus"
-                           Clearable="true">
+                           @bind-Value:after="OnFilterChanged"
+                           Clearable="true"
+                           Style="min-width: 150px; margin-right: 8px;">
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Draft">@TranslationService.GetTranslation("documents.status.draft", "Bozza")</MudSelectItem>
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Approved">@TranslationService.GetTranslation("documents.status.approved", "Approvato")</MudSelectItem>
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Rejected">@TranslationService.GetTranslation("documents.status.rejected", "Rifiutato")</MudSelectItem>
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Cancelled">@TranslationService.GetTranslation("documents.status.cancelled", "Annullato")</MudSelectItem>
                 </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudDatePicker Label="@TranslationService.GetTranslation("documents.fromDate", "Da Data")"
-                               Class="ef-input"
-                               @bind-Date="_fromDate"
-                               Clearable="true" />
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudDatePicker Label="@TranslationService.GetTranslation("documents.toDate", "A Data")"
-                               Class="ef-input"
-                               @bind-Date="_toDate"
-                               Clearable="true" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudButton StartIcon="@Icons.Material.Outlined.Search"
-                           Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           OnClick="@LoadDocumentsAsync"
-                           FullWidth="false">
-                    @TranslationService.GetTranslation("common.search", "Cerca")
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Clear"
-                           Color="Color.Default"
-                           Variant="Variant.Outlined"
-                           OnClick="@ClearFilters"
-                           Class="ml-2">
-                    @TranslationService.GetTranslation("common.clearFilters", "Pulisci Filtri")
-                </MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedDocuments.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateTooltip="documents.create"
+                                        IsDisabled="_isLoading"
+                                        OnRefresh="@LoadDocumentsAsync"
+                                        OnCreate="@CreateNewDocument"
+                                        OnDelete="@DeleteSelectedDocuments" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Number")
+                    {
+                        <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Number" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Number))">@TranslationService.GetTranslation("documents.number", "Numero")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "DocumentTypeName")
+                    {
+                        <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="DocumentTypeName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documents.type", "Tipo")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Date")
+                    {
+                        <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Date" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Date))">@TranslationService.GetTranslation("documents.date", "Data")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "CustomerName")
+                    {
+                        <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="CustomerName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.BusinessPartyName ?? x.CustomerName ?? string.Empty))">@TranslationService.GetTranslation("documents.customer", "Cliente")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "TotalGrossAmount")
+                    {
+                        <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="TotalGrossAmount" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.TotalGrossAmount))">@TranslationService.GetTranslation("documents.amount", "Importo")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Status")
+                    {
+                        <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Status))">@TranslationService.GetTranslation("documents.status", "Stato")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
 
-    <!-- Documents Table -->
-    <MudTable Items="@_documents"
-              Dense="true"
-              Hover="true"
-              Striped="true"
-              Loading="@_isLoading"
-              LoadingProgressColor="Color.Primary"
-              SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-              AllowUnsorted="false">
-        <HeaderContent>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Number))">@TranslationService.GetTranslation("documents.number", "Numero")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documents.type", "Tipo")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Date))">@TranslationService.GetTranslation("documents.date", "Data")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.BusinessPartyName ?? string.Empty))">@TranslationService.GetTranslation("documents.businessParty", "Controparte")</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Status))">@TranslationService.GetTranslation("documents.status", "Stato")</MudTableSortLabel></MudTh>
-            <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documents.number", "Numero")">
-                @if (!string.IsNullOrEmpty(context.Series))
-                {
-                    <text>@context.Series/@context.Number</text>
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
                 }
-                else
+                @foreach (var column in visibleColumns)
                 {
-                    <text>@context.Number</text>
+                    @if (column.PropertyName == "Number")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.number", "Numero")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                                @if (!string.IsNullOrEmpty(item.Series))
+                                {
+                                    <text>@item.Series/@item.Number</text>
+                                }
+                                else
+                                {
+                                    <text>@item.Number</text>
+                                }
+                            </MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "DocumentTypeName")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.type", "Tipo")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Description" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2">@item.DocumentTypeName</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
+                                </div>
+                            </div>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Date")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.date", "Data")">
+                            <MudText Typo="Typo.body2">@item.Date.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "CustomerName")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.customer", "Cliente")">
+                            <MudText Typo="Typo.body2">@(item.BusinessPartyName ?? item.CustomerName ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "TotalGrossAmount")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.amount", "Importo")" Style="text-align:right;">
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">@item.TotalGrossAmount.ToString("C2")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Status")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.status", "Stato")">
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(item.Status)">
+                                @TranslationService.GetTranslation($"documents.status.{item.Status.ToString().ToLower()}", item.Status.ToString())
+                            </MudChip>
+                        </MudTd>
+                    }
                 }
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documents.type", "Tipo")">@context.DocumentTypeName</MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documents.date", "Data")">@context.Date.ToLocalTime().ToString("dd/MM/yyyy")</MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documents.businessParty", "Controparte")">@(context.BusinessPartyName ?? context.CustomerName)</MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("documents.status", "Stato")">
-                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                    @TranslationService.GetTranslation($"documents.status.{context.Status.ToString().ToLower()}", context.Status.ToString())
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
-                               Size="Size.Small"
-                               Color="Color.Primary"
-                               OnClick="@(() => ViewDocument(context.Id))"
-                               title="@TranslationService.GetTranslation("common.view", "Visualizza")" />
-                @if (context.Status == DocumentStatus.Draft)
-                {
-                    <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                   Size="Size.Small"
-                                   Color="Color.Info"
-                                   OnClick="@(() => EditDocument(context.Id))"
-                                   title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
-                    <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                   Size="Size.Small"
-                                   Color="Color.Error"
-                                   OnClick="@(() => DeleteDocument(context.Id))"
-                                   title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
-                }
-                @if (context.Status == DocumentStatus.Approved)
-                {
-                    <MudIconButton Icon="@Icons.Material.Outlined.Lock"
-                                   Size="Size.Small"
-                                   Color="Color.Warning"
-                                   OnClick="@(() => CloseDocument(context.Id))"
-                                   title="@TranslationService.GetTranslation("documents.close", "Chiudi")" />
-                }
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager PageSizeOptions="@(new int[] { 10, 20, 50, 100 })"
-                           RowsPerPageString="@TranslationService.GetTranslation("common.rowsPerPage", "Righe per pagina")"
-                           InfoFormat="@GetPagerInfo()" />
-        </PagerContent>
-    </MudTable>
-</MudContainer>
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <ActionButtonGroup EntityName="@item.Number"
+                                       ItemDisplayName="@item.Number"
+                                       ShowView="true"
+                                       ShowEdit="@(item.Status == DocumentStatus.Draft)"
+                                       ShowAuditLog="false"
+                                       ShowToggleStatus="false"
+                                       ShowDelete="@(item.Status == DocumentStatus.Draft)"
+                                       OnView="@(() => ViewDocument(item.Id))"
+                                       OnEdit="@(() => EditDocument(item.Id))"
+                                       OnDelete="@(() => DeleteDocument(item.Id))" />
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_documents.Any() ?
+                                            TranslationService.GetTranslation("documents.noDocumentsMatchFilters", "Nessun documento corrisponde ai filtri applicati") :
+                                            TranslationService.GetTranslation("documents.noDocumentsFound", "Nessun documento trovato"))
+                    </MudText>
+                    @if (_documents.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
 
 @code {
-    private bool _isLoading = false;
+    // UI State Management
+    private bool _isLoading = true;
+
+    // Data collections
     private List<DocumentHeaderDto> _documents = new();
     private List<DocumentTypeDto> _documentTypes = new();
+    private HashSet<DocumentHeaderDto> _selectedDocuments = new();
+
+    // Filter state
     private Guid? _selectedDocumentTypeId = null;
     private DocumentStatus? _selectedStatus = null;
     private DateTime? _fromDate = null;
@@ -181,10 +244,109 @@
     private int _pageSize = 20;
     private long _totalCount = 0;
 
+    // EFTable reference
+    private EFTable<DocumentHeaderDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Number", DisplayName = "Numero", IsVisible = true, Order = 0 },
+        new() { PropertyName = "DocumentTypeName", DisplayName = "Tipo", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Date", DisplayName = "Data", IsVisible = true, Order = 2 },
+        new() { PropertyName = "CustomerName", DisplayName = "Cliente", IsVisible = true, Order = 3 },
+        new() { PropertyName = "TotalGrossAmount", DisplayName = "Importo", IsVisible = true, Order = 4 },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 5 }
+    };
+
+    // Dashboard metrics
+    private List<DashboardMetric<DocumentHeaderDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Documenti",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Description,
+            Color = "primary",
+            Description = "Numero totale di documenti",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Bozze",
+            Type = MetricType.Count,
+            Filter = d => d.Status == DocumentStatus.Draft,
+            Icon = Icons.Material.Outlined.Edit,
+            Color = "warning",
+            Description = "Documenti in bozza",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Approvati",
+            Type = MetricType.Count,
+            Filter = d => d.Status == DocumentStatus.Approved,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Documenti approvati",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Ultimi 30 Giorni",
+            Type = MetricType.Count,
+            Filter = d => d.Date >= DateTime.UtcNow.AddDays(-30),
+            Icon = Icons.Material.Outlined.CalendarToday,
+            Color = "info",
+            Description = "Documenti degli ultimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    // Multi-selection callback
+    private EventCallback<HashSet<DocumentHeaderDto>> _selectedDocumentsChangedCallback => 
+        EventCallback.Factory.Create<HashSet<DocumentHeaderDto>>(this, OnSelectedDocumentsChanged);
+
+    /// <summary>
+    /// Computed property for filtered documents based on filter criteria.
+    /// </summary>
+    private IEnumerable<DocumentHeaderDto> _filteredDocuments => 
+        _documents.Where(d => 
+            // Document type filter
+            (!_selectedDocumentTypeId.HasValue || d.DocumentTypeId == _selectedDocumentTypeId.Value) &&
+            // Status filter
+            (!_selectedStatus.HasValue || d.Status == _selectedStatus.Value) &&
+            // Date range filter
+            (!_fromDate.HasValue || d.Date >= _fromDate.Value) &&
+            (!_toDate.HasValue || d.Date <= _toDate.Value));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedDocumentsChanged(HashSet<DocumentHeaderDto> items)
+    {
+        _selectedDocuments = items;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        await LoadDocumentTypesAsync();
-        await LoadDocumentsAsync();
+        try
+        {
+            await LoadDocumentTypesAsync();
+            await LoadDocumentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading documents page");
+            Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingPage", "Errore durante il caricamento della pagina"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task LoadDocumentTypesAsync()
@@ -201,11 +363,14 @@
         }
     }
 
+    /// <summary>
+    /// Loads document data.
+    /// </summary>
     private async Task LoadDocumentsAsync()
     {
-        _isLoading = true;
         try
         {
+            _isLoading = true;
             var queryParams = new DocumentHeaderQueryParameters
             {
                 Page = _currentPage,
@@ -242,14 +407,24 @@
         }
     }
 
-    private async Task ClearFilters()
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
     {
         _selectedDocumentTypeId = null;
         _selectedStatus = null;
         _fromDate = null;
         _toDate = null;
-        _currentPage = 1;
-        await LoadDocumentsAsync();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Called when filter changes to trigger refresh.
+    /// </summary>
+    private void OnFilterChanged()
+    {
+        StateHasChanged();
     }
 
     private void CreateNewDocument()
@@ -330,14 +505,87 @@
         }
     }
 
+    /// <summary>
+    /// Deletes all selected documents.
+    /// </summary>
+    private async Task DeleteSelectedDocuments()
+    {
+        if (_selectedDocuments.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("documents.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} documenti selezionati? Questa azione non può essere annullata.", 
+            _selectedDocuments.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var document in _selectedDocuments.ToList())
+                {
+                    try
+                    {
+                        if (document.Status == DocumentStatus.Draft)
+                        {
+                            await DocumentHeaderService.DeleteDocumentHeaderAsync(document.Id);
+                            _documents.RemoveAll(d => d.Id == document.Id);
+                            deletedCount++;
+                        }
+                        else
+                        {
+                            failedCount++;
+                            Logger.LogWarning("Cannot delete document {DocumentId} with status {Status}", document.Id, document.Status);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting document {DocumentId}", document.Id);
+                    }
+                }
+                
+                _selectedDocuments.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deletedMultiple", 
+                        "{0} documenti eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deletedMultiplePartial", 
+                        "{0} documenti eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("documents.deleteError", 
+                    "Errore nell'eliminazione dei documenti: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected documents");
+            }
+        }
+    }
+
     private Color GetStatusColor(DocumentStatus status)
     {
         return status switch
         {
-            DocumentStatus.Draft => Color.Default,
+            DocumentStatus.Draft => Color.Warning,
             DocumentStatus.Approved => Color.Success,
             DocumentStatus.Rejected => Color.Error,
-            DocumentStatus.Cancelled => Color.Warning,
+            DocumentStatus.Cancelled => Color.Default,
             _ => Color.Default
         };
     }
