@@ -3,8 +3,11 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject IAuthService AuthService
 @inject ILotService LotService
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -12,287 +15,415 @@
 @inject NavigationManager NavigationManager
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")</PageTitle>
+<PageLoadingOverlay Visible="_isLoading || _isLoadingLots"
+                    Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading"
-                        Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
+@if (!_isLoading)
+{
+    <div class="lot-page-root">
+        <div class="lot-top">
+            <ManagementDashboard TItem="LotDto"
+                                 Items="_filteredLots"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="Lot"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
 
-    @if (!_isLoading)
-    {
-        <MudText Typo="Typo.h4" Class="mb-4">
-            <MudIcon Icon="@Icons.Material.Outlined.QrCode" Class="mr-2" Size="Size.Medium" />
-            @TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")
-        </MudText>
-
-        <!-- Statistics and Filters Section -->
-    <MudPaper Elevation="1" Class="pa-4 mb-4">
-        <MudGrid Spacing="3">
-            <!-- Quick Stats -->
-            <MudItem xs="12" md="8">
-                <MudGrid Spacing="2">
-                    <MudItem xs="6" sm="3">
-                        <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
-                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.activeLots", "Lotti Attivi")</MudText>
-                            <MudChip T="string" Color="Color.Success" Size="Size.Small">@_activeLotCount</MudChip>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
-                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.expiringLots", "In Scadenza")</MudText>
-                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">@_expiringLotCount</MudChip>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
-                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.blockedLots", "Lotti Bloccati")</MudText>
-                            <MudChip T="string" Color="Color.Error" Size="Size.Small">@_blockedLotCount</MudChip>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten);">
-                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.totalLots", "Totale Lotti")</MudText>
-                            <MudChip T="string" Color="Color.Info" Size="Size.Small">@_totalCount</MudChip>
-                        </MudPaper>
-                    </MudItem>
-                </MudGrid>
-            </MudItem>
-
-            <!-- Action Buttons -->
-            <MudItem xs="12" md="4">
-                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
-                    <MudButton StartIcon="@Icons.Material.Outlined.Add" 
-                               Color="Color.Primary" 
-                               Variant="Variant.Filled"
-                               OnClick="@(() => OpenCreateDialog())">
-                        @TranslationService.GetTranslation("common.create", "Crea")
-                    </MudButton>
-                    <MudButton StartIcon="@Icons.Material.Outlined.Warning" 
-                               Color="Color.Warning" 
-                               Variant="Variant.Outlined"
-                               OnClick="@(() => ShowExpiringLots())">
-                        @TranslationService.GetTranslation("warehouse.showExpiring", "In Scadenza")
-                    </MudButton>
-                    <MudButton StartIcon="@Icons.Material.Outlined.Refresh" 
-                               Color="Color.Default" 
-                               Variant="Variant.Outlined"
-                               OnClick="@RefreshData">
-                        @TranslationService.GetTranslation("common.refresh", "Aggiorna")
-                    </MudButton>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
-
-    <!-- Filters -->
-    <MudPaper Elevation="1" Class="pa-4 mb-4">
-        <MudGrid Spacing="3" AlignItems="Center">
-            <MudItem xs="12" sm="6" md="3">
-                <MudTextField @bind-Value="_searchText" 
-                              Label="@TranslationService.GetTranslation("common.search", "Cerca")" 
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="LotDto"
+                 Items="_filteredLots"
+                 MultiSelection="true"
+                 SelectedItems="_selectedLots"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingLots"
+                 ComponentKey="LotManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchText"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("common.search", "Cerca")"
+                              Placeholder="@TranslationService.GetTranslation("warehouse.searchPlaceholder", "Cerca per codice...")"
                               Variant="Variant.Outlined"
-                              Adornment="Adornment.Start" 
-                              AdornmentIcon="@Icons.Material.Outlined.Search" 
-                              OnKeyUp="@OnSearchKeyUp" />
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect @bind-Value="_selectedStatus" 
-                           Label="@TranslationService.GetTranslation("warehouse.status", "Stato")" 
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <MudSelect @bind-Value="_selectedStatus"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
                            Variant="Variant.Outlined"
-                           Clearable="true">
+                           Clearable="true"
+                           Class="ml-2"
+                           Style="min-width: 150px;">
                     <MudSelectItem Value="@("Active")">@TranslationService.GetTranslation("warehouse.active", "Attivo")</MudSelectItem>
                     <MudSelectItem Value="@("Blocked")">@TranslationService.GetTranslation("warehouse.blocked", "Bloccato")</MudSelectItem>
                     <MudSelectItem Value="@("Expired")">@TranslationService.GetTranslation("warehouse.expired", "Scaduto")</MudSelectItem>
                     <MudSelectItem Value="@("Recalled")">@TranslationService.GetTranslation("warehouse.recalled", "Richiamato")</MudSelectItem>
                 </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect @bind-Value="_selectedQualityStatus" 
-                           Label="@TranslationService.GetTranslation("warehouse.qualityStatus", "Stato Qualità")" 
-                           Variant="Variant.Outlined"
-                           Clearable="true">
-                    <MudSelectItem Value="@("Pending")">@TranslationService.GetTranslation("warehouse.pending", "In Attesa")</MudSelectItem>
-                    <MudSelectItem Value="@("Approved")">@TranslationService.GetTranslation("warehouse.approved", "Approvato")</MudSelectItem>
-                    <MudSelectItem Value="@("Rejected")">@TranslationService.GetTranslation("warehouse.rejected", "Rifiutato")</MudSelectItem>
-                    <MudSelectItem Value="@("OnHold")">@TranslationService.GetTranslation("warehouse.onHold", "In Sospeso")</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudButton StartIcon="@Icons.Material.Outlined.FilterList" 
-                           Color="Color.Primary" 
-                           Variant="Variant.Outlined"
-                           OnClick="@ApplyFilters"
-                           FullWidth="true">
-                    @TranslationService.GetTranslation("common.filter", "Filtra")
-                </MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
-
-    <!-- Lots Table -->
-    <MudPaper Elevation="1" Class="pa-4">
-        <MudTable Items="@_lots" 
-                  Hover="true" 
-                  Striped="true" 
-                  Loading="_isLoading"
-                  LoadingProgressColor="Color.Info"
-                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                  AllowUnsorted="false">
-            <HeaderContent>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.Code))">@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.ProductName ?? string.Empty))">@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.Status))">@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.QualityStatus))">@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.OriginalQuantity))">@TranslationService.GetTranslation("warehouse.originalQuantity", "Quantità Originale")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.AvailableQuantity))">@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<LotDto, object>(x => x.ExpiryDate ?? DateTime.MaxValue))">@TranslationService.GetTranslation("warehouse.expiryDate", "Data Scadenza")</MudTableSortLabel></MudTh>
-                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedLots.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="false"
+                                        CreateTooltip="common.create"
+                                        IsDisabled="_isLoadingLots"
+                                        OnRefresh="@RefreshData"
+                                        OnCreate="@OpenCreateDialog" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Code")
+                    {
+                        <EFTableColumnHeader TItem="LotDto" PropertyName="Code" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.Code))">@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "ProductName")
+                    {
+                        <EFTableColumnHeader TItem="LotDto" PropertyName="ProductName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.ProductName ?? string.Empty))">@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Status")
+                    {
+                        <EFTableColumnHeader TItem="LotDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.Status))">@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "QualityStatus")
+                    {
+                        <EFTableColumnHeader TItem="LotDto" PropertyName="QualityStatus" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.QualityStatus))">@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "AvailableQuantity")
+                    {
+                        <EFTableColumnHeader TItem="LotDto" PropertyName="AvailableQuantity" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.AvailableQuantity))">@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "ExpiryDate")
+                    {
+                        <EFTableColumnHeader TItem="LotDto" PropertyName="ExpiryDate" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<LotDto, object>(x => x.ExpiryDate ?? DateTime.MaxValue))">@TranslationService.GetTranslation("warehouse.expiryDate", "Data Scadenza")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Code">
-                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Code</MudText>
-                    @if (!string.IsNullOrEmpty(context.Barcode))
+
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Code")
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Barcode</MudText>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")">
+                            <div>
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">@item.Code</MudText>
+                                @if (!string.IsNullOrEmpty(item.Barcode))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.Barcode</MudText>
+                                }
+                            </div>
+                        </MudTd>
                     }
-                </MudTd>
-                <MudTd DataLabel="Product">
-                    <MudText Typo="Typo.body2">@context.ProductName</MudText>
-                    @if (!string.IsNullOrEmpty(context.ProductCode))
+                    else if (column.PropertyName == "ProductName")
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.product", "Prodotto")">
+                            <div>
+                                <MudText Typo="Typo.body2">@item.ProductName</MudText>
+                                @if (!string.IsNullOrEmpty(item.ProductCode))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.ProductCode</MudText>
+                                }
+                            </div>
+                        </MudTd>
                     }
-                </MudTd>
-                <MudTd DataLabel="Status">
-                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                        @TranslationService.GetTranslation($"warehouse.{context.Status.ToLower()}", context.Status)
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="Quality">
-                    <MudChip T="string" Size="Size.Small" Color="@GetQualityStatusColor(context.QualityStatus)">
-                        @TranslationService.GetTranslation($"warehouse.{context.QualityStatus.ToLower()}", context.QualityStatus)
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="Original">@context.OriginalQuantity.ToString("N2")</MudTd>
-                <MudTd DataLabel="Available">@context.AvailableQuantity.ToString("N2")</MudTd>
-                <MudTd DataLabel="Expiry">
-                    @if (context.ExpiryDate.HasValue)
+                    else if (column.PropertyName == "Status")
                     {
-                        var daysToExpiry = (context.ExpiryDate.Value - DateTime.Now).Days;
-                        <MudText Typo="Typo.body2" Color="@(daysToExpiry <= 30 ? Color.Warning : Color.Default)">
-                            @context.ExpiryDate.Value.ToString("dd/MM/yyyy")
-                        </MudText>
-                        @if (daysToExpiry <= 30 && daysToExpiry > 0)
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Warning">
-                                @TranslationService.GetTranslation("warehouse.expireInDays", "{0} giorni", daysToExpiry)
-                            </MudText>
-                        }
-                        else if (daysToExpiry <= 0)
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Error">
-                                @TranslationService.GetTranslation("warehouse.expired", "Scaduto")
-                            </MudText>
-                        }
+                        <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(item.Status)">
+                                @TranslationService.GetTranslation($"warehouse.{item.Status.ToLower()}", item.Status)
+                            </MudChip>
+                        </MudTd>
                     }
-                    else
+                    else if (column.PropertyName == "QualityStatus")
                     {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")">
+                            <MudChip T="string" Size="Size.Small" Color="@GetQualityStatusColor(item.QualityStatus)">
+                                @TranslationService.GetTranslation($"warehouse.{item.QualityStatus.ToLower()}", item.QualityStatus)
+                            </MudChip>
+                        </MudTd>
                     }
-                </MudTd>
-                <MudTd DataLabel="Actions">
+                    else if (column.PropertyName == "AvailableQuantity")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")">
+                            <MudText Typo="Typo.body2">@item.AvailableQuantity.ToString("N2")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ExpiryDate")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.expiryDate", "Data Scadenza")">
+                            @if (item.ExpiryDate.HasValue)
+                            {
+                                var daysToExpiry = (item.ExpiryDate.Value - DateTime.Now).Days;
+                                <MudText Typo="Typo.body2" Color="@(daysToExpiry <= 30 ? Color.Warning : Color.Default)">
+                                    @item.ExpiryDate.Value.ToString("dd/MM/yyyy")
+                                </MudText>
+                                @if (daysToExpiry <= 30 && daysToExpiry > 0)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Warning">
+                                        @TranslationService.GetTranslation("warehouse.expireInDays", "{0} giorni", daysToExpiry)
+                                    </MudText>
+                                }
+                                else if (daysToExpiry <= 0)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Error">
+                                        @TranslationService.GetTranslation("warehouse.expired", "Scaduto")
+                                    </MudText>
+                                }
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">-</MudText>
+                            }
+                        </MudTd>
+                    }
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                     <MudButtonGroup Variant="Variant.Text" Size="Size.Small">
                         <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
                                        Color="Color.Primary" 
                                        Size="Size.Small"
-                                       OnClick="@(() => OpenEditDialog(context))" />
+                                       OnClick="@(() => OpenEditDialog(item))" />
                         <MudIconButton Icon="@Icons.Material.Outlined.Block" 
                                        Color="Color.Error" 
                                        Size="Size.Small"
-                                       OnClick="@(() => BlockLot(context))"
-                                       Disabled="@(context.Status == "Blocked")" />
+                                       OnClick="@(() => BlockLot(item))"
+                                       Disabled="@(item.Status == "Blocked")" />
                         <MudIconButton Icon="@Icons.Material.Outlined.Info" 
                                        Color="Color.Info" 
                                        Size="Size.Small"
-                                       OnClick="@(() => ViewDetails(context))" />
+                                       OnClick="@(() => ViewDetails(item))" />
                     </MudButtonGroup>
                 </MudTd>
             </RowTemplate>
-            <NoRecordsContent>
-                <MudText Align="Align.Center" Color="Color.Secondary">
-                    @TranslationService.GetTranslation("common.noRecords", "Nessun record trovato")
-                </MudText>
-            </NoRecordsContent>
-        </MudTable>
 
-        <!-- Pagination -->
-        @if (_pagedResult != null)
-        {
-            <MudDivider Class="my-4" />
-            <div class="d-flex justify-center align-center flex-wrap gap-4">
-                @if (_pagedResult.TotalPages > 1)
-                {
-                    <MudPagination Count="_pagedResult.TotalPages" 
-                                   Selected="_currentPage" 
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.QrCode" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_lots.Any() ?
+                            TranslationService.GetTranslation("warehouse.noLotsMatchFilters", "Nessun lotto corrisponde ai filtri applicati") :
+                            TranslationService.GetTranslation("common.noRecords", "Nessun record trovato"))
+                    </MudText>
+                    @if (_lots.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
                                    Color="Color.Primary"
-                                   Size="Size.Medium"
-                                   ShowFirstButton="true"
-                                   ShowLastButton="true"
-                                   SelectedChanged="@OnPageChanged" />
-                }
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+
+            <!-- Pagination -->
+            @if (_pagedResult != null && _pagedResult.TotalPages > 0)
+            {
+                <MudDivider Class="my-4" />
+                <div class="d-flex justify-center align-center flex-wrap gap-4">
                     @if (_pagedResult.TotalPages > 1)
                     {
-                        @TranslationService.GetTranslation("pagination.info", 
-                            "Pagina {0} di {1} - Totale: {2} lotti", 
-                            _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
+                        <MudPagination Count="_pagedResult.TotalPages" 
+                                       Selected="_currentPage" 
+                                       Color="Color.Primary"
+                                       Size="Size.Medium"
+                                       ShowFirstButton="true"
+                                       ShowLastButton="true"
+                                       SelectedChanged="@OnPageChanged" />
                     }
-                    else
-                    {
-                        @TranslationService.GetTranslation("pagination.singlePage", 
-                            "Totale: {0} lotti", 
-                            _pagedResult.TotalCount)
-                    }
-                </MudText>
-            </div>
-        }
-    </MudPaper>
-    }
-</MudContainer>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @if (_pagedResult.TotalPages > 1)
+                        {
+                            @TranslationService.GetTranslation("pagination.info", 
+                                "Pagina {0} di {1} - Totale: {2} lotti", 
+                                _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
+                        }
+                        else
+                        {
+                            @TranslationService.GetTranslation("pagination.singlePage", 
+                                "Totale: {0} lotti", 
+                                _pagedResult.TotalCount)
+                        }
+                    </MudText>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+
 
 @code {
+    // UI State Management
     private bool _isLoading = true;
+    private bool _isLoadingLots = false;
+
+    // Filter and search state
     private string _searchText = string.Empty;
     private string? _selectedStatus;
     private string? _selectedQualityStatus;
-    
+    private CancellationTokenSource? _searchDebounceCts;
+
+    // Pagination state
     private PagedResult<LotDto>? _pagedResult;
-    private List<LotDto> _lots = new();
     private int _currentPage = 1;
     private int _pageSize = 20;
     
-    // Statistics
-    private int _totalCount = 0;
-    private int _activeLotCount = 0;
-    private int _expiringLotCount = 0;
-    private int _blockedLotCount = 0;
+    // Data collections
+    private List<LotDto> _lots = new();
+    private HashSet<LotDto> _selectedLots = new();
 
-    protected override async Task OnInitializedAsync()
+    // EFTable reference
+    private EFTable<LotDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        await LoadData();
-        await LoadStatistics();
+        new() { PropertyName = "Code", DisplayName = "Codice Lotto", IsVisible = true, Order = 0 },
+        new() { PropertyName = "ProductName", DisplayName = "Prodotto", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2 },
+        new() { PropertyName = "QualityStatus", DisplayName = "Qualità", IsVisible = true, Order = 3 },
+        new() { PropertyName = "AvailableQuantity", DisplayName = "Disponibile", IsVisible = true, Order = 4 },
+        new() { PropertyName = "ExpiryDate", DisplayName = "Data Scadenza", IsVisible = true, Order = 5 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<LotDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Lotti",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.QrCode,
+            Color = "primary",
+            Description = "Numero totale di lotti",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Attivi",
+            Type = MetricType.Count,
+            Filter = l => l.IsActive && l.Status == "Active",
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Lotti attivi",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Scaduti",
+            Type = MetricType.Count,
+            Filter = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value < DateTime.Now,
+            Icon = Icons.Material.Outlined.ErrorOutline,
+            Color = "error",
+            Description = "Lotti scaduti",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "In Scadenza",
+            Type = MetricType.Count,
+            Filter = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value >= DateTime.Now && l.ExpiryDate.Value <= DateTime.Now.AddDays(30),
+            Icon = Icons.Material.Outlined.Warning,
+            Color = "warning",
+            Description = "Lotti in scadenza nei prossimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<LotDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<LotDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered lots based on search criteria.
+    /// </summary>
+    private IEnumerable<LotDto> _filteredLots => 
+        _lots.Where(l => 
+            // Search filter: check code, product name, and barcode
+            (string.IsNullOrEmpty(_searchText) || 
+             l.Code.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+             (l.ProductName != null && l.ProductName.Contains(_searchText, StringComparison.OrdinalIgnoreCase)) ||
+             (l.Barcode != null && l.Barcode.Contains(_searchText, StringComparison.OrdinalIgnoreCase))) &&
+            // Status filter
+            (string.IsNullOrEmpty(_selectedStatus) || l.Status == _selectedStatus) &&
+            // Quality status filter
+            (string.IsNullOrEmpty(_selectedQualityStatus) || l.QualityStatus == _selectedQualityStatus));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<LotDto> items)
+    {
+        _selectedLots = items;
+        StateHasChanged();
     }
 
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // Load data
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading lots page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads lot data.
+    /// </summary>
     private async Task LoadData()
     {
         try
         {
-            _isLoading = true;
+            _isLoadingLots = true;
             
             _pagedResult = await LotService.GetLotsAsync(_currentPage, _pageSize, null, _selectedStatus);
             if (_pagedResult != null)
             {
                 _lots = _pagedResult.Items.ToList();
-                _totalCount = (int)_pagedResult.TotalCount;
             }
         }
         catch (Exception ex)
@@ -302,43 +433,51 @@
         }
         finally
         {
-            _isLoading = false;
+            _isLoadingLots = false;
         }
     }
 
-    private async Task LoadStatistics()
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
     {
+        _searchText = string.Empty;
+        _selectedStatus = null;
+        _selectedQualityStatus = null;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
         try
         {
-            // Load active lots - use pageSize=1 since we only need the TotalCount for statistics
-            var activeLots = await LotService.GetLotsAsync(1, 1, null, "Active");
-            _activeLotCount = (int)(activeLots?.TotalCount ?? 0);
-
-            // Load blocked lots - use pageSize=1 since we only need the TotalCount for statistics
-            var blockedLots = await LotService.GetLotsAsync(1, 1, null, "Blocked");
-            _blockedLotCount = (int)(blockedLots?.TotalCount ?? 0);
-
-            // Load expiring lots
-            var expiringLots = await LotService.GetExpiringLotsAsync(30);
-            _expiringLotCount = expiringLots?.Count() ?? 0;
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            Logger.LogError(ex, "Error loading statistics");
+            // Swallow cancellation
         }
+    }
+
+    private void OnFilterChanged()
+    {
+        StateHasChanged();
     }
 
     private async Task RefreshData()
     {
         await LoadData();
-        await LoadStatistics();
         Snackbar.Add(TranslationService.GetTranslation("common.refreshed", "Dati aggiornati"), Severity.Success);
-    }
-
-    private async Task ApplyFilters()
-    {
-        _currentPage = 1;
-        await LoadData();
     }
 
     private async Task OnPageChanged(int page)
@@ -347,19 +486,14 @@
         await LoadData();
     }
 
-    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    private async Task ShowLoginDialogAsync()
     {
-        if (e.Key == "Enter")
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
         {
-            await ApplyFilters();
+            // Reload the page after successful login
+            await OnInitializedAsync();
         }
-    }
-
-    private async Task ShowExpiringLots()
-    {
-        _selectedStatus = null;
-        await LoadData();
-        // TODO: Filter for expiring lots
     }
 
     private void OpenCreateDialog()
