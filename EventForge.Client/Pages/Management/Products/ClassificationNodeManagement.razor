@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IEntityManagementService EntityManagementService
@@ -12,31 +13,20 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ClassificationNodeManagement> Logger
 
-<style>
-    .matched-node { background-color: rgba(255,235,59,0.15); border-radius:4px; padding:2px 6px; display:inline-block; }
-    .match-badge { font-size:0.8rem; margin-left:8px; vertical-align:middle; }
-</style>
+<PageLoadingOverlay Visible="_isLoading || _isLoadingNodes"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading || _isLoadingNodes"
-                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+@if (!_isLoading)
+{
+    <div class="classification-page-root">
+        <div class="classification-top">
+            <ManagementDashboard TItem="ClassificationNodeDto" 
+                                 Items="_filteredNodes" 
+                                 Metrics="_dashboardMetrics" />
+        </div>
 
-    @if (!_isLoading)
-    {
-        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div>
-                    <MudText Typo="Typo.h4">
-                        <MudIcon Icon="@Icons.Material.Outlined.AccountTree" Class="mr-2" />
-                        @TranslationService.GetTranslation("classificationNode.management", "Gestione Nodi di Classificazione")
-                    </MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        @TranslationService.GetTranslation("classificationNode.managementDescription", "Gestisci la struttura gerarchica dei nodi di classificazione prodotto")
-                    </MudText>
-                </div>
-            </div>
-
-            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+        <div class="classification-filters">
+            <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
                 <div class="d-flex gap-3 align-center flex-wrap">
                     <MudTextField @bind-Value="_searchTerm" @bind-Value:after="OnSearchChanged"
                                   Label="@TranslationService.GetTranslation("classificationNode.search","Cerca nodi")"
@@ -56,7 +46,9 @@
                     </MudSelect>
                 </div>
             </MudPaper>
+        </div>
 
+        <div class="classification-content">
             <MudPaper Elevation="1" Class="border-rounded">
                 <div class="pa-2">
                     <MudText Typo="Typo.h6" Class="mb-2">
@@ -141,40 +133,110 @@
                     }
                     else
                     {
-                        <MudTable T="ClassificationNodeDto" Items="_filteredNodes" MultiSelection="true" @bind-SelectedItems="_selectedNodes" Hover="true" Striped="true" Loading="_isLoadingNodes" LoadingProgressColor="Color.Info" Breakpoint="Breakpoint.Sm">
-                            <HeaderContent>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name","Nome")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Code ?? ""))">@TranslationService.GetTranslation("field.code","Codice")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Type))">@TranslationService.GetTranslation("field.type","Tipo")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status","Stato")</MudTableSortLabel></MudTh>
+                        <EFTable @ref="_efTable"
+                                 TItem="ClassificationNodeDto"
+                                 Items="_filteredNodes"
+                                 MultiSelection="true"
+                                 SelectedItems="_selectedNodes"
+                                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                                 IsLoading="_isLoadingNodes"
+                                 ComponentKey="ClassificationNodeManagement"
+                                 InitialColumnConfigurations="_initialColumns"
+                                 AllowDragDropGrouping="true"
+                                 Hover="true"
+                                 Striped="true"
+                                 Breakpoint="Breakpoint.Sm">
+                            <HeaderContent Context="columnConfigurations">
+                                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                                {
+                                    @if (column.PropertyName == "Name")
+                                    {
+                                        <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                            <MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name","Nome")</MudTableSortLabel>
+                                        </EFTableColumnHeader>
+                                    }
+                                    else if (column.PropertyName == "Code")
+                                    {
+                                        <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="Code" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                            <MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Code ?? ""))">@TranslationService.GetTranslation("field.code","Codice")</MudTableSortLabel>
+                                        </EFTableColumnHeader>
+                                    }
+                                    else if (column.PropertyName == "Type")
+                                    {
+                                        <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="Type" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                            <MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Type))">@TranslationService.GetTranslation("field.type","Tipo")</MudTableSortLabel>
+                                        </EFTableColumnHeader>
+                                    }
+                                    else if (column.PropertyName == "Status")
+                                    {
+                                        <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                            <MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status","Stato")</MudTableSortLabel>
+                                        </EFTableColumnHeader>
+                                    }
+                                }
                                 <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions","Azioni")</MudTh>
                             </HeaderContent>
 
-                            <RowTemplate>
-                                <MudTd>
-                                    <div class="d-flex align-center">
-                                        <MudIcon Icon="@GetNodeIcon(context)" Size="Size.Small" Class="mr-2" />
-                                        <MudText Typo="Typo.body2">@context.Name</MudText>
-                                    </div>
-                                </MudTd>
-                                <MudTd><MudText Typo="Typo.body2">@(context.Code ?? "-")</MudText></MudTd>
-                                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">@GetTypeDisplayName(context.Type)</MudChip></MudTd>
-                                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@GetStatusDisplayName(context.Status)</MudChip></MudTd>
-                                <MudTd Class="text-center">
-                                    <ActionButtonGroup EntityName="@context.Name" ItemDisplayName="@context.Name" ShowView="false" ShowEdit="true" ShowAuditLog="true" ShowToggleStatus="true" ShowDelete="true" IsActive="@context.IsActive"
-                                                      OnEdit="@(() => EditNode(context))"
-                                                      OnAuditLog="@(() => ViewNodeAuditLog(context))"
-                                                      OnToggleStatus="@(() => ToggleNodeStatus(context))"
-                                                      OnDelete="@(() => DeleteNode(context))" />
+                            <RowTemplate Context="item">
+                                @{
+                                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                                }
+                                @foreach (var column in visibleColumns)
+                                {
+                                    @if (column.PropertyName == "Name")
+                                    {
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name","Nome")">
+                                            <div class="d-flex align-center">
+                                                <MudIcon Icon="@GetNodeIcon(item)" Size="Size.Small" Class="mr-2" />
+                                                <MudText Typo="Typo.body2">@item.Name</MudText>
+                                            </div>
+                                        </MudTd>
+                                    }
+                                    else if (column.PropertyName == "Code")
+                                    {
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.code","Codice")">
+                                            <MudText Typo="Typo.body2">@(item.Code ?? "-")</MudText>
+                                        </MudTd>
+                                    }
+                                    else if (column.PropertyName == "Type")
+                                    {
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.type","Tipo")">
+                                            <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(item.Type)">@GetTypeDisplayName(item.Type)</MudChip>
+                                        </MudTd>
+                                    }
+                                    else if (column.PropertyName == "Status")
+                                    {
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.status","Stato")">
+                                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(item.Status)">@GetStatusDisplayName(item.Status)</MudChip>
+                                        </MudTd>
+                                    }
+                                }
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions","Azioni")" Class="text-center">
+                                    <ActionButtonGroup EntityName="@item.Name" ItemDisplayName="@item.Name" ShowView="false" ShowEdit="true" ShowAuditLog="true" ShowToggleStatus="true" ShowDelete="true" IsActive="@item.IsActive"
+                                                      OnEdit="@(() => EditNode(item))"
+                                                      OnAuditLog="@(() => ViewNodeAuditLog(item))"
+                                                      OnToggleStatus="@(() => ToggleNodeStatus(item))"
+                                                      OnDelete="@(() => DeleteNode(item))" />
                                 </MudTd>
                             </RowTemplate>
-                        </MudTable>
+
+                            <NoRecordsContent>
+                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                                    <MudIcon Icon="@Icons.Material.Outlined.AccountTree" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                                    <MudText Typo="Typo.h6" Class="mb-2">@(_nodes.Any() ? TranslationService.GetTranslation("classificationNode.noMatchFilters","Nessun nodo corrisponde ai filtri applicati") : TranslationService.GetTranslation("classificationNode.noFound","Nessun nodo trovato"))</MudText>
+                                    @if (_nodes.Any())
+                                    {
+                                        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Clear" OnClick="@ClearFilters">@TranslationService.GetTranslation("classificationNode.clearFilters","Cancella filtri")</MudButton>
+                                    }
+                                </div>
+                            </NoRecordsContent>
+                        </EFTable>
                     }
                 </MudCardContent>
             </MudPaper>
-        </MudPaper>
-    }
-</MudContainer>
+        </div>
+    </div>
+}
 
 @code {
     // Dialog options for fullscreen audit dialog
@@ -204,6 +266,73 @@
     private IReadOnlyCollection<ClassificationNodeTreeItem> TreeItems { get; set; } = new List<ClassificationNodeTreeItem>();
 
     private CancellationTokenSource? _searchCts;
+
+    // EFTable reference
+    private EFTable<ClassificationNodeDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Type", DisplayName = "Tipo", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<ClassificationNodeDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Nodi",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.AccountTree,
+            Color = "primary",
+            Description = "Numero totale di nodi di classificazione",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Nodi Attivi",
+            Type = MetricType.Count,
+            Filter = n => n.Status == ProductClassificationNodeStatus.Active,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Nodi con stato Attivo",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Categorie Root",
+            Type = MetricType.Count,
+            Filter = n => n.ParentId == null,
+            Icon = Icons.Material.Outlined.Category,
+            Color = "info",
+            Description = "Nodi di primo livello (senza genitore)",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "In Attesa",
+            Type = MetricType.Count,
+            Filter = n => n.Status == ProductClassificationNodeStatus.Pending,
+            Icon = Icons.Material.Outlined.Schedule,
+            Color = "warning",
+            Description = "Nodi in attesa di approvazione",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<ClassificationNodeDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<ClassificationNodeDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<ClassificationNodeDto> items)
+    {
+        _selectedNodes = items;
+        StateHasChanged();
+    }
 
     public class ClassificationNodeTreeItem : TreeItemData<ClassificationNodeTreeItem>
     {
