@@ -38,7 +38,7 @@
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
     <!-- Document Export packages -->
     <PackageReference Include="QuestPDF" />
-    <PackageReference Include="EPPlus" />
+    <PackageReference Include="ClosedXML" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />

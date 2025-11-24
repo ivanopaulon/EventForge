@@ -1,13 +1,11 @@
 using EventForge.DTOs.Documents;
 using Microsoft.EntityFrameworkCore;
-using OfficeOpenXml;
-using OfficeOpenXml.Style;
+using ClosedXML.Excel;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System.Text;
 using System.Text.Json;
-using ExcelColor = System.Drawing.Color;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -16,7 +14,7 @@ namespace EventForge.Server.Services.Documents;
 /// Supports multiple export formats: PDF, Excel, HTML, CSV, JSON.
 /// 
 /// PDF export uses QuestPDF (MIT License) for professional document generation.
-/// Excel export uses EPPlus (NonCommercial License) for spreadsheet generation.
+/// Excel export uses ClosedXML (MIT License) for spreadsheet generation.
 /// </summary>
 public class DocumentExportService : IDocumentExportService
 {
@@ -40,12 +38,6 @@ public class DocumentExportService : IDocumentExportService
         _accessLogService = accessLogService ?? throw new ArgumentNullException(nameof(accessLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-
-        // Set EPPlus license context to NonCommercial
-        // Note: This API is obsolete in EPPlus 8+, but we're using an earlier version
-#pragma warning disable CS0618 // Type or member is obsolete
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-#pragma warning restore CS0618
 
         // Set QuestPDF license to Community (for non-commercial use)
         QuestPDF.Settings.License = LicenseType.Community;
@@ -366,75 +358,71 @@ public class DocumentExportService : IDocumentExportService
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
-            "Generating Excel export for {Count} documents using EPPlus",
+            "Generating Excel export for {Count} documents using ClosedXML",
             documents.Count());
 
         try
         {
             var documentsList = documents.ToList();
 
-            using (var package = new ExcelPackage())
+            using (var workbook = new XLWorkbook())
             {
-                var worksheet = package.Workbook.Worksheets.Add("Documents Export");
+                var worksheet = workbook.Worksheets.Add("Documents Export");
 
                 // Add title
-                worksheet.Cells["A1:H1"].Merge = true;
-                worksheet.Cells["A1"].Value = "Document Export Report";
-                worksheet.Cells["A1"].Style.Font.Size = 16;
-                worksheet.Cells["A1"].Style.Font.Bold = true;
-                worksheet.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                worksheet.Range("A1:H1").Merge();
+                worksheet.Cell("A1").Value = "Document Export Report";
+                worksheet.Cell("A1").Style.Font.FontSize = 16;
+                worksheet.Cell("A1").Style.Font.Bold = true;
+                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
                 // Add metadata
-                worksheet.Cells["A2"].Value = "Generated:";
-                worksheet.Cells["B2"].Value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-                worksheet.Cells["A3"].Value = "Total Documents:";
-                worksheet.Cells["B3"].Value = documentsList.Count;
+                worksheet.Cell("A2").Value = "Generated:";
+                worksheet.Cell("B2").Value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                worksheet.Cell("A3").Value = "Total Documents:";
+                worksheet.Cell("B3").Value = documentsList.Count;
 
                 // Add header row
                 int headerRow = 5;
-                worksheet.Cells[headerRow, 1].Value = "Number";
-                worksheet.Cells[headerRow, 2].Value = "Date";
-                worksheet.Cells[headerRow, 3].Value = "Customer";
-                worksheet.Cells[headerRow, 4].Value = "Net Total";
-                worksheet.Cells[headerRow, 5].Value = "VAT";
-                worksheet.Cells[headerRow, 6].Value = "Gross Total";
-                worksheet.Cells[headerRow, 7].Value = "Currency";
-                worksheet.Cells[headerRow, 8].Value = "Status";
-                worksheet.Cells[headerRow, 9].Value = "Payment Status";
+                worksheet.Cell(headerRow, 1).Value = "Number";
+                worksheet.Cell(headerRow, 2).Value = "Date";
+                worksheet.Cell(headerRow, 3).Value = "Customer";
+                worksheet.Cell(headerRow, 4).Value = "Net Total";
+                worksheet.Cell(headerRow, 5).Value = "VAT";
+                worksheet.Cell(headerRow, 6).Value = "Gross Total";
+                worksheet.Cell(headerRow, 7).Value = "Currency";
+                worksheet.Cell(headerRow, 8).Value = "Status";
+                worksheet.Cell(headerRow, 9).Value = "Payment Status";
 
                 // Style header
-                using (var range = worksheet.Cells[headerRow, 1, headerRow, 9])
-                {
-                    range.Style.Font.Bold = true;
-                    range.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                    range.Style.Fill.BackgroundColor.SetColor(ExcelColor.FromArgb(79, 129, 189));
-                    range.Style.Font.Color.SetColor(ExcelColor.White);
-                    range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                    range.Style.Border.BorderAround(ExcelBorderStyle.Thin);
-                }
+                var headerRange = worksheet.Range(headerRow, 1, headerRow, 9);
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(79, 129, 189);
+                headerRange.Style.Font.FontColor = XLColor.White;
+                headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
 
                 // Add data rows
                 int currentRow = headerRow + 1;
                 foreach (var doc in documentsList)
                 {
-                    worksheet.Cells[currentRow, 1].Value = $"{doc.Series}{doc.Number}";
-                    worksheet.Cells[currentRow, 2].Value = doc.Date.ToString("yyyy-MM-dd");
-                    worksheet.Cells[currentRow, 3].Value = doc.CustomerName ?? "N/A";
-                    worksheet.Cells[currentRow, 4].Value = doc.TotalNetAmount;
-                    worksheet.Cells[currentRow, 4].Style.Numberformat.Format = "#,##0.00";
-                    worksheet.Cells[currentRow, 5].Value = doc.VatAmount;
-                    worksheet.Cells[currentRow, 5].Style.Numberformat.Format = "#,##0.00";
-                    worksheet.Cells[currentRow, 6].Value = doc.TotalGrossAmount;
-                    worksheet.Cells[currentRow, 6].Style.Numberformat.Format = "#,##0.00";
-                    worksheet.Cells[currentRow, 7].Value = doc.Currency ?? "EUR";
-                    worksheet.Cells[currentRow, 8].Value = doc.Status.ToString();
-                    worksheet.Cells[currentRow, 9].Value = doc.PaymentStatus.ToString();
+                    worksheet.Cell(currentRow, 1).Value = $"{doc.Series}{doc.Number}";
+                    worksheet.Cell(currentRow, 2).Value = doc.Date.ToString("yyyy-MM-dd");
+                    worksheet.Cell(currentRow, 3).Value = doc.CustomerName ?? "N/A";
+                    worksheet.Cell(currentRow, 4).Value = doc.TotalNetAmount;
+                    worksheet.Cell(currentRow, 4).Style.NumberFormat.Format = "#,##0.00";
+                    worksheet.Cell(currentRow, 5).Value = doc.VatAmount;
+                    worksheet.Cell(currentRow, 5).Style.NumberFormat.Format = "#,##0.00";
+                    worksheet.Cell(currentRow, 6).Value = doc.TotalGrossAmount;
+                    worksheet.Cell(currentRow, 6).Style.NumberFormat.Format = "#,##0.00";
+                    worksheet.Cell(currentRow, 7).Value = doc.Currency ?? "EUR";
+                    worksheet.Cell(currentRow, 8).Value = doc.Status.ToString();
+                    worksheet.Cell(currentRow, 9).Value = doc.PaymentStatus.ToString();
 
                     // Add borders
-                    using (var range = worksheet.Cells[currentRow, 1, currentRow, 9])
-                    {
-                        range.Style.Border.BorderAround(ExcelBorderStyle.Thin, ExcelColor.Gray);
-                    }
+                    var rowRange = worksheet.Range(currentRow, 1, currentRow, 9);
+                    rowRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    rowRange.Style.Border.OutsideBorderColor = XLColor.Gray;
 
                     currentRow++;
                 }
@@ -443,32 +431,29 @@ public class DocumentExportService : IDocumentExportService
                 if (documentsList.Any())
                 {
                     currentRow++; // Skip a row
-                    worksheet.Cells[currentRow, 3].Value = "TOTALS:";
-                    worksheet.Cells[currentRow, 3].Style.Font.Bold = true;
+                    worksheet.Cell(currentRow, 3).Value = "TOTALS:";
+                    worksheet.Cell(currentRow, 3).Style.Font.Bold = true;
 
-                    worksheet.Cells[currentRow, 4].Formula = $"SUM(D{headerRow + 1}:D{currentRow - 2})";
-                    worksheet.Cells[currentRow, 4].Style.Numberformat.Format = "#,##0.00";
-                    worksheet.Cells[currentRow, 4].Style.Font.Bold = true;
+                    worksheet.Cell(currentRow, 4).FormulaA1 = $"SUM(D{headerRow + 1}:D{currentRow - 2})";
+                    worksheet.Cell(currentRow, 4).Style.NumberFormat.Format = "#,##0.00";
+                    worksheet.Cell(currentRow, 4).Style.Font.Bold = true;
 
-                    worksheet.Cells[currentRow, 5].Formula = $"SUM(E{headerRow + 1}:E{currentRow - 2})";
-                    worksheet.Cells[currentRow, 5].Style.Numberformat.Format = "#,##0.00";
-                    worksheet.Cells[currentRow, 5].Style.Font.Bold = true;
+                    worksheet.Cell(currentRow, 5).FormulaA1 = $"SUM(E{headerRow + 1}:E{currentRow - 2})";
+                    worksheet.Cell(currentRow, 5).Style.NumberFormat.Format = "#,##0.00";
+                    worksheet.Cell(currentRow, 5).Style.Font.Bold = true;
 
-                    worksheet.Cells[currentRow, 6].Formula = $"SUM(F{headerRow + 1}:F{currentRow - 2})";
-                    worksheet.Cells[currentRow, 6].Style.Numberformat.Format = "#,##0.00";
-                    worksheet.Cells[currentRow, 6].Style.Font.Bold = true;
+                    worksheet.Cell(currentRow, 6).FormulaA1 = $"SUM(F{headerRow + 1}:F{currentRow - 2})";
+                    worksheet.Cell(currentRow, 6).Style.NumberFormat.Format = "#,##0.00";
+                    worksheet.Cell(currentRow, 6).Style.Font.Bold = true;
 
                     // Style totals row
-                    using (var range = worksheet.Cells[currentRow, 3, currentRow, 6])
-                    {
-                        range.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                        range.Style.Fill.BackgroundColor.SetColor(ExcelColor.FromArgb(220, 230, 241));
-                        range.Style.Border.Top.Style = ExcelBorderStyle.Double;
-                    }
+                    var totalsRange = worksheet.Range(currentRow, 3, currentRow, 6);
+                    totalsRange.Style.Fill.BackgroundColor = XLColor.FromArgb(220, 230, 241);
+                    totalsRange.Style.Border.TopBorder = XLBorderStyleValues.Double;
                 }
 
                 // Auto-fit columns
-                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+                worksheet.Columns().AdjustToContents();
 
                 // Set column widths (override auto-fit for some columns)
                 worksheet.Column(1).Width = 15; // Number
@@ -476,13 +461,15 @@ public class DocumentExportService : IDocumentExportService
                 worksheet.Column(3).Width = 30; // Customer
 
                 // Freeze header row
-                worksheet.View.FreezePanes(headerRow + 1, 1);
+                worksheet.SheetView.FreezeRows(headerRow);
 
                 _logger.LogInformation(
                     "Excel export completed successfully for {Count} documents",
                     documentsList.Count);
 
-                return Task.FromResult(package.GetAsByteArray());
+                using var stream = new MemoryStream();
+                workbook.SaveAs(stream);
+                return Task.FromResult(stream.ToArray());
             }
         }
         catch (Exception ex)
