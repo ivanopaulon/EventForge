@@ -3,9 +3,12 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Services
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject IAuthService AuthService
 @inject IInventoryService InventoryService
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject ILogger<InventoryList> Logger
@@ -13,163 +16,186 @@
 @inject IDialogService DialogService
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryDocuments", "Documenti di Inventario")</PageTitle>
-<PageLoadingOverlay Visible="_isLoading"
+<PageLoadingOverlay Visible="_isLoading || _isLoadingDocuments"
                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudGrid Class="mb-4">
-        <MudItem xs="12" md="8">
-            <MudText Typo="Typo.h4">
-                <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" Size="Size.Medium" />
-                @TranslationService.GetTranslation("warehouse.inventoryDocuments", "Documenti di Inventario")
-            </MudText>
-        </MudItem>
-        <MudItem xs="12" md="4">
-            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
-                <MudButton StartIcon="@Icons.Material.Outlined.Add" 
-                           Color="Color.Primary" 
-                           Variant="Variant.Filled"
-                           OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure"))">
-                    @TranslationService.GetTranslation("warehouse.startProcedure", "Avvia Procedura")
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Refresh" 
-                           Color="Color.Default" 
-                           Variant="Variant.Outlined"
-                           OnClick="@LoadInventoryDocuments">
-                    @TranslationService.GetTranslation("common.refresh", "Aggiorna")
-                </MudButton>
-            </MudStack>
-        </MudItem>
-    </MudGrid>
+@if (!_isLoading)
+{
+    <div class="inventory-page-root">
+        <div class="inventory-top">
+            <ManagementDashboard TItem="InventoryDocumentDto"
+                                 Items="_filteredDocuments"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="InventoryDocument"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
 
-    <MudCard Elevation="2">
-        <MudCardHeader>
-            <CardHeaderContent>
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
-                    @TranslationService.GetTranslation("warehouse.documentsList", "Lista Documenti")
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="InventoryDocumentDto"
+                 Items="_filteredDocuments"
+                 MultiSelection="true"
+                 SelectedItems="_selectedDocuments"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingDocuments"
+                 ComponentKey="InventoryList"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("warehouse.inventoryDocuments", "Documenti di Inventario")
                 </MudText>
-            </CardHeaderContent>
-            <CardHeaderActions>
-                <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                   ShowRefresh="true"
-                                   ShowExport="true"
-                                   ShowCreate="true"
-                                   CreateIcon="@Icons.Material.Outlined.Add"
-                                   CreateTooltip="@TranslationService.GetTranslation("warehouse.newInventory", "Nuova Procedura")"
-                                   IsDisabled="_isLoading"
-                                   OnRefresh="@LoadInventoryDocuments"
-                                   OnExport="@ExportDocuments"
-                                   OnCreate="@CreateNewInventory" />
-            </CardHeaderActions>
-        </MudCardHeader>
-        <MudCardContent>
-        <!-- Filter Section -->
-        <MudGrid Class="mb-4" Style="background-color: var(--mud-palette-background-grey); padding: 16px; border-radius: 4px;">
-            <MudItem xs="12" md="3">
-                <MudSelect T="string" 
-                           Label="@TranslationService.GetTranslation("common.status", "Stato")" 
-                           @bind-Value="_filterStatus" 
-                           Clearable="true">
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("warehouse.searchDocuments", "Cerca documenti")"
+                              Placeholder="@TranslationService.GetTranslation("warehouse.searchPlaceholder", "Inserisci numero...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <MudSelect @bind-Value="_filterStatus"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("common.status", "Stato")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           Class="ml-2"
+                           Style="min-width: 150px;">
                     <MudSelectItem Value="@("Draft")">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudSelectItem>
                     <MudSelectItem Value="@("Closed")">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudSelectItem>
                 </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudDatePicker Label="@TranslationService.GetTranslation("common.fromDate", "Da data")" 
-                              @bind-Date="_filterFromDate" 
-                              Clearable="true" />
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudDatePicker Label="@TranslationService.GetTranslation("common.toDate", "A data")" 
-                              @bind-Date="_filterToDate" 
-                              Clearable="true" />
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudButton StartIcon="@Icons.Material.Outlined.FilterAlt" 
-                           Color="Color.Primary" 
-                           Variant="Variant.Outlined"
-                           FullWidth="true"
-                           OnClick="@LoadInventoryDocuments"
-                           Class="mt-3">
-                    @TranslationService.GetTranslation("common.filter", "Filtra")
-                </MudButton>
-            </MudItem>
-        </MudGrid>
-
-        <!-- Statistics -->
-        <MudGrid Class="mb-4">
-            <MudItem xs="12" md="12">
-                <MudText Typo="Typo.h6">
-                    @TranslationService.GetTranslation("warehouse.totalDocuments", "Totale Documenti: {0}", _totalCount)
-                </MudText>
-            </MudItem>
-        </MudGrid>
-
-        <!-- Documents Table -->
-        <MudTable Items="_inventoryDocuments" 
-                  Hover="true" 
-                  Dense="true" 
-                  Loading="_isLoading" 
-                  Striped="true"
-                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                  AllowUnsorted="false">
-            <HeaderContent>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.Number))">@TranslationService.GetTranslation("document.number", "Numero")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<InventoryDocumentDto, object>(x => x.InventoryDate))">@TranslationService.GetTranslation("document.date", "Data")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.WarehouseName ?? string.Empty))">@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.Status))">@TranslationService.GetTranslation("document.status", "Stato")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.TotalItems))">@TranslationService.GetTranslation("document.totalItems", "Articoli")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.CreatedBy ?? string.Empty))">@TranslationService.GetTranslation("common.createdBy", "Creato Da")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("common.createdAt", "Data Creazione")</MudTableSortLabel></MudTh>
-                <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedDocuments.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="false"
+                                        CreateTooltip="warehouse.startProcedure"
+                                        IsDisabled="_isLoadingDocuments"
+                                        OnRefresh="@LoadInventoryDocuments"
+                                        OnCreate="@CreateNewInventory" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Number")
+                    {
+                        <EFTableColumnHeader TItem="InventoryDocumentDto" PropertyName="Number" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.Number))">@TranslationService.GetTranslation("document.number", "Numero")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "InventoryDate")
+                    {
+                        <EFTableColumnHeader TItem="InventoryDocumentDto" PropertyName="InventoryDate" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<InventoryDocumentDto, object>(x => x.InventoryDate))">@TranslationService.GetTranslation("document.date", "Data")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "WarehouseName")
+                    {
+                        <EFTableColumnHeader TItem="InventoryDocumentDto" PropertyName="WarehouseName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.WarehouseName ?? string.Empty))">@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Status")
+                    {
+                        <EFTableColumnHeader TItem="InventoryDocumentDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.Status))">@TranslationService.GetTranslation("document.status", "Stato")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "TotalItems")
+                    {
+                        <EFTableColumnHeader TItem="InventoryDocumentDto" PropertyName="TotalItems" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.TotalItems))">@TranslationService.GetTranslation("document.totalItems", "Articoli")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <EFTableColumnHeader TItem="InventoryDocumentDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("common.createdAt", "Data Creazione")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Number">
-                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Number</MudText>
-                    @if (!string.IsNullOrEmpty(context.Series))
+
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Number")
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Series</MudText>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("document.number", "Numero")">
+                            <div>
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">@item.Number</MudText>
+                                @if (!string.IsNullOrEmpty(item.Series))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.Series</MudText>
+                                }
+                            </div>
+                        </MudTd>
                     }
-                </MudTd>
-                <MudTd DataLabel="Date">@context.InventoryDate.ToLocalTime().ToString("dd/MM/yyyy")</MudTd>
-                <MudTd DataLabel="Warehouse">@(context.WarehouseName ?? "-")</MudTd>
-                <MudTd DataLabel="Status">
-                    @if (context.Status == "Draft")
+                    else if (column.PropertyName == "InventoryDate")
                     {
-                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Outlined.Edit">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudChip>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("document.date", "Data")">
+                            <MudText Typo="Typo.body2">@item.InventoryDate.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                        </MudTd>
                     }
-                    else if (context.Status == "Closed")
+                    else if (column.PropertyName == "WarehouseName")
                     {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Outlined.CheckCircle">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudChip>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")">
+                            <MudText Typo="Typo.body2">@(item.WarehouseName ?? "-")</MudText>
+                        </MudTd>
                     }
-                    else
+                    else if (column.PropertyName == "Status")
                     {
-                        <MudChip T="string" Color="Color.Default" Size="Size.Small">@context.Status</MudChip>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("document.status", "Stato")">
+                            @if (item.Status == "Draft")
+                            {
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Outlined.Edit">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudChip>
+                            }
+                            else if (item.Status == "Closed")
+                            {
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Outlined.CheckCircle">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Default" Size="Size.Small">@item.Status</MudChip>
+                            }
+                        </MudTd>
                     }
-                </MudTd>
-                <MudTd DataLabel="TotalItems">
-                    <MudText Typo="Typo.body2">@context.TotalItems</MudText>
-                </MudTd>
-                <MudTd DataLabel="CreatedBy">@(context.CreatedBy ?? "-")</MudTd>
-                <MudTd DataLabel="CreatedAt">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
-                <MudTd DataLabel="Actions" Class="text-center">
+                    else if (column.PropertyName == "TotalItems")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("document.totalItems", "Articoli")">
+                            <MudText Typo="Typo.body2">@item.TotalItems</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("common.createdAt", "Data Creazione")">
+                            <MudText Typo="Typo.body2">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                        </MudTd>
+                    }
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                     <ActionButtonGroup EntityName="@TranslationService.GetTranslation("warehouse.inventoryDocument", "Documento Inventario")"
-                                      ItemDisplayName="@context.Number"
+                                      ItemDisplayName="@item.Number"
                                       ShowView="true"
                                       ShowEdit="false"
                                       ShowAuditLog="false"
                                       ShowToggleStatus="false"
                                       ShowDelete="false"
-                                      OnView="@(() => ViewDocumentDetails(context))">
+                                      OnView="@(() => ViewDocumentDetails(item))">
                         <AdditionalActions>
-                            @if (context.Status == "Draft")
+                            @if (item.Status == "Draft")
                             {
                                 <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeDocument", "Finalizza Documento")">
                                     <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
                                                    Color="Color.Success"
                                                    Size="Size.Small"
-                                                   OnClick="@(() => FinalizeDocument(context))"
+                                                   OnClick="@(() => FinalizeDocument(item))"
                                                    aria-label="@TranslationService.GetTranslation("warehouse.finalizeDocument", "Finalizza Documento")" />
                                 </MudTooltip>
                             }
@@ -177,52 +203,214 @@
                     </ActionButtonGroup>
                 </MudTd>
             </RowTemplate>
-            <NoRecordsContent>
-                <MudText Align="Align.Center" Class="pa-4">
-                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
-                    <br />
-                    @TranslationService.GetTranslation("warehouse.noInventoryDocuments", "Nessun documento di inventario trovato")
-                </MudText>
-            </NoRecordsContent>
-        </MudTable>
 
-        <!-- Pagination -->
-        @if (_totalCount > 0)
-        {
-            <MudPagination 
-                Class="mt-4" 
-                Count="@((int)((_totalCount + _pageSize - 1) / _pageSize))" 
-                Selected="@_currentPage" 
-                SelectedChanged="@OnPageChanged" 
-                ShowFirstButton="true" 
-                ShowLastButton="true" />
-        }
-        </MudCardContent>
-    </MudCard>
-</MudContainer>
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_inventoryDocuments.Any() ?
+                            TranslationService.GetTranslation("warehouse.noDocumentsMatchFilters", "Nessun documento corrisponde ai filtri applicati") :
+                            TranslationService.GetTranslation("warehouse.noInventoryDocuments", "Nessun documento di inventario trovato"))
+                    </MudText>
+                    @if (_inventoryDocuments.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+
+            <!-- Pagination -->
+            @if (_totalCount > 0)
+            {
+                <MudDivider Class="my-4" />
+                <div class="d-flex justify-center align-center flex-wrap gap-4">
+                    @if (_totalPages > 1)
+                    {
+                        <MudPagination Count="@_totalPages" 
+                                       Selected="@_currentPage" 
+                                       Color="Color.Primary"
+                                       Size="Size.Medium"
+                                       ShowFirstButton="true"
+                                       ShowLastButton="true"
+                                       SelectedChanged="@OnPageChanged" />
+                    }
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @if (_totalPages > 1)
+                        {
+                            @TranslationService.GetTranslation("pagination.info", 
+                                "Pagina {0} di {1} - Totale: {2} documenti", 
+                                _currentPage, _totalPages, _totalCount)
+                        }
+                        else
+                        {
+                            @TranslationService.GetTranslation("pagination.singlePage", 
+                                "Totale: {0} documenti", 
+                                _totalCount)
+                        }
+                    </MudText>
+                </div>
+            }
+        </div>
+    </div>
+}
 
 @code {
-    private bool _isLoading = false;
-    private List<InventoryDocumentDto> _inventoryDocuments = new();
-    private int _currentPage = 1;
-    private int _pageSize = 20;
-    private long _totalCount = 0;
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingDocuments = false;
 
-    // Filters
+    // Filter and search state
+    private string _searchTerm = string.Empty;
     private string? _filterStatus = null;
     private DateTime? _filterFromDate = null;
     private DateTime? _filterToDate = null;
+    private CancellationTokenSource? _searchDebounceCts;
 
-    protected override async Task OnInitializedAsync()
+    // Pagination state
+    private int _currentPage = 1;
+    private int _pageSize = 20;
+    private long _totalCount = 0;
+    private int _totalPages => (int)((_totalCount + _pageSize - 1) / _pageSize);
+
+    // Data collections
+    private List<InventoryDocumentDto> _inventoryDocuments = new();
+    private HashSet<InventoryDocumentDto> _selectedDocuments = new();
+
+    // EFTable reference
+    private EFTable<InventoryDocumentDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        await LoadInventoryDocuments();
+        new() { PropertyName = "Number", DisplayName = "Numero", IsVisible = true, Order = 0 },
+        new() { PropertyName = "InventoryDate", DisplayName = "Data", IsVisible = true, Order = 1 },
+        new() { PropertyName = "WarehouseName", DisplayName = "Magazzino", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3 },
+        new() { PropertyName = "TotalItems", DisplayName = "Articoli", IsVisible = true, Order = 4 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Data Creazione", IsVisible = true, Order = 5 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<InventoryDocumentDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Documenti",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Inventory2,
+            Color = "primary",
+            Description = "Numero totale di documenti",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Bozze",
+            Type = MetricType.Count,
+            Filter = d => d.Status == "Draft",
+            Icon = Icons.Material.Outlined.Edit,
+            Color = "warning",
+            Description = "Documenti in bozza",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Chiusi",
+            Type = MetricType.Count,
+            Filter = d => d.Status == "Closed",
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Documenti chiusi",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Ultimi 30 Giorni",
+            Type = MetricType.Count,
+            Filter = d => d.InventoryDate >= DateTime.Now.AddDays(-30),
+            Icon = Icons.Material.Outlined.CalendarToday,
+            Color = "info",
+            Description = "Documenti degli ultimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<InventoryDocumentDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<InventoryDocumentDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered documents based on search criteria.
+    /// </summary>
+    private IEnumerable<InventoryDocumentDto> _filteredDocuments => 
+        _inventoryDocuments.Where(d => 
+            // Search filter: check number and series
+            (string.IsNullOrEmpty(_searchTerm) || 
+             d.Number.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (d.Series != null && d.Series.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+            // Status filter
+            (string.IsNullOrEmpty(_filterStatus) || d.Status == _filterStatus) &&
+            // Date range filter
+            (!_filterFromDate.HasValue || d.InventoryDate >= _filterFromDate.Value) &&
+            (!_filterToDate.HasValue || d.InventoryDate <= _filterToDate.Value));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<InventoryDocumentDto> items)
+    {
+        _selectedDocuments = items;
+        StateHasChanged();
     }
 
-    private async Task LoadInventoryDocuments()
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
     {
-        _isLoading = true;
         try
         {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // Load documents
+            await LoadInventoryDocuments();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading inventory documents page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads inventory document data.
+    /// </summary>
+    private async Task LoadInventoryDocuments()
+    {
+        try
+        {
+            _isLoadingDocuments = true;
             var result = await InventoryService.GetInventoryDocumentsAsync(
                 _currentPage, 
                 _pageSize,
@@ -247,8 +435,46 @@
         }
         finally
         {
-            _isLoading = false;
+            _isLoadingDocuments = false;
         }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _filterStatus = null;
+        _filterFromDate = null;
+        _filterToDate = null;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
+    }
+
+    private void OnFilterChanged()
+    {
+        StateHasChanged();
     }
 
     private async Task OnPageChanged(int page)
@@ -333,21 +559,13 @@
         NavigationManager.NavigateTo("/warehouse/inventory-procedure");
     }
 
-    private async Task ExportDocuments()
+    private async Task ShowLoginDialogAsync()
     {
-        try
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("common.exportNotImplemented", "Funzione di esportazione non ancora implementata"), 
-                Severity.Info);
-            await Task.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error exporting inventory documents");
-            Snackbar.Add(
-                TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"), 
-                Severity.Error);
+            // Reload the page after successful login
+            await OnInitializedAsync();
         }
     }
 

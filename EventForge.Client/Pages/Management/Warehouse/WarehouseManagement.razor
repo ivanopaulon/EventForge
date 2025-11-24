@@ -274,32 +274,32 @@
         },
         new()
         {
-            Title = "Magazzini Fiscali",
+            Title = "Attivi",
             Type = MetricType.Count,
-            Filter = w => w.IsFiscal,
-            Icon = Icons.Material.Outlined.Gavel,
+            Filter = w => w.IsActive,
+            Icon = Icons.Material.Outlined.CheckCircle,
             Color = "success",
-            Description = "Magazzini fiscali",
+            Description = "Magazzini attivi",
             Format = "N0"
         },
         new()
         {
-            Title = "Refrigerati",
+            Title = "Con Ubicazioni",
             Type = MetricType.Count,
-            Filter = w => w.IsRefrigerated,
-            Icon = Icons.Material.Outlined.AcUnit,
+            Filter = w => w.TotalLocations > 0,
+            Icon = Icons.Material.Outlined.LocationOn,
             Color = "info",
-            Description = "Magazzini refrigerati",
+            Description = "Magazzini con ubicazioni",
             Format = "N0"
         },
         new()
         {
-            Title = "Ultimi Aggiunti",
+            Title = "Ultimi 30 Giorni",
             Type = MetricType.Count,
             Filter = w => w.CreatedAt >= DateTime.Now.AddDays(-30),
-            Icon = Icons.Material.Outlined.NewReleases,
+            Icon = Icons.Material.Outlined.CalendarToday,
             Color = "warning",
-            Description = "Magazzini aggiunti negli ultimi 30 giorni",
+            Description = "Magazzini creati negli ultimi 30 giorni",
             Format = "N0"
         }
     };
