@@ -1,0 +1,506 @@
+@page "/superadmin/role-permission-management"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.Client.Shared.Components
+@using EventForge.DTOs.SuperAdmin
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject ISuperAdminService SuperAdminService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<RolePermissionManagement> Logger
+
+<SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.rolePermissionManagement", "Gestione Ruoli e Permessi")"
+                      PageIcon="@Icons.Material.Outlined.AdminPanelSettings"
+                      IsLoading="_isLoading"
+                      IsAuthorized="_isAuthorized"
+                      OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
+
+    <!-- Dashboard Metrics -->
+    <div class="dashboard-metrics mb-4">
+        <div class="metric-card primary">
+            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.totalRoles", "Ruoli Totali")</div>
+            <div class="metric-value">@_totalRoles</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.totalPermissions", "Permessi Totali")</div>
+            <div class="metric-value">@_totalPermissions</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.customRoles", "Ruoli Personalizzati")</div>
+            <div class="metric-value">@_customRoles</div>
+        </div>
+        <div class="metric-card info">
+            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.systemRoles", "Ruoli di Sistema")</div>
+            <div class="metric-value">@_systemRoles</div>
+        </div>
+    </div>
+
+    <!-- Roles Table -->
+    <MudPaper Elevation="2" Class="border-rounded mb-4">
+        <MudCardHeader Class="pa-2">
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.Shield" Class="mr-2" />
+                    @TranslationService.GetTranslation("superAdmin.rolesList", "Lista Ruoli")
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                        (@_roles.Count @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
+                    </MudText>
+                </MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                   ShowRefresh="true"
+                                   ShowExport="false" 
+                                   ShowCreate="true"
+                                   ShowAuditLog="false"
+                                   CreateIcon="@Icons.Material.Outlined.Add"
+                                   CreateTooltip="@TranslationService.GetTranslation("superAdmin.createNewRole", "Crea nuovo ruolo")"
+                                   IsDisabled="_isLoadingRoles"
+                                   OnRefresh="@LoadRolesAsync"
+                                   OnCreate="@CreateRole" />
+            </CardHeaderActions>
+        </MudCardHeader>
+        <MudCardContent Class="pa-1">
+            @if (_isLoadingRoles)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+            }
+            else
+            {
+                <MudTable T="RoleDto" 
+                          Items="_roles" 
+                          Hover="true" 
+                          Striped="true"
+                          Loading="_isLoadingRoles"
+                          LoadingProgressColor="Color.Info"
+                          SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                          AllowUnsorted="false"
+                          Dense="true"
+                          SelectedItemChanged="@OnRoleSelected"
+                          Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<RoleDto, object>(x => x.RoleName))">@TranslationService.GetTranslation("field.roleName", "Nome Ruolo")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<RoleDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<RoleDto, object>(x => x.UsersCount))">@TranslationService.GetTranslation("field.usersCount", "Utenti")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<RoleDto, object>(x => x.PermissionsCount))">@TranslationService.GetTranslation("field.permissionsCount", "Permessi")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<RoleDto, object>(x => x.IsSystemRole))">@TranslationService.GetTranslation("field.type", "Tipo")</MudTableSortLabel></MudTh>
+                        <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.roleName", "Nome Ruolo")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="@(context.IsSystemRole ? Color.Error : Color.Primary)" Size="Size.Small" Class="mr-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Small" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.RoleName</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id</MudText>
+                                </div>
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                            <MudText Typo="Typo.body2">@(context.Description ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.usersCount", "Utenti")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.UsersCount</MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.permissionsCount", "Permessi")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">@context.PermissionsCount</MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
+                            <MudChip T="string" Color="@(context.IsSystemRole ? Color.Error : Color.Default)" 
+                                     Size="Size.Small"
+                                     Icon="@(context.IsSystemRole ? Icons.Material.Outlined.Lock : Icons.Material.Outlined.Edit)">
+                                @(context.IsSystemRole ? 
+                                    TranslationService.GetTranslation("field.systemRole", "Sistema") : 
+                                    TranslationService.GetTranslation("field.customRole", "Personalizzato"))
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                            <ActionButtonGroup EntityName="@context.RoleName"
+                                              ItemDisplayName="@context.RoleName"
+                                              ShowView="false"
+                                              ShowEdit="@(!context.IsSystemRole)"
+                                              ShowAuditLog="false"
+                                              ShowToggleStatus="false"
+                                              ShowDelete="@(!context.IsSystemRole)"
+                                              OnEdit="@(() => EditRole(context))"
+                                              OnDelete="@(() => DeleteRole(context))">
+                                <AdditionalActions>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.managePermissions", "Gestisci permessi")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Security" 
+                                                      Color="Color.Primary"
+                                                      Size="Size.Small"
+                                                      Class="rounded"
+                                                      OnClick="@(() => ManagePermissions(context))"
+                                                      aria-label="@TranslationService.GetTranslation("tooltip.managePermissions", "Gestisci permessi per {0}", context.RoleName)" />
+                                    </MudTooltip>
+                                </AdditionalActions>
+                            </ActionButtonGroup>
+                        </MudTd>
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+                        <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                            <MudText Typo="Typo.h6" Class="mb-2">
+                                @TranslationService.GetTranslation("superAdmin.noRolesFound", "Nessun ruolo trovato")
+                            </MudText>
+                        </div>
+                    </NoRecordsContent>
+                </MudTable>
+            }
+        </MudCardContent>
+    </MudPaper>
+
+    <!-- Permissions Table (shown when role selected) -->
+    @if (_selectedRole != null)
+    {
+        <MudPaper Elevation="2" Class="border-rounded mb-1">
+            <MudCardHeader Class="pa-2">
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Outlined.Security" Class="mr-2" />
+                        @TranslationService.GetTranslation("superAdmin.permissionsForRole", "Permessi per {0}", _selectedRole.RoleName)
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            (@_permissions.Count @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
+                        </MudText>
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                       ShowRefresh="true"
+                                       ShowExport="false" 
+                                       ShowCreate="true"
+                                       ShowAuditLog="false"
+                                       CreateIcon="@Icons.Material.Outlined.Add"
+                                       CreateTooltip="@TranslationService.GetTranslation("superAdmin.addPermission", "Aggiungi permesso")"
+                                       IsDisabled="_isLoadingPermissions"
+                                       OnRefresh="@LoadPermissionsAsync"
+                                       OnCreate="@AddPermission" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent Class="pa-1">
+                @if (_isLoadingPermissions)
+                {
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                }
+                else
+                {
+                    <MudTable T="PermissionDto" 
+                              Items="_permissions" 
+                              Hover="true" 
+                              Striped="true"
+                              Loading="_isLoadingPermissions"
+                              LoadingProgressColor="Color.Info"
+                              SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                              AllowUnsorted="false"
+                              Dense="true"
+                              Breakpoint="Breakpoint.Sm">
+                        <HeaderContent>
+                            <MudTh><MudTableSortLabel SortBy="@(new Func<PermissionDto, object>(x => x.PermissionName))">@TranslationService.GetTranslation("field.permissionName", "Nome Permesso")</MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="@(new Func<PermissionDto, object>(x => x.Resource ?? string.Empty))">@TranslationService.GetTranslation("field.resource", "Risorsa")</MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="@(new Func<PermissionDto, object>(x => x.Action ?? string.Empty))">@TranslationService.GetTranslation("field.action", "Azione")</MudTableSortLabel></MudTh>
+                            <MudTh Class="text-center" Style="min-width: 80px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.permissionName", "Nome Permesso")">
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.PermissionName</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.resource", "Risorsa")">
+                                <MudText Typo="Typo.body2">@(context.Resource ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.action", "Azione")">
+                                <MudChip T="string" Size="Size.Small" Color="@GetActionColor(context.Action)">
+                                    @(context.Action ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.removePermission", "Rimuovi permesso")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                  Color="Color.Error"
+                                                  Size="Size.Small"
+                                                  Class="rounded"
+                                                  OnClick="@(() => RemovePermission(context))"
+                                                  Disabled="@_selectedRole.IsSystemRole"
+                                                  aria-label="@TranslationService.GetTranslation("tooltip.removePermission", "Rimuovi permesso {0}", context.PermissionName)" />
+                                </MudTooltip>
+                            </MudTd>
+                        </RowTemplate>
+
+                        <NoRecordsContent>
+                            <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                                <MudIcon Icon="@Icons.Material.Outlined.Security" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    @TranslationService.GetTranslation("superAdmin.noPermissionsForRole", "Nessun permesso assegnato a questo ruolo")
+                                </MudText>
+                            </div>
+                        </NoRecordsContent>
+                    </MudTable>
+                }
+            </MudCardContent>
+        </MudPaper>
+    }
+
+</SuperAdminPageLayout>
+
+@code {
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private bool _isLoadingRoles = false;
+    private bool _isLoadingPermissions = false;
+    
+    private UserDto? _currentUser;
+    
+    // Data collections
+    private List<RoleDto> _roles = new();
+    private List<PermissionDto> _permissions = new();
+    private RoleDto? _selectedRole;
+    
+    // Dashboard metrics
+    private int _totalRoles => _roles.Count;
+    private int _totalPermissions => _roles.Sum(r => r.PermissionsCount);
+    private int _customRoles => _roles.Count(r => !r.IsSystemRole);
+    private int _systemRoles => _roles.Count(r => r.IsSystemRole);
+
+    /// <summary>
+    /// Component initialization with enhanced security checks.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Enhanced authentication and authorization flow
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // SuperAdmin role verification
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
+                return;
+            }
+
+            // Load current user info
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthorized = true;
+            
+            // Load roles data
+            await LoadRolesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing role permission management page");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads roles data with proper error handling.
+    /// TODO: Implement actual API call when backend is ready.
+    /// </summary>
+    private async Task LoadRolesAsync()
+    {
+        try
+        {
+            _isLoadingRoles = true;
+            
+            // TODO: Replace with actual API call when available
+            // _roles = (await SuperAdminService.GetRolesAsync()).ToList();
+            
+            // Placeholder data for demo purposes
+            _roles = new List<RoleDto>
+            {
+                new RoleDto { Id = Guid.NewGuid(), RoleName = "SuperAdmin", Description = "Super Administrator role with full system access", UsersCount = 2, PermissionsCount = 50, IsSystemRole = true, CreatedAt = DateTime.UtcNow.AddMonths(-12) },
+                new RoleDto { Id = Guid.NewGuid(), RoleName = "Admin", Description = "Administrator role with tenant-level access", UsersCount = 5, PermissionsCount = 40, IsSystemRole = true, CreatedAt = DateTime.UtcNow.AddMonths(-12) },
+                new RoleDto { Id = Guid.NewGuid(), RoleName = "Manager", Description = "Manager role with limited administrative access", UsersCount = 10, PermissionsCount = 25, IsSystemRole = true, CreatedAt = DateTime.UtcNow.AddMonths(-12) },
+                new RoleDto { Id = Guid.NewGuid(), RoleName = "CustomRole", Description = "Custom role created by admin", UsersCount = 3, PermissionsCount = 15, IsSystemRole = false, CreatedAt = DateTime.UtcNow.AddDays(-30) },
+            };
+            
+            await Task.Delay(500); // Simulate API call
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading roles");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingRolesError", "Errore nel caricamento dei ruoli: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingRoles = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Loads permissions for selected role.
+    /// TODO: Implement actual API call when backend is ready.
+    /// </summary>
+    private async Task LoadPermissionsAsync()
+    {
+        if (_selectedRole == null) return;
+        
+        try
+        {
+            _isLoadingPermissions = true;
+            
+            // TODO: Replace with actual API call when available
+            // _permissions = (await SuperAdminService.GetRolePermissionsAsync(_selectedRole.Id)).ToList();
+            
+            // Placeholder data for demo purposes
+            _permissions = new List<PermissionDto>
+            {
+                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "CreateUser", Resource = "Users", Action = "create", Description = "Create new users" },
+                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "ReadUser", Resource = "Users", Action = "read", Description = "View user information" },
+                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "UpdateUser", Resource = "Users", Action = "update", Description = "Update user information" },
+                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "DeleteUser", Resource = "Users", Action = "delete", Description = "Delete users" },
+                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "ManageProducts", Resource = "Products", Action = "create", Description = "Manage products" },
+            };
+            
+            await Task.Delay(300); // Simulate API call
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading permissions for role {RoleId}", _selectedRole.Id);
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPermissionsError", "Errore nel caricamento dei permessi: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingPermissions = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnRoleSelected(RoleDto role)
+    {
+        _selectedRole = role;
+        await LoadPermissionsAsync();
+    }
+
+    private async Task CreateRole()
+    {
+        // TODO: Implement create role dialog
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.createRoleComingSoon", "La funzionalità di creazione ruoli sarà implementata presto."), Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    private async Task EditRole(RoleDto role)
+    {
+        // TODO: Implement edit role dialog
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.editRoleComingSoon", "La funzionalità di modifica ruoli sarà implementata presto."), Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteRole(RoleDto role)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("superAdmin.confirmDeleteRole", 
+                "Sei sicuro di voler eliminare il ruolo '{0}'? Questa azione non può essere annullata.", role.RoleName),
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                // TODO: Replace with actual API call when available
+                // await SuperAdminService.DeleteRoleAsync(role.Id);
+                
+                _roles.Remove(role);
+                if (_selectedRole?.Id == role.Id)
+                {
+                    _selectedRole = null;
+                    _permissions.Clear();
+                }
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.roleDeleteSuccess", "Ruolo eliminato con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting role");
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.roleDeleteError", 
+                    "Errore nell'eliminazione del ruolo: {0}", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task ManagePermissions(RoleDto role)
+    {
+        _selectedRole = role;
+        await LoadPermissionsAsync();
+    }
+
+    private async Task AddPermission()
+    {
+        // TODO: Implement add permission dialog
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.addPermissionComingSoon", "La funzionalità di aggiunta permessi sarà implementata presto."), Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    private async Task RemovePermission(PermissionDto permission)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("superAdmin.confirmRemovePermission", 
+                "Sei sicuro di voler rimuovere il permesso '{0}' dal ruolo '{1}'?", permission.PermissionName, _selectedRole?.RoleName),
+            yesText: TranslationService.GetTranslation("common.remove", "Rimuovi"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                // TODO: Implement remove permission API call
+                _permissions.Remove(permission);
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.permissionRemoveSuccess", "Permesso rimosso con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error removing permission");
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.permissionRemoveError", 
+                    "Errore nella rimozione del permesso: {0}", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private Color GetActionColor(string? action)
+    {
+        return action?.ToLower() switch
+        {
+            "create" => Color.Success,
+            "read" => Color.Info,
+            "update" => Color.Warning,
+            "delete" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
+        }
+    }
+}
