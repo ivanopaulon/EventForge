@@ -17,7 +17,8 @@ public interface ITransferOrderService
         Guid? sourceWarehouseId = null,
         Guid? destinationWarehouseId = null,
         string? status = null,
-        string? searchTerm = null);
+        string? searchTerm = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a specific transfer order by ID.

@@ -287,6 +287,7 @@
     // Filter and search state
     private string _searchTerm = string.Empty;
     private CancellationTokenSource? _searchDebounceCts;
+    private CancellationTokenSource? _loadCts;
     private Guid? _selectedSourceWarehouseId;
     private Guid? _selectedDestinationWarehouseId;
     private string? _selectedStatus;
@@ -430,6 +431,11 @@
     /// </summary>
     private async Task LoadTransferOrdersAsync()
     {
+        // Cancel any previous load
+        _loadCts?.Cancel();
+        _loadCts = new CancellationTokenSource();
+        var token = _loadCts.Token;
+
         try
         {
             _isLoadingTransferOrders = true;
@@ -439,21 +445,33 @@
                 _selectedSourceWarehouseId, 
                 _selectedDestinationWarehouseId, 
                 _selectedStatus, 
-                _searchTerm);
+                _searchTerm,
+                token);
             
-            if (_pagedResult != null)
+            if (_pagedResult != null && !token.IsCancellationRequested)
             {
                 _transferOrders = _pagedResult.Items.ToList();
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Expected when request is cancelled, don't show error
+            Logger.LogDebug("Transfer order load was cancelled");
+        }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading transfer orders: {ex.Message}", Severity.Error);
-            Logger.LogError(ex, "Error loading transfer orders");
+            if (!token.IsCancellationRequested)
+            {
+                Snackbar.Add($"Error loading transfer orders: {ex.Message}", Severity.Error);
+                Logger.LogError(ex, "Error loading transfer orders");
+            }
         }
         finally
         {
-            _isLoadingTransferOrders = false;
+            if (!token.IsCancellationRequested)
+            {
+                _isLoadingTransferOrders = false;
+            }
         }
     }
 
