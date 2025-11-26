@@ -24,7 +24,7 @@
     <div class="transfer-order-page-root">
         <div class="transfer-order-top">
             <ManagementDashboard TItem="TransferOrderDto"
-                                 Items="_filteredTransferOrders"
+                                 Items="_transferOrders"
                                  Metrics="_dashboardMetrics"
                                  EntityType="TransferOrder"
                                  AllowConfiguration="true"
@@ -34,7 +34,7 @@
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
                      TItem="TransferOrderDto"
-                     Items="_filteredTransferOrders"
+                     Items="_transferOrders"
                      MultiSelection="true"
                      SelectedItems="_selectedTransferOrders"
                      SelectedItemsChanged="_selectedItemsChangedCallback"
@@ -374,15 +374,6 @@
         EventCallback.Factory.Create<HashSet<TransferOrderDto>>(this, OnSelectedItemsChanged);
 
     /// <summary>
-    /// Computed property for filtered transfer orders based on search criteria.
-    /// </summary>
-    private IEnumerable<TransferOrderDto> _filteredTransferOrders => 
-        _transferOrders.Where(t => 
-            // Search filter: check number
-            (string.IsNullOrEmpty(_searchTerm) || 
-             t.Number.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
-
-    /// <summary>
     /// Handles selection changes from EFTable
     /// </summary>
     private void OnSelectedItemsChanged(HashSet<TransferOrderDto> items)
@@ -464,13 +455,14 @@
     /// <summary>
     /// Clears all active filters
     /// </summary>
-    private void ClearFilters()
+    private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
         _selectedSourceWarehouseId = null;
         _selectedDestinationWarehouseId = null;
         _selectedStatus = null;
-        StateHasChanged();
+        _currentPage = 1;
+        await LoadTransferOrdersAsync();
     }
 
     /// <summary>
