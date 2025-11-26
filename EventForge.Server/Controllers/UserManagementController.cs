@@ -168,6 +168,7 @@ public class UserManagementController : BaseApiController
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -214,11 +215,6 @@ public class UserManagementController : BaseApiController
             await _hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserStatusChanged", new { UserId = userId, IsActive = updateDto.IsActive });
 
-            // Reload user with tenant to get tenant name
-            var userWithTenant = await _context.Users
-                .Include(u => u.Tenant)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
             var result = new UserManagementDto
             {
                 Id = user.Id,
@@ -231,7 +227,7 @@ public class UserManagementController : BaseApiController
                 MustChangePassword = user.MustChangePassword,
                 Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
                 TenantId = user.TenantId,
-                TenantName = userWithTenant?.Tenant?.Name ?? "Unknown",
+                TenantName = user.Tenant?.Name ?? "Unknown",
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt
             };
@@ -256,6 +252,7 @@ public class UserManagementController : BaseApiController
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -328,11 +325,6 @@ public class UserManagementController : BaseApiController
             await _hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserRolesChanged", new { UserId = userId, Roles = updateDto.Roles });
 
-            // Reload user with tenant to get tenant name
-            var userWithTenant = await _context.Users
-                .Include(u => u.Tenant)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
             var result = new UserManagementDto
             {
                 Id = user.Id,
@@ -345,7 +337,7 @@ public class UserManagementController : BaseApiController
                 MustChangePassword = user.MustChangePassword,
                 Roles = updateDto.Roles,
                 TenantId = user.TenantId,
-                TenantName = userWithTenant?.Tenant?.Name ?? "Unknown",
+                TenantName = user.Tenant?.Name ?? "Unknown",
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt
             };
@@ -605,11 +597,12 @@ public class UserManagementController : BaseApiController
                 query = query.OrderByDescending(u => u.CreatedAt);
             }
 
+            // Add eager loading of Tenant before executing queries
+            query = query.Include(u => u.Tenant);
+            
             var totalCount = await query.CountAsync();
             
-            // Add eager loading of Tenant before executing the query
             var result = await query
-                .Include(u => u.Tenant)
                 .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
                 .Take(searchDto.PageSize)
                 .Select(u => new UserManagementDto
@@ -884,6 +877,7 @@ public class UserManagementController : BaseApiController
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -991,11 +985,6 @@ public class UserManagementController : BaseApiController
             await _hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserUpdated", new { UserId = userId, Username = user.Username });
 
-            // Reload user with tenant to get tenant name
-            var userWithTenant = await _context.Users
-                .Include(u => u.Tenant)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
             var result = new UserManagementDto
             {
                 Id = user.Id,
@@ -1008,7 +997,7 @@ public class UserManagementController : BaseApiController
                 MustChangePassword = user.MustChangePassword,
                 Roles = updateDto.Roles,
                 TenantId = user.TenantId,
-                TenantName = userWithTenant?.Tenant?.Name ?? "Unknown",
+                TenantName = user.Tenant?.Name ?? "Unknown",
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt
             };
