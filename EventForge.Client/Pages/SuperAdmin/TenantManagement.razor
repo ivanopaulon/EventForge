@@ -31,11 +31,11 @@
         </div>
         <div class="metric-card warning">
             <div class="metric-label">@TranslationService.GetTranslation("superAdmin.tenantsCreatedThisMonth", "Creati Questo Mese")</div>
-            <div class="metric-value">@(_tenants.Count(t => t.CreatedAt >= DateTime.UtcNow.AddMonths(-1)))</div>
+            <div class="metric-value">@_tenantsCreatedThisMonth</div>
         </div>
         <div class="metric-card info">
             <div class="metric-label">@TranslationService.GetTranslation("superAdmin.expiringTenants", "In Scadenza")</div>
-            <div class="metric-value">@(_tenants.Count(t => t.SubscriptionExpiresAt.HasValue && t.SubscriptionExpiresAt.Value <= DateTime.UtcNow.AddDays(30)))</div>
+            <div class="metric-value">@_expiringTenants</div>
         </div>
     </div>
 
@@ -214,6 +214,10 @@
     // Data collections
     private List<TenantResponseDto> _tenants = new();
     private TenantStatisticsDto? _tenantStats;
+    
+    // Dashboard metrics computed properties
+    private int _tenantsCreatedThisMonth => _tenants.Count(t => t.CreatedAt >= DateTime.UtcNow.AddMonths(-1));
+    private int _expiringTenants => _tenants.Count(t => t.SubscriptionExpiresAt.HasValue && t.SubscriptionExpiresAt.Value <= DateTime.UtcNow.AddDays(30));
 
     /// <summary>
     /// Computed property for filtered tenants based on search criteria.
