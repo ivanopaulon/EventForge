@@ -47,9 +47,12 @@ public class UserManagementController : BaseApiController
     {
         try
         {
+            _logger.LogInformation("Retrieving all users with tenant filter: {TenantId}", tenantId);
+
             var query = _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.Tenant)
                 .AsQueryable();
 
             if (tenantId.HasValue)
@@ -57,37 +60,29 @@ public class UserManagementController : BaseApiController
                 query = query.Where(u => u.TenantId == tenantId.Value);
             }
 
-            var users = await query
+            var result = await query
                 .OrderBy(u => u.TenantId)
                 .ThenBy(u => u.LastName)
                 .ThenBy(u => u.FirstName)
+                .Select(u => new UserManagementDto
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    Email = u.Email,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    FullName = u.FullName,
+                    IsActive = u.IsActive,
+                    MustChangePassword = u.MustChangePassword,
+                    Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                    TenantId = u.TenantId,
+                    TenantName = u.Tenant != null ? u.Tenant.Name : "Unknown",
+                    CreatedAt = u.CreatedAt,
+                    LastLoginAt = u.LastLoginAt
+                })
                 .ToListAsync();
 
-            var result = new List<UserManagementDto>();
-
-            foreach (var user in users)
-            {
-                var tenant = await _context.Tenants.FindAsync(user.TenantId);
-
-                var userDto = new UserManagementDto
-                {
-                    Id = user.Id,
-                    Username = user.Username,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    FullName = user.FullName,
-                    IsActive = user.IsActive,
-                    MustChangePassword = user.MustChangePassword,
-                    Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
-                    TenantId = user.TenantId,
-                    TenantName = tenant?.Name ?? "Unknown",
-                    CreatedAt = user.CreatedAt,
-                    LastLoginAt = user.LastLoginAt
-                };
-
-                result.Add(userDto);
-            }
+            _logger.LogInformation("Retrieved {Count} users", result.Count);
 
             return Ok(result);
         }
@@ -114,34 +109,33 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var user = await _context.Users
+            var userDto = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .Include(u => u.Tenant)
+                .Where(u => u.Id == userId)
+                .Select(u => new UserManagementDto
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    Email = u.Email,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    FullName = u.FullName,
+                    IsActive = u.IsActive,
+                    MustChangePassword = u.MustChangePassword,
+                    Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                    TenantId = u.TenantId,
+                    TenantName = u.Tenant != null ? u.Tenant.Name : "Unknown",
+                    CreatedAt = u.CreatedAt,
+                    LastLoginAt = u.LastLoginAt
+                })
+                .FirstOrDefaultAsync();
 
-            if (user == null)
+            if (userDto == null)
             {
                 return CreateNotFoundProblem($"User {userId} not found");
             }
-
-            var tenant = await _context.Tenants.FindAsync(user.TenantId);
-
-            var userDto = new UserManagementDto
-            {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                FullName = user.FullName,
-                IsActive = user.IsActive,
-                MustChangePassword = user.MustChangePassword,
-                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
-                TenantId = user.TenantId,
-                TenantName = tenant?.Name ?? "Unknown",
-                CreatedAt = user.CreatedAt,
-                LastLoginAt = user.LastLoginAt
-            };
 
             return Ok(userDto);
         }
@@ -174,6 +168,7 @@ public class UserManagementController : BaseApiController
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -220,8 +215,6 @@ public class UserManagementController : BaseApiController
             await _hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserStatusChanged", new { UserId = userId, IsActive = updateDto.IsActive });
 
-            var tenant = await _context.Tenants.FindAsync(user.TenantId);
-
             var result = new UserManagementDto
             {
                 Id = user.Id,
@@ -234,7 +227,7 @@ public class UserManagementController : BaseApiController
                 MustChangePassword = user.MustChangePassword,
                 Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
                 TenantId = user.TenantId,
-                TenantName = tenant?.Name ?? "Unknown",
+                TenantName = user.Tenant?.Name ?? "Unknown",
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt
             };
@@ -259,6 +252,7 @@ public class UserManagementController : BaseApiController
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -331,8 +325,6 @@ public class UserManagementController : BaseApiController
             await _hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserRolesChanged", new { UserId = userId, Roles = updateDto.Roles });
 
-            var tenant = await _context.Tenants.FindAsync(user.TenantId);
-
             var result = new UserManagementDto
             {
                 Id = user.Id,
@@ -345,7 +337,7 @@ public class UserManagementController : BaseApiController
                 MustChangePassword = user.MustChangePassword,
                 Roles = updateDto.Roles,
                 TenantId = user.TenantId,
-                TenantName = tenant?.Name ?? "Unknown",
+                TenantName = user.Tenant?.Name ?? "Unknown",
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt
             };
@@ -605,36 +597,31 @@ public class UserManagementController : BaseApiController
                 query = query.OrderByDescending(u => u.CreatedAt);
             }
 
+            // Add eager loading of Tenant before executing queries
+            query = query.Include(u => u.Tenant);
+            
             var totalCount = await query.CountAsync();
-            var users = await query
+            
+            var result = await query
                 .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
                 .Take(searchDto.PageSize)
-                .ToListAsync();
-
-            var result = new List<UserManagementDto>();
-            foreach (var user in users)
-            {
-                var tenant = await _context.Tenants.FindAsync(user.TenantId);
-
-                var userDto = new UserManagementDto
+                .Select(u => new UserManagementDto
                 {
-                    Id = user.Id,
-                    Username = user.Username,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    FullName = user.FullName,
-                    IsActive = user.IsActive,
-                    MustChangePassword = user.MustChangePassword,
-                    Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
-                    TenantId = user.TenantId,
-                    TenantName = tenant?.Name ?? "Unknown",
-                    CreatedAt = user.CreatedAt,
-                    LastLoginAt = user.LastLoginAt
-                };
-
-                result.Add(userDto);
-            }
+                    Id = u.Id,
+                    Username = u.Username,
+                    Email = u.Email,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    FullName = u.FullName,
+                    IsActive = u.IsActive,
+                    MustChangePassword = u.MustChangePassword,
+                    Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                    TenantId = u.TenantId,
+                    TenantName = u.Tenant != null ? u.Tenant.Name : "Unknown",
+                    CreatedAt = u.CreatedAt,
+                    LastLoginAt = u.LastLoginAt
+                })
+                .ToListAsync();
 
             var paginatedResponse = new PagedResult<UserManagementDto>
             {
@@ -693,18 +680,12 @@ public class UserManagementController : BaseApiController
                 .Select(g => new { Role = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Role, x => x.Count);
 
-            var usersByTenant = await _context.Users
+            var usersByTenantDict = await _context.Users
+                .Include(u => u.Tenant)
                 .Where(u => tenantId == null || u.TenantId == tenantId.Value)
-                .GroupBy(u => u.TenantId)
-                .Select(g => new { TenantId = g.Key, Count = g.Count() })
-                .ToListAsync();
-
-            var usersByTenantDict = new Dictionary<string, int>();
-            foreach (var item in usersByTenant)
-            {
-                var tenant = await _context.Tenants.FindAsync(item.TenantId);
-                usersByTenantDict[tenant?.Name ?? "Unknown"] = item.Count;
-            }
+                .GroupBy(u => new { u.TenantId, TenantName = u.Tenant != null ? u.Tenant.Name : null })
+                .Select(g => new { TenantName = g.Key.TenantName ?? "Unknown", Count = g.Count() })
+                .ToDictionaryAsync(x => x.TenantName, x => x.Count);
 
             var statistics = new UserStatisticsDto
             {
@@ -896,6 +877,7 @@ public class UserManagementController : BaseApiController
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -1003,8 +985,6 @@ public class UserManagementController : BaseApiController
             await _hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserUpdated", new { UserId = userId, Username = user.Username });
 
-            var tenant = await _context.Tenants.FindAsync(user.TenantId);
-
             var result = new UserManagementDto
             {
                 Id = user.Id,
@@ -1017,7 +997,7 @@ public class UserManagementController : BaseApiController
                 MustChangePassword = user.MustChangePassword,
                 Roles = updateDto.Roles,
                 TenantId = user.TenantId,
-                TenantName = tenant?.Name ?? "Unknown",
+                TenantName = user.Tenant?.Name ?? "Unknown",
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt
             };
