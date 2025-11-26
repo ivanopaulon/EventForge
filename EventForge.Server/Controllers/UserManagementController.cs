@@ -76,7 +76,7 @@ public class UserManagementController : BaseApiController
                     MustChangePassword = u.MustChangePassword,
                     Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
                     TenantId = u.TenantId,
-                    TenantName = u.Tenant.Name ?? "Unknown",
+                    TenantName = u.Tenant != null ? u.Tenant.Name : "Unknown",
                     CreatedAt = u.CreatedAt,
                     LastLoginAt = u.LastLoginAt
                 })
@@ -126,7 +126,7 @@ public class UserManagementController : BaseApiController
                     MustChangePassword = u.MustChangePassword,
                     Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
                     TenantId = u.TenantId,
-                    TenantName = u.Tenant.Name ?? "Unknown",
+                    TenantName = u.Tenant != null ? u.Tenant.Name : "Unknown",
                     CreatedAt = u.CreatedAt,
                     LastLoginAt = u.LastLoginAt
                 })
@@ -617,7 +617,7 @@ public class UserManagementController : BaseApiController
                     MustChangePassword = u.MustChangePassword,
                     Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
                     TenantId = u.TenantId,
-                    TenantName = u.Tenant.Name ?? "Unknown",
+                    TenantName = u.Tenant != null ? u.Tenant.Name : "Unknown",
                     CreatedAt = u.CreatedAt,
                     LastLoginAt = u.LastLoginAt
                 })
@@ -683,8 +683,8 @@ public class UserManagementController : BaseApiController
             var usersByTenantDict = await _context.Users
                 .Include(u => u.Tenant)
                 .Where(u => tenantId == null || u.TenantId == tenantId.Value)
-                .GroupBy(u => new { u.TenantId, u.Tenant.Name })
-                .Select(g => new { TenantName = g.Key.Name ?? "Unknown", Count = g.Count() })
+                .GroupBy(u => new { u.TenantId, TenantName = u.Tenant != null ? u.Tenant.Name : null })
+                .Select(g => new { TenantName = g.Key.TenantName ?? "Unknown", Count = g.Count() })
                 .ToDictionaryAsync(x => x.TenantName, x => x.Count);
 
             var statistics = new UserStatisticsDto
