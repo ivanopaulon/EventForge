@@ -1,0 +1,723 @@
+@page "/superadmin/chat-moderation"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.SuperAdmin
+@using EventForge.Client.Shared.Components
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject ISuperAdminService SuperAdminService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+
+<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.chatModeration", "Moderazione Chat"))</PageTitle>
+
+<SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.chatModeration", "Moderazione Chat")"
+                      PageIcon="@Icons.Material.Outlined.Forum"
+                      IsLoading="_isLoading"
+                      IsAuthorized="_isAuthorized"
+                      OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
+
+    <!-- Statistics Section -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.moderationStatistics", "Statistiche Moderazione")"
+                                  SectionIcon="@Icons.Material.Outlined.Analytics"
+                                  @bind-IsExpanded="_statisticsExpanded">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="d-flex justify-space-between align-center pa-3 border-rounded" Elevation="1">
+                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalChats", "Chat Totali"):</MudText>
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_chatStats?.TotalChats ?? 0)</MudChip>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="d-flex justify-space-between align-center pa-3 border-rounded" Elevation="1">
+                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.activeChats", "Chat Attive"):</MudText>
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_chatStats?.ActiveChats ?? 0)</MudChip>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="d-flex justify-space-between align-center pa-3 border-rounded" Elevation="1">
+                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.reportedMessages", "Messaggi Segnalati"):</MudText>
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">@(_chatStats?.ReportedMessages ?? 0)</MudChip>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="d-flex justify-space-between align-center pa-3 border-rounded" Elevation="1">
+                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.blockedUsers", "Utenti Bloccati"):</MudText>
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">@(_chatStats?.BlockedUsers ?? 0)</MudChip>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Quick Actions -->
+        <div class="d-flex justify-start flex-wrap ga-2 mt-4">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="@RefreshStatisticsAsync">
+                @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="@ExportModerationReportAsync">
+                @TranslationService.GetTranslation("superAdmin.exportReport", "Esporta Report")
+            </MudButton>
+        </div>
+    </SuperAdminCollapsibleSection>
+
+    <!-- Filters Section -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.moderationFilters", "Filtri Moderazione")"
+                                  SectionIcon="@Icons.Material.Outlined.FilterList"
+                                  @bind-IsExpanded="_filtersExpanded">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="string" @bind-Value="_selectedTenantFilter" 
+                           Label="@TranslationService.GetTranslation("field.tenant", "Tenant")" 
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.allTenants", "Tutti i Tenant")</MudSelectItem>
+                    @foreach (var tenant in _tenants)
+                    {
+                        <MudSelectItem Value="@tenant.Id.ToString()">@tenant.DisplayName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="string" @bind-Value="_selectedStatusFilter" 
+                           Label="@TranslationService.GetTranslation("superAdmin.moderationStatus", "Stato Moderazione")" 
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    <MudSelectItem Value="@("")">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                    <MudSelectItem Value="@("pending")">@TranslationService.GetTranslation("superAdmin.pending", "In Attesa")</MudSelectItem>
+                    <MudSelectItem Value="@("reviewed")">@TranslationService.GetTranslation("superAdmin.reviewed", "Revisionato")</MudSelectItem>
+                    <MudSelectItem Value="@("blocked")">@TranslationService.GetTranslation("superAdmin.blocked", "Bloccato")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="string" @bind-Value="_selectedSeverityFilter" 
+                           Label="@TranslationService.GetTranslation("superAdmin.severity", "Gravità")" 
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    <MudSelectItem Value="@("")">@TranslationService.GetTranslation("common.all", "Tutte")</MudSelectItem>
+                    <MudSelectItem Value="@("low")">@TranslationService.GetTranslation("superAdmin.severityLow", "Bassa")</MudSelectItem>
+                    <MudSelectItem Value="@("medium")">@TranslationService.GetTranslation("superAdmin.severityMedium", "Media")</MudSelectItem>
+                    <MudSelectItem Value="@("high")">@TranslationService.GetTranslation("superAdmin.severityHigh", "Alta")</MudSelectItem>
+                    <MudSelectItem Value="@("critical")">@TranslationService.GetTranslation("superAdmin.severityCritical", "Critica")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        <div class="d-flex justify-start flex-wrap ga-2 mt-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       OnClick="@ApplyFiltersAsync">
+                @TranslationService.GetTranslation("common.applyFilters", "Applica Filtri")
+            </MudButton>
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.Clear"
+                       OnClick="@ClearFiltersAsync">
+                @TranslationService.GetTranslation("common.clearFilters", "Pulisci Filtri")
+            </MudButton>
+        </div>
+    </SuperAdminCollapsibleSection>
+
+    <!-- Reported Messages Table -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.reportedMessages", "Messaggi Segnalati")"
+                                  SectionIcon="@Icons.Material.Outlined.Report"
+                                  @bind-IsExpanded="_reportedMessagesExpanded">
+        @if (_isLoadingReports)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+        }
+        else if (_reportedMessages?.Any() == true)
+        {
+            <MudTable T="ReportedMessageDto" 
+                      Items="_reportedMessages" 
+                      Hover="true" 
+                      Striped="true"
+                      Dense="true"
+                      FixedHeader="true"
+                      Height="400px">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("superAdmin.messageId", "ID Messaggio")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("superAdmin.chatName", "Chat")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("superAdmin.sender", "Mittente")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("superAdmin.messageContent", "Contenuto")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("superAdmin.reportReason", "Motivo Segnalazione")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("superAdmin.severity", "Gravità")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("superAdmin.reportedAt", "Segnalato il")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("superAdmin.status", "Stato")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.MessageId</MudTd>
+                    <MudTd DataLabel="Chat">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@(context.IsGroupChat ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" 
+                                     Size="Size.Small" 
+                                     Class="mr-2" />
+                            @context.ChatName
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Sender">@context.SenderName</MudTd>
+                    <MudTd DataLabel="Content">
+                        <MudText Typo="Typo.body2" Style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                            @context.MessageContent
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Reason">
+                        <MudChip T="string" Size="Size.Small" Color="@GetReasonColor(context.ReportReason)">
+                            @context.ReportReason
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Severity">
+                        <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(context.Severity)">
+                            @context.Severity
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Reported">@context.ReportedAt.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <div class="d-flex align-center ga-1">
+                            <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.viewMessage", "Visualizza messaggio")">
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                               Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="@(() => ViewMessageDetailsAsync(context))" />
+                            </MudTooltip>
+                            
+                            @if (context.Status == "pending")
+                            {
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.approveMessage", "Approva messaggio")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                                   Size="Size.Small"
+                                                   Color="Color.Success"
+                                                   OnClick="@(() => ApproveMessageAsync(context.MessageId))" />
+                                </MudTooltip>
+                                
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.blockMessage", "Blocca messaggio")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Block"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => BlockMessageAsync(context.MessageId))" />
+                                </MudTooltip>
+                            }
+                            
+                            <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.moderateUser", "Modera utente")">
+                                <MudIconButton Icon="@Icons.Material.Filled.PersonOff"
+                                               Size="Size.Small"
+                                               Color="Color.Warning"
+                                               OnClick="@(() => ModerateUserAsync(context.SenderId))" />
+                            </MudTooltip>
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <div class="d-flex justify-center mt-4">
+                <MudPagination Count="@_totalReportPages" 
+                               @bind-Selected="_currentReportPage" 
+                               Color="Color.Primary"
+                               Size="Size.Medium" />
+            </div>
+        }
+        else
+        {
+            <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                         Size="Size.Medium" 
+                         Color="Color.Success" 
+                         Class="mb-4" />
+                <MudText Typo="Typo.h6" Color="Color.Success">
+                    @TranslationService.GetTranslation("superAdmin.noReportedMessages", "Nessun messaggio segnalato")
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                    @TranslationService.GetTranslation("superAdmin.noReportedMessagesSubtext", "Tutti i messaggi sono stati moderati o non ci sono segnalazioni")
+                </MudText>
+            </div>
+        }
+    </SuperAdminCollapsibleSection>
+
+    <!-- Chat Activity Monitor -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.chatActivityMonitor", "Monitor Attività Chat")"
+                                  SectionIcon="@Icons.Material.Outlined.Monitor"
+                                  @bind-IsExpanded="_activityMonitorExpanded">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mr-2" />
+                        @TranslationService.GetTranslation("superAdmin.messageTrends", "Tendenze Messaggi (24h)")
+                    </MudText>
+                    <!-- TODO: Implement chart component for message trends -->
+                    <div class="d-flex justify-center align-center" Style="height: 200px;">
+                        <MudText Color="Color.Secondary">
+                            @TranslationService.GetTranslation("superAdmin.chartPlaceholder", "Grafico tendenze - Da implementare")
+                        </MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.PieChart" Class="mr-2" />
+                        @TranslationService.GetTranslation("superAdmin.chatDistribution", "Distribuzione Chat per Tenant")
+                    </MudText>
+                    <!-- TODO: Implement pie chart component for chat distribution -->
+                    <div class="d-flex justify-center align-center" Style="height: 200px;">
+                        <MudText Color="Color.Secondary">
+                            @TranslationService.GetTranslation("superAdmin.chartPlaceholder", "Grafico distribuzione - Da implementare")
+                        </MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </SuperAdminCollapsibleSection>
+
+    <!-- Moderation Settings -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.moderationSettings", "Impostazioni Moderazione")"
+                                  SectionIcon="@Icons.Material.Outlined.AdminPanelSettings"
+                                  @bind-IsExpanded="_settingsExpanded">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <MudSwitch T="bool" 
+                           @bind-Value="_autoModerationEnabled"
+                           Label="@TranslationService.GetTranslation("superAdmin.autoModeration", "Moderazione Automatica")"
+                           Color="Color.Primary" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("superAdmin.autoModerationDescription", "Blocca automaticamente messaggi con contenuto inappropriato")
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSwitch T="bool" 
+                           @bind-Value="_realTimeNotificationsEnabled"
+                           Label="@TranslationService.GetTranslation("superAdmin.realTimeNotifications", "Notifiche in Tempo Reale")"
+                           Color="Color.Primary" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("superAdmin.realTimeNotificationsDescription", "Ricevi notifiche immediate per segnalazioni critiche")
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int" 
+                                 @bind-Value="_maxMessagesPerMinute"
+                                 Label="@TranslationService.GetTranslation("superAdmin.rateLimitMessages", "Limite Messaggi/Minuto")"
+                                 Variant="Variant.Outlined"
+                                 Min="1"
+                                 Max="100" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int" 
+                                 @bind-Value="_autoBlockThreshold"
+                                 Label="@TranslationService.GetTranslation("superAdmin.autoBlockThreshold", "Soglia Blocco Automatico")"
+                                 Variant="Variant.Outlined"
+                                 Min="1"
+                                 Max="10" />
+            </MudItem>
+        </MudGrid>
+
+        <div class="d-flex justify-start flex-wrap ga-2 mt-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="@SaveModerationSettingsAsync">
+                @TranslationService.GetTranslation("common.saveSettings", "Salva Impostazioni")
+            </MudButton>
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.RestoreFromTrash"
+                       OnClick="@ResetToDefaultsAsync">
+                @TranslationService.GetTranslation("common.resetToDefaults", "Ripristina Default")
+            </MudButton>
+        </div>
+    </SuperAdminCollapsibleSection>
+
+</SuperAdminPageLayout>
+
+@code {
+    // Component state
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private bool _isLoadingReports = false;
+
+    // Collapsible sections state
+    private bool _statisticsExpanded = true;
+    private bool _filtersExpanded = false;
+    private bool _reportedMessagesExpanded = true;
+    private bool _activityMonitorExpanded = false;
+    private bool _settingsExpanded = false;
+
+    // Filter state
+    private string _selectedTenantFilter = "";
+    private string _selectedStatusFilter = "";
+    private string _selectedSeverityFilter = "";
+
+    // Pagination state
+    private int _currentReportPage = 1;
+    private int _totalReportPages = 1;
+
+    // Settings state
+    private bool _autoModerationEnabled = true;
+    private bool _realTimeNotificationsEnabled = true;
+    private int _maxMessagesPerMinute = 10;
+    private int _autoBlockThreshold = 3;
+
+    // Data collections
+    private List<TenantDto> _tenants = new();
+    private List<ReportedMessageDto> _reportedMessages = new();
+    private ChatModerationStatsDto? _chatStats;
+
+    /// <summary>
+    /// Initialize chat moderation page
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthorizationAsync();
+        if (_isAuthorized)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Check if user is authorized for SuperAdmin operations
+    /// </summary>
+    private async Task CheckAuthorizationAsync()
+    {
+        try
+        {
+            _isAuthorized = await AuthService.IsSuperAdminAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nella verifica autorizzazione: {ex.Message}", Severity.Error);
+            _isAuthorized = false;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Load all required data for chat moderation
+    /// TODO: Implement actual service integration
+    /// </summary>
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            // TODO: Replace with actual service calls
+            // var tenants = await SuperAdminService.GetTenantsAsync();
+            // var stats = await ChatService.GetModerationStatsAsync();
+            // var reports = await ChatService.GetReportedMessagesAsync();
+
+            // Placeholder data for UI structure
+            _tenants = GenerateTenantPlaceholders();
+            _chatStats = GenerateStatsPlaceholders();
+            await LoadReportedMessagesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento dati: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Load reported messages with pagination
+    /// TODO: Implement actual service integration
+    /// </summary>
+    private async Task LoadReportedMessagesAsync()
+    {
+        _isLoadingReports = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Replace with actual service call
+            // _reportedMessages = await ChatService.GetReportedMessagesAsync(_currentReportPage, filters);
+            
+            _reportedMessages = GenerateReportedMessagePlaceholders();
+            _totalReportPages = (int)Math.Ceiling(_reportedMessages.Count / 10.0);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento messaggi segnalati: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingReports = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Refresh statistics
+    /// </summary>
+    private async Task RefreshStatisticsAsync()
+    {
+        await LoadDataAsync();
+        Snackbar.Add(TranslationService.GetTranslation("common.dataRefreshed", "Dati aggiornati"), Severity.Success);
+    }
+
+    /// <summary>
+    /// Export moderation report
+    /// TODO: Implement actual export functionality
+    /// </summary>
+    private async Task ExportModerationReportAsync()
+    {
+        await Task.Delay(500); // Placeholder
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportReportPlaceholder", "Esportazione report - Da implementare"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Apply selected filters
+    /// </summary>
+    private async Task ApplyFiltersAsync()
+    {
+        await LoadReportedMessagesAsync();
+        Snackbar.Add(TranslationService.GetTranslation("common.filtersApplied", "Filtri applicati"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Clear all filters
+    /// </summary>
+    private async Task ClearFiltersAsync()
+    {
+        _selectedTenantFilter = "";
+        _selectedStatusFilter = "";
+        _selectedSeverityFilter = "";
+        await ApplyFiltersAsync();
+    }
+
+    /// <summary>
+    /// View message details in dialog
+    /// TODO: Implement message details modal
+    /// </summary>
+    private async Task ViewMessageDetailsAsync(ReportedMessageDto message)
+    {
+        await Task.Delay(100); // Placeholder
+        Snackbar.Add($"Visualizza dettagli messaggio ID: {message.MessageId} - Da implementare", Severity.Info);
+    }
+
+    /// <summary>
+    /// Approve reported message
+    /// TODO: Implement actual service integration
+    /// </summary>
+    private async Task ApproveMessageAsync(int messageId)
+    {
+        try
+        {
+            // TODO: Replace with actual service call
+            await Task.Delay(500); // Placeholder
+            
+            var message = _reportedMessages.FirstOrDefault(m => m.MessageId == messageId);
+            if (message != null)
+            {
+                message.Status = "approved";
+                StateHasChanged();
+            }
+            
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.messageApproved", "Messaggio approvato"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nell'approvazione: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Block reported message
+    /// TODO: Implement actual service integration
+    /// </summary>
+    private async Task BlockMessageAsync(int messageId)
+    {
+        try
+        {
+            // TODO: Replace with actual service call
+            await Task.Delay(500); // Placeholder
+            
+            var message = _reportedMessages.FirstOrDefault(m => m.MessageId == messageId);
+            if (message != null)
+            {
+                message.Status = "blocked";
+                StateHasChanged();
+            }
+            
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.messageBlocked", "Messaggio bloccato"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel blocco: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Moderate user (warning, temporary ban, permanent ban)
+    /// TODO: Implement user moderation dialog
+    /// </summary>
+    private async Task ModerateUserAsync(int userId)
+    {
+        await Task.Delay(100); // Placeholder
+        Snackbar.Add($"Moderazione utente ID: {userId} - Da implementare", Severity.Info);
+    }
+
+    /// <summary>
+    /// Save moderation settings
+    /// TODO: Implement actual settings service integration
+    /// </summary>
+    private async Task SaveModerationSettingsAsync()
+    {
+        try
+        {
+            // TODO: Replace with actual service call
+            await Task.Delay(500); // Placeholder
+            
+            Snackbar.Add(TranslationService.GetTranslation("common.settingsSaved", "Impostazioni salvate"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel salvataggio: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Reset settings to defaults
+    /// </summary>
+    private async Task ResetToDefaultsAsync()
+    {
+        _autoModerationEnabled = true;
+        _realTimeNotificationsEnabled = true;
+        _maxMessagesPerMinute = 10;
+        _autoBlockThreshold = 3;
+        
+        await SaveModerationSettingsAsync();
+        Snackbar.Add(TranslationService.GetTranslation("common.settingsReset", "Impostazioni ripristinate"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Get color for report reason
+    /// </summary>
+    private Color GetReasonColor(string reason) => reason?.ToLower() switch
+    {
+        "spam" => Color.Warning,
+        "harassment" => Color.Error,
+        "inappropriate" => Color.Secondary,
+        "violence" => Color.Error,
+        _ => Color.Default
+    };
+
+    /// <summary>
+    /// Get color for severity level
+    /// </summary>
+    private Color GetSeverityColor(string severity) => severity?.ToLower() switch
+    {
+        "low" => Color.Info,
+        "medium" => Color.Warning,
+        "high" => Color.Error,
+        "critical" => Color.Error,
+        _ => Color.Default
+    };
+
+    /// <summary>
+    /// Get color for moderation status
+    /// </summary>
+    private Color GetStatusColor(string status) => status?.ToLower() switch
+    {
+        "pending" => Color.Warning,
+        "approved" => Color.Success,
+        "blocked" => Color.Error,
+        "reviewed" => Color.Info,
+        _ => Color.Default
+    };
+
+    /// <summary>
+    /// Generate placeholder tenant data
+    /// TODO: Remove when actual service is implemented
+    /// </summary>
+    private List<TenantDto> GenerateTenantPlaceholders()
+    {
+        return new List<TenantDto>
+        {
+            new() { Id = Guid.NewGuid(), DisplayName = "Tenant Alpha" },
+            new() { Id = Guid.NewGuid(), DisplayName = "Tenant Beta" },
+            new() { Id = Guid.NewGuid(), DisplayName = "Tenant Gamma" }
+        };
+    }
+
+    /// <summary>
+    /// Generate placeholder statistics
+    /// TODO: Remove when actual service is implemented
+    /// </summary>
+    private ChatModerationStatsDto GenerateStatsPlaceholders()
+    {
+        return new ChatModerationStatsDto
+        {
+            TotalChats = 1247,
+            ActiveChats = 89,
+            ReportedMessages = 12,
+            BlockedUsers = 3
+        };
+    }
+
+    /// <summary>
+    /// Generate placeholder reported messages
+    /// TODO: Remove when actual service is implemented
+    /// </summary>
+    private List<ReportedMessageDto> GenerateReportedMessagePlaceholders()
+    {
+        return new List<ReportedMessageDto>
+        {
+            new() { MessageId = 1001, ChatName = "Team Alpha", SenderName = "Mario Rossi", SenderId = 123, MessageContent = "Messaggio inappropriato da moderare...", ReportReason = "inappropriate", Severity = "medium", Status = "pending", ReportedAt = DateTime.Now.AddHours(-2), IsGroupChat = true },
+            new() { MessageId = 1002, ChatName = "John Doe", SenderName = "John Doe", SenderId = 124, MessageContent = "Spam message with promotional content...", ReportReason = "spam", Severity = "low", Status = "pending", ReportedAt = DateTime.Now.AddHours(-4), IsGroupChat = false },
+            new() { MessageId = 1003, ChatName = "Support Team", SenderName = "Anna Verdi", SenderId = 125, MessageContent = "Contenuto molesto verso altri utenti...", ReportReason = "harassment", Severity = "high", Status = "reviewed", ReportedAt = DateTime.Now.AddHours(-6), IsGroupChat = true }
+        };
+    }
+
+    /// <summary>
+    /// Placeholder DTO for chat moderation statistics
+    /// TODO: Move to appropriate DTO project location
+    /// </summary>
+    private class ChatModerationStatsDto
+    {
+        public int TotalChats { get; set; }
+        public int ActiveChats { get; set; }
+        public int ReportedMessages { get; set; }
+        public int BlockedUsers { get; set; }
+    }
+
+    /// <summary>
+    /// Placeholder DTO for reported messages
+    /// TODO: Move to appropriate DTO project location
+    /// </summary>
+    private class ReportedMessageDto
+    {
+        public int MessageId { get; set; }
+        public string ChatName { get; set; } = "";
+        public string SenderName { get; set; } = "";
+        public int SenderId { get; set; }
+        public string MessageContent { get; set; } = "";
+        public string ReportReason { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime ReportedAt { get; set; }
+        public bool IsGroupChat { get; set; }
+    }
+
+    /// <summary>
+    /// Placeholder DTO for tenant data
+    /// TODO: Use existing TenantDto from DTOs project
+    /// </summary>
+    private class TenantDto
+    {
+        public Guid Id { get; set; }
+        public string DisplayName { get; set; } = "";
+    }
+}
