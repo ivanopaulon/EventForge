@@ -24,7 +24,8 @@ public class TransferOrderService : ITransferOrderService
         Guid? sourceWarehouseId = null,
         Guid? destinationWarehouseId = null,
         string? status = null,
-        string? searchTerm = null)
+        string? searchTerm = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -42,7 +43,7 @@ public class TransferOrderService : ITransferOrderService
             if (!string.IsNullOrWhiteSpace(searchTerm))
                 url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
 
-            return await _httpClientService.GetAsync<PagedResult<TransferOrderDto>>(url);
+            return await _httpClientService.GetAsync<PagedResult<TransferOrderDto>>(url, cancellationToken);
         }
         catch (Exception ex)
         {
