@@ -2,6 +2,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @using Microsoft.AspNetCore.Authorization
 @using System.Text.Json
 @attribute [Authorize(Roles = "SuperAdmin")]
@@ -12,168 +13,234 @@
 @inject IJSRuntime JSRuntime
 @inject ITranslationService TranslationService
 
-<SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("nav.clientLogManagement", "Log Client")"
-                      PageIcon="@Icons.Material.Outlined.BugReport"
-                      IsLoading="_isLoading"
-                      IsAuthorized="_isAuthorized"
-                      OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
+<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("nav.clientLogManagement", "Log Client"))</PageTitle>
 
-    <!-- Statistics Section -->
-    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.statistics", "Statistiche")"
-                                  SectionIcon="@Icons.Material.Outlined.Analytics"
-                                  @bind-IsExpanded="_statisticsExpanded">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 border-rounded" Elevation="1">
-                    <MudText Typo="Typo.h6" Color="Color.Primary">Local Logs</MudText>
-                    <MudText Typo="Typo.h4">@_localLogs.Count</MudText>
-                </MudPaper>
-            </MudItem>
+<PageLoadingOverlay Visible="_isLoading || _isLoadingLogs"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 border-rounded" Elevation="1">
-                    <MudText Typo="Typo.h6" Color="Color.Warning">Errors</MudText>
-                    <MudText Typo="Typo.h4">@_localLogs.Count(l => l.Level == "Error" || l.Level == "Critical")</MudText>
-                </MudPaper>
-            </MudItem>
+@if (!_isLoading)
+{
+    @if (!_isAuthorized)
+    {
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+            <MudPaper Class="ef-tile">
+                <MudGrid Justify="Justify.Center">
+                    <MudItem xs="12">
+                        <div class="d-flex flex-column align-center">
+                            <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Medium" Style="font-size: 48px;" />
+                            <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
+                            <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                                @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.ArrowBack"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                                @TranslationService.GetTranslation("superAdmin.returnToHome", "Torna alla Home")
+                            </MudButton>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudContainer>
+    }
+    else
+    {
+        <div class="clientlog-page-root">
+            <div class="clientlog-top">
+                <ManagementDashboard TItem="ClientLogDto"
+                                     Items="_filteredLogs"
+                                     Metrics="_dashboardMetrics"
+                                     EntityType="ClientLog"
+                                     AllowConfiguration="true"
+                                     UseServerSide="false" />
+            </div>
 
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 border-rounded" Elevation="1">
-                    <MudText Typo="Typo.h6" Color="Color.Info">Warnings</MudText>
-                    <MudText Typo="Typo.h4">@_localLogs.Count(l => l.Level == "Warning")</MudText>
-                </MudPaper>
-            </MudItem>
+            <div class="eftable-wrapper">
+                <EFTable @ref="_efTable"
+                         TItem="ClientLogDto"
+                         Items="_filteredLogs"
+                         IsLoading="_isLoadingLogs"
+                         ComponentKey="ClientLogManagement"
+                         InitialColumnConfigurations="_initialColumns">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h5">
+                            @TranslationService.GetTranslation("nav.clientLogManagement", "Log Client")
+                        </MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="_searchTerm"
+                                      @bind-Value:after="OnSearchChanged"
+                                      Label="@TranslationService.GetTranslation("superAdmin.searchLogs", "Cerca log")"
+                                      Placeholder="@TranslationService.GetTranslation("superAdmin.searchLogsPlaceholder", "Cerca per messaggio, categoria...")"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Outlined.Search"
+                                      Clearable="true"
+                                      Class="ef-input" />
+                        <MudSelect T="string" @bind-Value="_selectedLevel" @bind-Value:after="OnSearchChanged" 
+                                   Label="@TranslationService.GetTranslation("superAdmin.logLevel", "Livello")" 
+                                   Placeholder="@TranslationService.GetTranslation("superAdmin.selectLevel", "Tutti i livelli")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   Class="ml-2"
+                                   Style="min-width: 150px;">
+                            <MudSelectItem Value="@("")">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                            <MudSelectItem Value="@("Debug")">Debug</MudSelectItem>
+                            <MudSelectItem Value="@("Information")">Information</MudSelectItem>
+                            <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
+                            <MudSelectItem Value="@("Error")">Error</MudSelectItem>
+                            <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
+                        </MudSelect>
+                        <ManagementTableToolbar ShowRefresh="true"
+                                                ShowCreate="false"
+                                                ShowDelete="false"
+                                                ShowSelectionBadge="false"
+                                                IsDisabled="_isLoadingLogs"
+                                                OnRefresh="@RefreshLogsAsync">
+                            <AdditionalActions>
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.flushToServer", "Flush to Server")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Send" 
+                                                   OnClick="@FlushLogsToServerAsync"
+                                                   Disabled="_isFlushingLogs"
+                                                   Variant="Variant.Outlined"
+                                                   Size="Size.Small"
+                                                   Color="Color.Secondary" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.exportLogs", "Export JSON")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Download" 
+                                                   OnClick="@ExportLogsAsync"
+                                                   Variant="Variant.Outlined"
+                                                   Size="Size.Small"
+                                                   Color="Color.Info" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.clearLogs", "Clear Local Logs")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Clear" 
+                                                   OnClick="@ClearLocalLogsAsync"
+                                                   Variant="Variant.Outlined"
+                                                   Size="Size.Small"
+                                                   Color="Color.Warning" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.testLog", "Test Log")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.BugReport" 
+                                                   OnClick="@TestLogAsync"
+                                                   Variant="Variant.Outlined"
+                                                   Size="Size.Small"
+                                                   Color="Color.Tertiary" />
+                                </MudTooltip>
+                            </AdditionalActions>
+                        </ManagementTableToolbar>
+                    </ToolBarContent>
+                    <HeaderContent Context="columnConfigurations">
+                        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                        {
+                            @if (column.PropertyName == "Timestamp")
+                            {
+                                <EFTableColumnHeader TItem="ClientLogDto" PropertyName="Timestamp" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<ClientLogDto, object>(x => x.Timestamp))" InitialDirection="MudBlazor.SortDirection.Descending">@TranslationService.GetTranslation("field.timestamp", "Timestamp")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "Level")
+                            {
+                                <EFTableColumnHeader TItem="ClientLogDto" PropertyName="Level" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<ClientLogDto, object>(x => x.Level))">@TranslationService.GetTranslation("field.level", "Livello")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "Category")
+                            {
+                                <EFTableColumnHeader TItem="ClientLogDto" PropertyName="Category" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<ClientLogDto, object>(x => x.Category ?? string.Empty))">@TranslationService.GetTranslation("field.category", "Categoria")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "Message")
+                            {
+                                <EFTableColumnHeader TItem="ClientLogDto" PropertyName="Message" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<ClientLogDto, object>(x => x.Message))">@TranslationService.GetTranslation("field.message", "Messaggio")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "Page")
+                            {
+                                <EFTableColumnHeader TItem="ClientLogDto" PropertyName="Page" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<ClientLogDto, object>(x => x.Page ?? string.Empty))">@TranslationService.GetTranslation("field.page", "Pagina")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                        }
+                        <MudTh Class="text-center" Style="min-width:80px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                    </HeaderContent>
 
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 border-rounded" Elevation="1">
-                    <MudText Typo="Typo.h6" Color="Color.Success">Info</MudText>
-                    <MudText Typo="Typo.h4">@_localLogs.Count(l => l.Level == "Information" || l.Level == "Debug")</MudText>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-    </SuperAdminCollapsibleSection>
-
-    <!-- Actions Section -->
-    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.quickActions", "Azioni Rapide")"
-                                  SectionIcon="@Icons.Material.Outlined.FastForward"
-                                  @bind-IsExpanded="_actionsExpanded">
-        <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       StartIcon="@Icons.Material.Outlined.Refresh"
-                       OnClick="RefreshLogs">
-                Refresh
-            </MudButton>
-            
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Secondary" 
-                       StartIcon="Icons.Material.Filled.Send"
-                       OnClick="FlushLogs"
-                       Disabled="_isFlushingLogs">
-                @if (_isFlushingLogs)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
-                    <span>Flushing...</span>
-                }
-                else
-                {
-                    <span>Flush to Server</span>
-                }
-            </MudButton>
-
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Info" 
-                       StartIcon="Icons.Material.Filled.Download"
-                       OnClick="ExportLogs">
-                Export JSON
-            </MudButton>
-
-            <MudButton Variant="Variant.Outlined" 
-                       Color="Color.Warning" 
-                       StartIcon="@Icons.Material.Outlined.Clear"
-                       OnClick="ClearLogs">
-                Clear Local Logs
-            </MudButton>
-
-            <MudSpacer />
-
-            <!-- Test Logging -->
-            <MudSelect @bind-Value="_testLogLevel" Label="Test Log Level" Variant="Variant.Outlined" Dense="true">
-                <MudSelectItem Value="@("Debug")">Debug</MudSelectItem>
-                <MudSelectItem Value="@("Information")">Information</MudSelectItem>
-                <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
-                <MudSelectItem Value="@("Error")">Error</MudSelectItem>
-                <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
-            </MudSelect>
-
-            <MudButton Variant="Variant.Outlined" 
-                       Color="Color.Tertiary" 
-                       StartIcon="Icons.Material.Filled.BugReport"
-                       OnClick="CreateTestLog">
-                Test Log
-            </MudButton>
-        </MudStack>
-    </SuperAdminCollapsibleSection>
-
-    <!-- Log Table Section -->
-    <MudPaper Elevation="2" Class="pa-2 mb-1 border-rounded">
-        <MudDataGrid T="ClientLogDto" 
-                     Items="_filteredLogs" 
-                     Dense="true" 
-                     Hover="true" 
-                     Filterable="true"
-                     SortMode="SortMode.Single"
-                     QuickFilter="@_quickFilter"
-                     Height="600px"
-                     FixedHeader="true">
-            
-            <ToolBarContent>
-                <MudText Typo="Typo.h6">Client Logs</MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchString" 
-                              Placeholder="Search logs..." 
-                              Adornment="Adornment.Start" 
-                              AdornmentIcon="@Icons.Material.Outlined.Search" 
-                              IconSize="Size.Medium" 
-                              Class="mt-0"
-                              DebounceInterval="300"
-                              OnDebounceIntervalElapsed="OnSearchChanged">
-                </MudTextField>
-            </ToolBarContent>
-
-            <Columns>
-                <PropertyColumn Property="x => x.Timestamp" title="Time" Format="HH:mm:ss" Sortable="true" />
-                <PropertyColumn Property="x => x.Level" title="Level">
-                    <CellTemplate>
+                    <RowTemplate Context="item">
                         @{
-                            var color = context.Item.Level switch
-                                    {
-                                        "Critical" => Color.Error,
-                                        "Error" => Color.Error,
-                                        "Warning" => Color.Warning,
-                                        "Information" => Color.Info,
-                                        "Debug" => Color.Default,
-                                        _ => Color.Default
-                                    };
-                                }
-                                <MudChip Color="color" Size="Size.Small">@context.Item.Level</MudChip>
-                            </CellTemplate>
-                        </PropertyColumn>
-                        <PropertyColumn Property="x => x.Category" title="Category" Sortable="true" />
-                        <PropertyColumn Property="x => x.Message" title="Message" />
-                        <PropertyColumn Property="x => x.Page" title="Page" />
-                    <TemplateColumn title="Actions" Sortable="false">
-                        <CellTemplate>
-                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
-                                           Size="Size.Small" 
-                                           OnClick="() => ViewLogDetails(context.Item)" />
-                        </CellTemplate>
-                    </TemplateColumn>
-                </Columns>
-            </MudDataGrid>
-    </MudPaper>
+                            var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                        }
+                        @foreach (var column in visibleColumns)
+                        {
+                            @if (column.PropertyName == "Timestamp")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.timestamp", "Timestamp")">
+                                    <MudText Typo="Typo.body2">@item.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "Level")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.level", "Livello")">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetLogLevelColor(item.Level)" Icon="@GetLogLevelIcon(item.Level)">
+                                        @item.Level
+                                    </MudChip>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "Category")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.category", "Categoria")">
+                                    <MudText Typo="Typo.body2">@(item.Category ?? "-")</MudText>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "Message")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.message", "Messaggio")">
+                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
+                                        @(string.IsNullOrEmpty(item.Message) ? "-" : item.Message)
+                                    </MudText>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "Page")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.page", "Pagina")">
+                                    <MudText Typo="Typo.body2">@(item.Page ?? "-")</MudText>
+                                </MudTd>
+                            }
+                        }
+                        <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                            <MudTooltip Text="@TranslationService.GetTranslation("action.viewDetails", "Visualizza dettagli")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
+                                               Size="Size.Small" 
+                                               OnClick="() => ViewLogDetails(item)" />
+                            </MudTooltip>
+                        </MudTd>
+                    </RowTemplate>
 
-</SuperAdminPageLayout>
+                    <NoRecordsContent>
+                        <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                            <MudIcon Icon="@Icons.Material.Outlined.BugReport" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                            <MudText Typo="Typo.h6" Class="mb-2">
+                                @(_localLogs.Any() ?
+                                    TranslationService.GetTranslation("superAdmin.noLogsMatchFilters", "Nessun log corrisponde ai filtri applicati") :
+                                    TranslationService.GetTranslation("superAdmin.noLogsFound", "Nessun log trovato"))
+                            </MudText>
+                            @if (_localLogs.Any())
+                            {
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Outlined.Clear"
+                                           OnClick="@ClearFilters">
+                                    @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                                </MudButton>
+                            }
+                        </div>
+                    </NoRecordsContent>
+                </EFTable>
+            </div>
+        </div>
+    }
+}
 
 <!-- Log Details Dialog -->
 <MudDialog @bind-Visible="_showDetailsDialog" Options="_dialogOptions">
@@ -233,23 +300,99 @@
 </MudDialog>
 
 @code {
+    // UI State Management
     private bool _isLoading = true;
     private bool _isAuthorized = false;
-    
-    // Collapsible section states (closed by default)
-    private bool _statisticsExpanded = false;
-    private bool _actionsExpanded = false;
-    
-    private List<ClientLogDto> _localLogs = new();
-    private List<ClientLogDto> _filteredLogs = new();
-    private string _searchString = string.Empty;
+    private bool _isLoadingLogs = false;
     private bool _isFlushingLogs = false;
-    private string _testLogLevel = "Information";
     
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private string _selectedLevel = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
+    
+    // Data collections
+    private List<ClientLogDto> _localLogs = new();
+    
+    // EFTable reference
+    private EFTable<ClientLogDto> _efTable = null!;
+    
+    // Dialog state
     private bool _showDetailsDialog = false;
     private ClientLogDto? _selectedLog;
     private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Large, FullWidth = true };
+    
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Timestamp", DisplayName = "Timestamp", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Level", DisplayName = "Livello", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Category", DisplayName = "Categoria", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Message", DisplayName = "Messaggio", IsVisible = true, Order = 3 },
+        new() { PropertyName = "Page", DisplayName = "Pagina", IsVisible = true, Order = 4 }
+    };
+    
+    // Dashboard configuration
+    private List<DashboardMetric<ClientLogDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Total Logs",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.BugReport,
+            Color = "primary",
+            Description = "Numero totale di log locali",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Errors",
+            Type = MetricType.Count,
+            Filter = l => l.Level == "Error" || l.Level == "Critical",
+            Icon = Icons.Material.Outlined.Error,
+            Color = "error",
+            Description = "Log con livello Error o Critical",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Warnings",
+            Type = MetricType.Count,
+            Filter = l => l.Level == "Warning",
+            Icon = Icons.Material.Outlined.Warning,
+            Color = "warning",
+            Description = "Log con livello Warning",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Info/Debug",
+            Type = MetricType.Count,
+            Filter = l => l.Level == "Information" || l.Level == "Debug",
+            Icon = Icons.Material.Outlined.Info,
+            Color = "info",
+            Description = "Log con livello Information o Debug",
+            Format = "N0"
+        }
+    };
+    
+    /// <summary>
+    /// Computed property for filtered logs based on search criteria.
+    /// </summary>
+    private IEnumerable<ClientLogDto> _filteredLogs => 
+        _localLogs.Where(l => 
+            // Search filter
+            (string.IsNullOrEmpty(_searchTerm) || 
+             l.Message.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (l.Category != null && l.Category.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+             (l.Page != null && l.Page.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+            // Level filter
+            (string.IsNullOrEmpty(_selectedLevel) || l.Level == _selectedLevel)
+        ).OrderByDescending(l => l.Timestamp);
 
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         try
@@ -258,7 +401,7 @@
             
             if (_isAuthorized)
             {
-                await RefreshLogs();
+                await RefreshLogsAsync();
             }
         }
         catch (Exception ex)
@@ -271,14 +414,30 @@
         }
     }
 
-    private async Task RefreshLogs()
+    /// <summary>
+    /// Refresh logs from local storage.
+    /// </summary>
+    private async Task RefreshLogsAsync()
     {
-        _localLogs = await ClientLogService.GetLocalLogsAsync();
-        ApplyFilter();
-        StateHasChanged();
+        try
+        {
+            _isLoadingLogs = true;
+            _localLogs = await ClientLogService.GetLocalLogsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.errorLoadingLogs", "Errore nel caricamento dei log: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingLogs = false;
+        }
     }
 
-    private async Task FlushLogs()
+    /// <summary>
+    /// Flush logs to server.
+    /// </summary>
+    private async Task FlushLogsToServerAsync()
     {
         _isFlushingLogs = true;
         StateHasChanged();
@@ -286,14 +445,13 @@
         try
         {
             await ClientLogService.FlushAsync();
-            Snackbar.Add("Logs flushed successfully to server", Severity.Success);
-            await RefreshLogs(); // Refresh to see updated local storage
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.logsFlushedSuccess", "Log inviati al server con successo"), Severity.Success);
+            await RefreshLogsAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Failed to flush logs: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.flushLogsError", "Errore nell'invio dei log: {0}", ex.Message), Severity.Error);
             Console.WriteLine($"[CLIENT LOG MANAGEMENT] Flush error: {ex}");
-            // Don't try to log this error to ClientLogService since it's already failing
         }
         finally
         {
@@ -302,7 +460,10 @@
         }
     }
 
-    private async Task ExportLogs()
+    /// <summary>
+    /// Export logs to JSON file.
+    /// </summary>
+    private async Task ExportLogsAsync()
     {
         try
         {
@@ -313,101 +474,138 @@
             
             var fileName = $"client-logs-{DateTime.Now:yyyyMMdd-HHmmss}.json";
             await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "application/json", json);
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.logsExported", "Log esportati con successo"), Severity.Success);
         }
         catch (Exception ex)
         {
             await ClientLogService.LogErrorAsync($"Failed to export logs: {ex.Message}", ex, "ClientLogManagement");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportLogsError", "Errore nell'esportazione dei log: {0}", ex.Message), Severity.Error);
         }
     }
 
-    private async Task ClearLogs()
+    /// <summary>
+    /// Clear local logs.
+    /// </summary>
+    private async Task ClearLocalLogsAsync()
     {
         try
         {
             await ClientLogService.ClearLocalLogsAsync();
-            await RefreshLogs();
+            await RefreshLogsAsync();
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.logsCleared", "Log locali cancellati con successo"), Severity.Success);
         }
         catch (Exception ex)
         {
             await ClientLogService.LogErrorAsync($"Failed to clear logs: {ex.Message}", ex, "ClientLogManagement");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.clearLogsError", "Errore nella cancellazione dei log: {0}", ex.Message), Severity.Error);
         }
     }
 
-    private async Task CreateTestLog()
+    /// <summary>
+    /// Default log level for test logs
+    /// </summary>
+    private const string DefaultTestLogLevel = "Information";
+
+    /// <summary>
+    /// Create a test log entry.
+    /// </summary>
+    private async Task TestLogAsync()
     {
         try
         {
-            var message = $"Test {_testLogLevel} log created at {DateTime.Now:HH:mm:ss}";
+            var message = $"Test log created at {DateTime.Now:HH:mm:ss}";
             var properties = new Dictionary<string, object>
             {
                 ["TestProperty"] = "Test Value",
                 ["RandomNumber"] = Random.Shared.Next(1, 1000)
             };
 
-            switch (_testLogLevel)
-            {
-                case "Debug":
-                    await ClientLogService.LogDebugAsync(message, "TestLogger", properties);
-                    break;
-                case "Information":
-                    await ClientLogService.LogInformationAsync(message, "TestLogger", properties);
-                    break;
-                case "Warning":
-                    await ClientLogService.LogWarningAsync(message, "TestLogger", properties);
-                    break;
-                case "Error":
-                    await ClientLogService.LogErrorAsync(message, new Exception("Test exception"), "TestLogger", properties);
-                    break;
-                case "Critical":
-                    await ClientLogService.LogCriticalAsync(message, new Exception("Test critical exception"), "TestLogger", properties);
-                    break;
-            }
-
-            await RefreshLogs();
+            await ClientLogService.LogInformationAsync(message, "TestLogger", properties);
+            await RefreshLogsAsync();
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.testLogCreated", "Log di test creato con successo"), Severity.Success);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Failed to create test log: {ex.Message}");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.testLogError", "Errore nella creazione del log di test: {0}", ex.Message), Severity.Error);
         }
     }
 
+    /// <summary>
+    /// Clear all active filters.
+    /// </summary>
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _selectedLevel = string.Empty;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handle search term changes with debouncing.
+    /// </summary>
+    private async Task OnSearchChanged()
+    {
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token);
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
+    }
+
+    /// <summary>
+    /// View log details in dialog.
+    /// </summary>
     private void ViewLogDetails(ClientLogDto log)
     {
         _selectedLog = log;
         _showDetailsDialog = true;
     }
 
+    /// <summary>
+    /// Close log details dialog.
+    /// </summary>
     private void CloseDetailsDialog()
     {
         _showDetailsDialog = false;
         _selectedLog = null;
     }
 
-    private void OnSearchChanged()
+    /// <summary>
+    /// Get color for log level.
+    /// </summary>
+    private Color GetLogLevelColor(string level) => level switch
     {
-        ApplyFilter();
-    }
+        "Critical" => Color.Error,
+        "Error" => Color.Error,
+        "Warning" => Color.Warning,
+        "Information" => Color.Info,
+        "Debug" => Color.Default,
+        _ => Color.Default
+    };
 
-    private void ApplyFilter()
+    /// <summary>
+    /// Get icon for log level.
+    /// </summary>
+    private string GetLogLevelIcon(string level) => level switch
     {
-        _filteredLogs = string.IsNullOrEmpty(_searchString) 
-            ? _localLogs.OrderByDescending(l => l.Timestamp).ToList()
-            : _localLogs.Where(l => 
-                l.Message.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
-                l.Level.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
-                (l.Category?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (l.Page?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
-            ).OrderByDescending(l => l.Timestamp).ToList();
-    }
-
-    private Func<ClientLogDto, bool> _quickFilter => log =>
-    {
-        if (string.IsNullOrWhiteSpace(_searchString))
-            return true;
-
-        return log.Message.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
-               log.Level.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
-               (log.Category?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-               (log.Page?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+        "Critical" => Icons.Material.Filled.Error,
+        "Error" => Icons.Material.Filled.Error,
+        "Warning" => Icons.Material.Filled.Warning,
+        "Information" => Icons.Material.Filled.Info,
+        "Debug" => Icons.Material.Filled.BugReport,
+        _ => Icons.Material.Filled.CircleNotifications
     };
 }
