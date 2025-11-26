@@ -1,0 +1,35 @@
+/* Transfer Order Management Page - Fixed Layout with Scrollable Table */
+.transfer-order-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.transfer-order-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+.eftable-wrapper {
+    flex: 1 1 auto;
+    min-height: 0; /* CRUCIAL for overflow in flexbox */
+    overflow: auto;
+    padding: 8px 12px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .transfer-order-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .transfer-order-top {
+        padding: 8px;
+    }
+    
+    .eftable-wrapper {
+        padding: 4px 8px;
+    }
+}
