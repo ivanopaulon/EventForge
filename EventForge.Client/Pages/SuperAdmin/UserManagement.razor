@@ -218,7 +218,7 @@
                             else if (column.PropertyName == "Roles")
                             {
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.roles", "Ruoli")">
-                                    <div class="d-flex flex-wrap gap-1">
+                                    <div class="d-flex flex-wrap ga-1">
                                         @foreach (var role in item.Roles.Take(2))
                                         {
                                             <MudChip T="string" Size="Size.Small" 
@@ -406,8 +406,11 @@
         new() { PropertyName = "LastLoginAt", DisplayName = "Ultimo Accesso", IsVisible = true, Order = 6 }
     };
     
+    // Date cutoffs for dashboard metrics (calculated once for performance)
+    private readonly DateTime _thirtyDaysAgo = DateTime.Now.AddDays(-30);
+    
     // Dashboard configuration
-    private List<DashboardMetric<UserManagementDto>> _dashboardMetrics = new()
+    private List<DashboardMetric<UserManagementDto>> _dashboardMetrics => new()
     {
         new()
         {
@@ -432,7 +435,7 @@
         {
             Title = "Creati Questo Mese",
             Type = MetricType.Count,
-            Filter = u => u.CreatedAt >= DateTime.Now.AddDays(-30),
+            Filter = u => u.CreatedAt >= _thirtyDaysAgo,
             Icon = Icons.Material.Outlined.CalendarToday,
             Color = "warning",
             Description = "Utenti creati negli ultimi 30 giorni",
