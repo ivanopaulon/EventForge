@@ -257,12 +257,8 @@
         new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4 }
     };
     
-    // Date cutoffs for dashboard metrics (calculated once for performance)
-    private readonly DateTime _thirtyDaysAgo = DateTime.Now.AddDays(-30);
-    private readonly DateTime _thirtyDaysFromNow = DateTime.Now.AddDays(30);
-    
     // Dashboard configuration
-    private List<DashboardMetric<TenantResponseDto>> _dashboardMetrics => new()
+    private List<DashboardMetric<TenantResponseDto>> _dashboardMetrics = new()
     {
         new()
         {
@@ -287,7 +283,7 @@
         {
             Title = "Creati Questo Mese",
             Type = MetricType.Count,
-            Filter = t => t.CreatedAt >= _thirtyDaysAgo,
+            Filter = t => t.CreatedAt >= DateTime.Now.AddDays(-30),
             Icon = Icons.Material.Outlined.CalendarToday,
             Color = "warning",
             Description = "Tenant creati negli ultimi 30 giorni",
@@ -297,7 +293,7 @@
         {
             Title = "In Scadenza",
             Type = MetricType.Count,
-            Filter = t => t.SubscriptionExpiresAt.HasValue && t.SubscriptionExpiresAt.Value <= _thirtyDaysFromNow,
+            Filter = t => t.SubscriptionExpiresAt.HasValue && t.SubscriptionExpiresAt.Value <= DateTime.Now.AddDays(30),
             Icon = Icons.Material.Outlined.Warning,
             Color = "info",
             Description = "Tenant con sottoscrizione in scadenza nei prossimi 30 giorni",

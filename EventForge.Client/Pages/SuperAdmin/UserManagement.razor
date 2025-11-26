@@ -406,11 +406,8 @@
         new() { PropertyName = "LastLoginAt", DisplayName = "Ultimo Accesso", IsVisible = true, Order = 6 }
     };
     
-    // Date cutoffs for dashboard metrics (calculated once for performance)
-    private readonly DateTime _thirtyDaysAgo = DateTime.Now.AddDays(-30);
-    
     // Dashboard configuration
-    private List<DashboardMetric<UserManagementDto>> _dashboardMetrics => new()
+    private List<DashboardMetric<UserManagementDto>> _dashboardMetrics = new()
     {
         new()
         {
@@ -435,7 +432,7 @@
         {
             Title = "Creati Questo Mese",
             Type = MetricType.Count,
-            Filter = u => u.CreatedAt >= _thirtyDaysAgo,
+            Filter = u => u.CreatedAt >= DateTime.Now.AddDays(-30),
             Icon = Icons.Material.Outlined.CalendarToday,
             Color = "warning",
             Description = "Utenti creati negli ultimi 30 giorni",
