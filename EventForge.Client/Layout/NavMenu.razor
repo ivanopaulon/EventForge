@@ -39,20 +39,10 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.tenantSwitch", "Switch Tenant")
                 </MudNavLink>
-                <MudNavLink Href="/superadmin/system-logs" 
-                            Icon="@Icons.Material.Outlined.Article" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.systemLogs", "Log Sistema")
-                </MudNavLink>
                 <MudNavLink Href="/superadmin/client-log-management" 
                             Icon="@Icons.Material.Outlined.BugReport" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.clientLogManagement", "Log Client")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/audit-trail" 
-                            Icon="@Icons.Material.Outlined.History" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.auditTrail", "Audit Trail")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/chat-moderation" 
                             Icon="@Icons.Material.Outlined.Forum" 
@@ -63,11 +53,6 @@
                             Icon="@Icons.Material.Outlined.Settings" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.configuration", "Configurazione")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/translation-management" 
-                            Icon="@Icons.Material.Outlined.Translate" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.translationManagement", "Gestione Traduzioni")
                 </MudNavLink>
             </MudNavGroup>
         }
