@@ -347,6 +347,16 @@ public class LicenseController : BaseApiController
     {
         try
         {
+            _logger.LogInformation("Retrieving all tenant licenses with user counts");
+
+            // Pre-aggregate user counts for ALL tenants in ONE query to avoid N+1 problem
+            var userCountsByTenant = await _context.Users
+                .Where(u => !u.IsDeleted)
+                .GroupBy(u => u.TenantId)
+                .Select(g => new { TenantId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.TenantId, x => x.Count);
+
+            // Load all tenant licenses with full relationships
             var tenantLicenses = await _context.TenantLicenses
                 .Include(tl => tl.Tenant)
                 .Include(tl => tl.License)
@@ -357,53 +367,48 @@ public class LicenseController : BaseApiController
                 .OrderBy(tl => tl.Tenant.Name)
                 .ToListAsync();
 
-            var tenantLicenseDtos = new List<TenantLicenseDto>();
-
-            foreach (var tl in tenantLicenses)
+            // Map to DTOs using pre-loaded user counts (NO additional queries!)
+            var tenantLicenseDtos = tenantLicenses.Select(tl => new TenantLicenseDto
             {
-                var currentUserCount = await _context.Users.CountAsync(u => u.TenantId == tl.TargetTenantId && !u.IsDeleted);
-
-                tenantLicenseDtos.Add(new TenantLicenseDto
+                Id = tl.Id,
+                TenantId = tl.TargetTenantId,
+                TenantName = tl.Tenant.Name,
+                LicenseId = tl.LicenseId,
+                LicenseName = tl.License.Name,
+                LicenseDisplayName = tl.License.DisplayName,
+                StartsAt = tl.StartsAt,
+                ExpiresAt = tl.ExpiresAt,
+                IsActive = tl.IsAssignmentActive,
+                ApiCallsThisMonth = tl.ApiCallsThisMonth,
+                MaxApiCallsPerMonth = tl.License.MaxApiCallsPerMonth,
+                ApiCallsResetAt = tl.ApiCallsResetAt,
+                IsValid = tl.IsValid,
+                CreatedAt = tl.CreatedAt,
+                CreatedBy = tl.CreatedBy ?? "system",
+                ModifiedAt = tl.ModifiedAt,
+                ModifiedBy = tl.ModifiedBy,
+                TierLevel = tl.License.TierLevel,
+                MaxUsers = tl.License.MaxUsers,
+                CurrentUserCount = userCountsByTenant.GetValueOrDefault(tl.TargetTenantId, 0),
+                AvailableFeatures = tl.License.LicenseFeatures.Select(lf => new LicenseFeatureDto
                 {
-                    Id = tl.Id,
-                    TenantId = tl.TargetTenantId,
-                    TenantName = tl.Tenant.Name,
-                    LicenseId = tl.LicenseId,
+                    Id = lf.Id,
+                    Name = lf.Name,
+                    DisplayName = lf.DisplayName,
+                    Description = lf.Description,
+                    Category = lf.Category,
+                    IsActive = lf.IsActive,
+                    LicenseId = lf.LicenseId,
                     LicenseName = tl.License.Name,
-                    LicenseDisplayName = tl.License.DisplayName,
-                    StartsAt = tl.StartsAt,
-                    ExpiresAt = tl.ExpiresAt,
-                    IsActive = tl.IsAssignmentActive,
-                    ApiCallsThisMonth = tl.ApiCallsThisMonth,
-                    MaxApiCallsPerMonth = tl.License.MaxApiCallsPerMonth,
-                    ApiCallsResetAt = tl.ApiCallsResetAt,
-                    IsValid = tl.IsValid,
-                    CreatedAt = tl.CreatedAt,
-                    CreatedBy = tl.CreatedBy ?? "system",
-                    ModifiedAt = tl.ModifiedAt,
-                    ModifiedBy = tl.ModifiedBy,
-                    TierLevel = tl.License.TierLevel,
-                    MaxUsers = tl.License.MaxUsers,
-                    CurrentUserCount = currentUserCount,
-                    AvailableFeatures = tl.License.LicenseFeatures.Select(lf => new LicenseFeatureDto
-                    {
-                        Id = lf.Id,
-                        Name = lf.Name,
-                        DisplayName = lf.DisplayName,
-                        Description = lf.Description,
-                        Category = lf.Category,
-                        IsActive = lf.IsActive,
-                        LicenseId = lf.LicenseId,
-                        LicenseName = tl.License.Name,
-                        CreatedAt = lf.CreatedAt,
-                        CreatedBy = lf.CreatedBy ?? "system",
-                        ModifiedAt = lf.ModifiedAt,
-                        ModifiedBy = lf.ModifiedBy,
-                        RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
-                    }).ToList()
-                });
-            }
+                    CreatedAt = lf.CreatedAt,
+                    CreatedBy = lf.CreatedBy ?? "system",
+                    ModifiedAt = lf.ModifiedAt,
+                    ModifiedBy = lf.ModifiedBy,
+                    RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
+                }).ToList()
+            }).ToList();
 
+            _logger.LogInformation("Successfully retrieved {Count} tenant licenses", tenantLicenseDtos.Count);
             return Ok(tenantLicenseDtos);
         }
         catch (Exception ex)
