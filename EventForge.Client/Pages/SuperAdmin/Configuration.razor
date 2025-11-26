@@ -2,7 +2,9 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.DTOs.SuperAdmin
+@using EventForge.DTOs.Common
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject IConfigurationService ConfigurationService
@@ -10,124 +12,241 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
 @inject ITranslationService TranslationService
+@inject ILogger<Configuration> Logger
 
-<SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.systemConfiguration", "Configurazione Sistema")"
-                      PageIcon="@Icons.Material.Outlined.Settings"
-                      IsLoading="_isLoading"
-                      IsAuthorized="_isAuthorized"
-                      OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
+<PageLoadingOverlay Visible="_isLoading || _isLoadingEntities"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    <!-- Quick Actions Section -->
-    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.quickActions", "Azioni Rapide")"
-                                  SectionIcon="@Icons.Material.Outlined.FastForward"
-                                  @bind-IsExpanded="_quickActionsExpanded">
-        <div class="d-flex gap-2 align-center">
-            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
-                               Color="Color.Info"
-                               OnClick="LoadConfigurationsAsync"
-                               Disabled="_isLoading"
-                               aria-label="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")" />
-            </MudTooltip>
-            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Add"
-                               Color="Color.Primary" 
-                               OnClick="OpenCreateDialog"
-                               aria-label="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")" />
-            </MudTooltip>
+@if (!_isLoading)
+{
+    <div class="configuration-page-root">
+        <div class="configuration-top">
+            <ManagementDashboard TItem="ConfigurationDto"
+                                 Items="_filteredConfigurations"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="Configuration"
+                                 AllowConfiguration="false"
+                                 UseServerSide="false" />
         </div>
-    </SuperAdminCollapsibleSection>
 
-    @if (_configurations.Any())
-    {
-        <!-- Configuration Tabs: Main content area with reduced spacing -->
-        <MudPaper Elevation="2" Class="pa-2 mb-1 border-rounded">
-            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab">
-                @foreach (var category in _categories)
-                {
-                    <MudTabPanel Text="@TranslationService.GetTranslation($"superAdmin.category{category}", category)">
-                        <MudGrid Spacing="4">
-                            @foreach (var config in _configurations.Where(c => c.Category == category))
-                            {
-                                <MudItem xs="12" md="6" lg="4">
-                                    <MudCard Elevation="1" Class="mb-4">
-                                        <MudCardContent>
-                                            <div class="d-flex justify-space-between align-start mb-3">
-                                                <div class="flex-grow-1">
-                                                    <MudText Typo="Typo.h6" Class="mb-1">@config.Key</MudText>
-                                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@config.Description</MudText>
-                                                </div>
-                                                <div class="d-flex ga-1">
-                                                    @if (config.IsEncrypted)
-                                                    {
-                                                        <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.encryptedValue", "Valore crittografato")">
-                                                            <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" />
-                                                        </MudTooltip>
-                                                    }
-                                                    @if (config.RequiresRestart)
-                                                    {
-                                                        <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.requiresRestart", "Richiede riavvio")">
-                                                            <MudIcon Icon="@Icons.Material.Outlined.RestartAlt" Size="Size.Small" Color="Color.Error" />
-                                                        </MudTooltip>
-                                                    }
-                                                </div>
-                                            </div>
-                                            
-                                            <MudTextField Value="@(config.IsEncrypted ? "••••••••" : config.Value)"
-                                                          Label="@TranslationService.GetTranslation("superAdmin.configValue", "Valore")"
-                                                          Variant="Variant.Outlined"
-                                                          ReadOnly="true"
-                                                          Lines="2"
-                                                          Class="mb-3" />
-                                            
-                                            <div class="d-flex justify-space-between align-center">
-                                                <MudText Typo="Typo.caption" Color="Color.Tertiary">
-                                                    @TranslationService.GetTranslation("superAdmin.modified", "Modificato"): @(config.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("common.never", "Mai"))
-                                                </MudText>
-                                                <div class="d-flex ga-1">
-                                                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
-                                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
-                                                                       Size="Size.Small" 
-                                                                       Color="Color.Primary"
-                                                                       aria-label="@TranslationService.GetTranslation("tooltip.edit", "Modifica")"
-                                                                       OnClick="@(() => OpenEditDialog(config))" />
-                                                    </MudTooltip>
-                                                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
-                                                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
-                                                                       Size="Size.Small" 
-                                                                       Color="Color.Error"
-                                                                       aria-label="@TranslationService.GetTranslation("tooltip.delete", "Elimina")"
-                                                                       OnClick="@(() => DeleteConfigurationAsync(config))" />
-                                                    </MudTooltip>
-                                                </div>
-                                            </div>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                            }
-                        </MudGrid>
-                    </MudTabPanel>
-                }
-            </MudTabs>
-        </MudPaper>
-    }
-    else
-    {
-        <!-- Empty State -->
-        <MudPaper Elevation="2" Class="pa-4 mb-1 border-rounded">
-            <div class="d-flex flex-column align-center py-8">
-                <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Medium" Color="Color.Tertiary" Class="mb-4" />
-                <MudText Typo="Typo.h6" Color="Color.Tertiary">@TranslationService.GetTranslation("superAdmin.noConfigurationsFound", "Nessuna configurazione trovata")</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Tertiary" Class="mb-4">@TranslationService.GetTranslation("superAdmin.createFirstConfiguration", "Inizia creando la prima configurazione")</MudText>
-                <MudIconButton Icon="@Icons.Material.Outlined.Add"
-                               Color="Color.Primary"
-                               aria-label="@TranslationService.GetTranslation("superAdmin.createConfiguration", "Crea Configurazione")"
-                               OnClick="OpenCreateDialog">
-                </MudIconButton>
-            </div>
-        </MudPaper>
-    }
-</SuperAdminPageLayout>
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                     TItem="ConfigurationDto"
+                     Items="_filteredConfigurations"
+                     IsLoading="_isLoadingEntities"
+                     ComponentKey="ConfigurationManagement"
+                     InitialColumnConfigurations="_initialColumns">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h5">
+                        @TranslationService.GetTranslation("superAdmin.systemConfiguration", "Configurazione Sistema")
+                    </MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("configuration.search", "Cerca configurazioni")"
+                                  Placeholder="@TranslationService.GetTranslation("configuration.searchPlaceholder", "Inserisci chiave...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Class="ef-input" />
+                    <MudSelect T="string?" @bind-Value="_categoryFilter" @bind-Value:after="OnCategoryFilterChanged"
+                               Label="@TranslationService.GetTranslation("configuration.category", "Categoria")"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               Class="ef-input"
+                               Style="min-width: 150px;">
+                        <MudSelectItem Value="@((string?)null)">@TranslationService.GetTranslation("filter.all", "Tutti")</MudSelectItem>
+                        @foreach (var category in _categories)
+                        {
+                            <MudSelectItem Value="@category">@TranslationService.GetTranslation($"superAdmin.category{category}", category)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSwitch T="bool?" @bind-Value="_encryptedFilter" @bind-Value:after="OnEncryptedFilterChanged"
+                               Label="@TranslationService.GetTranslation("configuration.encrypted", "Solo Crittografate")"
+                               Color="Color.Warning"
+                               ThumbIcon="@(_encryptedFilter == true ? Icons.Material.Filled.Lock : null)" />
+                    <ManagementTableToolbar ShowRefresh="true"
+                                            ShowCreate="true"
+                                            CreateTooltip="configuration.createNew"
+                                            IsDisabled="_isLoadingEntities"
+                                            OnRefresh="@LoadConfigurationsAsync"
+                                            OnCreate="@OpenCreateDialog">
+                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.backup", "Backup configurazioni")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Backup" 
+                                           Color="Color.Info"
+                                           OnClick="@BackupConfigurations" />
+                        </MudTooltip>
+                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.import", "Importa configurazioni")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Upload" 
+                                           Color="Color.Primary"
+                                           OnClick="@ImportConfigurations" />
+                        </MudTooltip>
+                    </ManagementTableToolbar>
+                </ToolBarContent>
+                <HeaderContent Context="columnConfigurations">
+                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                    {
+                        @if (column.PropertyName == "Key")
+                        {
+                            <EFTableColumnHeader TItem="ConfigurationDto" PropertyName="Key" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ConfigurationDto, object>(x => x.Key))">@TranslationService.GetTranslation("field.key", "Chiave")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Category")
+                        {
+                            <EFTableColumnHeader TItem="ConfigurationDto" PropertyName="Category" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ConfigurationDto, object>(x => x.Category))">@TranslationService.GetTranslation("field.category", "Categoria")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Value")
+                        {
+                            <EFTableColumnHeader TItem="ConfigurationDto" PropertyName="Value" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ConfigurationDto, object>(x => x.Value))">@TranslationService.GetTranslation("field.value", "Valore")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Description")
+                        {
+                            <EFTableColumnHeader TItem="ConfigurationDto" PropertyName="Description" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ConfigurationDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "IsEncrypted")
+                        {
+                            <EFTableColumnHeader TItem="ConfigurationDto" PropertyName="IsEncrypted" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ConfigurationDto, object>(x => x.IsEncrypted))">@TranslationService.GetTranslation("field.encrypted", "Crittografato")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "RequiresRestart")
+                        {
+                            <EFTableColumnHeader TItem="ConfigurationDto" PropertyName="RequiresRestart" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ConfigurationDto, object>(x => x.RequiresRestart))">@TranslationService.GetTranslation("field.requiresRestart", "Richiede Riavvio")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "ModifiedAt")
+                        {
+                            <EFTableColumnHeader TItem="ConfigurationDto" PropertyName="ModifiedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ConfigurationDto, object>(x => x.ModifiedAt ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.modifiedAt", "Modificato")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                    }
+                    <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+
+                <RowTemplate Context="item">
+                    @{
+                        var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                    }
+                    @foreach (var column in visibleColumns)
+                    {
+                        @if (column.PropertyName == "Key")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.key", "Chiave")">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@GetCategoryIcon(item.Category)" Size="Size.Small" Class="mr-2" />
+                                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@item.Key</MudText>
+                                </div>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Category")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.category", "Categoria")">
+                                <MudChip T="string" Size="Size.Small" Color="@GetCategoryColor(item.Category)">
+                                    @TranslationService.GetTranslation($"superAdmin.category{item.Category}", item.Category)
+                                </MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Value")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.value", "Valore")">
+                                @if (item.IsEncrypted)
+                                {
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" />
+                                        <MudText Typo="Typo.body2">••••••••</MudText>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2" Style="max-width:300px;" Class="text-truncate">
+                                        @item.Value
+                                    </MudText>
+                                }
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Description")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                                <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:300px;">
+                                    @(string.IsNullOrEmpty(item.Description) ? "-" : item.Description)
+                                </MudText>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "IsEncrypted")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.encrypted", "Crittografato")">
+                                @if (item.IsEncrypted)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Lock">
+                                        @TranslationService.GetTranslation("common.yes", "Sì")
+                                    </MudChip>
+                                }
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "RequiresRestart")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.requiresRestart", "Richiede Riavvio")">
+                                @if (item.RequiresRestart)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Outlined.RestartAlt">
+                                        @TranslationService.GetTranslation("common.yes", "Sì")
+                                    </MudChip>
+                                }
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "ModifiedAt")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.modifiedAt", "Modificato")">
+                                <MudText Typo="Typo.body2">
+                                    @(item.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")
+                                </MudText>
+                            </MudTd>
+                        }
+                    }
+                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                        <ActionButtonGroup EntityName="@item.Key"
+                                           ItemDisplayName="@item.Key"
+                                           ShowView="false"
+                                           ShowEdit="true"
+                                           ShowDelete="true"
+                                           OnEdit="@(() => OpenEditDialog(item))"
+                                           OnDelete="@(() => DeleteConfigurationAsync(item))" />
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                        <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                        <MudText Typo="Typo.h6" Class="mb-2">
+                            @(_configurations.Any() ? 
+                                TranslationService.GetTranslation("configuration.noFilteredConfigurations", "Nessuna configurazione corrisponde ai filtri applicati") : 
+                                TranslationService.GetTranslation("superAdmin.noConfigurationsFound", "Nessuna configurazione trovata"))
+                        </MudText>
+                        @if (_configurations.Any())
+                        {
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Primary" 
+                                       StartIcon="@Icons.Material.Outlined.Clear"
+                                       OnClick="@ClearFilters">
+                                @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                            </MudButton>
+                        }
+                    </div>
+                </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
 
 <!-- Dialog for creating/editing configuration -->
 <MudDialog @bind-Visible="_showConfigDialog" Options="_dialogOptions">
@@ -198,22 +317,84 @@
 </MudDialog>
 
 @code {
+    // UI State Management
     private bool _isLoading = true;
-    private bool _isAuthorized = false;
+    private bool _isLoadingEntities = false;
     private bool _isSaving = false;
     private bool _showConfigDialog = false;
-    private int _activeTab = 0;
-    
-    // MudCollapse state management (all closed by default as per issue #98)
-    private bool _quickActionsExpanded = false;  // Closed by default
-    
+
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private string? _categoryFilter = null;
+    private bool? _encryptedFilter = null;
+
+    // Data collections
     private List<ConfigurationDto> _configurations = new();
     private List<string> _categories = new();
     private ConfigurationDto? _editingConfiguration;
-    
+
     // Form models
     private CreateConfigurationDto _configForm = new();
-    
+
+    // EFTable reference
+    private EFTable<ConfigurationDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Key", DisplayName = "Chiave", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Category", DisplayName = "Categoria", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Value", DisplayName = "Valore", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 3 },
+        new() { PropertyName = "IsEncrypted", DisplayName = "Crittografato", IsVisible = true, Order = 4 },
+        new() { PropertyName = "RequiresRestart", DisplayName = "Richiede Riavvio", IsVisible = true, Order = 5 },
+        new() { PropertyName = "ModifiedAt", DisplayName = "Modificato", IsVisible = true, Order = 6 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<ConfigurationDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Configurazioni",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Settings,
+            Color = "primary",
+            Description = "Numero totale di configurazioni",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Crittografate",
+            Type = MetricType.Count,
+            Filter = c => c.IsEncrypted,
+            Icon = Icons.Material.Outlined.Lock,
+            Color = "warning",
+            Description = "Configurazioni crittografate",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Richiede Riavvio",
+            Type = MetricType.Count,
+            Filter = c => c.RequiresRestart,
+            Icon = Icons.Material.Outlined.RestartAlt,
+            Color = "error",
+            Description = "Configurazioni che richiedono riavvio",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Con Categoria",
+            Type = MetricType.Count,
+            Filter = c => !string.IsNullOrEmpty(c.Category),
+            Icon = Icons.Material.Outlined.Category,
+            Color = "info",
+            Description = "Configurazioni con categoria assegnata",
+            Format = "N0"
+        }
+    };
+
     private DialogOptions _dialogOptions = new() 
     { 
         MaxWidth = MaxWidth.Medium, 
@@ -221,23 +402,52 @@
         CloseOnEscapeKey = true
     };
 
+    /// <summary>
+    /// Computed property for filtered configurations based on search criteria.
+    /// </summary>
+    private IEnumerable<ConfigurationDto> _filteredConfigurations => 
+        _configurations.Where(c => 
+            // Search filter
+            (string.IsNullOrEmpty(_searchTerm) || 
+             c.Key.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (c.Value != null && c.Value.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+             (c.Description != null && c.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+            // Category filter
+            (string.IsNullOrEmpty(_categoryFilter) || c.Category == _categoryFilter) &&
+            // Encrypted filter
+            (!_encryptedFilter.HasValue || c.IsEncrypted == _encryptedFilter.Value));
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Set all collapse sections to closed by default as per issue #98 requirements
-            _quickActionsExpanded = false;
-            
-            _isAuthorized = await AuthService.IsSuperAdminAsync();
-            
-            if (_isAuthorized)
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
             {
-                await LoadConfigurationsAsync();
+                NavigationManager.NavigateTo("/");
+                return;
             }
+
+            // SuperAdmin role verification
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            // Load configurations
+            await LoadConfigurationsAsync();
         }
         catch (Exception ex)
         {
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.initializationError", "Errore durante l'inizializzazione: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading configuration page");
         }
         finally
         {
@@ -245,11 +455,14 @@
         }
     }
 
+    /// <summary>
+    /// Loads configuration data.
+    /// </summary>
     private async Task LoadConfigurationsAsync()
     {
         try
         {
-            _isLoading = true;
+            _isLoadingEntities = true;
             
             var configs = await ConfigurationService.GetAllConfigurationsAsync();
             _configurations = configs.ToList();
@@ -265,12 +478,63 @@
         catch (Exception ex)
         {
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingConfigurationsError", "Errore nel caricamento configurazioni: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading configurations");
         }
         finally
         {
-            _isLoading = false;
-            StateHasChanged();
+            _isLoadingEntities = false;
         }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _categoryFilter = null;
+        _encryptedFilter = null;
+        StateHasChanged();
+    }
+
+    private void OnSearchChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void OnCategoryFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void OnEncryptedFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    private string GetCategoryIcon(string? category)
+    {
+        return category switch
+        {
+            "General" => Icons.Material.Outlined.Settings,
+            "Security" => Icons.Material.Outlined.Security,
+            "Email" => Icons.Material.Outlined.Email,
+            "Database" => Icons.Material.Outlined.Storage,
+            "Backup" => Icons.Material.Outlined.Backup,
+            _ => Icons.Material.Outlined.Tune
+        };
+    }
+
+    private Color GetCategoryColor(string? category)
+    {
+        return category switch
+        {
+            "Security" => Color.Error,
+            "Email" => Color.Info,
+            "Database" => Color.Primary,
+            "Backup" => Color.Warning,
+            _ => Color.Default
+        };
     }
 
     private void OpenCreateDialog()
@@ -343,20 +607,38 @@
 
     private async Task DeleteConfigurationAsync(ConfigurationDto config)
     {
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
-            TranslationService.GetTranslation("superAdmin.confirmDeleteConfiguration", "Sei sicuro di voler eliminare la configurazione '{0}'?", config.Key));
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("superAdmin.confirmDeleteConfiguration", 
+            "Sei sicuro di voler eliminare la configurazione '{0}'? Questa azione non può essere annullata.", 
+            config.Key);
+
+        var confirm = await JSRuntime.InvokeAsync<bool>("confirm", confirmMessage);
         
-        if (!confirmed) return;
+        if (!confirm) return;
 
         try
         {
             await ConfigurationService.DeleteConfigurationAsync(config.Key);
+            _configurations.Remove(config);
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.configurationDeleted", "Configurazione eliminata con successo"), Severity.Success);
-            await LoadConfigurationsAsync();
+            StateHasChanged();
         }
         catch (Exception ex)
         {
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.deletionError", "Errore nell'eliminazione: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error deleting configuration {ConfigKey}", config.Key);
         }
+    }
+
+    private async Task BackupConfigurations()
+    {
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.backupFunctionalityComingSoon", "La funzionalità di backup sarà implementata presto."), Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    private async Task ImportConfigurations()
+    {
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.importFunctionalityComingSoon", "La funzionalità di importazione sarà implementata presto."), Severity.Info);
+        await Task.CompletedTask;
     }
 }
