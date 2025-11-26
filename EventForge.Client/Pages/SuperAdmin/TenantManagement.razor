@@ -19,37 +19,25 @@
                       IsAuthorized="_isAuthorized"
                       OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
 
-    <!-- Statistics Section -->
-    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.showStatistics", "Mostra Statistiche")"
-                                  SectionIcon="@Icons.Material.Outlined.Analytics"
-                                  @bind-IsExpanded="_statisticsExpanded">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="d-flex justify-space-between align-center pa-3 border-rounded" Elevation="1">
-                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalTenants", "Tenant Totali"):</MudText>
-                    <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_tenantStats?.TotalTenants ?? 0)</MudChip>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="d-flex justify-space-between align-center pa-3 border-rounded" Elevation="1">
-                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.activeTenants", "Tenant Attivi"):</MudText>
-                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_tenantStats?.ActiveTenants ?? 0)</MudChip>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="d-flex justify-space-between align-center pa-3 border-rounded" Elevation="1">
-                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.inactiveTenants", "Tenant Inattivi"):</MudText>
-                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">@(_tenantStats?.InactiveTenants ?? 0)</MudChip>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="d-flex justify-space-between align-center pa-3 border-rounded" Elevation="1">
-                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalUsers", "Utenti Totali"):</MudText>
-                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">@(_tenantStats?.TotalUsers ?? 0)</MudChip>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-    </SuperAdminCollapsibleSection>
+    <!-- Dashboard Metrics (Always Visible) -->
+    <div class="dashboard-metrics mb-4">
+        <div class="metric-card primary">
+            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.totalTenants", "Tenant Totali")</div>
+            <div class="metric-value">@(_tenantStats?.TotalTenants ?? 0)</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.activeTenants", "Tenant Attivi")</div>
+            <div class="metric-value">@(_tenantStats?.ActiveTenants ?? 0)</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.tenantsCreatedThisMonth", "Creati Questo Mese")</div>
+            <div class="metric-value">@_tenantsCreatedThisMonth</div>
+        </div>
+        <div class="metric-card info">
+            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.expiringTenants", "In Scadenza")</div>
+            <div class="metric-value">@_expiringTenants</div>
+        </div>
+    </div>
 
     <!-- Advanced Filters Section -->
     <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")"
@@ -214,8 +202,7 @@
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
     
-    // MudCollapse state management (all closed by default as per issue #98)
-    private bool _statisticsExpanded = false;      // Closed by default
+    // MudCollapse state management (all closed by default)
     private bool _filtersExpanded = false;         // Closed by default
     
     private UserDto? _currentUser;
@@ -227,6 +214,10 @@
     // Data collections
     private List<TenantResponseDto> _tenants = new();
     private TenantStatisticsDto? _tenantStats;
+    
+    // Dashboard metrics computed properties
+    private int _tenantsCreatedThisMonth => _tenants.Count(t => t.CreatedAt >= DateTime.UtcNow.AddMonths(-1));
+    private int _expiringTenants => _tenants.Count(t => t.SubscriptionExpiresAt.HasValue && t.SubscriptionExpiresAt.Value <= DateTime.UtcNow.AddDays(30));
 
     /// <summary>
     /// Computed property for filtered tenants based on search criteria.
@@ -251,8 +242,7 @@
     {
         try
         {
-            // Set all collapse sections to closed by default as per issue #98 requirements
-            _statisticsExpanded = false;
+            // Set all collapse sections to closed by default
             _filtersExpanded = false;
             
             // Enhanced authentication and authorization flow

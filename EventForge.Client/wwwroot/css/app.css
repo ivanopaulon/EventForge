@@ -239,22 +239,168 @@ code {
     }
 }
 
-/* ===== DASHBOARD METRICS CARD ANIMATIONS ===== */
+/* ===== SUPERADMIN DASHBOARD STYLES ===== */
 /* 
-   Smooth animations for metric cards in dashboard configuration dialog
-   Provides visual feedback on hover and drag interactions
+   Consistent styling for all SuperAdmin pages following the
+   Dashboard+Table pattern. Includes metric cards with animations
+   for hover and drag interactions.
 */
 
+/* Dashboard Metrics Grid */
+.dashboard-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
 .metric-card {
+    background: var(--card-background);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--metric-color, var(--primary));
     transition: all 0.2s ease-in-out;
 }
 
 .metric-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: var(--shadow-md);
 }
 
 .metric-card[draggable="true"]:active {
     opacity: 0.6;
     cursor: grabbing;
+}
+
+.metric-card.primary { --metric-color: var(--primary); }
+.metric-card.success { --metric-color: var(--success); }
+.metric-card.warning { --metric-color: var(--warning); }
+.metric-card.info { --metric-color: var(--info); }
+
+.metric-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+/* SuperAdmin Page Headers */
+.superadmin-page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-secondary);
+}
+
+.superadmin-page-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.status-badge.active {
+    background-color: var(--success-light, #d4edda);
+    color: var(--success-dark, #155724);
+}
+
+.status-badge.inactive {
+    background-color: var(--error-light, #f8d7da);
+    color: var(--error-dark, #721c24);
+}
+
+.status-badge.trial {
+    background-color: var(--warning-light, #fff3cd);
+    color: var(--warning-dark, #856404);
+}
+
+/* Action Buttons Container */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-action {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease-in-out;
+    min-width: 44px; /* WCAG touch target */
+    min-height: 44px;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Loading States */
+.loading-overlay {
+    position: relative;
+    min-height: 200px;
+}
+
+.loading-overlay::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .superadmin-page-title {
+        font-size: 1.5rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+}
+
+/* High contrast support */
+@media (prefers-contrast: high) {
+    .metric-card {
+        border: 2px solid var(--border-primary);
+    }
+    
+    .status-badge {
+        border: 1px solid currentColor;
+    }
 }

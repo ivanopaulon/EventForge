@@ -573,4 +573,45 @@ namespace EventForge.DTOs.SuperAdmin
         public Dictionary<string, string> Translations { get; set; } = new Dictionary<string, string>();
         public DateTime ExportedAt { get; set; } = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// DTO for tenant settings display.
+    /// </summary>
+    public class TenantSettingDto
+    {
+        public Guid Id { get; set; }
+        public string SettingKey { get; set; } = string.Empty;
+        public string? SettingValue { get; set; }
+        public string? Category { get; set; }
+        public bool IsDefault { get; set; }
+        public DateTime LastModified { get; set; } = DateTime.UtcNow;
+        public string? Description { get; set; }
+        public Guid? TenantId { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for role display.
+    /// </summary>
+    public class RoleDto
+    {
+        public Guid Id { get; set; }
+        public string RoleName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int UsersCount { get; set; }
+        public int PermissionsCount { get; set; }
+        public bool IsSystemRole { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for permission display.
+    /// </summary>
+    public class PermissionDto
+    {
+        public Guid Id { get; set; }
+        public string PermissionName { get; set; } = string.Empty;
+        public string? Resource { get; set; }
+        public string? Action { get; set; }
+        public string? Description { get; set; }
+    }
 }

@@ -52,10 +52,30 @@ else if (!_isAuthorized)
 else
 {
     <MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
-        <MudText Typo="Typo.h4" Class="mb-8">
+        <MudText Typo="Typo.h4" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Outlined.People" Class="mr-2" />
             @TranslationService.GetTranslation("superAdmin.userManagement")
         </MudText>
+
+        <!-- Dashboard Metrics (Always Visible) -->
+        <div class="dashboard-metrics mb-4">
+            <div class="metric-card primary">
+                <div class="metric-label">@TranslationService.GetTranslation("superAdmin.totalUsers", "Utenti Totali")</div>
+                <div class="metric-value">@(_userStats?.TotalUsers ?? 0)</div>
+            </div>
+            <div class="metric-card success">
+                <div class="metric-label">@TranslationService.GetTranslation("superAdmin.activeUsers", "Utenti Attivi")</div>
+                <div class="metric-value">@(_userStats?.ActiveUsers ?? 0)</div>
+            </div>
+            <div class="metric-card warning">
+                <div class="metric-label">@TranslationService.GetTranslation("superAdmin.usersCreatedThisMonth", "Creati Questo Mese")</div>
+                <div class="metric-value">@(_userStats?.NewUsersThisMonth ?? 0)</div>
+            </div>
+            <div class="metric-card info">
+                <div class="metric-label">@TranslationService.GetTranslation("superAdmin.adminUsers", "SuperAdmin")</div>
+                <div class="metric-value">@(_userStats?.AdminUsers ?? 0)</div>
+            </div>
+        </div>
 
         <!-- Reduced spacing with minimal margins between components -->
         <MudStack Spacing="1">
@@ -90,51 +110,6 @@ else
                         {
                             <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-3" />
                         }
-                    </div>
-                </MudCollapse>
-            </div>
-
-            <!-- Statistics Section: Direct MudCollapse without MudCard wrapper, closed by default -->
-            <div class="border rounded pa-1 mb-1">
-                <div style="cursor: pointer;" @onclick="@(() => _statisticsExpanded = !_statisticsExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="@Icons.Material.Outlined.Analytics" Class="mr-2" />
-                    <MudText Typo="Typo.h6" Class="flex-grow-1">
-                        @TranslationService.GetTranslation("superAdmin.showStatistics", "Mostra Statistiche")
-                    </MudText>
-                    <MudIconButton Icon="@(_statisticsExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                                   Size="Size.Small"
-                                   Color="Color.Inherit"
-                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleStatistics", "Mostra/Nascondi statistiche")" />
-                </div>
-                <MudCollapse Expanded="_statisticsExpanded">
-                    <div class="pa-2 mb-1">
-                        <MudGrid Spacing="1">
-                            <MudItem xs="12" sm="6" md="3">
-                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
-                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalUsers", "Utenti Totali"):</MudText>
-                                    <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_userStats?.TotalUsers ?? 0)</MudChip>
-                                </div>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
-                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.activeUsers", "Utenti Attivi"):</MudText>
-                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_userStats?.ActiveUsers ?? 0)</MudChip>
-                                </div>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
-                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.adminUsers", "Utenti Admin"):</MudText>
-                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">@(_userStats?.AdminUsers ?? 0)</MudChip>
-                                </div>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
-                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.activeTenants", "Tenant Attivi"):</MudText>
-                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">@(_tenants.Count(t => t.IsActive))</MudChip>
-                                </div>
-                            </MudItem>
-                        </MudGrid>
                     </div>
                 </MudCollapse>
             </div>
@@ -448,7 +423,6 @@ else
     private bool _isLoadingUsers = false;
     
     // MudCollapse state management (all closed by default to align with TenantManagement page)
-    private bool _statisticsExpanded = false;      // Closed by default
     private bool _filtersExpanded = false;         // Closed by default  
     private bool _tenantSelectorExpanded = false;  // Closed by default (no auto-selection)
     
