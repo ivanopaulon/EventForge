@@ -356,6 +356,11 @@ namespace EventForge.DTOs.SuperAdmin
         public string? ErrorMessage { get; set; }
         public string? IpAddress { get; set; }
         public string? UserAgent { get; set; }
+        
+        /// <summary>
+        /// Alias for SwitchedAt for consistency with other DTOs
+        /// </summary>
+        public DateTime Timestamp => SwitchedAt;
     }
 
     /// <summary>

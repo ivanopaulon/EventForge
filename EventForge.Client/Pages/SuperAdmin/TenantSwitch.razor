@@ -1,12 +1,18 @@
 @page "/superadmin/tenant-switch"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.Client.Shared.Components
+@using EventForge.DTOs.SuperAdmin
+@using EventForge.DTOs.Tenants
+@using EventForge.DTOs.Common
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
+@inject ISuperAdminService SuperAdminService
+@inject IHttpClientService HttpClientService
+@inject ILogger<TenantSwitch> Logger
 
 <SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.tenantSwitch", "Switch Tenant")"
                       PageIcon="@Icons.Material.Outlined.SwapHoriz"
@@ -44,12 +50,15 @@
                                   SectionIcon="@Icons.Material.Outlined.Business"
                                   @bind-IsExpanded="_tenantSwitchExpanded">
         <MudStack Spacing="3">
-            <MudSelect T="string" @bind-Value="_selectedTenantId" 
+            <MudSelect T="Guid?" @bind-Value="_selectedTenantId" 
                        Label="@TranslationService.GetTranslation("superAdmin.selectTenant", "Seleziona Tenant")" 
                        Variant="Variant.Outlined"
                        FullWidth="true">
-                <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.noTenantSuperAdminMode", "Nessun tenant (modalità SuperAdmin)")</MudSelectItem>
-                <!-- TODO: Popolare con lista tenant da API -->
+                <MudSelectItem Value="@((Guid?)null)">@TranslationService.GetTranslation("superAdmin.noTenantSuperAdminMode", "Nessun tenant (modalità SuperAdmin)")</MudSelectItem>
+                @foreach (var tenant in _tenants)
+                {
+                    <MudSelectItem Value="@((Guid?)tenant.Id)">@tenant.Name</MudSelectItem>
+                }
             </MudSelect>
             
             <MudTextField @bind-Value="_switchReason"
@@ -106,22 +115,27 @@
                                               Variant="Variant.Outlined"
                                               Lines="2" />
                                               
-                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.endImpersonation", "Termina impersonazione")">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.ExitToApp"
-                                                   Color="Color.Error"
-                                                   aria-label="@TranslationService.GetTranslation("superAdmin.endImpersonation", "Termina Impersonazione")"
-                                                   OnClick="@(() => EndImpersonation())"
-                                                   Disabled="@(string.IsNullOrWhiteSpace(_endImpersonationReason))" />
-                                </MudTooltip>
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Outlined.ExitToApp"
+                                           OnClick="EndImpersonation"
+                                           Disabled="@(string.IsNullOrWhiteSpace(_endImpersonationReason))">
+                                    @TranslationService.GetTranslation("superAdmin.endImpersonation", "Termina Impersonazione")
+                                </MudButton>
                             </MudStack>
                         }
                         else
                         {
                             <MudStack Spacing="3">
-                                <MudTextField @bind-Value="_targetUsername"
-                                              Label="@TranslationService.GetTranslation("superAdmin.targetUsername", "Username utente da impersonare")"
-                                              Variant="Variant.Outlined"
-                                              Placeholder="@TranslationService.GetTranslation("superAdmin.targetUsernameePlaceholder", "Inserisci username...")" />
+                                <MudAutocomplete T="UserManagementDto" 
+                                                 @bind-Value="_selectedUser"
+                                                 Label="@TranslationService.GetTranslation("superAdmin.targetUsername", "Seleziona Utente da Impersonare")"
+                                                 SearchFunc="SearchUsersAsync"
+                                                 ToStringFunc="@(u => u?.FullName ?? "")"
+                                                 Variant="Variant.Outlined"
+                                                 ResetValueOnEmptyText="true"
+                                                 CoerceText="false"
+                                                 CoerceValue="false" />
                                 
                                 <MudTextField @bind-Value="_impersonationReason"
                                               Label="@TranslationService.GetTranslation("superAdmin.impersonationReason", "Motivo impersonazione (audit)")"
@@ -129,13 +143,13 @@
                                               Lines="2"
                                               Placeholder="@TranslationService.GetTranslation("superAdmin.impersonationReasonPlaceholder", "Es: Supporto tecnico urgente...")" />
 
-                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.startImpersonation", "Inizia impersonazione")">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.PersonSearch"
-                                                   Color="Color.Warning"
-                                                   aria-label="@TranslationService.GetTranslation("superAdmin.startImpersonation", "Inizia Impersonazione")"
-                                                   OnClick="@(() => StartImpersonation())"
-                                                   Disabled="@(string.IsNullOrWhiteSpace(_targetUsername) || string.IsNullOrWhiteSpace(_impersonationReason))" />
-                                </MudTooltip>
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Outlined.PersonOutline"
+                                           OnClick="StartImpersonation"
+                                           Disabled="@(_selectedUser == null || string.IsNullOrWhiteSpace(_impersonationReason))">
+                                    @TranslationService.GetTranslation("superAdmin.startImpersonation", "Avvia Impersonazione")
+                                </MudButton>
                             </MudStack>
                         }
 
@@ -176,57 +190,30 @@
         </MudAlert>
 
         <!-- Table with server-side pagination, sortable columns, horizontal scrolling -->
-        <MudTable T="object" Items="@(new object[0])" 
+        <MudTable T="TenantSwitchHistoryDto" Items="@_switchHistory" 
                   Hover="true" 
                   Striped="true"
-                  Loading="false"
-                  LoadingProgressColor="Color.Info"
-                  SortLabel="@TranslationService.GetTranslation("tooltip.sort", "Ordina")"
-                  AllowUnsorted="false"
+                  Dense="true"
                   Elevation="0"
                   Class="overflow-x-auto">
             <HeaderContent>
-                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
-                                    @TranslationService.GetTranslation("superAdmin.dateTime", "Data/Ora")
-                                </MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
-                                    @TranslationService.GetTranslation("superAdmin.type", "Tipo")
-                                </MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
-                                    @TranslationService.GetTranslation("superAdmin.target", "Target")
-                                </MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
-                                    @TranslationService.GetTranslation("superAdmin.reason", "Motivo")
-                                </MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
-                                    @TranslationService.GetTranslation("superAdmin.duration", "Durata")
-                                </MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
-                                    @TranslationService.GetTranslation("superAdmin.ipAddress", "IP")
-                                </MudTableSortLabel></MudTh>
-                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <!-- Sample row template with DataLabel for mobile responsiveness -->
-                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.dateTime", "Data/Ora")">@context</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.type", "Tipo")">@context</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.target", "Target")">@context</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.reason", "Motivo")">@context</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.duration", "Durata")">@context</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.ipAddress", "IP")">@context</MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
-                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
-                                                   Size="Size.Small" 
-                                                   Color="Color.Primary"
-                                                   aria-label="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")" />
-                                </MudTooltip>
-                            </MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText>@TranslationService.GetTranslation("superAdmin.noHistoryAvailable", "Nessuna cronologia disponibile. Integrare con API audit trail.")</MudText>
-                        </NoRecordsContent>
-                    </MudTable>
+                <MudTh>@TranslationService.GetTranslation("superAdmin.dateTime", "Data/Ora")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("superAdmin.user", "Utente")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("superAdmin.fromTenant", "Da Tenant")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("superAdmin.toTenant", "A Tenant")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("superAdmin.reason", "Motivo")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.dateTime", "Data/Ora")">@context.SwitchedAt.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.user", "Utente")">@context.Username</MudTd>
+                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.fromTenant", "Da Tenant")">@(context.FromTenantName ?? "N/A")</MudTd>
+                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.toTenant", "A Tenant")">@context.ToTenantName</MudTd>
+                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.reason", "Motivo")">@(context.Reason ?? "N/A")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@TranslationService.GetTranslation("superAdmin.noSwitchHistory", "Nessuno switch registrato")</MudText>
+            </NoRecordsContent>
+        </MudTable>
     </SuperAdminCollapsibleSection>
 
 </SuperAdminPageLayout>
@@ -234,13 +221,24 @@
     private bool _isLoading = true;
     private bool _isAuthorized = false;
     private UserDto? _currentUser;
-    private string _selectedTenantId = string.Empty;
+    private Guid? _selectedTenantId;
     private string _switchReason = string.Empty;
-    private string _targetUsername = string.Empty;
     private string _impersonationReason = string.Empty;
     private string _endImpersonationReason = string.Empty;
-    private string _currentTenant = string.Empty;  // TODO: Recuperare dal contesto
-    private bool _isImpersonating = false;  // TODO: Recuperare dal contesto
+    private string _currentTenant = string.Empty;
+    private bool _isImpersonating = false;
+    
+    // Impersonation
+    private UserManagementDto? _selectedUser;
+    
+    // History
+    private List<TenantSwitchHistoryDto> _switchHistory = new();
+    
+    // Tenant list
+    private List<TenantResponseDto> _tenants = new();
+    
+    // Current context
+    private CurrentContextDto? _currentContext;
     
     // MudCollapse expanded states (closed by default as per requirements)
     private bool _statusExpanded = false;
@@ -274,10 +272,39 @@
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
 
-            // TODO: Recuperare stato corrente di tenant e impersonazione da API
+            // Carica contesto corrente
+            try
+            {
+                _currentContext = await HttpClientService.GetAsync<CurrentContextDto>("api/v1/tenant-switch/context");
+                if (_currentContext != null)
+                {
+                    _currentTenant = _currentContext.CurrentTenantName ?? string.Empty;
+                    _isImpersonating = _currentContext.IsImpersonating;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to load current context");
+            }
+
+            // Carica lista tenant attivi
+            try
+            {
+                var allTenants = await SuperAdminService.GetTenantsAsync();
+                _tenants = allTenants.Where(t => t.IsActive).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load tenants");
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.errorLoadingTenants", "Errore nel caricamento dei tenant"), Severity.Error);
+            }
+
+            // Carica cronologia switch
+            await LoadSwitchHistoryAsync();
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error in OnInitializedAsync");
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
             NavigationManager.NavigateTo("/");
         }
@@ -287,10 +314,44 @@
         }
     }
 
-    private void SwitchTenant()
+    private async Task SwitchTenant()
     {
-        // TODO: Implementare chiamata API per switch tenant
-        Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementSwitchTenant", "TODO: Implementare switch al tenant: {0}. Motivo: {1}", _selectedTenantId, _switchReason), Severity.Info);
+        if (!_selectedTenantId.HasValue || string.IsNullOrWhiteSpace(_switchReason))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.selectTenantAndReason", "Seleziona un tenant e specifica un motivo"), Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var switchDto = new TenantSwitchWithAuditDto
+            {
+                TenantId = _selectedTenantId.Value,
+                TargetTenantId = _selectedTenantId.Value,
+                Reason = _switchReason,
+                CreateAuditEntry = true
+            };
+
+            var result = await HttpClientService.PostAsync<TenantSwitchWithAuditDto, CurrentContextDto>("api/v1/tenant-switch/switch", switchDto);
+            
+            if (result != null)
+            {
+                _currentTenant = result.CurrentTenantName ?? string.Empty;
+                _currentContext = result;
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.tenantSwitchSuccess", "Switch tenant completato con successo"), Severity.Success);
+                
+                // Ricarica cronologia
+                await LoadSwitchHistoryAsync();
+                
+                // Reset form
+                _switchReason = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error switching tenant");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.tenantSwitchError", "Errore durante lo switch tenant: {0}", ex.Message), Severity.Error);
+        }
     }
 
     private void RestoreOriginalContext()
@@ -299,23 +360,121 @@
         Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementRestoreContext", "TODO: Implementare ripristino contesto SuperAdmin originale"), Severity.Info);
     }
 
-    private void StartImpersonation()
+    private async Task<IEnumerable<UserManagementDto>> SearchUsersAsync(string searchText, CancellationToken cancellationToken)
     {
-        // TODO: Implementare chiamata API per inizio impersonazione
-        Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementStartImpersonation", "TODO: Implementare impersonazione utente: {0}. Motivo: {1}", _targetUsername, _impersonationReason), Severity.Info);
+        if (string.IsNullOrWhiteSpace(searchText))
+            return Array.Empty<UserManagementDto>();
+
+        try
+        {
+            var users = await SuperAdminService.GetUsersAsync(_selectedTenantId);
+            return users.Where(u => 
+                u.FullName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                u.Username.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching users");
+            return Array.Empty<UserManagementDto>();
+        }
     }
 
-    private void EndImpersonation()
+    private async Task StartImpersonation()
     {
-        // TODO: Implementare chiamata API per fine impersonazione
-        Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementEndImpersonation", "TODO: Implementare fine impersonazione. Motivo: {0}", _endImpersonationReason), Severity.Info);
+        if (_selectedUser == null || string.IsNullOrWhiteSpace(_impersonationReason))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.selectUserAndReason", "Seleziona un utente e specifica un motivo"), Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var impersonateDto = new ImpersonationWithAuditDto
+            {
+                UserId = _selectedUser.Id,
+                TargetUserId = _selectedUser.Id,
+                Reason = _impersonationReason,
+                TargetTenantId = _selectedUser.TenantId,
+                CreateAuditEntry = true
+            };
+
+            var result = await HttpClientService.PostAsync<ImpersonationWithAuditDto, CurrentContextDto>("api/v1/tenant-switch/impersonate", impersonateDto);
+            
+            if (result != null)
+            {
+                _isImpersonating = true;
+                _currentContext = result;
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.impersonationStartSuccess", "Impersonazione avviata con successo"), Severity.Success);
+                
+                // Reset form
+                _impersonationReason = string.Empty;
+                _selectedUser = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error starting impersonation");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.impersonationStartError", "Errore durante l'avvio dell'impersonazione: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    private async Task EndImpersonation()
+    {
+        if (string.IsNullOrWhiteSpace(_endImpersonationReason))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.specifyReason", "Specifica un motivo"), Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var endDto = new EndImpersonationDto
+            {
+                Reason = _endImpersonationReason
+            };
+
+            var result = await HttpClientService.PostAsync<EndImpersonationDto, CurrentContextDto>("api/v1/tenant-switch/end-impersonation", endDto);
+            
+            if (result != null)
+            {
+                _isImpersonating = false;
+                _currentContext = result;
+                _endImpersonationReason = string.Empty;
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.impersonationEndSuccess", "Impersonazione terminata con successo"), Severity.Success);
+                
+                // Ricarica tutto
+                await OnInitializedAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error ending impersonation");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.impersonationEndError", "Errore durante la fine dell'impersonazione: {0}", ex.Message), Severity.Error);
+        }
     }
 
     private async Task LoadSwitchHistoryAsync()
     {
-        // TODO: Implementare caricamento cronologia switch
-        Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementLoadHistory", "TODO: Implementare caricamento cronologia switch"), Severity.Info);
-        await Task.CompletedTask;
+        try
+        {
+            var searchDto = new OperationHistorySearchDto
+            {
+                PageNumber = 1,
+                PageSize = 50,
+                SortBy = "PerformedAt",
+                SortOrder = "desc"
+            };
+
+            var result = await HttpClientService.GetAsync<PagedResult<TenantSwitchHistoryDto>>(
+                $"api/v1/tenant-switch/history/tenant-switches?PageNumber={searchDto.PageNumber}&PageSize={searchDto.PageSize}&SortBy={searchDto.SortBy}&SortOrder={searchDto.SortOrder}");
+            
+            _switchHistory = result?.Items?.ToList() ?? new List<TenantSwitchHistoryDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading switch history");
+            _switchHistory = new List<TenantSwitchHistoryDto>();
+        }
     }
 
     private async Task ExportSwitchHistory()
