@@ -152,10 +152,7 @@
                 </HeaderContent>
 
                 <RowTemplate Context="item">
-                    @{
-                        var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
-                    }
-                    @foreach (var column in visibleColumns)
+                    @foreach (var column in _visibleColumns)
                     {
                         @if (column.PropertyName == "Number")
                         {
@@ -235,8 +232,8 @@
                         <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
                         <MudText Typo="Typo.h6" Class="mb-2">
                             @(_transferOrders.Any() ?
-                                "No transfer orders match the filters applied" :
-                                "No transfer orders found")
+                                TranslationService.GetTranslation("transferOrder.noMatchFilters", "No transfer orders match the filters applied") :
+                                TranslationService.GetTranslation("transferOrder.noOrders", "No transfer orders found"))
                         </MudText>
                         @if (_transferOrders.Any())
                         {
@@ -244,7 +241,7 @@
                                        Color="Color.Primary"
                                        StartIcon="@Icons.Material.Outlined.Clear"
                                        OnClick="@ClearFilters">
-                                Clear filters
+                                @TranslationService.GetTranslation("action.clearFilters", "Clear filters")
                             </MudButton>
                         }
                     </div>
@@ -269,11 +266,11 @@
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         @if (_pagedResult.TotalPages > 1)
                         {
-                            <text>Page @_currentPage of @_pagedResult.TotalPages - Total: @_pagedResult.TotalCount transfer orders</text>
+                            @TranslationService.GetTranslation("pagination.info", "Page {0} of {1} - Total: {2} transfer orders", _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
                         }
                         else
                         {
-                            <text>Total: @_pagedResult.TotalCount transfer orders</text>
+                            @TranslationService.GetTranslation("pagination.singlePage", "Total: {0} transfer orders", _pagedResult.TotalCount)
                         }
                     </MudText>
                 </div>
@@ -306,6 +303,11 @@
 
     // EFTable reference
     private EFTable<TransferOrderDto> _efTable = null!;
+
+    // Cached visible columns for row rendering optimization
+    private List<EFTableColumnConfiguration> _visibleColumns => 
+        _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() 
+        ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
 
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
@@ -515,12 +517,12 @@
     private async Task CreateTransferOrder()
     {
         var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
-            "Create Transfer Order", _dialogOptions);
+            TranslationService.GetTranslation("transferOrder.createDialog", "Create Transfer Order"), _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled)
         {
             await LoadTransferOrdersAsync();
-            Snackbar.Add("Transfer order created successfully", Severity.Success);
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.createSuccess", "Transfer order created successfully"), Severity.Success);
         }
     }
 
@@ -542,12 +544,12 @@
             { x => x.TransferOrder, order }
         };
         var dialog = await DialogService.ShowAsync<ShipTransferOrderDialog>(
-            "Ship Transfer Order", parameters, _dialogOptions);
+            TranslationService.GetTranslation("transferOrder.shipDialog", "Ship Transfer Order"), parameters, _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled)
         {
             await LoadTransferOrdersAsync();
-            Snackbar.Add("Transfer order shipped successfully", Severity.Success);
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipSuccess", "Transfer order shipped successfully"), Severity.Success);
         }
     }
 
@@ -561,12 +563,12 @@
             { x => x.TransferOrder, order }
         };
         var dialog = await DialogService.ShowAsync<ReceiveTransferOrderDialog>(
-            "Receive Transfer Order", parameters, _dialogOptions);
+            TranslationService.GetTranslation("transferOrder.receiveDialog", "Receive Transfer Order"), parameters, _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled)
         {
             await LoadTransferOrdersAsync();
-            Snackbar.Add("Transfer order received successfully", Severity.Success);
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.receiveSuccess", "Transfer order received successfully"), Severity.Success);
         }
     }
 
@@ -576,22 +578,22 @@
     private async Task CancelOrder(TransferOrderDto order)
     {
         var confirmed = await DialogService.ShowMessageBox(
-            "Cancel Transfer Order",
-            $"Are you sure you want to cancel transfer order {order.Number}?",
-            yesText: "Cancel Order",
-            cancelText: "Keep Order");
+            TranslationService.GetTranslation("transferOrder.cancelDialog", "Cancel Transfer Order"),
+            TranslationService.GetTranslation("transferOrder.cancelConfirm", "Are you sure you want to cancel transfer order {0}?", order.Number),
+            yesText: TranslationService.GetTranslation("transferOrder.cancelYes", "Cancel Order"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Keep Order"));
 
         if (confirmed == true)
         {
             var success = await TransferOrderService.CancelTransferOrderAsync(order.Id);
             if (success)
             {
-                Snackbar.Add("Transfer order cancelled successfully", Severity.Success);
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelSuccess", "Transfer order cancelled successfully"), Severity.Success);
                 await LoadTransferOrdersAsync();
             }
             else
             {
-                Snackbar.Add("Failed to cancel transfer order", Severity.Error);
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelFailed", "Failed to cancel transfer order"), Severity.Error);
             }
         }
     }
@@ -609,20 +611,20 @@
         
         if (pendingOrders.Count == 0)
         {
-            Snackbar.Add("Only pending transfer orders can be cancelled", Severity.Warning);
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.onlyPendingCanCancel", "Only pending transfer orders can be cancelled"), Severity.Warning);
             return;
         }
 
-        var confirmTitle = "Cancel Transfer Orders";
+        var confirmTitle = TranslationService.GetTranslation("transferOrder.cancelMultipleDialog", "Cancel Transfer Orders");
         var confirmMessage = pendingOrders.Count == _selectedTransferOrders.Count 
-            ? $"Are you sure you want to cancel {pendingOrders.Count} selected transfer orders? This action cannot be undone."
-            : $"Only {pendingOrders.Count} of {_selectedTransferOrders.Count} selected orders are pending and can be cancelled. Continue?";
+            ? TranslationService.GetTranslation("transferOrder.cancelMultipleConfirm", "Are you sure you want to cancel {0} selected transfer orders? This action cannot be undone.", pendingOrders.Count)
+            : TranslationService.GetTranslation("transferOrder.cancelMultiplePartialConfirm", "Only {0} of {1} selected orders are pending and can be cancelled. Continue?", pendingOrders.Count, _selectedTransferOrders.Count);
 
         var confirm = await DialogService.ShowMessageBox(
             confirmTitle,
             confirmMessage,
-            yesText: "Cancel Orders",
-            cancelText: "Keep Orders");
+            yesText: TranslationService.GetTranslation("transferOrder.cancelMultipleYes", "Cancel Orders"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Keep Orders"));
 
         if (confirm == true)
         {
@@ -656,11 +658,11 @@
                 
                 if (failedCount == 0)
                 {
-                    Snackbar.Add($"{cancelledCount} transfer orders cancelled successfully!", Severity.Success);
+                    Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelMultipleSuccess", "{0} transfer orders cancelled successfully!", cancelledCount), Severity.Success);
                 }
                 else
                 {
-                    Snackbar.Add($"{cancelledCount} transfer orders cancelled, {failedCount} failed", Severity.Warning);
+                    Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelMultiplePartial", "{0} transfer orders cancelled, {1} failed", cancelledCount, failedCount), Severity.Warning);
                 }
                 
                 await LoadTransferOrdersAsync();
@@ -668,7 +670,7 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Error cancelling transfer orders: {ex.Message}", Severity.Error);
+                Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelMultipleError", "Error cancelling transfer orders: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error cancelling selected transfer orders");
             }
         }
