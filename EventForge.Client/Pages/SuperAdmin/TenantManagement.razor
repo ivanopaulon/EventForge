@@ -2,7 +2,9 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Tenants
 @using EventForge.DTOs.SuperAdmin
+@using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject ISuperAdminService SuperAdminService
@@ -13,152 +15,183 @@
 @inject ITranslationService TranslationService
 @inject ILogger<TenantManagement> Logger
 
-<SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant")"
-                      PageIcon="@Icons.Material.Outlined.Business"
-                      IsLoading="_isLoading"
-                      IsAuthorized="_isAuthorized"
-                      OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
+<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant"))</PageTitle>
 
-    <!-- Dashboard Metrics (Always Visible) -->
-    <div class="dashboard-metrics mb-4">
-        <div class="metric-card primary">
-            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.totalTenants", "Tenant Totali")</div>
-            <div class="metric-value">@(_tenantStats?.TotalTenants ?? 0)</div>
-        </div>
-        <div class="metric-card success">
-            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.activeTenants", "Tenant Attivi")</div>
-            <div class="metric-value">@(_tenantStats?.ActiveTenants ?? 0)</div>
-        </div>
-        <div class="metric-card warning">
-            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.tenantsCreatedThisMonth", "Creati Questo Mese")</div>
-            <div class="metric-value">@_tenantsCreatedThisMonth</div>
-        </div>
-        <div class="metric-card info">
-            <div class="metric-label">@TranslationService.GetTranslation("superAdmin.expiringTenants", "In Scadenza")</div>
-            <div class="metric-value">@_expiringTenants</div>
-        </div>
-    </div>
+<PageLoadingOverlay Visible="_isLoading || _isLoadingTenants"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    <!-- Advanced Filters Section -->
-    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")"
-                                  SectionIcon="@Icons.Material.Outlined.FilterList"
-                                  @bind-IsExpanded="_filtersExpanded">
-        <div class="d-flex gap-4 align-center flex-wrap">
-            <MudTextField @bind-Value="_searchTerm"
-                          @bind-Value:after="OnSearchChanged"
-                          Label="@TranslationService.GetTranslation("superAdmin.searchByNameOrDomain", "Cerca per nome o dominio")"
-                          Placeholder="@TranslationService.GetTranslation("superAdmin.searchPlaceholder", "Inserisci testo da cercare...")"
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.End"
-                          AdornmentIcon="@Icons.Material.Outlined.Search"
-                          Clearable="true"
-                          Style="flex: 2;" />
-            <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
-                       Label="@TranslationService.GetTranslation("field.status", "Stato")" 
-                       Placeholder="@TranslationService.GetTranslation("superAdmin.selectStatus", "Seleziona stato...")"
-                       Variant="Variant.Outlined"
-                       Clearable="true"
-                       Style="flex: 1;">
-                <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active", "Attivo")</MudSelectItem>
-                <MudSelectItem Value="@("inactive")">@TranslationService.GetTranslation("field.inactive", "Inattivo")</MudSelectItem>
-            </MudSelect>
-        </div>
-    </SuperAdminCollapsibleSection>
+@if (!_isLoading)
+{
+    @if (!_isAuthorized)
+    {
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+            <MudPaper Class="ef-tile">
+                <MudGrid Justify="Justify.Center">
+                    <MudItem xs="12">
+                        <div class="d-flex flex-column align-center">
+                            <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Medium" Style="font-size: 48px;" />
+                            <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
+                            <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                                @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.ArrowBack"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                                @TranslationService.GetTranslation("superAdmin.returnToHome", "Torna alla Home")
+                            </MudButton>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudContainer>
+    }
+    else
+    {
+        <div class="tenant-page-root">
+            <div class="tenant-top">
+                <ManagementDashboard TItem="TenantResponseDto"
+                                     Items="_filteredTenants"
+                                     Metrics="_dashboardMetrics"
+                                     EntityType="Tenant"
+                                     AllowConfiguration="true"
+                                     UseServerSide="false" />
+            </div>
 
-    <!-- Tenants Data Table -->
-    <MudPaper Elevation="2" Class="border-rounded mb-1">
-        <MudCardHeader Class="pa-2">
-            <CardHeaderContent>
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
-                    @TranslationService.GetTranslation("superAdmin.tenantList", "Lista Tenant")
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                        (@_filteredTenants.Count() @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
-                    </MudText>
-                </MudText>
-            </CardHeaderContent>
-            <CardHeaderActions>
-                <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                   ShowRefresh="true"
-                                   ShowExport="true" 
-                                   ShowCreate="true"
-                                   ShowAuditLog="false"
-                                   CreateIcon="@Icons.Material.Outlined.Add"
-                                   CreateTooltip="@TranslationService.GetTranslation("superAdmin.createNewTenant", "Crea nuovo tenant")"
-                                   IsDisabled="_isLoadingTenants"
-                                   OnRefresh="@LoadTenantsAsync"
-                                   OnExport="@ExportTenants"
-                                   OnCreate="@CreateTenant" />
-            </CardHeaderActions>
-        </MudCardHeader>
-        <MudCardContent Class="pa-1">
-            @if (_isLoadingTenants)
-            {
-                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
-            }
-            else
-            {
-                <MudTable T="TenantResponseDto" 
-                          Items="_filteredTenants" 
-                          Hover="true" 
-                          Striped="true"
-                          Loading="_isLoadingTenants"
-                          LoadingProgressColor="Color.Info"
-                          SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                          AllowUnsorted="false"
-                          Dense="true"
-                          Breakpoint="Breakpoint.Sm">
-                    <HeaderContent>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.DisplayName))">@TranslationService.GetTranslation("field.displayName", "Nome")</MudTableSortLabel></MudTh>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome Sistema")</MudTableSortLabel></MudTh>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel></MudTh>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
-                        <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<TenantResponseDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
-                        <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            <div class="eftable-wrapper">
+                <EFTable @ref="_efTable"
+                         TItem="TenantResponseDto"
+                         Items="_filteredTenants"
+                         IsLoading="_isLoadingTenants"
+                         ComponentKey="TenantManagement"
+                         InitialColumnConfigurations="_initialColumns"
+                         AllowDragDropGrouping="true">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h5">
+                            @TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant")
+                        </MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="_searchTerm"
+                                      @bind-Value:after="OnSearchChanged"
+                                      Label="@TranslationService.GetTranslation("superAdmin.searchByNameOrDomain", "Cerca per nome o dominio")"
+                                      Placeholder="@TranslationService.GetTranslation("superAdmin.searchPlaceholder", "Inserisci testo da cercare...")"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Outlined.Search"
+                                      Clearable="true"
+                                      Class="ef-input" />
+                        <MudSwitch @bind-Value="_showActiveOnly"
+                                   @bind-Value:after="OnStatusFilterChanged"
+                                   Label="@TranslationService.GetTranslation("field.onlyActive", "Solo Attivi")"
+                                   Color="Color.Success"
+                                   Class="ml-2" />
+                        <ManagementTableToolbar ShowRefresh="true"
+                                                ShowCreate="true"
+                                                ShowDelete="false"
+                                                CreateTooltip="superAdmin.createNewTenant"
+                                                IsDisabled="_isLoadingTenants"
+                                                OnRefresh="@LoadTenantsAsync"
+                                                OnCreate="@CreateTenant" />
+                    </ToolBarContent>
+                    <HeaderContent Context="columnConfigurations">
+                        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                        {
+                            @if (column.PropertyName == "DisplayName")
+                            {
+                                <EFTableColumnHeader TItem="TenantResponseDto" PropertyName="DisplayName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.DisplayName))">@TranslationService.GetTranslation("field.displayName", "Nome")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "Name")
+                            {
+                                <EFTableColumnHeader TItem="TenantResponseDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome Sistema")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "Description")
+                            {
+                                <EFTableColumnHeader TItem="TenantResponseDto" PropertyName="Description" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "IsActive")
+                            {
+                                <EFTableColumnHeader TItem="TenantResponseDto" PropertyName="IsActive" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "CreatedAt")
+                            {
+                                <EFTableColumnHeader TItem="TenantResponseDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<TenantResponseDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                        }
+                        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
 
-                    <RowTemplate>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.displayName", "Nome")">
-                            <div class="d-flex align-center">
-                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                                    @(context.DisplayName.FirstOrDefault())
-                                </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.body2">@context.DisplayName</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id</MudText>
-                                </div>
-                            </div>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome Sistema")">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.Name</MudChip>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
-                            <MudText Typo="Typo.body2">@(context.Description ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                            <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" 
-                                     Size="Size.Small"
-                                     Icon="@(context.IsActive ? Icons.Material.Outlined.CheckCircle : Icons.Material.Outlined.Cancel)">
-                                @(context.IsActive ? TranslationService.GetTranslation("field.active", "Attivo") : TranslationService.GetTranslation("field.inactive", "Inattivo"))
-                            </MudChip>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
-                            <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
-                        </MudTd>
+                    <RowTemplate Context="item">
+                        @{
+                            var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                        }
+                        @foreach (var column in visibleColumns)
+                        {
+                            @if (column.PropertyName == "DisplayName")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.displayName", "Nome")">
+                                    <div class="d-flex align-center">
+                                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                            @(item.DisplayName.FirstOrDefault())
+                                        </MudAvatar>
+                                        <div>
+                                            <MudText Typo="Typo.body2">@item.DisplayName</MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
+                                        </div>
+                                    </div>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "Name")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome Sistema")">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@item.Name</MudChip>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "Description")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                                    <MudText Typo="Typo.body2">@(item.Description ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))</MudText>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "IsActive")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                    <MudChip T="string" Color="@(item.IsActive ? Color.Success : Color.Error)" 
+                                             Size="Size.Small"
+                                             Icon="@(item.IsActive ? Icons.Material.Outlined.CheckCircle : Icons.Material.Outlined.Cancel)">
+                                        @(item.IsActive ? TranslationService.GetTranslation("field.active", "Attivo") : TranslationService.GetTranslation("field.inactive", "Inattivo"))
+                                    </MudChip>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "CreatedAt")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                                    <MudText Typo="Typo.body2">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                                </MudTd>
+                            }
+                        }
                         <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                            <ActionButtonGroup EntityName="@context.DisplayName"
-                                              ItemDisplayName="@context.DisplayName"
+                            <ActionButtonGroup EntityName="@item.DisplayName"
+                                              ItemDisplayName="@item.DisplayName"
                                               ShowView="false"
                                               ShowEdit="true"
                                               ShowAuditLog="true"
                                               ShowToggleStatus="true"
                                               ShowDelete="true"
-                                              IsActive="@context.IsActive"
-                                              OnEdit="@(() => EditTenant(context.Id))"
-                                              OnAuditLog="@(() => ViewTenantAuditLog(context))"
-                                              OnToggleStatus="@(() => ToggleTenantStatus(context))"
-                                              OnDelete="@(() => DeleteTenant(context))" />
+                                              IsActive="@item.IsActive"
+                                              OnEdit="@(() => EditTenant(item.Id))"
+                                              OnAuditLog="@(() => ViewTenantAuditLog(item))"
+                                              OnToggleStatus="@(() => ToggleTenantStatus(item))"
+                                              OnDelete="@(() => DeleteTenant(item))" />
                         </MudTd>
                     </RowTemplate>
 
@@ -181,12 +214,11 @@
                             }
                         </div>
                     </NoRecordsContent>
-                </MudTable>
-            }
-        </MudCardContent>
-    </MudPaper>
-
-</SuperAdminPageLayout>
+                </EFTable>
+            </div>
+        </div>
+    }
+}
 
 @code {
     // Dialog options for fullscreen audit dialog
@@ -202,22 +234,72 @@
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
     
-    // MudCollapse state management (all closed by default)
-    private bool _filtersExpanded = false;         // Closed by default
-    
     private UserDto? _currentUser;
     
     // Filter and search state
     private string _searchTerm = string.Empty;
-    private string _statusFilter = "all";
+    private bool _showActiveOnly = false;
+    private CancellationTokenSource? _searchDebounceCts;
     
     // Data collections
     private List<TenantResponseDto> _tenants = new();
-    private TenantStatisticsDto? _tenantStats;
     
-    // Dashboard metrics computed properties
-    private int _tenantsCreatedThisMonth => _tenants.Count(t => t.CreatedAt >= DateTime.UtcNow.AddMonths(-1));
-    private int _expiringTenants => _tenants.Count(t => t.SubscriptionExpiresAt.HasValue && t.SubscriptionExpiresAt.Value <= DateTime.UtcNow.AddDays(30));
+    // EFTable reference
+    private EFTable<TenantResponseDto> _efTable = null!;
+    
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "DisplayName", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Name", DisplayName = "Nome Sistema", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
+        new() { PropertyName = "IsActive", DisplayName = "Stato", IsVisible = true, Order = 3 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4 }
+    };
+    
+    // Dashboard configuration
+    private List<DashboardMetric<TenantResponseDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Tenant",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Business,
+            Color = "primary",
+            Description = "Numero totale di tenant",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Tenant Attivi",
+            Type = MetricType.Count,
+            Filter = t => t.IsActive,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Tenant attivi",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Creati Questo Mese",
+            Type = MetricType.Count,
+            Filter = t => t.CreatedAt >= DateTime.Now.AddDays(-30),
+            Icon = Icons.Material.Outlined.CalendarToday,
+            Color = "warning",
+            Description = "Tenant creati negli ultimi 30 giorni",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "In Scadenza",
+            Type = MetricType.Count,
+            Filter = t => t.SubscriptionExpiresAt.HasValue && t.SubscriptionExpiresAt.Value <= DateTime.Now.AddDays(30),
+            Icon = Icons.Material.Outlined.Warning,
+            Color = "info",
+            Description = "Tenant con sottoscrizione in scadenza nei prossimi 30 giorni",
+            Format = "N0"
+        }
+    };
 
     /// <summary>
     /// Computed property for filtered tenants based on search criteria.
@@ -231,9 +313,7 @@
              t.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
              (!string.IsNullOrEmpty(t.Domain) && t.Domain.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
             // Status filter
-            (_statusFilter == "all" || 
-             (_statusFilter == "active" && t.IsActive) ||
-             (_statusFilter == "inactive" && !t.IsActive)));
+            (!_showActiveOnly || t.IsActive));
 
     /// <summary>
     /// Component initialization with enhanced security checks and responsive UI setup.
@@ -242,9 +322,6 @@
     {
         try
         {
-            // Set all collapse sections to closed by default
-            _filtersExpanded = false;
-            
             // Enhanced authentication and authorization flow
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
@@ -267,11 +344,8 @@
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
             
-            // Parallel data loading for better performance
-            await Task.WhenAll(
-                LoadTenantsAsync(),
-                LoadTenantStatisticsAsync()
-            );
+            // Load tenant data
+            await LoadTenantsAsync();
         }
         catch (Exception ex)
         {
@@ -304,20 +378,7 @@
         }
     }
 
-    /// <summary>
-    /// Loads tenant statistics with enhanced error handling.
-    /// </summary>
-    private async Task LoadTenantStatisticsAsync()
-    {
-        try
-        {
-            _tenantStats = await SuperAdminService.GetTenantStatisticsAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingStatisticsError", "Errore nel caricamento delle statistiche: {0}", ex.Message), Severity.Error);
-        }
-    }
+
 
     /// <summary>
     /// Clears all active filters and resets search form to initial state.
@@ -325,29 +386,38 @@
     private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
-        _statusFilter = "all";
+        _showActiveOnly = false;
         await Task.CompletedTask;
         StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        await Task.Delay(300); // Debounce
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
+    }
+
+    private void OnStatusFilterChanged()
+    {
         StateHasChanged();
     }
 
-    private async Task OnStatusFilterChanged()
-    {
-        await Task.CompletedTask;
-        StateHasChanged();
-    }
 
-    private async Task ExportTenants()
-    {
-        // TODO: Implement export functionality
-        Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportFunctionalityComingSoon", "La funzionalità di esportazione sarà implementata presto."), Severity.Info);
-        await Task.CompletedTask;
-    }
 
     private void CreateTenant()
     {
@@ -414,7 +484,6 @@
 
                 // Update the local state
                 tenant.IsActive = !tenant.IsActive;
-                await LoadTenantStatisticsAsync();
                 
                 var successMessage = tenant.IsActive 
                     ? TranslationService.GetTranslation("superAdmin.tenantEnabled", "Tenant abilitato con successo!")
@@ -455,7 +524,6 @@
                 await SuperAdminService.DeleteTenantAsync(tenant.Id, "Soft deleted by superadmin");
 
                 _tenants.Remove(tenant);
-                await LoadTenantStatisticsAsync();
 
                 Snackbar.Add(TranslationService.GetTranslation("superAdmin.tenantDeleted", "Tenant eliminato con successo!"), Severity.Success);
                 StateHasChanged();
