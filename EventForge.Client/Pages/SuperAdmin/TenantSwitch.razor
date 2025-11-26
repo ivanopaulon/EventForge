@@ -327,6 +327,7 @@
             var switchDto = new TenantSwitchWithAuditDto
             {
                 TenantId = _selectedTenantId.Value,
+                TargetTenantId = _selectedTenantId.Value,
                 Reason = _switchReason,
                 CreateAuditEntry = true
             };
@@ -391,6 +392,7 @@
             var impersonateDto = new ImpersonationWithAuditDto
             {
                 UserId = _selectedUser.Id,
+                TargetUserId = _selectedUser.Id,
                 Reason = _impersonationReason,
                 TargetTenantId = _selectedUser.TenantId,
                 CreateAuditEntry = true
