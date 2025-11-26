@@ -352,20 +352,21 @@
     {
         new()
         {
-            Title = "Total Chats",
+            Title = "Total Reported",
             Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Forum,
+            Icon = Icons.Material.Outlined.Report,
             Color = "primary",
-            Description = "Numero totale di chat (mock data)",
+            Description = "Numero totale di messaggi segnalati (mock data)",
             Format = "N0"
         },
         new()
         {
-            Title = "Reported Messages",
+            Title = "Pending Review",
             Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Report,
+            Filter = m => m.Status == "pending",
+            Icon = Icons.Material.Outlined.HourglassEmpty,
             Color = "warning",
-            Description = "Messaggi segnalati per moderazione",
+            Description = "Segnalazioni in attesa di moderazione",
             Format = "N0"
         },
         new()
@@ -380,12 +381,12 @@
         },
         new()
         {
-            Title = "Pending",
+            Title = "High Severity",
             Type = MetricType.Count,
-            Filter = m => m.Status == "pending",
-            Icon = Icons.Material.Outlined.HourglassEmpty,
+            Filter = m => m.Severity == "high" || m.Severity == "critical",
+            Icon = Icons.Material.Outlined.Warning,
             Color = "info",
-            Description = "Segnalazioni in attesa di moderazione",
+            Description = "Segnalazioni con gravità alta o critica",
             Format = "N0"
         }
     };

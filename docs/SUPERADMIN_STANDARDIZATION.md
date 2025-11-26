@@ -941,6 +941,8 @@ All standardized SuperAdmin pages follow this pattern:
 
 ### Key Differences
 
+Despite these entity-specific features, all pages follow the exact same fundamental pattern: PageLoadingOverlay → ManagementDashboard → EFTable with standardized toolbar and columns. The differences below are purely in the specific features and data being displayed:
+
 - **ClientLogManagement**: Uses custom toolbar actions for log-specific operations (Flush, Export, Clear, Test)
 - **ChatModeration**: Displays warning alert about mock data, pending message actions conditional on status
 - **UserManagement**: Tenant dropdown filter, role chips, status toggle

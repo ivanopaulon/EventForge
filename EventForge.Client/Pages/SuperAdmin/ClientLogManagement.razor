@@ -502,13 +502,17 @@
     }
 
     /// <summary>
+    /// Default log level for test logs
+    /// </summary>
+    private const string DefaultTestLogLevel = "Information";
+
+    /// <summary>
     /// Create a test log entry.
     /// </summary>
     private async Task TestLogAsync()
     {
         try
         {
-            var testLogLevel = "Information"; // Default level for test
             var message = $"Test log created at {DateTime.Now:HH:mm:ss}";
             var properties = new Dictionary<string, object>
             {
