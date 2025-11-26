@@ -304,7 +304,10 @@
     // EFTable reference
     private EFTable<TransferOrderDto> _efTable = null!;
 
-    // Cached visible columns for row rendering optimization
+    /// <summary>
+    /// Gets visible columns for row rendering. Returns EFTable's cached configuration when available,
+    /// falling back to initial columns. This avoids repeated LINQ operations in row rendering.
+    /// </summary>
     private List<EFTableColumnConfiguration> _visibleColumns => 
         _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() 
         ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
