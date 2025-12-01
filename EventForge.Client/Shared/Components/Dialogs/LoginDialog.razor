@@ -71,12 +71,16 @@
                                   For="@(() => _loginRequest.Password)"
                                   Label="@TranslationService.GetTranslation("auth.password", "Password")"
                                   Variant="Variant.Outlined"
-                                  InputType="InputType.Password"
+                                  InputType="@_passwordInputType"
                                   Required="true"
                                   RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
                                   Disabled="_isLoading"
                                   autocomplete="current-password"
-                                  Margin="Margin.Dense" />
+                                  Margin="Margin.Dense"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@_passwordVisibilityIcon"
+                                  OnAdornmentClick="TogglePasswordVisibility"
+                                  AdornmentAriaLabel="@TranslationService.GetTranslation("auth.togglePasswordVisibility", "Toggle password visibility")" />
 
                     <MudCheckBox T="bool"
                                  @bind-Value="_loginRequest.RememberMe"
@@ -93,16 +97,31 @@
     <DialogActions>
         @if (!_isLoadingTenants)
         {
-            <MudButton ButtonType="ButtonType.Button"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       Size="Size.Medium"
-                       FullWidth="true"
-                       OnClick="HandleLogin"
-                       Disabled="@(!_isFormValid || _isLoading || _tenants?.Any() != true)"
-                       aria-label="Accedi al sistema">
-                @TranslationService.GetTranslation("auth.login", "Login")
-            </MudButton>
+            <MudStack Row="true" Spacing="2" Style="width: 100%;">
+                <MudButton ButtonType="ButtonType.Button"
+                           Variant="Variant.Text"
+                           Color="Color.Default"
+                           OnClick="Cancel"
+                           Disabled="_isLoading">
+                    @TranslationService.GetTranslation("common.cancel", "Cancel")
+                </MudButton>
+                <MudSpacer />
+                <MudButton ButtonType="ButtonType.Button"
+                           Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           OnClick="OpenChangePasswordDialog"
+                           Disabled="_isLoading">
+                    @TranslationService.GetTranslation("auth.changePassword", "Change Password")
+                </MudButton>
+                <MudButton ButtonType="ButtonType.Button"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="HandleLogin"
+                           Disabled="@(!_isFormValid || _isLoading || _tenants?.Any() != true)"
+                           aria-label="Accedi al sistema">
+                    @TranslationService.GetTranslation("auth.login", "Login")
+                </MudButton>
+            </MudStack>
         }
     </DialogActions>
 </MudDialog>
@@ -118,6 +137,9 @@
     private readonly LoginRequestDto _loginRequest = new();
     private List<TenantResponseDto> _tenants = new();
     private string? _selectedTenantId;
+    private bool _passwordVisible = false;
+    private InputType _passwordInputType = InputType.Password;
+    private string _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
 
     protected override async Task OnInitializedAsync()
     {
@@ -253,5 +275,42 @@
             _isLoading = false;
             StateHasChanged();
         }
+    }
+
+    private async Task OpenChangePasswordDialog()
+    {
+        // Open ChangePasswordDialog for voluntary password change
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            BackdropClick = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ChangePasswordDialog>(
+            TranslationService.GetTranslation("auth.changePassword", "Change Password"),
+            options);
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        if (_passwordVisible)
+        {
+            _passwordVisible = false;
+            _passwordInputType = InputType.Password;
+            _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
+        }
+        else
+        {
+            _passwordVisible = true;
+            _passwordInputType = InputType.Text;
+            _passwordVisibilityIcon = Icons.Material.Filled.Visibility;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
     }
 }
