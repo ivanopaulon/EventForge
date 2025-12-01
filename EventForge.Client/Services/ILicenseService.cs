@@ -19,6 +19,8 @@ namespace EventForge.Client.Services
 
         // License Features
         Task<IEnumerable<LicenseFeatureDto>> GetLicenseFeaturesAsync(Guid licenseId);
+        Task<IEnumerable<AvailableFeatureDto>> GetAvailableFeaturesAsync();
+        Task<LicenseDto> UpdateLicenseFeaturesAsync(Guid licenseId, UpdateLicenseFeaturesDto updateDto);
 
         // API Usage and Statistics
         Task<ApiUsageDto?> GetApiUsageAsync(Guid tenantId);

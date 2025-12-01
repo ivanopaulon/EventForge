@@ -315,7 +315,6 @@
 
     /// <summary>
     /// Loads roles data with proper error handling.
-    /// TODO: Implement actual API call when backend is ready.
     /// </summary>
     private async Task LoadRolesAsync()
     {
@@ -323,19 +322,8 @@
         {
             _isLoadingRoles = true;
             
-            // TODO: Replace with actual API call when available
-            // _roles = (await SuperAdminService.GetRolesAsync()).ToList();
-            
-            // Placeholder data for demo purposes
-            _roles = new List<RoleDto>
-            {
-                new RoleDto { Id = Guid.NewGuid(), RoleName = "SuperAdmin", Description = "Super Administrator role with full system access", UsersCount = 2, PermissionsCount = 50, IsSystemRole = true, CreatedAt = DateTime.UtcNow.AddMonths(-12) },
-                new RoleDto { Id = Guid.NewGuid(), RoleName = "Admin", Description = "Administrator role with tenant-level access", UsersCount = 5, PermissionsCount = 40, IsSystemRole = true, CreatedAt = DateTime.UtcNow.AddMonths(-12) },
-                new RoleDto { Id = Guid.NewGuid(), RoleName = "Manager", Description = "Manager role with limited administrative access", UsersCount = 10, PermissionsCount = 25, IsSystemRole = true, CreatedAt = DateTime.UtcNow.AddMonths(-12) },
-                new RoleDto { Id = Guid.NewGuid(), RoleName = "CustomRole", Description = "Custom role created by admin", UsersCount = 3, PermissionsCount = 15, IsSystemRole = false, CreatedAt = DateTime.UtcNow.AddDays(-30) },
-            };
-            
-            await Task.Delay(500); // Simulate API call
+            // Call actual API
+            _roles = (await SuperAdminService.GetRolesAsync()).ToList();
         }
         catch (Exception ex)
         {
@@ -351,7 +339,6 @@
 
     /// <summary>
     /// Loads permissions for selected role.
-    /// TODO: Implement actual API call when backend is ready.
     /// </summary>
     private async Task LoadPermissionsAsync()
     {
@@ -361,20 +348,8 @@
         {
             _isLoadingPermissions = true;
             
-            // TODO: Replace with actual API call when available
-            // _permissions = (await SuperAdminService.GetRolePermissionsAsync(_selectedRole.Id)).ToList();
-            
-            // Placeholder data for demo purposes
-            _permissions = new List<PermissionDto>
-            {
-                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "CreateUser", Resource = "Users", Action = "create", Description = "Create new users" },
-                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "ReadUser", Resource = "Users", Action = "read", Description = "View user information" },
-                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "UpdateUser", Resource = "Users", Action = "update", Description = "Update user information" },
-                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "DeleteUser", Resource = "Users", Action = "delete", Description = "Delete users" },
-                new PermissionDto { Id = Guid.NewGuid(), PermissionName = "ManageProducts", Resource = "Products", Action = "create", Description = "Manage products" },
-            };
-            
-            await Task.Delay(300); // Simulate API call
+            // Call actual API
+            _permissions = (await SuperAdminService.GetRolePermissionsAsync(_selectedRole.Id)).ToList();
         }
         catch (Exception ex)
         {
