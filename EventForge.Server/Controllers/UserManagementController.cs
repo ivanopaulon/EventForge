@@ -495,12 +495,19 @@ public class UserManagementController : BaseApiController
     /// Gets all available roles.
     /// </summary>
     [HttpGet("roles")]
-    public async Task<ActionResult<IEnumerable<object>>> GetRoles()
+    [ProducesResponseType(typeof(IEnumerable<RoleResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<RoleResponseDto>>> GetRoles()
     {
         try
         {
             var roles = await _context.Roles
-                .Select(r => new { r.Id, r.Name, r.Description })
+                .Select(r => new RoleResponseDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    Description = r.Description
+                })
                 .OrderBy(r => r.Name)
                 .ToListAsync();
 

@@ -77,7 +77,10 @@ public class LicenseController : BaseApiController
                     CreatedBy = lf.CreatedBy ?? "system",
                     ModifiedAt = lf.ModifiedAt,
                     ModifiedBy = lf.ModifiedBy,
-                    RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
+                    RequiredPermissions = lf.LicenseFeaturePermissions
+                        .Where(lfp => lfp.Permission != null)
+                        .Select(lfp => lfp.Permission.Name)
+                        .ToList()
                 }).ToList()
             }).ToList();
 
@@ -147,7 +150,10 @@ public class LicenseController : BaseApiController
                     CreatedBy = lf.CreatedBy ?? "system",
                     ModifiedAt = lf.ModifiedAt,
                     ModifiedBy = lf.ModifiedBy,
-                    RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
+                    RequiredPermissions = lf.LicenseFeaturePermissions
+                        .Where(lfp => lfp.Permission != null)
+                        .Select(lfp => lfp.Permission.Name)
+                        .ToList()
                 }).ToList()
             };
 
@@ -404,7 +410,10 @@ public class LicenseController : BaseApiController
                     CreatedBy = lf.CreatedBy ?? "system",
                     ModifiedAt = lf.ModifiedAt,
                     ModifiedBy = lf.ModifiedBy,
-                    RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
+                    RequiredPermissions = lf.LicenseFeaturePermissions
+                        .Where(lfp => lfp.Permission != null)
+                        .Select(lfp => lfp.Permission.Name)
+                        .ToList()
                 }).ToList()
             }).ToList();
 
@@ -517,7 +526,10 @@ public class LicenseController : BaseApiController
                     CreatedBy = lf.CreatedBy ?? "system",
                     ModifiedAt = lf.ModifiedAt,
                     ModifiedBy = lf.ModifiedBy,
-                    RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
+                    RequiredPermissions = lf.LicenseFeaturePermissions
+                        .Where(lfp => lfp.Permission != null)
+                        .Select(lfp => lfp.Permission.Name)
+                        .ToList()
                 }).ToList()
             };
 
@@ -590,7 +602,10 @@ public class LicenseController : BaseApiController
                     CreatedBy = lf.CreatedBy ?? "system",
                     ModifiedAt = lf.ModifiedAt,
                     ModifiedBy = lf.ModifiedBy,
-                    RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
+                    RequiredPermissions = lf.LicenseFeaturePermissions
+                        .Where(lfp => lfp.Permission != null)
+                        .Select(lfp => lfp.Permission.Name)
+                        .ToList()
                 }).ToList()
             };
 
@@ -753,7 +768,10 @@ public class LicenseController : BaseApiController
                     CreatedBy = lf.CreatedBy ?? "system",
                     ModifiedAt = lf.ModifiedAt,
                     ModifiedBy = lf.ModifiedBy,
-                    RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
+                    RequiredPermissions = lf.LicenseFeaturePermissions
+                        .Where(lfp => lfp.Permission != null)
+                        .Select(lfp => lfp.Permission.Name)
+                        .ToList()
                 }).ToList()
             };
 

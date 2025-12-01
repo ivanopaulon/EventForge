@@ -77,7 +77,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var roles = await _httpClientService.GetAsync<IEnumerable<object>>("api/v1/user-management/roles");
+                var roles = await _httpClientService.GetAsync<IEnumerable<RoleResponseDto>>("api/v1/user-management/roles");
                 if (roles == null)
                 {
                     return new List<RoleDto>();
@@ -90,26 +90,21 @@ namespace EventForge.Client.Services
                 // Define system roles
                 var systemRoleNames = new HashSet<string> { "SuperAdmin", "Admin", "Manager", "User" };
 
-                // Map the anonymous objects to RoleDto
+                // Map RoleResponseDto to RoleDto
                 var roleDtos = new List<RoleDto>();
                 foreach (var role in roles)
                 {
-                    var roleType = role.GetType();
-                    var id = (Guid)roleType.GetProperty("Id")?.GetValue(role)!;
-                    var name = (string)roleType.GetProperty("Name")?.GetValue(role)!;
-                    var description = (string?)roleType.GetProperty("Description")?.GetValue(role);
-
                     // Count users in this role from the pre-fetched list
-                    var usersInRole = usersList.Count(u => u.Roles.Contains(name));
+                    var usersInRole = usersList.Count(u => u.Roles.Contains(role.Name));
 
                     roleDtos.Add(new RoleDto
                     {
-                        Id = id,
-                        RoleName = name,
-                        Description = description,
+                        Id = role.Id,
+                        RoleName = role.Name,
+                        Description = role.Description,
                         UsersCount = usersInRole,
                         PermissionsCount = 0, // Permissions count not available yet
-                        IsSystemRole = systemRoleNames.Contains(name),
+                        IsSystemRole = systemRoleNames.Contains(role.Name),
                         CreatedAt = DateTime.UtcNow
                     });
                 }
