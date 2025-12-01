@@ -706,9 +706,9 @@ public class LicenseController : BaseApiController
                     Category = templateFeature.Category,
                     LicenseId = id,
                     IsActive = true,
-                    CreatedBy = "system",
+                    CreatedBy = User.Identity?.Name ?? "system",
                     CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
+                    TenantId = Guid.Empty // System-level entity
                 };
 
                 _context.LicenseFeatures.Add(newFeature);

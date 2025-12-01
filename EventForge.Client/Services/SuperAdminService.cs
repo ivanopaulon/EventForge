@@ -83,6 +83,13 @@ namespace EventForge.Client.Services
                     return new List<RoleDto>();
                 }
 
+                // Fetch all users once to avoid N+1 query problem
+                var users = await _httpClientService.GetAsync<IEnumerable<UserManagementDto>>("api/v1/user-management");
+                var usersList = users?.ToList() ?? new List<UserManagementDto>();
+
+                // Define system roles
+                var systemRoleNames = new HashSet<string> { "SuperAdmin", "Admin", "Manager", "User" };
+
                 // Map the anonymous objects to RoleDto
                 var roleDtos = new List<RoleDto>();
                 foreach (var role in roles)
@@ -92,9 +99,8 @@ namespace EventForge.Client.Services
                     var name = (string)roleType.GetProperty("Name")?.GetValue(role)!;
                     var description = (string?)roleType.GetProperty("Description")?.GetValue(role);
 
-                    // Get role details from user management for counts
-                    var users = await _httpClientService.GetAsync<IEnumerable<UserManagementDto>>("api/v1/user-management");
-                    var usersInRole = users?.Count(u => u.Roles.Contains(name)) ?? 0;
+                    // Count users in this role from the pre-fetched list
+                    var usersInRole = usersList.Count(u => u.Roles.Contains(name));
 
                     roleDtos.Add(new RoleDto
                     {
@@ -102,8 +108,8 @@ namespace EventForge.Client.Services
                         RoleName = name,
                         Description = description,
                         UsersCount = usersInRole,
-                        PermissionsCount = 0, // TODO: This would need a permissions endpoint
-                        IsSystemRole = name == "SuperAdmin" || name == "Admin" || name == "Manager" || name == "User",
+                        PermissionsCount = 0, // Permissions count not available yet
+                        IsSystemRole = systemRoleNames.Contains(name),
                         CreatedAt = DateTime.UtcNow
                     });
                 }
@@ -119,8 +125,8 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId)
         {
-            // TODO: Implement when permissions endpoint is available
-            // For now return empty list
+            // Permissions endpoint not yet available
+            // Return empty list until backend implementation is ready
             await Task.CompletedTask;
             return new List<PermissionDto>();
         }
