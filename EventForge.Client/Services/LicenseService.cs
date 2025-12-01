@@ -1,28 +1,25 @@
 using EventForge.DTOs.Licensing;
-using System.Net.Http.Json;
 
 namespace EventForge.Client.Services
 {
     public class LicenseService : ILicenseService
     {
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IHttpClientService _httpClientService;
         private readonly ILogger<LicenseService> _logger;
         private const string BaseUrl = "api/v1/License";
 
-        public LicenseService(IHttpClientFactory httpClientFactory, ILogger<LicenseService> logger)
+        public LicenseService(IHttpClientService httpClientService, ILogger<LicenseService> logger)
         {
-            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         // License Management
         public async Task<IEnumerable<LicenseDto>> GetLicensesAsync()
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                var response = await httpClient.GetFromJsonAsync<IEnumerable<LicenseDto>>(BaseUrl);
-                return response ?? Enumerable.Empty<LicenseDto>();
+                return await _httpClientService.GetAsync<IEnumerable<LicenseDto>>(BaseUrl) ?? Enumerable.Empty<LicenseDto>();
             }
             catch (Exception ex)
             {
@@ -33,10 +30,9 @@ namespace EventForge.Client.Services
 
         public async Task<LicenseDto?> GetLicenseAsync(Guid id)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                return await httpClient.GetFromJsonAsync<LicenseDto>($"{BaseUrl}/{id}");
+                return await _httpClientService.GetAsync<LicenseDto>($"{BaseUrl}/{id}");
             }
             catch (Exception ex)
             {
@@ -47,13 +43,10 @@ namespace EventForge.Client.Services
 
         public async Task<LicenseDto> CreateLicenseAsync(CreateLicenseDto createDto)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                var response = await httpClient.PostAsJsonAsync(BaseUrl, createDto);
-                _ = response.EnsureSuccessStatusCode();
-                var result = await response.Content.ReadFromJsonAsync<LicenseDto>();
-                return result!;
+                var result = await _httpClientService.PostAsync<CreateLicenseDto, LicenseDto>(BaseUrl, createDto);
+                return result ?? throw new InvalidOperationException("Failed to create license");
             }
             catch (Exception ex)
             {
@@ -64,13 +57,10 @@ namespace EventForge.Client.Services
 
         public async Task<LicenseDto> UpdateLicenseAsync(Guid id, LicenseDto updateDto)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                var response = await httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
-                _ = response.EnsureSuccessStatusCode();
-                var result = await response.Content.ReadFromJsonAsync<LicenseDto>();
-                return result!;
+                var result = await _httpClientService.PutAsync<LicenseDto, LicenseDto>($"{BaseUrl}/{id}", updateDto);
+                return result ?? throw new InvalidOperationException("Failed to update license");
             }
             catch (Exception ex)
             {
@@ -81,11 +71,9 @@ namespace EventForge.Client.Services
 
         public async Task DeleteLicenseAsync(Guid id)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                var response = await httpClient.DeleteAsync($"{BaseUrl}/{id}");
-                _ = response.EnsureSuccessStatusCode();
+                await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             }
             catch (Exception ex)
             {
@@ -97,11 +85,9 @@ namespace EventForge.Client.Services
         // Tenant License Management
         public async Task<IEnumerable<TenantLicenseDto>> GetTenantLicensesAsync()
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                var response = await httpClient.GetFromJsonAsync<IEnumerable<TenantLicenseDto>>($"{BaseUrl}/tenant-licenses");
-                return response ?? Enumerable.Empty<TenantLicenseDto>();
+                return await _httpClientService.GetAsync<IEnumerable<TenantLicenseDto>>($"{BaseUrl}/tenant-licenses") ?? Enumerable.Empty<TenantLicenseDto>();
             }
             catch (Exception ex)
             {
@@ -112,10 +98,9 @@ namespace EventForge.Client.Services
 
         public async Task<TenantLicenseDto?> GetTenantLicenseAsync(Guid tenantId)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                return await httpClient.GetFromJsonAsync<TenantLicenseDto>($"{BaseUrl}/tenant/{tenantId}");
+                return await _httpClientService.GetAsync<TenantLicenseDto>($"{BaseUrl}/tenant/{tenantId}");
             }
             catch (Exception ex)
             {
@@ -126,13 +111,10 @@ namespace EventForge.Client.Services
 
         public async Task<TenantLicenseDto> AssignLicenseAsync(AssignLicenseDto assignDto)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/assign", assignDto);
-                _ = response.EnsureSuccessStatusCode();
-                var result = await response.Content.ReadFromJsonAsync<TenantLicenseDto>();
-                return result!;
+                var result = await _httpClientService.PostAsync<AssignLicenseDto, TenantLicenseDto>($"{BaseUrl}/assign", assignDto);
+                return result ?? throw new InvalidOperationException("Failed to assign license");
             }
             catch (Exception ex)
             {
@@ -143,11 +125,9 @@ namespace EventForge.Client.Services
 
         public async Task RemoveTenantLicenseAsync(Guid tenantId)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                var response = await httpClient.DeleteAsync($"{BaseUrl}/tenant/{tenantId}");
-                _ = response.EnsureSuccessStatusCode();
+                await _httpClientService.DeleteAsync($"{BaseUrl}/tenant/{tenantId}");
             }
             catch (Exception ex)
             {
@@ -159,11 +139,9 @@ namespace EventForge.Client.Services
         // License Features
         public async Task<IEnumerable<LicenseFeatureDto>> GetLicenseFeaturesAsync(Guid licenseId)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                var response = await httpClient.GetFromJsonAsync<IEnumerable<LicenseFeatureDto>>($"{BaseUrl}/{licenseId}/features");
-                return response ?? Enumerable.Empty<LicenseFeatureDto>();
+                return await _httpClientService.GetAsync<IEnumerable<LicenseFeatureDto>>($"{BaseUrl}/{licenseId}/features") ?? Enumerable.Empty<LicenseFeatureDto>();
             }
             catch (Exception ex)
             {
@@ -175,10 +153,9 @@ namespace EventForge.Client.Services
         // API Usage and Statistics
         public async Task<ApiUsageDto?> GetApiUsageAsync(Guid tenantId)
         {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             try
             {
-                return await httpClient.GetFromJsonAsync<ApiUsageDto>($"{BaseUrl}/usage/{tenantId}");
+                return await _httpClientService.GetAsync<ApiUsageDto>($"{BaseUrl}/usage/{tenantId}");
             }
             catch (Exception ex)
             {

@@ -9,7 +9,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for SuperAdmin user management operations.
 /// Provides comprehensive user management capabilities across all tenants with proper multi-tenant support.
 /// </summary>
-[Route("api/v1/[controller]")]
+[Route("api/v1/user-management")]
 [Authorize(Roles = "SuperAdmin")]
 public class UserManagementController : BaseApiController
 {
