@@ -45,21 +45,20 @@ public class AuthorizationHandlerLifetimeTests : IClassFixture<WebApplicationFac
         
         var serviceProvider = services.BuildServiceProvider();
         
-        // Act - Try to resolve the handler in different scopes
+        // Act - Try to resolve the handler in different scopes to verify it's not a singleton
         IAuthorizationHandler? handler1;
-        IAuthorizationHandler? handler2;
-        IAuthorizationHandler? handler3;
-        
         using (var scope1 = serviceProvider.CreateScope())
         {
             handler1 = scope1.ServiceProvider.GetService<IAuthorizationHandler>();
         }
         
+        IAuthorizationHandler? handler2;
         using (var scope2 = serviceProvider.CreateScope())
         {
             handler2 = scope2.ServiceProvider.GetService<IAuthorizationHandler>();
         }
         
+        IAuthorizationHandler? handler3;
         using (var scope3 = serviceProvider.CreateScope())
         {
             handler3 = scope3.ServiceProvider.GetService<IAuthorizationHandler>();
