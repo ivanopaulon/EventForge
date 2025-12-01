@@ -65,6 +65,7 @@ builder.Services.AddScoped<IHttpClientService, HttpClientService>();
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthenticationDialogService, AuthenticationDialogService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
 builder.Services.AddScoped<IRealtimeService, OptimizedSignalRService>();
 // Register SignalRService for backward compatibility (marked as Obsolete)
