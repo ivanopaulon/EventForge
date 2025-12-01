@@ -551,7 +551,7 @@
             
             // Start session keepalive timer - check every 5 minutes
             _sessionKeepAliveTimer = new System.Threading.Timer(
-                async _ => await CheckSessionValidityAsync(),
+                _ => OnSessionKeepAliveTimer(),
                 null,
                 TimeSpan.FromMinutes(5),
                 TimeSpan.FromMinutes(5)
@@ -1586,10 +1586,30 @@
         }
     }
     
-    private async Task CheckSessionValidityAsync()
+    private void OnSessionKeepAliveTimer()
     {
-        // Only check if we have an active session
-        if (_currentDocument == null)
+        // Synchronous wrapper for timer callback to avoid fire-and-forget async issues
+        try
+        {
+            // Check if component is being disposed
+            if (_cts?.IsCancellationRequested == true)
+            {
+                return;
+            }
+
+            // Execute async operation synchronously in the timer context
+            _ = InvokeAsync(async () => await CheckSessionValidityAsync(_cts?.Token ?? default));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unhandled exception in session keepalive timer");
+        }
+    }
+
+    private async Task CheckSessionValidityAsync(CancellationToken cancellationToken)
+    {
+        // Only check if we have an active session and not being cancelled
+        if (_currentDocument == null || cancellationToken.IsCancellationRequested)
         {
             return;
         }
@@ -1598,6 +1618,11 @@
         {
             // Attempt to refresh the token to extend the session
             var refreshSuccess = await AuthService.RefreshTokenAsync();
+            
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return; // Stop if component is being disposed
+            }
             
             if (refreshSuccess)
             {
@@ -1608,15 +1633,18 @@
                 // Token refresh failed - user may need to re-authenticate
                 await InvokeAsync(() =>
                 {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("auth.sessionExpiring", "La sessione sta per scadere. Salva il lavoro e preparati a rieffettuare il login."),
-                        Severity.Warning,
-                        config => 
-                        {
-                            config.VisibleStateDuration = 15000; // Show for 15 seconds
-                        }
-                    );
-                    StateHasChanged();
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("auth.sessionExpiring", "La sessione sta per scadere. Salva il lavoro e preparati a rieffettuare il login."),
+                            Severity.Warning,
+                            config => 
+                            {
+                                config.VisibleStateDuration = 15000; // Show for 15 seconds
+                            }
+                        );
+                        StateHasChanged();
+                    }
                 });
                 
                 Logger.LogWarning("Token refresh failed during keepalive check");
@@ -1624,25 +1652,41 @@
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            
             // Token has expired - warn the user
             await InvokeAsync(() =>
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
-                    Severity.Error,
-                    config => 
-                    {
-                        config.VisibleStateDuration = 15000; // Show for 15 seconds
-                    }
-                );
-                StateHasChanged();
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
+                        Severity.Error,
+                        config => 
+                        {
+                            config.VisibleStateDuration = 15000; // Show for 15 seconds
+                        }
+                    );
+                    StateHasChanged();
+                }
             });
             
             Logger.LogWarning("Session expired - JWT token no longer valid");
         }
+        catch (OperationCanceledException)
+        {
+            // Expected when component is being disposed
+            Logger.LogDebug("Session validity check cancelled");
+        }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Error during session validity check and token refresh");
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                Logger.LogWarning(ex, "Error during session validity check and token refresh");
+            }
         }
     }
     
