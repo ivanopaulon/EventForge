@@ -229,12 +229,8 @@ public class TenantUserManagementService : ITenantUserManagementService
             cancellationToken
         );
 
-        _logger.LogInformation("User {Username} created successfully with ID {UserId}", dto.Username, user.Id);
-
-        // Note: In a real system, you would send the initial password to the user via email
-        // For now, we'll just log it (this should be handled differently in production)
-        _logger.LogWarning("Initial password for {Username}: {Password} (send this via secure channel)", 
-            dto.Username, initialPassword);
+        _logger.LogInformation("User {Username} created successfully with ID {UserId}. Initial password has been generated and must be sent via secure channel.", 
+            dto.Username, user.Id);
 
         var tenant = await _context.Tenants.FindAsync(new object[] { tenantId }, cancellationToken);
         return UserMapper.ToManagementDto(user, dto.Roles, tenant?.Name);
@@ -249,6 +245,7 @@ public class TenantUserManagementService : ITenantUserManagementService
 
         var user = await _context.Users
             .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
             .Include(u => u.Tenant)
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
@@ -689,7 +686,7 @@ public class TenantUserManagementService : ITenantUserManagementService
     }
 
     /// <summary>
-    /// Generates a random password that meets security requirements.
+    /// Generates a random password that meets security requirements using cryptographically secure random number generation.
     /// </summary>
     private string GenerateRandomPassword()
     {
@@ -698,23 +695,28 @@ public class TenantUserManagementService : ITenantUserManagementService
         const string digits = "0123456789";
         const string special = "!@#$%^&*";
 
-        var random = new Random();
         var password = new char[12];
 
-        // Ensure at least one of each required character type
-        password[0] = lowercase[random.Next(lowercase.Length)];
-        password[1] = uppercase[random.Next(uppercase.Length)];
-        password[2] = digits[random.Next(digits.Length)];
-        password[3] = special[random.Next(special.Length)];
+        // Ensure at least one of each required character type using cryptographically secure random
+        password[0] = lowercase[System.Security.Cryptography.RandomNumberGenerator.GetInt32(lowercase.Length)];
+        password[1] = uppercase[System.Security.Cryptography.RandomNumberGenerator.GetInt32(uppercase.Length)];
+        password[2] = digits[System.Security.Cryptography.RandomNumberGenerator.GetInt32(digits.Length)];
+        password[3] = special[System.Security.Cryptography.RandomNumberGenerator.GetInt32(special.Length)];
 
         // Fill the rest randomly
         var allChars = lowercase + uppercase + digits + special;
         for (int i = 4; i < password.Length; i++)
         {
-            password[i] = allChars[random.Next(allChars.Length)];
+            password[i] = allChars[System.Security.Cryptography.RandomNumberGenerator.GetInt32(allChars.Length)];
         }
 
-        // Shuffle the password
-        return new string(password.OrderBy(x => random.Next()).ToArray());
+        // Shuffle the password using Fisher-Yates algorithm with cryptographically secure random
+        for (int i = password.Length - 1; i > 0; i--)
+        {
+            int j = System.Security.Cryptography.RandomNumberGenerator.GetInt32(i + 1);
+            (password[i], password[j]) = (password[j], password[i]);
+        }
+
+        return new string(password);
     }
 }
