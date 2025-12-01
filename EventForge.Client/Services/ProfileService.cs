@@ -8,17 +8,23 @@ namespace EventForge.Client.Services;
 public class ProfileService : IProfileService
 {
     private readonly IHttpClientService _httpClientService;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IAuthService _authService;
     private readonly ILogger<ProfileService> _logger;
     private readonly ISnackbar _snackbar;
     private readonly ITranslationService _translationService;
 
     public ProfileService(
         IHttpClientService httpClientService,
+        IHttpClientFactory httpClientFactory,
+        IAuthService authService,
         ILogger<ProfileService> logger,
         ISnackbar snackbar,
         ITranslationService translationService)
     {
         _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _snackbar = snackbar ?? throw new ArgumentNullException(nameof(snackbar));
         _translationService = translationService ?? throw new ArgumentNullException(nameof(translationService));
@@ -68,6 +74,7 @@ public class ProfileService : IProfileService
 
     public async Task<UserProfileDto?> UploadAvatarAsync(Stream fileStream, string fileName, string contentType)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
             using var content = new MultipartFormDataContent();
@@ -75,9 +82,18 @@ public class ProfileService : IProfileService
             streamContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
             content.Add(streamContent, "file", fileName);
 
-            // Use HttpClient directly since we need multipart/form-data
-            var httpClient = new HttpClient { BaseAddress = new Uri("/") };
-            var response = await httpClient.PostAsync("/api/v1/profile/avatar", content);
+            var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/profile/avatar")
+            {
+                Content = content
+            };
+
+            var token = await _authService.GetAccessTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {

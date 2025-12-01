@@ -214,7 +214,15 @@ public class ProfileController : BaseApiController
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "avatars");
             Directory.CreateDirectory(uploadsFolder);
 
-            var filePath = Path.Combine(uploadsFolder, fileName);
+            var filePath = Path.GetFullPath(Path.Combine(uploadsFolder, fileName));
+            
+            // Validate that the file path is within the allowed directory (prevent path traversal)
+            var uploadsFullPath = Path.GetFullPath(uploadsFolder);
+            if (!filePath.StartsWith(uploadsFullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Invalid file path detected.");
+            }
+
             var storageKey = $"/images/avatars/{fileName}";
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -248,9 +256,13 @@ public class ProfileController : BaseApiController
 
                 if (oldDocument != null)
                 {
-                    // Delete old physical file
-                    var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", oldDocument.StorageKey.TrimStart('/'));
-                    if (System.IO.File.Exists(oldFilePath))
+                    // Delete old physical file with path validation
+                    var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                    var oldFilePath = Path.GetFullPath(Path.Combine(wwwrootPath, oldDocument.StorageKey.TrimStart('/')));
+                    
+                    // Validate that the file path is within wwwroot (prevent path traversal)
+                    var wwwrootFullPath = Path.GetFullPath(wwwrootPath);
+                    if (oldFilePath.StartsWith(wwwrootFullPath, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(oldFilePath))
                     {
                         System.IO.File.Delete(oldFilePath);
                     }
@@ -319,9 +331,13 @@ public class ProfileController : BaseApiController
                 return CreateNotFoundProblem("Avatar not found.");
             }
 
-            // Delete physical file
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", user.AvatarDocument.StorageKey.TrimStart('/'));
-            if (System.IO.File.Exists(filePath))
+            // Delete physical file with path validation
+            var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var filePath = Path.GetFullPath(Path.Combine(wwwrootPath, user.AvatarDocument.StorageKey.TrimStart('/')));
+            
+            // Validate that the file path is within wwwroot (prevent path traversal)
+            var wwwrootFullPath = Path.GetFullPath(wwwrootPath);
+            if (filePath.StartsWith(wwwrootFullPath, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(filePath))
             {
                 System.IO.File.Delete(filePath);
             }
