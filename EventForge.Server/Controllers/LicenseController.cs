@@ -602,4 +602,167 @@ public class LicenseController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while retrieving the tenant license", ex);
         }
     }
+
+    /// <summary>
+    /// Get all available features in the system.
+    /// </summary>
+    /// <returns>List of available features</returns>
+    /// <response code="200">Returns the list of available features</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpGet("available-features")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(IEnumerable<AvailableFeatureDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<AvailableFeatureDto>>> GetAvailableFeatures()
+    {
+        try
+        {
+            // Get all unique features from the database grouped by name
+            var features = await _context.LicenseFeatures
+                .Where(lf => lf.IsActive)
+                .GroupBy(lf => lf.Name)
+                .Select(g => g.OrderByDescending(f => f.CreatedAt).First())
+                .OrderBy(lf => lf.Category)
+                .ThenBy(lf => lf.DisplayName)
+                .ToListAsync();
+
+            var availableFeatures = features.Select(f => new AvailableFeatureDto
+            {
+                Name = f.Name,
+                DisplayName = f.DisplayName,
+                Description = f.Description,
+                Category = f.Category
+            }).ToList();
+
+            return Ok(availableFeatures);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving available features");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving available features", ex);
+        }
+    }
+
+    /// <summary>
+    /// Update the features for a specific license.
+    /// </summary>
+    /// <param name="id">License ID</param>
+    /// <param name="updateDto">Features to assign to the license</param>
+    /// <returns>Updated license with new features</returns>
+    /// <response code="200">Returns the updated license</response>
+    /// <response code="404">If the license is not found</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpPut("{id}/features")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(LicenseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<LicenseDto>> UpdateLicenseFeatures(Guid id, [FromBody] UpdateLicenseFeaturesDto updateDto)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return CreateValidationProblemDetails();
+            }
+
+            var license = await _context.Licenses
+                .Include(l => l.LicenseFeatures)
+                    .ThenInclude(lf => lf.LicenseFeaturePermissions)
+                .Include(l => l.TenantLicenses)
+                .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted);
+
+            if (license == null)
+            {
+                return NotFound($"License with ID {id} not found");
+            }
+
+            // Get all existing features with the requested names
+            var existingFeatures = await _context.LicenseFeatures
+                .Where(lf => updateDto.FeatureNames.Contains(lf.Name) && lf.IsActive)
+                .GroupBy(lf => lf.Name)
+                .Select(g => g.OrderByDescending(f => f.CreatedAt).First())
+                .ToListAsync();
+
+            // Remove all current license features
+            var currentFeatures = license.LicenseFeatures.ToList();
+            _context.LicenseFeatures.RemoveRange(currentFeatures);
+
+            // Create new license features based on the selected names
+            foreach (var featureName in updateDto.FeatureNames)
+            {
+                var templateFeature = existingFeatures.FirstOrDefault(f => f.Name == featureName);
+                if (templateFeature == null)
+                {
+                    _logger.LogWarning("Feature {FeatureName} not found in system, skipping", featureName);
+                    continue;
+                }
+
+                var newFeature = new LicenseFeature
+                {
+                    Name = templateFeature.Name,
+                    DisplayName = templateFeature.DisplayName,
+                    Description = templateFeature.Description,
+                    Category = templateFeature.Category,
+                    LicenseId = id,
+                    IsActive = true,
+                    CreatedBy = User.Identity?.Name ?? "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty // System-level entity
+                };
+
+                _context.LicenseFeatures.Add(newFeature);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Reload the license with updated features
+            var updatedLicense = await _context.Licenses
+                .Include(l => l.LicenseFeatures)
+                    .ThenInclude(lf => lf.LicenseFeaturePermissions)
+                        .ThenInclude(lfp => lfp.Permission)
+                .Include(l => l.TenantLicenses)
+                .FirstOrDefaultAsync(l => l.Id == id);
+
+            var licenseDto = new LicenseDto
+            {
+                Id = updatedLicense!.Id,
+                Name = updatedLicense.Name,
+                DisplayName = updatedLicense.DisplayName,
+                Description = updatedLicense.Description,
+                MaxUsers = updatedLicense.MaxUsers,
+                MaxApiCallsPerMonth = updatedLicense.MaxApiCallsPerMonth,
+                IsActive = updatedLicense.IsActive,
+                TierLevel = updatedLicense.TierLevel,
+                CreatedAt = updatedLicense.CreatedAt,
+                CreatedBy = updatedLicense.CreatedBy ?? "system",
+                ModifiedAt = updatedLicense.ModifiedAt,
+                ModifiedBy = updatedLicense.ModifiedBy,
+                TenantCount = updatedLicense.TenantLicenses.Count(tl => tl.IsAssignmentActive),
+                Features = updatedLicense.LicenseFeatures.Select(lf => new LicenseFeatureDto
+                {
+                    Id = lf.Id,
+                    Name = lf.Name,
+                    DisplayName = lf.DisplayName,
+                    Description = lf.Description,
+                    Category = lf.Category,
+                    IsActive = lf.IsActive,
+                    LicenseId = lf.LicenseId,
+                    LicenseName = updatedLicense.Name,
+                    CreatedAt = lf.CreatedAt,
+                    CreatedBy = lf.CreatedBy ?? "system",
+                    ModifiedAt = lf.ModifiedAt,
+                    ModifiedBy = lf.ModifiedBy,
+                    RequiredPermissions = lf.LicenseFeaturePermissions.Select(lfp => lfp.Permission.Name).ToList()
+                }).ToList()
+            };
+
+            return Ok(licenseDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating license features for license {LicenseId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while updating license features", ex);
+        }
+    }
 }

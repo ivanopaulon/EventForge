@@ -184,28 +184,54 @@
                         </MudText>
                     </MudItem>
 
-                    @if (!_isCreateMode && _license.Features?.Any() == true)
+                    @if (!_isCreateMode)
                     {
                         <MudItem xs="12">
                             <MudText Typo="Typo.h6" Class="mb-3">
                                 @TranslationService.GetTranslation("license.features", "Funzionalità incluse")
                             </MudText>
-                            <MudStack Spacing="2">
-                                @foreach (var feature in _license.Features)
-                                {
-                                    <MudPaper Class="pa-3" Elevation="1">
-                                        <MudText Typo="Typo.subtitle1" Color="Color.Primary">@feature.Name</MudText>
-                                        <MudText Typo="Typo.body2" Class="mb-2">@feature.Description</MudText>
-                                        @if (feature.RequiredPermissions?.Any() == true)
-                                        {
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                @TranslationService.GetTranslation("license.permissions", "Permessi"): 
-                                                @string.Join(", ", feature.RequiredPermissions)
-                                            </MudText>
-                                        }
-                                    </MudPaper>
-                                }
-                            </MudStack>
+                            @if (_isLoadingFeatures)
+                            {
+                                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                            }
+                            else if (_availableFeatures.Any())
+                            {
+                                <MudPaper Class="pa-3" Elevation="1">
+                                    <MudText Typo="Typo.body2" Class="mb-3">
+                                        @TranslationService.GetTranslation("license.selectFeatures", "Seleziona le funzionalità da includere in questa licenza:")
+                                    </MudText>
+                                    @foreach (var category in _availableFeatures.GroupBy(f => f.Category).OrderBy(g => g.Key))
+                                    {
+                                        <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mt-3 mb-2">@category.Key</MudText>
+                                        <MudList T="string" Clickable="true" Dense="true">
+                                            @foreach (var feature in category.OrderBy(f => f.DisplayName))
+                                            {
+                                                <MudListItem T="string" @key="feature.Name">
+                                                    <MudCheckBox T="bool" 
+                                                                 Value="@_selectedFeatureNames.Contains(feature.Name)"
+                                                                 ValueChanged="@((bool isChecked) => OnFeatureSelectionChanged(feature.Name, isChecked))"
+                                                                 Color="Color.Primary"
+                                                                 Dense="true">
+                                                        <MudStack Spacing="0">
+                                                            <MudText Typo="Typo.body2">@feature.DisplayName</MudText>
+                                                            @if (!string.IsNullOrEmpty(feature.Description))
+                                                            {
+                                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@feature.Description</MudText>
+                                                            }
+                                                        </MudStack>
+                                                    </MudCheckBox>
+                                                </MudListItem>
+                                            }
+                                        </MudList>
+                                    }
+                                </MudPaper>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info">
+                                    @TranslationService.GetTranslation("license.noFeaturesAvailable", "Nessuna funzionalità disponibile")
+                                </MudAlert>
+                            }
                         </MudItem>
                     }
                 </MudGrid>
@@ -222,8 +248,12 @@
     private bool _isLoading = true;
     private bool _isSaving = false;
     private bool _hasLocalChanges = false;
+    private bool _isLoadingFeatures = false;
     private string _originalSnapshot = string.Empty;
     private MudForm? _form;
+    
+    private List<AvailableFeatureDto> _availableFeatures = new();
+    private HashSet<string> _selectedFeatureNames = new();
 
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -272,6 +302,12 @@
                 if (_license != null)
                 {
                     _originalSnapshot = JsonSerializer.Serialize(_license, _jsonOptions);
+                    
+                    // Load available features and initialize selection
+                    await LoadAvailableFeaturesAsync();
+                    
+                    // Initialize selected features from current license
+                    _selectedFeatureNames = _license.Features?.Select(f => f.Name).ToHashSet() ?? new HashSet<string>();
                 }
             }
         }
@@ -280,6 +316,37 @@
             Logger.LogError(ex, "Error loading license {LicenseId}", LicenseId);
             Snackbar.Add(TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento della licenza"), Severity.Error);
         }
+    }
+
+    private async Task LoadAvailableFeaturesAsync()
+    {
+        try
+        {
+            _isLoadingFeatures = true;
+            _availableFeatures = (await LicenseService.GetAvailableFeaturesAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading available features");
+            Snackbar.Add(TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento delle funzionalità"), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingFeatures = false;
+        }
+    }
+
+    private void OnFeatureSelectionChanged(string featureName, bool isSelected)
+    {
+        if (isSelected)
+        {
+            _selectedFeatureNames.Add(featureName);
+        }
+        else
+        {
+            _selectedFeatureNames.Remove(featureName);
+        }
+        MarkChanged();
     }
 
     private void MarkChanged()
@@ -329,6 +396,14 @@
             else if (LicenseId.HasValue)
             {
                 await LicenseService.UpdateLicenseAsync(LicenseId.Value, _license!);
+                
+                // Update license features
+                var updateFeaturesDto = new UpdateLicenseFeaturesDto
+                {
+                    FeatureNames = _selectedFeatureNames.ToList()
+                };
+                await LicenseService.UpdateLicenseFeaturesAsync(LicenseId.Value, updateFeaturesDto);
+                
                 Snackbar.Add(TranslationService.GetTranslation("license.updated", "Licenza aggiornata con successo"), Severity.Success);
                 await LoadLicenseAsync();
             }

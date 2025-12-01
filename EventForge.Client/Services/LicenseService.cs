@@ -150,6 +150,33 @@ namespace EventForge.Client.Services
             }
         }
 
+        public async Task<IEnumerable<AvailableFeatureDto>> GetAvailableFeaturesAsync()
+        {
+            try
+            {
+                return await _httpClientService.GetAsync<IEnumerable<AvailableFeatureDto>>($"{BaseUrl}/available-features") ?? Enumerable.Empty<AvailableFeatureDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting available features");
+                throw;
+            }
+        }
+
+        public async Task<LicenseDto> UpdateLicenseFeaturesAsync(Guid licenseId, UpdateLicenseFeaturesDto updateDto)
+        {
+            try
+            {
+                var result = await _httpClientService.PutAsync<UpdateLicenseFeaturesDto, LicenseDto>($"{BaseUrl}/{licenseId}/features", updateDto);
+                return result ?? throw new InvalidOperationException("Failed to update license features");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating license features for {LicenseId}", licenseId);
+                throw;
+            }
+        }
+
         // API Usage and Statistics
         public async Task<ApiUsageDto?> GetApiUsageAsync(Guid tenantId)
         {

@@ -5,6 +5,10 @@ namespace EventForge.Client.Services
 {
     public interface ISuperAdminService
     {
+        // Role Management
+        Task<IEnumerable<RoleDto>> GetRolesAsync();
+        Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId);
+
         // Tenant Management
         Task<IEnumerable<TenantResponseDto>> GetTenantsAsync();
         Task<TenantResponseDto?> GetTenantAsync(Guid id);
@@ -66,6 +70,68 @@ namespace EventForge.Client.Services
             _logger = logger;
             _loadingDialogService = loadingDialogService;
         }
+
+        #region Role Management
+
+        public async Task<IEnumerable<RoleDto>> GetRolesAsync()
+        {
+            try
+            {
+                var roles = await _httpClientService.GetAsync<IEnumerable<object>>("api/v1/user-management/roles");
+                if (roles == null)
+                {
+                    return new List<RoleDto>();
+                }
+
+                // Fetch all users once to avoid N+1 query problem
+                var users = await _httpClientService.GetAsync<IEnumerable<UserManagementDto>>("api/v1/user-management");
+                var usersList = users?.ToList() ?? new List<UserManagementDto>();
+
+                // Define system roles
+                var systemRoleNames = new HashSet<string> { "SuperAdmin", "Admin", "Manager", "User" };
+
+                // Map the anonymous objects to RoleDto
+                var roleDtos = new List<RoleDto>();
+                foreach (var role in roles)
+                {
+                    var roleType = role.GetType();
+                    var id = (Guid)roleType.GetProperty("Id")?.GetValue(role)!;
+                    var name = (string)roleType.GetProperty("Name")?.GetValue(role)!;
+                    var description = (string?)roleType.GetProperty("Description")?.GetValue(role);
+
+                    // Count users in this role from the pre-fetched list
+                    var usersInRole = usersList.Count(u => u.Roles.Contains(name));
+
+                    roleDtos.Add(new RoleDto
+                    {
+                        Id = id,
+                        RoleName = name,
+                        Description = description,
+                        UsersCount = usersInRole,
+                        PermissionsCount = 0, // Permissions count not available yet
+                        IsSystemRole = systemRoleNames.Contains(name),
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                return roleDtos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving roles");
+                return new List<RoleDto>();
+            }
+        }
+
+        public async Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId)
+        {
+            // Permissions endpoint not yet available
+            // Return empty list until backend implementation is ready
+            await Task.CompletedTask;
+            return new List<PermissionDto>();
+        }
+
+        #endregion
 
         #region Tenant Management
 
