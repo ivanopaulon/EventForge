@@ -1,5 +1,3 @@
-using EventForge.DTOs.SuperAdmin;
-
 namespace EventForge.Server.Services.Auth;
 
 /// <summary>

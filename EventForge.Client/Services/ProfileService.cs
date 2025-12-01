@@ -52,14 +52,14 @@ public class ProfileService : IProfileService
         try
         {
             var profile = await _httpClientService.PutAsync<UpdateProfileDto, UserProfileDto>("/api/v1/profile", updateDto);
-            
+
             if (profile != null)
             {
                 _snackbar.Add(
                     _translationService.GetTranslation("profile.success.updated", "Profile updated successfully"),
                     Severity.Success);
             }
-            
+
             return profile;
         }
         catch (Exception ex)
@@ -98,14 +98,14 @@ public class ProfileService : IProfileService
             if (response.IsSuccessStatusCode)
             {
                 var profile = await response.Content.ReadFromJsonAsync<UserProfileDto>();
-                
+
                 if (profile != null)
                 {
                     _snackbar.Add(
                         _translationService.GetTranslation("profile.success.avatarUploaded", "Avatar uploaded successfully"),
                         Severity.Success);
                 }
-                
+
                 return profile;
             }
             else
@@ -171,16 +171,16 @@ public class ProfileService : IProfileService
         try
         {
             var profile = await _httpClientService.PutAsync<UpdateNotificationPreferencesDto, UserProfileDto>(
-                "/api/v1/profile/notifications", 
+                "/api/v1/profile/notifications",
                 preferencesDto);
-            
+
             if (profile != null)
             {
                 _snackbar.Add(
                     _translationService.GetTranslation("profile.success.notificationsUpdated", "Notification preferences updated"),
                     Severity.Success);
             }
-            
+
             return profile;
         }
         catch (Exception ex)

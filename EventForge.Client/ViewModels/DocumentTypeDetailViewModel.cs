@@ -2,7 +2,6 @@ using EventForge.Client.Services;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Warehouse;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -17,7 +16,7 @@ public class DocumentTypeDetailViewModel : BaseEntityDetailViewModel<DocumentTyp
     public DocumentTypeDetailViewModel(
         IDocumentTypeService documentTypeService,
         IWarehouseService warehouseService,
-        ILogger<DocumentTypeDetailViewModel> logger) 
+        ILogger<DocumentTypeDetailViewModel> logger)
         : base(logger)
     {
         _documentTypeService = documentTypeService;
@@ -65,8 +64,8 @@ public class DocumentTypeDetailViewModel : BaseEntityDetailViewModel<DocumentTyp
             // Load warehouses for default warehouse dropdown
             var warehousesResult = await _warehouseService.GetStorageFacilitiesAsync(1, 100);
             Warehouses = warehousesResult?.Items ?? new List<StorageFacilityDto>();
-            
-            Logger.LogInformation("Loaded {Count} warehouses for document type {Id}", 
+
+            Logger.LogInformation("Loaded {Count} warehouses for document type {Id}",
                 Warehouses.Count(), entityId);
         }
         catch (Exception ex)

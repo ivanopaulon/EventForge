@@ -12,7 +12,7 @@ public interface ITransferOrderService
     /// Gets all transfer orders with pagination and filters.
     /// </summary>
     Task<PagedResult<TransferOrderDto>?> GetTransferOrdersAsync(
-        int page = 1, 
+        int page = 1,
         int pageSize = 20,
         Guid? sourceWarehouseId = null,
         Guid? destinationWarehouseId = null,

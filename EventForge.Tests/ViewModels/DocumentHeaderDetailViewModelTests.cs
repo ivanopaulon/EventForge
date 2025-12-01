@@ -5,7 +5,6 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -129,7 +128,7 @@ public class DocumentHeaderDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         var documentTypeId = Guid.NewGuid();
         var businessPartyId = Guid.NewGuid();
         _viewModel.Entity!.DocumentTypeId = documentTypeId;
@@ -137,7 +136,7 @@ public class DocumentHeaderDetailViewModelTests : IDisposable
         _viewModel.Entity.Number = "INV-2024-001";
         _viewModel.Entity.Date = DateTime.UtcNow;
         _viewModel.Entity.TotalGrossAmount = 1500m;
-        
+
         var createdDocumentHeader = new DocumentHeaderDto
         {
             Id = Guid.NewGuid(),

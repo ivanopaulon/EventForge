@@ -1,17 +1,11 @@
-using System.Diagnostics;
-using System.Globalization;
-using System.Text;
-using CsvHelper;
 using CsvHelper.Configuration;
 using EventForge.DTOs.PriceHistory;
 using EventForge.DTOs.Products;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.PriceHistory;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Globalization;
+using System.Text;
 using ProductStatus = EventForge.Server.Data.Entities.Products.ProductStatus;
 
 namespace EventForge.Server.Services.Products;
@@ -74,7 +68,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             // Read and parse CSV
             using var stream = file.OpenReadStream();
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            
+
             // Detect delimiter from first line
             var firstLine = await reader.ReadLineAsync(cancellationToken);
             if (string.IsNullOrEmpty(firstLine))
@@ -106,7 +100,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             };
 
             using var csv = new CsvHelper.CsvReader(csvReader, csvConfig);
-            
+
             // Read header
             await csv.ReadAsync();
             csv.ReadHeader();
@@ -230,7 +224,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             // Parse CSV
             using var stream = file.OpenReadStream();
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            
+
             var firstLine = await reader.ReadLineAsync(cancellationToken);
             if (string.IsNullOrEmpty(firstLine))
             {
@@ -258,7 +252,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             };
 
             using var csv = new CsvHelper.CsvReader(csvReader, csvConfig);
-            
+
             await csv.ReadAsync();
             csv.ReadHeader();
 
@@ -271,7 +265,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             while (await csv.ReadAsync())
             {
                 result.TotalRows++;
-                
+
                 try
                 {
                     var productCode = GetFieldValue(csv, options.ColumnMapping.ProductCodeColumn);
@@ -372,7 +366,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
                                 RowNumber = rowNumber,
                                 ProductCode = productCode,
                                 ErrorType = "ProductNotFound",
-                                ErrorMessage = options.CreateNew 
+                                ErrorMessage = options.CreateNew
                                     ? "Product not found and ProductName is required to create new products"
                                     : "Product not found and CreateNew option is disabled"
                             });
@@ -620,7 +614,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         var errors = new List<CsvImportError>();
 
         // Validate ProductCode
-        if (string.IsNullOrWhiteSpace(mapping.ProductCodeColumn) || 
+        if (string.IsNullOrWhiteSpace(mapping.ProductCodeColumn) ||
             !row.Values.TryGetValue(mapping.ProductCodeColumn, out var productCode) ||
             string.IsNullOrWhiteSpace(productCode))
         {
@@ -633,7 +627,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         }
 
         // Validate UnitCost
-        if (string.IsNullOrWhiteSpace(mapping.UnitCostColumn) || 
+        if (string.IsNullOrWhiteSpace(mapping.UnitCostColumn) ||
             !row.Values.TryGetValue(mapping.UnitCostColumn, out var unitCostStr) ||
             string.IsNullOrWhiteSpace(unitCostStr))
         {
@@ -655,7 +649,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         }
 
         // Validate optional numeric fields
-        if (!string.IsNullOrWhiteSpace(mapping.LeadTimeDaysColumn) && 
+        if (!string.IsNullOrWhiteSpace(mapping.LeadTimeDaysColumn) &&
             row.Values.TryGetValue(mapping.LeadTimeDaysColumn, out var leadTimeStr) &&
             !string.IsNullOrWhiteSpace(leadTimeStr))
         {
@@ -670,7 +664,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(mapping.MinOrderQuantityColumn) && 
+        if (!string.IsNullOrWhiteSpace(mapping.MinOrderQuantityColumn) &&
             row.Values.TryGetValue(mapping.MinOrderQuantityColumn, out var minOrderStr) &&
             !string.IsNullOrWhiteSpace(minOrderStr))
         {

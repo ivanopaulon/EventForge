@@ -1,6 +1,5 @@
 using EventForge.Client.Services;
 using EventForge.DTOs.Documents;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -15,7 +14,7 @@ public class DocumentCounterDetailViewModel : BaseEntityDetailViewModel<Document
     public DocumentCounterDetailViewModel(
         IDocumentCounterService documentCounterService,
         IDocumentTypeService documentTypeService,
-        ILogger<DocumentCounterDetailViewModel> logger) 
+        ILogger<DocumentCounterDetailViewModel> logger)
         : base(logger)
     {
         _documentCounterService = documentCounterService;
@@ -65,8 +64,8 @@ public class DocumentCounterDetailViewModel : BaseEntityDetailViewModel<Document
             // Load document types for dropdown
             var documentTypesResult = await _documentTypeService.GetAllDocumentTypesAsync();
             DocumentTypes = documentTypesResult ?? new List<DocumentTypeDto>();
-            
-            Logger.LogInformation("Loaded {Count} document types for document counter {Id}", 
+
+            Logger.LogInformation("Loaded {Count} document types for document counter {Id}",
                 DocumentTypes.Count(), entityId);
         }
         catch (Exception ex)

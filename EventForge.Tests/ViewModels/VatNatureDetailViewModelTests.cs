@@ -3,7 +3,6 @@ using EventForge.Client.ViewModels;
 using EventForge.DTOs.VatRates;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -79,11 +78,11 @@ public class VatNatureDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         _viewModel.Entity!.Code = "N2";
         _viewModel.Entity.Name = "Not Subject to VAT";
         _viewModel.Entity.Description = "Operations not subject to VAT";
-        
+
         var createdVatNature = new VatNatureDto
         {
             Id = Guid.NewGuid(),

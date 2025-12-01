@@ -397,3 +397,4 @@ test-results/
 screenshots/
 *.mp4
 *.webm
+/EventForge.Server/Data/Migrations

@@ -1,5 +1,4 @@
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Mappers;
 using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.Warehouse;
@@ -769,7 +768,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             {
                 var docType = await _context.DocumentTypes
                     .FirstOrDefaultAsync(dt => dt.Id == documentHeader.DocumentTypeId && !dt.IsDeleted, cancellationToken);
-                
+
                 if (docType?.IsStockIncrease == true)
                 {
                     await EnsureProductSupplierAsync(
@@ -1399,13 +1398,13 @@ public class DocumentHeaderService : IDocumentHeaderService
     /// Ensures a ProductSupplier relationship exists for the given product and supplier.
     /// If it exists, updates the last purchase price and date. If not, creates a new one.
     /// </summary>
-    private async Task EnsureProductSupplierAsync(Guid productId, Guid supplierId, 
+    private async Task EnsureProductSupplierAsync(Guid productId, Guid supplierId,
         decimal unitPrice, string currentUser, CancellationToken ct)
     {
         try
         {
             var existing = await _context.Set<ProductSupplier>()
-                .FirstOrDefaultAsync(ps => ps.ProductId == productId && 
+                .FirstOrDefaultAsync(ps => ps.ProductId == productId &&
                     ps.SupplierId == supplierId && !ps.IsDeleted, ct);
 
             if (existing != null)
@@ -1433,13 +1432,13 @@ public class DocumentHeaderService : IDocumentHeaderService
                 });
             }
             await _context.SaveChangesAsync(ct);
-            
-            _logger.LogInformation("ProductSupplier ensured for Product {ProductId} and Supplier {SupplierId}.", 
+
+            _logger.LogInformation("ProductSupplier ensured for Product {ProductId} and Supplier {SupplierId}.",
                 productId, supplierId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error ensuring ProductSupplier for Product {ProductId} and Supplier {SupplierId}.", 
+            _logger.LogError(ex, "Error ensuring ProductSupplier for Product {ProductId} and Supplier {SupplierId}.",
                 productId, supplierId);
             // Don't throw - this is a non-critical operation
         }

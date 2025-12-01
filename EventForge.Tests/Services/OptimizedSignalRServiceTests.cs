@@ -49,7 +49,7 @@ public class OptimizedSignalRServiceTests : IDisposable
         // Arrange
         var notification1 = new NotificationResponseDto { Id = Guid.NewGuid(), Type = NotificationTypes.System };
         var notification2 = new NotificationResponseDto { Id = Guid.NewGuid(), Type = NotificationTypes.Event };
-        
+
         var individualNotifications = new List<NotificationResponseDto>();
         var batchedNotifications = new List<List<NotificationResponseDto>>();
 
@@ -70,7 +70,7 @@ public class OptimizedSignalRServiceTests : IDisposable
         Assert.Equal(2, individualNotifications.Count);
         Assert.Contains(notification1, individualNotifications);
         Assert.Contains(notification2, individualNotifications);
-        
+
         Assert.Single(batchedNotifications);
         Assert.Equal(2, batchedNotifications[0].Count);
     }
@@ -81,7 +81,7 @@ public class OptimizedSignalRServiceTests : IDisposable
         // Arrange
         var message1 = new ChatMessageDto { Id = Guid.NewGuid(), Content = "Message 1", ChatId = Guid.NewGuid() };
         var message2 = new ChatMessageDto { Id = Guid.NewGuid(), Content = "Message 2", ChatId = Guid.NewGuid() };
-        
+
         var individualMessages = new List<ChatMessageDto>();
         var batchedMessages = new List<List<ChatMessageDto>>();
 
@@ -100,7 +100,7 @@ public class OptimizedSignalRServiceTests : IDisposable
         Assert.Equal(2, individualMessages.Count);
         Assert.Contains(message1, individualMessages);
         Assert.Contains(message2, individualMessages);
-        
+
         Assert.Single(batchedMessages);
         Assert.Equal(2, batchedMessages[0].Count);
     }
@@ -111,7 +111,7 @@ public class OptimizedSignalRServiceTests : IDisposable
         // Arrange
         var auditEvent1 = new { Type = "UserCreated", UserId = Guid.NewGuid() };
         var auditEvent2 = new { Type = "UserUpdated", UserId = Guid.NewGuid() };
-        
+
         var individualEvents = new List<object>();
         var batchedEvents = new List<List<object>>();
 
@@ -215,9 +215,9 @@ public class OptimizedSignalRServiceTests : IDisposable
         _authServiceMock.Setup(x => x.GetAccessTokenAsync()).ReturnsAsync((string?)null);
 
         // Act - invoke ScheduleRetryAsync via reflection (it's private)
-        var method = typeof(OptimizedSignalRService).GetMethod("ScheduleRetryAsync", 
+        var method = typeof(OptimizedSignalRService).GetMethod("ScheduleRetryAsync",
             BindingFlags.NonPublic | BindingFlags.Instance);
-        
+
         if (method != null)
         {
             var task = method.Invoke(_service, new object[] { "test", "/hubs/test" }) as Task;
@@ -232,7 +232,7 @@ public class OptimizedSignalRServiceTests : IDisposable
         // Assert - verify exponential backoff pattern in logs
         // Expected delays: 2s, 4s, 8s, 16s, 30s
         var hasBackoffLog = logMessages.Any(m => m.Contains("backoff delay: 2"));
-        Assert.True(hasBackoffLog || logMessages.Count > 0, 
+        Assert.True(hasBackoffLog || logMessages.Count > 0,
             "Should log backoff delays during retry attempts");
     }
 
@@ -259,9 +259,9 @@ public class OptimizedSignalRServiceTests : IDisposable
             });
 
         // Act
-        var method = typeof(OptimizedSignalRService).GetMethod("ScheduleRetryAsync", 
+        var method = typeof(OptimizedSignalRService).GetMethod("ScheduleRetryAsync",
             BindingFlags.NonPublic | BindingFlags.Instance);
-        
+
         if (method != null)
         {
             var task = method.Invoke(_service, new object[] { "test", "/hubs/test" }) as Task;
@@ -275,7 +275,7 @@ public class OptimizedSignalRServiceTests : IDisposable
 
         // Assert - should stop after MaxRetries (5) attempts
         var errorLogs = logMessages.Where(m => m.Contains("Error:") || m.Contains("Failed to reconnect")).ToList();
-        Assert.True(errorLogs.Any() || logMessages.Count > 0, 
+        Assert.True(errorLogs.Any() || logMessages.Count > 0,
             $"Should have logged messages during retry. Total logs: {logMessages.Count}");
         Assert.True(retryAttempts <= 10, "Should not retry indefinitely");
     }
@@ -321,7 +321,7 @@ public class OptimizedSignalRServiceTests : IDisposable
     /// </summary>
     private void EnqueueEvent(OptimizedSignalRService service, string eventType, object data)
     {
-        var method = typeof(OptimizedSignalRService).GetMethod("EnqueueEvent", 
+        var method = typeof(OptimizedSignalRService).GetMethod("EnqueueEvent",
             BindingFlags.NonPublic | BindingFlags.Instance);
         method?.Invoke(service, new object[] { eventType, data });
     }
@@ -331,7 +331,7 @@ public class OptimizedSignalRServiceTests : IDisposable
     /// </summary>
     private async Task TriggerBatchProcessing(OptimizedSignalRService service)
     {
-        var method = typeof(OptimizedSignalRService).GetMethod("ProcessEventBatchAsync", 
+        var method = typeof(OptimizedSignalRService).GetMethod("ProcessEventBatchAsync",
             BindingFlags.NonPublic | BindingFlags.Instance);
         if (method != null)
         {

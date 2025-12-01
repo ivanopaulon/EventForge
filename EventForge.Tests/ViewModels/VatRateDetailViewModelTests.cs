@@ -4,7 +4,6 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.VatRates;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -106,7 +105,7 @@ public class VatRateDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         var vatNatureId = Guid.NewGuid();
         _viewModel.Entity!.Name = "VAT 10%";
         _viewModel.Entity.Percentage = 10m;
@@ -114,7 +113,7 @@ public class VatRateDetailViewModelTests : IDisposable
         _viewModel.Entity.ValidFrom = DateTime.UtcNow;
         _viewModel.Entity.Notes = "Reduced rate";
         _viewModel.Entity.VatNatureId = vatNatureId;
-        
+
         var createdVatRate = new VatRateDto
         {
             Id = Guid.NewGuid(),

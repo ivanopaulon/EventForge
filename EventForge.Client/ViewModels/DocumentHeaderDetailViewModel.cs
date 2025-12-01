@@ -1,7 +1,6 @@
 using EventForge.Client.Services;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -18,7 +17,7 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
         IDocumentHeaderService documentHeaderService,
         IDocumentTypeService documentTypeService,
         IBusinessPartyService businessPartyService,
-        ILogger<DocumentHeaderDetailViewModel> logger) 
+        ILogger<DocumentHeaderDetailViewModel> logger)
         : base(logger)
     {
         _documentHeaderService = documentHeaderService;
@@ -118,12 +117,12 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
             // Load document types for dropdown
             var documentTypesResult = await _documentTypeService.GetAllDocumentTypesAsync();
             DocumentTypes = documentTypesResult ?? new List<DocumentTypeDto>();
-            
+
             // Load business parties for dropdown
             var businessPartiesResult = await _businessPartyService.GetBusinessPartiesAsync(1, 100);
             BusinessParties = businessPartiesResult?.Items ?? new List<EventForge.DTOs.Business.BusinessPartyDto>();
-            
-            Logger.LogInformation("Loaded {DocumentTypeCount} document types and {BusinessPartyCount} business parties for document header {Id}", 
+
+            Logger.LogInformation("Loaded {DocumentTypeCount} document types and {BusinessPartyCount} business parties for document header {Id}",
                 DocumentTypes.Count(), BusinessParties.Count(), entityId);
         }
         catch (Exception ex)

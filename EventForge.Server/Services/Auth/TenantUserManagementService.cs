@@ -1,7 +1,6 @@
-using EventForge.DTOs.SuperAdmin;
+using EventForge.Server.Mappers;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Auth;
 
@@ -229,12 +228,12 @@ public class TenantUserManagementService : ITenantUserManagementService
             cancellationToken
         );
 
-        _logger.LogInformation("User {Username} created successfully with ID {UserId}. Initial password must be securely transmitted to the user.", 
+        _logger.LogInformation("User {Username} created successfully with ID {UserId}. Initial password must be securely transmitted to the user.",
             dto.Username, user.Id);
 
         var tenant = await _context.Tenants.FindAsync(new object[] { tenantId }, cancellationToken);
         var userManagementDto = UserMapper.ToManagementDto(user, dto.Roles, tenant?.Name);
-        
+
         // Return the created user with the initial password
         return new CreatedUserDto
         {
@@ -367,7 +366,7 @@ public class TenantUserManagementService : ITenantUserManagementService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("User {UserId} updated successfully. Changes: {Changes}", 
+        _logger.LogInformation("User {UserId} updated successfully. Changes: {Changes}",
             userId, string.Join("; ", changes));
 
         return UserMapper.ToManagementDto(user, dto.Roles, user.Tenant?.Name);
@@ -630,7 +629,7 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Performing quick action {Action} for user {UserId} in tenant {TenantId}", 
+        _logger.LogInformation("Performing quick action {Action} for user {UserId} in tenant {TenantId}",
             action, userId, tenantId);
 
         var user = await _context.Users

@@ -1,13 +1,7 @@
 using EventForge.DTOs.Profile;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Filters;
-using EventForge.Server.Services.Auth;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 
 namespace EventForge.Server.Controllers;
 
@@ -189,7 +183,7 @@ public class ProfileController : BaseApiController
         {
             var userId = _tenantContext.CurrentUserId;
             var tenantId = _tenantContext.CurrentTenantId;
-            
+
             if (!userId.HasValue || !tenantId.HasValue)
             {
                 return Unauthorized();
@@ -215,7 +209,7 @@ public class ProfileController : BaseApiController
             Directory.CreateDirectory(uploadsFolder);
 
             var filePath = Path.GetFullPath(Path.Combine(uploadsFolder, fileName));
-            
+
             // Validate that the file path is within the allowed directory (prevent path traversal)
             var uploadsFullPath = Path.GetFullPath(uploadsFolder);
             if (!filePath.StartsWith(uploadsFullPath, StringComparison.OrdinalIgnoreCase))
@@ -259,7 +253,7 @@ public class ProfileController : BaseApiController
                     // Delete old physical file with path validation
                     var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
                     var oldFilePath = Path.GetFullPath(Path.Combine(wwwrootPath, oldDocument.StorageKey.TrimStart('/')));
-                    
+
                     // Validate that the file path is within wwwroot (prevent path traversal)
                     var wwwrootFullPath = Path.GetFullPath(wwwrootPath);
                     if (oldFilePath.StartsWith(wwwrootFullPath, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(oldFilePath))
@@ -334,7 +328,7 @@ public class ProfileController : BaseApiController
             // Delete physical file with path validation
             var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             var filePath = Path.GetFullPath(Path.Combine(wwwrootPath, user.AvatarDocument.StorageKey.TrimStart('/')));
-            
+
             // Validate that the file path is within wwwroot (prevent path traversal)
             var wwwrootFullPath = Path.GetFullPath(wwwrootPath);
             if (filePath.StartsWith(wwwrootFullPath, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(filePath))
@@ -521,8 +515,8 @@ public class ProfileController : BaseApiController
 
             // Get sessions from LoginAudit where EventType = "Success" and no logout event
             var sessions = await _context.LoginAudits
-                .Where(la => la.UserId == userId.Value && 
-                            la.EventType == "Success" && 
+                .Where(la => la.UserId == userId.Value &&
+                            la.EventType == "Success" &&
                             la.Success &&
                             la.SessionId != null)
                 .OrderByDescending(la => la.EventTime)
@@ -635,8 +629,8 @@ public class ProfileController : BaseApiController
 
             // Get all active sessions except current
             var sessions = await _context.LoginAudits
-                .Where(la => la.UserId == userId.Value && 
-                            la.EventType == "Success" && 
+                .Where(la => la.UserId == userId.Value &&
+                            la.EventType == "Success" &&
                             la.Success &&
                             la.SessionId != null)
                 .ToListAsync(cancellationToken);
@@ -704,7 +698,7 @@ public class ProfileController : BaseApiController
             var cutoffDate = DateTime.UtcNow.AddDays(-Math.Abs(days));
 
             var history = await _context.LoginAudits
-                .Where(la => la.UserId == userId.Value && 
+                .Where(la => la.UserId == userId.Value &&
                             la.EventTime >= cutoffDate &&
                             (la.EventType == "Success" || la.EventType == "Failed"))
                 .OrderByDescending(la => la.EventTime)

@@ -299,7 +299,7 @@ public class TransferOrderManagementTests
         Assert.Equal(page, result.Page);
         Assert.Equal(pageSize, result.PageSize);
         Assert.Equal("TEST-123", result.Items.First().Number);
-        
+
         _mockTransferOrderService.Verify(x => x.GetTransferOrdersAsync(
             page,
             pageSize,
@@ -347,7 +347,7 @@ public class TransferOrderManagementTests
         var sourceId = Guid.NewGuid();
         var status = "Pending";
         var searchTerm = "TEST";
-        
+
         // Simulate loading page 1 with filters
         var page1Result = new PagedResult<TransferOrderDto>
         {

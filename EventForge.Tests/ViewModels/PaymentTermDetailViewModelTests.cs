@@ -4,7 +4,6 @@ using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -85,12 +84,12 @@ public class PaymentTermDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         _viewModel.Entity!.Name = "Net 60";
         _viewModel.Entity.Description = "Payment due within 60 days";
         _viewModel.Entity.DueDays = 60;
         _viewModel.Entity.PaymentMethod = PaymentMethod.Cash;
-        
+
         var createdPaymentTerm = new PaymentTermDto
         {
             Id = Guid.NewGuid(),

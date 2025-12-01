@@ -19,7 +19,7 @@ public class TransferOrderService : ITransferOrderService
     }
 
     public async Task<PagedResult<TransferOrderDto>?> GetTransferOrdersAsync(
-        int page = 1, 
+        int page = 1,
         int pageSize = 20,
         Guid? sourceWarehouseId = null,
         Guid? destinationWarehouseId = null,
@@ -30,16 +30,16 @@ public class TransferOrderService : ITransferOrderService
         try
         {
             var url = $"{BaseUrl}?page={page}&pageSize={pageSize}";
-            
+
             if (sourceWarehouseId.HasValue)
                 url += $"&sourceWarehouseId={sourceWarehouseId.Value}";
-            
+
             if (destinationWarehouseId.HasValue)
                 url += $"&destinationWarehouseId={destinationWarehouseId.Value}";
-            
+
             if (!string.IsNullOrWhiteSpace(status))
                 url += $"&status={Uri.EscapeDataString(status)}";
-            
+
             if (!string.IsNullOrWhiteSpace(searchTerm))
                 url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
 

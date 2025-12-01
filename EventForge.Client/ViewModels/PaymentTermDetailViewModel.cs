@@ -1,6 +1,5 @@
 using EventForge.Client.Services;
 using EventForge.DTOs.Business;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -13,7 +12,7 @@ public class PaymentTermDetailViewModel : BaseEntityDetailViewModel<PaymentTermD
 
     public PaymentTermDetailViewModel(
         IFinancialService financialService,
-        ILogger<PaymentTermDetailViewModel> logger) 
+        ILogger<PaymentTermDetailViewModel> logger)
         : base(logger)
     {
         _financialService = financialService;

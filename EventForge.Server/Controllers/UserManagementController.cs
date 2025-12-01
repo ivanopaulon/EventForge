@@ -599,9 +599,9 @@ public class UserManagementController : BaseApiController
 
             // Add eager loading of Tenant before executing queries
             query = query.Include(u => u.Tenant);
-            
+
             var totalCount = await query.CountAsync();
-            
+
             var result = await query
                 .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
                 .Take(searchDto.PageSize)

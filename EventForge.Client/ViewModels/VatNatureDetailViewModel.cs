@@ -1,6 +1,5 @@
 using EventForge.Client.Services;
 using EventForge.DTOs.VatRates;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -13,7 +12,7 @@ public class VatNatureDetailViewModel : BaseEntityDetailViewModel<VatNatureDto, 
 
     public VatNatureDetailViewModel(
         IFinancialService financialService,
-        ILogger<VatNatureDetailViewModel> logger) 
+        ILogger<VatNatureDetailViewModel> logger)
         : base(logger)
     {
         _financialService = financialService;

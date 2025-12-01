@@ -1,6 +1,5 @@
 using EventForge.DTOs.Products.SupplierSuggestion;
 using EventForge.Server.Filters;
-using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

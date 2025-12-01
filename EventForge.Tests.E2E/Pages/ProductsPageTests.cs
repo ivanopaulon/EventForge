@@ -1,5 +1,5 @@
-using NUnit.Framework;
 using Microsoft.Playwright;
+using NUnit.Framework;
 using System.Text.RegularExpressions;
 
 namespace EventForge.Tests.E2E.Pages;
@@ -23,9 +23,9 @@ public class ProductsPageTests : PlaywrightSetup
 
         // Assert
         await Expect(Page).ToHaveTitleAsync(new Regex(".*EventForge.*", RegexOptions.IgnoreCase));
-        
+
         // Verify page loaded by checking for common elements
-        var pageLoaded = await ElementExistsAsync("body") && 
+        var pageLoaded = await ElementExistsAsync("body") &&
                         await Page.Locator("body").IsVisibleAsync();
         Assert.That(pageLoaded, Is.True, "Products page should be visible");
     }
@@ -39,9 +39,9 @@ public class ProductsPageTests : PlaywrightSetup
         var loadTime = await MeasurePageLoadTimeAsync(ProductsPagePath);
 
         // Assert
-        Assert.That(loadTime, Is.LessThan(3.0), 
+        Assert.That(loadTime, Is.LessThan(3.0),
             $"Products page should load within 3 seconds, but took {loadTime:F2}s");
-        
+
         TestContext.WriteLine($"Products page loaded in {loadTime:F2} seconds");
     }
 
@@ -54,10 +54,10 @@ public class ProductsPageTests : PlaywrightSetup
         await NavigateToPageAsync(ProductsPagePath);
 
         // Act & Assert - Check for common Blazor/MudBlazor UI elements
-        var mainContentExists = await ElementExistsAsync("main") || 
+        var mainContentExists = await ElementExistsAsync("main") ||
                                await ElementExistsAsync(".mud-main-content") ||
                                await ElementExistsAsync("[role='main']");
-        
+
         Assert.That(mainContentExists, Is.True, "Main content area should exist");
 
         // Check that the page has rendered content
@@ -104,7 +104,7 @@ public class ProductsPageTests : PlaywrightSetup
 
         // Assert
         var currentUrl = Page.Url;
-        Assert.That(currentUrl, Does.Contain(ProductsPagePath), 
+        Assert.That(currentUrl, Does.Contain(ProductsPagePath),
             $"Should navigate to Products page, but URL is: {currentUrl}");
     }
 
@@ -123,9 +123,9 @@ public class ProductsPageTests : PlaywrightSetup
 
         // Assert
         var reloadedUrl = Page.Url;
-        Assert.That(reloadedUrl, Is.EqualTo(initialUrl), 
+        Assert.That(reloadedUrl, Is.EqualTo(initialUrl),
             "URL should remain the same after refresh");
-        
+
         var pageStillVisible = await Page.Locator("body").IsVisibleAsync();
         Assert.That(pageStillVisible, Is.True, "Page should still be visible after refresh");
     }

@@ -251,7 +251,7 @@ public class BusinessPartyDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         _viewModel.Entity!.Name = "New Customer";
         _viewModel.Entity.PartyType = BusinessPartyType.Supplier;
         _viewModel.Entity.TaxCode = "NEWCF123456";
@@ -276,8 +276,8 @@ public class BusinessPartyDetailViewModelTests : IDisposable
         Assert.NotEqual(Guid.Empty, _viewModel.Entity.Id);
         Assert.False(_viewModel.IsNewEntity);
         _mockBusinessPartyService.Verify(
-            s => s.CreateBusinessPartyAsync(It.Is<CreateBusinessPartyDto>(dto => 
-                dto.Name == "New Customer" && 
+            s => s.CreateBusinessPartyAsync(It.Is<CreateBusinessPartyDto>(dto =>
+                dto.Name == "New Customer" &&
                 dto.PartyType == BusinessPartyType.Supplier)),
             Times.Once);
     }

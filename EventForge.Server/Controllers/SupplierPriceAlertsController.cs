@@ -1,7 +1,6 @@
 using EventForge.DTOs.Alerts;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Alerts;
-using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

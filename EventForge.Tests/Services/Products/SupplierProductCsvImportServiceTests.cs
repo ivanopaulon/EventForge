@@ -1,4 +1,3 @@
-using System.Text;
 using EventForge.DTOs.Products;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
@@ -11,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Text;
 
 namespace EventForge.Tests.Services.Products;
 
@@ -36,7 +36,7 @@ public class SupplierProductCsvImportServiceTests : IDisposable
         _context = new EventForgeDbContext(options);
         _priceHistoryServiceMock = new Mock<ISupplierProductPriceHistoryService>();
         var logger = new Mock<ILogger<SupplierProductCsvImportService>>();
-        
+
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {

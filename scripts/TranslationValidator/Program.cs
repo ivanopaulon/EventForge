@@ -55,7 +55,7 @@ class Program
         {
             // Find all JSON files in the directory
             var translationFiles = directory.GetFiles("*.json");
-            
+
             if (translationFiles.Length == 0)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -108,7 +108,7 @@ class Program
                     Console.WriteLine($"    ✗ Missing Keys: {missingKeys.Count}");
                     Console.ResetColor();
                     allValid = false;
-                    
+
                     if (missingKeys.Count <= 10)
                     {
                         foreach (var key in missingKeys)
@@ -138,7 +138,7 @@ class Program
                     Console.WriteLine($"    ⚠ Extra Keys: {extraKeys.Count}");
                     Console.ResetColor();
                     allValid = false;
-                    
+
                     if (extraKeys.Count <= 10)
                     {
                         foreach (var key in extraKeys)

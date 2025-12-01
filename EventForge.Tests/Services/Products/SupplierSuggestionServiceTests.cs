@@ -1,7 +1,6 @@
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.PriceHistory;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Tenants;
@@ -177,7 +176,7 @@ public class SupplierSuggestionServiceTests : IDisposable
 
         // Assert
         Assert.Equal(3, result.Count);
-        
+
         // Verify descending order by total score
         for (int i = 0; i < result.Count - 1; i++)
         {
@@ -200,10 +199,10 @@ public class SupplierSuggestionServiceTests : IDisposable
 
         // Cheapest should have highest price score
         Assert.True(cheapestSupplier.ScoreBreakdown.PriceScore > mostExpensiveSupplier.ScoreBreakdown.PriceScore);
-        
+
         // Cheapest should have 100 price score (best price)
         Assert.Equal(100m, cheapestSupplier.ScoreBreakdown.PriceScore);
-        
+
         // Most expensive should have 0 price score (worst price)
         Assert.Equal(0m, mostExpensiveSupplier.ScoreBreakdown.PriceScore);
     }
@@ -223,10 +222,10 @@ public class SupplierSuggestionServiceTests : IDisposable
 
         // Fastest should have highest lead time score
         Assert.True(fastestSupplier.ScoreBreakdown.LeadTimeScore > slowestSupplier.ScoreBreakdown.LeadTimeScore);
-        
+
         // Fastest should have 100 lead time score
         Assert.Equal(100m, fastestSupplier.ScoreBreakdown.LeadTimeScore);
-        
+
         // Slowest should have 0 lead time score
         Assert.Equal(0m, slowestSupplier.ScoreBreakdown.LeadTimeScore);
     }
@@ -240,7 +239,7 @@ public class SupplierSuggestionServiceTests : IDisposable
         // Assert
         foreach (var suggestion in result)
         {
-            var expectedTotal = 
+            var expectedTotal =
                 (suggestion.ScoreBreakdown.PriceScore * 0.4m) +
                 (suggestion.ScoreBreakdown.LeadTimeScore * 0.25m) +
                 (suggestion.ScoreBreakdown.ReliabilityScore * 0.2m) +

@@ -1,15 +1,12 @@
 using EventForge.DTOs.Alerts;
-using EventForge.Server.Data;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using AlertConfiguration = EventForge.Server.Data.Entities.Alerts.AlertConfiguration;
 using AlertEntity = EventForge.Server.Data.Entities.Alerts.SupplierPriceAlert;
-using AlertType = EventForge.Server.Data.Entities.Alerts.AlertType;
+using AlertFrequency = EventForge.Server.Data.Entities.Alerts.AlertFrequency;
 using AlertSeverity = EventForge.Server.Data.Entities.Alerts.AlertSeverity;
 using AlertStatus = EventForge.Server.Data.Entities.Alerts.AlertStatus;
-using AlertConfiguration = EventForge.Server.Data.Entities.Alerts.AlertConfiguration;
-using AlertFrequency = EventForge.Server.Data.Entities.Alerts.AlertFrequency;
-using EventForge.Server.Services.Auth;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.SignalR;
-using EventForge.Server.Hubs;
+using AlertType = EventForge.Server.Data.Entities.Alerts.AlertType;
 
 namespace EventForge.Server.Services.Alerts;
 
@@ -104,10 +101,10 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
     }
 
     public async Task<List<Guid>> GenerateAlertsForPriceChangeAsync(
-        Guid productId, 
-        Guid supplierId, 
-        decimal oldPrice, 
-        decimal newPrice, 
+        Guid productId,
+        Guid supplierId,
+        decimal oldPrice,
+        decimal newPrice,
         CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
@@ -187,11 +184,11 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
                     NewPrice = newPrice,
                     PriceChangePercentage = priceChangePercentage,
                     Currency = "EUR",
-                    AlertTitle = alertType == AlertType.PriceIncrease 
+                    AlertTitle = alertType == AlertType.PriceIncrease
                         ? $"Price Increase: {product.Name}"
                         : $"Price Decrease: {product.Name}",
                     AlertMessage = $"The price for {product.Name} ({product.Code}) from supplier {supplier} has {(priceChangePercentage > 0 ? "increased" : "decreased")} by {Math.Abs(priceChangePercentage):F2}% (from €{oldPrice:F2} to €{newPrice:F2}).",
-                    RecommendedAction = alertType == AlertType.PriceIncrease 
+                    RecommendedAction = alertType == AlertType.PriceIncrease
                         ? "Review supplier options and consider alternatives."
                         : "Consider ordering additional stock at the lower price.",
                     CreatedAt = DateTime.UtcNow,
@@ -206,7 +203,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         if (alertIds.Any())
         {
             await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Generated {Count} alerts for price change on product {ProductId}", 
+            _logger.LogInformation("Generated {Count} alerts for price change on product {ProductId}",
                 alertIds.Count, productId);
         }
 
@@ -214,9 +211,9 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
     }
 
     public async Task<List<Guid>> GenerateAlertsForBetterSupplierAsync(
-        Guid productId, 
-        Guid currentSupplierId, 
-        Guid betterSupplierId, 
+        Guid productId,
+        Guid currentSupplierId,
+        Guid betterSupplierId,
         CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
@@ -296,7 +293,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         if (alertIds.Any())
         {
             await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Generated {Count} alerts for better supplier on product {ProductId}", 
+            _logger.LogInformation("Generated {Count} alerts for better supplier on product {ProductId}",
                 alertIds.Count, productId);
         }
 
@@ -317,7 +314,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
     }
 
     public async Task<PaginatedResult<SupplierPriceAlertDto>> GetAlertsAsync(
-        AlertFilterRequest filter, 
+        AlertFilterRequest filter,
         CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
@@ -378,14 +375,14 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         // Apply sorting
         query = (filter.SortBy?.ToLower()) switch
         {
-            "severity" => filter.SortOrder?.ToLower() == "asc" 
-                ? query.OrderBy(a => a.Severity) 
+            "severity" => filter.SortOrder?.ToLower() == "asc"
+                ? query.OrderBy(a => a.Severity)
                 : query.OrderByDescending(a => a.Severity),
-            "status" => filter.SortOrder?.ToLower() == "asc" 
-                ? query.OrderBy(a => a.Status) 
+            "status" => filter.SortOrder?.ToLower() == "asc"
+                ? query.OrderBy(a => a.Status)
                 : query.OrderByDescending(a => a.Status),
-            "createdat" => filter.SortOrder?.ToLower() == "asc" 
-                ? query.OrderBy(a => a.CreatedAt) 
+            "createdat" => filter.SortOrder?.ToLower() == "asc"
+                ? query.OrderBy(a => a.CreatedAt)
                 : query.OrderByDescending(a => a.CreatedAt),
             _ => query.OrderByDescending(a => a.CreatedAt) // Default sort
         };
@@ -430,23 +427,23 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
             AcknowledgedAlerts = alerts.Count(a => a.Status == AlertStatus.Acknowledged),
             ResolvedAlerts = alerts.Count(a => a.Status == AlertStatus.Resolved),
             DismissedAlerts = alerts.Count(a => a.Status == AlertStatus.Dismissed),
-            
+
             CriticalAlerts = alerts.Count(a => a.Severity == AlertSeverity.Critical && a.Status == AlertStatus.New),
             HighPriorityAlerts = alerts.Count(a => a.Severity == AlertSeverity.High && a.Status == AlertStatus.New),
             WarningAlerts = alerts.Count(a => a.Severity == AlertSeverity.Warning && a.Status == AlertStatus.New),
             InfoAlerts = alerts.Count(a => a.Severity == AlertSeverity.Info && a.Status == AlertStatus.New),
-            
+
             TotalPotentialSavings = alerts.Where(a => a.PotentialSavings.HasValue).Sum(a => a.PotentialSavings ?? 0),
             Currency = "EUR",
-            
+
             PriceIncreaseAlerts = alerts.Count(a => a.AlertType == AlertType.PriceIncrease && a.Status == AlertStatus.New),
             PriceDecreaseAlerts = alerts.Count(a => a.AlertType == AlertType.PriceDecrease && a.Status == AlertStatus.New),
             BetterSupplierAlerts = alerts.Count(a => a.AlertType == AlertType.BetterSupplierAvailable && a.Status == AlertStatus.New),
             VolatilityAlerts = alerts.Count(a => a.AlertType == AlertType.PriceVolatility && a.Status == AlertStatus.New),
-            
+
             LastAlertDate = alerts.Any() ? alerts.Max(a => a.CreatedAt) : null,
-            OldestUnreadAlertDate = alerts.Any(a => a.Status == AlertStatus.New) 
-                ? alerts.Where(a => a.Status == AlertStatus.New).Min(a => a.CreatedAt) 
+            OldestUnreadAlertDate = alerts.Any(a => a.Status == AlertStatus.New)
+                ? alerts.Where(a => a.Status == AlertStatus.New).Min(a => a.CreatedAt)
                 : null
         };
     }
@@ -579,7 +576,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
     }
 
     public async Task<AlertConfiguration> UpdateUserConfigurationAsync(
-        UpdateAlertConfigRequest request, 
+        UpdateAlertConfigRequest request,
         CancellationToken cancellationToken = default)
     {
         var config = await GetUserConfigurationAsync(cancellationToken);

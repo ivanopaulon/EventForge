@@ -36,11 +36,11 @@ public class AlertHub : Hub
         {
             // Join tenant-wide alert group
             await Groups.AddToGroupAsync(Context.ConnectionId, $"tenant-{tenantId.Value}");
-            
+
             // Join user-specific group
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user-{userId.Value}");
-            
-            _logger.LogInformation("User {UserId} connected to alert hub for tenant {TenantId}", 
+
+            _logger.LogInformation("User {UserId} connected to alert hub for tenant {TenantId}",
                 userId.Value, tenantId.Value);
         }
 
@@ -57,7 +57,7 @@ public class AlertHub : Hub
 
         if (userId.HasValue && tenantId.HasValue)
         {
-            _logger.LogInformation("User {UserId} disconnected from alert hub for tenant {TenantId}", 
+            _logger.LogInformation("User {UserId} disconnected from alert hub for tenant {TenantId}",
                 userId.Value, tenantId.Value);
         }
 

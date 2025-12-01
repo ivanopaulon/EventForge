@@ -68,7 +68,7 @@ public class TransferOrderService : ITransferOrderService
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                query = query.Where(t => t.Number.Contains(searchTerm) || 
+                query = query.Where(t => t.Number.Contains(searchTerm) ||
                                         (t.ShippingReference != null && t.ShippingReference.Contains(searchTerm)));
             }
 
@@ -145,7 +145,7 @@ public class TransferOrderService : ITransferOrderService
 
             var sourceWarehouse = await _context.StorageFacilities
                 .FirstOrDefaultAsync(w => w.Id == createDto.SourceWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
-            
+
             if (sourceWarehouse == null)
             {
                 throw new InvalidOperationException("Source warehouse not found.");
@@ -153,7 +153,7 @@ public class TransferOrderService : ITransferOrderService
 
             var destinationWarehouse = await _context.StorageFacilities
                 .FirstOrDefaultAsync(w => w.Id == createDto.DestinationWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
-            
+
             if (destinationWarehouse == null)
             {
                 throw new InvalidOperationException("Destination warehouse not found.");
@@ -182,7 +182,7 @@ public class TransferOrderService : ITransferOrderService
                 // Validate product exists
                 var product = await _context.Products
                     .FirstOrDefaultAsync(p => p.Id == rowDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
-                
+
                 if (product == null)
                 {
                     throw new InvalidOperationException($"Product with ID {rowDto.ProductId} not found.");
@@ -191,7 +191,7 @@ public class TransferOrderService : ITransferOrderService
                 // Validate source location exists and belongs to source warehouse
                 var sourceLocation = await _context.StorageLocations
                     .FirstOrDefaultAsync(l => l.Id == rowDto.SourceLocationId && l.WarehouseId == createDto.SourceWarehouseId && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-                
+
                 if (sourceLocation == null)
                 {
                     throw new InvalidOperationException($"Source location with ID {rowDto.SourceLocationId} not found in source warehouse.");
@@ -206,19 +206,19 @@ public class TransferOrderService : ITransferOrderService
 
             // Audit log
             await _auditLogService.LogEntityChangeAsync(
-                "TransferOrder", 
-                transferOrder.Id, 
-                "Status", 
-                "Create", 
-                null, 
-                "Pending", 
-                currentUser, 
+                "TransferOrder",
+                transferOrder.Id,
+                "Status",
+                "Create",
+                null,
+                "Pending",
+                currentUser,
                 $"Transfer order {number} created from {sourceWarehouse.Name} to {destinationWarehouse.Name}",
                 cancellationToken);
 
             _logger.LogInformation("Transfer order {TransferOrderNumber} created successfully by {User}.", number, currentUser);
 
-            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken) 
+            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve created transfer order.");
         }
         catch (Exception ex)
@@ -257,8 +257,8 @@ public class TransferOrderService : ITransferOrderService
             foreach (var row in transferOrder.Rows)
             {
                 var stock = await _context.Stocks
-                    .FirstOrDefaultAsync(s => s.ProductId == row.ProductId && 
-                                            s.StorageLocationId == row.SourceLocationId && 
+                    .FirstOrDefaultAsync(s => s.ProductId == row.ProductId &&
+                                            s.StorageLocationId == row.SourceLocationId &&
                                             s.LotId == row.LotId &&
                                             s.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -315,19 +315,19 @@ public class TransferOrderService : ITransferOrderService
 
             // Audit log
             await _auditLogService.LogEntityChangeAsync(
-                "TransferOrder", 
-                transferOrder.Id, 
-                "Status", 
-                "Update", 
-                "Pending", 
-                "Shipped", 
-                currentUser, 
+                "TransferOrder",
+                transferOrder.Id,
+                "Status",
+                "Update",
+                "Pending",
+                "Shipped",
+                currentUser,
                 $"Transfer order {transferOrder.Number} shipped",
                 cancellationToken);
 
             _logger.LogInformation("Transfer order {TransferOrderNumber} shipped successfully by {User}.", transferOrder.Number, currentUser);
 
-            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken) 
+            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve shipped transfer order.");
         }
         catch (Exception ex)
@@ -376,10 +376,10 @@ public class TransferOrderService : ITransferOrderService
 
                 // Validate destination location belongs to destination warehouse
                 var destinationLocation = await _context.StorageLocations
-                    .FirstOrDefaultAsync(l => l.Id == receiveRow.DestinationLocationId && 
-                                            l.WarehouseId == transferOrder.DestinationWarehouseId && 
+                    .FirstOrDefaultAsync(l => l.Id == receiveRow.DestinationLocationId &&
+                                            l.WarehouseId == transferOrder.DestinationWarehouseId &&
                                             l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-                
+
                 if (destinationLocation == null)
                 {
                     throw new InvalidOperationException($"Destination location {receiveRow.DestinationLocationId} not found in destination warehouse.");
@@ -387,8 +387,8 @@ public class TransferOrderService : ITransferOrderService
 
                 // Find or create stock entry at destination
                 var stock = await _context.Stocks
-                    .FirstOrDefaultAsync(s => s.ProductId == row.ProductId && 
-                                            s.StorageLocationId == receiveRow.DestinationLocationId && 
+                    .FirstOrDefaultAsync(s => s.ProductId == row.ProductId &&
+                                            s.StorageLocationId == receiveRow.DestinationLocationId &&
                                             s.LotId == row.LotId &&
                                             s.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -461,19 +461,19 @@ public class TransferOrderService : ITransferOrderService
 
             // Audit log
             await _auditLogService.LogEntityChangeAsync(
-                "TransferOrder", 
-                transferOrder.Id, 
-                "Status", 
-                "Update", 
-                originalStatus, 
-                "Completed", 
-                currentUser, 
+                "TransferOrder",
+                transferOrder.Id,
+                "Status",
+                "Update",
+                originalStatus,
+                "Completed",
+                currentUser,
                 $"Transfer order {transferOrder.Number} received",
                 cancellationToken);
 
             _logger.LogInformation("Transfer order {TransferOrderNumber} received successfully by {User}.", transferOrder.Number, currentUser);
 
-            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken) 
+            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve received transfer order.");
         }
         catch (Exception ex)
@@ -501,8 +501,8 @@ public class TransferOrderService : ITransferOrderService
                 return false;
             }
 
-            if (transferOrder.Status == TransferOrderStatus.Shipped || 
-                transferOrder.Status == TransferOrderStatus.InTransit || 
+            if (transferOrder.Status == TransferOrderStatus.Shipped ||
+                transferOrder.Status == TransferOrderStatus.InTransit ||
                 transferOrder.Status == TransferOrderStatus.Completed)
             {
                 throw new InvalidOperationException($"Cannot cancel transfer order in status {transferOrder.Status}.");
@@ -519,13 +519,13 @@ public class TransferOrderService : ITransferOrderService
 
             // Audit log
             await _auditLogService.LogEntityChangeAsync(
-                "TransferOrder", 
-                transferOrder.Id, 
-                "Status", 
-                "Update", 
-                originalStatus, 
-                "Cancelled", 
-                currentUser, 
+                "TransferOrder",
+                transferOrder.Id,
+                "Status",
+                "Update",
+                originalStatus,
+                "Cancelled",
+                currentUser,
                 $"Transfer order {transferOrder.Number} cancelled",
                 cancellationToken);
 

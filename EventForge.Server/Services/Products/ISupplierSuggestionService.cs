@@ -1,5 +1,4 @@
 using EventForge.DTOs.Products.SupplierSuggestion;
-using EventForge.Server.Data.Entities.Products;
 
 namespace EventForge.Server.Services.Products;
 

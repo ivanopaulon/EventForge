@@ -4,7 +4,6 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -111,7 +110,7 @@ public class DocumentCounterDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         var documentTypeId = Guid.NewGuid();
         _viewModel.Entity!.DocumentTypeId = documentTypeId;
         _viewModel.Entity.Series = "B";
@@ -120,7 +119,7 @@ public class DocumentCounterDetailViewModelTests : IDisposable
         _viewModel.Entity.PaddingLength = 6;
         _viewModel.Entity.ResetOnYearChange = false;
         _viewModel.Entity.Notes = "Delivery note counter";
-        
+
         var createdDocumentCounter = new DocumentCounterDto
         {
             Id = Guid.NewGuid(),

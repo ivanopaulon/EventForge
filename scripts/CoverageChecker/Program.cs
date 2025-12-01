@@ -77,7 +77,7 @@ class Program
 
             var lineCoverage = summary.Summary.Linecoverage;
             var branchCoverage = summary.Summary.Branchcoverage;
-            
+
             // Calculate missing percentage
             var coveredLines = summary.Summary.Coveredlines;
             var coverableLines = summary.Summary.Coverablelines;
@@ -138,12 +138,12 @@ class Program
     static void PrintMetric(string name, double value, double threshold, string comparison)
     {
         bool passed = comparison == "≥" ? value >= threshold : value <= threshold;
-        
+
         Console.ForegroundColor = passed ? ConsoleColor.Green : ConsoleColor.Red;
         string status = passed ? "✓" : "✗";
         Console.Write($"  {status} ");
         Console.ResetColor();
-        
+
         Console.Write($"{name,-20} ");
         Console.ForegroundColor = passed ? ConsoleColor.Green : ConsoleColor.Red;
         Console.Write($"{value,6:F2}%");
@@ -162,22 +162,22 @@ class SummaryData
 {
     [JsonPropertyName("coveredlines")]
     public int Coveredlines { get; set; }
-    
+
     [JsonPropertyName("coverablelines")]
     public int Coverablelines { get; set; }
-    
+
     [JsonPropertyName("totallines")]
     public int Totallines { get; set; }
-    
+
     [JsonPropertyName("linecoverage")]
     public double Linecoverage { get; set; }
-    
+
     [JsonPropertyName("coveredbranches")]
     public int Coveredbranches { get; set; }
-    
+
     [JsonPropertyName("totalbranches")]
     public int Totalbranches { get; set; }
-    
+
     [JsonPropertyName("branchcoverage")]
     public double Branchcoverage { get; set; }
 }

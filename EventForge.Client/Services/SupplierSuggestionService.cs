@@ -24,7 +24,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         try
         {
             var response = await _httpClient.GetAsync($"/api/v1/supplier-suggestions/products/{productId}");
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<SupplierSuggestionResponse>();
@@ -77,7 +77,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         try
         {
             var response = await _httpClient.GetAsync($"/api/v1/supplier-suggestions/suppliers/{supplierId}/reliability");
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<SupplierReliabilityResponse>();

@@ -1,5 +1,3 @@
-using EventForge.DTOs.SuperAdmin;
-using EventForge.DTOs.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;

@@ -1,5 +1,4 @@
 using EventForge.DTOs.Products;
-using Microsoft.AspNetCore.Http;
 
 namespace EventForge.Server.Services.Products;
 

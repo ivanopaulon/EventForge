@@ -1,7 +1,4 @@
 using EventForge.DTOs.Products;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Audit;
-using EventForge.Server.Data.Entities.Products;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 

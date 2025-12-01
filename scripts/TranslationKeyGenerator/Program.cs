@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.Text;
 using System.Text.Json;
 
 namespace TranslationKeyGenerator;
@@ -70,7 +69,7 @@ class Program
         {
             // Find all JSON files
             var translationFiles = directory.GetFiles("*.json");
-            
+
             if (translationFiles.Length == 0)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -107,7 +106,7 @@ class Program
             foreach (var file in translationFiles.OrderBy(f => f.Name))
             {
                 var lang = Path.GetFileNameWithoutExtension(file.Name);
-                
+
                 // Skip base language
                 if (lang == baseLanguage)
                     continue;
@@ -130,7 +129,7 @@ class Program
                         Console.ForegroundColor = ConsoleColor.Yellow;
                         Console.WriteLine($"    [DRY RUN] Would add {missingKeys.Count} keys");
                         Console.ResetColor();
-                        
+
                         if (missingKeys.Count <= 10)
                         {
                             foreach (var key in missingKeys)
@@ -235,11 +234,11 @@ class Program
     static HashSet<string> GetAllKeys(Dictionary<string, object> translations, string prefix = "")
     {
         var keys = new HashSet<string>();
-        
+
         foreach (var kvp in translations)
         {
             var currentKey = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}.{kvp.Key}";
-            
+
             if (kvp.Value is JsonElement element)
             {
                 if (element.ValueKind == JsonValueKind.Object)
@@ -266,7 +265,7 @@ class Program
                 keys.Add(currentKey);
             }
         }
-        
+
         return keys;
     }
 
@@ -315,7 +314,7 @@ class Program
         for (int i = 0; i < parts.Length - 1; i++)
         {
             var part = parts[i];
-            
+
             if (!current.ContainsKey(part))
             {
                 current[part] = new Dictionary<string, object>();
@@ -337,10 +336,10 @@ class Program
     {
         if (string.IsNullOrEmpty(str))
             return "";
-        
+
         if (str.Length <= maxLength)
             return str;
-        
+
         return str.Substring(0, maxLength - 3) + "...";
     }
 }

@@ -26,7 +26,7 @@ public class PlaywrightSetup : PageTest
 
         // Navigate to the base URL to ensure the app is loaded
         await Page.GotoAsync(BaseUrl);
-        
+
         // Wait for initial page load
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
@@ -56,8 +56,8 @@ public class PlaywrightSetup : PageTest
     /// </summary>
     protected async Task WaitForSelectorAsync(string selector, int timeoutMs = 10000)
     {
-        await Page.WaitForSelectorAsync(selector, new PageWaitForSelectorOptions 
-        { 
+        await Page.WaitForSelectorAsync(selector, new PageWaitForSelectorOptions
+        {
             State = WaitForSelectorState.Visible,
             Timeout = timeoutMs
         });

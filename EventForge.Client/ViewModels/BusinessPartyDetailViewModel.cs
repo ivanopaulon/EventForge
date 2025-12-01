@@ -120,7 +120,7 @@ public class BusinessPartyDetailViewModel : BaseEntityDetailViewModel<BusinessPa
                 Entity.Id,
                 page: page,
                 pageSize: pageSize);
-            
+
             Documents = result?.Items ?? new List<DocumentHeaderDto>();
             IsDocumentsLoaded = true;
             NotifyStateChanged();
@@ -148,7 +148,7 @@ public class BusinessPartyDetailViewModel : BaseEntityDetailViewModel<BusinessPa
                 Entity.Id,
                 page: page,
                 pageSize: pageSize);
-            
+
             ProductAnalysis = result?.Items ?? new List<BusinessPartyProductAnalysisDto>();
             IsProductAnalysisLoaded = true;
             NotifyStateChanged();

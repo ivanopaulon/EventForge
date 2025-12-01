@@ -5,7 +5,6 @@ using EventForge.DTOs.Documents;
 using EventForge.DTOs.Warehouse;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -109,7 +108,7 @@ public class DocumentTypeDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         var warehouseId = Guid.NewGuid();
         _viewModel.Entity!.Code = "DDT";
         _viewModel.Entity.Name = "Delivery Note";
@@ -118,7 +117,7 @@ public class DocumentTypeDetailViewModelTests : IDisposable
         _viewModel.Entity.IsFiscal = false;
         _viewModel.Entity.RequiredPartyType = BusinessPartyType.Supplier;
         _viewModel.Entity.Notes = "For deliveries";
-        
+
         var createdDocumentType = new DocumentTypeDto
         {
             Id = Guid.NewGuid(),

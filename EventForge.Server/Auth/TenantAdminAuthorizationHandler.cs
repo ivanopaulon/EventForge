@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
@@ -65,7 +64,7 @@ public class TenantAdminAuthorizationHandler : AuthorizationHandler<TenantAdminR
 
         // Query AdminTenants table to check if user has required access level
         var adminTenant = await _context.AdminTenants
-            .Where(at => at.UserId == currentUserId.Value 
+            .Where(at => at.UserId == currentUserId.Value
                       && at.ManagedTenantId == currentTenantId.Value
                       && at.IsActive
                       && (!at.ExpiresAt.HasValue || at.ExpiresAt.Value > DateTime.UtcNow))

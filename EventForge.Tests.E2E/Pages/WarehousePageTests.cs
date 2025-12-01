@@ -1,5 +1,5 @@
-using NUnit.Framework;
 using Microsoft.Playwright;
+using NUnit.Framework;
 using System.Text.RegularExpressions;
 
 namespace EventForge.Tests.E2E.Pages;
@@ -23,9 +23,9 @@ public class WarehousePageTests : PlaywrightSetup
 
         // Assert
         await Expect(Page).ToHaveTitleAsync(new Regex(".*EventForge.*", RegexOptions.IgnoreCase));
-        
+
         // Verify page loaded by checking for common elements
-        var pageLoaded = await ElementExistsAsync("body") && 
+        var pageLoaded = await ElementExistsAsync("body") &&
                         await Page.Locator("body").IsVisibleAsync();
         Assert.That(pageLoaded, Is.True, "Warehouse page should be visible");
     }
@@ -39,9 +39,9 @@ public class WarehousePageTests : PlaywrightSetup
         var loadTime = await MeasurePageLoadTimeAsync(WarehousePagePath);
 
         // Assert
-        Assert.That(loadTime, Is.LessThan(3.0), 
+        Assert.That(loadTime, Is.LessThan(3.0),
             $"Warehouse page should load within 3 seconds, but took {loadTime:F2}s");
-        
+
         TestContext.WriteLine($"Warehouse page loaded in {loadTime:F2} seconds");
     }
 
@@ -54,10 +54,10 @@ public class WarehousePageTests : PlaywrightSetup
         await NavigateToPageAsync(WarehousePagePath);
 
         // Act & Assert - Check for common Blazor/MudBlazor UI elements
-        var mainContentExists = await ElementExistsAsync("main") || 
+        var mainContentExists = await ElementExistsAsync("main") ||
                                await ElementExistsAsync(".mud-main-content") ||
                                await ElementExistsAsync("[role='main']");
-        
+
         Assert.That(mainContentExists, Is.True, "Main content area should exist");
 
         // Check that the page has rendered content
@@ -80,9 +80,9 @@ public class WarehousePageTests : PlaywrightSetup
 
         // Assert
         var reloadedUrl = Page.Url;
-        Assert.That(reloadedUrl, Is.EqualTo(initialUrl), 
+        Assert.That(reloadedUrl, Is.EqualTo(initialUrl),
             "URL should remain the same after refresh");
-        
+
         var pageStillVisible = await Page.Locator("body").IsVisibleAsync();
         Assert.That(pageStillVisible, Is.True, "Page should still be visible after refresh");
     }

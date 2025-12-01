@@ -68,7 +68,7 @@ public class SignalRBenchmarks
     public async Task ProcessEventBatch()
     {
         var tasks = new List<Task>();
-        
+
         foreach (var evt in _events)
         {
             // Simulate event processing
@@ -76,7 +76,7 @@ public class SignalRBenchmarks
             {
                 var serialized = JsonSerializer.Serialize(evt, _jsonOptions);
                 var deserialized = JsonSerializer.Deserialize<EventData>(serialized, _jsonOptions);
-                
+
                 // Simulate event validation and routing
                 _ = evt.Type switch
                 {
@@ -114,7 +114,7 @@ public class SignalRBenchmarks
         }
 
         var results = await Task.WhenAll(healthChecks);
-        
+
         // Aggregate results
         var healthyCount = results.Count(r => r.IsHealthy);
         var avgLatency = results.Average(r => r.Latency.TotalMilliseconds);
@@ -129,10 +129,10 @@ public class SignalRBenchmarks
     {
         // Serialize
         var serialized = JsonSerializer.Serialize(_singleEvent, _jsonOptions);
-        
+
         // Deserialize
         var deserialized = JsonSerializer.Deserialize<EventData>(serialized, _jsonOptions);
-        
+
         // Validate
         if (deserialized?.Id != _singleEvent.Id)
         {
@@ -148,7 +148,7 @@ public class SignalRBenchmarks
     public void EventDeserialization()
     {
         var deserialized = JsonSerializer.Deserialize<EventData>(_serializedEvent, _jsonOptions);
-        
+
         if (deserialized?.Id == Guid.Empty)
         {
             throw new InvalidOperationException("Deserialization produced invalid data");
@@ -164,7 +164,7 @@ public class SignalRBenchmarks
     {
         var serialized = JsonSerializer.Serialize(_events, _jsonOptions);
         var deserialized = JsonSerializer.Deserialize<List<EventData>>(serialized, _jsonOptions);
-        
+
         if (deserialized?.Count != _events.Count)
         {
             throw new InvalidOperationException("Batch serialization failed");
@@ -176,22 +176,22 @@ public class SignalRBenchmarks
     private bool ProcessNotificationEvent(EventData evt)
     {
         // Simulate notification processing logic
-        return evt.Payload.ContainsKey("message") && 
-               evt.UserId > 0 && 
+        return evt.Payload.ContainsKey("message") &&
+               evt.UserId > 0 &&
                evt.TenantId > 0;
     }
 
     private bool ProcessAuditEvent(EventData evt)
     {
         // Simulate audit event processing logic
-        return evt.Type == "Audit" && 
+        return evt.Type == "Audit" &&
                evt.Timestamp < DateTime.UtcNow;
     }
 
     private bool ProcessCollaborationEvent(EventData evt)
     {
         // Simulate collaboration event processing logic
-        return evt.Type == "Collaboration" && 
+        return evt.Type == "Collaboration" &&
                evt.Payload.Count > 0;
     }
 

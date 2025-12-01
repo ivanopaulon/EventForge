@@ -365,10 +365,10 @@ namespace EventForge.Client.Services
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
 
                         _logger.LogInformation("Token refreshed successfully");
-                        
+
                         // Notify that authentication state may have changed
                         OnAuthenticationStateChanged?.Invoke();
-                        
+
                         return true;
                     }
                 }

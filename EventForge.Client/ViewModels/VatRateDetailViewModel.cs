@@ -1,7 +1,6 @@
 using EventForge.Client.Services;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.VatRates;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -14,7 +13,7 @@ public class VatRateDetailViewModel : BaseEntityDetailViewModel<VatRateDto, Crea
 
     public VatRateDetailViewModel(
         IFinancialService financialService,
-        ILogger<VatRateDetailViewModel> logger) 
+        ILogger<VatRateDetailViewModel> logger)
         : base(logger)
     {
         _financialService = financialService;
@@ -63,8 +62,8 @@ public class VatRateDetailViewModel : BaseEntityDetailViewModel<VatRateDto, Crea
             // Load VAT natures for dropdown
             var vatNaturesResult = await _financialService.GetVatNaturesAsync(1, 100);
             VatNatures = vatNaturesResult?.Items ?? new List<VatNatureDto>();
-            
-            Logger.LogInformation("Loaded {Count} VAT natures for VAT rate {Id}", 
+
+            Logger.LogInformation("Loaded {Count} VAT natures for VAT rate {Id}",
                 VatNatures.Count(), entityId);
         }
         catch (Exception ex)

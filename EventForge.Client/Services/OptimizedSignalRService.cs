@@ -449,7 +449,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             _logger.LogInformation("Scheduling retry for {ConnectionKey} with backoff delay: {Delay}s",
                 connectionKey, delay.TotalSeconds);
-            
+
             await Task.Delay(delay);
 
             try

@@ -194,7 +194,7 @@ public class TransferOrderManagementTests
         // Act
         var task = _mockTransferOrderService.Object.GetTransferOrdersAsync(
             1, 20, null, null, null, null, cts.Token);
-        
+
         cts.Cancel();
 
         // Assert
@@ -205,29 +205,29 @@ public class TransferOrderManagementTests
     public async Task CancelTransferOrderAsync_OnlyCalledForPendingOrders()
     {
         // Arrange
-        var pendingOrder1 = new TransferOrderDto 
-        { 
-            Id = Guid.NewGuid(), 
-            Number = "TO-001", 
-            Status = "Pending" 
+        var pendingOrder1 = new TransferOrderDto
+        {
+            Id = Guid.NewGuid(),
+            Number = "TO-001",
+            Status = "Pending"
         };
-        var pendingOrder2 = new TransferOrderDto 
-        { 
-            Id = Guid.NewGuid(), 
-            Number = "TO-002", 
-            Status = "Pending" 
+        var pendingOrder2 = new TransferOrderDto
+        {
+            Id = Guid.NewGuid(),
+            Number = "TO-002",
+            Status = "Pending"
         };
-        var shippedOrder = new TransferOrderDto 
-        { 
-            Id = Guid.NewGuid(), 
-            Number = "TO-003", 
-            Status = "Shipped" 
+        var shippedOrder = new TransferOrderDto
+        {
+            Id = Guid.NewGuid(),
+            Number = "TO-003",
+            Status = "Shipped"
         };
-        var completedOrder = new TransferOrderDto 
-        { 
-            Id = Guid.NewGuid(), 
-            Number = "TO-004", 
-            Status = "Completed" 
+        var completedOrder = new TransferOrderDto
+        {
+            Id = Guid.NewGuid(),
+            Number = "TO-004",
+            Status = "Completed"
         };
 
         var selectedOrders = new List<TransferOrderDto>
@@ -259,16 +259,16 @@ public class TransferOrderManagementTests
         Assert.Equal(2, pendingOrders.Count); // Only 2 pending orders
         Assert.Equal(2, cancelledCount); // Both were cancelled
         _mockTransferOrderService.Verify(
-            x => x.CancelTransferOrderAsync(pendingOrder1.Id), 
+            x => x.CancelTransferOrderAsync(pendingOrder1.Id),
             Times.Once);
         _mockTransferOrderService.Verify(
-            x => x.CancelTransferOrderAsync(pendingOrder2.Id), 
+            x => x.CancelTransferOrderAsync(pendingOrder2.Id),
             Times.Once);
         _mockTransferOrderService.Verify(
-            x => x.CancelTransferOrderAsync(shippedOrder.Id), 
+            x => x.CancelTransferOrderAsync(shippedOrder.Id),
             Times.Never);
         _mockTransferOrderService.Verify(
-            x => x.CancelTransferOrderAsync(completedOrder.Id), 
+            x => x.CancelTransferOrderAsync(completedOrder.Id),
             Times.Never);
     }
 

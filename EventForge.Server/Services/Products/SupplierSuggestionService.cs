@@ -1,12 +1,8 @@
 using EventForge.DTOs.Products.SupplierSuggestion;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Alerts;
-using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.PriceHistory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
 
 namespace EventForge.Server.Services.Products;
 
@@ -115,7 +111,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         var explanation = await GenerateRecommendationExplanationAsync(recommended, product);
 
         // Generate alert if there's a significantly better supplier (FASE 5 integration)
-        if (_alertService != null && currentPreferred != null && recommended != null && 
+        if (_alertService != null && currentPreferred != null && recommended != null &&
             recommended.SupplierId != currentPreferred.SupplierId &&
             recommended.TotalScore > currentPreferred.TotalScore + _alertScoreDifferenceThreshold)
         {
@@ -197,7 +193,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
             suggestion.ScoreBreakdown.TrendScore = await CalculateTrendScoreAsync(ps.SupplierId, productId, cancellationToken);
 
             // Calculate total weighted score
-            suggestion.TotalScore = 
+            suggestion.TotalScore =
                 (suggestion.ScoreBreakdown.PriceScore * _priceWeight) +
                 (suggestion.ScoreBreakdown.LeadTimeScore * _leadTimeWeight) +
                 (suggestion.ScoreBreakdown.ReliabilityScore * _reliabilityWeight) +

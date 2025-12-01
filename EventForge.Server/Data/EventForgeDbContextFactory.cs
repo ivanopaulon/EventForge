@@ -11,11 +11,11 @@ public class EventForgeDbContextFactory : IDesignTimeDbContextFactory<EventForge
     public EventForgeDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<EventForgeDbContext>();
-        
+
         // Use a dummy connection string for design-time operations
         // The actual connection string will be provided at runtime
         optionsBuilder.UseSqlServer("Server=localhost;Database=EventForge;Integrated Security=true;TrustServerCertificate=true;");
-        
+
         return new EventForgeDbContext(optionsBuilder.Options);
     }
 }
