@@ -462,8 +462,9 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static void AddAuthorization(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register authorization handlers as singletons (they are stateless and can be reused)
-        _ = services.AddSingleton<IAuthorizationHandler, EventForge.Server.Auth.TenantAdminAuthorizationHandler>();
+        // Authorization handlers that depend on scoped services (DbContext, TenantContext) 
+        // MUST be registered as Scoped, not Singleton. The handler will be instantiated per request.
+        _ = services.AddScoped<IAuthorizationHandler, EventForge.Server.Auth.TenantAdminAuthorizationHandler>();
 
         _ = services.AddAuthorizationBuilder()
             .AddPolicy("RequireUser", policy =>
