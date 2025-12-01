@@ -193,6 +193,33 @@ public abstract class BaseApiController : ControllerBase
     }
 
     /// <summary>
+    /// Creates a ProblemDetails response for forbidden errors (403).
+    /// </summary>
+    /// <param name="message">The forbidden error message</param>
+    /// <returns>Forbidden result with ProblemDetails</returns>
+    protected ActionResult CreateForbiddenProblem(string message)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+            Title = "Forbidden",
+            Status = StatusCodes.Status403Forbidden,
+            Detail = message,
+            Instance = HttpContext.Request.Path
+        };
+
+        // Add correlation ID if available
+        if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+        {
+            problemDetails.Extensions["correlationId"] = correlationId;
+        }
+
+        problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        return StatusCode(StatusCodes.Status403Forbidden, problemDetails);
+    }
+
+    /// <summary>
     /// Validates pagination parameters and returns standardized error if invalid.
     /// </summary>
     /// <param name="page">Page number (1-based)</param>

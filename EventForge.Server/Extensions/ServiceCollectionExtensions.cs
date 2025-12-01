@@ -26,6 +26,7 @@ using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.VatRates;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -329,6 +330,7 @@ public static class ServiceCollectionExtensions
         // Register tenant services
         _ = services.AddScoped<ITenantContext, TenantContext>();
         _ = services.AddScoped<ITenantService, TenantService>();
+        _ = services.AddScoped<ITenantUserManagementService, TenantUserManagementService>();
 
         // Register SuperAdmin services
         _ = services.AddScoped<IConfigurationService, ConfigurationService>();
@@ -460,6 +462,9 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static void AddAuthorization(this IServiceCollection services, IConfiguration configuration)
     {
+        // Register authorization handlers as singletons (they are stateless and can be reused)
+        _ = services.AddSingleton<IAuthorizationHandler, EventForge.Server.Auth.TenantAdminAuthorizationHandler>();
+
         _ = services.AddAuthorizationBuilder()
             .AddPolicy("RequireUser", policy =>
                 policy.RequireAuthenticatedUser())
@@ -476,7 +481,11 @@ public static class ServiceCollectionExtensions
             .AddPolicy("CanManageEvents", policy =>
                 policy.RequireClaim("permission", "Events.Events.Create", "Events.Events.Update", "Events.Events.Delete"))
             .AddPolicy("AdminOrSuperAdmin", policy =>
-                policy.RequireRole("Admin", "SuperAdmin")); // Explicit policy for Admin or SuperAdmin access
+                policy.RequireRole("Admin", "SuperAdmin")) // Explicit policy for Admin or SuperAdmin access
+            .AddPolicy("RequireTenantAdmin", policy =>
+                policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(EventForge.DTOs.Common.AdminAccessLevel.TenantAdmin)))
+            .AddPolicy("RequireTenantFullAccess", policy =>
+                policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(EventForge.DTOs.Common.AdminAccessLevel.FullAccess)));
 
         Log.Information("Authorization policies configured successfully");
     }
