@@ -144,7 +144,7 @@ public class TenantUserManagementController : BaseApiController
     /// </summary>
     /// <param name="dto">User creation data</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Created user information</returns>
+    /// <returns>Created user information including initial password</returns>
     /// <response code="201">User created successfully</response>
     /// <response code="400">If the request is invalid</response>
     /// <response code="401">If the user is not authenticated</response>
@@ -152,12 +152,12 @@ public class TenantUserManagementController : BaseApiController
     /// <response code="500">If an internal error occurs</response>
     [HttpPost]
     [Authorize(Policy = "RequireTenantFullAccess")]
-    [ProducesResponseType(typeof(UserManagementDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreatedUserDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserManagementDto>> CreateUser([FromBody] CreateTenantUserDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<CreatedUserDto>> CreateUser([FromBody] CreateTenantUserDto dto, CancellationToken cancellationToken)
     {
         try
         {

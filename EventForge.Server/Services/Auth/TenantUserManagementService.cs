@@ -148,7 +148,7 @@ public class TenantUserManagementService : ITenantUserManagementService
         )).ToList();
     }
 
-    public async Task<UserManagementDto> CreateUserAsync(CreateUserManagementDto dto, CancellationToken cancellationToken = default)
+    public async Task<CreatedUserDto> CreateUserAsync(CreateUserManagementDto dto, CancellationToken cancellationToken = default)
     {
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
@@ -229,11 +229,30 @@ public class TenantUserManagementService : ITenantUserManagementService
             cancellationToken
         );
 
-        _logger.LogInformation("User {Username} created successfully with ID {UserId}. Initial password has been generated and must be sent via secure channel.", 
+        _logger.LogInformation("User {Username} created successfully with ID {UserId}. Initial password must be securely transmitted to the user.", 
             dto.Username, user.Id);
 
         var tenant = await _context.Tenants.FindAsync(new object[] { tenantId }, cancellationToken);
-        return UserMapper.ToManagementDto(user, dto.Roles, tenant?.Name);
+        var userManagementDto = UserMapper.ToManagementDto(user, dto.Roles, tenant?.Name);
+        
+        // Return the created user with the initial password
+        return new CreatedUserDto
+        {
+            Id = userManagementDto.Id,
+            Username = userManagementDto.Username,
+            Email = userManagementDto.Email,
+            FirstName = userManagementDto.FirstName,
+            LastName = userManagementDto.LastName,
+            FullName = userManagementDto.FullName,
+            TenantId = userManagementDto.TenantId,
+            TenantName = userManagementDto.TenantName,
+            Roles = userManagementDto.Roles,
+            IsActive = userManagementDto.IsActive,
+            MustChangePassword = userManagementDto.MustChangePassword,
+            CreatedAt = userManagementDto.CreatedAt,
+            LastLoginAt = userManagementDto.LastLoginAt,
+            InitialPassword = initialPassword
+        };
     }
 
     public async Task<UserManagementDto> UpdateUserAsync(Guid userId, UpdateUserManagementDto dto, CancellationToken cancellationToken = default)

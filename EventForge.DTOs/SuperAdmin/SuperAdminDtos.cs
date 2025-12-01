@@ -99,6 +99,19 @@ namespace EventForge.DTOs.SuperAdmin
     }
 
     /// <summary>
+    /// DTO for newly created user with initial password.
+    /// Used to securely communicate the generated password to administrators.
+    /// </summary>
+    public class CreatedUserDto : UserManagementDto
+    {
+        /// <summary>
+        /// Initial password generated for the user.
+        /// This should be securely transmitted to the user and not stored.
+        /// </summary>
+        public string? InitialPassword { get; set; }
+    }
+
+    /// <summary>
     /// DTO for updating user roles.
     /// </summary>
     public class UpdateUserRolesDto

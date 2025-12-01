@@ -36,8 +36,8 @@ public interface ITenantUserManagementService
     /// </summary>
     /// <param name="dto">User creation data</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Created user information</returns>
-    Task<UserManagementDto> CreateUserAsync(CreateUserManagementDto dto, CancellationToken cancellationToken = default);
+    /// <returns>Created user information including initial password</returns>
+    Task<CreatedUserDto> CreateUserAsync(CreateUserManagementDto dto, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates an existing user in the current tenant.

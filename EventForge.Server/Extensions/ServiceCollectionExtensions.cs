@@ -462,8 +462,8 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static void AddAuthorization(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register authorization handlers
-        _ = services.AddScoped<IAuthorizationHandler, EventForge.Server.Auth.TenantAdminAuthorizationHandler>();
+        // Register authorization handlers as singletons (they are stateless and can be reused)
+        _ = services.AddSingleton<IAuthorizationHandler, EventForge.Server.Auth.TenantAdminAuthorizationHandler>();
 
         _ = services.AddAuthorizationBuilder()
             .AddPolicy("RequireUser", policy =>
