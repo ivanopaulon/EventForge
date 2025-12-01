@@ -7,10 +7,14 @@
 @using EventForge.DTOs.Health
 @using EventForge.DTOs.SuperAdmin
 @using EventForge.DTOs.Common
+@using EventForge.DTOs.Profile
+@using EventForge.DTOs.Auth
 @using EventForge.Client.Services
 @using System.Timers
 @inject ITranslationService TranslationService
 @inject ILogManagementService LogManagementService
+@inject IProfileService ProfileService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @implements IDisposable
@@ -166,6 +170,85 @@
                                 </MudAlert>
                             }
 
+                            <!-- Current Session Section -->
+                            @if (CurrentUser != null)
+                            {
+                                <MudCard Elevation="1">
+                                    <MudCardContent>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" 
+                                                     Color="Color.Primary" 
+                                                     Size="Size.Medium" />
+                                            <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
+                                                @TranslationService.GetTranslation("health.currentSession", "Current Session")
+                                            </MudText>
+                                        </MudStack>
+                                        
+                                        <MudSimpleTable Dense="true" Bordered="false" Striped="false">
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>@TranslationService.GetTranslation("field.username", "Username")</strong></td>
+                                                    <td>@CurrentUser.Username</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>@TranslationService.GetTranslation("field.fullName", "Full Name")</strong></td>
+                                                    <td>@CurrentUser.FullName</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>@TranslationService.GetTranslation("field.roles", "Roles")</strong></td>
+                                                    <td>
+                                                        @if (CurrentUser.Roles?.Any() == true)
+                                                        {
+                                                            <MudStack Row="true" Spacing="1">
+                                                                @foreach (var role in CurrentUser.Roles)
+                                                                {
+                                                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Text="@role" />
+                                                                }
+                                                            </MudStack>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>-</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>@TranslationService.GetTranslation("field.permissions", "Permissions")</strong></td>
+                                                    <td>
+                                                        @if (CurrentUser.Permissions?.Any() == true)
+                                                        {
+                                                            <MudText Typo="Typo.body2">@CurrentUser.Permissions.Count @TranslationService.GetTranslation("health.permissionsGranted", "permissions granted")</MudText>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>-</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                                @if (CurrentUser.LastLoginAt.HasValue)
+                                                {
+                                                    <tr>
+                                                        <td><strong>@TranslationService.GetTranslation("field.lastLogin", "Last Login")</strong></td>
+                                                        <td>@CurrentUser.LastLoginAt.Value.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+                                                    </tr>
+                                                }
+                                                @if (TokenExpiresAt.HasValue)
+                                                {
+                                                    <tr>
+                                                        <td><strong>@TranslationService.GetTranslation("health.tokenExpiry", "Token Expiry")</strong></td>
+                                                        <td>@TokenExpiresAt.Value.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>@TranslationService.GetTranslation("health.tokenTimeRemaining", "Time Remaining")</strong></td>
+                                                        <td>@FormatTimeRemaining(TokenExpiresAt.Value)</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </MudSimpleTable>
+                                    </MudCardContent>
+                                </MudCard>
+                            }
+
                         </MudStack>
                     }
                     else
@@ -180,9 +263,172 @@
                 </MudPaper>
             </MudItem>
 
-            <!-- Right Column: Log Management -->
+            <!-- Active Sessions Column -->
             <MudItem xs="12" md="6">
                 <MudPaper Elevation="0" Class="pa-4" Style="height: 100%; overflow-y: auto;">
+                    <MudText Typo="Typo.h6" Class="mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Devices" Class="mr-2" />
+                        @TranslationService.GetTranslation("health.activeSessions", "Active Sessions")
+                    </MudText>
+                    
+                    @if (ActiveSessions != null && ActiveSessions.Any())
+                    {
+                        <MudStack Spacing="2">
+                            <!-- Termination Actions -->
+                            <MudPaper Elevation="1" Class="pa-3">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2">
+                                        @ActiveSessions.Count @TranslationService.GetTranslation("health.sessionsActive", "active session(s)")
+                                    </MudText>
+                                    <MudButton Variant="Variant.Outlined" 
+                                               Color="Color.Warning" 
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.PowerOff"
+                                               OnClick="@TerminateAllOtherSessions"
+                                               Disabled="@_isTerminatingSession">
+                                        @TranslationService.GetTranslation("health.terminateOtherSessions", "Terminate Other Sessions")
+                                    </MudButton>
+                                </MudStack>
+                            </MudPaper>
+
+                            <!-- Sessions Table -->
+                            <MudTable Items="@ActiveSessions" 
+                                      Hover="true" 
+                                      Striped="true" 
+                                      Dense="true"
+                                      Elevation="1">
+                                <HeaderContent>
+                                    <MudTh>@TranslationService.GetTranslation("health.session", "Session")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("health.device", "Device")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("health.location", "Location")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("health.lastActivity", "Last Activity")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("health.actions", "Actions")</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Session">
+                                        <MudStack Spacing="0">
+                                            @if (context.IsCurrentSession)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Text="@TranslationService.GetTranslation("health.currentSession", "Current")" />
+                                            }
+                                            <MudText Typo="Typo.caption">@context.IpAddress</MudText>
+                                        </MudStack>
+                                    </MudTd>
+                                    <MudTd DataLabel="Device">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body2">@GetDeviceIcon(context.DeviceType) @context.Browser</MudText>
+                                            <MudText Typo="Typo.caption">@context.OperatingSystem</MudText>
+                                        </MudStack>
+                                    </MudTd>
+                                    <MudTd DataLabel="Location">
+                                        <MudText Typo="Typo.body2">@(context.Location ?? "-")</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Last Activity">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body2">@context.LastActivity.ToString("yyyy-MM-dd")</MudText>
+                                            <MudText Typo="Typo.caption">@context.LastActivity.ToString("HH:mm:ss") UTC</MudText>
+                                        </MudStack>
+                                    </MudTd>
+                                    <MudTd DataLabel="Actions">
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
+                                                           Size="Size.Small" 
+                                                           Color="Color.Info"
+                                                           OnClick="@(() => ShowSessionDetails(context))"
+                                                           Title="@TranslationService.GetTranslation("health.viewDetails", "View Details")" />
+                                            @if (!context.IsCurrentSession)
+                                            {
+                                                <MudIconButton Icon="@Icons.Material.Filled.PowerOff" 
+                                                               Size="Size.Small" 
+                                                               Color="Color.Error"
+                                                               OnClick="@(() => TerminateSession(context.Id))"
+                                                               Disabled="@_isTerminatingSession"
+                                                               Title="@TranslationService.GetTranslation("health.terminateSession", "Terminate")" />
+                                            }
+                                        </MudStack>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudStack>
+                    }
+                    else if (ActiveSessions == null)
+                    {
+                        <MudAlert Severity="Severity.Warning" NoIcon="false">
+                            @TranslationService.GetTranslation("health.sessionsNotAvailable", "Session information is not available")
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" NoIcon="false">
+                            @TranslationService.GetTranslation("health.noActiveSessions", "No active sessions")
+                        </MudAlert>
+                    }
+
+                    <!-- Session Details Dialog -->
+                    @if (_selectedSessionForDetails != null)
+                    {
+                        <MudPaper Elevation="2" Class="mt-4 pa-4">
+                            <div class="d-flex justify-space-between align-center mb-3">
+                                <MudText Typo="Typo.h6">
+                                    @TranslationService.GetTranslation("health.sessionDetails", "Session Details")
+                                </MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                               Size="Size.Small"
+                                               OnClick="@(() => _selectedSessionForDetails = null)" />
+                            </div>
+                            
+                            <MudSimpleTable Dense="true">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.sessionId", "Session ID")</strong></td>
+                                        <td><code>@_selectedSessionForDetails.Id</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.ipAddress", "IP Address")</strong></td>
+                                        <td>@_selectedSessionForDetails.IpAddress</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.userAgent", "User Agent")</strong></td>
+                                        <td style="word-break: break-all;">@_selectedSessionForDetails.UserAgent</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.browser", "Browser")</strong></td>
+                                        <td>@_selectedSessionForDetails.Browser</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.operatingSystem", "Operating System")</strong></td>
+                                        <td>@_selectedSessionForDetails.OperatingSystem</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.deviceType", "Device Type")</strong></td>
+                                        <td>@_selectedSessionForDetails.DeviceType</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.loginTime", "Login Time")</strong></td>
+                                        <td>@_selectedSessionForDetails.LoginTime.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.lastActivity", "Last Activity")</strong></td>
+                                        <td>@_selectedSessionForDetails.LastActivity.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.location", "Location")</strong></td>
+                                        <td>@(_selectedSessionForDetails.Location ?? "-")</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.isCurrentSession", "Is Current Session")</strong></td>
+                                        <td>@(_selectedSessionForDetails.IsCurrentSession ? TranslationService.GetTranslation("common.yes", "Yes") : TranslationService.GetTranslation("common.no", "No"))</td>
+                                    </tr>
+                                </tbody>
+                            </MudSimpleTable>
+                        </MudPaper>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <!-- Log Management Section (Full Width) -->
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="pa-4" Style="overflow-y: auto;">
                     <MudText Typo="Typo.h6" Class="mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.Article" Class="mr-2" />
                         @TranslationService.GetTranslation("health.systemLogs", "System Logs")
@@ -516,6 +762,9 @@
     [Parameter] public DetailedHealthStatusDto? HealthData { get; set; }
     [Parameter] public DateTime? LastUpdated { get; set; }
     [Parameter] public EventCallback OnRefreshRequested { get; set; }
+    [Parameter] public List<ActiveSessionDto>? ActiveSessions { get; set; }
+    [Parameter] public UserDto? CurrentUser { get; set; }
+    [Parameter] public DateTime? TokenExpiresAt { get; set; }
 
     // Log Management State
     private bool _filtersExpanded = false;
@@ -538,6 +787,10 @@
     private bool _autoRefreshEnabled = false;
     private int _refreshIntervalSeconds = 30;
     private Timer? _refreshTimer;
+
+    // Session Management State
+    private bool _isTerminatingSession = false;
+    private ActiveSessionDto? _selectedSessionForDetails;
 
     protected override async Task OnInitializedAsync()
     {
@@ -832,6 +1085,138 @@
             return $"{uptime.Hours}h {uptime.Minutes}m";
         else
             return $"{uptime.Minutes}m {uptime.Seconds}s";
+    }
+
+    private string FormatTimeRemaining(DateTime expiresAt)
+    {
+        var remaining = expiresAt - DateTime.UtcNow;
+        if (remaining.TotalSeconds <= 0)
+            return TranslationService.GetTranslation("health.expired", "Expired");
+        
+        if (remaining.TotalDays >= 1)
+            return $"{remaining.Days}d {remaining.Hours}h {remaining.Minutes}m";
+        else if (remaining.TotalHours >= 1)
+            return $"{remaining.Hours}h {remaining.Minutes}m {remaining.Seconds}s";
+        else if (remaining.TotalMinutes >= 1)
+            return $"{remaining.Minutes}m {remaining.Seconds}s";
+        else
+            return $"{remaining.Seconds}s";
+    }
+
+    private string GetDeviceIcon(string? deviceType)
+    {
+        return deviceType?.ToLower() switch
+        {
+            "mobile" => "📱",
+            "tablet" => "📲",
+            "desktop" => "💻",
+            _ => "🖥️"
+        };
+    }
+
+    private void ShowSessionDetails(ActiveSessionDto session)
+    {
+        _selectedSessionForDetails = session;
+        StateHasChanged();
+    }
+
+    private async Task TerminateSession(Guid sessionId)
+    {
+        if (_isTerminatingSession)
+            return;
+
+        try
+        {
+            _isTerminatingSession = true;
+            StateHasChanged();
+
+            var success = await ProfileService.TerminateSessionAsync(sessionId);
+            
+            if (success)
+            {
+                // Remove the terminated session from the list
+                ActiveSessions?.RemoveAll(s => s.Id == sessionId);
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("health.sessionTerminated", "Session terminated successfully"),
+                    Severity.Success
+                );
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("health.sessionTerminationFailed", "Failed to terminate session"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("health.errorTerminatingSession", "Error terminating session: {0}", ex.Message),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isTerminatingSession = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TerminateAllOtherSessions()
+    {
+        if (_isTerminatingSession)
+            return;
+
+        // Ask for confirmation
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("health.confirmTermination", "Confirm Termination"),
+            TranslationService.GetTranslation("health.confirmTerminateAllOtherSessions", "Are you sure you want to terminate all other sessions? This action cannot be undone."),
+            yesText: TranslationService.GetTranslation("common.yes", "Yes"),
+            noText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            _isTerminatingSession = true;
+            StateHasChanged();
+
+            var success = await ProfileService.TerminateAllOtherSessionsAsync();
+            
+            if (success)
+            {
+                // Remove all non-current sessions from the list
+                ActiveSessions?.RemoveAll(s => !s.IsCurrentSession);
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("health.allOtherSessionsTerminated", "All other sessions terminated successfully"),
+                    Severity.Success
+                );
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("health.terminationFailed", "Failed to terminate other sessions"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("health.errorTerminatingSessions", "Error terminating sessions: {0}", ex.Message),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isTerminatingSession = false;
+            StateHasChanged();
+        }
     }
 
     public void Dispose()
