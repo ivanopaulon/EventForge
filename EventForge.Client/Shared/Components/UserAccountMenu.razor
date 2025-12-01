@@ -10,10 +10,16 @@
 {
     <MudMenu Class="ef-account-menu">
         <ActivatorContent>
-            <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle"
-                           Edge="Edge.Start">
-                @GetUserInitials()
-            </MudIconButton>
+            <MudAvatar Size="Size.Small" Style="cursor: pointer;">
+                @if (!string.IsNullOrEmpty(_currentUser.AvatarUrl))
+                {
+                    <MudImage Src="@_currentUser.AvatarUrl" Alt="Avatar" />
+                }
+                else
+                {
+                    @GetUserInitials()
+                }
+            </MudAvatar>
         </ActivatorContent>
         <ChildContent>
             <MudMenuItem Icon="@Icons.Material.Filled.Person"

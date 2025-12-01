@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.Server.Data.Entities.Teams;
 
 namespace EventForge.Server.Data.Entities.Auth;
 
@@ -89,6 +90,60 @@ public class User : AuditableEntity
     /// </summary>
     [Display(Name = "Last Failed Login At", Description = "Date of last failed login attempt (UTC).")]
     public DateTime? LastFailedLoginAt { get; set; }
+
+    // --- Profile Image Management ---
+    /// <summary>
+    /// Avatar document identifier (references DocumentReference).
+    /// </summary>
+    [Display(Name = "Avatar Document", Description = "Avatar document identifier.")]
+    public Guid? AvatarDocumentId { get; set; }
+
+    /// <summary>
+    /// Avatar document navigation property.
+    /// </summary>
+    public DocumentReference? AvatarDocument { get; set; }
+
+    // --- Contact Info ---
+    /// <summary>
+    /// User's phone number.
+    /// </summary>
+    [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters.")]
+    [Display(Name = "Phone Number", Description = "User's phone number.")]
+    public string? PhoneNumber { get; set; }
+
+    // --- Preferences ---
+    /// <summary>
+    /// User's preferred language code (e.g., "it", "en").
+    /// </summary>
+    [MaxLength(10, ErrorMessage = "Language code cannot exceed 10 characters.")]
+    [Display(Name = "Preferred Language", Description = "User's preferred language code.")]
+    public string PreferredLanguage { get; set; } = "it";
+
+    /// <summary>
+    /// User's preferred timezone.
+    /// </summary>
+    [MaxLength(50, ErrorMessage = "Timezone cannot exceed 50 characters.")]
+    [Display(Name = "Time Zone", Description = "User's preferred timezone.")]
+    public string? TimeZone { get; set; }
+
+    // --- Notification Preferences ---
+    /// <summary>
+    /// Enable email notifications.
+    /// </summary>
+    [Display(Name = "Email Notifications", Description = "Enable email notifications.")]
+    public bool EmailNotificationsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Enable push notifications.
+    /// </summary>
+    [Display(Name = "Push Notifications", Description = "Enable push notifications.")]
+    public bool PushNotificationsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Enable in-app notifications.
+    /// </summary>
+    [Display(Name = "In-App Notifications", Description = "Enable in-app notifications.")]
+    public bool InAppNotificationsEnabled { get; set; } = true;
 
     /// <summary>
     /// Tenant ID this user belongs to.

@@ -190,6 +190,24 @@ namespace EventForge.DTOs.Auth
         public IList<string> Permissions { get; set; } = new List<string>();
 
         /// <summary>
+        /// Avatar URL.
+        /// </summary>
+        [Display(Name = "field.avatarUrl", Description = "Avatar URL.")]
+        public string? AvatarUrl { get; set; }
+
+        /// <summary>
+        /// User's phone number.
+        /// </summary>
+        [Display(Name = "field.phoneNumber", Description = "User's phone number.")]
+        public string? PhoneNumber { get; set; }
+
+        /// <summary>
+        /// User's preferred language code.
+        /// </summary>
+        [Display(Name = "field.preferredLanguage", Description = "User's preferred language code.")]
+        public string PreferredLanguage { get; set; } = "it";
+
+        /// <summary>
         /// Date and time when the user was created (UTC).
         /// </summary>
         [Display(Name = "field.createdAt", Description = "Date and time when the user was created (UTC).")]
