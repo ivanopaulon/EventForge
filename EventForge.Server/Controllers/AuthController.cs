@@ -223,6 +223,69 @@ public class AuthController : BaseApiController
     }
 
     /// <summary>
+    /// Refreshes the JWT token for the current authenticated user.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>New JWT token</returns>
+    /// <response code="200">Returns new JWT token</response>
+    /// <response code="401">If user is not authenticated</response>
+    /// <response code="403">If token refresh is not allowed</response>
+    [HttpPost("refresh-token")]
+    [Authorize]
+    [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<RefreshTokenResponseDto>> RefreshToken(CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
+                Title = "Invalid User Context",
+                Status = StatusCodes.Status401Unauthorized,
+                Detail = "Unable to identify current user.",
+                Instance = HttpContext.Request.Path
+            };
+
+            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+            {
+                problemDetails.Extensions["correlationId"] = correlationId;
+            }
+
+            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            return Unauthorized(problemDetails);
+        }
+
+        var result = await _authenticationService.RefreshTokenAsync(userId, cancellationToken);
+
+        if (result == null)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+                Title = "Token Refresh Failed",
+                Status = StatusCodes.Status403Forbidden,
+                Detail = "Unable to refresh token. User may be inactive or account locked.",
+                Instance = HttpContext.Request.Path
+            };
+
+            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId2))
+            {
+                problemDetails.Extensions["correlationId"] = correlationId2;
+            }
+
+            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            return StatusCode(StatusCodes.Status403Forbidden, problemDetails);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Logs out the current user.
     /// </summary>
     /// <returns>Logout result</returns>

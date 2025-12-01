@@ -221,6 +221,32 @@ namespace EventForge.DTOs.Auth
     }
 
     /// <summary>
+    /// Refresh token response model.
+    /// </summary>
+    public class RefreshTokenResponseDto
+    {
+        /// <summary>
+        /// New JWT access token.
+        /// </summary>
+        [Required]
+        [Display(Name = "Access Token", Description = "New JWT access token.")]
+        public string AccessToken { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Token type (usually "Bearer").
+        /// </summary>
+        [Required]
+        [Display(Name = "Token Type", Description = "Token type.")]
+        public string TokenType { get; set; } = "Bearer";
+
+        /// <summary>
+        /// Token expiration time in seconds.
+        /// </summary>
+        [Display(Name = "Expires In", Description = "Token expiration time in seconds.")]
+        public int ExpiresIn { get; set; }
+    }
+
+    /// <summary>
     /// Tenant information DTO for authentication responses.
     /// </summary>
     public class TenantDto
