@@ -4,12 +4,12 @@
 This document describes the organization and architecture of the EventForge Blazor WebAssembly client application.
 
 ## Project Statistics
-- **Total Razor Components**: 147
-- **Total C# Files**: 69
-- **Total CSS Files**: 16
+- **Total Razor Components**: 155
+- **Total C# Files**: 104
+- **Total CSS Files**: 41
 - **Total JavaScript Files**: 4
 - **Build Status**: ✅ 0 Errors
-- **Last Cleanup**: November 2025 - Phase 2 Client Optimization (removed obsolete assets, added BaseUrl constants)
+- **Last Cleanup**: December 2025 - Documentation Update (verified dead code removal, updated component counts)
 
 ## Folder Structure
 
@@ -108,9 +108,8 @@ Modal dialogs for user interaction:
 - **Documents**: `AddDocumentRowDialog`, `DocumentCounterDialog`
 - **System**: `ConfirmationDialog`, `LoadingDialog`, `GlobalLoadingDialog`, `HealthStatusDialog`, `ModelDialog`, `ManageSupplierProductsDialog`
 
-#### Drawers (3 components)
+#### Drawers (2 components)
 Side panel components (streamlined after deprecation cleanup):
-- `ProductDrawer.razor` (2075 lines) - Comprehensive product management (still used in InventoryProcedure)
 - `AuditLogDrawer.razor` - Audit log viewer (used in SuperAdmin pages)
 - `EntityDrawer.razor` - Generic entity drawer base component
 
@@ -119,6 +118,7 @@ Side panel components (streamlined after deprecation cleanup):
 - ~~`BrandDrawer.razor`~~ → Replaced by `BrandDetail.razor` page
 - ~~`StorageLocationDrawer.razor`~~ → Managed in `WarehouseDetail.razor`
 - ~~`AuditHistoryDrawer.razor`~~ → Replaced by `AuditHistoryDialog.razor` (fullscreen dialog)
+- ~~`ProductDrawer.razor`~~ → Replaced by `QuickCreateProductDialog.razor` and `AdvancedQuickCreateProductDialog.razor`
 
 #### Sales Components (3)
 - `ProductSearch.razor` - Product search widget
@@ -297,7 +297,7 @@ Three loading components for different use cases:
 
 ### Naming Conventions
 - **Pages**: PascalCase descriptive names (e.g., `ProductManagement.razor`)
-- **Components**: PascalCase with component type suffix (e.g., `ProductDrawer.razor`, `LoadingDialog.razor`)
+- **Components**: PascalCase with component type suffix (e.g., `LoadingDialog.razor`, `AuditLogDrawer.razor`)
 - **Services**: Interface-based (`IServiceName.cs` / `ServiceName.cs`)
 - **CSS Files**: kebab-case feature names (e.g., `inventory-fast.css`)
 
@@ -307,11 +307,9 @@ Three loading components for different use cases:
 - Services: Average ~200-400 lines
 
 **Notable Large Files** (candidates for future refactoring):
-- `ProductDrawer.razor` - 2075 lines (comprehensive product management)
 - `InventoryProcedure.razor` - 1346 lines (complex inventory workflow)
 - `SignalRService.cs` - 1275 lines (extensive real-time features)
 - `UserManagement.razor` - 1112 lines (comprehensive user admin)
-- `BusinessPartyDrawer.razor` - 1001 lines (business partner management)
 
 These files are feature-rich and serve complex business needs. Refactoring should be done carefully with comprehensive testing.
 
@@ -375,9 +373,9 @@ These pages have routes but are not accessible via the navigation menu. They may
 
 ### Large File Refactoring
 The following files exceed 1000 lines and could benefit from refactoring:
-- `ProductDrawer.razor` (2075 lines) - Consider splitting into tab-based child components
 - `InventoryProcedure.razor` (1346 lines) - Evaluate state machine pattern
 - `SignalRService.cs` (1275 lines) - Consider splitting by functional area
+- `UserManagement.razor` (1112 lines) - Consider extracting tabs into separate components
 
 **Recommendation**: Refactor during dedicated maintenance sprints with comprehensive testing.
 
