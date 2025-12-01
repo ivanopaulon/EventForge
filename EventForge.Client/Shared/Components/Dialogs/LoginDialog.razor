@@ -280,6 +280,7 @@
     private async Task OpenChangePasswordDialog()
     {
         // Open ChangePasswordDialog for voluntary password change
+        // This is a voluntary change from the login screen, so the dialog can be dismissed
         var options = new DialogOptions 
         { 
             CloseButton = true, 
@@ -291,6 +292,12 @@
         var dialog = await DialogService.ShowAsync<ChangePasswordDialog>(
             TranslationService.GetTranslation("auth.changePassword", "Change Password"),
             options);
+        
+        // Note: We intentionally don't handle the dialog result here because:
+        // - This is a voluntary password change (not mandatory)
+        // - User can dismiss the dialog without changing password
+        // - The change password dialog shows its own success/error messages via Snackbar
+        // - The login dialog should remain open after change password dialog closes
     }
 
     private void TogglePasswordVisibility()
