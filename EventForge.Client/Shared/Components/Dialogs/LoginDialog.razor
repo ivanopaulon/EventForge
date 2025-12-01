@@ -83,14 +83,9 @@
                                  Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
                                  Disabled="_isLoading" />
 
-                    @if (_showChangePasswordLink)
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-2">
-                            <MudLink OnClick="OpenChangePasswordDialog" Disabled="_isLoading">
-                                @TranslationService.GetTranslation("auth.temporaryPasswordLink", "Hai ricevuto una password temporanea? Cambiala ora.")
-                            </MudLink>
-                        </MudText>
-                    }
+                    <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-2">
+                        @TranslationService.GetTranslation("auth.temporaryPasswordHint", "Hai ricevuto una password temporanea dall'amministratore? Effettua il login e sarai guidato nel cambio password.")
+                    </MudText>
                 </MudStack>
             </MudForm>
         }
@@ -120,7 +115,6 @@
     private bool _isFormValid;
     private bool _isLoading = false;
     private bool _isLoadingTenants = true;
-    private bool _showChangePasswordLink = false;
     private readonly LoginRequestDto _loginRequest = new();
     private List<TenantResponseDto> _tenants = new();
     private string? _selectedTenantId;
@@ -197,10 +191,6 @@
                 }
                 else
                 {
-                    // Show the change password link after successful login
-                    _showChangePasswordLink = true;
-                    StateHasChanged();
-                    
                     // Close dialog with success result
                     MudDialog.Close(DialogResult.Ok(true));
                 }
@@ -262,41 +252,6 @@
             // Keep login dialog open for retry
             _isLoading = false;
             StateHasChanged();
-        }
-    }
-
-    private async Task OpenChangePasswordDialog()
-    {
-        // Check if user is authenticated
-        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        
-        if (!isAuthenticated)
-        {
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.mustLoginFirst", 
-                    "Please login first to change your password."),
-                Severity.Info);
-            return;
-        }
-
-        var options = new DialogOptions 
-        { 
-            CloseButton = true, 
-            BackdropClick = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ChangePasswordDialog>(
-            TranslationService.GetTranslation("auth.changePassword", "Change Password"),
-            options);
-        
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            // Password changed successfully, close login dialog
-            MudDialog.Close(DialogResult.Ok(true));
         }
     }
 }
