@@ -2,8 +2,10 @@
 @using EventForge.DTOs.Tenants
 @attribute [AllowAnonymous]
 @inject IAuthService AuthService
+@inject IProfileService ProfileService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 <MudDialog ClassActions="pa-4" ClassContent="py-0" Class="ef-dialog">
     <TitleContent>
@@ -80,6 +82,15 @@
                                  @bind-Value="_loginRequest.RememberMe"
                                  Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
                                  Disabled="_isLoading" />
+
+                    @if (_showChangePasswordLink)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-2">
+                            <MudLink OnClick="OpenChangePasswordDialog" Disabled="_isLoading">
+                                @TranslationService.GetTranslation("auth.temporaryPasswordLink", "Hai ricevuto una password temporanea? Cambiala ora.")
+                            </MudLink>
+                        </MudText>
+                    }
                 </MudStack>
             </MudForm>
         }
@@ -109,6 +120,7 @@
     private bool _isFormValid;
     private bool _isLoading = false;
     private bool _isLoadingTenants = true;
+    private bool _showChangePasswordLink = false;
     private readonly LoginRequestDto _loginRequest = new();
     private List<TenantResponseDto> _tenants = new();
     private string? _selectedTenantId;
@@ -178,8 +190,20 @@
                     TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"), 
                     Severity.Success);
                 
-                // Close dialog with success result
-                MudDialog.Close(DialogResult.Ok(true));
+                // Check if user must change password
+                if (result.MustChangePassword)
+                {
+                    await HandleMustChangePassword();
+                }
+                else
+                {
+                    // Show the change password link after successful login
+                    _showChangePasswordLink = true;
+                    StateHasChanged();
+                    
+                    // Close dialog with success result
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
             }
             else
             {
@@ -200,6 +224,79 @@
         {
             _isLoading = false;
             StateHasChanged(); // Force UI update
+        }
+    }
+
+    private async Task HandleMustChangePassword()
+    {
+        // Open ChangePasswordDialog as blocking dialog
+        var options = new DialogOptions 
+        { 
+            CloseButton = false, 
+            BackdropClick = false,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ChangePasswordDialog>(
+            TranslationService.GetTranslation("auth.mustChangePassword", "You must change your password"),
+            options);
+        
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            // Password changed successfully, close login dialog
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            // User cancelled password change, logout
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.passwordChangeRequired", 
+                    "Password change is required. You have been logged out."),
+                Severity.Warning);
+            
+            await AuthService.LogoutAsync();
+            
+            // Keep login dialog open for retry
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenChangePasswordDialog()
+    {
+        // Check if user is authenticated
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        
+        if (!isAuthenticated)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.mustLoginFirst", 
+                    "Please login first to change your password."),
+                Severity.Info);
+            return;
+        }
+
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            BackdropClick = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ChangePasswordDialog>(
+            TranslationService.GetTranslation("auth.changePassword", "Change Password"),
+            options);
+        
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            // Password changed successfully, close login dialog
+            MudDialog.Close(DialogResult.Ok(true));
         }
     }
 }
