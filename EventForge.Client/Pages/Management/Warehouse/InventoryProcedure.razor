@@ -18,6 +18,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IInventorySessionService InventorySessionService
+@implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")</PageTitle>
 <PageLoadingOverlay Visible="_isLoading"
@@ -288,6 +289,9 @@
     // Feature flag: Enable unified inventory dialog
     private const bool UseUnifiedInventoryDialog = true;
     
+    // Limit for _barcodeAssignments to prevent memory leaks
+    private const int MaxBarcodeAssignments = 200;
+    
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
     private ProductDto? _currentProduct;
@@ -305,6 +309,12 @@
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private bool _showOnlyAdjustments = false;
     private List<BarcodeAssignmentInfo> _barcodeAssignments = new();
+    
+    // Timer for session keepalive and token validity check
+    private System.Threading.Timer? _sessionKeepAliveTimer;
+    
+    // Cancellation token for async operations
+    private CancellationTokenSource? _cts;
 
     // Helper class for tracking barcode assignments during inventory session
     private class BarcodeAssignmentInfo
@@ -526,6 +536,9 @@
         _isLoading = true;
         try
         {
+            // Initialize cancellation token source
+            _cts = new CancellationTokenSource();
+            
             // Load facilities and locations in parallel
             await Task.WhenAll(
                 LoadStorageFacilitiesAsync(),
@@ -534,6 +547,16 @@
             
             // Try to restore active inventory session
             await RestoreInventorySessionAsync();
+            
+            // Start session keepalive timer - check every 5 minutes
+            _sessionKeepAliveTimer = new System.Threading.Timer(
+                async _ => await CheckSessionValidityAsync(),
+                null,
+                TimeSpan.FromMinutes(5),
+                TimeSpan.FromMinutes(5)
+            );
+            
+            Logger.LogInformation("InventoryProcedure component initialized with session keepalive");
         }
         finally
         {
@@ -729,6 +752,19 @@
                 // Product not found - show dialog to choose action
                 await ShowProductNotFoundDialog();
             }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Logger.LogError(ex, "Unauthorized error searching product by barcode {Barcode} - session expired", _scannedBarcode);
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
+                Severity.Error
+            );
+            AddOperationLog(
+                TranslationService.GetTranslation("auth.sessionExpired", "Sessione scaduta"),
+                "Token JWT scaduto - è necessario rieffettuare il login",
+                "Error"
+            );
         }
         catch (Exception ex)
         {
@@ -978,6 +1014,19 @@
                     "Error"
                 );
             }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Logger.LogError(ex, "Unauthorized error adding inventory row - session expired");
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
+                Severity.Error
+            );
+            AddOperationLog(
+                TranslationService.GetTranslation("auth.sessionExpired", "Sessione scaduta"),
+                "Token JWT scaduto durante l'aggiunta dell'articolo",
+                "Error"
+            );
         }
         catch (Exception ex)
         {
@@ -1504,11 +1553,11 @@
     {
         try
         {
-            // Limit to 500 assignments to avoid memory issues
-            if (_barcodeAssignments.Count >= 500)
+            // Limit to MaxBarcodeAssignments (200) to avoid memory issues - FIFO strategy
+            if (_barcodeAssignments.Count >= MaxBarcodeAssignments)
             {
-                Logger.LogWarning("Barcode assignments limit reached (500), removing oldest");
-                _barcodeAssignments.RemoveAt(0);
+                _barcodeAssignments.RemoveAt(0); // Remove oldest
+                Logger.LogDebug("Removed oldest barcode assignment to maintain limit of {Limit}", MaxBarcodeAssignments);
             }
 
             var assignment = new BarcodeAssignmentInfo
@@ -1534,5 +1583,64 @@
         {
             Logger.LogError(ex, "Error tracking barcode assignment");
         }
+    }
+    
+    private async Task CheckSessionValidityAsync()
+    {
+        // Only check if we have an active session
+        if (_currentDocument == null)
+        {
+            return;
+        }
+        
+        try
+        {
+            // Lightweight call to verify token is still valid
+            // We'll try to get storage facilities which is a simple authenticated endpoint
+            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 1);
+            
+            Logger.LogDebug("Session validity check passed");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            // Token has expired - warn the user
+            await InvokeAsync(() =>
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
+                    Severity.Warning,
+                    config => 
+                    {
+                        config.VisibleStateDuration = 15000; // Show for 15 seconds
+                    }
+                );
+                StateHasChanged();
+            });
+            
+            Logger.LogWarning("Session expired - JWT token no longer valid");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error during session validity check");
+        }
+    }
+    
+    public void Dispose()
+    {
+        Logger.LogInformation("Disposing InventoryProcedure component");
+        
+        // Cancel any ongoing async operations
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
+        
+        // Dispose the session keepalive timer
+        _sessionKeepAliveTimer?.Dispose();
+        _sessionKeepAliveTimer = null;
+        
+        // Clear barcode assignments to free memory
+        _barcodeAssignments.Clear();
+        
+        Logger.LogInformation("InventoryProcedure component disposed successfully");
     }
 }
