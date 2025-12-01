@@ -110,22 +110,24 @@ All management entities now use dedicated detail pages:
 
 ## Remaining Active Drawers
 
-Only 3 drawers remain for specific use cases:
+Only 2 drawers remain for specific use cases:
 
-1. **ProductDrawer.razor** (2075 lines)
-   - **Usage**: Used in `InventoryProcedure.razor` for quick product view
-   - **Purpose**: Quick lookup without page navigation during inventory procedures
-   - **Status**: ✅ Kept - provides better UX for this specific workflow
-
-2. **AuditLogDrawer.razor**
+1. **AuditLogDrawer.razor**
    - **Usage**: SuperAdmin audit logging
    - **Purpose**: System-level audit logs (different from entity audit history)
    - **Status**: ✅ Kept - needed for SuperAdmin functionality
 
-3. **EntityDrawer.razor**
+2. **EntityDrawer.razor**
    - **Usage**: Base component for remaining drawers
    - **Purpose**: Provides common drawer functionality
-   - **Status**: ✅ Kept - required by ProductDrawer and AuditLogDrawer
+   - **Status**: ✅ Kept - required by AuditLogDrawer
+
+## Removed Drawers (December 2025 Update)
+
+**ProductDrawer.razor** (2075 lines) - REMOVED
+- **Reason**: Replaced by `QuickCreateProductDialog.razor` and `AdvancedQuickCreateProductDialog.razor`
+- **Migration**: Product creation now handled via dialogs instead of drawer
+- **Impact**: ~2,075 lines of code removed
 
 ## Verification Steps Performed
 
@@ -144,9 +146,9 @@ Only 3 drawers remain for specific use cases:
 4. Use fullscreen dialogs (like `AuditHistoryDialog`) for read-only overlays
 
 ### For Future Work
-1. Consider migrating `ProductDrawer` to a dialog if the inventory workflow changes
-2. Monitor usage of `AuditLogDrawer` - may consolidate with other audit patterns
-3. Maintain the "pages over drawers" pattern for consistency
+1. Monitor usage of `AuditLogDrawer` - may consolidate with other audit patterns
+2. Maintain the "pages over drawers" pattern for consistency
+3. Consider consolidating remaining drawer patterns into dialogs if appropriate
 
 ## Related Documentation
 - **CLIENT_CODE_STRUCTURE.md**: Updated component statistics and structure
