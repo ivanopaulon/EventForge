@@ -50,6 +50,14 @@ public interface IAuthenticationService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful</returns>
     Task<bool> UnlockAccountAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Refreshes the JWT token for an authenticated user.
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>New token and expiration information</returns>
+    Task<RefreshTokenResponseDto?> RefreshTokenAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -120,13 +128,13 @@ public class AuthenticationService : IAuthenticationService
 
             if (!string.IsNullOrEmpty(tenantCode) && Guid.TryParse(tenantCode, out var tenantId))
             {
-                // TenantCode è un GUID: cerca per Id
+                // TenantCode ï¿½ un GUID: cerca per Id
                 tenant = await _dbContext.Tenants
                     .FirstOrDefaultAsync(t => t.Id == tenantId && t.IsActive, cancellationToken);
             }
             else
             {
-                // TenantCode non è un GUID: prova a cercare per Code
+                // TenantCode non ï¿½ un GUID: prova a cercare per Code
                 tenant = await _dbContext.Tenants
                     .FirstOrDefaultAsync(t => t.Code == tenantCode && t.IsActive, cancellationToken);
             }
@@ -391,6 +399,63 @@ public class AuthenticationService : IAuthenticationService
         {
             _logger.LogError(ex, "Error unlocking account for user {UserId}", userId);
             return false;
+        }
+    }
+
+    public async Task<RefreshTokenResponseDto?> RefreshTokenAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Load user with roles and permissions
+            var user = await _dbContext.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                        .ThenInclude(r => r.RolePermissions)
+                            .ThenInclude(rp => rp.Permission)
+                .Include(u => u.Tenant)
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, cancellationToken);
+
+            if (user == null || user.Tenant == null || !user.Tenant.IsActive)
+            {
+                _logger.LogWarning("Cannot refresh token: User {UserId} not found or inactive", userId);
+                return null;
+            }
+
+            // Check if account is locked
+            if (user.IsLockedOut)
+            {
+                _logger.LogWarning("Cannot refresh token: Account locked for user {Username}", user.Username);
+                return null;
+            }
+
+            // Get roles and permissions
+            var roles = user.UserRoles
+                .Where(ur => ur.IsCurrentlyValid)
+                .Select(ur => ur.Role.Name)
+                .ToList();
+
+            var permissions = user.UserRoles
+                .Where(ur => ur.IsCurrentlyValid)
+                .SelectMany(ur => ur.Role.RolePermissions)
+                .Select(rp => $"{rp.Permission.Category}.{rp.Permission.Resource}.{rp.Permission.Action}")
+                .Distinct()
+                .ToList();
+
+            // Generate new JWT token
+            var token = _jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);
+
+            _logger.LogInformation("Token refreshed for user {Username}", user.Username);
+
+            return new RefreshTokenResponseDto
+            {
+                AccessToken = token,
+                ExpiresIn = _jwtTokenService.TokenExpirationSeconds
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error refreshing token for user {UserId}", userId);
+            return null;
         }
     }
 }

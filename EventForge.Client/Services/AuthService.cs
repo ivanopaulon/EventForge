@@ -23,6 +23,9 @@ namespace EventForge.Client.Services
 
         // Nuovo: recupera i tenant disponibili per il login (leggero, cached lato client)
         Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync();
+
+        // Refresh the JWT token to extend the session
+        Task<bool> RefreshTokenAsync();
     }
 
     public class AuthService : IAuthService
@@ -333,6 +336,50 @@ namespace EventForge.Client.Services
             catch
             {
                 return true;
+            }
+        }
+
+        public async Task<bool> RefreshTokenAsync()
+        {
+            try
+            {
+                // Check if we're authenticated first
+                if (!await IsAuthenticatedAsync())
+                {
+                    _logger.LogWarning("Cannot refresh token: User not authenticated");
+                    return false;
+                }
+
+                var client = _httpClientFactory.CreateClient("EventForge.ServerAPI");
+                var response = await client.PostAsync($"{BaseUrl}/refresh-token", null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var refreshResponse = await response.Content.ReadFromJsonAsync<RefreshTokenResponseDto>();
+                    if (refreshResponse != null && !string.IsNullOrEmpty(refreshResponse.AccessToken))
+                    {
+                        // Update token in memory
+                        _accessToken = refreshResponse.AccessToken;
+
+                        // Save to localStorage
+                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
+
+                        _logger.LogInformation("Token refreshed successfully");
+                        
+                        // Notify that authentication state may have changed
+                        OnAuthenticationStateChanged?.Invoke();
+                        
+                        return true;
+                    }
+                }
+
+                _logger.LogWarning("Token refresh failed with status code: {StatusCode}", response.StatusCode);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing token");
+                return false;
             }
         }
     }

@@ -18,6 +18,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IInventorySessionService InventorySessionService
+@inject IAuthService AuthService
 @implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")</PageTitle>
@@ -1595,11 +1596,31 @@
         
         try
         {
-            // Lightweight call to verify token is still valid
-            // We'll try to get storage facilities which is a simple authenticated endpoint
-            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 1);
+            // Attempt to refresh the token to extend the session
+            var refreshSuccess = await AuthService.RefreshTokenAsync();
             
-            Logger.LogDebug("Session validity check passed");
+            if (refreshSuccess)
+            {
+                Logger.LogDebug("Token refreshed successfully during keepalive check");
+            }
+            else
+            {
+                // Token refresh failed - user may need to re-authenticate
+                await InvokeAsync(() =>
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("auth.sessionExpiring", "La sessione sta per scadere. Salva il lavoro e preparati a rieffettuare il login."),
+                        Severity.Warning,
+                        config => 
+                        {
+                            config.VisibleStateDuration = 15000; // Show for 15 seconds
+                        }
+                    );
+                    StateHasChanged();
+                });
+                
+                Logger.LogWarning("Token refresh failed during keepalive check");
+            }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -1608,7 +1629,7 @@
             {
                 Snackbar.Add(
                     TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
-                    Severity.Warning,
+                    Severity.Error,
                     config => 
                     {
                         config.VisibleStateDuration = 15000; // Show for 15 seconds
@@ -1621,7 +1642,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Error during session validity check");
+            Logger.LogWarning(ex, "Error during session validity check and token refresh");
         }
     }
     
