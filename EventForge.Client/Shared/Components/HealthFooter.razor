@@ -1,7 +1,12 @@
 @using EventForge.DTOs.Health
+@using EventForge.DTOs.Profile
+@using EventForge.DTOs.Auth
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components.Dialogs
+@using System.IdentityModel.Tokens.Jwt
 @inject IHealthService HealthService
+@inject IProfileService ProfileService
+@inject IAuthService AuthService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 @implements IDisposable
@@ -82,11 +87,53 @@
             await RefreshHealthData();
         }
 
+        // Fetch session enrichment data (silently, don't block dialog opening)
+        List<ActiveSessionDto>? activeSessions = null;
+        UserDto? currentUser = null;
+        DateTime? tokenExpiresAt = null;
+
+        try
+        {
+            // Fetch active sessions
+            activeSessions = await ProfileService.GetActiveSessionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to fetch active sessions: {ex.Message}");
+        }
+
+        try
+        {
+            // Fetch current user
+            currentUser = await AuthService.GetCurrentUserAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to fetch current user: {ex.Message}");
+        }
+
+        try
+        {
+            // Fetch token and extract expiry
+            var token = await AuthService.GetAccessTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                tokenExpiresAt = TryGetJwtExpiry(token);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to extract token expiry: {ex.Message}");
+        }
+
         var parameters = new DialogParameters
         {
             { "HealthData", _healthData },
             { "LastUpdated", _lastUpdated },
-            { "OnRefreshRequested", EventCallback.Factory.Create(this, RefreshHealthData) }
+            { "OnRefreshRequested", EventCallback.Factory.Create(this, RefreshHealthData) },
+            { "ActiveSessions", activeSessions },
+            { "CurrentUser", currentUser },
+            { "TokenExpiresAt", tokenExpiresAt }
         };
 
         var options = new DialogOptions
@@ -187,6 +234,28 @@
             return $"{uptime.Hours}h {uptime.Minutes}m";
         else
             return $"{uptime.Minutes}m {uptime.Seconds}s";
+    }
+
+    /// <summary>
+    /// Extracts the expiration date from a JWT token without exposing sensitive claims.
+    /// </summary>
+    private DateTime? TryGetJwtExpiry(string token)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(token))
+            {
+                var jwtToken = handler.ReadJwtToken(token);
+                // ValidTo is already in UTC
+                return jwtToken.ValidTo;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to parse JWT expiry: {ex.Message}");
+        }
+        return null;
     }
 
     #endregion
