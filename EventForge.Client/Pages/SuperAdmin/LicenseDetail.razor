@@ -323,12 +323,16 @@
         try
         {
             _isLoadingFeatures = true;
-            _availableFeatures = (await LicenseService.GetAvailableFeaturesAsync()).ToList();
+            var features = await LicenseService.GetAvailableFeaturesAsync();
+            _availableFeatures = features?.ToList() ?? new List<AvailableFeatureDto>();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading available features");
-            Snackbar.Add(TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento delle funzionalità"), Severity.Error);
+            Logger.LogError(ex, "Error loading available features for license {LicenseId}", LicenseId);
+            Snackbar.Add(
+                TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento delle funzionalità"), 
+                Severity.Error);
+            _availableFeatures = new List<AvailableFeatureDto>();
         }
         finally
         {
