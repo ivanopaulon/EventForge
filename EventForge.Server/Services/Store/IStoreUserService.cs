@@ -27,6 +27,14 @@ public interface IStoreUserService
     Task<StoreUserDto?> GetStoreUserByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a store user by username.
+    /// </summary>
+    /// <param name="username">Username</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Store user DTO or null if not found</returns>
+    Task<StoreUserDto?> GetStoreUserByUsernameAsync(string username, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets store users by group.
     /// </summary>
     /// <param name="groupId">Group ID</param>
@@ -231,6 +239,55 @@ public interface IStoreUserService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if deleted, false if not found</returns>
     Task<bool> DeleteStoreUserGroupLogoAsync(Guid groupId, CancellationToken cancellationToken = default);
+
+    // StorePos CRUD operations
+
+    /// <summary>
+    /// Gets all store POS terminals with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of store POS terminals</returns>
+    Task<PagedResult<StorePosDto>> GetStorePosesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a store POS by ID.
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Store POS DTO or null if not found</returns>
+    Task<StorePosDto?> GetStorePosByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a new store POS.
+    /// </summary>
+    /// <param name="createStorePosDto">Store POS creation data</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created store POS DTO</returns>
+    Task<StorePosDto> CreateStorePosAsync(CreateStorePosDto createStorePosDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing store POS.
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="updateStorePosDto">Store POS update data</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated store POS DTO or null if not found</returns>
+    Task<StorePosDto?> UpdateStorePosAsync(Guid id, UpdateStorePosDto updateStorePosDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a store POS (soft delete).
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if deleted, false if not found</returns>
+    Task<bool> DeleteStorePosAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
+
+    // StorePos Image Management - Issue #315
 
     /// <summary>
     /// Uploads an image for a store POS.
