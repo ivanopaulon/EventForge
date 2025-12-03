@@ -187,8 +187,8 @@
 | `PageSizeOptions` | `int[]` | `[10, 25, 50, 100]` | Available page size options in pager |
 | `ShowInternalPager` | `bool` | `false` | Show built-in pager |
 | `PagerContent` | `RenderFragment?` | `null` | Custom pagination content (if null, automatic pager is created) |
-| `TableReference` | `MudTable<TItem>?` | `null` | Bidirectional binding to access internal table reference |
-| `TableReferenceChanged` | `EventCallback<MudTable<TItem>?>` | - | Event fired when table reference is set |
+| `TableReference` | `MudTable<TItem>?` | `null` | Output binding to access internal table reference (use `@bind-TableReference`) |
+| `TableReferenceChanged` | `EventCallback<MudTable<TItem>?>` | - | Event fired when table reference changes |
 
 ### Column Configuration Parameters
 | Parameter | Type | Default | Description |
@@ -307,6 +307,7 @@ public class EFTableActionEventArgs
 <EFTable TItem="ProductDto"
          ServerData="@LoadServerData"
          TotalItems="@_totalItems"
+         @bind-TableReference="_tableRef"
          Title="Products (Server-Side)"
          ShowInternalPager="true"
          RowsPerPage="25">
@@ -315,6 +316,7 @@ public class EFTableActionEventArgs
 
 @code {
     private int _totalItems;
+    private MudTable<ProductDto>? _tableRef;
 
     private async Task<TableData<ProductDto>> LoadServerData(TableState state, CancellationToken cancellationToken)
     {
@@ -333,6 +335,15 @@ public class EFTableActionEventArgs
             TotalItems = data.TotalCount,
             Items = data.Items
         };
+    }
+
+    // Use table reference to reload data externally
+    private async Task RefreshData()
+    {
+        if (_tableRef != null)
+        {
+            await _tableRef.ReloadServerData();
+        }
     }
 }
 ```

@@ -393,7 +393,8 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && _tableRef != null && TableReferenceChanged.HasDelegate)
+        // Update TableReference binding whenever _tableRef changes
+        if (_tableRef != null && TableReferenceChanged.HasDelegate && _tableRef != TableReference)
         {
             await TableReferenceChanged.InvokeAsync(_tableRef);
         }
