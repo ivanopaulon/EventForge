@@ -370,6 +370,7 @@
     private List<string> _groupByProperties = new();
     private Dictionary<int, object?> _lastGroupValues = new();
     private string? _draggedColumnProperty;
+    private MudTable<TItem>? _lastTableRef;
     
     // Search state
     private string _searchTerm = string.Empty;
@@ -393,9 +394,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Update TableReference binding whenever _tableRef changes
-        if (_tableRef != null && TableReferenceChanged.HasDelegate && _tableRef != TableReference)
+        // Update TableReference binding only when _tableRef actually changes
+        if (_tableRef != null && TableReferenceChanged.HasDelegate && _tableRef != _lastTableRef)
         {
+            _lastTableRef = _tableRef;
             await TableReferenceChanged.InvokeAsync(_tableRef);
         }
     }
@@ -679,8 +681,9 @@
 
     private int GetTotalCount()
     {
-        // For server-side data, use TotalItems if specified
-        if (TotalItems > 0)
+        // For server-side data, use TotalItems if it has been explicitly set
+        // We check against default value (0) and presence of ServerData to determine if TotalItems was intentionally set
+        if (ServerData != null && TotalItems >= 0)
         {
             return TotalItems;
         }
