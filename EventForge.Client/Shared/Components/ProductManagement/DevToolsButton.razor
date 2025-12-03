@@ -1,5 +1,5 @@
 @inject HttpClient Http
-@inject IJSRuntime Js
+@inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject ILogger<DevToolsButton> Logger
 
@@ -34,20 +34,26 @@
 
             if (response.IsSuccessStatusCode)
             {
-                await Js.InvokeVoidAsync("alert", "Generazione avviata");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("devtools.generateProducts.started", "Generazione avviata"),
+                    Severity.Info);
                 await OnGenerateCompleted.InvokeAsync(true);
             }
             else
             {
                 var errorText = await response.Content.ReadAsStringAsync();
-                await Js.InvokeVoidAsync("alert", $"Errore generazione: {errorText}");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("devtools.generateProducts.error", "Errore generazione: {0}", errorText),
+                    Severity.Error);
                 await OnGenerateCompleted.InvokeAsync(false);
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore durante la generazione dei prodotti di test");
-            await Js.InvokeVoidAsync("alert", $"Errore generazione: {ex.Message}");
+            Snackbar.Add(
+                TranslationService.GetTranslation("devtools.generateProducts.unexpectedError", "Errore generazione: {0}", ex.Message),
+                Severity.Error);
             await OnGenerateCompleted.InvokeAsync(false);
         }
         finally

@@ -187,11 +187,6 @@ public class DevToolsController : BaseApiController
         [FromBody] GenerateTestProductsRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!User?.Identity?.IsAuthenticated ?? true)
-        {
-            return Unauthorized();
-        }
-
         // Valida il tenant
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -218,7 +213,7 @@ public class DevToolsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nell'avvio del job di generazione prodotti di test");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Errore nell'avvio del job di generazione. Riprova più tardi." });
         }
     }
 
