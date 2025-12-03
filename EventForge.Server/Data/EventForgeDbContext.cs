@@ -893,15 +893,15 @@ public partial class EventForgeDbContext : DbContext
             auditEntries.AddRange(CreateAuditEntries(entry, currentUser));
         }
 
-        var result = await base.SaveChangesAsync(cancellationToken);
-
+        // Add audit entries BEFORE SaveChanges to ensure they are saved in the same transaction
+        // This prevents DbUpdateConcurrencyException with RowVersion optimistic concurrency control
         if (auditEntries.Any())
         {
             EntityChangeLogs.AddRange(auditEntries);
-            _ = await base.SaveChangesAsync(cancellationToken);
         }
 
-        return result;
+        // Single SaveChanges call saves both entities and audit logs atomically
+        return await base.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
