@@ -6,6 +6,7 @@ using EventForge.Server.Services.Chat;
 using EventForge.Server.Services.CodeGeneration;
 using EventForge.Server.Services.Common;
 using EventForge.Server.Services.Dashboard;
+using EventForge.Server.Services.DevTools;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Licensing;
@@ -225,6 +226,9 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<ISupplierSuggestionService, SupplierSuggestionService>();
 
         _ = services.AddScoped<ISupplierProductCsvImportService, SupplierProductCsvImportService>();
+
+        // Register DevTools services
+        _ = services.AddSingleton<IProductGeneratorService, ProductGeneratorService>();
 
         // Register alert services
         _ = services.AddScoped<ISupplierPriceAlertService, SupplierPriceAlertService>();
