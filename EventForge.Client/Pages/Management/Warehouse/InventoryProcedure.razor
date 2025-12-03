@@ -217,7 +217,13 @@
                             @if (column.PropertyName == "ProductCode")
                             {
                                 <EFTableColumnHeader TItem="InventoryDocumentRowDto" PropertyName="ProductCode" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.ProductCode ?? string.Empty))">@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTableSortLabel>
+                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.ProductCode ?? string.Empty))">@TranslationService.GetTranslation("warehouse.productCode", "Codice")</MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "ProductName")
+                            {
+                                <EFTableColumnHeader TItem="InventoryDocumentRowDto" PropertyName="ProductName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.ProductName ?? string.Empty))">@TranslationService.GetTranslation("warehouse.productName", "Prodotto")</MudTableSortLabel>
                                 </EFTableColumnHeader>
                             }
                             else if (column.PropertyName == "LocationName")
@@ -253,61 +259,90 @@
                         }
                         <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="Product">
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="Location">
-                            <MudText Typo="Typo.body2">@context.LocationName</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="Quantity">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Quantity</MudChip>
-                        </MudTd>
-                        <MudTd DataLabel="Adjustment">
-                            @if (context.AdjustmentQuantity.HasValue)
+                    <RowTemplate Context="item">
+                        @{
+                            var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _inventoryRowColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                        }
+                        @foreach (var column in visibleColumns)
+                        {
+                            @if (column.PropertyName == "ProductCode")
                             {
-                                var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : 
-                                               context.AdjustmentQuantity < 0 ? Color.Warning : Color.Default;
-                                var adjIcon = context.AdjustmentQuantity > 0 ? Icons.Material.Filled.TrendingUp : 
-                                              context.AdjustmentQuantity < 0 ? Icons.Material.Filled.TrendingDown : 
-                                              Icons.Material.Filled.Remove;
-                                
-                                <MudChip T="string" Size="Size.Small" Color="@adjColor" Icon="@adjIcon">
-                                    @(context.AdjustmentQuantity > 0 ? "+" : "")@context.AdjustmentQuantity
-                                </MudChip>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.productCode", "Codice")">
+                                    <MudText Typo="Typo.body2">@item.ProductCode</MudText>
+                                </MudTd>
                             }
-                            else
+                            else if (column.PropertyName == "ProductName")
                             {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default">
-                                    @TranslationService.GetTranslation("warehouse.noAdjustment", "N/A")
-                                </MudChip>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.productName", "Prodotto")">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@item.ProductName</MudText>
+                                </MudTd>
                             }
-                        </MudTd>
-                        <MudTd DataLabel="Notes">
-                            @if (!string.IsNullOrEmpty(context.Notes))
+                            else if (column.PropertyName == "LocationName")
                             {
-                                <MudTooltip Text="@context.Notes">
-                                    <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
-                                </MudTooltip>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.location", "Ubicazione")">
+                                    <MudText Typo="Typo.body2">@item.LocationName</MudText>
+                                </MudTd>
                             }
-                        </MudTd>
-                        <MudTd DataLabel="Time">
-                            <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="Actions">
+                            else if (column.PropertyName == "Quantity")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@item.Quantity</MudChip>
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "AdjustmentQuantity")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")">
+                                    @if (item.AdjustmentQuantity.HasValue)
+                                    {
+                                        var adjColor = item.AdjustmentQuantity > 0 ? Color.Success : 
+                                                       item.AdjustmentQuantity < 0 ? Color.Warning : Color.Default;
+                                        var adjIcon = item.AdjustmentQuantity > 0 ? Icons.Material.Filled.TrendingUp : 
+                                                      item.AdjustmentQuantity < 0 ? Icons.Material.Filled.TrendingDown : 
+                                                      Icons.Material.Filled.Remove;
+                                        
+                                        <MudChip T="string" Size="Size.Small" Color="@adjColor" Icon="@adjIcon">
+                                            @(item.AdjustmentQuantity > 0 ? "+" : "")@item.AdjustmentQuantity
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                                            @TranslationService.GetTranslation("warehouse.noAdjustment", "N/A")
+                                        </MudChip>
+                                    }
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "Notes")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.notes", "Note")">
+                                    @if (!string.IsNullOrEmpty(item.Notes))
+                                    {
+                                        <MudTooltip Text="@item.Notes">
+                                            <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
+                                        </MudTooltip>
+                                    }
+                                </MudTd>
+                            }
+                            else if (column.PropertyName == "CreatedAt")
+                            {
+                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.time", "Ora")">
+                                    <MudText Typo="Typo.caption">@item.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</MudText>
+                                </MudTd>
+                            }
+                        }
+                        <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
                             <MudStack Row="true" Spacing="1">
                                 <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
                                     <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
                                                    Size="Size.Small" 
                                                    Color="Color.Primary"
-                                                   OnClick="@(() => EditInventoryRow(context))" />
+                                                   OnClick="@(() => EditInventoryRow(item))" />
                                 </MudTooltip>
                                 <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
                                     <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
                                                    Size="Size.Small" 
                                                    Color="Color.Error"
-                                                   OnClick="@(() => DeleteInventoryRow(context))" />
+                                                   OnClick="@(() => DeleteInventoryRow(item))" />
                                 </MudTooltip>
                             </MudStack>
                         </MudTd>
