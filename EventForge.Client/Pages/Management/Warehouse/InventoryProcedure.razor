@@ -189,7 +189,8 @@
                     </MudStack>
                 </MudStack>
 
-                <EFTable TItem="InventoryDocumentRowDto"
+                <EFTable @ref="_efTable"
+                         TItem="InventoryDocumentRowDto"
                          Items="@GetFilteredRows()"
                          ComponentKey="InventoryDocumentRows"
                          ShowSearch="true"
@@ -209,13 +210,58 @@
                          FixedHeader="true"
                          InitialColumnConfigurations="@_inventoryRowColumns"
                          ShowColumnConfiguration="true">
-                    <HeaderContent>
-                        <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("warehouse.notes", "Note")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("warehouse.time", "Ora")</MudTh>
+                    <HeaderContent Context="columnConfigurations">
+                        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                        {
+                            @if (column.PropertyName == "ProductName")
+                            {
+                                <EFTableColumnHeader TItem="InventoryDocumentRowDto" PropertyName="ProductName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.ProductName ?? string.Empty))">
+                                        @TranslationService.GetTranslation("warehouse.product", "Prodotto")
+                                    </MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "LocationName")
+                            {
+                                <EFTableColumnHeader TItem="InventoryDocumentRowDto" PropertyName="LocationName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.LocationName ?? string.Empty))">
+                                        @TranslationService.GetTranslation("warehouse.location", "Ubicazione")
+                                    </MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "Quantity")
+                            {
+                                <EFTableColumnHeader TItem="InventoryDocumentRowDto" PropertyName="Quantity" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.Quantity))">
+                                        @TranslationService.GetTranslation("warehouse.quantity", "Quantità")
+                                    </MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "AdjustmentQuantity")
+                            {
+                                <EFTableColumnHeader TItem="InventoryDocumentRowDto" PropertyName="AdjustmentQuantity" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.AdjustmentQuantity ?? 0))">
+                                        @TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")
+                                    </MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "Notes")
+                            {
+                                <EFTableColumnHeader TItem="InventoryDocumentRowDto" PropertyName="Notes" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.Notes ?? string.Empty))">
+                                        @TranslationService.GetTranslation("warehouse.notes", "Note")
+                                    </MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                            else if (column.PropertyName == "CreatedAt")
+                            {
+                                <EFTableColumnHeader TItem="InventoryDocumentRowDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                    <MudTableSortLabel SortBy="@(new Func<InventoryDocumentRowDto, object>(x => x.CreatedAt))">
+                                        @TranslationService.GetTranslation("warehouse.time", "Ora")
+                                    </MudTableSortLabel>
+                                </EFTableColumnHeader>
+                            }
+                        }
                         <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -309,14 +355,16 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _inventoryRowColumns = new()
     {
-        new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0 },
-        new() { PropertyName = "ProductName", DisplayName = "Prodotto", IsVisible = true, Order = 1 },
-        new() { PropertyName = "LocationName", DisplayName = "Ubicazione", IsVisible = true, Order = 2 },
-        new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 3 },
-        new() { PropertyName = "AdjustmentQuantity", DisplayName = "Aggiustamento", IsVisible = true, Order = 4 },
-        new() { PropertyName = "Notes", DisplayName = "Note", IsVisible = true, Order = 5 },
-        new() { PropertyName = "CreatedAt", DisplayName = "Ora", IsVisible = true, Order = 6 }
+        new() { PropertyName = "ProductName", DisplayName = "Prodotto", IsVisible = true, Order = 0 },
+        new() { PropertyName = "LocationName", DisplayName = "Ubicazione", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 2 },
+        new() { PropertyName = "AdjustmentQuantity", DisplayName = "Aggiustamento", IsVisible = true, Order = 3 },
+        new() { PropertyName = "Notes", DisplayName = "Note", IsVisible = true, Order = 4 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Ora", IsVisible = true, Order = 5 }
     };
+    
+    // EFTable reference for drag-drop grouping
+    private EFTable<InventoryDocumentRowDto> _efTable = null!;
     
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
