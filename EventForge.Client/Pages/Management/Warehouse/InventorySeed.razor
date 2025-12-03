@@ -3,7 +3,7 @@
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Services
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
-@inject HttpClient HttpClient
+@inject IHttpClientService HttpClientService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject ILogger<InventorySeed> Logger
@@ -243,12 +243,8 @@
     {
         try
         {
-            var response = await HttpClient.GetAsync("/api/v1/warehouse/locations?page=1&pageSize=100");
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<PagedResult<StorageLocationDto>>();
-                _locations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
-            }
+            var result = await HttpClientService.GetAsync<PagedResult<StorageLocationDto>>("api/v1/warehouse/locations?page=1&pageSize=100");
+            _locations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
         }
         catch (Exception ex)
         {
@@ -291,26 +287,16 @@
 
         try
         {
-            var response = await HttpClient.PostAsJsonAsync("/api/v1/warehouse/inventory/document/seed-all", _request);
+            _result = await HttpClientService.PostAsync<InventorySeedRequestDto, InventorySeedResultDto>(
+                "api/v1/warehouse/inventory/document/seed-all", _request);
             
-            if (response.IsSuccessStatusCode)
+            if (_result?.RowsCreated > 0)
             {
-                _result = await response.Content.ReadFromJsonAsync<InventorySeedResultDto>();
-                
-                if (_result?.RowsCreated > 0)
-                {
-                    Snackbar.Add($"Generazione completata con successo! Create {_result.RowsCreated} righe.", Severity.Success);
-                }
-                else
-                {
-                    Snackbar.Add(_result?.Message ?? "Nessuna riga creata", Severity.Warning);
-                }
+                Snackbar.Add($"Generazione completata con successo! Create {_result.RowsCreated} righe.", Severity.Success);
             }
             else
             {
-                var errorMessage = await response.Content.ReadAsStringAsync();
-                Logger.LogError("Seed failed: {StatusCode} - {Error}", response.StatusCode, errorMessage);
-                Snackbar.Add($"Errore: {response.StatusCode}", Severity.Error);
+                Snackbar.Add(_result?.Message ?? "Nessuna riga creata", Severity.Warning);
             }
         }
         catch (Exception ex)
