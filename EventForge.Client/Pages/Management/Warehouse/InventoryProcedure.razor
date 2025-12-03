@@ -63,15 +63,6 @@
                     </MudText>
                 </div>
                 <MudStack Row="true" Spacing="2">
-                    <MudTooltip Text="@TranslationService.GetTranslation("warehouse.exportTooltip", "Esporta documento in Excel")">
-                        <MudButton StartIcon="@Icons.Material.Outlined.Download" 
-                                   Color="Color.Info" 
-                                   Variant="Variant.Outlined"
-                                   OnClick="@ExportInventoryDocument"
-                                   Disabled="@(_currentDocument.TotalItems == 0)">
-                            @TranslationService.GetTranslation("common.export", "Esporta")
-                        </MudButton>
-                    </MudTooltip>
                     <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeTooltip", "Applica tutti gli aggiustamenti e chiudi la sessione")">
                         <MudButton StartIcon="@Icons.Material.Outlined.PlaylistAddCheck" 
                                    Color="Color.Success" 
@@ -198,7 +189,26 @@
                     </MudStack>
                 </MudStack>
 
-                <MudTable Items="@GetFilteredRows()" Hover="true" Dense="true" Striped="true" FixedHeader="true" Height="400px">
+                <EFTable TItem="InventoryDocumentRowDto"
+                         Items="@GetFilteredRows()"
+                         ComponentKey="InventoryDocumentRows"
+                         ShowSearch="true"
+                         SearchPlaceholder="@TranslationService.GetTranslation("warehouse.searchProduct", "Cerca prodotto...")"
+                         OnSearch="@HandleSearch"
+                         ShowExport="true"
+                         ExportFormats="@(new List<string> { "Excel" })"
+                         ExcelFileName="@($"Inventario_{_currentDocument?.Number}_{DateTime.Now:yyyyMMdd}")"
+                         EnableExcelExport="true"
+                         RowsPerPage="50"
+                         PageSizeOptions="@(new[] { 25, 50, 100, 200 })"
+                         ShowInternalPager="true"
+                         Dense="true"
+                         Striped="true"
+                         Hover="true"
+                         Height="600px"
+                         FixedHeader="true"
+                         InitialColumnConfigurations="@_inventoryRowColumns"
+                         ShowColumnConfiguration="true">
                     <HeaderContent>
                         <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
@@ -267,7 +277,10 @@
                             </MudStack>
                         </MudTd>
                     </RowTemplate>
-                </MudTable>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="@(new[] { 25, 50, 100, 200 })" />
+                    </PagerContent>
+                </EFTable>
             </MudPaper>
 
             <!-- Barcode Assignment Audit Panel -->
@@ -292,6 +305,18 @@
     
     // Limit for _barcodeAssignments to prevent memory leaks
     private const int MaxBarcodeAssignments = 200;
+    
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _inventoryRowColumns = new()
+    {
+        new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0 },
+        new() { PropertyName = "ProductName", DisplayName = "Prodotto", IsVisible = true, Order = 1 },
+        new() { PropertyName = "LocationName", DisplayName = "Ubicazione", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 3 },
+        new() { PropertyName = "AdjustmentQuantity", DisplayName = "Aggiustamento", IsVisible = true, Order = 4 },
+        new() { PropertyName = "Notes", DisplayName = "Note", IsVisible = true, Order = 5 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Ora", IsVisible = true, Order = 6 }
+    };
     
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
@@ -367,70 +392,40 @@
         return 1m;
     }
 
+    private string _searchTerm = string.Empty;
+
     private IEnumerable<InventoryDocumentRowDto> GetFilteredRows()
     {
         if (_currentDocument?.Rows == null) return Enumerable.Empty<InventoryDocumentRowDto>();
         
         var rows = _currentDocument.Rows.AsEnumerable();
         
+        // Filtro "Solo Differenze"
         if (_showOnlyAdjustments)
         {
             rows = rows.Where(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity != 0);
         }
         
+        // Filtro ricerca
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var search = _searchTerm.ToLower();
+            rows = rows.Where(r => 
+                (r.ProductCode?.ToLower().Contains(search) ?? false) ||
+                (r.ProductName?.ToLower().Contains(search) ?? false) ||
+                (r.LocationName?.ToLower().Contains(search) ?? false) ||
+                (r.Notes?.ToLower().Contains(search) ?? false)
+            );
+        }
+        
         return rows;
     }
 
-    private async Task ExportInventoryDocument()
+    private async Task HandleSearch(string searchTerm)
     {
-        if (_currentDocument == null) return;
-
-        try
-        {
-            AddOperationLog(
-                TranslationService.GetTranslation("warehouse.exportStarted", "Esportazione documento iniziata"),
-                $"Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli",
-                "Info"
-            );
-
-            // Create CSV content
-            var csv = new System.Text.StringBuilder();
-            csv.AppendLine("Codice Prodotto,Nome Prodotto,Ubicazione,Quantità Contata,Aggiustamento,Note,Data/Ora");
-            
-            foreach (var row in _currentDocument.Rows)
-            {
-                csv.AppendLine($"\"{row.ProductCode}\",\"{row.ProductName}\",\"{row.LocationName}\",{row.Quantity},{row.AdjustmentQuantity ?? 0},\"{row.Notes ?? ""}\",\"{row.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm:ss}\"");
-            }
-
-            // Download the file using existing utility
-            var fileName = $"Inventario_{_currentDocument.Number}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-            await JSRuntime.InvokeVoidAsync("downloadCsv", fileName, csv.ToString());
-
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.exportSuccess", "Documento esportato con successo"), 
-                Severity.Success
-            );
-
-            AddOperationLog(
-                TranslationService.GetTranslation("warehouse.exportCompleted", "Esportazione completata"),
-                $"File: {fileName}",
-                "Success"
-            );
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error exporting inventory document");
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.exportError", "Errore durante l'esportazione"), 
-                Severity.Error
-            );
-            
-            AddOperationLog(
-                TranslationService.GetTranslation("warehouse.exportFailed", "Esportazione fallita"),
-                ex.Message,
-                "Error"
-            );
-        }
+        _searchTerm = searchTerm;
+        StateHasChanged();
+        await Task.CompletedTask;
     }
 
     private async Task RestoreInventorySessionAsync()
