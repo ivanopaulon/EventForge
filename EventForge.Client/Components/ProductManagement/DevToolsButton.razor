@@ -1,0 +1,55 @@
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+
+<MudButton Variant="Variant.Filled"
+           Color="Color.Warning"
+           StartIcon="@Icons.Material.Outlined.Science"
+           OnClick="HandleClick"
+           Disabled="@_isGenerating">
+    @TranslationService.GetTranslation("devtools.generateTestProducts", "Genera prodotti di test")
+</MudButton>
+
+@code {
+    private const string ApiEndpoint = "/api/devtools/generate-test-products";
+    
+    [Parameter] public int Count { get; set; } = 10;
+    [Parameter] public EventCallback<bool> OnGenerateCompleted { get; set; }
+
+    private bool _isGenerating = false;
+
+    private async Task HandleClick()
+    {
+        _isGenerating = true;
+        StateHasChanged();
+        
+        try
+        {
+            var resp = await Http.PostAsJsonAsync(ApiEndpoint, new { count = Count });
+            if (resp.IsSuccessStatusCode)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("devtools.generationStarted", "Generazione avviata"), Severity.Success);
+                await OnGenerateCompleted.InvokeAsync(true);
+            }
+            else
+            {
+                var errorMessage = await resp.Content.ReadAsStringAsync();
+                var displayMessage = string.IsNullOrWhiteSpace(errorMessage) 
+                    ? TranslationService.GetTranslation("devtools.unknownError", "Errore sconosciuto") 
+                    : errorMessage;
+                Snackbar.Add(TranslationService.GetTranslation("devtools.generationError", "Errore generazione: {0}", displayMessage), Severity.Error);
+                await OnGenerateCompleted.InvokeAsync(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("devtools.error", "Errore: {0}", ex.Message), Severity.Error);
+            await OnGenerateCompleted.InvokeAsync(false);
+        }
+        finally
+        {
+            _isGenerating = false;
+            StateHasChanged();
+        }
+    }
+}
