@@ -17,7 +17,9 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
     private readonly IStorageLocationService _storageLocationService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<InventoryBulkSeedService> _logger;
-    private readonly Random _random = new();
+    
+    // Thread-local Random to avoid thread safety issues
+    private static readonly ThreadLocal<Random> _random = new(() => new Random());
 
     public InventoryBulkSeedService(
         EventForgeDbContext context,
@@ -224,8 +226,14 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
     {
         // Generate a random decimal between min and max
         var range = max - min;
-        var randomValue = (decimal)_random.NextDouble() * range;
+        var randomValue = (decimal)_random.Value!.NextDouble() * range;
         return Math.Round(min + randomValue, 2);
+    }
+
+    private static string GenerateInventorySeedDocumentNumber()
+    {
+        // Use consistent format: INV-SEED-YYYYMMDD-HHmmss
+        return $"INV-SEED-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
     }
 
     private decimal GetQuantityFromProduct(Product product, decimal fallback)
@@ -266,10 +274,12 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             tenantId,
             cancellationToken);
 
-        // Generate document number
-        var documentNumber = $"INV-SEED-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
+        // Generate document number with seed prefix for easy identification
+        var documentNumber = GenerateInventorySeedDocumentNumber();
 
         // Create document header
+        // Note: IsProforma is set to true because this is a test/seed document
+        // that doesn't represent actual physical inventory operations
         var createHeaderDto = new CreateDocumentHeaderDto
         {
             DocumentTypeId = inventoryDocumentType.Id,
@@ -280,7 +290,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             SourceWarehouseId = warehouseId,
             Notes = documentName,
             IsFiscal = false,
-            IsProforma = true
+            IsProforma = true // Test document, not a real inventory operation
         };
 
         var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(

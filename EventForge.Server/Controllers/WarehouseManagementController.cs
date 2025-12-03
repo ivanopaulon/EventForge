@@ -2309,6 +2309,7 @@ public class WarehouseManagementController : BaseApiController
     /// <response code="400">If the request parameters are invalid</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("inventory/document/seed-all")]
+    [RequireLicenseFeature("ProductManagement")]
     [ProducesResponseType(typeof(InventorySeedResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
