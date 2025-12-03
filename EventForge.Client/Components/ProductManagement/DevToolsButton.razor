@@ -11,7 +11,7 @@
 </MudButton>
 
 @code {
-    private const string ApiEndpoint = "/api/devtools/generate-test-products";
+    private const string ApiEndpoint = "/api/v1/devtools/generate-products";
     
     [Parameter] public int Count { get; set; } = 10;
     [Parameter] public EventCallback<bool> OnGenerateCompleted { get; set; }
@@ -25,7 +25,7 @@
         
         try
         {
-            var resp = await Http.PostAsJsonAsync(ApiEndpoint, new { count = Count });
+            var resp = await Http.PostAsJsonAsync(ApiEndpoint, new { count = Count, batchSize = 100 });
             if (resp.IsSuccessStatusCode)
             {
                 Snackbar.Add(TranslationService.GetTranslation("devtools.generationStarted", "Generazione avviata"), Severity.Success);
