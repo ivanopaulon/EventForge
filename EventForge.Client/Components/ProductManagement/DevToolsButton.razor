@@ -1,12 +1,13 @@
 @inject HttpClient Http
 @inject IJSRuntime Js
+@inject ITranslationService TranslationService
 
 <MudButton Variant="Variant.Filled"
            Color="Color.Warning"
            StartIcon="@Icons.Material.Outlined.Science"
            OnClick="HandleClick"
            Disabled="@_isGenerating">
-    Genera prodotti di test
+    @TranslationService.GetTranslation("devtools.generateTestProducts", "Genera prodotti di test")
 </MudButton>
 
 @code {
@@ -23,19 +24,19 @@
             var resp = await Http.PostAsJsonAsync("/api/devtools/generate-test-products", new { count = Count });
             if (resp.IsSuccessStatusCode)
             {
-                await Js.InvokeVoidAsync("alert", "Generazione avviata");
+                await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.generationStarted", "Generazione avviata"));
                 await OnGenerateCompleted.InvokeAsync(true);
             }
             else
             {
                 var txt = await resp.Content.ReadAsStringAsync();
-                await Js.InvokeVoidAsync("alert", "Errore generazione: " + txt);
+                await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.generationError", "Errore generazione: {0}", txt));
                 await OnGenerateCompleted.InvokeAsync(false);
             }
         }
         catch (Exception ex)
         {
-            await Js.InvokeVoidAsync("alert", "Errore: " + ex.Message);
+            await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.error", "Errore: {0}", ex.Message));
             await OnGenerateCompleted.InvokeAsync(false);
         }
         finally
