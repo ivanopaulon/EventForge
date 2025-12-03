@@ -328,7 +328,7 @@ public class EFTableActionEventArgs
             cancellationToken: cancellationToken
         );
 
-        _totalItems = data.TotalCount; // Update total items for footer display
+        _totalItems = data.TotalCount; // Update total items for footer and pagination
 
         return new TableData<ProductDto>
         {
