@@ -114,7 +114,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error creating product: {StatusCode}", ex.StatusCode);
+            _logger.LogError(ex, "HTTP error creating product: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -142,7 +142,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error creating product with codes and units: {StatusCode}", ex.StatusCode);
+            _logger.LogError(ex, "HTTP error creating product with codes and units: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -168,7 +168,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error updating product {ProductId}: {StatusCode}", id, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error updating product {ProductId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -189,7 +189,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error deleting product {ProductId}: {StatusCode}", id, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error deleting product {ProductId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -361,7 +361,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error creating product supplier: {StatusCode}", ex.StatusCode);
+            _logger.LogError(ex, "HTTP error creating product supplier: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -387,7 +387,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error updating product supplier {ProductSupplierId}: {StatusCode}", id, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error updating product supplier {ProductSupplierId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -408,7 +408,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error deleting product supplier {ProductSupplierId}: {StatusCode}", id, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error deleting product supplier {ProductSupplierId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -507,7 +507,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error creating product code: {StatusCode}", ex.StatusCode);
+            _logger.LogError(ex, "HTTP error creating product code: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -533,7 +533,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error updating product code {ProductCodeId}: {StatusCode}", id, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error updating product code {ProductCodeId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -554,7 +554,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error deleting product code {ProductCodeId}: {StatusCode}", id, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error deleting product code {ProductCodeId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -609,7 +609,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error creating product unit: {StatusCode}", ex.StatusCode);
+            _logger.LogError(ex, "HTTP error creating product unit: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -635,7 +635,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error updating product unit {ProductUnitId}: {StatusCode}", id, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error updating product unit {ProductUnitId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
@@ -656,7 +656,7 @@ public class ProductService : IProductService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error deleting product unit {ProductUnitId}: {StatusCode}", id, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error deleting product unit {ProductUnitId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
             throw;
         }
         catch (Exception ex)
