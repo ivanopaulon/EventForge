@@ -1,0 +1,46 @@
+@inject HttpClient Http
+@inject IJSRuntime Js
+
+<MudButton Variant="Variant.Filled"
+           Color="Color.Warning"
+           StartIcon="@Icons.Material.Outlined.Science"
+           OnClick="HandleClick"
+           Disabled="@_isGenerating">
+    Genera prodotti di test
+</MudButton>
+
+@code {
+    [Parameter] public int Count { get; set; } = 10;
+    [Parameter] public EventCallback<bool> OnGenerateCompleted { get; set; }
+
+    private bool _isGenerating = false;
+
+    private async Task HandleClick()
+    {
+        _isGenerating = true;
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("/api/devtools/generate-test-products", new { count = Count });
+            if (resp.IsSuccessStatusCode)
+            {
+                await Js.InvokeVoidAsync("alert", "Generazione avviata");
+                await OnGenerateCompleted.InvokeAsync(true);
+            }
+            else
+            {
+                var txt = await resp.Content.ReadAsStringAsync();
+                await Js.InvokeVoidAsync("alert", "Errore generazione: " + txt);
+                await OnGenerateCompleted.InvokeAsync(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Js.InvokeVoidAsync("alert", "Errore: " + ex.Message);
+            await OnGenerateCompleted.InvokeAsync(false);
+        }
+        finally
+        {
+            _isGenerating = false;
+        }
+    }
+}
