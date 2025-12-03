@@ -52,6 +52,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
 
   <!-- Publish Blazor WASM Client with Server -->
   <Target Name="PublishBlazorClient" BeforeTargets="Publish">
