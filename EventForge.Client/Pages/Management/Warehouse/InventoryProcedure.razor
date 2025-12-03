@@ -378,6 +378,9 @@
     // Limit for _barcodeAssignments to prevent memory leaks
     private const int MaxBarcodeAssignments = 200;
     
+    // Simulation UI update frequency (every N products)
+    private const int SimulationUiUpdateFrequency = 10;
+    
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _inventoryRowColumns = new()
     {
@@ -1317,7 +1320,7 @@
                         ProductId = product.Id,
                         LocationId = locationId,
                         Quantity = quantity,
-                        Notes = "Simulazione automatica"
+                        Notes = TranslationService.GetTranslation("warehouse.automaticSimulation", "Simulazione automatica")
                     };
 
                     var updatedDocument = await InventoryService.AddInventoryDocumentRowAsync(_currentDocument.Id, rowDto);
@@ -1333,8 +1336,8 @@
 
                     _simulationProgress++;
                     
-                    // Aggiorna UI ogni 10 prodotti per non bloccare il rendering
-                    if (_simulationProgress % 10 == 0)
+                    // Aggiorna UI ogni N prodotti per non bloccare il rendering
+                    if (_simulationProgress % SimulationUiUpdateFrequency == 0)
                     {
                         StateHasChanged();
                         await Task.Delay(1); // Permette al browser di aggiornare
