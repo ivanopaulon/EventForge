@@ -524,4 +524,124 @@ La documentazione è ora organizzata in categorie logiche:
 - **Testing**: Test, audit, analisi qualità
 - **Deployment**: Configurazione, deployment, infrastruttura
 - **Features**: Guide implementazione funzionalità specifiche
+
+## 📦 API: Inventory Bulk Seed
+
+### Panoramica
+L'endpoint `/api/v1/warehouse/inventory/document/seed-all` permette di generare automaticamente un documento di inventario con una riga per ogni prodotto attivo del tenant. Utile per test e per inizializzare rapidamente un inventario completo.
+
+### Endpoint
+```
+POST /api/v1/warehouse/inventory/document/seed-all
+```
+
+### Autorizzazione
+- Richiede autenticazione
+- Policy: `RequireLicenseFeature("ProductManagement")`
+- Ruoli suggeriti: `SuperAdmin`, `Admin`, `Manager`
+
+### Corpo della Richiesta (JSON)
+```json
+{
+  "locationId": "optional-guid-ubicazione",
+  "mode": "fixed|random|fromProduct",
+  "quantity": 10.0,
+  "minQuantity": 1.0,
+  "maxQuantity": 100.0,
+  "createDocument": true,
+  "documentName": "Inventario Seed - 2024-01-15",
+  "batchSize": 500
+}
+```
+
+#### Parametri
+- **locationId** (Guid?, opzionale): ID ubicazione magazzino. Se non specificato, usa la prima ubicazione disponibile
+- **mode** (string, obbligatorio): Modalità di calcolo quantità
+  - `fixed`: Usa quantità fissa per tutti i prodotti
+  - `random`: Genera quantità casuali nell'intervallo min/max
+  - `fromProduct`: Usa TargetStockLevel, ReorderPoint o SafetyStock del prodotto (con fallback)
+- **quantity** (decimal?, opzionale): Quantità fissa (mode=fixed) o fallback (mode=fromProduct)
+- **minQuantity** (decimal?, opzionale): Quantità minima per mode=random
+- **maxQuantity** (decimal?, opzionale): Quantità massima per mode=random
+- **createDocument** (bool, default=true): Se creare il documento di inventario o solo aggiornare lo stock
+- **documentName** (string, opzionale): Nome descrittivo per il documento creato
+- **batchSize** (int, default=500): Numero di prodotti elaborati per batch (1-1000)
+
+### Risposta (JSON)
+```json
+{
+  "productsFound": 150,
+  "rowsCreated": 150,
+  "durationMs": 1250,
+  "message": "Operazione completata con successo. Creati 150 righe per 150 prodotti in 1250ms.",
+  "documentId": "guid-del-documento-creato"
+}
+```
+
+### Esempi curl
+
+#### Esempio 1: Modalità Fixed (quantità fissa)
+```bash
+curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "mode": "fixed",
+    "quantity": 10,
+    "createDocument": true,
+    "documentName": "Inventario Test - Quantità Fissa",
+    "batchSize": 500
+  }'
+```
+
+#### Esempio 2: Modalità Random
+```bash
+curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "mode": "random",
+    "minQuantity": 5,
+    "maxQuantity": 50,
+    "createDocument": true,
+    "documentName": "Inventario Test - Quantità Casuali",
+    "batchSize": 500
+  }'
+```
+
+#### Esempio 3: Modalità From Product (usa dati prodotto)
+```bash
+curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "mode": "fromProduct",
+    "quantity": 10,
+    "createDocument": true,
+    "documentName": "Inventario Test - Da Prodotto",
+    "locationId": "your-location-guid-here",
+    "batchSize": 500
+  }'
+```
+
+### UI Blazor
+L'interfaccia utente è accessibile tramite il menu:
+**Gestione Magazzino → Genera Inventario Test**
+
+Oppure direttamente via URL: `/warehouse/inventory-seed`
+
+L'interfaccia permette di:
+- Selezionare la modalità di quantità (fixed, random, fromProduct)
+- Configurare i parametri per ogni modalità
+- Scegliere l'ubicazione (opzionale)
+- Specificare se creare un documento
+- Impostare la dimensione del batch
+- Avviare la generazione e visualizzare i risultati
+
+### Note Tecniche
+- I prodotti vengono elaborati in batch per ottimizzare performance e memoria
+- Solo i prodotti con status `Active` vengono inclusi
+- Se `createDocument=true`, viene creato un documento di tipo "Inventory" con status "Draft"
+- La quantità viene calcolata secondo la modalità scelta per ogni prodotto
+- L'operazione restituisce metriche di performance (durata, conteggi)
 - **Migration**: Report completamento e guide migrazione
