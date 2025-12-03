@@ -1,0 +1,341 @@
+@page "/warehouse/inventory-seed"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Services
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<InventorySeed> Logger
+@inject NavigationManager NavigationManager
+
+<PageTitle>@TranslationService.GetTranslation("warehouse.inventorySeed", "Genera Inventario Test")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Class="pa-6">
+        <MudText Typo="Typo.h4" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.Psychology" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.inventorySeed", "Genera Inventario Test")
+        </MudText>
+        
+        <MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
+            Questa funzione genera automaticamente un documento di inventario con una riga per ogni prodotto attivo del tenant.
+            Utile per test e per inizializzare rapidamente un inventario completo.
+        </MudText>
+
+        <MudDivider Class="mb-6" />
+
+        @if (!_isProcessing)
+        {
+            <MudGrid>
+                <!-- Mode Selection -->
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mb-2">Modalità di Quantità</MudText>
+                    <MudRadioGroup @bind-Value="_request.Mode">
+                        <MudRadio Value="@("fixed")" Color="Color.Primary">
+                            <strong>Fissa</strong> - Usa la stessa quantità per tutti i prodotti
+                        </MudRadio>
+                        <MudRadio Value="@("random")" Color="Color.Primary">
+                            <strong>Casuale</strong> - Genera quantità casuali nell'intervallo specificato
+                        </MudRadio>
+                        <MudRadio Value="@("fromProduct")" Color="Color.Primary">
+                            <strong>Dal Prodotto</strong> - Usa il livello target, punto di riordino o stock di sicurezza del prodotto
+                        </MudRadio>
+                    </MudRadioGroup>
+                </MudItem>
+
+                <!-- Quantity Fields based on Mode -->
+                @if (_request.Mode == "fixed")
+                {
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_request.Quantity"
+                                         Label="Quantità Fissa"
+                                         Variant="Variant.Outlined"
+                                         Min="0"
+                                         Step="1"
+                                         HelperText="Quantità da usare per tutti i prodotti" />
+                    </MudItem>
+                }
+                else if (_request.Mode == "random")
+                {
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_request.MinQuantity"
+                                         Label="Quantità Minima"
+                                         Variant="Variant.Outlined"
+                                         Min="0"
+                                         Step="1"
+                                         HelperText="Limite inferiore per quantità casuali" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_request.MaxQuantity"
+                                         Label="Quantità Massima"
+                                         Variant="Variant.Outlined"
+                                         Min="0"
+                                         Step="1"
+                                         HelperText="Limite superiore per quantità casuali" />
+                    </MudItem>
+                }
+                else if (_request.Mode == "fromProduct")
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Class="my-2">
+                            Verrà usato il <strong>Livello Target Stock</strong> del prodotto se disponibile, 
+                            altrimenti il <strong>Punto di Riordino</strong>, poi lo <strong>Stock di Sicurezza</strong>.
+                            Se nessuno è impostato, verrà usata una quantità di default.
+                        </MudAlert>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_request.Quantity"
+                                         Label="Quantità Fallback"
+                                         Variant="Variant.Outlined"
+                                         Min="0"
+                                         Step="1"
+                                         HelperText="Quantità da usare se il prodotto non ha valori impostati" />
+                    </MudItem>
+                }
+
+                <!-- Location Selection -->
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_request.LocationId"
+                               Label="Ubicazione (opzionale)"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               HelperText="Se non specificata, verrà usata la prima ubicazione disponibile">
+                        <MudSelectItem Value="@((Guid?)null)">-- Auto (prima disponibile) --</MudSelectItem>
+                        @foreach (var location in _locations)
+                        {
+                            <MudSelectItem Value="@((Guid?)location.Id)">@location.Code - @location.Description</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <!-- Document Options -->
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_request.CreateDocument" Color="Color.Primary">
+                        Crea Documento di Inventario
+                    </MudCheckBox>
+                </MudItem>
+
+                @if (_request.CreateDocument)
+                {
+                    <MudItem xs="12" md="8">
+                        <MudTextField @bind-Value="_request.DocumentName"
+                                      Label="Nome Documento"
+                                      Variant="Variant.Outlined"
+                                      HelperText="Nome descrittivo per il documento di inventario" />
+                    </MudItem>
+                }
+
+                <!-- Batch Size -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_request.BatchSize"
+                                     Label="Dimensione Batch"
+                                     Variant="Variant.Outlined"
+                                     Min="1"
+                                     Max="1000"
+                                     Step="50"
+                                     HelperText="Numero di prodotti elaborati per batch (1-1000)" />
+                </MudItem>
+
+                <!-- Actions -->
+                <MudItem xs="12" Class="mt-4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.PlayArrow"
+                               OnClick="StartSeedAsync"
+                               Disabled="@(!IsFormValid())">
+                        Avvia Generazione
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               Size="Size.Large"
+                               Class="ml-2"
+                               OnClick="Reset">
+                        Reset
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            <!-- Processing State -->
+            <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+                <MudText Typo="Typo.h6" Class="mt-4">Generazione in corso...</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Attendere mentre vengono elaborate le righe di inventario
+                </MudText>
+            </MudStack>
+        }
+
+        @if (_result != null)
+        {
+            <MudDivider Class="my-6" />
+            
+            <MudAlert Severity="@(_result.RowsCreated > 0 ? Severity.Success : Severity.Warning)" Class="mb-4">
+                <MudText Typo="Typo.h6" Class="mb-2">Risultato</MudText>
+                <MudText>@_result.Message</MudText>
+            </MudAlert>
+
+            <MudSimpleTable Dense="true" Bordered="true">
+                <tbody>
+                    <tr>
+                        <td><strong>Prodotti Trovati:</strong></td>
+                        <td>@_result.ProductsFound</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Righe Create:</strong></td>
+                        <td>@_result.RowsCreated</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Durata:</strong></td>
+                        <td>@_result.DurationMs ms</td>
+                    </tr>
+                    @if (_result.DocumentId.HasValue)
+                    {
+                        <tr>
+                            <td><strong>Documento:</strong></td>
+                            <td>
+                                <MudLink Href="@($"/warehouse/inventory-procedure?documentId={_result.DocumentId.Value}")"
+                                         Color="Color.Primary">
+                                    Apri Documento @_result.DocumentId.Value
+                                </MudLink>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private InventorySeedRequestDto _request = new()
+    {
+        Mode = "fixed",
+        Quantity = 10,
+        MinQuantity = 1,
+        MaxQuantity = 100,
+        CreateDocument = true,
+        DocumentName = $"Inventario Seed - {DateTime.Now:yyyy-MM-dd}",
+        BatchSize = 500
+    };
+
+    private InventorySeedResultDto? _result = null;
+    private bool _isProcessing = false;
+    private List<StorageLocationDto> _locations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadLocationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading locations");
+            Snackbar.Add("Errore nel caricamento delle ubicazioni", Severity.Error);
+        }
+    }
+
+    private async Task LoadLocationsAsync()
+    {
+        try
+        {
+            var response = await HttpClient.GetAsync("/api/v1/warehouse/locations?page=1&pageSize=100");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<PagedResult<StorageLocationDto>>();
+                _locations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load locations");
+        }
+    }
+
+    private bool IsFormValid()
+    {
+        if (string.IsNullOrWhiteSpace(_request.Mode))
+            return false;
+
+        if (_request.Mode == "fixed" && (!_request.Quantity.HasValue || _request.Quantity.Value < 0))
+            return false;
+
+        if (_request.Mode == "random")
+        {
+            if (!_request.MinQuantity.HasValue || !_request.MaxQuantity.HasValue)
+                return false;
+            if (_request.MinQuantity.Value > _request.MaxQuantity.Value)
+                return false;
+        }
+
+        if (_request.BatchSize < 1 || _request.BatchSize > 1000)
+            return false;
+
+        return true;
+    }
+
+    private async Task StartSeedAsync()
+    {
+        if (!IsFormValid())
+        {
+            Snackbar.Add("Verifica i parametri inseriti", Severity.Warning);
+            return;
+        }
+
+        _isProcessing = true;
+        _result = null;
+
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync("/api/v1/warehouse/inventory/document/seed-all", _request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                _result = await response.Content.ReadFromJsonAsync<InventorySeedResultDto>();
+                
+                if (_result?.RowsCreated > 0)
+                {
+                    Snackbar.Add($"Generazione completata con successo! Create {_result.RowsCreated} righe.", Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(_result?.Message ?? "Nessuna riga creata", Severity.Warning);
+                }
+            }
+            else
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                Logger.LogError("Seed failed: {StatusCode} - {Error}", response.StatusCode, errorMessage);
+                Snackbar.Add($"Errore: {response.StatusCode}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during inventory seed");
+            Snackbar.Add($"Errore durante la generazione: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _request = new()
+        {
+            Mode = "fixed",
+            Quantity = 10,
+            MinQuantity = 1,
+            MaxQuantity = 100,
+            CreateDocument = true,
+            DocumentName = $"Inventario Seed - {DateTime.Now:yyyy-MM-dd}",
+            BatchSize = 500
+        };
+        _result = null;
+    }
+}
