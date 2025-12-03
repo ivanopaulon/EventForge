@@ -11,6 +11,8 @@
 </MudButton>
 
 @code {
+    private const string ApiEndpoint = "/api/devtools/generate-test-products";
+    
     [Parameter] public int Count { get; set; } = 10;
     [Parameter] public EventCallback<bool> OnGenerateCompleted { get; set; }
 
@@ -19,9 +21,11 @@
     private async Task HandleClick()
     {
         _isGenerating = true;
+        StateHasChanged();
+        
         try
         {
-            var resp = await Http.PostAsJsonAsync("/api/devtools/generate-test-products", new { count = Count });
+            var resp = await Http.PostAsJsonAsync(ApiEndpoint, new { count = Count });
             if (resp.IsSuccessStatusCode)
             {
                 await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.generationStarted", "Generazione avviata"));
@@ -29,8 +33,11 @@
             }
             else
             {
-                var txt = await resp.Content.ReadAsStringAsync();
-                await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.generationError", "Errore generazione: {0}", txt));
+                var errorMessage = await resp.Content.ReadAsStringAsync();
+                var displayMessage = string.IsNullOrWhiteSpace(errorMessage) 
+                    ? TranslationService.GetTranslation("devtools.unknownError", "Errore sconosciuto") 
+                    : errorMessage;
+                await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.generationError", "Errore generazione: {0}", displayMessage));
                 await OnGenerateCompleted.InvokeAsync(false);
             }
         }
@@ -42,6 +49,7 @@
         finally
         {
             _isGenerating = false;
+            StateHasChanged();
         }
     }
 }
