@@ -34,6 +34,7 @@ namespace EventForge.DTOs.Products
         /// <summary>
         /// Product code (SKU or similar).
         /// </summary>
+        [MaxLength(50, ErrorMessage = "The product code cannot exceed 50 characters.")]
         [Display(Name = "Code", Description = "Product code (SKU or similar).")]
         public string Code { get; set; } = string.Empty;
 

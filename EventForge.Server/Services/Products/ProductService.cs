@@ -198,7 +198,7 @@ public class ProductService : IProductService
                         IsVatIncluded = createProductDto.IsVatIncluded,
                         DefaultPrice = createProductDto.DefaultPrice,
                         VatRateId = createProductDto.VatRateId,
-                        UnitOfMeasureId = createProductDto.CategoryNodeId,
+                        UnitOfMeasureId = createProductDto.UnitOfMeasureId,
                         CategoryNodeId = createProductDto.CategoryNodeId,
                         FamilyNodeId = createProductDto.FamilyNodeId,
                         GroupNodeId = createProductDto.GroupNodeId,
@@ -703,6 +703,13 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(createProductCodeDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            // Validate tenant context
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             // Check if product exists
             if (!await ProductExistsAsync(createProductCodeDto.ProductId, cancellationToken))
             {
@@ -711,6 +718,7 @@ public class ProductService : IProductService
 
             var productCode = new ProductCode
             {
+                TenantId = currentTenantId.Value,
                 ProductId = createProductCodeDto.ProductId,
                 ProductUnitId = createProductCodeDto.ProductUnitId,
                 CodeType = createProductCodeDto.CodeType,
@@ -895,6 +903,13 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(createProductUnitDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            // Validate tenant context
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             // Check if product exists
             if (!await ProductExistsAsync(createProductUnitDto.ProductId, cancellationToken))
             {
@@ -903,11 +918,13 @@ public class ProductService : IProductService
 
             var productUnit = new ProductUnit
             {
+                TenantId = currentTenantId.Value,
                 ProductId = createProductUnitDto.ProductId,
                 UnitOfMeasureId = createProductUnitDto.UnitOfMeasureId,
                 ConversionFactor = createProductUnitDto.ConversionFactor,
                 UnitType = createProductUnitDto.UnitType,
                 Description = createProductUnitDto.Description,
+                Status = EventForge.Server.Data.Entities.Products.ProductUnitStatus.Active,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
