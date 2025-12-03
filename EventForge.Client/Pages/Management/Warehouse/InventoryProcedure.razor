@@ -63,6 +63,19 @@
                     </MudText>
                 </div>
                 <MudStack Row="true" Spacing="2">
+                    <MudTooltip Text="@TranslationService.GetTranslation("warehouse.simulateInventoryTooltip", "Inserisce automaticamente una riga per ogni prodotto del database")">
+                        <MudButton StartIcon="@Icons.Material.Outlined.Science" 
+                                   Color="Color.Warning" 
+                                   Variant="Variant.Outlined"
+                                   OnClick="@SimulateInventory"
+                                   Disabled="@_isSimulating">
+                            @if (_isSimulating)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            }
+                            @TranslationService.GetTranslation("warehouse.simulateInventory", "Simula Inventario")
+                        </MudButton>
+                    </MudTooltip>
                     <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeTooltip", "Applica tutti gli aggiustamenti e chiudi la sessione")">
                         <MudButton StartIcon="@Icons.Material.Outlined.PlaylistAddCheck" 
                                    Color="Color.Success" 
@@ -83,6 +96,19 @@
                 </MudStack>
             </MudStack>
         </MudAlert>
+        
+        @if (_isSimulating)
+        {
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudProgressLinear Value="@((_simulationTotal > 0) ? ((double)_simulationProgress / _simulationTotal * 100) : 0)" 
+                                   Color="Color.Warning" 
+                                   Size="Size.Medium" 
+                                   Class="mb-2" />
+                <MudText Typo="Typo.caption">
+                    @TranslationService.GetTranslation("warehouse.simulationProgress", "Elaborazione prodotti: {0}/{1}", _simulationProgress, _simulationTotal)
+                </MudText>
+            </MudPaper>
+        }
     }
 
     <!-- Storage Facility Selection -->
@@ -352,6 +378,9 @@
     // Limit for _barcodeAssignments to prevent memory leaks
     private const int MaxBarcodeAssignments = 200;
     
+    // Simulation UI update frequency (every N products)
+    private const int SimulationUiUpdateFrequency = 10;
+    
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _inventoryRowColumns = new()
     {
@@ -383,6 +412,11 @@
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private bool _showOnlyAdjustments = false;
     private List<BarcodeAssignmentInfo> _barcodeAssignments = new();
+    
+    // Simulation state variables
+    private bool _isSimulating = false;
+    private int _simulationProgress = 0;
+    private int _simulationTotal = 0;
     
     // Timer for session keepalive and token validity check
     private System.Threading.Timer? _sessionKeepAliveTimer;
@@ -1208,6 +1242,149 @@
         _currentDocument = null;
         ClearProductForm();
         Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"), Severity.Info);
+    }
+
+    private async Task SimulateInventory()
+    {
+        if (_currentDocument == null)
+            return;
+
+        // Conferma dall'utente
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("warehouse.confirmSimulation", "Conferma Simulazione"),
+            TranslationService.GetTranslation("warehouse.simulationWarning", 
+                "Questa operazione inserirà una riga per ogni prodotto attivo nel documento di inventario corrente. L'operazione potrebbe richiedere alcuni minuti. Continuare?"),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            cancelText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed != true)
+            return;
+
+        _isSimulating = true;
+        _simulationProgress = 0;
+        StateHasChanged();
+
+        try
+        {
+            // Recupera tutti i prodotti attivi
+            var allProducts = new List<ProductDto>();
+            int page = 1;
+            const int pageSize = 100;
+            bool hasMore = true;
+
+            while (hasMore)
+            {
+                var result = await ProductService.GetProductsAsync(page, pageSize);
+                if (result?.Items != null && result.Items.Any())
+                {
+                    allProducts.AddRange(result.Items.Where(p => p.Status == ProductStatus.Active));
+                    hasMore = result.Items.Count() == pageSize;
+                    page++;
+                }
+                else
+                {
+                    hasMore = false;
+                }
+            }
+
+            _simulationTotal = allProducts.Count;
+
+            if (_simulationTotal == 0)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.noProductsFound", "Nessun prodotto attivo trovato"), Severity.Warning);
+                return;
+            }
+
+            // Prendi la prima ubicazione disponibile (o quella selezionata)
+            var locationId = _locations.FirstOrDefault()?.Id ?? Guid.Empty;
+            if (locationId == Guid.Empty)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.noLocationFound", "Nessuna ubicazione disponibile"), Severity.Error);
+                return;
+            }
+
+            int successCount = 0;
+            int errorCount = 0;
+
+            // Inserisci una riga per ogni prodotto
+            foreach (var product in allProducts)
+            {
+                try
+                {
+                    // Genera una quantità casuale o fissa (es. basata su TargetStockLevel se disponibile)
+                    decimal quantity = product.TargetStockLevel ?? product.ReorderPoint ?? product.SafetyStock ?? 10m;
+
+                    var rowDto = new AddInventoryDocumentRowDto
+                    {
+                        ProductId = product.Id,
+                        LocationId = locationId,
+                        Quantity = quantity,
+                        Notes = TranslationService.GetTranslation("warehouse.automaticSimulation", "Simulazione automatica")
+                    };
+
+                    var updatedDocument = await InventoryService.AddInventoryDocumentRowAsync(_currentDocument.Id, rowDto);
+                    if (updatedDocument != null)
+                    {
+                        _currentDocument = updatedDocument;
+                        successCount++;
+                    }
+                    else
+                    {
+                        errorCount++;
+                    }
+
+                    _simulationProgress++;
+                    
+                    // Aggiorna UI ogni N prodotti per non bloccare il rendering
+                    if (_simulationProgress % SimulationUiUpdateFrequency == 0)
+                    {
+                        StateHasChanged();
+                        await Task.Delay(1); // Permette al browser di aggiornare
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error adding simulation row for product {ProductId}", product.Id);
+                    errorCount++;
+                    _simulationProgress++;
+                }
+            }
+
+            // Messaggio finale
+            if (errorCount == 0)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.simulationComplete", 
+                        "Simulazione completata! Aggiunte {0} righe al documento.", successCount),
+                    Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.simulationPartial", 
+                        "Simulazione completata con errori. Aggiunte {0} righe, {1} errori.", successCount, errorCount),
+                    Severity.Warning);
+            }
+
+            AddOperationLog(
+                TranslationService.GetTranslation("warehouse.simulationCompleted", "Simulazione inventario completata"),
+                $"Prodotti elaborati: {_simulationTotal}, Successi: {successCount}, Errori: {errorCount}",
+                errorCount == 0 ? "Success" : "Warning"
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during inventory simulation");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.simulationError", "Errore durante la simulazione"), Severity.Error);
+        }
+        finally
+        {
+            _isSimulating = false;
+            _simulationProgress = 0;
+            _simulationTotal = 0;
+            StateHasChanged();
+        }
     }
 
     private async Task ShowProductNotFoundDialog()
