@@ -248,9 +248,17 @@
         }
     </NoRecordsContent>
     <PagerContent>
-        @if (ShowInternalPager && PagerContent != null)
+        @if (ShowInternalPager)
         {
-            @PagerContent
+            @if (PagerContent != null)
+            {
+                @PagerContent
+            }
+            else
+            {
+                <MudTablePager RowsPerPageString="@TranslationService.GetTranslation("table.rowsPerPage", "Righe per pagina:")" 
+                               PageSizeOptions="@PageSizeOptions" />
+            }
         }
     </PagerContent>
     <FooterContent>
@@ -329,6 +337,7 @@
     // Pagination control parameters
     [Parameter] public int RowsPerPage { get; set; } = int.MaxValue;
     [Parameter] public int[] PageSizeOptions { get; set; } = new[] { 10, 25, 50, 100 };
+    [Parameter] public int TotalItems { get; set; } = 0;
     
     // Footer parameters
     [Parameter] public bool ShowFooter { get; set; } = true;
@@ -348,6 +357,10 @@
     [Parameter] public List<string> GroupByProperties { get; set; } = new();
     [Parameter] public bool AllowDragDropGrouping { get; set; } = true;
 
+    // Table reference for external access
+    [Parameter] public MudTable<TItem>? TableReference { get; set; }
+    [Parameter] public EventCallback<MudTable<TItem>?> TableReferenceChanged { get; set; }
+
     // Public property to expose current column configurations
     public List<EFTableColumnConfiguration> ColumnConfigurations => _columnConfigurations;
 
@@ -357,6 +370,7 @@
     private List<string> _groupByProperties = new();
     private Dictionary<int, object?> _lastGroupValues = new();
     private string? _draggedColumnProperty;
+    private MudTable<TItem>? _lastTableRef;
     
     // Search state
     private string _searchTerm = string.Empty;
@@ -376,6 +390,16 @@
 
         // Load preferences
         await LoadPreferencesAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Update TableReference binding only when _tableRef actually changes
+        if (_tableRef != null && TableReferenceChanged.HasDelegate && _tableRef != _lastTableRef)
+        {
+            _lastTableRef = _tableRef;
+            await TableReferenceChanged.InvokeAsync(_tableRef);
+        }
     }
 
     protected override void OnParametersSet()
@@ -657,10 +681,19 @@
 
     private int GetTotalCount()
     {
+        // For server-side data, use TotalItems if it has been explicitly set
+        // We check against default value (0) and presence of ServerData to determine if TotalItems was intentionally set
+        if (ServerData != null && TotalItems >= 0)
+        {
+            return TotalItems;
+        }
+        
+        // For client-side data, count Items
         if (Items != null)
         {
             return Items.Count();
         }
+        
         return 0;
     }
 

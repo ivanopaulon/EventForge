@@ -125,6 +125,7 @@
 |-----------|------|---------|-------------|
 | `Items` | `IEnumerable<TItem>?` | `null` | Client-side data collection |
 | `ServerData` | `Func<TableState, CancellationToken, Task<TableData<TItem>>>?` | `null` | Server-side data provider function |
+| `TotalItems` | `int` | `0` | Total number of items for server-side data (used in footer count) |
 
 ### Selection Parameters
 | Parameter | Type | Default | Description |
@@ -185,7 +186,9 @@
 | `RowsPerPage` | `int` | `int.MaxValue` | Number of rows per page (MaxValue = no pagination) |
 | `PageSizeOptions` | `int[]` | `[10, 25, 50, 100]` | Available page size options in pager |
 | `ShowInternalPager` | `bool` | `false` | Show built-in pager |
-| `PagerContent` | `RenderFragment?` | `null` | Custom pagination content |
+| `PagerContent` | `RenderFragment?` | `null` | Custom pagination content (if null, automatic pager is created) |
+| `TableReference` | `MudTable<TItem>?` | `null` | Output binding to access internal table reference (use `@bind-TableReference`) |
+| `TableReferenceChanged` | `EventCallback<MudTable<TItem>?>` | - | Event fired when table reference changes |
 
 ### Column Configuration Parameters
 | Parameter | Type | Default | Description |
@@ -303,11 +306,18 @@ public class EFTableActionEventArgs
 ```razor
 <EFTable TItem="ProductDto"
          ServerData="@LoadServerData"
-         Title="Products (Server-Side)">
+         TotalItems="@_totalItems"
+         @bind-TableReference="_tableRef"
+         Title="Products (Server-Side)"
+         ShowInternalPager="true"
+         RowsPerPage="25">
     <!-- ... -->
 </EFTable>
 
 @code {
+    private int _totalItems;
+    private MudTable<ProductDto>? _tableRef;
+
     private async Task<TableData<ProductDto>> LoadServerData(TableState state, CancellationToken cancellationToken)
     {
         var data = await ProductService.GetProductsAsync(
@@ -318,11 +328,22 @@ public class EFTableActionEventArgs
             cancellationToken: cancellationToken
         );
 
+        _totalItems = data.TotalCount; // Update total items for footer and pagination
+
         return new TableData<ProductDto>
         {
             TotalItems = data.TotalCount,
             Items = data.Items
         };
+    }
+
+    // Use table reference to reload data externally
+    private async Task RefreshData()
+    {
+        if (_tableRef != null)
+        {
+            await _tableRef.ReloadServerData();
+        }
     }
 }
 ```
@@ -362,9 +383,26 @@ public class EFTableActionEventArgs
 ### With Pagination
 
 ```razor
+<!-- Automatic pager (recommended) -->
 <EFTable TItem="ProductDto"
          Items="@_products"
          Title="Products with Pagination"
+         RowsPerPage="25"
+         ShowInternalPager="true">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Price</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.Price.ToString("C2")</MudTd>
+    </RowTemplate>
+</EFTable>
+
+<!-- Custom pager (for advanced scenarios) -->
+<EFTable TItem="ProductDto"
+         Items="@_products"
+         Title="Products with Custom Pager"
          RowsPerPage="25"
          ShowInternalPager="true">
     <HeaderContent>
@@ -402,17 +440,15 @@ public class EFTableActionEventArgs
         <MudTd>@context.Name</MudTd>
         <MudTd>@context.Price.ToString("C2")</MudTd>
     </RowTemplate>
-    <PagerContent>
-        <MudTablePager PageSizeOptions="@(new[] { 25, 50, 100, 250 })" />
-    </PagerContent>
 </EFTable>
 ```
 
 **Note:** 
 - By default, EFTable shows all rows (no pagination)
 - Set `RowsPerPage` to enable pagination
-- Use `PagerContent` with `MudTablePager` for standard pager UI
 - Set `ShowInternalPager="true"` to display the pager
+- Automatic pager is created with `PageSizeOptions` if `PagerContent` is not specified
+- Custom pager can be provided via `PagerContent` for advanced scenarios
 
 ### Custom Toolbar
 
@@ -588,7 +624,13 @@ dotnet test --filter "FullyQualifiedName~EFTableTests"
 ### Table shows only 10 rows
 - Check if `RowsPerPage` is set to a specific value
 - Default is `int.MaxValue` (shows all rows)
-- Set `ShowInternalPager="true"` and add `<PagerContent><MudTablePager /></PagerContent>` if you want pagination
+- Set `ShowInternalPager="true"` to enable pagination (automatic pager will be created)
+- Optionally specify custom `PagerContent` for advanced scenarios
+
+### Total count is incorrect for server-side data
+- Set the `TotalItems` parameter to the total number of items from your server response
+- Update `TotalItems` in your `ServerData` function whenever data is loaded
+- The footer will display the correct total count based on `TotalItems`
 
 ## Migration from Legacy Tables
 
