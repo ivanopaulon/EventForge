@@ -1,5 +1,5 @@
 @inject HttpClient Http
-@inject IJSRuntime Js
+@inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 
 <MudButton Variant="Variant.Filled"
@@ -28,7 +28,7 @@
             var resp = await Http.PostAsJsonAsync(ApiEndpoint, new { count = Count });
             if (resp.IsSuccessStatusCode)
             {
-                await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.generationStarted", "Generazione avviata"));
+                Snackbar.Add(TranslationService.GetTranslation("devtools.generationStarted", "Generazione avviata"), Severity.Success);
                 await OnGenerateCompleted.InvokeAsync(true);
             }
             else
@@ -37,13 +37,13 @@
                 var displayMessage = string.IsNullOrWhiteSpace(errorMessage) 
                     ? TranslationService.GetTranslation("devtools.unknownError", "Errore sconosciuto") 
                     : errorMessage;
-                await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.generationError", "Errore generazione: {0}", displayMessage));
+                Snackbar.Add(TranslationService.GetTranslation("devtools.generationError", "Errore generazione: {0}", displayMessage), Severity.Error);
                 await OnGenerateCompleted.InvokeAsync(false);
             }
         }
         catch (Exception ex)
         {
-            await Js.InvokeVoidAsync("alert", TranslationService.GetTranslation("devtools.error", "Errore: {0}", ex.Message));
+            Snackbar.Add(TranslationService.GetTranslation("devtools.error", "Errore: {0}", ex.Message), Severity.Error);
             await OnGenerateCompleted.InvokeAsync(false);
         }
         finally
