@@ -55,7 +55,7 @@
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
                               Class="ef-input" />
-                <GenerateProductsButton />
+                <EventForge.Client.Shared.Components.ProductManagement.DevToolsButton Count="10" OnGenerateCompleted="@OnGenerateCompleted" />
                 <ManagementTableToolbar ShowSelectionBadge="true"
                                         SelectedCount="@_selectedProducts.Count"
                                         ShowRefresh="true"
@@ -546,6 +546,15 @@
         {
             // Reload the page after successful login
             await OnInitializedAsync();
+        }
+    }
+
+    private async Task OnGenerateCompleted(bool success)
+    {
+        if (success)
+        {
+            // Reload products after successful generation
+            await LoadProductsAsync();
         }
     }
 }

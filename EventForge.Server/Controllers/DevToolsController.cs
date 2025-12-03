@@ -173,6 +173,56 @@ public class DevToolsController : BaseApiController
     }
 
     /// <summary>
+    /// Endpoint semplificato per la generazione di prodotti di test.
+    /// Sempre visibile, richiede autenticazione Admin/SuperAdmin.
+    /// </summary>
+    /// <param name="request">Payload con count</param>
+    /// <param name="cancellationToken">Token di cancellazione</param>
+    /// <returns>Risposta con informazioni sul job avviato</returns>
+    [HttpPost("/api/devtools/generate-test-products")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GenerateTestProducts(
+        [FromBody] GenerateTestProductsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!User?.Identity?.IsAuthenticated ?? true)
+        {
+            return Unauthorized();
+        }
+
+        // Valida il tenant
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        var tenantId = _tenantContext.CurrentTenantId!.Value;
+        var userId = _tenantContext.CurrentUserId!.Value;
+
+        try
+        {
+            // Se esiste il servizio IProductGeneratorService, lo usa
+            var fullRequest = new GenerateProductsRequestDto
+            {
+                Count = request.Count,
+                BatchSize = 100 // Default batch size
+            };
+
+            var jobId = await _productGeneratorService.StartGenerationJobAsync(fullRequest, tenantId, userId, cancellationToken);
+
+            _logger.LogInformation("Job di generazione prodotti di test avviato. JobId: {JobId}, Count: {Count}, TenantId: {TenantId}, UserId: {UserId}",
+                jobId, request.Count, tenantId, userId);
+
+            return Accepted(new { started = true, jobId, count = request.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nell'avvio del job di generazione prodotti di test");
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Verifica se i devtools sono abilitati.
     /// I devtools sono abilitati se:
     /// - DEVTOOLS_ENABLED è impostato a "true" nelle variabili d'ambiente
@@ -186,4 +236,12 @@ public class DevToolsController : BaseApiController
         return devToolsEnabled?.Equals("true", StringComparison.OrdinalIgnoreCase) == true ||
                environment?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true;
     }
+}
+
+/// <summary>
+/// Request per la generazione semplificata di prodotti di test
+/// </summary>
+public class GenerateTestProductsRequest
+{
+    public int Count { get; set; }
 }
