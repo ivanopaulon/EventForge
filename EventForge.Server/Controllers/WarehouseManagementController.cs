@@ -31,6 +31,7 @@ public class WarehouseManagementController : BaseApiController
     private readonly IStockMovementService _stockMovementService;
     private readonly IDocumentHeaderService _documentHeaderService;
     private readonly IProductService _productService;
+    private readonly IInventoryBulkSeedService _inventoryBulkSeedService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<WarehouseManagementController> _logger;
     private readonly EventForgeDbContext _context;
@@ -44,6 +45,7 @@ public class WarehouseManagementController : BaseApiController
         IStockMovementService stockMovementService,
         IDocumentHeaderService documentHeaderService,
         IProductService productService,
+        IInventoryBulkSeedService inventoryBulkSeedService,
         ITenantContext tenantContext,
         ILogger<WarehouseManagementController> logger,
         EventForgeDbContext context)
@@ -56,6 +58,7 @@ public class WarehouseManagementController : BaseApiController
         _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
         _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _inventoryBulkSeedService = inventoryBulkSeedService ?? throw new ArgumentNullException(nameof(inventoryBulkSeedService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -2292,6 +2295,58 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while finalizing inventory document {DocumentId}.", documentId);
             return CreateInternalServerErrorProblem("An error occurred while finalizing inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Seeds an inventory document with rows for all active products in the tenant.
+    /// Creates a test inventory document with one row per product.
+    /// </summary>
+    /// <param name="request">Seed request parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Seed operation result</returns>
+    /// <response code="200">Returns the seed operation result</response>
+    /// <response code="400">If the request parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/document/seed-all")]
+    [ProducesResponseType(typeof(InventorySeedResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SeedInventoryDocument(
+        [FromBody] InventorySeedRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _inventoryBulkSeedService.SeedInventoryAsync(
+                request,
+                GetCurrentUser(),
+                cancellationToken);
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error during inventory seed");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Operation error during inventory seed");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while seeding inventory document.");
+            return CreateInternalServerErrorProblem("An error occurred while seeding inventory document.", ex);
         }
     }
 
