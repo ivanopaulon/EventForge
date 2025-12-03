@@ -102,12 +102,25 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateProductDto, ProductDto>(BaseUrl, createDto);
+            _logger.LogInformation("Creating product with name: {Name}, code: {Code}", createDto.Name, createDto.Code);
+            var result = await _httpClientService.PostAsync<CreateProductDto, ProductDto>(BaseUrl, createDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product created successfully with ID: {ProductId}", result.Id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error creating product: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product");
-            return null;
+            _logger.LogError(ex, "Unexpected error creating product");
+            throw;
         }
     }
 
@@ -115,14 +128,27 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
+            _logger.LogInformation("Creating product with codes and units: {Name}", createDto.Name);
+            var result = await _httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
                 $"{BaseUrl}/create-with-codes-units",
                 createDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product with codes and units created successfully with ID: {ProductId}", result.Id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error creating product with codes and units: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product with codes and units");
-            return null;
+            _logger.LogError(ex, "Unexpected error creating product with codes and units");
+            throw;
         }
     }
 
@@ -130,12 +156,25 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto);
+            _logger.LogInformation("Updating product {ProductId} with name: {Name}", id, updateDto.Name);
+            var result = await _httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product {ProductId} updated successfully", id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error updating product {ProductId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating product {Id}", id);
-            return null;
+            _logger.LogError(ex, "Unexpected error updating product {ProductId}", id);
+            throw;
         }
     }
 
@@ -143,13 +182,20 @@ public class ProductService : IProductService
     {
         try
         {
+            _logger.LogInformation("Deleting product {ProductId}", id);
             await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            _logger.LogInformation("Product {ProductId} deleted successfully", id);
             return true;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error deleting product {ProductId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting product {Id}", id);
-            return false;
+            _logger.LogError(ex, "Unexpected error deleting product {ProductId}", id);
+            throw;
         }
     }
 
@@ -303,12 +349,25 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateProductSupplierDto, ProductSupplierDto>("api/v1/product-management/product-suppliers", createDto);
+            _logger.LogInformation("Creating product supplier for product {ProductId}", createDto.ProductId);
+            var result = await _httpClientService.PostAsync<CreateProductSupplierDto, ProductSupplierDto>("api/v1/product-management/product-suppliers", createDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product supplier created successfully with ID: {ProductSupplierId}", result.Id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error creating product supplier: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product supplier");
-            return null;
+            _logger.LogError(ex, "Unexpected error creating product supplier");
+            throw;
         }
     }
 
@@ -316,12 +375,25 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateProductSupplierDto, ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", updateDto);
+            _logger.LogInformation("Updating product supplier {ProductSupplierId}", id);
+            var result = await _httpClientService.PutAsync<UpdateProductSupplierDto, ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", updateDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product supplier {ProductSupplierId} updated successfully", id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error updating product supplier {ProductSupplierId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating product supplier {Id}", id);
-            return null;
+            _logger.LogError(ex, "Unexpected error updating product supplier {ProductSupplierId}", id);
+            throw;
         }
     }
 
@@ -329,13 +401,20 @@ public class ProductService : IProductService
     {
         try
         {
+            _logger.LogInformation("Deleting product supplier {ProductSupplierId}", id);
             await _httpClientService.DeleteAsync($"api/v1/product-management/product-suppliers/{id}");
+            _logger.LogInformation("Product supplier {ProductSupplierId} deleted successfully", id);
             return true;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error deleting product supplier {ProductSupplierId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting product supplier {Id}", id);
-            return false;
+            _logger.LogError(ex, "Unexpected error deleting product supplier {ProductSupplierId}", id);
+            throw;
         }
     }
 
@@ -416,12 +495,25 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
+            _logger.LogInformation("Creating product code for product {ProductId}", createDto.ProductId);
+            var result = await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product code created successfully with ID: {ProductCodeId}", result.Id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error creating product code: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product code");
-            return null;
+            _logger.LogError(ex, "Unexpected error creating product code");
+            throw;
         }
     }
 
@@ -429,12 +521,25 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateProductCodeDto, ProductCodeDto>($"api/v1/product-management/product-codes/{id}", updateDto);
+            _logger.LogInformation("Updating product code {ProductCodeId}", id);
+            var result = await _httpClientService.PutAsync<UpdateProductCodeDto, ProductCodeDto>($"api/v1/product-management/product-codes/{id}", updateDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product code {ProductCodeId} updated successfully", id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error updating product code {ProductCodeId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating product code {Id}", id);
-            return null;
+            _logger.LogError(ex, "Unexpected error updating product code {ProductCodeId}", id);
+            throw;
         }
     }
 
@@ -442,13 +547,20 @@ public class ProductService : IProductService
     {
         try
         {
+            _logger.LogInformation("Deleting product code {ProductCodeId}", id);
             await _httpClientService.DeleteAsync($"api/v1/product-management/product-codes/{id}");
+            _logger.LogInformation("Product code {ProductCodeId} deleted successfully", id);
             return true;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error deleting product code {ProductCodeId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting product code {Id}", id);
-            return false;
+            _logger.LogError(ex, "Unexpected error deleting product code {ProductCodeId}", id);
+            throw;
         }
     }
 
@@ -485,12 +597,25 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>($"{BaseUrl}/{createDto.ProductId}/units", createDto);
+            _logger.LogInformation("Creating product unit for product {ProductId}", createDto.ProductId);
+            var result = await _httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>($"{BaseUrl}/{createDto.ProductId}/units", createDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product unit created successfully with ID: {ProductUnitId}", result.Id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error creating product unit: {StatusCode}", ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product unit");
-            return null;
+            _logger.LogError(ex, "Unexpected error creating product unit");
+            throw;
         }
     }
 
@@ -498,12 +623,25 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/products/units/{id}", updateDto);
+            _logger.LogInformation("Updating product unit {ProductUnitId}", id);
+            var result = await _httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/products/units/{id}", updateDto);
+            
+            if (result != null)
+            {
+                _logger.LogInformation("Product unit {ProductUnitId} updated successfully", id);
+            }
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error updating product unit {ProductUnitId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating product unit {Id}", id);
-            return null;
+            _logger.LogError(ex, "Unexpected error updating product unit {ProductUnitId}", id);
+            throw;
         }
     }
 
@@ -511,13 +649,20 @@ public class ProductService : IProductService
     {
         try
         {
+            _logger.LogInformation("Deleting product unit {ProductUnitId}", id);
             await _httpClientService.DeleteAsync($"api/v1/product-management/products/units/{id}");
+            _logger.LogInformation("Product unit {ProductUnitId} deleted successfully", id);
             return true;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error deleting product unit {ProductUnitId}: {StatusCode}", id, ex.StatusCode?.ToString() ?? "Unknown");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting product unit {Id}", id);
-            return false;
+            _logger.LogError(ex, "Unexpected error deleting product unit {ProductUnitId}", id);
+            throw;
         }
     }
 

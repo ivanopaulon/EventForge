@@ -4,6 +4,9 @@ using EventForge.Server.Services.CodeGeneration;
 using EventForge.Server.Services.PriceHistory;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using EntityProductStatus = EventForge.Server.Data.Entities.Products.ProductStatus;
+using EntityProductCodeStatus = EventForge.Server.Data.Entities.Products.ProductCodeStatus;
+using EntityProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
 
 namespace EventForge.Server.Services.Products;
 
@@ -194,11 +197,11 @@ public class ProductService : IProductService
                         ImageUrl = createProductDto.ImageUrl,
 #pragma warning restore CS0618 // Type or member is obsolete
                         ImageDocumentId = createProductDto.ImageDocumentId,
-                        Status = (EventForge.Server.Data.Entities.Products.ProductStatus)createProductDto.Status,
+                        Status = (EntityProductStatus)createProductDto.Status,
                         IsVatIncluded = createProductDto.IsVatIncluded,
                         DefaultPrice = createProductDto.DefaultPrice,
                         VatRateId = createProductDto.VatRateId,
-                        UnitOfMeasureId = createProductDto.CategoryNodeId,
+                        UnitOfMeasureId = createProductDto.UnitOfMeasureId,
                         CategoryNodeId = createProductDto.CategoryNodeId,
                         FamilyNodeId = createProductDto.FamilyNodeId,
                         GroupNodeId = createProductDto.GroupNodeId,
@@ -287,7 +290,7 @@ public class ProductService : IProductService
                     ShortDescription = createDto.ShortDescription,
                     Description = createDto.Description,
                     Code = createDto.Code,
-                    Status = (EventForge.Server.Data.Entities.Products.ProductStatus)createDto.Status,
+                    Status = (EntityProductStatus)createDto.Status,
                     IsVatIncluded = createDto.IsVatIncluded,
                     DefaultPrice = createDto.DefaultPrice,
                     VatRateId = createDto.VatRateId,
@@ -340,7 +343,7 @@ public class ProductService : IProductService
                                 ConversionFactor = codeWithUnit.ConversionFactor,
                                 UnitType = codeWithUnit.UnitType,
                                 Description = codeWithUnit.UnitDescription,
-                                Status = EventForge.Server.Data.Entities.Products.ProductUnitStatus.Active,
+                                Status = EntityProductUnitStatus.Active,
                                 CreatedBy = currentUser,
                                 CreatedAt = DateTime.UtcNow
                             };
@@ -366,7 +369,7 @@ public class ProductService : IProductService
                         CodeType = codeWithUnit.CodeType,
                         Code = codeWithUnit.Code,
                         AlternativeDescription = codeWithUnit.AlternativeDescription,
-                        Status = EventForge.Server.Data.Entities.Products.ProductCodeStatus.Active,
+                        Status = EntityProductCodeStatus.Active,
                         CreatedBy = currentUser,
                         CreatedAt = DateTime.UtcNow
                     };
@@ -476,7 +479,7 @@ public class ProductService : IProductService
             product.ImageUrl = updateProductDto.ImageUrl;
 #pragma warning restore CS0618 // Type or member is obsolete
             product.ImageDocumentId = updateProductDto.ImageDocumentId;
-            product.Status = (EventForge.Server.Data.Entities.Products.ProductStatus)updateProductDto.Status;
+            product.Status = (EntityProductStatus)updateProductDto.Status;
             product.IsVatIncluded = updateProductDto.IsVatIncluded;
             product.DefaultPrice = updateProductDto.DefaultPrice;
             product.VatRateId = updateProductDto.VatRateId;
@@ -703,6 +706,13 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(createProductCodeDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            // Validate tenant context
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             // Check if product exists
             if (!await ProductExistsAsync(createProductCodeDto.ProductId, cancellationToken))
             {
@@ -711,12 +721,13 @@ public class ProductService : IProductService
 
             var productCode = new ProductCode
             {
+                TenantId = currentTenantId.Value,
                 ProductId = createProductCodeDto.ProductId,
                 ProductUnitId = createProductCodeDto.ProductUnitId,
                 CodeType = createProductCodeDto.CodeType,
                 Code = createProductCodeDto.Code,
                 AlternativeDescription = createProductCodeDto.AlternativeDescription,
-                Status = (EventForge.Server.Data.Entities.Products.ProductCodeStatus)createProductCodeDto.Status,
+                Status = (EntityProductCodeStatus)createProductCodeDto.Status,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -776,7 +787,7 @@ public class ProductService : IProductService
             productCode.CodeType = updateProductCodeDto.CodeType;
             productCode.Code = updateProductCodeDto.Code;
             productCode.AlternativeDescription = updateProductCodeDto.AlternativeDescription;
-            productCode.Status = (EventForge.Server.Data.Entities.Products.ProductCodeStatus)updateProductCodeDto.Status;
+            productCode.Status = (EntityProductCodeStatus)updateProductCodeDto.Status;
             productCode.ModifiedBy = currentUser;
             productCode.ModifiedAt = DateTime.UtcNow;
 
@@ -895,6 +906,13 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(createProductUnitDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            // Validate tenant context
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             // Check if product exists
             if (!await ProductExistsAsync(createProductUnitDto.ProductId, cancellationToken))
             {
@@ -903,11 +921,13 @@ public class ProductService : IProductService
 
             var productUnit = new ProductUnit
             {
+                TenantId = currentTenantId.Value,
                 ProductId = createProductUnitDto.ProductId,
                 UnitOfMeasureId = createProductUnitDto.UnitOfMeasureId,
                 ConversionFactor = createProductUnitDto.ConversionFactor,
                 UnitType = createProductUnitDto.UnitType,
                 Description = createProductUnitDto.Description,
+                Status = EntityProductUnitStatus.Active,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
