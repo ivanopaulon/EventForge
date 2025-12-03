@@ -102,6 +102,9 @@ builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IModelService, ModelService>();
 builder.Services.AddScoped<ILookupCacheService, LookupCacheService>();
 
+// Add DevTools services
+builder.Services.AddScoped<IDevToolsService, DevToolsService>();
+
 // Add ViewModels
 builder.Services.AddScoped<EventForge.Client.ViewModels.ProductDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.InventoryDetailViewModel>();
