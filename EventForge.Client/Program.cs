@@ -152,6 +152,10 @@ builder.Services.AddScoped<EventForge.Client.Services.Sales.IPaymentMethodServic
 builder.Services.AddScoped<EventForge.Client.Services.Sales.INoteFlagService, EventForge.Client.Services.Sales.NoteFlagService>();
 builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementService, EventForge.Client.Services.Sales.TableManagementService>();
 
+// Add Store management services
+builder.Services.AddScoped<EventForge.Client.Services.Store.IStoreUserService, EventForge.Client.Services.Store.StoreUserService>();
+builder.Services.AddScoped<EventForge.Client.Services.Store.IStorePosService, EventForge.Client.Services.Store.StorePosService>();
+
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddAuthorizationCore();

@@ -1,0 +1,125 @@
+@using EventForge.DTOs.Sales
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Restore" Class="mr-2" />
+            @TranslationService.GetTranslation("sales.resumeSession", "Riprendi Sessione")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+            @TranslationService.GetTranslation("sales.suspendedSessionsFound", "Sono state trovate {0} sessioni di vendita parcheggiate. Seleziona una sessione da riprendere o creane una nuova.", SuspendedSessions?.Count ?? 0)
+        </MudAlert>
+
+        @if (SuspendedSessions?.Any() == true)
+        {
+            <MudList T="string" Clickable="true" Dense="true">
+                @foreach (var session in SuspendedSessions)
+                {
+                    <MudListItem T="string" OnClick="@(() => SelectSession(session))" Class="mb-2">
+                        <MudPaper Elevation="1" Class="pa-3" Style="@(session == _selectedSession ? "border: 2px solid var(--mud-palette-primary);" : "")">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("sales.sessionNumber", "Sessione")
+                                    </MudText>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                                        #@session.Id.ToString().Substring(0, 8)
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("sales.operator", "Operatore")
+                                    </MudText>
+                                    <MudText Typo="Typo.body1">
+                                        @session.OperatorName
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("sales.pos", "POS")
+                                    </MudText>
+                                    <MudText Typo="Typo.body1">
+                                        @session.PosName
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("sales.items", "Articoli")
+                                    </MudText>
+                                    <MudText Typo="Typo.body1">
+                                        @session.Items.Count @TranslationService.GetTranslation("sales.items", "articoli")
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("sales.total", "Totale")
+                                    </MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">
+                                        @session.FinalTotal.ToString("C")
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("sales.suspendedAt", "Parcheggiata il")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @session.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                    </MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">
+                @TranslationService.GetTranslation("sales.noSuspendedSessions", "Nessuna sessione parcheggiata trovata")
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CreateNew" Color="Color.Secondary" Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("sales.createNewSession", "Nuova Sessione")
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Resume"
+                   Disabled="@(_selectedSession == null)">
+            @TranslationService.GetTranslation("sales.resumeSession", "Riprendi Sessione")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public List<SaleSessionDto>? SuspendedSessions { get; set; }
+
+    private SaleSessionDto? _selectedSession;
+
+    private void SelectSession(SaleSessionDto session)
+    {
+        _selectedSession = session;
+    }
+
+    private void Resume()
+    {
+        if (_selectedSession != null)
+        {
+            MudDialog?.Close(DialogResult.Ok(_selectedSession));
+        }
+    }
+
+    private void CreateNew()
+    {
+        MudDialog?.Close(DialogResult.Ok<SaleSessionDto>(null!));
+    }
+}

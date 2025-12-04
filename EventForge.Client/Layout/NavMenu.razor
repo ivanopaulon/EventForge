@@ -189,6 +189,20 @@
                 </MudNavGroup>
             </MudNavGroup>
         }
+
+        <!-- Sales Management -->
+        @if (_isSuperAdmin || _isAdmin || _isManager)
+        {
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.salesManagement", "Gestione Vendite")" 
+                         Icon="@Icons.Material.Outlined.PointOfSale" 
+                         Expanded="false">
+                <MudNavLink Href="/sales/pos" 
+                            Icon="@Icons.Material.Outlined.PointOfSale" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.pos", "Punto Vendita (POS)")
+                </MudNavLink>
+            </MudNavGroup>
+        }
         
         <!-- Common user links -->
         <MudNavLink Href="/profile" Icon="@Icons.Material.Outlined.Person" Match="NavLinkMatch.All">

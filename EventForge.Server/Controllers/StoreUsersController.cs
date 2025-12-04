@@ -98,6 +98,37 @@ public class StoreUsersController : BaseApiController
     }
 
     /// <summary>
+    /// Gets a store user by username.
+    /// </summary>
+    /// <param name="username">Username</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Store user details</returns>
+    /// <response code="200">Returns the store user</response>
+    /// <response code="404">If the store user is not found</response>
+    [HttpGet("by-username/{username}")]
+    [ProducesResponseType(typeof(StoreUserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StoreUserDto>> GetStoreUserByUsername(string username, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var storeUser = await _storeUserService.GetStoreUserByUsernameAsync(username, cancellationToken);
+
+            if (storeUser == null)
+            {
+                return CreateNotFoundProblem($"Store user with username {username} not found.");
+            }
+
+            return Ok(storeUser);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving store user with username {Username}", username);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the store user.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets store users by group.
     /// </summary>
     /// <param name="groupId">Group ID</param>
@@ -871,6 +902,182 @@ public class StoreUsersController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while deleting logo for store user group {GroupId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the logo.", ex);
+        }
+    }
+
+    #endregion
+
+    #region StorePos Endpoints
+
+    /// <summary>
+    /// Gets all store POS terminals with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of store POS terminals</returns>
+    /// <response code="200">Returns the paginated list of store POS terminals</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("pos")]
+    [ProducesResponseType(typeof(PagedResult<StorePosDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<StorePosDto>>> GetStorePoses(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var result = await _storeUserService.GetStorePosesAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving store POS terminals.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a store POS by ID.
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Store POS details</returns>
+    /// <response code="200">Returns the store POS</response>
+    /// <response code="404">If the store POS is not found</response>
+    [HttpGet("pos/{id:guid}")]
+    [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StorePosDto>> GetStorePos(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var storePos = await _storeUserService.GetStorePosByIdAsync(id, cancellationToken);
+
+            if (storePos == null)
+            {
+                return CreateNotFoundProblem($"Store POS with ID {id} not found.");
+            }
+
+            return Ok(storePos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving store POS with ID {PosId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the store POS.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new store POS.
+    /// </summary>
+    /// <param name="createStorePosDto">Store POS creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created store POS</returns>
+    /// <response code="201">Returns the newly created store POS</response>
+    /// <response code="400">If the store POS data is invalid</response>
+    [HttpPost("pos")]
+    [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<StorePosDto>> CreateStorePos(CreateStorePosDto createStorePosDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var storePos = await _storeUserService.CreateStorePosAsync(createStorePosDto, currentUser, cancellationToken);
+
+            return CreatedAtAction(nameof(GetStorePos), new { id = storePos.Id }, storePos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating store POS with data {@CreateStorePosDto}", createStorePosDto);
+            return CreateInternalServerErrorProblem("An error occurred while creating the store POS.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing store POS.
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="updateStorePosDto">Store POS update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated store POS</returns>
+    /// <response code="200">Returns the updated store POS</response>
+    /// <response code="400">If the store POS data is invalid</response>
+    /// <response code="404">If the store POS is not found</response>
+    [HttpPut("pos/{id:guid}")]
+    [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StorePosDto>> UpdateStorePos(Guid id, UpdateStorePosDto updateStorePosDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var storePos = await _storeUserService.UpdateStorePosAsync(id, updateStorePosDto, currentUser, cancellationToken);
+
+            if (storePos == null)
+            {
+                return CreateNotFoundProblem($"Store POS with ID {id} not found.");
+            }
+
+            return Ok(storePos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating store POS {PosId} with data {@UpdateStorePosDto}", id, updateStorePosDto);
+            return CreateInternalServerErrorProblem("An error occurred while updating the store POS.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a store POS (soft delete).
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content if successful</returns>
+    /// <response code="204">Store POS deleted successfully</response>
+    /// <response code="404">If the store POS is not found</response>
+    [HttpDelete("pos/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteStorePos(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var deleted = await _storeUserService.DeleteStorePosAsync(id, currentUser, cancellationToken);
+
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Store POS with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting store POS {PosId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the store POS.", ex);
         }
     }
 

@@ -135,4 +135,13 @@ public interface ISaleSessionService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of operator's sale sessions</returns>
     Task<List<SaleSessionDto>> GetOperatorSessionsAsync(Guid operatorId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Voids a closed sale session, creating inverse stock movements and marking document as voided.
+    /// </summary>
+    /// <param name="sessionId">Session ID</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Voided sale session DTO or null if not found</returns>
+    Task<SaleSessionDto?> VoidSessionAsync(Guid sessionId, string currentUser, CancellationToken cancellationToken = default);
 }

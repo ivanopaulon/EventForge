@@ -1,0 +1,211 @@
+@using EventForge.DTOs.Sales
+@using MudBlazor
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" />
+            @TranslationService.GetTranslation("sales.addPayment", "Aggiungi Pagamento")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <!-- Payment Summary -->
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            <MudGrid Spacing="1">
+                <MudItem xs="12">
+                    <div class="d-flex justify-space-between align-center">
+                        <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("sales.totalAmount", "Totale da pagare"):</strong></MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Primary">@TotalAmount.ToString("C")</MudText>
+                    </div>
+                </MudItem>
+                <MudItem xs="6">
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("sales.alreadyPaid", "Già pagato"):</MudText>
+                        <MudText Typo="Typo.body2">@AlreadyPaid.ToString("C")</MudText>
+                    </div>
+                </MudItem>
+                <MudItem xs="6">
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2" Color="@(RemainingAmount > 0 ? Color.Warning : Color.Success)">
+                            <strong>@TranslationService.GetTranslation("sales.remaining", "Rimanente"):</strong>
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="@(RemainingAmount > 0 ? Color.Warning : Color.Success)">
+                            <strong>@RemainingAmount.ToString("C")</strong>
+                        </MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudAlert>
+
+        <!-- Payment Method Selection -->
+        <MudSelect T="PaymentMethodDto"
+                   @bind-Value="_selectedMethod"
+                   Label="@TranslationService.GetTranslation("sales.paymentMethod", "Metodo di Pagamento")"
+                   Variant="Variant.Outlined"
+                   Required="true"
+                   Adornment="Adornment.Start"
+                   AdornmentIcon="@Icons.Material.Filled.Payment"
+                   Class="mb-3">
+            @if (PaymentMethods != null)
+            {
+                @foreach (var method in PaymentMethods)
+                {
+                    <MudSelectItem T="PaymentMethodDto" Value="@method">
+                        @if (!string.IsNullOrEmpty(method.Icon))
+                        {
+                            <MudIcon Icon="@method.Icon" Size="Size.Small" Class="mr-2" />
+                        }
+                        @method.Name
+                    </MudSelectItem>
+                }
+            }
+        </MudSelect>
+
+        <!-- Amount Input -->
+        <MudNumericField @bind-Value="_paymentAmount"
+                         Label="@TranslationService.GetTranslation("sales.amount", "Importo")"
+                         Variant="Variant.Outlined"
+                         Format="N2"
+                         Min="0.01m"
+                         Adornment="Adornment.Start"
+                         AdornmentText="€"
+                         Required="true"
+                         Class="mb-3" />
+
+        <!-- Quick Amount Buttons (for cash) -->
+        @if (_selectedMethod?.Code == "CASH")
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                @TranslationService.GetTranslation("sales.quickAmounts", "Importi Rapidi")
+            </MudText>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(RemainingAmount))">
+                    @TranslationService.GetTranslation("sales.exact", "Esatto")
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(5))">
+                    €5
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(10))">
+                    €10
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(20))">
+                    €20
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(50))">
+                    €50
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(100))">
+                    €100
+                </MudButton>
+            </div>
+
+            <!-- Change Calculation for Cash -->
+            @if (_paymentAmount > RemainingAmount)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                    <MudText Typo="Typo.body2">
+                        <strong>@TranslationService.GetTranslation("sales.changeToGive", "Resto da dare"):</strong> 
+                        @((_paymentAmount - RemainingAmount).ToString("C"))
+                    </MudText>
+                </MudAlert>
+            }
+        }
+
+        <!-- Notes (optional) -->
+        <MudTextField @bind-Value="_notes"
+                      Label="@TranslationService.GetTranslation("common.notes", "Note")"
+                      Variant="Variant.Outlined"
+                      Lines="2"
+                      Class="mb-3" />
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="AddPayment"
+                   Disabled="@(_selectedMethod == null || _paymentAmount <= 0)">
+            @TranslationService.GetTranslation("sales.addPayment", "Aggiungi Pagamento")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public decimal TotalAmount { get; set; }
+
+    [Parameter]
+    public decimal AlreadyPaid { get; set; }
+
+    [Parameter]
+    public List<PaymentMethodDto>? PaymentMethods { get; set; }
+
+    private PaymentMethodDto? _selectedMethod;
+    private decimal _paymentAmount;
+    private string _notes = string.Empty;
+
+    private decimal RemainingAmount => TotalAmount - AlreadyPaid;
+
+    protected override void OnInitialized()
+    {
+        // Set default amount to remaining
+        _paymentAmount = RemainingAmount > 0 ? RemainingAmount : 0;
+    }
+
+    private void SetQuickAmount(decimal amount)
+    {
+        _paymentAmount = amount;
+    }
+
+    private void AddPayment()
+    {
+        if (_selectedMethod == null || _paymentAmount <= 0)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("validation.invalidPayment", "Seleziona un metodo di pagamento e inserisci un importo valido"),
+                Severity.Warning
+            );
+            return;
+        }
+
+        var result = new PaymentResult
+        {
+            Method = _selectedMethod,
+            Amount = _paymentAmount,
+            Notes = _notes
+        };
+
+        MudDialog?.Close(DialogResult.Ok(result));
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    public class PaymentResult
+    {
+        public PaymentMethodDto Method { get; set; } = null!;
+        public decimal Amount { get; set; }
+        public string Notes { get; set; } = string.Empty;
+    }
+}

@@ -93,6 +93,31 @@ public class StoreUserService : IStoreUserService
         }
     }
 
+    public async Task<StoreUserDto?> GetStoreUserByUsernameAsync(string username, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var storeUser = await _context.StoreUsers
+                .Include(su => su.CashierGroup)
+                .Include(su => su.PhotoDocument)
+                .Where(su => su.Username == username && !su.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (storeUser == null)
+            {
+                _logger.LogWarning("Store user with username {Username} not found.", username);
+                return null;
+            }
+
+            return MapToStoreUserDto(storeUser);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving store user with username {Username}", username);
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<StoreUserDto>> GetStoreUsersByGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
         try
@@ -804,6 +829,190 @@ public class StoreUserService : IStoreUserService
             ModifiedAt = storeUserPrivilege.ModifiedAt,
             ModifiedBy = storeUserPrivilege.ModifiedBy
         };
+    }
+
+    #endregion
+
+    #region StorePos CRUD Operations
+
+    public async Task<PagedResult<StorePosDto>> GetStorePosesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store POS operations.");
+            }
+
+            var query = _context.StorePoses
+                .Where(sp => !sp.IsDeleted && sp.TenantId == currentTenantId.Value)
+                .OrderBy(sp => sp.Name);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var dtos = items.Select(MapToStorePosDto).ToList();
+
+            return new PagedResult<StorePosDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving store POSes with pagination (page: {Page}, pageSize: {PageSize}).", page, pageSize);
+            throw;
+        }
+    }
+
+    public async Task<StorePosDto?> GetStorePosByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store POS operations.");
+            }
+
+            var storePos = await _context.StorePoses
+                .Include(sp => sp.ImageDocument)
+                .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
+
+            return storePos != null ? MapToStorePosDto(storePos) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving store POS {Id}.", id);
+            throw;
+        }
+    }
+
+    public async Task<StorePosDto> CreateStorePosAsync(CreateStorePosDto createStorePosDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store POS operations.");
+            }
+
+            var storePos = new StorePos
+            {
+                Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
+                Name = createStorePosDto.Name,
+                Description = createStorePosDto.Description,
+                Status = (EventForge.Server.Data.Entities.Store.CashRegisterStatus)createStorePosDto.Status,
+                Location = createStorePosDto.Location,
+                Notes = createStorePosDto.Notes,
+                TerminalIdentifier = createStorePosDto.TerminalIdentifier,
+                IPAddress = createStorePosDto.IPAddress,
+                LocationLatitude = createStorePosDto.LocationLatitude,
+                LocationLongitude = createStorePosDto.LocationLongitude,
+                CurrencyCode = createStorePosDto.CurrencyCode,
+                TimeZone = createStorePosDto.TimeZone,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUser,
+                IsDeleted = false
+            };
+
+            _context.StorePoses.Add(storePos);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store POS {Name} created successfully by {User}.", storePos.Name, currentUser);
+            return MapToStorePosDto(storePos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating store POS.");
+            throw;
+        }
+    }
+
+    public async Task<StorePosDto?> UpdateStorePosAsync(Guid id, UpdateStorePosDto updateStorePosDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store POS operations.");
+            }
+
+            var storePos = await _context.StorePoses
+                .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storePos == null)
+            {
+                _logger.LogWarning("Store POS {Id} not found for update in tenant {TenantId}.", id, currentTenantId.Value);
+                return null;
+            }
+
+            storePos.Name = updateStorePosDto.Name;
+            storePos.Description = updateStorePosDto.Description;
+            storePos.Status = (EventForge.Server.Data.Entities.Store.CashRegisterStatus)updateStorePosDto.Status;
+            storePos.Location = updateStorePosDto.Location;
+            storePos.Notes = updateStorePosDto.Notes;
+            storePos.TerminalIdentifier = updateStorePosDto.TerminalIdentifier;
+            storePos.IPAddress = updateStorePosDto.IPAddress;
+            storePos.IsOnline = updateStorePosDto.IsOnline;
+            storePos.ModifiedAt = DateTime.UtcNow;
+            storePos.ModifiedBy = currentUser;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store POS {Id} updated successfully by {User}.", id, currentUser);
+            return MapToStorePosDto(storePos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating store POS {Id}.", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteStorePosAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store POS operations.");
+            }
+
+            var storePos = await _context.StorePoses
+                .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storePos == null)
+            {
+                _logger.LogWarning("Store POS {Id} not found for deletion in tenant {TenantId}.", id, currentTenantId.Value);
+                return false;
+            }
+
+            storePos.IsDeleted = true;
+            storePos.ModifiedAt = DateTime.UtcNow;
+            storePos.ModifiedBy = currentUser;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store POS {Id} deleted successfully by {User}.", id, currentUser);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting store POS {Id}.", id);
+            throw;
+        }
     }
 
     #endregion

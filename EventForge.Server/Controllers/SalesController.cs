@@ -599,4 +599,50 @@ public class SalesController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while closing the sale session.", ex);
         }
     }
+
+    /// <summary>
+    /// Voids a closed receipt/sale session.
+    /// </summary>
+    /// <param name="sessionId">Sale session ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated sale session</returns>
+    /// <response code="200">Session voided successfully</response>
+    /// <response code="400">If session cannot be voided</response>
+    /// <response code="404">If session not found</response>
+    [HttpPost("sessions/{sessionId:guid}/void")]
+    [ProducesResponseType(typeof(SaleSessionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SaleSessionDto>> VoidSession(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "Unknown";
+            
+            var voidedSession = await _saleSessionService.VoidSessionAsync(sessionId, currentUser, cancellationToken);
+
+            if (voidedSession == null)
+                return NotFound(new { message = $"Sale session {sessionId} not found." });
+
+            _logger.LogInformation("Voided sale session {SessionId} by {User}", sessionId, currentUser);
+
+            return Ok(voidedSession);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot void sale session {SessionId}: {Message}", sessionId, ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while voiding sale session {SessionId}.", sessionId);
+            return CreateInternalServerErrorProblem("An error occurred while voiding the sale session.", ex);
+        }
+    }
 }

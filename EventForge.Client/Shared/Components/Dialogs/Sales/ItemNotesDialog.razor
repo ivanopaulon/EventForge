@@ -1,0 +1,54 @@
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
+            @TranslationService.GetTranslation("sales.editNotes", "Modifica Note")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_notes"
+                      Label="@TranslationService.GetTranslation("common.notes", "Note")"
+                      Variant="Variant.Outlined"
+                      Lines="5"
+                      AutoFocus="true"
+                      Class="mb-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Save">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public string InitialNotes { get; set; } = string.Empty;
+
+    private string _notes = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _notes = InitialNotes ?? string.Empty;
+    }
+
+    private void Save()
+    {
+        MudDialog?.Close(DialogResult.Ok(_notes));
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}

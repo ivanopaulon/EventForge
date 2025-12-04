@@ -1,5 +1,7 @@
 using EventForge.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
+using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Sales;
@@ -13,17 +15,23 @@ public class SaleSessionService : ISaleSessionService
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<SaleSessionService> _logger;
+    private readonly IDocumentHeaderService _documentHeaderService;
+    private readonly IStockMovementService _stockMovementService;
 
     public SaleSessionService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
-        ILogger<SaleSessionService> logger)
+        ILogger<SaleSessionService> logger,
+        IDocumentHeaderService documentHeaderService,
+        IStockMovementService stockMovementService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
+        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
     }
 
     public async Task<SaleSessionDto> CreateSessionAsync(CreateSaleSessionDto createDto, string currentUser, CancellationToken cancellationToken = default)
@@ -222,8 +230,16 @@ public class SaleSessionService : ISaleSessionService
             var discountAmount = subtotal * (addItemDto.DiscountPercent / 100);
             var totalAmount = subtotal - discountAmount;
 
-            // Get VAT rate from product (simplified - in real scenario would fetch from VatRate entity)
-            var taxRate = 0m; // TODO: Fetch from product.VatRate
+            // Get VAT rate from product
+            var taxRate = 0m;
+            if (product.VatRateId.HasValue)
+            {
+                var vatRate = await _context.VatRates
+                    .Where(vr => vr.Id == product.VatRateId.Value && !vr.IsDeleted)
+                    .Select(vr => vr.Percentage)
+                    .FirstOrDefaultAsync(cancellationToken);
+                taxRate = vatRate;
+            }
             var taxAmount = totalAmount * (taxRate / 100);
 
             var item = new SaleItem
@@ -507,6 +523,9 @@ public class SaleSessionService : ISaleSessionService
                 return null;
             }
 
+            // Get user ID from username
+            var userId = await GetUserIdFromUsernameAsync(currentUser, cancellationToken);
+
             var note = new SessionNote
             {
                 Id = Guid.NewGuid(),
@@ -514,7 +533,7 @@ public class SaleSessionService : ISaleSessionService
                 SaleSessionId = sessionId,
                 NoteFlagId = addNoteDto.NoteFlagId,
                 Text = addNoteDto.Text,
-                CreatedByUserId = Guid.Empty, // TODO: Get actual user ID
+                CreatedByUserId = userId,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
                 ModifiedBy = currentUser,
@@ -613,7 +632,23 @@ public class SaleSessionService : ISaleSessionService
 
             _logger.LogInformation("Closed sale session {SessionId}", sessionId);
 
-            // TODO: Generate document (invoice/receipt) - requires DocumentService integration
+            // Generate document (receipt) for the closed session
+            try
+            {
+                var documentId = await GenerateReceiptDocumentAsync(session, currentUser, cancellationToken);
+                
+                if (documentId.HasValue)
+                {
+                    session.DocumentId = documentId.Value;
+                    await _context.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Generated receipt document {DocumentId} for sale session {SessionId}", documentId.Value, sessionId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating receipt document for sale session {SessionId}. Session is closed but document generation failed.", sessionId);
+                // Session is already closed, we don't throw here to avoid rolling back the closure
+            }
 
             return await MapToDtoAsync(session, cancellationToken);
         }
@@ -638,7 +673,9 @@ public class SaleSessionService : ISaleSessionService
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted && s.Status == SaleSessionStatus.Open)
+                .Where(s => s.TenantId == currentTenantId.Value && 
+                           !s.IsDeleted && 
+                           (s.Status == SaleSessionStatus.Open || s.Status == SaleSessionStatus.Suspended))
                 .OrderByDescending(s => s.CreatedAt)
                 .ToListAsync(cancellationToken);
 
@@ -781,5 +818,224 @@ public class SaleSessionService : ISaleSessionService
             CreatedByUserName = note.CreatedBy,
             CreatedAt = note.CreatedAt
         };
+    }
+
+    public async Task<SaleSessionDto?> VoidSessionAsync(Guid sessionId, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+            }
+
+            var session = await _context.SaleSessions
+                .Include(s => s.Items)
+                .Include(s => s.Payments)
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+            if (session == null)
+            {
+                return null;
+            }
+
+            // Only closed sessions can be voided
+            if (session.Status != SaleSessionStatus.Closed)
+            {
+                throw new InvalidOperationException("Only closed sessions can be voided.");
+            }
+
+            // Update session status to Cancelled
+            session.Status = SaleSessionStatus.Cancelled;
+            session.ModifiedBy = currentUser;
+            session.ModifiedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Void", "Closed", "Cancelled", currentUser, "Sale Session", cancellationToken);
+
+            _logger.LogInformation("Voided sale session {SessionId}", sessionId);
+
+            // Create inverse stock movements to restore inventory
+            if (session.DocumentId.HasValue)
+            {
+                foreach (var item in session.Items.Where(i => !i.IsDeleted && !i.IsService))
+                {
+                    try
+                    {
+                        var voidMovementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
+                        {
+                            MovementType = "VOID",
+                            ProductId = item.ProductId,
+                            Quantity = item.Quantity, // Positive to restore inventory
+                            MovementDate = DateTime.UtcNow,
+                            DocumentHeaderId = session.DocumentId.Value,
+                            Reason = "Annullamento vendita",
+                            Notes = $"Storno vendita da sessione {session.Id}",
+                            Reference = $"VOID-{session.Id.ToString("N")[..8]}"
+                        };
+
+                        await _stockMovementService.CreateMovementAsync(voidMovementDto, currentUser, cancellationToken);
+                        _logger.LogInformation("Created void stock movement for product {ProductId}, quantity {Quantity}", 
+                            item.ProductId, item.Quantity);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error creating void stock movement for product {ProductId} in session {SessionId}", 
+                            item.ProductId, session.Id);
+                        // Continue with other items even if one fails
+                    }
+                }
+
+                // Mark document as cancelled
+                try
+                {
+                    var document = await _context.DocumentHeaders.FirstOrDefaultAsync(
+                        d => d.Id == session.DocumentId.Value && d.TenantId == currentTenantId.Value && !d.IsDeleted, 
+                        cancellationToken);
+
+                    if (document != null)
+                    {
+                        document.Status = EventForge.Server.Data.Entities.Documents.DocumentStatus.Cancelled;
+                        document.ModifiedBy = currentUser;
+                        document.ModifiedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync(cancellationToken);
+                        _logger.LogInformation("Marked document {DocumentId} as cancelled", session.DocumentId.Value);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error marking document {DocumentId} as cancelled", session.DocumentId.Value);
+                }
+            }
+
+            return await MapToDtoAsync(session, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error voiding sale session {SessionId}.", sessionId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets user ID from username.
+    /// </summary>
+    private async Task<Guid> GetUserIdFromUsernameAsync(string username, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                return Guid.Empty;
+            }
+
+            var userId = await _context.Users
+                .Where(u => u.Username == username && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return userId != Guid.Empty ? userId : Guid.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error getting user ID for username {Username}, using Empty GUID", username);
+            return Guid.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Generates a receipt document for a closed sale session.
+    /// </summary>
+    private async Task<Guid?> GenerateReceiptDocumentAsync(SaleSession session, string currentUser, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot generate receipt: No tenant context");
+                return null;
+            }
+
+            // Find or get RECEIPT document type
+            var receiptDocumentType = await _context.DocumentTypes
+                .FirstOrDefaultAsync(dt => dt.Code == "RECEIPT" && dt.TenantId == currentTenantId.Value && !dt.IsDeleted, cancellationToken);
+
+            if (receiptDocumentType == null)
+            {
+                _logger.LogWarning("RECEIPT document type not found. Document generation skipped for session {SessionId}", session.Id);
+                return null;
+            }
+
+            // Create document header
+            var createDocumentDto = new EventForge.DTOs.Documents.CreateDocumentHeaderDto
+            {
+                DocumentTypeId = receiptDocumentType.Id,
+                Number = null, // Will be auto-generated
+                Date = DateTime.UtcNow,
+                BusinessPartyId = session.CustomerId ?? Guid.Empty,
+                CashRegisterId = session.PosId,
+                CashierId = session.OperatorId,
+                Currency = session.Currency ?? "EUR",
+                IsFiscal = true,
+                TotalDiscountAmount = session.DiscountAmount,
+                Notes = $"Generato dalla sessione di vendita {session.Id}",
+                Rows = session.Items.Where(i => !i.IsDeleted).Select(item => new EventForge.DTOs.Documents.CreateDocumentRowDto
+                {
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    Description = item.ProductName
+                }).ToList()
+            };
+
+            var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createDocumentDto, currentUser, cancellationToken);
+
+            if (documentHeader != null)
+            {
+                // Create stock movements for each item (outbound)
+                foreach (var item in session.Items.Where(i => !i.IsDeleted && !i.IsService))
+                {
+                    try
+                    {
+                        var movementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
+                        {
+                            MovementType = "SALE",
+                            ProductId = item.ProductId,
+                            Quantity = -item.Quantity, // Negative for outbound
+                            MovementDate = DateTime.UtcNow,
+                            DocumentHeaderId = documentHeader.Id,
+                            Reason = "Vendita",
+                            Notes = $"Vendita da sessione {session.Id}",
+                            Reference = $"SESS-{session.Id.ToString("N")[..8]}"
+                        };
+
+                        await _stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
+                        _logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}", 
+                            item.ProductId, -item.Quantity, documentHeader.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.", 
+                            item.ProductId, session.Id);
+                        // Continue with other items even if one fails
+                    }
+                }
+
+                _logger.LogInformation("Document {DocumentId} created with stock movements for session {SessionId}", documentHeader.Id, session.Id);
+                return documentHeader.Id;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating receipt document for session {SessionId}", session.Id);
+            throw;
+        }
     }
 }
