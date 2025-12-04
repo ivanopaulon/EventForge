@@ -52,10 +52,6 @@ public class PaymentMethodService : IPaymentMethodService
             
             _logger.LogDebug("Retrieved {Count} payment methods from server across {Pages} page(s)", allItems.Count, page);
             return allItems;
-            // Use a large page size (1000) to retrieve all items in a single request
-            // This is acceptable for payment methods as there are typically few records
-            var pagedResult = await GetPagedAsync(1, 1000);
-            return pagedResult.Items?.ToList();
         }
         catch (Exception ex)
         {
