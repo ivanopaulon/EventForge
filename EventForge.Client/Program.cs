@@ -154,6 +154,8 @@ builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementServ
 
 // Register AuthenticatedHttpClientHandler for Store services
 builder.Services.AddTransient<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
+// Register authenticated HTTP client handler for Store services
+builder.Services.AddTransient<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 // Add Store management services with configured HttpClient and authentication handler
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserService, EventForge.Client.Services.Store.StoreUserService>(client =>
@@ -163,6 +165,7 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserServic
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
+.AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService, EventForge.Client.Services.Store.StorePosService>(client =>
 {
@@ -171,6 +174,7 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
+.AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupService, EventForge.Client.Services.Store.StoreUserGroupService>(client =>
 {
@@ -179,6 +183,7 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupS
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
+.AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
