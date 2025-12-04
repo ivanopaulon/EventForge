@@ -162,7 +162,7 @@
     protected override void OnInitialized()
     {
         // Set defaults
-        _model.PartyType = BusinessPartyType.Customer;
+        _model.PartyType = BusinessPartyType.Cliente;
     }
 
     private string? ValidateTaxCode(string? taxCode)
@@ -248,6 +248,9 @@
                 {
                     try
                     {
+                        // Phone is primary only if no email was provided
+                        var isPhonePrimary = string.IsNullOrWhiteSpace(_emailValue);
+                        
                         var phoneContact = new CreateContactDto
                         {
                             OwnerId = createdCustomer.Id,
@@ -255,7 +258,7 @@
                             ContactType = ContactType.Phone,
                             Value = _phoneValue,
                             Purpose = ContactPurpose.Primary,
-                            IsPrimary = string.IsNullOrWhiteSpace(_emailValue) // Primary only if no email
+                            IsPrimary = isPhonePrimary
                         };
                         await EntityManagementService.CreateContactAsync(phoneContact);
                     }
@@ -308,8 +311,9 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error creating customer");
+            var errorMessage = TranslationService.GetTranslation("businessParty.createError", "Errore nella creazione del cliente");
             Snackbar.Add(
-                TranslationService.GetTranslation("businessParty.createError", "Errore nella creazione del cliente: {0}", ex.Message),
+                $"{errorMessage}: {ex.Message}",
                 Severity.Error
             );
         }
