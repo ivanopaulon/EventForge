@@ -385,17 +385,45 @@
         try
         {
             _isLoadingPaymentMethods = true;
+            Logger.LogDebug("Loading payment methods...");
+            
             var result = await PaymentMethodService.GetAllAsync();
             
             if (result != null)
             {
                 _paymentMethods = result.OrderBy(p => p.DisplayOrder).ToList();
+                Logger.LogDebug("Successfully loaded {Count} payment methods", _paymentMethods.Count);
             }
+            else
+            {
+                Logger.LogWarning("Payment method service returned null result");
+                _paymentMethods = new List<PaymentMethodDto>();
+                Snackbar.Add(
+                    TranslationService.GetTranslation("paymentMethod.noDataReturned", "Nessun dato ricevuto dal server"), 
+                    Severity.Warning);
+            }
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Logger.LogWarning("Unauthorized access to payment methods endpoint");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.unauthorized", "Accesso non autorizzato. Effettua nuovamente il login."),
+                Severity.Error);
+            await ShowLoginDialogAsync();
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            Logger.LogWarning("Forbidden access to payment methods - tenant or license issue");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.forbidden", "Accesso negato. Verifica i permessi del tenant e la licenza."),
+                Severity.Error);
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("paymentMethod.loadingPaymentMethodsError", "Errore nel caricamento dei metodi di pagamento: {0}", ex.Message), Severity.Error);
             Logger.LogError(ex, "Error loading payment methods");
+            Snackbar.Add(
+                TranslationService.GetTranslation("paymentMethod.loadingPaymentMethodsError", "Errore nel caricamento dei metodi di pagamento: {0}", ex.Message), 
+                Severity.Error);
         }
         finally
         {
