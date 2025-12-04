@@ -662,8 +662,9 @@ public class SaleSessionService : ISaleSessionService
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted && 
-                    (s.Status == SaleSessionStatus.Open || s.Status == SaleSessionStatus.Suspended))
+                .Where(s => s.TenantId == currentTenantId.Value && 
+                           !s.IsDeleted && 
+                           (s.Status == SaleSessionStatus.Open || s.Status == SaleSessionStatus.Suspended))
                 .OrderByDescending(s => s.CreatedAt)
                 .ToListAsync(cancellationToken);
 
@@ -862,7 +863,7 @@ public class SaleSessionService : ISaleSessionService
                             DocumentHeaderId = session.DocumentId.Value,
                             Reason = "Annullamento vendita",
                             Notes = $"Storno vendita da sessione {session.Id}",
-                            Reference = $"VOID-{session.Id.ToString().Substring(0, 8)}"
+                            Reference = $"VOID-{session.Id.ToString("N")[..8]}"
                         };
 
                         await _stockMovementService.CreateMovementAsync(voidMovementDto, currentUser, cancellationToken);
@@ -972,7 +973,7 @@ public class SaleSessionService : ISaleSessionService
                             DocumentHeaderId = documentHeader.Id,
                             Reason = "Vendita",
                             Notes = $"Vendita da sessione {session.Id}",
-                            Reference = $"SESS-{session.Id.ToString().Substring(0, 8)}"
+                            Reference = $"SESS-{session.Id.ToString("N")[..8]}"
                         };
 
                         await _stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
