@@ -23,7 +23,7 @@
                        Label="@TranslationService.GetTranslation("sales.pos", "Cassa/POS")"
                        Variant="Variant.Outlined"
                        Required="true"
-                       Disabled="@IsSessionActive"
+                       Disabled="@(IsSessionActive || AvailablePos == null || AvailablePos.Count == 0)"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.PointOfSale">
                 @if (AvailablePos != null)
@@ -34,6 +34,12 @@
                     }
                 }
             </MudSelect>
+            @if (AvailablePos == null || AvailablePos.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+                    @TranslationService.GetTranslation("sales.noPosAvailableAlert", "Nessun POS attivo disponibile")
+                </MudAlert>
+            }
         </MudItem>
 
         <!-- Customer Selection -->

@@ -26,18 +26,44 @@ public class StorePosService : IStorePosService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{ApiBase}?page=1&pageSize=1000");
-            response.EnsureSuccessStatusCode();
+            // Try non-paginated endpoint first for better performance
+            try
+            {
+                var activeEndpoint = ApiBase.Replace("/pos", "") + "/active";
+                var activeResponse = await _httpClient.GetAsync(activeEndpoint);
+                if (activeResponse.IsSuccessStatusCode)
+                {
+                    var activePosResult = await activeResponse.Content.ReadFromJsonAsync<List<StorePosDto>>();
+                    _logger.LogDebug("Successfully fetched POS terminals from /active endpoint");
+                    return activePosResult ?? new List<StorePosDto>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Non-paginated /active endpoint not available, falling back to paginated endpoint");
+            }
+
+            // Fallback to paginated endpoint with reduced pageSize
+            var response = await _httpClient.GetAsync($"{ApiBase}?page=1&pageSize=100");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get POS terminals: {StatusCode}", response.StatusCode);
+                return new List<StorePosDto>();
+            }
             
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<StorePosDto>>();
             return pagedResult?.Items?.ToList() ?? new List<StorePosDto>();
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest || ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning(ex, "POS terminals API returned {StatusCode}, returning empty list", ex.StatusCode);
+            return new List<StorePosDto>();
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error getting all store POS terminals: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StorePosService] StackTrace: {ex.StackTrace}");
-            _logger.LogError(ex, "Error getting all store POS terminals");
-            throw;
+            _logger.LogWarning(ex, "Error getting all store POS terminals, returning empty list");
+            return new List<StorePosDto>();
         }
     }
 
@@ -50,10 +76,8 @@ public class StorePosService : IStorePosService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error getting active store POS terminals: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StorePosService] StackTrace: {ex.StackTrace}");
-            _logger.LogError(ex, "Error getting active store POS terminals");
-            throw;
+            _logger.LogWarning(ex, "Error getting active store POS terminals, returning empty list");
+            return new List<StorePosDto>();
         }
     }
 
