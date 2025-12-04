@@ -146,6 +146,7 @@ BEGIN TRY
     END
     ELSE
     BEGIN
+        -- Columns verified to exist in StoreUserPrivilege entity (inherits from AuditableEntity)
         CREATE NONCLUSTERED INDEX [IX_StoreUserPrivileges_TenantId]
         ON [dbo].[StoreUserPrivileges] ([TenantId])
         INCLUDE ([Code], [Name], [Status], [IsActive], [IsDeleted]);
@@ -169,6 +170,7 @@ BEGIN TRY
     END
     ELSE
     BEGIN
+        -- Columns verified to exist in StoreUserGroup entity (inherits from AuditableEntity)
         CREATE NONCLUSTERED INDEX [IX_StoreUserGroups_TenantId]
         ON [dbo].[StoreUserGroups] ([TenantId])
         INCLUDE ([Code], [Name], [Status], [IsActive], [IsDeleted]);
@@ -192,6 +194,7 @@ BEGIN TRY
     END
     ELSE
     BEGIN
+        -- Columns verified to exist in StoreUser entity (Username, Name from entity, rest from AuditableEntity)
         CREATE NONCLUSTERED INDEX [IX_StoreUsers_TenantId]
         ON [dbo].[StoreUsers] ([TenantId])
         INCLUDE ([Username], [Name], [Status], [IsActive], [IsDeleted]);
@@ -215,6 +218,7 @@ BEGIN TRY
     END
     ELSE
     BEGIN
+        -- Columns verified to exist in StorePos entity (Name from entity, rest from AuditableEntity)
         CREATE NONCLUSTERED INDEX [IX_StorePoses_TenantId]
         ON [dbo].[StorePoses] ([TenantId])
         INCLUDE ([Name], [Status], [IsActive], [IsDeleted]);

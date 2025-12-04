@@ -80,7 +80,8 @@ BEGIN TRY
     -- =============================================
     PRINT 'STEP 3: Deleting orphan junction table records...';
     
-    IF EXISTS (SELECT * FROM sys.tables WHERE name = 'StoreUserGroupStoreUserPrivilege')
+    -- Check if junction table exists (with schema qualification)
+    IF EXISTS (SELECT * FROM sys.tables WHERE object_id = OBJECT_ID('[dbo].[StoreUserGroupStoreUserPrivilege]'))
     BEGIN
         -- Delete junction records referencing orphan groups
         DELETE FROM [dbo].[StoreUserGroupStoreUserPrivilege]

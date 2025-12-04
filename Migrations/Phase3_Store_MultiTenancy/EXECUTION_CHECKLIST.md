@@ -37,13 +37,13 @@
   USE EventData;
   EXEC sp_spaceused;
   ```
-- [ ] **1.3** Create backup:
+- [ ] **1.3** Create backup (⚠️ Note: Ensure C:\Backups\ directory exists or adjust path):
   ```sql
   BACKUP DATABASE [EventData] 
   TO DISK = 'C:\Backups\EventData_PrePhase3_20251204.bak'
   WITH COMPRESSION, INIT;
   ```
-- [ ] **1.4** Verify backup:
+- [ ] **1.4** Verify backup (adjust path if needed):
   ```sql
   RESTORE VERIFYONLY 
   FROM DISK = 'C:\Backups\EventData_PrePhase3_20251204.bak';

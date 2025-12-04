@@ -237,12 +237,12 @@ PRINT '';
 -- =============================================
 PRINT 'TEST 7: Testing query performance with indexes...';
 
--- Get a sample tenant ID
+-- Get a sample tenant ID (using deterministic ordering for consistent testing)
 DECLARE @SampleTenantId UNIQUEIDENTIFIER;
 SELECT TOP 1 @SampleTenantId = Id 
 FROM [dbo].[Tenants] 
 WHERE Id <> '00000000-0000-0000-0000-000000000000'
-ORDER BY NEWID();
+ORDER BY Id; -- Deterministic ordering instead of NEWID() for better performance
 
 IF @SampleTenantId IS NOT NULL
 BEGIN

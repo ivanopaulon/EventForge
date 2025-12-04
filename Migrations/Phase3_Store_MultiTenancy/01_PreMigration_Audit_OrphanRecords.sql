@@ -159,8 +159,8 @@ PRINT '';
 PRINT '5. Auditing StoreUserGroupStoreUserPrivilege junction table...';
 DECLARE @OrphanJunctions INT;
 
--- Check if junction table exists
-IF EXISTS (SELECT * FROM sys.tables WHERE name = 'StoreUserGroupStoreUserPrivilege')
+-- Check if junction table exists (with schema qualification)
+IF EXISTS (SELECT * FROM sys.tables WHERE object_id = OBJECT_ID('[dbo].[StoreUserGroupStoreUserPrivilege]'))
 BEGIN
     SELECT @OrphanJunctions = COUNT(*)
     FROM [dbo].[StoreUserGroupStoreUserPrivilege] j
