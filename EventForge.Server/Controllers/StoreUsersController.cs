@@ -8,9 +8,11 @@ namespace EventForge.Server.Controllers;
 /// <summary>
 /// REST API controller for store user management with multi-tenant support.
 /// Provides CRUD operations for store users within the authenticated user's tenant context.
+/// Read operations are available to all authenticated users (for POS operator selection).
+/// Write operations require Manager role.
 /// </summary>
 [Route("api/v1/[controller]")]
-[Authorize(Policy = "RequireManager")]
+[Authorize]
 public class StoreUsersController : BaseApiController
 {
     private readonly IStoreUserService _storeUserService;
@@ -160,6 +162,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="201">Returns the newly created store user</response>
     /// <response code="400">If the store user data is invalid</response>
     [HttpPost]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StoreUserDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<StoreUserDto>> CreateStoreUser(CreateStoreUserDto createStoreUserDto, CancellationToken cancellationToken = default)
@@ -194,6 +197,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="400">If the store user data is invalid</response>
     /// <response code="404">If the store user is not found</response>
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StoreUserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -232,6 +236,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="204">Store user deleted successfully</response>
     /// <response code="404">If the store user is not found</response>
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteStoreUser(Guid id, CancellationToken cancellationToken = default)
@@ -331,6 +336,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="201">Returns the newly created store user group</response>
     /// <response code="400">If the store user group data is invalid</response>
     [HttpPost("groups")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StoreUserGroupDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<StoreUserGroupDto>> CreateStoreUserGroup(CreateStoreUserGroupDto createStoreUserGroupDto, CancellationToken cancellationToken = default)
@@ -365,6 +371,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="400">If the store user group data is invalid</response>
     /// <response code="404">If the store user group is not found</response>
     [HttpPut("groups/{id:guid}")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StoreUserGroupDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -403,6 +410,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="204">Store user group deleted successfully</response>
     /// <response code="404">If the store user group is not found</response>
     [HttpDelete("groups/{id:guid}")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteStoreUserGroup(Guid id, CancellationToken cancellationToken = default)
@@ -524,6 +532,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="201">Returns the newly created store user privilege</response>
     /// <response code="400">If the store user privilege data is invalid</response>
     [HttpPost("privileges")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StoreUserPrivilegeDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<StoreUserPrivilegeDto>> CreateStoreUserPrivilege(CreateStoreUserPrivilegeDto createStoreUserPrivilegeDto, CancellationToken cancellationToken = default)
@@ -558,6 +567,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="400">If the store user privilege data is invalid</response>
     /// <response code="404">If the store user privilege is not found</response>
     [HttpPut("privileges/{id:guid}")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StoreUserPrivilegeDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -596,6 +606,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="204">Store user privilege deleted successfully</response>
     /// <response code="404">If the store user privilege is not found</response>
     [HttpDelete("privileges/{id:guid}")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteStoreUserPrivilege(Guid id, CancellationToken cancellationToken = default)
@@ -635,6 +646,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="404">If store user not found</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("{id:guid}/photo")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StoreUserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -736,6 +748,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="404">If store user not found or has no photo</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpDelete("{id:guid}/photo")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -780,6 +793,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="404">If store user group not found</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("groups/{id:guid}/logo")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StoreUserGroupDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -877,6 +891,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="404">If store user group not found or has no logo</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpDelete("groups/{id:guid}/logo")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -986,6 +1001,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="201">Returns the newly created store POS</response>
     /// <response code="400">If the store POS data is invalid</response>
     [HttpPost("pos")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<StorePosDto>> CreateStorePos(CreateStorePosDto createStorePosDto, CancellationToken cancellationToken = default)
@@ -1020,6 +1036,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="400">If the store POS data is invalid</response>
     /// <response code="404">If the store POS is not found</response>
     [HttpPut("pos/{id:guid}")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1058,6 +1075,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="204">Store POS deleted successfully</response>
     /// <response code="404">If the store POS is not found</response>
     [HttpDelete("pos/{id:guid}")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteStorePos(Guid id, CancellationToken cancellationToken = default)
@@ -1097,6 +1115,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="404">If store POS not found</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("pos/{id:guid}/image")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -1194,6 +1213,7 @@ public class StoreUsersController : BaseApiController
     /// <response code="404">If store POS not found or has no image</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpDelete("pos/{id:guid}/image")]
+    [Authorize(Policy = "RequireManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
