@@ -1,4 +1,5 @@
 using EventForge.DTOs.Store;
+using EventForge.DTOs.Common;
 using System.Net.Http.Json;
 
 namespace EventForge.Client.Services.Store;
@@ -112,15 +113,21 @@ public class StoreUserService : IStoreUserService
             throw;
         }
     }
-}
 
-/// <summary>
-/// Helper class for paginated results.
-/// </summary>
-public class PagedResult<T>
-{
-    public List<T>? Items { get; set; }
-    public int TotalCount { get; set; }
-    public int Page { get; set; }
-    public int PageSize { get; set; }
+    public async Task<PagedResult<StoreUserDto>> GetPagedAsync(int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
+            response.EnsureSuccessStatusCode();
+            
+            return await response.Content.ReadFromJsonAsync<PagedResult<StoreUserDto>>() 
+                ?? new PagedResult<StoreUserDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting paged store users (page: {Page}, pageSize: {PageSize})", page, pageSize);
+            throw;
+        }
+    }
 }

@@ -37,4 +37,9 @@ public interface IStorePosService
     /// Deletes a store POS.
     /// </summary>
     Task<bool> DeleteAsync(Guid id);
+
+    /// <summary>
+    /// Gets store POS terminals with pagination.
+    /// </summary>
+    Task<PagedResult<StorePosDto>> GetPagedAsync(int page = 1, int pageSize = 20);
 }

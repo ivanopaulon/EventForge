@@ -155,6 +155,7 @@ builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementServ
 // Add Store management services
 builder.Services.AddScoped<EventForge.Client.Services.Store.IStoreUserService, EventForge.Client.Services.Store.StoreUserService>();
 builder.Services.AddScoped<EventForge.Client.Services.Store.IStorePosService, EventForge.Client.Services.Store.StorePosService>();
+builder.Services.AddScoped<EventForge.Client.Services.Store.IStoreUserGroupService, EventForge.Client.Services.Store.StoreUserGroupService>();
 
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();

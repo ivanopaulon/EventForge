@@ -202,6 +202,27 @@
                     @TranslationService.GetTranslation("nav.pos", "Punto Vendita (POS)")
                 </MudNavLink>
             </MudNavGroup>
+
+            <!-- Store Settings -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.storeSettings", "Configurazione Store")" 
+                         Icon="@Icons.Material.Outlined.Settings" 
+                         Expanded="false">
+                <MudNavLink Href="/store/pos" 
+                            Icon="@Icons.Material.Outlined.PointOfSale" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.posManagement", "Punti Cassa")
+                </MudNavLink>
+                <MudNavLink Href="/store/operators" 
+                            Icon="@Icons.Material.Outlined.Person" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.operatorManagement", "Operatori")
+                </MudNavLink>
+                <MudNavLink Href="/store/operator-groups" 
+                            Icon="@Icons.Material.Outlined.Groups" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.operatorGroupManagement", "Gruppi Operatori")
+                </MudNavLink>
+            </MudNavGroup>
         }
         
         <!-- Common user links -->

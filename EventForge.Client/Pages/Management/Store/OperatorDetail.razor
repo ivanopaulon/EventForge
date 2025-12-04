@@ -1,0 +1,417 @@
+@page "/store/operators/{OperatorId:guid}"
+@page "/store/operators/{OperatorIdString}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Store
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<OperatorDetail> Logger
+@inject EventForge.Client.Services.Store.IStoreUserService StoreUserService
+@inject EventForge.Client.Services.Store.IStoreUserGroupService StoreUserGroupService
+
+<PageLoadingOverlay Visible="_isLoading || _isSaving"
+                     Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="product-page-root">
+        @if (_entity == null)
+        {
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+                <MudAlert Severity="Severity.Error">
+                    @TranslationService.GetTranslation("store.operatorNotFound", "Operatore non trovato")
+                </MudAlert>
+            </MudContainer>
+        }
+        else
+        {
+            <div class="product-top">
+                <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <div class="d-flex justify-space-between align-center flex-wrap gap-2">
+                        <div class="d-flex align-center gap-2">
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => TryNavigateAway("/store/operators"))"
+                                           Size="Size.Medium"
+                                           title="@TranslationService.GetTranslation("common.back", "Indietro")" />
+                            <MudText Typo="Typo.h5">
+                                @(_isNewEntity ? TranslationService.GetTranslation("store.newOperator", "Nuovo Operatore") : TranslationService.GetTranslation("store.operatorDetail", "Dettaglio Operatore"))
+                            </MudText>
+                        </div>
+                        <div class="d-flex gap-2 align-center">
+                            @if (_hasUnsavedChanges)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Edit">
+                                    @TranslationService.GetTranslation("common.unsavedChanges", "Modifiche non salvate")
+                                </MudChip>
+                            }
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="SaveAsync"
+                                       Disabled="_isSaving"
+                                       Size="Size.Medium">
+                                @TranslationService.GetTranslation("common.save", "Salva")
+                            </MudButton>
+                        </div>
+                    </div>
+                    @if (!_isNewEntity)
+                    {
+                        <MudDivider Class="my-3" />
+                        <div class="d-flex align-center gap-4 flex-wrap">
+                            <div class="d-flex align-center gap-2">
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@_entity.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @@@_entity.Username - ID: @_entity.Id.ToString()[..8]...
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(_entity.Status)">
+                                @GetStatusText(_entity.Status)
+                            </MudChip>
+                            @if (_entity.IsOnShift)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">
+                                    @TranslationService.GetTranslation("status.onShift", "In Turno")
+                                </MudChip>
+                            }
+                        </div>
+                    }
+                </MudPaper>
+            </div>
+
+            <div class="eftable-wrapper">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudForm @ref="_form" Model="@_entity">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_entity.Name"
+                                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                              Required="true"
+                                              MaxLength="100"
+                                              Variant="Variant.Outlined"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_username"
+                                              Label="@TranslationService.GetTranslation("field.username", "Username")"
+                                              Required="true"
+                                              MaxLength="50"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(!_isNewEntity)"
+                                              HelperText="@(_isNewEntity ? "" : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+
+                            @if (_isNewEntity)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudTextField @bind-Value="_password"
+                                                  Label="@TranslationService.GetTranslation("field.password", "Password")"
+                                                  InputType="InputType.Password"
+                                                  Required="true"
+                                                  Variant="Variant.Outlined"
+                                                  HelperText="@TranslationService.GetTranslation("field.passwordHelper", "Lascia vuoto per generare automaticamente")"
+                                                  @bind-Value:after="MarkAsChanged" />
+                                </MudItem>
+                            }
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_entity.Email"
+                                              Label="@TranslationService.GetTranslation("field.email", "Email")"
+                                              MaxLength="100"
+                                              InputType="InputType.Email"
+                                              Variant="Variant.Outlined"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_entity.Role"
+                                              Label="@TranslationService.GetTranslation("field.role", "Ruolo")"
+                                              MaxLength="50"
+                                              Variant="Variant.Outlined"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="_entity.Status"
+                                           Label="@TranslationService.GetTranslation("field.status", "Status")"
+                                           Variant="Variant.Outlined"
+                                           @bind-Value:after="MarkAsChanged">
+                                    @foreach (CashierStatus status in Enum.GetValues(typeof(CashierStatus)))
+                                    {
+                                        <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="_entity.CashierGroupId"
+                                           Label="@TranslationService.GetTranslation("field.cashierGroup", "Gruppo Cassieri")"
+                                           Variant="Variant.Outlined"
+                                           T="Guid?"
+                                           Clearable="true"
+                                           @bind-Value:after="MarkAsChanged">
+                                    @foreach (var group in _userGroups)
+                                    {
+                                        <MudSelectItem Value="@((Guid?)group.Id)">@group.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_entity.PhoneNumber"
+                                              Label="@TranslationService.GetTranslation("field.phoneNumber", "Numero di Telefono")"
+                                              MaxLength="20"
+                                              Variant="Variant.Outlined"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+
+                            @if (_isNewEntity)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch @bind-Value="_photoConsent"
+                                               Label="@TranslationService.GetTranslation("field.photoConsent", "Consenso per la Foto (GDPR)")"
+                                               Color="Color.Primary"
+                                               @bind-Value:after="MarkAsChanged" />
+                                </MudItem>
+                            }
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_entity.Notes"
+                                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                              Lines="3"
+                                              MaxLength="200"
+                                              Variant="Variant.Outlined"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudPaper>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? OperatorId { get; set; }
+    [Parameter] public string? OperatorIdString { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private bool _isNewEntity = false;
+    private bool _hasUnsavedChanges = false;
+    private StoreUserDto _entity = new();
+    private string _username = string.Empty;
+    private string? _password;
+    private bool _photoConsent = false;
+    private List<StoreUserGroupDto> _userGroups = new();
+    private MudForm _form = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEntityAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var currentId = GetCurrentOperatorId();
+        if (_entity?.Id != currentId || (currentId == Guid.Empty && !_isNewEntity))
+            await LoadEntityAsync();
+    }
+
+    private Guid GetCurrentOperatorId()
+    {
+        if (OperatorId.HasValue)
+            return OperatorId.Value;
+
+        if (string.IsNullOrEmpty(OperatorIdString))
+            return Guid.Empty;
+
+        if (OperatorIdString.Equals("new", StringComparison.OrdinalIgnoreCase))
+            return Guid.Empty;
+
+        if (Guid.TryParse(OperatorIdString, out var parsedGuid))
+            return parsedGuid;
+
+        return Guid.Empty;
+    }
+
+    private async Task LoadEntityAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            var operatorId = GetCurrentOperatorId();
+
+            // Load user groups for dropdown
+            _userGroups = await StoreUserGroupService.GetAllAsync();
+
+            if (operatorId == Guid.Empty)
+            {
+                _isNewEntity = true;
+                _entity = new StoreUserDto { Status = CashierStatus.Active };
+                _username = string.Empty;
+                _password = null;
+                _photoConsent = false;
+            }
+            else
+            {
+                _isNewEntity = false;
+                var entity = await StoreUserService.GetByIdAsync(operatorId);
+                if (entity == null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("store.operatorNotFound", "Operatore non trovato"), Severity.Error);
+                    _entity = null!;
+                    return;
+                }
+                _entity = entity;
+                _username = entity.Username;
+            }
+            _hasUnsavedChanges = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading operator {OperatorId}", GetCurrentOperatorId());
+            Snackbar.Add(TranslationService.GetTranslation("store.loadError", "Errore nel caricamento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void MarkAsChanged()
+    {
+        _hasUnsavedChanges = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            _isSaving = true;
+            await _form.Validate();
+
+            if (!_form.IsValid)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("common.validationErrors", "Correggere gli errori di validazione"), Severity.Warning);
+                return;
+            }
+
+            if (_isNewEntity)
+            {
+                var createDto = new CreateStoreUserDto
+                {
+                    Name = _entity.Name,
+                    Username = _username,
+                    Email = _entity.Email,
+                    PasswordHash = _password, // Server will hash or generate
+                    Role = _entity.Role,
+                    Status = _entity.Status,
+                    Notes = _entity.Notes,
+                    CashierGroupId = _entity.CashierGroupId,
+                    PhoneNumber = _entity.PhoneNumber,
+                    PhotoConsent = _photoConsent
+                };
+
+                var created = await StoreUserService.CreateAsync(createDto);
+                if (created != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("store.operatorCreated", "Operatore creato con successo"), Severity.Success);
+                    NavigationManager.NavigateTo($"/store/operators/{created.Id}");
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("store.createError", "Errore nella creazione"), Severity.Error);
+                }
+            }
+            else
+            {
+                var updateDto = new UpdateStoreUserDto
+                {
+                    Name = _entity.Name,
+                    Email = _entity.Email,
+                    Role = _entity.Role,
+                    Status = _entity.Status,
+                    Notes = _entity.Notes,
+                    CashierGroupId = _entity.CashierGroupId,
+                    PhoneNumber = _entity.PhoneNumber
+                };
+
+                var updated = await StoreUserService.UpdateAsync(_entity.Id, updateDto);
+                if (updated != null)
+                {
+                    _entity = updated;
+                    _hasUnsavedChanges = false;
+                    Snackbar.Add(TranslationService.GetTranslation("store.operatorSaved", "Operatore salvato con successo"), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio"), Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving operator");
+            Snackbar.Add(TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task TryNavigateAway(string target)
+    {
+        if (!_hasUnsavedChanges)
+        {
+            NavigationManager.NavigateTo(target);
+            return;
+        }
+
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("common.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
+        var saveText = TranslationService.GetTranslation("common.save", "Salva");
+        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
+        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+
+        if (result == true)
+        {
+            await SaveAsync();
+            NavigationManager.NavigateTo(target);
+        }
+        else if (result == false)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+    }
+
+    private Color GetStatusColor(CashierStatus status) => status switch
+    {
+        CashierStatus.Active => Color.Success,
+        CashierStatus.Suspended => Color.Warning,
+        CashierStatus.Deleted => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(CashierStatus status) => status switch
+    {
+        CashierStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        CashierStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+        CashierStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+        _ => status.ToString()
+    };
+}

@@ -1,0 +1,425 @@
+@page "/store/operator-groups/{GroupId:guid}"
+@page "/store/operator-groups/{GroupIdString}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Store
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<OperatorGroupDetail> Logger
+@inject EventForge.Client.Services.Store.IStoreUserGroupService StoreUserGroupService
+
+<PageLoadingOverlay Visible="_isLoading || _isSaving"
+                     Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="product-page-root">
+        @if (_entity == null)
+        {
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+                <MudAlert Severity="Severity.Error">
+                    @TranslationService.GetTranslation("store.operatorGroupNotFound", "Gruppo operatori non trovato")
+                </MudAlert>
+            </MudContainer>
+        }
+        else
+        {
+            <div class="product-top">
+                <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <div class="d-flex justify-space-between align-center flex-wrap gap-2">
+                        <div class="d-flex align-center gap-2">
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => TryNavigateAway("/store/operator-groups"))"
+                                           Size="Size.Medium"
+                                           title="@TranslationService.GetTranslation("common.back", "Indietro")" />
+                            <MudText Typo="Typo.h5">
+                                @(_isNewEntity ? TranslationService.GetTranslation("store.newOperatorGroup", "Nuovo Gruppo Operatori") : TranslationService.GetTranslation("store.operatorGroupDetail", "Dettaglio Gruppo Operatori"))
+                            </MudText>
+                        </div>
+                        <div class="d-flex gap-2 align-center">
+                            @if (_hasUnsavedChanges)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Edit">
+                                    @TranslationService.GetTranslation("common.unsavedChanges", "Modifiche non salvate")
+                                </MudChip>
+                            }
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="SaveAsync"
+                                       Disabled="_isSaving || (_entity.IsSystemGroup && !_isNewEntity)"
+                                       Size="Size.Medium">
+                                @TranslationService.GetTranslation("common.save", "Salva")
+                            </MudButton>
+                        </div>
+                    </div>
+                    @if (!_isNewEntity)
+                    {
+                        <MudDivider Class="my-3" />
+                        <div class="d-flex align-center gap-4 flex-wrap">
+                            <div class="d-flex align-center gap-2">
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Groups" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@_entity.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        Code: @_entity.Code - ID: @_entity.Id.ToString()[..8]...
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(_entity.Status)">
+                                @GetStatusText(_entity.Status)
+                            </MudChip>
+                            @if (_entity.IsSystemGroup)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Default" Icon="@Icons.Material.Outlined.Lock">
+                                    @TranslationService.GetTranslation("status.systemGroup", "Gruppo di Sistema")
+                                </MudChip>
+                            }
+                            @if (_entity.IsDefault)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Warning" Icon="@Icons.Material.Outlined.Star">
+                                    @TranslationService.GetTranslation("status.default", "Default")
+                                </MudChip>
+                            }
+                        </div>
+                    }
+                </MudPaper>
+            </div>
+
+            <div class="eftable-wrapper">
+                <MudPaper Elevation="2" Class="pa-4">
+                    @if (_entity.IsSystemGroup && !_isNewEntity)
+                    {
+                        <MudAlert Severity="Severity.Info" Class="mb-4">
+                            @TranslationService.GetTranslation("store.systemGroupReadOnly", "Questo è un gruppo di sistema e non può essere modificato.")
+                        </MudAlert>
+                    }
+                    <MudForm @ref="_form" Model="@_entity">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_entity.Code"
+                                              Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                                              Required="true"
+                                              MaxLength="50"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_entity.Name"
+                                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                              Required="true"
+                                              MaxLength="50"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="_entity.Status"
+                                           Label="@TranslationService.GetTranslation("field.status", "Status")"
+                                           Variant="Variant.Outlined"
+                                           Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
+                                           @bind-Value:after="MarkAsChanged">
+                                    @foreach (CashierGroupStatus status in Enum.GetValues(typeof(CashierGroupStatus)))
+                                    {
+                                        <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_entity.ColorHex"
+                                              Label="@TranslationService.GetTranslation("field.colorHex", "Colore (Hex)")"
+                                              MaxLength="7"
+                                              Placeholder="#FF5733"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
+                                              Pattern="^#([A-Fa-f0-9]{6})$"
+                                              @bind-Value:after="MarkAsChanged"
+                                              HelperText="@TranslationService.GetTranslation("field.colorHexHelper", "Formato: #RRGGBB")" />
+                            </MudItem>
+
+                            @if (_isNewEntity)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch @bind-Value="_entity.IsSystemGroup"
+                                               Label="@TranslationService.GetTranslation("field.isSystemGroup", "Gruppo di Sistema")"
+                                               Color="Color.Primary"
+                                               @bind-Value:after="MarkAsChanged" />
+                                </MudItem>
+
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch @bind-Value="_entity.IsDefault"
+                                               Label="@TranslationService.GetTranslation("field.isDefault", "Gruppo Default")"
+                                               Color="Color.Primary"
+                                               @bind-Value:after="MarkAsChanged" />
+                                </MudItem>
+                            }
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_entity.Description"
+                                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                              Lines="3"
+                                              MaxLength="200"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
+                                              @bind-Value:after="MarkAsChanged" />
+                            </MudItem>
+
+                            @if (!_isNewEntity)
+                            {
+                                <MudItem xs="12">
+                                    <MudDivider Class="my-4" />
+                                    <MudText Typo="Typo.h6" Class="mb-2">
+                                        @TranslationService.GetTranslation("store.groupStatistics", "Statistiche Gruppo")
+                                    </MudText>
+                                    <MudGrid>
+                                        <MudItem xs="12" sm="6" md="4">
+                                            <MudPaper Elevation="1" Class="pa-4">
+                                                <div class="d-flex align-center gap-2">
+                                                    <MudIcon Icon="@Icons.Material.Outlined.People" Color="Color.Primary" />
+                                                    <div>
+                                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                            @TranslationService.GetTranslation("field.operatorsCount", "Operatori")
+                                                        </MudText>
+                                                        <MudText Typo="Typo.h6">@_entity.CashierCount</MudText>
+                                                    </div>
+                                                </div>
+                                            </MudPaper>
+                                        </MudItem>
+                                        <MudItem xs="12" sm="6" md="4">
+                                            <MudPaper Elevation="1" Class="pa-4">
+                                                <div class="d-flex align-center gap-2">
+                                                    <MudIcon Icon="@Icons.Material.Outlined.Security" Color="Color.Primary" />
+                                                    <div>
+                                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                            @TranslationService.GetTranslation("field.privilegesCount", "Privilegi")
+                                                        </MudText>
+                                                        <MudText Typo="Typo.h6">@_entity.PrivilegeCount</MudText>
+                                                    </div>
+                                                </div>
+                                            </MudPaper>
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudForm>
+                </MudPaper>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? GroupId { get; set; }
+    [Parameter] public string? GroupIdString { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private bool _isNewEntity = false;
+    private bool _hasUnsavedChanges = false;
+    private StoreUserGroupDto _entity = new();
+    private MudForm _form = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEntityAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var currentId = GetCurrentGroupId();
+        if (_entity?.Id != currentId || (currentId == Guid.Empty && !_isNewEntity))
+            await LoadEntityAsync();
+    }
+
+    private Guid GetCurrentGroupId()
+    {
+        if (GroupId.HasValue)
+            return GroupId.Value;
+
+        if (string.IsNullOrEmpty(GroupIdString))
+            return Guid.Empty;
+
+        if (GroupIdString.Equals("new", StringComparison.OrdinalIgnoreCase))
+            return Guid.Empty;
+
+        if (Guid.TryParse(GroupIdString, out var parsedGuid))
+            return parsedGuid;
+
+        return Guid.Empty;
+    }
+
+    private async Task LoadEntityAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            var groupId = GetCurrentGroupId();
+
+            if (groupId == Guid.Empty)
+            {
+                _isNewEntity = true;
+                _entity = new StoreUserGroupDto { Status = CashierGroupStatus.Active };
+            }
+            else
+            {
+                _isNewEntity = false;
+                var entity = await StoreUserGroupService.GetByIdAsync(groupId);
+                if (entity == null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("store.operatorGroupNotFound", "Gruppo non trovato"), Severity.Error);
+                    _entity = null!;
+                    return;
+                }
+                _entity = entity;
+            }
+            _hasUnsavedChanges = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading operator group {GroupId}", GetCurrentGroupId());
+            Snackbar.Add(TranslationService.GetTranslation("store.loadError", "Errore nel caricamento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void MarkAsChanged()
+    {
+        _hasUnsavedChanges = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            if (_entity.IsSystemGroup && !_isNewEntity)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("store.cannotModifySystemGroup", "Non è possibile modificare un gruppo di sistema"), Severity.Warning);
+                return;
+            }
+
+            _isSaving = true;
+            await _form.Validate();
+
+            if (!_form.IsValid)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("common.validationErrors", "Correggere gli errori di validazione"), Severity.Warning);
+                return;
+            }
+
+            if (_isNewEntity)
+            {
+                var createDto = new CreateStoreUserGroupDto
+                {
+                    Code = _entity.Code,
+                    Name = _entity.Name,
+                    Description = _entity.Description,
+                    Status = _entity.Status,
+                    ColorHex = _entity.ColorHex,
+                    IsSystemGroup = _entity.IsSystemGroup,
+                    IsDefault = _entity.IsDefault
+                };
+
+                var created = await StoreUserGroupService.CreateAsync(createDto);
+                if (created != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("store.operatorGroupCreated", "Gruppo creato con successo"), Severity.Success);
+                    NavigationManager.NavigateTo($"/store/operator-groups/{created.Id}");
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("store.createError", "Errore nella creazione"), Severity.Error);
+                }
+            }
+            else
+            {
+                var updateDto = new UpdateStoreUserGroupDto
+                {
+                    Code = _entity.Code,
+                    Name = _entity.Name,
+                    Description = _entity.Description,
+                    Status = _entity.Status,
+                    ColorHex = _entity.ColorHex
+                };
+
+                var updated = await StoreUserGroupService.UpdateAsync(_entity.Id, updateDto);
+                if (updated != null)
+                {
+                    _entity = updated;
+                    _hasUnsavedChanges = false;
+                    Snackbar.Add(TranslationService.GetTranslation("store.operatorGroupSaved", "Gruppo salvato con successo"), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio"), Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving operator group");
+            Snackbar.Add(TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task TryNavigateAway(string target)
+    {
+        if (!_hasUnsavedChanges)
+        {
+            NavigationManager.NavigateTo(target);
+            return;
+        }
+
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("common.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
+        var saveText = TranslationService.GetTranslation("common.save", "Salva");
+        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
+        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+
+        if (result == true)
+        {
+            await SaveAsync();
+            NavigationManager.NavigateTo(target);
+        }
+        else if (result == false)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+    }
+
+    private Color GetStatusColor(CashierGroupStatus status) => status switch
+    {
+        CashierGroupStatus.Active => Color.Success,
+        CashierGroupStatus.Suspended => Color.Warning,
+        CashierGroupStatus.Deleted => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(CashierGroupStatus status) => status switch
+    {
+        CashierGroupStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        CashierGroupStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+        CashierGroupStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+        _ => status.ToString()
+    };
+}
