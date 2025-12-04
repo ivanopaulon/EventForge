@@ -1156,10 +1156,9 @@
                             }
                         }
                         
-                        StateHasChanged();
-                        
                         // Clear loading state after update completes
                         _isUpdatingItems = false;
+                        StateHasChanged();
                     }
                     catch (Exception ex)
                     {
@@ -1171,6 +1170,7 @@
                         
                         // Clear loading state on error
                         _isUpdatingItems = false;
+                        StateHasChanged();
                     }
                 });
             };
