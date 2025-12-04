@@ -230,6 +230,13 @@
                     @if (PaymentMethodRequiresIntegration)
                     {
                         <MudItem xs="12">
+                            @if (!_isCreateMode)
+                            {
+                                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                                    @TranslationService.GetTranslation("paymentMethod.integrationConfigSecurityNote", 
+                                        "Nota: La configurazione di integrazione non viene visualizzata per motivi di sicurezza. Lasciare vuoto per mantenere quella esistente, oppure inserire una nuova configurazione.")
+                                </MudAlert>
+                            }
                             <MudTextField @bind-Value="PaymentMethodIntegrationConfig"
                                           Label="@TranslationService.GetTranslation("field.integrationConfig", "Configurazione Integrazione (JSON)")"
                                           Variant="Variant.Outlined"
@@ -312,7 +319,7 @@
         set { if (_paymentMethod != null) _paymentMethod.RequiresIntegration = value; }
     }
 
-    private string? _integrationConfig = string.Empty;
+    private string? _integrationConfig = null;
     
     private string? PaymentMethodIntegrationConfig
     {
@@ -359,6 +366,7 @@
                     DisplayOrder = 0,
                     RequiresIntegration = false
                 };
+                _integrationConfig = null;
                 _originalPaymentMethodSnapshot = SerializePaymentMethod(_paymentMethod);
             }
             else if (PaymentMethodId.HasValue)
@@ -368,6 +376,9 @@
 
                 if (_paymentMethod != null)
                 {
+                    // Note: IntegrationConfig is not returned by the API for security reasons (may contain sensitive data)
+                    // When editing, the field will be empty unless the user enters a new value
+                    _integrationConfig = null;
                     _originalPaymentMethodSnapshot = SerializePaymentMethod(_paymentMethod);
                 }
             }
