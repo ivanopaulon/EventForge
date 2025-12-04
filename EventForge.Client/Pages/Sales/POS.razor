@@ -334,7 +334,7 @@
                     _currentSession = selectedSession;
                     _selectedPosId = selectedSession.PosId;
                     _selectedCustomer = selectedSession.CustomerId.HasValue 
-                        ? await BusinessPartyService.GetByIdAsync(selectedSession.CustomerId.Value) 
+                        ? await BusinessPartyService.GetBusinessPartyAsync(selectedSession.CustomerId.Value) 
                         : null;
                 }
             }
@@ -451,14 +451,14 @@
         return Task.CompletedTask;
     }
 
-    private async Task<IEnumerable<BusinessPartyDto>> SearchCustomersAsync(string searchTerm)
+    private async Task<IEnumerable<BusinessPartyDto>> SearchCustomersAsync(string searchTerm, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
             return Enumerable.Empty<BusinessPartyDto>();
 
         try
         {
-            var customers = await BusinessPartyService.SearchAsync(searchTerm);
+            var customers = await BusinessPartyService.SearchBusinessPartiesAsync(searchTerm, null, 50);
             return customers ?? Enumerable.Empty<BusinessPartyDto>();
         }
         catch (Exception ex)
@@ -493,7 +493,6 @@
             var updateDto = new UpdateSaleItemDto
             {
                 Quantity = item.Quantity,
-                UnitPrice = item.UnitPrice,
                 DiscountPercent = item.DiscountPercent,
                 Notes = item.Notes
             };

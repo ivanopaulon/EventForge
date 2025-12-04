@@ -50,7 +50,10 @@
                              AdornmentIcon="@Icons.Material.Filled.Person">
                 <ItemTemplate Context="customer">
                     <MudText Typo="Typo.body2">@customer.Name</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@customer.Code</MudText>
+                    @if (!string.IsNullOrEmpty(customer.TaxCode))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@customer.TaxCode</MudText>
+                    }
                 </ItemTemplate>
             </MudAutocomplete>
         </MudItem>
@@ -122,7 +125,7 @@
     public bool IsSessionActive { get; set; }
 
     [Parameter]
-    public Func<string, Task<IEnumerable<BusinessPartyDto>>>? SearchCustomers { get; set; }
+    public Func<string, CancellationToken, Task<IEnumerable<BusinessPartyDto>>>? SearchCustomers { get; set; }
 
     [Parameter]
     public EventCallback OnParkClick { get; set; }
