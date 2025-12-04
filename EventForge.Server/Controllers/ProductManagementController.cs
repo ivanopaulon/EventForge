@@ -176,6 +176,52 @@ public class ProductManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Performs unified product search with exact code match priority.
+    /// First searches for exact match on barcode/product code (case-insensitive).
+    /// If no exact match found, performs text search on product name, description, and brand.
+    /// </summary>
+    /// <param name="q">Search query string</param>
+    /// <param name="maxResults">Maximum number of results to return (default: 20)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Search results with exact match and/or text-based results</returns>
+    /// <response code="200">Returns the search results</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("products/search")]
+    [ProducesResponseType(typeof(ProductSearchResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductSearchResultDto>> SearchProducts(
+        [FromQuery] string q,
+        [FromQuery] int maxResults = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+        {
+            return BadRequest(CreateValidationProblemDetails("Query parameter 'q' is required."));
+        }
+
+        if (maxResults < 1 || maxResults > 100)
+        {
+            return BadRequest(CreateValidationProblemDetails("maxResults must be between 1 and 100."));
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _productService.SearchProductsAsync(q, maxResults, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while searching products.");
+            return CreateInternalServerErrorProblem("An error occurred while searching products.", ex);
+        }
+    }
+
+    /// <summary>
     /// Creates a new product.
     /// </summary>
     /// <param name="createProductDto">Product creation data</param>

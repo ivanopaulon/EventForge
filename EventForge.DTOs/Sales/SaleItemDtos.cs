@@ -137,5 +137,35 @@ namespace EventForge.DTOs.Sales
         /// Applied promotion identifier.
         /// </summary>
         public Guid? PromotionId { get; set; }
+
+        /// <summary>
+        /// Thumbnail URL for product display in table.
+        /// </summary>
+        public string? ProductThumbnailUrl { get; set; }
+
+        /// <summary>
+        /// Full image URL for product preview.
+        /// </summary>
+        public string? ProductImageUrl { get; set; }
+
+        /// <summary>
+        /// VAT rate name (e.g., "22%", "10%", "4%").
+        /// </summary>
+        public string? VatRateName { get; set; }
+
+        /// <summary>
+        /// VAT rate identifier.
+        /// </summary>
+        public Guid? VatRateId { get; set; }
+
+        /// <summary>
+        /// Unit of measure name (e.g., "PZ", "KG").
+        /// </summary>
+        public string? UnitOfMeasureName { get; set; }
+
+        /// <summary>
+        /// Brand name.
+        /// </summary>
+        public string? BrandName { get; set; }
     }
 }

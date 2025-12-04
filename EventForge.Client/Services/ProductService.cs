@@ -822,6 +822,23 @@ public class ProductService : IProductService
             return null;
         }
     }
+
+    public async Task<ProductSearchResultDto?> SearchProductsAsync(string query, int maxResults = 20)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return null;
+
+            var url = $"{BaseUrl}/search?q={Uri.EscapeDataString(query)}&maxResults={maxResults}";
+            return await _httpClientService.GetAsync<ProductSearchResultDto>(url);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching products with query {Query}", query);
+            return null;
+        }
+    }
 }
 
 public class ImageUploadResultDto

@@ -742,8 +742,19 @@ public class SaleSessionService : ISaleSessionService
         _ = await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken)
+    private async Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken)
     {
+        // Get product IDs from items
+        var productIds = session.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId).Distinct().ToList();
+
+        // Fetch product details including Brand, VatRate, ImageDocument for all items at once
+        var products = await _context.Products
+            .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
+            .Include(p => p.Brand)
+            .Include(p => p.VatRate)
+            .Include(p => p.ImageDocument)
+            .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
+
         var dto = new SaleSessionDto
         {
             Id = session.Id,
@@ -763,17 +774,17 @@ public class SaleSessionService : ISaleSessionService
             UpdatedAt = session.ModifiedAt ?? session.CreatedAt,
             ClosedAt = session.ClosedAt,
             CouponCodes = session.CouponCodes,
-            Items = session.Items.Where(i => !i.IsDeleted).Select(MapItemToDto).ToList(),
+            Items = session.Items.Where(i => !i.IsDeleted).Select(i => MapItemToDto(i, products)).ToList(),
             Payments = session.Payments.Where(p => !p.IsDeleted).Select(MapPaymentToDto).ToList(),
             Notes = session.Notes.Select(MapNoteToDto).ToList()
         };
 
-        return Task.FromResult(dto);
+        return dto;
     }
 
-    private SaleItemDto MapItemToDto(SaleItem item)
+    private SaleItemDto MapItemToDto(SaleItem item, Dictionary<Guid, EventForge.Server.Data.Entities.Products.Product> products)
     {
-        return new SaleItemDto
+        var dto = new SaleItemDto
         {
             Id = item.Id,
             ProductId = item.ProductId,
@@ -789,6 +800,27 @@ public class SaleSessionService : ISaleSessionService
             IsService = item.IsService,
             PromotionId = item.PromotionId
         };
+
+        // Enrich with product details if available
+        if (products.TryGetValue(item.ProductId, out var product))
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            dto.ProductImageUrl = product.ImageUrl;
+#pragma warning restore CS0618 // Type or member is obsolete
+            // Use ImageDocument if available, fallback to deprecated ImageUrl
+            if (product.ImageDocument != null)
+            {
+                dto.ProductThumbnailUrl = product.ImageDocument.ThumbnailStorageKey ?? product.ImageDocument.StorageKey;
+                dto.ProductImageUrl = product.ImageDocument.Url ?? product.ImageDocument.StorageKey;
+            }
+            dto.BrandName = product.Brand?.Name;
+            dto.VatRateId = product.VatRateId;
+            dto.VatRateName = product.VatRate?.Name;
+            // Note: UnitOfMeasureName would require additional context from ProductCode/ProductUnit
+            // For now, we'll leave it null as it requires the specific code that was scanned
+        }
+
+        return dto;
     }
 
     private SalePaymentDto MapPaymentToDto(SalePayment payment)
