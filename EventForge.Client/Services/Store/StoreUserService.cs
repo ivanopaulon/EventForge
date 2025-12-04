@@ -34,6 +34,8 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserService] Error getting all store users: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error getting all store users");
             throw;
         }
@@ -51,6 +53,8 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserService] Error getting store user {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error getting store user {Id}", id);
             throw;
         }
@@ -68,6 +72,8 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserService] Error getting store user by username {username}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error getting store user by username {Username}", username);
             throw;
         }
@@ -94,6 +100,8 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserService] Error creating store user: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error creating store user");
             throw new InvalidOperationException("Errore nella creazione dell'operatore. Verifica i dati e riprova.", ex);
         }
@@ -120,6 +128,8 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserService] Error updating store user {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error updating store user {Id}", id);
             throw new InvalidOperationException("Errore nell'aggiornamento dell'operatore. Verifica i dati e riprova.", ex);
         }
@@ -146,6 +156,8 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserService] Error deleting store user {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error deleting store user {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione dell'operatore.", ex);
         }
@@ -174,6 +186,8 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserService] Error getting paged store users (page: {page}, pageSize: {pageSize}): {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error getting paged store users (page: {Page}, pageSize: {PageSize})", page, pageSize);
             throw new InvalidOperationException("Errore nel caricamento degli operatori.", ex);
         }

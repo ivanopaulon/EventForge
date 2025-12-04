@@ -1,4 +1,5 @@
 using EventForge.DTOs.Sales;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services.Sales;
 
@@ -11,6 +12,11 @@ public interface IPaymentMethodService
     /// Gets all payment methods.
     /// </summary>
     Task<List<PaymentMethodDto>?> GetAllAsync();
+
+    /// <summary>
+    /// Gets paged payment methods.
+    /// </summary>
+    Task<PagedResult<PaymentMethodDto>> GetPagedAsync(int page = 1, int pageSize = 50);
 
     /// <summary>
     /// Gets only active payment methods.

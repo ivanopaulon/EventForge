@@ -274,7 +274,9 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("store.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            var errorMessage = ex.Message;
+            Console.WriteLine($"[UI] PosManagement page load error: {errorMessage}");
+            Snackbar.Add($"Errore nel caricamento della pagina: {errorMessage}", Severity.Error);
             Logger.LogError(ex, "Error loading POS management page");
         }
         finally
@@ -297,7 +299,9 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("store.loadingPosError", "Errore nel caricamento dei punti cassa: {0}", ex.Message), Severity.Error);
+            var errorMessage = ex.Message;
+            Console.WriteLine($"[UI] PosManagement load data error: {errorMessage}");
+            Snackbar.Add($"Errore: {errorMessage}", Severity.Error);
             Logger.LogError(ex, "Error loading POS");
         }
         finally

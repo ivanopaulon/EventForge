@@ -368,7 +368,9 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("paymentMethod.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            var errorMessage = ex.Message;
+            Console.WriteLine($"[UI] PaymentMethodManagement page load error: {errorMessage}");
+            Snackbar.Add($"Errore nel caricamento della pagina: {errorMessage}", Severity.Error);
             Logger.LogError(ex, "Error loading payment methods page");
         }
         finally
@@ -394,7 +396,9 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("paymentMethod.loadingPaymentMethodsError", "Errore nel caricamento dei metodi di pagamento: {0}", ex.Message), Severity.Error);
+            var errorMessage = ex.Message;
+            Console.WriteLine($"[UI] PaymentMethodManagement load error: {errorMessage}");
+            Snackbar.Add($"Errore: {errorMessage}", Severity.Error);
             Logger.LogError(ex, "Error loading payment methods");
         }
         finally

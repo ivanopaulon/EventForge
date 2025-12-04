@@ -1,4 +1,5 @@
 using EventForge.DTOs.Sales;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services.Sales;
 
@@ -21,12 +22,34 @@ public class PaymentMethodService : IPaymentMethodService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<PaymentMethodDto>>(BaseUrl);
+            // Use a large page size (1000) to retrieve all items in a single request
+            // This is acceptable for payment methods as there are typically few records
+            var pagedResult = await GetPagedAsync(1, 1000);
+            return pagedResult.Items?.ToList();
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[PaymentMethodService] Error retrieving all payment methods: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error retrieving all payment methods");
-            return null;
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<PaymentMethodDto>> GetPagedAsync(int page = 1, int pageSize = 50)
+    {
+        try
+        {
+            var result = await _httpClientService.GetAsync<PagedResult<PaymentMethodDto>>(
+                $"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return result ?? new PagedResult<PaymentMethodDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PaymentMethodService] Error retrieving paged payment methods (page: {page}, pageSize: {pageSize}): {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
+            _logger.LogError(ex, "Error retrieving paged payment methods");
+            throw;
         }
     }
 
@@ -38,8 +61,10 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[PaymentMethodService] Error retrieving active payment methods: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error retrieving active payment methods");
-            return null;
+            throw;
         }
     }
 
@@ -51,8 +76,10 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[PaymentMethodService] Error retrieving payment method {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error retrieving payment method {Id}", id);
-            return null;
+            throw;
         }
     }
 
@@ -64,8 +91,10 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[PaymentMethodService] Error creating payment method: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error creating payment method");
-            return null;
+            throw;
         }
     }
 
@@ -77,8 +106,10 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[PaymentMethodService] Error updating payment method {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error updating payment method {Id}", id);
-            return null;
+            throw;
         }
     }
 
@@ -91,8 +122,10 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[PaymentMethodService] Error deleting payment method {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error deleting payment method {Id}", id);
-            return false;
+            throw;
         }
     }
 }
