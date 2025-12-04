@@ -1179,7 +1179,7 @@
     private async Task FlushPendingUpdatesAsync()
     {
         // Check if there are pending updates
-        if (!_pendingItemUpdates.Any() || _currentSession == null)
+        if (_pendingItemUpdates.Count == 0 || _currentSession == null)
             return;
         
         try
