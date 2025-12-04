@@ -1,0 +1,516 @@
+@page "/store/payment-methods/new"
+@page "/store/payment-methods/{PaymentMethodId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Sales
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Services.Sales
+@attribute [Authorize]
+@inject IPaymentMethodService PaymentMethodService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<PaymentMethodDetail> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <PageLoadingOverlay Visible="_isLoading || _isSaving"
+                        Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+    @if (!_isLoading && _paymentMethod == null && !_isCreateMode)
+    {
+        <MudAlert Severity="Severity.Error">
+            @TranslationService.GetTranslation("paymentMethod.notFound", "Metodo di pagamento non trovato")
+        </MudAlert>
+    }
+    else if (!_isLoading)
+    {
+        <!-- Page Header -->
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                                       Color="Color.Primary"
+                                       OnClick="@(() => TryNavigateAway("/store/payment-methods"))"
+                                       Size="Size.Small" />
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Payment" Class="mr-2" />
+                            @(_isCreateMode ? TranslationService.GetTranslation("paymentMethod.createNew", "Crea Nuovo Metodo di Pagamento") : _paymentMethod?.Name)
+                        </MudText>
+
+                        @if (HasUnsavedChanges())
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
+                                @TranslationService.GetTranslation("paymentMethod.unsavedChanges", "Modifiche non salvate")
+                            </MudChip>
+                        }
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SavePaymentMethodAsync"
+                               Disabled="_isSaving"
+                               Size="Size.Small">
+                        @TranslationService.GetTranslation("common.save", "Salva")
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+
+        <!-- Form Section -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudForm @ref="_form" Class="pa-2">
+                <MudGrid>
+                    <!-- Required Fields -->
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" Class="mb-4">
+                            @TranslationService.GetTranslation("paymentMethod.requiredInfo", "Informazioni Obbligatorie")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="PaymentMethodCode"
+                                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("paymentMethod.error.codeRequired", "Il codice è obbligatorio")"
+                                      MaxLength="50"
+                                      Immediate="true"
+                                      Disabled="@(!_isCreateMode)"
+                                      OnBlur="@(() => MarkChanged())"
+                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.code", "Codice univoco (es. CASH, CARD, BANK)")" />
+                    </MudItem>
+                    
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="PaymentMethodName"
+                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("paymentMethod.error.nameRequired", "Il nome è obbligatorio")"
+                                      MaxLength="100"
+                                      Immediate="true"
+                                      OnBlur="@(() => MarkChanged())"
+                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.name", "Nome visualizzato (es. Contanti, Carta di Credito)")" />
+                    </MudItem>
+
+                    <!-- Optional Fields -->
+                    <MudItem xs="12" Class="mt-4">
+                        <MudDivider />
+                        <MudText Typo="Typo.h6" Class="my-4">
+                            @TranslationService.GetTranslation("paymentMethod.optionalInfo", "Informazioni Opzionali")
+                        </MudText>
+                    </MudItem>
+                    
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="PaymentMethodDescription"
+                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      MaxLength="500"
+                                      OnBlur="@(() => MarkChanged())"
+                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.description", "Descrizione opzionale del metodo di pagamento")" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="PaymentMethodIcon"
+                                   Label="@TranslationService.GetTranslation("field.icon", "Icona")"
+                                   Variant="Variant.Outlined"
+                                   OnBlur="@(() => MarkChanged())"
+                                   HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.icon", "Icona da visualizzare nell'interfaccia")">
+                            <MudSelectItem Value="@("AttachMoney")">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="mr-2" />
+                                    AttachMoney (Contanti)
+                                </div>
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("CreditCard")">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" Class="mr-2" />
+                                    CreditCard (Carta di Credito)
+                                </div>
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Payment")">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" />
+                                    Payment (Bancomat/Debit)
+                                </div>
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("AccountBalance")">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Class="mr-2" />
+                                    AccountBalance (Bonifico)
+                                </div>
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Money")">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Money" Class="mr-2" />
+                                    Money (Denaro)
+                                </div>
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("LocalAtm")">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.LocalAtm" Class="mr-2" />
+                                    LocalAtm (ATM/Bancomat)
+                                </div>
+                            </MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-3 d-flex align-center" Style="border: 1px solid var(--mud-palette-divider);">
+                            <MudText Typo="Typo.body2" Class="mr-3">
+                                @TranslationService.GetTranslation("paymentMethod.iconPreview", "Anteprima Icona:")
+                            </MudText>
+                            @if (!string.IsNullOrEmpty(PaymentMethodIcon))
+                            {
+                                <MudIcon Icon="@GetMaterialIcon(PaymentMethodIcon)" Size="Size.Large" Color="Color.Primary" />
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    @TranslationService.GetTranslation("paymentMethod.noIconSelected", "Nessuna icona selezionata")
+                                </MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="PaymentMethodDisplayOrder"
+                                        Label="@TranslationService.GetTranslation("field.displayOrder", "Ordine di Visualizzazione")"
+                                        Variant="Variant.Outlined"
+                                        Min="0"
+                                        OnBlur="@(() => MarkChanged())"
+                                        HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.displayOrder", "Ordine di visualizzazione (0 = primo)")" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSwitch @bind-Value="PaymentMethodIsActive"
+                                  Label="@TranslationService.GetTranslation("field.isActive", "Attivo")"
+                                  Color="Color.Primary"
+                                  Class="mt-2"
+                                  OnBlur="@(() => MarkChanged())" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("paymentMethod.helperText.isActive", "Se attivo, il metodo sarà disponibile per le vendite")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSwitch @bind-Value="PaymentMethodAllowsChange"
+                                  Label="@TranslationService.GetTranslation("field.allowsChange", "Permette Resto")"
+                                  Color="Color.Primary"
+                                  Class="mt-2"
+                                  OnBlur="@(() => MarkChanged())" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("paymentMethod.helperText.allowsChange", "Se il cliente può ricevere il resto (tipico per contanti)")
+                        </MudText>
+                    </MudItem>
+
+                    <!-- Integration Settings -->
+                    <MudItem xs="12" Class="mt-4">
+                        <MudDivider />
+                        <MudText Typo="Typo.h6" Class="my-4">
+                            @TranslationService.GetTranslation("paymentMethod.integrationSettings", "Impostazioni Integrazione")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="PaymentMethodRequiresIntegration"
+                                  Label="@TranslationService.GetTranslation("field.requiresIntegration", "Richiede Integrazione Esterna")"
+                                  Color="Color.Primary"
+                                  Class="mt-2"
+                                  OnBlur="@(() => MarkChanged())" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("paymentMethod.helperText.requiresIntegration", "Attiva se il metodo richiede integrazione con sistemi esterni (es. POS bancario)")
+                        </MudText>
+                    </MudItem>
+
+                    @if (PaymentMethodRequiresIntegration)
+                    {
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="PaymentMethodIntegrationConfig"
+                                          Label="@TranslationService.GetTranslation("field.integrationConfig", "Configurazione Integrazione (JSON)")"
+                                          Variant="Variant.Outlined"
+                                          Lines="5"
+                                          MaxLength="2000"
+                                          OnBlur="@(() => MarkChanged())"
+                                          HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.integrationConfig", "Configurazione JSON per l'integrazione esterna")" />
+                        </MudItem>
+                    }
+
+                    @if (!_isCreateMode && _paymentMethod != null)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@_paymentMethod.Id.ToString()"
+                                          Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true"
+                                          aria-label="@TranslationService.GetTranslation("paymentMethod.aria.uniqueId", "Identificativo unico")" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid? PaymentMethodId { get; set; }
+
+    private PaymentMethodDto? _paymentMethod;
+    private bool _isLoading = true;
+    private bool _isCreateMode => PaymentMethodId == null || PaymentMethodId == Guid.Empty;
+    private bool _isSaving = false;
+    private MudForm? _form;
+
+    // Snapshot for unsaved detection
+    private string _originalPaymentMethodSnapshot = string.Empty;
+    private bool _hasLocalChanges = false;
+
+    // Bound properties
+    private string PaymentMethodCode
+    {
+        get => _paymentMethod?.Code ?? string.Empty;
+        set { if (_paymentMethod != null) _paymentMethod.Code = value; }
+    }
+
+    private string PaymentMethodName
+    {
+        get => _paymentMethod?.Name ?? string.Empty;
+        set { if (_paymentMethod != null) _paymentMethod.Name = value; }
+    }
+
+    private string? PaymentMethodDescription
+    {
+        get => _paymentMethod?.Description;
+        set { if (_paymentMethod != null) _paymentMethod.Description = value; }
+    }
+
+    private string? PaymentMethodIcon
+    {
+        get => _paymentMethod?.Icon;
+        set { if (_paymentMethod != null) _paymentMethod.Icon = value; }
+    }
+
+    private bool PaymentMethodIsActive
+    {
+        get => _paymentMethod?.IsActive ?? true;
+        set { if (_paymentMethod != null) _paymentMethod.IsActive = value; }
+    }
+
+    private int PaymentMethodDisplayOrder
+    {
+        get => _paymentMethod?.DisplayOrder ?? 0;
+        set { if (_paymentMethod != null) _paymentMethod.DisplayOrder = value; }
+    }
+
+    private bool PaymentMethodRequiresIntegration
+    {
+        get => _paymentMethod?.RequiresIntegration ?? false;
+        set { if (_paymentMethod != null) _paymentMethod.RequiresIntegration = value; }
+    }
+
+    private string? _integrationConfig = string.Empty;
+    
+    private string? PaymentMethodIntegrationConfig
+    {
+        get => _integrationConfig;
+        set { _integrationConfig = value; MarkChanged(); }
+    }
+
+    private bool PaymentMethodAllowsChange
+    {
+        get => _paymentMethod?.AllowsChange ?? true;
+        set { if (_paymentMethod != null) _paymentMethod.AllowsChange = value; }
+    }
+
+    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPaymentMethodAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_paymentMethod?.Id != PaymentMethodId)
+            await LoadPaymentMethodAsync();
+    }
+
+    private async Task LoadPaymentMethodAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                _paymentMethod = new PaymentMethodDto 
+                { 
+                    Code = string.Empty, 
+                    Name = string.Empty,
+                    IsActive = true,
+                    AllowsChange = true,
+                    DisplayOrder = 0,
+                    RequiresIntegration = false
+                };
+                _originalPaymentMethodSnapshot = SerializePaymentMethod(_paymentMethod);
+            }
+            else if (PaymentMethodId.HasValue)
+            {
+                var paymentMethod = await PaymentMethodService.GetByIdAsync(PaymentMethodId.Value);
+                _paymentMethod = paymentMethod;
+
+                if (_paymentMethod != null)
+                {
+                    _originalPaymentMethodSnapshot = SerializePaymentMethod(_paymentMethod);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading payment method {PaymentMethodId}", PaymentMethodId);
+            Snackbar.Add(TranslationService.GetTranslation("paymentMethod.loadError", "Errore nel caricamento del metodo di pagamento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            _hasLocalChanges = false;
+        }
+    }
+
+    private async Task SavePaymentMethodAsync()
+    {
+        if (_paymentMethod == null || _form == null) return;
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                var createDto = new CreatePaymentMethodDto
+                {
+                    Code = _paymentMethod.Code,
+                    Name = _paymentMethod.Name,
+                    Description = _paymentMethod.Description,
+                    Icon = _paymentMethod.Icon,
+                    IsActive = _paymentMethod.IsActive,
+                    DisplayOrder = _paymentMethod.DisplayOrder,
+                    RequiresIntegration = _paymentMethod.RequiresIntegration,
+                    IntegrationConfig = PaymentMethodIntegrationConfig,
+                    AllowsChange = _paymentMethod.AllowsChange
+                };
+
+                var created = await PaymentMethodService.CreateAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("paymentMethod.createSuccess", "Metodo di pagamento creato con successo"), Severity.Success);
+                
+                // Navigate back to list
+                NavigationManager.NavigateTo("/store/payment-methods");
+            }
+            else if (PaymentMethodId.HasValue)
+            {
+                var updateDto = new UpdatePaymentMethodDto
+                {
+                    Name = _paymentMethod.Name,
+                    Description = _paymentMethod.Description,
+                    Icon = _paymentMethod.Icon,
+                    IsActive = _paymentMethod.IsActive,
+                    DisplayOrder = _paymentMethod.DisplayOrder,
+                    IntegrationConfig = PaymentMethodIntegrationConfig,
+                    AllowsChange = _paymentMethod.AllowsChange
+                };
+
+                await PaymentMethodService.UpdateAsync(PaymentMethodId.Value, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("paymentMethod.updateSuccess", "Metodo di pagamento aggiornato con successo"), Severity.Success);
+                await LoadPaymentMethodAsync(); // Refresh and reset snapshot
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving payment method");
+            Snackbar.Add(TranslationService.GetTranslation("paymentMethod.saveError", "Errore nel salvataggio del metodo di pagamento"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void MarkChanged()
+    {
+        _hasLocalChanges = true;
+        StateHasChanged();
+    }
+
+    private string SerializePaymentMethod(PaymentMethodDto? p)
+    {
+        if (p == null) return string.Empty;
+        return System.Text.Json.JsonSerializer.Serialize(p, _jsonOptions);
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_paymentMethod == null) return false;
+        if (_hasLocalChanges) return true;
+        var current = SerializePaymentMethod(_paymentMethod);
+        return !string.Equals(current, _originalPaymentMethodSnapshot, StringComparison.Ordinal);
+    }
+
+    private async Task TryNavigateAway(string target)
+    {
+        if (!HasUnsavedChanges())
+        {
+            NavigationManager.NavigateTo(target);
+            return;
+        }
+
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("paymentMethod.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
+        var saveText = TranslationService.GetTranslation("common.save", "Salva");
+        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
+        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+
+        if (result == true)
+        {
+            await SavePaymentMethodAsync();
+            if (!_isSaving) // Only navigate if save was successful
+                NavigationManager.NavigateTo(target);
+        }
+        else if (result == false)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+    }
+
+    /// <summary>
+    /// Converts icon name to MudBlazor Material icon.
+    /// </summary>
+    private string GetMaterialIcon(string? iconName)
+    {
+        if (string.IsNullOrEmpty(iconName))
+            return Icons.Material.Filled.Payment;
+
+        return iconName switch
+        {
+            "AttachMoney" => Icons.Material.Filled.AttachMoney,
+            "CreditCard" => Icons.Material.Filled.CreditCard,
+            "Payment" => Icons.Material.Filled.Payment,
+            "AccountBalance" => Icons.Material.Filled.AccountBalance,
+            "Money" => Icons.Material.Filled.Money,
+            "LocalAtm" => Icons.Material.Filled.LocalAtm,
+            _ => Icons.Material.Filled.Payment
+        };
+    }
+
+
+}
