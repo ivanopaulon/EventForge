@@ -29,7 +29,8 @@ public class StorePosService : IStorePosService
             // Try non-paginated endpoint first for better performance
             try
             {
-                var activeResponse = await _httpClient.GetAsync("api/v1/storepos/active");
+                var activeEndpoint = ApiBase.Replace("/pos", "") + "/active";
+                var activeResponse = await _httpClient.GetAsync(activeEndpoint);
                 if (activeResponse.IsSuccessStatusCode)
                 {
                     var activePosResult = await activeResponse.Content.ReadFromJsonAsync<List<StorePosDto>>();
@@ -61,7 +62,6 @@ public class StorePosService : IStorePosService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error getting all store POS terminals: {ex.GetType().Name}: {ex.Message}");
             _logger.LogWarning(ex, "Error getting all store POS terminals, returning empty list");
             return new List<StorePosDto>();
         }
@@ -76,7 +76,6 @@ public class StorePosService : IStorePosService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error getting active store POS terminals: {ex.GetType().Name}: {ex.Message}");
             _logger.LogWarning(ex, "Error getting active store POS terminals, returning empty list");
             return new List<StorePosDto>();
         }
