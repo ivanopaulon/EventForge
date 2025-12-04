@@ -12,6 +12,7 @@ public class StoreUserGroupService : IStoreUserGroupService
     private readonly HttpClient _httpClient;
     private readonly ILogger<StoreUserGroupService> _logger;
     private const string ApiBase = "api/v1/storeusers/groups";
+    private const int MaxPageSize = 1000; // Maximum page size for GetAll operations
 
     public StoreUserGroupService(HttpClient httpClient, ILogger<StoreUserGroupService> logger)
     {
@@ -23,7 +24,7 @@ public class StoreUserGroupService : IStoreUserGroupService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{ApiBase}?page=1&pageSize=1000");
+            var response = await _httpClient.GetAsync($"{ApiBase}?page=1&pageSize={MaxPageSize}");
             response.EnsureSuccessStatusCode();
             
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<StoreUserGroupDto>>();

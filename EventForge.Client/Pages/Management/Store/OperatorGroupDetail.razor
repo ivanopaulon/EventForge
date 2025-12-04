@@ -143,6 +143,7 @@
                                               Placeholder="#FF5733"
                                               Variant="Variant.Outlined"
                                               Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
+                                              Pattern="^#([A-Fa-f0-9]{6})$"
                                               @bind-Value:after="MarkAsChanged"
                                               HelperText="@TranslationService.GetTranslation("field.colorHexHelper", "Formato: #RRGGBB")" />
                             </MudItem>

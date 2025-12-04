@@ -108,7 +108,7 @@
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Disabled="@(!_isNewEntity)"
-                                              HelperText="@(_isNewEntity ? "" : "Username cannot be changed after creation")"
+                                              HelperText="@(_isNewEntity ? "" : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
                                               @bind-Value:after="MarkAsChanged" />
                             </MudItem>
 
