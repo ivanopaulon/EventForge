@@ -334,6 +334,9 @@
     private int _currentRetryAttempt = 0;
     private int _maxRetryAttempts = 3;
     private int _manualRetryAttempts = 2; // Reduced retry count for manual retries
+    
+    // Page size for loading operators - matching OperatorManagement.razor pattern
+    private const int MaxOperatorsPageSize = 1000;
 
     protected override async Task OnInitializedAsync()
     {
@@ -363,7 +366,7 @@
             // Load operators using GetPagedAsync (consistent with OperatorManagement.razor)
             try 
             {
-                var pagedResult = await StoreUserService.GetPagedAsync(1, 1000);
+                var pagedResult = await StoreUserService.GetPagedAsync(1, MaxOperatorsPageSize);
                 _availableOperators = pagedResult?.Items?.ToList() ?? new List<StoreUserDto>();
                 Logger.LogInformation("Loaded {Count} operators", _availableOperators.Count);
             }
@@ -380,8 +383,9 @@
             // Load POS terminals with explicit error handling
             try
             {
-                _availablePos = await StorePosService.GetActiveAsync();
-                Logger.LogInformation("Loaded {Count} POS terminals", _availablePos?.Count ?? 0);
+                var posResult = await StorePosService.GetActiveAsync();
+                _availablePos = posResult?.ToList() ?? new List<StorePosDto>();
+                Logger.LogInformation("Loaded {Count} POS terminals", _availablePos.Count);
             }
             catch (Exception ex)
             {
