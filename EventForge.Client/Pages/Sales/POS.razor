@@ -530,6 +530,7 @@
                 {
                     Logger.LogInformation("Resuming suspended session {SessionId}", selectedSession.Id);
                     _currentSession = selectedSession;
+                    _selectedOperatorId = selectedSession.OperatorId;
                     _selectedPosId = selectedSession.PosId;
                     _selectedCustomer = selectedSession.CustomerId.HasValue 
                         ? await BusinessPartyService.GetBusinessPartyAsync(selectedSession.CustomerId.Value) 
