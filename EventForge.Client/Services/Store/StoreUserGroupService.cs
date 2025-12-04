@@ -35,6 +35,8 @@ public class StoreUserGroupService : IStoreUserGroupService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserGroupService] Error getting all store user groups: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error getting all store user groups");
             throw;
         }
@@ -63,6 +65,8 @@ public class StoreUserGroupService : IStoreUserGroupService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserGroupService] Error getting paged store user groups (page: {page}, pageSize: {pageSize}): {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error getting paged store user groups (page: {Page}, pageSize: {PageSize})", page, pageSize);
             throw new InvalidOperationException("Errore nel caricamento dei gruppi.", ex);
         }
@@ -80,6 +84,8 @@ public class StoreUserGroupService : IStoreUserGroupService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserGroupService] Error getting store user group {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error getting store user group {Id}", id);
             throw;
         }
@@ -106,6 +112,8 @@ public class StoreUserGroupService : IStoreUserGroupService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserGroupService] Error creating store user group: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error creating store user group");
             throw new InvalidOperationException("Errore nella creazione del gruppo. Verifica i dati e riprova.", ex);
         }
@@ -132,6 +140,8 @@ public class StoreUserGroupService : IStoreUserGroupService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserGroupService] Error updating store user group {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error updating store user group {Id}", id);
             throw new InvalidOperationException("Errore nell'aggiornamento del gruppo. Verifica i dati e riprova.", ex);
         }
@@ -158,6 +168,8 @@ public class StoreUserGroupService : IStoreUserGroupService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[StoreUserGroupService] Error deleting store user group {id}: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
             _logger.LogError(ex, "Error deleting store user group {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione del gruppo.", ex);
         }
