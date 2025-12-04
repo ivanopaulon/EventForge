@@ -374,7 +374,7 @@
             {
                 Logger.LogError(ex, "Error loading operators");
                 Snackbar.Add(
-                    TranslationService.GetTranslation("errors.loadOperatorsError", "Errore nel caricamento degli operatori"),
+                    TranslationService.GetTranslation("errors.loadOperatorsError", "Error loading operators"),
                     Severity.Error
                 );
                 _availableOperators = new List<StoreUserDto>();
@@ -391,7 +391,7 @@
             {
                 Logger.LogError(ex, "Error loading POS terminals");
                 Snackbar.Add(
-                    TranslationService.GetTranslation("errors.loadPosError", "Errore nel caricamento dei terminali POS"),
+                    TranslationService.GetTranslation("errors.loadPosError", "Error loading POS terminals"),
                     Severity.Error
                 );
                 _availablePos = new List<StorePosDto>();
@@ -408,7 +408,7 @@
             {
                 Logger.LogError(ex, "Error loading payment methods");
                 Snackbar.Add(
-                    TranslationService.GetTranslation("errors.loadPaymentMethodsError", "Errore nel caricamento dei metodi di pagamento"),
+                    TranslationService.GetTranslation("errors.loadPaymentMethodsError", "Error loading payment methods"),
                     Severity.Error
                 );
                 _paymentMethods = new List<PaymentMethodDto>();
