@@ -719,8 +719,9 @@
             return;
 
         Exception? lastException = null;
+        int maxAttempts = maxRetries + 1; // maxRetries=3 means 4 total attempts (initial + 3 retries)
 
-        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             try
             {
@@ -747,16 +748,16 @@
             {
                 // Network error - retry with exponential backoff
                 lastException = ex;
-                var delayMs = (int)Math.Pow(2, attempt) * 1000;
-                Logger.LogWarning(ex, $"Network error updating item (attempt {attempt + 1}/{maxRetries + 1}). Retrying in {delayMs}ms...");
+                var delayMs = CalculateBackoffDelayMs(attempt);
+                Logger.LogWarning(ex, $"Network error updating item (attempt {attempt + 1}/{maxAttempts}). Retrying in {delayMs}ms...");
                 await Task.Delay(delayMs);
             }
             catch (TaskCanceledException ex) when (attempt < maxRetries)
             {
                 // Timeout error - retry with exponential backoff
                 lastException = ex;
-                var delayMs = (int)Math.Pow(2, attempt) * 1000;
-                Logger.LogWarning(ex, $"Timeout updating item (attempt {attempt + 1}/{maxRetries + 1}). Retrying in {delayMs}ms...");
+                var delayMs = CalculateBackoffDelayMs(attempt);
+                Logger.LogWarning(ex, $"Timeout updating item (attempt {attempt + 1}/{maxAttempts}). Retrying in {delayMs}ms...");
                 await Task.Delay(delayMs);
             }
             catch (Exception ex)
@@ -1396,7 +1397,10 @@
     private string GetLoadingTooltipText()
     {
         if (_currentRetryAttempt > 0)
-            return $"Tentativo {_currentRetryAttempt + 1}/{_maxRetryAttempts + 1}...";
+        {
+            int maxAttempts = _maxRetryAttempts + 1;
+            return $"Tentativo {_currentRetryAttempt + 1}/{maxAttempts}...";
+        }
         return TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...");
     }
 
@@ -1407,6 +1411,15 @@
     private Color GetLoadingSpinnerColor()
     {
         return _currentRetryAttempt > 0 ? Color.Warning : Color.Primary;
+    }
+
+    /// <summary>
+    /// Calculates the exponential backoff delay in milliseconds.
+    /// Returns: 1000ms (1s), 2000ms (2s), 4000ms (4s), etc.
+    /// </summary>
+    private int CalculateBackoffDelayMs(int attempt)
+    {
+        return (int)Math.Pow(2, attempt) * 1000;
     }
 
     // Dispose pattern
