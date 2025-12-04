@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SalesPaymentMethod = EventForge.Server.Data.Entities.Sales.PaymentMethod;
 
 namespace EventForge.Server.Services.Auth.Seeders;
@@ -11,15 +12,18 @@ public class StoreSeeder : IStoreSeeder
 {
     private readonly EventForgeDbContext _dbContext;
     private readonly IPasswordService _passwordService;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<StoreSeeder> _logger;
 
     public StoreSeeder(
         EventForgeDbContext dbContext,
         IPasswordService passwordService,
+        IConfiguration configuration,
         ILogger<StoreSeeder> logger)
     {
         _dbContext = dbContext;
         _passwordService = passwordService;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -176,8 +180,13 @@ public class StoreSeeder : IStoreSeeder
 
             _logger.LogInformation("Seeding default store operator for tenant {TenantId}...", tenantId);
 
-            // Hash the default password
-            var (passwordHash, passwordSalt) = _passwordService.HashPassword("Operator@2025!");
+            // Get operator password from configuration, environment variable, or use default
+            var operatorPassword = Environment.GetEnvironmentVariable("EVENTFORGE_STORE_OPERATOR_PASSWORD")
+                ?? _configuration["Bootstrap:StoreOperatorPassword"]
+                ?? "Operator@2025!";
+
+            // Hash the password
+            var (passwordHash, passwordSalt) = _passwordService.HashPassword(operatorPassword);
 
             var defaultOperator = new EventForge.Server.Data.Entities.Store.StoreUser
             {
@@ -185,7 +194,9 @@ public class StoreSeeder : IStoreSeeder
                 Name = "Operatore Cassa",
                 Username = "operator1",
                 Email = "operator1@localhost",
-                PasswordHash = $"{passwordHash}:{passwordSalt}", // Store in format hash:salt
+                // Store hash and salt using a delimiter that won't appear in base64 strings
+                // Format: hash|salt (using pipe as separator)
+                PasswordHash = $"{passwordHash}|{passwordSalt}",
                 Role = "Cashier",
                 Status = EventForge.Server.Data.Entities.Store.CashierStatus.Active,
                 IsOnShift = false,

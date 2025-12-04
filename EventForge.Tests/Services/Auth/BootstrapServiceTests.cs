@@ -32,7 +32,7 @@ public class BootstrapServiceTests
         var entitySeeder = new EntitySeeder(context, entitySeederLogger, productSeeder);
 
         var storeSeederLogger = new LoggerFactory().CreateLogger<StoreSeeder>();
-        var storeSeeder = new StoreSeeder(context, passwordService, storeSeederLogger);
+        var storeSeeder = new StoreSeeder(context, passwordService, config, storeSeederLogger);
 
         return new BootstrapService(context, userSeeder, tenantSeeder, licenseSeeder, entitySeeder, storeSeeder, logger);
     }
