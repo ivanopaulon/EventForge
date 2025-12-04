@@ -1,0 +1,167 @@
+@using EventForge.DTOs.Products
+@using EventForge.Client.Shared.Components
+@using MudBlazor
+@inject IProductService ProductService
+@inject ITranslationService TranslationService
+@inject ILogger<ProductSearchDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- Title and Search -->
+            <MudText Typo="Typo.h6">
+                @TranslationService.GetTranslation("sales.multipleProductsFound", "Più prodotti trovati")
+            </MudText>
+
+            <!-- Search Field -->
+            <MudTextField @bind-Value="_searchQuery"
+                          Label="@TranslationService.GetTranslation("common.search", "Cerca")"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Outlined.Search"
+                          OnKeyUp="@OnSearchKeyUp"
+                          Immediate="true" />
+
+            <!-- Loading Indicator -->
+            @if (_isSearching)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+
+            <!-- Results Table -->
+            <div style="max-height: 500px; overflow-y: auto;">
+                @if (_displayProducts.Any())
+                {
+                    <MudTable Items="@_displayProducts"
+                              Hover="true"
+                              Dense="true"
+                              Striped="true"
+                              OnRowClick="@((TableRowClickEventArgs<ProductDto> args) => OnRowClick(args.Item))"
+                              T="ProductDto">
+                        <HeaderContent>
+                            <MudTh Style="width: 80px;">@TranslationService.GetTranslation("products.image", "Immagine")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("products.code", "Codice")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("products.name", "Nome")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("products.brand", "Marca")</MudTh>
+                            <MudTh Style="width: 100px;">@TranslationService.GetTranslation("sales.price", "Prezzo")</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("products.image", "Immagine")" Style="width: 80px;">
+                                @if (!string.IsNullOrWhiteSpace(context.ThumbnailUrl))
+                                {
+                                    <MudImage Src="@context.ThumbnailUrl" 
+                                              Alt="@context.Name"
+                                              Height="40" 
+                                              Width="40"
+                                              ObjectFit="ObjectFit.Cover"
+                                              Class="rounded" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Outlined.Image" Size="Size.Medium" Color="Color.Default" />
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("products.code", "Codice")">@context.Code</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("products.name", "Nome")">@context.Name</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("products.brand", "Marca")">@context.BrandName</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("sales.price", "Prezzo")" Style="width: 100px;">
+                                @((context.DefaultPrice ?? 0m).ToString("C"))
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else if (!_isSearching)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        @TranslationService.GetTranslation("messages.noResultsFound", "Nessun risultato trovato")
+                    </MudAlert>
+                }
+            </div>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Cancel" Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public List<ProductDto> InitialProducts { get; set; } = new();
+
+    private List<ProductDto> _displayProducts = new();
+    private string _searchQuery = string.Empty;
+    private bool _isSearching = false;
+    private System.Threading.Timer? _searchTimer;
+
+    protected override void OnInitialized()
+    {
+        _displayProducts = InitialProducts;
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        // Debounce search
+        _searchTimer?.Dispose();
+        _searchTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await PerformSearchAsync();
+                StateHasChanged();
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private async Task PerformSearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            _displayProducts = InitialProducts;
+            return;
+        }
+
+        try
+        {
+            _isSearching = true;
+            var result = await ProductService.SearchProductsAsync(_searchQuery, 20);
+
+            if (result != null)
+            {
+                _displayProducts = result.SearchResults;
+            }
+            else
+            {
+                _displayProducts = new List<ProductDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error performing product search");
+            _displayProducts = new List<ProductDto>();
+        }
+        finally
+        {
+            _isSearching = false;
+        }
+    }
+
+    private void OnRowClick(ProductDto product)
+    {
+        MudDialog?.Close(DialogResult.Ok(product));
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Close(DialogResult.Cancel());
+    }
+
+    public void Dispose()
+    {
+        _searchTimer?.Dispose();
+    }
+}

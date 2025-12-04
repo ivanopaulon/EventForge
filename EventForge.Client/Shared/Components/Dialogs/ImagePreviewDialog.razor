@@ -1,0 +1,81 @@
+@using EventForge.DTOs.Products
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- Product Name -->
+            @if (!string.IsNullOrWhiteSpace(ProductName))
+            {
+                <MudText Typo="Typo.h6" Align="Align.Center">@ProductName</MudText>
+            }
+
+            <!-- Product Code and Price -->
+            <MudStack Row="true" Justify="Justify.Center" Spacing="3">
+                @if (!string.IsNullOrWhiteSpace(ProductCode))
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Default">
+                        <strong>@TranslationService.GetTranslation("products.code", "Codice"):</strong> @ProductCode
+                    </MudText>
+                }
+                @if (Price.HasValue)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Success">
+                        <strong>@TranslationService.GetTranslation("sales.price", "Prezzo"):</strong> @Price.Value.ToString("C")
+                    </MudText>
+                }
+            </MudStack>
+
+            <!-- Large Image -->
+            @if (!string.IsNullOrWhiteSpace(ImageUrl))
+            {
+                <div class="d-flex justify-center">
+                    <MudImage Src="@ImageUrl" 
+                              Alt="@ProductName"
+                              Elevation="4" 
+                              Class="rounded-lg"
+                              Style="max-width: 100%; max-height: 70vh; object-fit: contain;" />
+                </div>
+            }
+            else
+            {
+                <div class="d-flex align-center justify-center" style="height: 400px; background-color: var(--mud-palette-background-grey);">
+                    <MudStack Align="Align.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Outlined.Image" Size="Size.Large" Color="Color.Default" />
+                        <MudText Typo="Typo.body2" Color="Color.Default">
+                            @TranslationService.GetTranslation("products.noImage", "Immagine non disponibile")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Close" Color="Color.Primary" Variant="Variant.Filled">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public string? ImageUrl { get; set; }
+
+    [Parameter]
+    public string? ProductName { get; set; }
+
+    [Parameter]
+    public string? ProductCode { get; set; }
+
+    [Parameter]
+    public decimal? Price { get; set; }
+
+    private void Close()
+    {
+        MudDialog?.Close();
+    }
+}

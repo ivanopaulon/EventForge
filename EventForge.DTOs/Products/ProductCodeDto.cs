@@ -62,5 +62,20 @@ namespace EventForge.DTOs.Products
         /// User who last modified the product code.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        /// <summary>
+        /// Unit of measure ID (from ProductUnit if associated).
+        /// </summary>
+        public Guid? UnitOfMeasureId { get; set; }
+
+        /// <summary>
+        /// Unit of measure name (e.g., "PZ", "KG").
+        /// </summary>
+        public string? UnitOfMeasureName { get; set; }
+
+        /// <summary>
+        /// Conversion factor from base unit (from ProductUnit if associated).
+        /// </summary>
+        public decimal? ConversionFactor { get; set; }
     }
 }
