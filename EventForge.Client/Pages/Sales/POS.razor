@@ -1107,49 +1107,49 @@
         // Add item ID to pending updates
         _pendingItemUpdates.Add(item.Id);
         
-        // Stop and dispose existing timer if any
-        _updateDebounceTimer?.Stop();
-        _updateDebounceTimer?.Dispose();
-        
-        // Create new timer that will fire after DebounceDelayMs (500ms)
-        _updateDebounceTimer = new System.Timers.Timer(DebounceDelayMs);
-        
-        // When timer fires, update all pending items
-        _updateDebounceTimer.Elapsed += async (sender, e) =>
+        // Initialize timer on first use or reuse existing one
+        if (_updateDebounceTimer == null)
         {
-            await InvokeAsync(async () =>
+            _updateDebounceTimer = new System.Timers.Timer(DebounceDelayMs);
+            _updateDebounceTimer.AutoReset = false;
+            
+            // When timer fires, update all pending items
+            _updateDebounceTimer.Elapsed += async (sender, e) =>
             {
-                try
+                await InvokeAsync(async () =>
                 {
-                    // Get list of items to update
-                    var itemsToUpdate = _pendingItemUpdates.ToList();
-                    _pendingItemUpdates.Clear();
-                    
-                    // Update each pending item
-                    foreach (var itemId in itemsToUpdate)
+                    try
                     {
-                        var itemToUpdate = _currentSession?.Items.FirstOrDefault(i => i.Id == itemId);
-                        if (itemToUpdate != null)
+                        // Get list of items to update
+                        var itemsToUpdate = _pendingItemUpdates.ToList();
+                        _pendingItemUpdates.Clear();
+                        
+                        // Update each pending item
+                        foreach (var itemId in itemsToUpdate)
                         {
-                            await UpdateItemAsync(itemToUpdate);
+                            var itemToUpdate = _currentSession?.Items.FirstOrDefault(i => i.Id == itemId);
+                            if (itemToUpdate != null)
+                            {
+                                await UpdateItemAsync(itemToUpdate);
+                            }
                         }
+                        
+                        StateHasChanged();
                     }
-                    
-                    StateHasChanged();
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error in debounced update");
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("errors.updateError", "Errore durante l'aggiornamento"),
-                        Severity.Error
-                    );
-                }
-            });
-        };
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error in debounced update");
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("errors.updateError", "Errore durante l'aggiornamento"),
+                            Severity.Error
+                        );
+                    }
+                });
+            };
+        }
         
-        // Fire only once
-        _updateDebounceTimer.AutoReset = false;
+        // Stop timer and restart it (resets the debounce window)
+        _updateDebounceTimer.Stop();
         _updateDebounceTimer.Start();
         
         // Update UI immediately for responsive feel
