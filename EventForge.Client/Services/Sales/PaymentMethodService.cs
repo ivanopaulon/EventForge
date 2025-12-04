@@ -11,6 +11,7 @@ public class PaymentMethodService : IPaymentMethodService
     private readonly IHttpClientService _httpClientService;
     private readonly ILogger<PaymentMethodService> _logger;
     private const string BaseUrl = "api/v1/payment-methods";
+    private const int DefaultPageSize = 100; // Default page size for pagination
 
     public PaymentMethodService(IHttpClientService httpClientService, ILogger<PaymentMethodService> logger)
     {
@@ -26,7 +27,7 @@ public class PaymentMethodService : IPaymentMethodService
             
             var allItems = new List<PaymentMethodDto>();
             int page = 1;
-            const int pageSize = 100; // Reasonable page size
+            int pageSize = DefaultPageSize;
             
             while (true)
             {

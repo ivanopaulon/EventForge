@@ -473,11 +473,16 @@
                 }
             }
         }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
-                                                    httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            Logger.LogWarning(httpEx, "Auth error checking for suspended sessions: {StatusCode}", httpEx.StatusCode);
-            await JSRuntime.InvokeVoidAsync("console.warn", $"POS: {(int?)httpEx.StatusCode} error checking suspended sessions");
+            Logger.LogWarning(httpEx, "Unauthorized error checking for suspended sessions");
+            await JSRuntime.InvokeVoidAsync("console.warn", "POS: 401 Unauthorized checking suspended sessions");
+            // Don't show error to user - this is optional functionality
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            Logger.LogWarning(httpEx, "Forbidden error checking for suspended sessions");
+            await JSRuntime.InvokeVoidAsync("console.warn", "POS: 403 Forbidden checking suspended sessions");
             // Don't show error to user - this is optional functionality
         }
         catch (Exception ex)

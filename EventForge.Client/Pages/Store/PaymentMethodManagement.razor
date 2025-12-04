@@ -417,6 +417,7 @@
             Snackbar.Add(
                 TranslationService.GetTranslation("errors.forbidden", "Accesso negato. Verifica i permessi del tenant e la licenza."),
                 Severity.Error);
+            // Note: Don't show login dialog for 403 - authentication won't fix permission issues
         }
         catch (Exception ex)
         {
