@@ -424,6 +424,7 @@
                     Icon = _paymentMethod.Icon,
                     IsActive = _paymentMethod.IsActive,
                     DisplayOrder = _paymentMethod.DisplayOrder,
+                    RequiresIntegration = _paymentMethod.RequiresIntegration,
                     IntegrationConfig = PaymentMethodIntegrationConfig,
                     AllowsChange = _paymentMethod.AllowsChange
                 };
@@ -511,6 +512,4 @@
             _ => Icons.Material.Filled.Payment
         };
     }
-
-
 }

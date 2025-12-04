@@ -225,6 +225,7 @@ public class PaymentMethodService : IPaymentMethodService
             paymentMethod.Icon = updateDto.Icon;
             paymentMethod.IsActive = updateDto.IsActive;
             paymentMethod.DisplayOrder = updateDto.DisplayOrder;
+            paymentMethod.RequiresIntegration = updateDto.RequiresIntegration;
             paymentMethod.IntegrationConfig = updateDto.IntegrationConfig;
             paymentMethod.AllowsChange = updateDto.AllowsChange;
             paymentMethod.ModifiedAt = DateTime.UtcNow;
