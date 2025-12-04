@@ -1,0 +1,718 @@
+@page "/sales/pos"
+@using EventForge.Client.Services.Sales
+@using EventForge.Client.Services.Store
+@using EventForge.DTOs.Sales
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Store
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components.Sales
+@using EventForge.Client.Shared.Components.Dialogs.Sales
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@inject ISalesService SalesService
+@inject IStoreUserService StoreUserService
+@inject IStorePosService StorePosService
+@inject IProductService ProductService
+@inject IBusinessPartyService BusinessPartyService
+@inject IPaymentMethodService PaymentMethodService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<POS> Logger
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
+<PageLoadingOverlay Visible="_isLoading" 
+                    Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <!-- Page Title -->
+    <MudText Typo="Typo.h4" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Class="mr-2" Size="Size.Medium" />
+        @TranslationService.GetTranslation("sales.pos", "Punto Vendita")
+    </MudText>
+
+    <!-- POS Header -->
+    <POSHeader OperatorName="@_operatorName"
+               AvailablePos="@_availablePos"
+               @bind-SelectedPosId="@_selectedPosId"
+               @bind-SelectedCustomer="@_selectedCustomer"
+               SessionNumber="@_currentSession?.Id"
+               IsSessionActive="@(_currentSession != null)"
+               SearchCustomers="@SearchCustomersAsync"
+               OnParkClick="@ParkSessionAsync"
+               OnCancelClick="@CancelSessionAsync" />
+
+    <!-- Main Content: 2-column layout -->
+    <MudGrid Spacing="3">
+        <!-- Left Column: Scanner + Products Table (70%) -->
+        <MudItem xs="12" md="8">
+            @if (_currentSession != null)
+            {
+                <!-- Barcode Scanner -->
+                <BarcodeScanner Title="@TranslationService.GetTranslation("sales.scanProduct", "Scansiona Prodotto")"
+                                Label="@TranslationService.GetTranslation("sales.barcode", "Codice a Barre")"
+                                HelperText="@TranslationService.GetTranslation("sales.scanOrTypeBarcode", "Scansiona o digita il codice a barre e premi Invio")"
+                                SearchButtonText="@TranslationService.GetTranslation("common.search", "Cerca")"
+                                IsDisabled="@(_currentSession == null)"
+                                OnProductFound="@HandleProductFoundAsync"
+                                OnProductNotFound="@HandleProductNotFoundAsync"
+                                OnError="@HandleScanErrorAsync" />
+
+                <!-- Products Table -->
+                <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-2" />
+                        @TranslationService.GetTranslation("sales.items", "Articoli")
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">@_currentSession.Items.Count</MudChip>
+                    </MudText>
+
+                    @if (_currentSession.Items.Any())
+                    {
+                        <MudTable Items="@_currentSession.Items" Hover="true" Striped="true" Dense="true">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("products.code", "Codice")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("products.product", "Prodotto")</MudTh>
+                                <MudTh Style="text-align: center;">@TranslationService.GetTranslation("sales.quantity", "Quantità")</MudTh>
+                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.price", "Prezzo")</MudTh>
+                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.discount", "Sconto")</MudTh>
+                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.total", "Totale")</MudTh>
+                                <MudTh Style="text-align: center;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Code">@context.ProductCode</MudTd>
+                                <MudTd DataLabel="Product">@context.ProductName</MudTd>
+                                <MudTd DataLabel="Quantity" Style="text-align: center;">
+                                    <div class="d-flex align-center justify-center gap-1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Remove" 
+                                                       Size="Size.Small" 
+                                                       OnClick="@(() => DecreaseQuantityAsync(context))"
+                                                       Disabled="@(context.Quantity <= 1)" />
+                                        <MudNumericField @bind-Value="context.Quantity"
+                                                         Min="1"
+                                                         HideSpinButtons="true"
+                                                         Style="width: 60px; text-align: center;"
+                                                         Variant="Variant.Text"
+                                                         OnBlur="@(() => UpdateItemAsync(context))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                       Size="Size.Small" 
+                                                       OnClick="@(() => IncreaseQuantityAsync(context))" />
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="Price" Style="text-align: right;">
+                                    <MudNumericField @bind-Value="context.UnitPrice"
+                                                     Format="N2"
+                                                     Min="0"
+                                                     HideSpinButtons="true"
+                                                     Style="width: 100px;"
+                                                     Variant="Variant.Text"
+                                                     OnBlur="@(() => UpdateItemAsync(context))" />
+                                </MudTd>
+                                <MudTd DataLabel="Discount" Style="text-align: right;">
+                                    <div class="d-flex align-center justify-end gap-1">
+                                        <MudNumericField @bind-Value="context.DiscountPercent"
+                                                         Format="N1"
+                                                         Min="0"
+                                                         Max="100"
+                                                         HideSpinButtons="true"
+                                                         Style="width: 60px;"
+                                                         Variant="Variant.Text"
+                                                         OnBlur="@(() => UpdateItemAsync(context))" />
+                                        <MudText Typo="Typo.body2">%</MudText>
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="Total" Style="text-align: right;">
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                                        @context.TotalAmount.ToString("C")
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Actions" Style="text-align: center;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                   Size="Size.Small" 
+                                                   Color="Color.Primary"
+                                                   OnClick="@(() => EditItemNotesAsync(context))"
+                                                   Title="@TranslationService.GetTranslation("common.notes", "Note")" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                   Size="Size.Small" 
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => RemoveItemAsync(context))" />
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            @TranslationService.GetTranslation("sales.emptyCart", "Nessun articolo nel carrello. Scansiona un prodotto per iniziare.")
+                        </MudAlert>
+                    }
+                </MudPaper>
+
+                <!-- Main Action Button -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    @if (_currentSession.Items.Any())
+                    {
+                        @if (_currentSession.IsFullyPaid)
+                        {
+                            @if (_isSessionClosed)
+                            {
+                                <!-- Post-closure: Print button -->
+                                <MudButton Color="Color.Primary"
+                                           Variant="Variant.Filled"
+                                           FullWidth="true"
+                                           Size="Size.Large"
+                                           StartIcon="@Icons.Material.Filled.Print"
+                                           OnClick="@PrintReceiptAsync">
+                                    @TranslationService.GetTranslation("sales.printReceipt", "🖨️ STAMPA SCONTRINO")
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <!-- Fully paid: Close sale -->
+                                <MudButton Color="Color.Success"
+                                           Variant="Variant.Filled"
+                                           FullWidth="true"
+                                           Size="Size.Large"
+                                           StartIcon="@Icons.Material.Filled.CheckCircle"
+                                           OnClick="@CloseSaleAsync">
+                                    @TranslationService.GetTranslation("sales.closeSale", "✅ CHIUDI VENDITA")
+                                </MudButton>
+                            }
+                        }
+                        else
+                        {
+                            <!-- Incomplete payment -->
+                            <MudButton Color="Color.Warning"
+                                       Variant="Variant.Filled"
+                                       FullWidth="true"
+                                       Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.Payment"
+                                       OnClick="@AddPaymentAsync">
+                                @TranslationService.GetTranslation("sales.addPayment", "AGGIUNGI PAGAMENTO") 
+                                @if (_currentSession.RemainingAmount > 0)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="ml-2">
+                                        @TranslationService.GetTranslation("sales.missing", "Mancano") @_currentSession.RemainingAmount.ToString("C")
+                                    </MudChip>
+                                }
+                            </MudButton>
+                        }
+                    }
+                    else
+                    {
+                        <!-- Empty cart -->
+                        <MudButton Color="Color.Default"
+                                   Variant="Variant.Filled"
+                                   FullWidth="true"
+                                   Size="Size.Large"
+                                   Disabled="true">
+                            @TranslationService.GetTranslation("sales.closeSale", "CHIUDI VENDITA")
+                        </MudButton>
+                    }
+                </MudPaper>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info">
+                    @TranslationService.GetTranslation("sales.selectPosToStart", "Seleziona un POS per iniziare")
+                </MudAlert>
+            }
+        </MudItem>
+
+        <!-- Right Column: Receipt Preview (30%) -->
+        <MudItem xs="12" md="4">
+            <POSReceipt SessionNumber="@_currentSession?.Id"
+                        Items="@_currentSession?.Items"
+                        Payments="@_currentSession?.Payments" />
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    // State
+    private bool _isLoading = false;
+    private bool _isSessionClosed = false;
+
+    // Operator and POS
+    private string? _operatorName;
+    private StoreUserDto? _currentOperator;
+    private List<StorePosDto> _availablePos = new();
+    private Guid? _selectedPosId;
+
+    // Customer
+    private BusinessPartyDto? _selectedCustomer;
+
+    // Current Session
+    private SaleSessionDto? _currentSession;
+
+    // Payment Methods
+    private List<PaymentMethodDto> _paymentMethods = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+
+            // Get current user from authentication
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var username = user.Identity.Name;
+                
+                if (!string.IsNullOrEmpty(username))
+                {
+                    // Get StoreUser by username
+                    _currentOperator = await StoreUserService.GetByUsernameAsync(username);
+                    _operatorName = _currentOperator?.Name ?? username;
+                }
+            }
+
+            // Load available POS terminals
+            _availablePos = await StorePosService.GetActiveAsync();
+
+            // Load payment methods
+            _paymentMethods = (await PaymentMethodService.GetActiveAsync()).ToList();
+
+            // Check for suspended sessions
+            await CheckForSuspendedSessionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing POS page");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.initializationError", "Errore durante l'inizializzazione"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Create session when POS is selected
+        if (_selectedPosId.HasValue && _currentSession == null && _currentOperator != null)
+        {
+            await CreateNewSessionAsync();
+        }
+    }
+
+    private async Task CheckForSuspendedSessionsAsync()
+    {
+        try
+        {
+            var allSessions = await SalesService.GetActiveSessionsAsync();
+            var suspendedSessions = allSessions?
+                .Where(s => s.Status == SaleSessionStatusDto.Suspended)
+                .ToList();
+
+            if (suspendedSessions?.Any() == true)
+            {
+                var parameters = new DialogParameters
+                {
+                    { "SuspendedSessions", suspendedSessions }
+                };
+
+                var dialog = await DialogService.ShowAsync<ResumeSessionDialog>(
+                    TranslationService.GetTranslation("sales.resumeSession", "Riprendi Sessione"),
+                    parameters,
+                    new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
+                );
+
+                var result = await dialog.Result;
+
+                if (!result.Canceled && result.Data is SaleSessionDto selectedSession)
+                {
+                    _currentSession = selectedSession;
+                    _selectedPosId = selectedSession.PosId;
+                    _selectedCustomer = selectedSession.CustomerId.HasValue 
+                        ? await BusinessPartyService.GetByIdAsync(selectedSession.CustomerId.Value) 
+                        : null;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error checking for suspended sessions");
+        }
+    }
+
+    private async Task CreateNewSessionAsync()
+    {
+        if (!_selectedPosId.HasValue || _currentOperator == null)
+            return;
+
+        try
+        {
+            _isLoading = true;
+
+            var createDto = new CreateSaleSessionDto
+            {
+                OperatorId = _currentOperator.Id,
+                PosId = _selectedPosId.Value,
+                CustomerId = _selectedCustomer?.Id,
+                SaleType = "RETAIL",
+                Currency = "EUR"
+            };
+
+            _currentSession = await SalesService.CreateSessionAsync(createDto);
+            _isSessionClosed = false;
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("sales.sessionCreated", "Sessione creata con successo"),
+                Severity.Success
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating sale session");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.sessionCreationError", "Errore durante la creazione della sessione"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleProductFoundAsync(ProductWithCodeDto productWithCode)
+    {
+        if (_currentSession == null || productWithCode.Product == null)
+            return;
+
+        try
+        {
+            // Check if product already in cart
+            var existingItem = _currentSession.Items.FirstOrDefault(i => i.ProductId == productWithCode.Product.Id);
+
+            if (existingItem != null)
+            {
+                // Increment quantity
+                existingItem.Quantity++;
+                await UpdateItemAsync(existingItem);
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.quantityIncreased", "Quantità aumentata: {0}", productWithCode.Product.Name),
+                    Severity.Success
+                );
+            }
+            else
+            {
+                // Add new item
+                var addItemDto = new AddSaleItemDto
+                {
+                    ProductId = productWithCode.Product.Id,
+                    Quantity = 1,
+                    UnitPrice = productWithCode.Product.DefaultPrice ?? 0m,
+                    DiscountPercent = 0,
+                    Notes = null
+                };
+
+                _currentSession = await SalesService.AddItemAsync(_currentSession.Id, addItemDto);
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.productAdded", "Prodotto aggiunto: {0}", productWithCode.Product.Name),
+                    Severity.Success
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding product to session");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta del prodotto"),
+                Severity.Error
+            );
+        }
+    }
+
+    private async Task HandleProductNotFoundAsync(string barcode)
+    {
+        // TODO: Show ProductNotFoundDialog
+        Snackbar.Add(
+            TranslationService.GetTranslation("sales.productNotFound", "Prodotto non trovato: {0}", barcode),
+            Severity.Warning
+        );
+    }
+
+    private Task HandleScanErrorAsync(Exception exception)
+    {
+        Logger.LogError(exception, "Error during barcode scan");
+        return Task.CompletedTask;
+    }
+
+    private async Task<IEnumerable<BusinessPartyDto>> SearchCustomersAsync(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return Enumerable.Empty<BusinessPartyDto>();
+
+        try
+        {
+            var customers = await BusinessPartyService.SearchAsync(searchTerm);
+            return customers ?? Enumerable.Empty<BusinessPartyDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching customers");
+            return Enumerable.Empty<BusinessPartyDto>();
+        }
+    }
+
+    private async Task IncreaseQuantityAsync(SaleItemDto item)
+    {
+        item.Quantity++;
+        await UpdateItemAsync(item);
+    }
+
+    private async Task DecreaseQuantityAsync(SaleItemDto item)
+    {
+        if (item.Quantity > 1)
+        {
+            item.Quantity--;
+            await UpdateItemAsync(item);
+        }
+    }
+
+    private async Task UpdateItemAsync(SaleItemDto item)
+    {
+        if (_currentSession == null)
+            return;
+
+        try
+        {
+            var updateDto = new UpdateSaleItemDto
+            {
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                DiscountPercent = item.DiscountPercent,
+                Notes = item.Notes
+            };
+
+            _currentSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating item");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.updateItemError", "Errore durante l'aggiornamento"),
+                Severity.Error
+            );
+        }
+    }
+
+    private async Task EditItemNotesAsync(SaleItemDto item)
+    {
+        // TODO: Open notes dialog
+        Snackbar.Add("Note dialog - TODO", Severity.Info);
+    }
+
+    private async Task RemoveItemAsync(SaleItemDto item)
+    {
+        if (_currentSession == null)
+            return;
+
+        try
+        {
+            _currentSession = await SalesService.RemoveItemAsync(_currentSession.Id, item.Id);
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("sales.itemRemoved", "Articolo rimosso"),
+                Severity.Info
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing item");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"),
+                Severity.Error
+            );
+        }
+    }
+
+    private async Task AddPaymentAsync()
+    {
+        if (_currentSession == null)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            { "TotalAmount", _currentSession.FinalTotal },
+            { "AlreadyPaid", _currentSession.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) },
+            { "PaymentMethods", _paymentMethods }
+        };
+
+        var dialog = await DialogService.ShowAsync<PaymentDialog>(
+            TranslationService.GetTranslation("sales.addPayment", "Aggiungi Pagamento"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is PaymentDialog.PaymentResult paymentResult)
+        {
+            try
+            {
+                var addPaymentDto = new AddSalePaymentDto
+                {
+                    PaymentMethodId = paymentResult.Method.Id,
+                    Amount = paymentResult.Amount,
+                    Notes = paymentResult.Notes
+                };
+
+                _currentSession = await SalesService.AddPaymentAsync(_currentSession.Id, addPaymentDto);
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto: {0}", paymentResult.Amount.ToString("C")),
+                    Severity.Success
+                );
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error adding payment");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.addPaymentError", "Errore durante l'aggiunta del pagamento"),
+                    Severity.Error
+                );
+            }
+        }
+    }
+
+    private async Task CloseSaleAsync()
+    {
+        if (_currentSession == null || !_currentSession.IsFullyPaid)
+            return;
+
+        try
+        {
+            _isLoading = true;
+
+            _currentSession = await SalesService.CloseSessionAsync(_currentSession.Id);
+            _isSessionClosed = true;
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("sales.saleClosed", "Vendita completata con successo!"),
+                Severity.Success
+            );
+
+            // Auto-prepare for new sale after a short delay
+            await Task.Delay(2000);
+            await PrepareNewSaleAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error closing sale");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.closeSaleError", "Errore durante la chiusura della vendita"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ParkSessionAsync()
+    {
+        if (_currentSession == null)
+            return;
+
+        try
+        {
+            var updateDto = new UpdateSaleSessionDto
+            {
+                Status = SaleSessionStatusDto.Suspended,
+                CustomerId = _selectedCustomer?.Id
+            };
+
+            _currentSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("sales.sessionParked", "Sessione parcheggiata"),
+                Severity.Info
+            );
+
+            await PrepareNewSaleAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error parking session");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.parkSessionError", "Errore durante il parcheggio della sessione"),
+                Severity.Error
+            );
+        }
+    }
+
+    private async Task CancelSessionAsync()
+    {
+        if (_currentSession == null)
+            return;
+
+        bool? confirm = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
+            TranslationService.GetTranslation("sales.cancelSessionConfirm", "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            cancelText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirm == true)
+        {
+            try
+            {
+                var updateDto = new UpdateSaleSessionDto
+                {
+                    Status = SaleSessionStatusDto.Cancelled
+                };
+
+                await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.sessionCancelled", "Sessione annullata"),
+                    Severity.Info
+                );
+
+                await PrepareNewSaleAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error cancelling session");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.cancelSessionError", "Errore durante l'annullamento della sessione"),
+                    Severity.Error
+                );
+            }
+        }
+    }
+
+    private async Task PrepareNewSaleAsync()
+    {
+        _currentSession = null;
+        _selectedCustomer = null;
+        _isSessionClosed = false;
+
+        if (_selectedPosId.HasValue)
+        {
+            await CreateNewSessionAsync();
+        }
+    }
+
+    private Task PrintReceiptAsync()
+    {
+        // TODO: Implement printing
+        Snackbar.Add("Stampa scontrino - TODO", Severity.Info);
+        return Task.CompletedTask;
+    }
+}

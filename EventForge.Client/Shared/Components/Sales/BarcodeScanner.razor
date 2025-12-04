@@ -1,0 +1,149 @@
+@using EventForge.DTOs.Products
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<BarcodeScanner> Logger
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="mr-2" />
+        @Title
+    </MudText>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="8">
+            <MudTextField @bind-Value="_barcode"
+                          Label="@Label"
+                          Variant="Variant.Outlined"
+                          @onkeydown="@OnKeyDown"
+                          @ref="_barcodeInput"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                          HelperText="@HelperText"
+                          Disabled="@IsDisabled" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       FullWidth="true"
+                       OnClick="@SearchBarcodeAsync"
+                       Disabled="@(string.IsNullOrWhiteSpace(_barcode) || IsDisabled)">
+                @SearchButtonText
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    private string _barcode = string.Empty;
+    private MudTextField<string>? _barcodeInput;
+
+    [Parameter]
+    public string Title { get; set; } = "Scansiona Codice a Barre";
+
+    [Parameter]
+    public string Label { get; set; } = "Codice a Barre";
+
+    [Parameter]
+    public string HelperText { get; set; } = "Scansiona o digita il codice a barre e premi Invio";
+
+    [Parameter]
+    public string SearchButtonText { get; set; } = "Cerca";
+
+    [Parameter]
+    public bool IsDisabled { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<ProductWithCodeDto> OnProductFound { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnProductNotFound { get; set; }
+
+    [Parameter]
+    public EventCallback<Exception> OnError { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _barcodeInput != null)
+        {
+            await _barcodeInput.FocusAsync();
+        }
+    }
+
+    public async Task FocusAsync()
+    {
+        if (_barcodeInput != null)
+        {
+            await _barcodeInput.FocusAsync();
+        }
+    }
+
+    public void ClearBarcode()
+    {
+        _barcode = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_barcode))
+        {
+            await SearchBarcodeAsync();
+        }
+    }
+
+    private async Task SearchBarcodeAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_barcode))
+            return;
+
+        try
+        {
+            var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(_barcode);
+
+            if (productWithCode?.Product != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.productFound", "Prodotto trovato: {0}", productWithCode.Product.Name),
+                    Severity.Success
+                );
+
+                await OnProductFound.InvokeAsync(productWithCode);
+                _barcode = string.Empty; // Clear after successful scan
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.productNotFound", "Prodotto non trovato: {0}", _barcode),
+                    Severity.Warning
+                );
+
+                await OnProductNotFound.InvokeAsync(_barcode);
+            }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Logger.LogError(ex, "Unauthorized error searching product by barcode {Barcode}", _barcode);
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
+                Severity.Error
+            );
+            await OnError.InvokeAsync(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching product by barcode {Barcode}", _barcode);
+            Snackbar.Add(TranslationService.GetTranslation("messages.searchError", "Errore nella ricerca"), Severity.Error);
+            await OnError.InvokeAsync(ex);
+        }
+        finally
+        {
+            // Focus back to input after search
+            if (_barcodeInput != null)
+            {
+                await InvokeAsync(async () => await _barcodeInput.FocusAsync());
+            }
+        }
+    }
+}

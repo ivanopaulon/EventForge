@@ -1,0 +1,181 @@
+@using EventForge.DTOs.Sales
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="3" Class="pa-4" Style="max-width: 400px; font-family: 'Courier New', monospace;">
+    <!-- Receipt Header -->
+    <div class="text-center mb-4">
+        <MudText Typo="Typo.h5" Style="font-weight: 600;">
+            @TranslationService.GetTranslation("sales.receipt", "SCONTRINO")
+        </MudText>
+        @if (SessionNumber != null)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                #@SessionNumber.ToString().Substring(0, 8)
+            </MudText>
+        }
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
+        </MudText>
+    </div>
+
+    <MudDivider Class="my-3" />
+
+    <!-- Items List -->
+    @if (Items?.Any() == true)
+    {
+        <div class="mb-3">
+            @foreach (var item in Items)
+            {
+                <div class="mb-2">
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                            @item.ProductName
+                        </MudText>
+                    </div>
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @item.Quantity x @item.UnitPrice.ToString("C")
+                            @if (item.DiscountPercent > 0)
+                            {
+                                <span> (-@item.DiscountPercent.ToString("F1")%)</span>
+                            }
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            @item.TotalAmount.ToString("C")
+                        </MudText>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <MudDivider Class="my-3" />
+
+        <!-- Totals -->
+        <div class="mb-2">
+            <div class="d-flex justify-space-between">
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("sales.subtotal", "Subtotale")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @Subtotal.ToString("C")
+                </MudText>
+            </div>
+
+            @if (TotalDiscount > 0)
+            {
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2" Color="Color.Success">
+                        @TranslationService.GetTranslation("sales.discount", "Sconto")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Success">
+                        -@TotalDiscount.ToString("C")
+                    </MudText>
+                </div>
+            }
+
+            <div class="d-flex justify-space-between">
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("sales.vat", "IVA")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @TotalVat.ToString("C")
+                </MudText>
+            </div>
+        </div>
+
+        <MudDivider Class="my-3" />
+
+        <!-- Grand Total -->
+        <div class="d-flex justify-space-between mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 700;">
+                @TranslationService.GetTranslation("sales.total", "TOTALE")
+            </MudText>
+            <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 700;">
+                @GrandTotal.ToString("C")
+            </MudText>
+        </div>
+
+        <!-- Payments Section -->
+        @if (Payments?.Any() == true)
+        {
+            <MudDivider Class="my-3" />
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                @TranslationService.GetTranslation("sales.payments", "Pagamenti")
+            </MudText>
+            @foreach (var payment in Payments)
+            {
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @payment.PaymentMethodName
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        @payment.Amount.ToString("C")
+                    </MudText>
+                </div>
+            }
+
+            @if (TotalPaid > 0)
+            {
+                <div class="d-flex justify-space-between mt-2">
+                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                        @TranslationService.GetTranslation("sales.paid", "Pagato")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                        @TotalPaid.ToString("C")
+                    </MudText>
+                </div>
+            }
+
+            <!-- Change (for cash) -->
+            @if (Change > 0)
+            {
+                <div class="d-flex justify-space-between mt-2">
+                    <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;">
+                        @TranslationService.GetTranslation("sales.change", "RESTO")
+                    </MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;">
+                        @Change.ToString("C")
+                    </MudText>
+                </div>
+            }
+
+            <!-- Remaining (if not fully paid) -->
+            @if (Remaining > 0)
+            {
+                <div class="d-flex justify-space-between mt-2">
+                    <MudText Typo="Typo.body2" Color="Color.Warning" Style="font-weight: 600;">
+                        @TranslationService.GetTranslation("sales.remaining", "Rimanente")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Warning" Style="font-weight: 600;">
+                        @Remaining.ToString("C")
+                    </MudText>
+                </div>
+            }
+        }
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">
+            @TranslationService.GetTranslation("sales.emptyCart", "Nessun articolo nel carrello")
+        </MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public Guid? SessionNumber { get; set; }
+
+    [Parameter]
+    public List<SaleItemDto>? Items { get; set; }
+
+    [Parameter]
+    public List<SalePaymentDto>? Payments { get; set; }
+
+    private decimal Subtotal => Items?.Sum(i => i.Quantity * i.UnitPrice) ?? 0m;
+    private decimal TotalDiscount => Items?.Sum(i => i.Quantity * i.UnitPrice * i.DiscountPercent / 100) ?? 0m;
+    private decimal TotalVat => Items?.Sum(i => i.TaxAmount) ?? 0m;
+    private decimal GrandTotal => Items?.Sum(i => i.TotalAmount) ?? 0m;
+    private decimal TotalPaid => Payments?.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) ?? 0m;
+    private decimal Change => TotalPaid > GrandTotal ? TotalPaid - GrandTotal : 0m;
+    private decimal Remaining => GrandTotal > TotalPaid ? GrandTotal - TotalPaid : 0m;
+}

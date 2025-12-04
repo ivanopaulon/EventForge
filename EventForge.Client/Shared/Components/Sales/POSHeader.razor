@@ -1,0 +1,132 @@
+@using EventForge.DTOs.Store
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Sales
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudGrid Spacing="3">
+        <!-- Operator (readonly) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField Value="@OperatorName"
+                          Label="@TranslationService.GetTranslation("sales.operator", "Operatore")"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person" />
+        </MudItem>
+
+        <!-- POS Selection -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="Guid?"
+                       @bind-Value="SelectedPosId"
+                       Label="@TranslationService.GetTranslation("sales.pos", "Cassa/POS")"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Disabled="@IsSessionActive"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.PointOfSale">
+                @if (AvailablePos != null)
+                {
+                    @foreach (var pos in AvailablePos)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)pos.Id)">@pos.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        <!-- Customer Selection -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudAutocomplete T="BusinessPartyDto"
+                             @bind-Value="SelectedCustomer"
+                             Label="@TranslationService.GetTranslation("sales.customer", "Cliente")"
+                             Variant="Variant.Outlined"
+                             SearchFunc="@SearchCustomers"
+                             ToStringFunc="@(c => c?.Name ?? string.Empty)"
+                             Clearable="true"
+                             Disabled="@(!IsSessionActive)"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Person">
+                <ItemTemplate Context="customer">
+                    <MudText Typo="Typo.body2">@customer.Name</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@customer.Code</MudText>
+                </ItemTemplate>
+            </MudAutocomplete>
+        </MudItem>
+
+        <!-- Date/Time + Session -->
+        <MudItem xs="12" sm="6" md="3">
+            <div class="d-flex flex-column" style="gap: 8px;">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Class="mr-1" />
+                    @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
+                </MudText>
+                @if (SessionNumber != null)
+                {
+                    <MudChip T="string" 
+                             Size="Size.Small" 
+                             Color="Color.Primary" 
+                             Icon="@Icons.Material.Filled.Receipt">
+                        @TranslationService.GetTranslation("sales.session", "Sessione") #@SessionNumber.ToString().Substring(0, 8)
+                    </MudChip>
+                }
+            </div>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Action Buttons -->
+    @if (IsSessionActive)
+    {
+        <MudDivider Class="my-3" />
+        <div class="d-flex justify-end gap-2">
+            <MudButton StartIcon="@Icons.Material.Filled.Pause"
+                       Color="Color.Warning"
+                       Variant="Variant.Outlined"
+                       OnClick="OnParkClick">
+                @TranslationService.GetTranslation("sales.park", "Parcheggia")
+            </MudButton>
+            <MudButton StartIcon="@Icons.Material.Filled.Cancel"
+                       Color="Color.Error"
+                       Variant="Variant.Outlined"
+                       OnClick="OnCancelClick">
+                @TranslationService.GetTranslation("sales.cancel", "Annulla")
+            </MudButton>
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public string? OperatorName { get; set; }
+
+    [Parameter]
+    public List<StorePosDto>? AvailablePos { get; set; }
+
+    [Parameter]
+    public Guid? SelectedPosId { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid?> SelectedPosIdChanged { get; set; }
+
+    [Parameter]
+    public BusinessPartyDto? SelectedCustomer { get; set; }
+
+    [Parameter]
+    public EventCallback<BusinessPartyDto?> SelectedCustomerChanged { get; set; }
+
+    [Parameter]
+    public Guid? SessionNumber { get; set; }
+
+    [Parameter]
+    public bool IsSessionActive { get; set; }
+
+    [Parameter]
+    public Func<string, Task<IEnumerable<BusinessPartyDto>>>? SearchCustomers { get; set; }
+
+    [Parameter]
+    public EventCallback OnParkClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelClick { get; set; }
+}
