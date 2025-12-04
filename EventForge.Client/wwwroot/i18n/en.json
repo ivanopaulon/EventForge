@@ -1479,6 +1479,13 @@
     "barcode": "Barcode",
     "scanOrTypeBarcode": "Scan or type barcode and press Enter",
     "missing": "Missing",
+    "confirmRemoveItem": "Remove {0} (x{1}) for {2}?",
+    "keyboardShortcuts": "Shortcuts",
+    "pay": "Pay",
+    "park": "Park",
+    "removeLastItem": "Remove last",
+    "focusScanner": "Scanner",
+    "closeSaleShort": "Close"
     "productSkipped": "Product skipped",
     "skipAndContinue": "Skip and Continue",
     "quickNotes": "Quick notes",
