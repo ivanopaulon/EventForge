@@ -321,6 +321,7 @@
     // Retry tracking
     private int _currentRetryAttempt = 0;
     private int _maxRetryAttempts = 3;
+    private int _manualRetryAttempts = 2; // Reduced retry count for manual retries
 
     protected override async Task OnInitializedAsync()
     {
@@ -795,7 +796,7 @@
         {
             // User wants to retry - call with reduced retry count
             Logger.LogInformation("User requested manual retry for item update");
-            await UpdateItemWithRetryAsync(item, maxRetries: 2);
+            await UpdateItemWithRetryAsync(item, maxRetries: _manualRetryAttempts);
         }
         else
         {
@@ -1397,7 +1398,12 @@
     {
         if (_currentRetryAttempt > 0)
         {
-            return $"Tentativo {_currentRetryAttempt + 1}/{GetTotalAttempts()}...";
+            return TranslationService.GetTranslation(
+                "sales.retryAttempt", 
+                "Tentativo {0}/{1}...", 
+                _currentRetryAttempt + 1, 
+                GetTotalAttempts()
+            );
         }
         return TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...");
     }
