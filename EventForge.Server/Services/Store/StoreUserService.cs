@@ -72,10 +72,16 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
             var storeUser = await _context.StoreUsers
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
-                .Where(su => su.Id == id && !su.IsDeleted)
+                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUser == null)
@@ -97,10 +103,16 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
             var storeUser = await _context.StoreUsers
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
-                .Where(su => su.Username == username && !su.IsDeleted)
+                .Where(su => su.Username == username && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUser == null)
@@ -122,9 +134,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
             var storeUsers = await _context.StoreUsers
                 .Include(su => su.CashierGroup)
-                .Where(su => su.CashierGroupId == groupId && !su.IsDeleted)
+                .Where(su => su.CashierGroupId == groupId && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .OrderBy(su => su.Name)
                 .ToListAsync(cancellationToken);
 
@@ -141,8 +159,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
             var storeUser = new StoreUser
             {
+                TenantId = currentTenantId.Value,
                 Name = createStoreUserDto.Name,
                 Username = createStoreUserDto.Username,
                 Email = createStoreUserDto.Email,
@@ -185,9 +210,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
             var originalStoreUser = await _context.StoreUsers
                 .AsNoTracking()
-                .Where(su => su.Id == id && !su.IsDeleted)
+                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUser == null)
@@ -197,7 +228,7 @@ public class StoreUserService : IStoreUserService
             }
 
             var storeUser = await _context.StoreUsers
-                .Where(su => su.Id == id && !su.IsDeleted)
+                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUser == null)
@@ -243,9 +274,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
             var originalStoreUser = await _context.StoreUsers
                 .AsNoTracking()
-                .Where(su => su.Id == id && !su.IsDeleted)
+                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUser == null)
@@ -255,7 +292,7 @@ public class StoreUserService : IStoreUserService
             }
 
             var storeUser = await _context.StoreUsers
-                .Where(su => su.Id == id && !su.IsDeleted)
+                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUser == null)
@@ -293,9 +330,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
+
             var query = _context.StoreUserGroups
                 .Include(sug => sug.LogoDocument)
-                .Where(sug => !sug.IsDeleted);
+                .Where(sug => !sug.IsDeleted && sug.TenantId == currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var storeUserGroups = await query
@@ -308,9 +351,9 @@ public class StoreUserService : IStoreUserService
             foreach (var group in storeUserGroups)
             {
                 var cashierCount = await _context.StoreUsers
-                    .CountAsync(su => su.CashierGroupId == group.Id && !su.IsDeleted, cancellationToken);
+                    .CountAsync(su => su.CashierGroupId == group.Id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
                 var privilegeCount = await _context.StoreUserPrivileges
-                    .CountAsync(sup => sup.Groups.Any(g => g.Id == group.Id) && !sup.IsDeleted, cancellationToken);
+                    .CountAsync(sup => sup.Groups.Any(g => g.Id == group.Id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserGroupDtos.Add(MapToStoreUserGroupDto(group, cashierCount, privilegeCount));
             }
@@ -334,9 +377,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
+
             var storeUserGroup = await _context.StoreUserGroups
                 .Include(sug => sug.LogoDocument)
-                .Where(sug => sug.Id == id && !sug.IsDeleted)
+                .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserGroup == null)
@@ -346,9 +395,9 @@ public class StoreUserService : IStoreUserService
             }
 
             var cashierCount = await _context.StoreUsers
-                .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted, cancellationToken);
+                .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
             var privilegeCount = await _context.StoreUserPrivileges
-                .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted, cancellationToken);
+                .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserGroupDto(storeUserGroup, cashierCount, privilegeCount);
         }
@@ -363,8 +412,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
+
             var storeUserGroup = new StoreUserGroup
             {
+                TenantId = currentTenantId.Value,
                 Code = createStoreUserGroupDto.Code,
                 Name = createStoreUserGroupDto.Name,
                 Description = createStoreUserGroupDto.Description,
@@ -398,9 +454,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
+
             var originalStoreUserGroup = await _context.StoreUserGroups
                 .AsNoTracking()
-                .Where(sug => sug.Id == id && !sug.IsDeleted)
+                .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUserGroup == null)
@@ -410,7 +472,7 @@ public class StoreUserService : IStoreUserService
             }
 
             var storeUserGroup = await _context.StoreUserGroups
-                .Where(sug => sug.Id == id && !sug.IsDeleted)
+                .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserGroup == null)
@@ -435,9 +497,9 @@ public class StoreUserService : IStoreUserService
             _logger.LogInformation("Store user group {StoreUserGroupId} updated by {User}", id, currentUser);
 
             var cashierCount = await _context.StoreUsers
-                .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted, cancellationToken);
+                .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
             var privilegeCount = await _context.StoreUserPrivileges
-                .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted, cancellationToken);
+                .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserGroupDto(storeUserGroup, cashierCount, privilegeCount);
         }
@@ -452,9 +514,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
+
             var originalStoreUserGroup = await _context.StoreUserGroups
                 .AsNoTracking()
-                .Where(sug => sug.Id == id && !sug.IsDeleted)
+                .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUserGroup == null)
@@ -464,7 +532,7 @@ public class StoreUserService : IStoreUserService
             }
 
             var storeUserGroup = await _context.StoreUserGroups
-                .Where(sug => sug.Id == id && !sug.IsDeleted)
+                .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserGroup == null)
@@ -502,8 +570,14 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
+            }
+
             var query = _context.StoreUserPrivileges
-                .Where(sup => !sup.IsDeleted);
+                .Where(sup => !sup.IsDeleted && sup.TenantId == currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var storeUserPrivileges = await query
@@ -517,7 +591,7 @@ public class StoreUserService : IStoreUserService
             foreach (var privilege in storeUserPrivileges)
             {
                 var groupCount = await _context.StoreUserGroups
-                    .CountAsync(sug => sug.Privileges.Any(p => p.Id == privilege.Id) && !sug.IsDeleted, cancellationToken);
+                    .CountAsync(sug => sug.Privileges.Any(p => p.Id == privilege.Id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserPrivilegeDtos.Add(MapToStoreUserPrivilegeDto(privilege, groupCount));
             }
@@ -541,8 +615,14 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
+            }
+
             var storeUserPrivilege = await _context.StoreUserPrivileges
-                .Where(sup => sup.Id == id && !sup.IsDeleted)
+                .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserPrivilege == null)
@@ -552,7 +632,7 @@ public class StoreUserService : IStoreUserService
             }
 
             var groupCount = await _context.StoreUserGroups
-                .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted, cancellationToken);
+                .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, groupCount);
         }
@@ -567,8 +647,14 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
+            }
+
             var storeUserPrivileges = await _context.StoreUserPrivileges
-                .Where(sup => sup.Groups.Any(g => g.Id == groupId) && !sup.IsDeleted)
+                .Where(sup => sup.Groups.Any(g => g.Id == groupId) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .OrderBy(sup => sup.SortOrder)
                 .ThenBy(sup => sup.Name)
                 .ToListAsync(cancellationToken);
@@ -577,7 +663,7 @@ public class StoreUserService : IStoreUserService
             foreach (var privilege in storeUserPrivileges)
             {
                 var groupCount = await _context.StoreUserGroups
-                    .CountAsync(sug => sug.Privileges.Any(p => p.Id == privilege.Id) && !sug.IsDeleted, cancellationToken);
+                    .CountAsync(sug => sug.Privileges.Any(p => p.Id == privilege.Id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserPrivilegeDtos.Add(MapToStoreUserPrivilegeDto(privilege, groupCount));
             }
@@ -595,8 +681,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
+            }
+
             var storeUserPrivilege = new StoreUserPrivilege
             {
+                TenantId = currentTenantId.Value,
                 Code = createStoreUserPrivilegeDto.Code,
                 Name = createStoreUserPrivilegeDto.Name,
                 Category = createStoreUserPrivilegeDto.Category,
@@ -634,9 +727,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
+            }
+
             var originalStoreUserPrivilege = await _context.StoreUserPrivileges
                 .AsNoTracking()
-                .Where(sup => sup.Id == id && !sup.IsDeleted)
+                .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUserPrivilege == null)
@@ -646,7 +745,7 @@ public class StoreUserService : IStoreUserService
             }
 
             var storeUserPrivilege = await _context.StoreUserPrivileges
-                .Where(sup => sup.Id == id && !sup.IsDeleted)
+                .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserPrivilege == null)
@@ -675,7 +774,7 @@ public class StoreUserService : IStoreUserService
             _logger.LogInformation("Store user privilege {StoreUserPrivilegeId} updated by {User}", id, currentUser);
 
             var groupCount = await _context.StoreUserGroups
-                .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted, cancellationToken);
+                .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, groupCount);
         }
@@ -690,9 +789,15 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
+            }
+
             var originalStoreUserPrivilege = await _context.StoreUserPrivileges
                 .AsNoTracking()
-                .Where(sup => sup.Id == id && !sup.IsDeleted)
+                .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUserPrivilege == null)
@@ -702,7 +807,7 @@ public class StoreUserService : IStoreUserService
             }
 
             var storeUserPrivilege = await _context.StoreUserPrivileges
-                .Where(sup => sup.Id == id && !sup.IsDeleted)
+                .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserPrivilege == null)
@@ -738,14 +843,26 @@ public class StoreUserService : IStoreUserService
 
     public async Task<bool> StoreUserExistsAsync(Guid storeUserId, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for store user operations.");
+        }
+
         return await _context.StoreUsers
-            .AnyAsync(su => su.Id == storeUserId && !su.IsDeleted, cancellationToken);
+            .AnyAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
     }
 
     public async Task<bool> StoreUserGroupExistsAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for store user group operations.");
+        }
+
         return await _context.StoreUserGroups
-            .AnyAsync(sug => sug.Id == groupId && !sug.IsDeleted, cancellationToken);
+            .AnyAsync(sug => sug.Id == groupId && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
     }
 
     private static StoreUserDto MapToStoreUserDto(StoreUser storeUser)
