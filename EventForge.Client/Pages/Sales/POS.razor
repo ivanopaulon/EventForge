@@ -41,10 +41,13 @@
 
     <!-- POS Header -->
     <POSHeader AvailableOperators="@_availableOperators"
-               @bind-SelectedOperatorId="@_selectedOperatorId"
+               SelectedOperatorId="@_selectedOperatorId"
+               SelectedOperatorIdChanged="@OnSelectedOperatorChangedAsync"
                AvailablePos="@_availablePos"
-               @bind-SelectedPosId="@_selectedPosId"
-               @bind-SelectedCustomer="@_selectedCustomer"
+               SelectedPosId="@_selectedPosId"
+               SelectedPosIdChanged="@OnSelectedPosChangedAsync"
+               SelectedCustomer="@_selectedCustomer"
+               SelectedCustomerChanged="@OnSelectedCustomerChangedAsync"
                SessionNumber="@_currentSession?.Id"
                IsSessionActive="@(_currentSession != null)"
                IsUpdatingItems="@_isUpdatingItems"
@@ -435,6 +438,16 @@
                 }
             }
 
+            // Auto-select POS if there is only one available
+            if (_selectedOperatorId.HasValue && _availablePos.Count == 1)
+            {
+                _selectedPosId = _availablePos[0].Id;
+                Logger.LogDebug("Auto-selected the only available POS: {PosName}", _availablePos[0].Name);
+            }
+
+            // Try to create session if both are selected
+            await TryCreateSessionAsync();
+
             // Show warnings if resources are missing
             if (_availableOperators.Count == 0)
             {
@@ -494,11 +507,60 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Create session when both operator and POS are selected
+        // NOTE: Session creation is now handled in OnSelectedOperatorChangedAsync and OnSelectedPosChangedAsync
+        // This method is kept for potential future use with URL parameters
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task TryCreateSessionAsync()
+    {
+        // Create session when both operator and POS are selected and no session exists
         if (_selectedOperatorId.HasValue && _selectedPosId.HasValue && _currentSession == null)
         {
             await CreateNewSessionAsync();
         }
+    }
+
+    private async Task OnSelectedOperatorChangedAsync(Guid? value)
+    {
+        _selectedOperatorId = value;
+        await TryCreateSessionAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnSelectedPosChangedAsync(Guid? value)
+    {
+        _selectedPosId = value;
+        await TryCreateSessionAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnSelectedCustomerChangedAsync(BusinessPartyDto? value)
+    {
+        _selectedCustomer = value;
+        
+        // If session exists, update it with the new customer
+        if (_currentSession != null && value != null)
+        {
+            try
+            {
+                var updateDto = new UpdateSaleSessionDto
+                {
+                    CustomerId = value.Id
+                };
+                _currentSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating session with customer");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.updateCustomerError", "Errore nell'aggiornamento del cliente"),
+                    Severity.Error
+                );
+            }
+        }
+        
+        StateHasChanged();
     }
 
     private async Task CheckForSuspendedSessionsAsync()
