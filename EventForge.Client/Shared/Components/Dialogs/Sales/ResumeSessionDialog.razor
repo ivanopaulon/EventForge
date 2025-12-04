@@ -1,6 +1,11 @@
 @using EventForge.DTOs.Sales
+@using EventForge.Client.Services.Sales
 @using MudBlazor
+@using System
 @inject ITranslationService TranslationService
+@inject ISalesService SalesService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <TitleContent>
@@ -11,16 +16,46 @@
     </TitleContent>
     <DialogContent>
         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
-            @TranslationService.GetTranslation("sales.suspendedSessionsFound", "Sono state trovate {0} sessioni di vendita parcheggiate. Seleziona una sessione da riprendere o creane una nuova.", SuspendedSessions?.Count ?? 0)
+            @TranslationService.GetTranslation("sales.suspendedSessionsFound", "Sono state trovate {0} sessioni di vendita parcheggiate. Seleziona una sessione da riprendere o creane una nuova.", _filteredSessions?.Count ?? 0)
         </MudAlert>
 
         @if (SuspendedSessions?.Any() == true)
         {
+            <!-- Search and Sort Controls -->
+            <MudGrid Spacing="2" Class="mb-4">
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_searchText"
+                                  Label="@TranslationService.GetTranslation("common.search", "Cerca")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Immediate="true"
+                                  Placeholder="@TranslationService.GetTranslation("sales.searchPlaceholder", "Cliente, operatore, prodotto...")" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect @bind-Value="_sortOption"
+                               Label="@TranslationService.GetTranslation("common.sort", "Ordina")"
+                               Variant="Variant.Outlined"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Sort">
+                        <MudSelectItem Value="@("recent")">@TranslationService.GetTranslation("sales.mostRecent", "Più recenti")</MudSelectItem>
+                        <MudSelectItem Value="@("oldest")">@TranslationService.GetTranslation("sales.oldest", "Meno recenti")</MudSelectItem>
+                        <MudSelectItem Value="@("total")">@TranslationService.GetTranslation("sales.byTotal", "Per totale")</MudSelectItem>
+                        <MudSelectItem Value="@("items")">@TranslationService.GetTranslation("sales.byItems", "Per numero articoli")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
             <MudList T="string" Clickable="true" Dense="true">
-                @foreach (var session in SuspendedSessions)
+                @foreach (var session in _filteredSessions ?? Enumerable.Empty<SaleSessionDto>())
                 {
-                    <MudListItem T="string" OnClick="@(() => SelectSession(session))" Class="mb-2">
-                        <MudPaper Elevation="1" Class="pa-3" Style="@(session == _selectedSession ? "border: 2px solid var(--mud-palette-primary);" : "")">
+                    var isExpanded = _expandedSessions.Contains(session.Id);
+                    var isSelected = session == _selectedSession;
+                    
+                    <MudListItem T="string" OnClick="@(() => SelectSession(session))" Class="mb-3">
+                        <MudPaper Elevation="@(isSelected ? 4 : 1)" 
+                                  Class="pa-3" 
+                                  Style="@(isSelected ? "border: 3px solid var(--mud-palette-primary); background-color: var(--mud-palette-primary-lighten);" : "")">
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="6">
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -28,6 +63,14 @@
                                     </MudText>
                                     <MudText Typo="Typo.body1" Style="font-weight: 600;">
                                         #@session.Id.ToString().Substring(0, 8)
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("sales.customer", "Cliente")
+                                    </MudText>
+                                    <MudText Typo="Typo.body1">
+                                        @(session.CustomerName ?? TranslationService.GetTranslation("sales.noCustomer", "Nessun cliente"))
                                     </MudText>
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
@@ -62,13 +105,81 @@
                                         @session.FinalTotal.ToString("C")
                                     </MudText>
                                 </MudItem>
-                                <MudItem xs="12" sm="6">
+                                <MudItem xs="12">
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                        @TranslationService.GetTranslation("sales.suspendedAt", "Parcheggiata il")
+                                        @TranslationService.GetTranslation("sales.suspendedAt", "Parcheggiata")
                                     </MudText>
                                     <MudText Typo="Typo.body2">
-                                        @session.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        @GetRelativeTime(session.UpdatedAt)
                                     </MudText>
+                                </MudItem>
+
+                                <!-- Item Preview -->
+                                @if (session.Items.Any())
+                                {
+                                    <MudItem xs="12">
+                                        <MudDivider Class="my-2" />
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                            @TranslationService.GetTranslation("sales.items", "Articoli")
+                                        </MudText>
+                                        
+                                        @if (!isExpanded)
+                                        {
+                                            <!-- Show first 3 items -->
+                                            @foreach (var item in session.Items.Take(3))
+                                            {
+                                                <MudText Typo="Typo.body2" Class="mb-1">
+                                                    • @item.ProductName (@item.Quantity x @item.UnitPrice.ToString("C"))
+                                                </MudText>
+                                            }
+                                            
+                                            @if (session.Items.Count > 3)
+                                            {
+                                                <MudButton Size="Size.Small" 
+                                                          Variant="Variant.Text" 
+                                                          OnClick="@(() => ToggleExpand(session.Id))"
+                                                          StartIcon="@Icons.Material.Filled.ExpandMore">
+                                                    @TranslationService.GetTranslation("sales.showAll", "Mostra tutti")
+                                                </MudButton>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <!-- Show all items in table -->
+                                            <MudTable Items="@session.Items" Dense="true" Hover="true" Elevation="0">
+                                                <HeaderContent>
+                                                    <MudTh>@TranslationService.GetTranslation("products.product", "Prodotto")</MudTh>
+                                                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.quantity", "Quantità")</MudTh>
+                                                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.price", "Prezzo")</MudTh>
+                                                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.total", "Totale")</MudTh>
+                                                </HeaderContent>
+                                                <RowTemplate>
+                                                    <MudTd DataLabel="Product">@context.ProductName</MudTd>
+                                                    <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity</MudTd>
+                                                    <MudTd DataLabel="Price" Style="text-align: right;">@context.UnitPrice.ToString("C")</MudTd>
+                                                    <MudTd DataLabel="Total" Style="text-align: right;">@context.TotalAmount.ToString("C")</MudTd>
+                                                </RowTemplate>
+                                            </MudTable>
+                                            
+                                            <MudButton Size="Size.Small" 
+                                                      Variant="Variant.Text" 
+                                                      OnClick="@(() => ToggleExpand(session.Id))"
+                                                      StartIcon="@Icons.Material.Filled.ExpandLess">
+                                                @TranslationService.GetTranslation("sales.hideDetails", "Nascondi dettagli")
+                                            </MudButton>
+                                        }
+                                    </MudItem>
+                                }
+
+                                <!-- Actions -->
+                                <MudItem xs="12">
+                                    <MudButton Size="Size.Small"
+                                              Color="Color.Error"
+                                              Variant="Variant.Outlined"
+                                              StartIcon="@Icons.Material.Filled.Delete"
+                                              OnClick="@(async () => await DeleteSessionAsync(session))">
+                                        @TranslationService.GetTranslation("sales.deleteSession", "Elimina")
+                                    </MudButton>
                                 </MudItem>
                             </MudGrid>
                         </MudPaper>
@@ -104,10 +215,148 @@
     public List<SaleSessionDto>? SuspendedSessions { get; set; }
 
     private SaleSessionDto? _selectedSession;
+    private HashSet<Guid> _expandedSessions = new();
+    private List<SaleSessionDto>? _filteredSessions;
+
+    private string __searchText = string.Empty;
+    private string _searchText
+    {
+        get => __searchText;
+        set
+        {
+            __searchText = value;
+            ApplyFiltersAndSort();
+        }
+    }
+
+    private string __sortOption = "recent";
+    private string _sortOption
+    {
+        get => __sortOption;
+        set
+        {
+            __sortOption = value;
+            ApplyFiltersAndSort();
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyFiltersAndSort();
+    }
+
+    private void ApplyFiltersAndSort()
+    {
+        if (SuspendedSessions == null)
+        {
+            _filteredSessions = null;
+            return;
+        }
+
+        var filtered = SuspendedSessions.AsEnumerable();
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(__searchText))
+        {
+            filtered = filtered.Where(s =>
+                (s.CustomerName?.Contains(__searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (s.OperatorName?.Contains(__searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                s.Items.Any(i => i.ProductName.Contains(__searchText, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        // Apply sorting
+        filtered = __sortOption switch
+        {
+            "oldest" => filtered.OrderBy(s => s.UpdatedAt),
+            "total" => filtered.OrderByDescending(s => s.FinalTotal),
+            "items" => filtered.OrderByDescending(s => s.Items.Count),
+            _ => filtered.OrderByDescending(s => s.UpdatedAt) // "recent" is default
+        };
+
+        _filteredSessions = filtered.ToList();
+    }
 
     private void SelectSession(SaleSessionDto session)
     {
         _selectedSession = session;
+    }
+
+    private void ToggleExpand(Guid sessionId)
+    {
+        if (_expandedSessions.Contains(sessionId))
+        {
+            _expandedSessions.Remove(sessionId);
+        }
+        else
+        {
+            _expandedSessions.Add(sessionId);
+        }
+    }
+
+    private string GetRelativeTime(DateTime dateTime)
+    {
+        var timeSpan = DateTime.UtcNow - dateTime.ToUniversalTime();
+
+        if (timeSpan.TotalMinutes < 1)
+            return TranslationService.GetTranslation("sales.justNow", "Proprio ora");
+        if (timeSpan.TotalMinutes < 60)
+            return TranslationService.GetTranslation("sales.minutesAgo", "{0} minuti fa", (int)timeSpan.TotalMinutes);
+        if (timeSpan.TotalHours < 24)
+            return TranslationService.GetTranslation("sales.hoursAgo", "{0} ore fa", (int)timeSpan.TotalHours);
+        if (timeSpan.TotalDays < 2)
+            return TranslationService.GetTranslation("sales.yesterday", "Ieri");
+        if (timeSpan.TotalDays < 7)
+            return TranslationService.GetTranslation("sales.daysAgo", "{0} giorni fa", (int)timeSpan.TotalDays);
+
+        return dateTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+    }
+
+    private async Task DeleteSessionAsync(SaleSessionDto session)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("sales.deleteSession", "Elimina Sessione"),
+            TranslationService.GetTranslation("sales.confirmDeleteSession", "Sei sicuro di voler eliminare questa sessione? Questa azione è irreversibile."),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            cancelText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirm == true)
+        {
+            try
+            {
+                // Delete the session - update status to Cancelled
+                var updateDto = new UpdateSaleSessionDto
+                {
+                    Status = SaleSessionStatusDto.Cancelled
+                };
+                
+                await SalesService.UpdateSessionAsync(session.Id, updateDto);
+
+                // Remove from list
+                SuspendedSessions?.Remove(session);
+                ApplyFiltersAndSort();
+                
+                if (_selectedSession == session)
+                {
+                    _selectedSession = null;
+                }
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.sessionDeleted", "Sessione eliminata"),
+                    Severity.Success
+                );
+
+                StateHasChanged();
+            }
+            catch (Exception)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.deleteError", "Errore durante l'eliminazione"),
+                    Severity.Error
+                );
+            }
+        }
     }
 
     private void Resume()

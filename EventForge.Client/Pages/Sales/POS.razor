@@ -601,6 +601,34 @@
         );
 
         await dialog.Result;
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data != null)
+        {
+            // Handle "skip" action
+            if (result.Data is string action && action == "skip")
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.productSkipped", "Prodotto saltato"),
+                    Severity.Info
+                );
+                return;
+            }
+            
+            // Handle ProductDto (newly created product)
+            if (result.Data is ProductDto product)
+            {
+                await AddProductToCartAsync(product);
+                return;
+            }
+            
+            // Handle product assignment result (from AssignBarcodeToProduct)
+            if (result.Data is ProductNotFoundDialog.AssignResult assignResult)
+            {
+                await AddProductToCartAsync(assignResult.Product);
+                return;
+            }
+        }
     }
 
     private Task HandleScanErrorAsync(Exception exception)
@@ -671,7 +699,8 @@
     {
         var parameters = new DialogParameters
         {
-            { "InitialNotes", item.Notes ?? string.Empty }
+            { "InitialNotes", item.Notes ?? string.Empty },
+            { "Item", item }
         };
 
         var dialog = await DialogService.ShowAsync<ItemNotesDialog>(
