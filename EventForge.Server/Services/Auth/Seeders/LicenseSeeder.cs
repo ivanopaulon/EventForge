@@ -212,6 +212,8 @@ public class LicenseSeeder : ILicenseSeeder
                 // Retail & POS
                 new { Name = "RetailManagement", DisplayName = "Gestione Retail", Description = "Gestione punto vendita, carrelli e stazioni", Category = "Retail" },
                 new { Name = "StoreManagement", DisplayName = "Gestione Negozi", Description = "Gestione negozi e utenti punto vendita", Category = "Retail" },
+                new { Name = "POSManagement", DisplayName = "Gestione POS", Description = "Gestione terminali POS e configurazioni", Category = "Retail" },
+                new { Name = "PaymentProcessing", DisplayName = "Elaborazione Pagamenti", Description = "Elaborazione pagamenti e gestione metodi di pagamento", Category = "Retail" },
                 
                 // Printing
                 new { Name = "PrintingManagement", DisplayName = "Gestione Stampa", Description = "Funzionalità di stampa e gestione etichette", Category = "Printing" },

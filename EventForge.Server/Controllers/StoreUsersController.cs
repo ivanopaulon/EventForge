@@ -10,7 +10,7 @@ namespace EventForge.Server.Controllers;
 /// Provides CRUD operations for store users within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
-[Authorize]
+[Authorize(Policy = "RequireManager")]
 public class StoreUsersController : BaseApiController
 {
     private readonly IStoreUserService _storeUserService;

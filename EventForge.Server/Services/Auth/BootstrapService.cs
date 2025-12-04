@@ -60,6 +60,7 @@ public class BootstrapService : IBootstrapService
     private readonly ITenantSeeder _tenantSeeder;
     private readonly ILicenseSeeder _licenseSeeder;
     private readonly IEntitySeeder _entitySeeder;
+    private readonly IStoreSeeder _storeSeeder;
     private readonly ILogger<BootstrapService> _logger;
 
     public BootstrapService(
@@ -68,6 +69,7 @@ public class BootstrapService : IBootstrapService
         ITenantSeeder tenantSeeder,
         ILicenseSeeder licenseSeeder,
         IEntitySeeder entitySeeder,
+        IStoreSeeder storeSeeder,
         ILogger<BootstrapService> logger)
     {
         _dbContext = dbContext;
@@ -75,6 +77,7 @@ public class BootstrapService : IBootstrapService
         _tenantSeeder = tenantSeeder;
         _licenseSeeder = licenseSeeder;
         _entitySeeder = entitySeeder;
+        _storeSeeder = storeSeeder;
         _logger = logger;
     }
 
@@ -220,6 +223,12 @@ public class BootstrapService : IBootstrapService
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
+                var tenantsWithPaymentMethods = await _dbContext.PaymentMethods
+                    .Where(p => tenantIds.Contains(p.TenantId))
+                    .Select(p => p.TenantId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
                 // Check each tenant to see if it needs base entities seeded
                 foreach (var tenant in existingTenants)
                 {
@@ -257,6 +266,31 @@ public class BootstrapService : IBootstrapService
                     else
                     {
                         _logger.LogInformation("Tenant {TenantId} ({TenantName}) already has base entities seeded",
+                            tenant.Id, tenant.Name);
+                    }
+
+                    // Check if tenant needs store entities seeded
+                    var hasPaymentMethods = tenantsWithPaymentMethods.Contains(tenant.Id);
+
+                    if (!hasPaymentMethods)
+                    {
+                        _logger.LogInformation("Tenant {TenantId} ({TenantName}) is missing store entities. Seeding now...",
+                            tenant.Id, tenant.Name);
+
+                        if (!await _storeSeeder.SeedStoreBaseEntitiesAsync(tenant.Id, cancellationToken))
+                        {
+                            _logger.LogWarning("Failed to seed store base entities for tenant {TenantId}", tenant.Id);
+                            // Not fatal, continue
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Successfully seeded store base entities for tenant {TenantId} ({TenantName})",
+                                tenant.Id, tenant.Name);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Tenant {TenantId} ({TenantName}) already has store entities seeded",
                             tenant.Id, tenant.Name);
                     }
                 }

@@ -11,7 +11,7 @@ namespace EventForge.Server.Controllers;
 /// Provides CRUD operations for payment methods used in sales transactions.
 /// </summary>
 [Route("api/v1/payment-methods")]
-[Authorize]
+[Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("SalesManagement")]
 public class PaymentMethodsController : BaseApiController
 {
