@@ -46,6 +46,7 @@
                @bind-SelectedCustomer="@_selectedCustomer"
                SessionNumber="@_currentSession?.Id"
                IsSessionActive="@(_currentSession != null)"
+               IsUpdatingItems="@_isUpdatingItems"
                SearchCustomers="@SearchCustomersAsync"
                OnParkClick="@ParkSessionAsync"
                OnCancelClick="@CancelSessionAsync" />
@@ -313,6 +314,7 @@
     private readonly HashSet<Guid> _pendingItemUpdates = new();
     private System.Timers.Timer? _updateDebounceTimer;
     private const int DebounceDelayMs = 500;
+    private bool _isUpdatingItems = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -684,6 +686,7 @@
             var updateDto = new UpdateSaleItemDto
             {
                 Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
                 DiscountPercent = item.DiscountPercent,
                 Notes = item.Notes
             };
@@ -1113,6 +1116,9 @@
     /// </summary>
     private void QueueItemUpdate(SaleItemDto item)
     {
+        // Set loading state
+        _isUpdatingItems = true;
+        
         // Add item ID to pending updates
         _pendingItemUpdates.Add(item.Id);
         
@@ -1151,6 +1157,9 @@
                         }
                         
                         StateHasChanged();
+                        
+                        // Clear loading state after update completes
+                        _isUpdatingItems = false;
                     }
                     catch (Exception ex)
                     {
@@ -1159,6 +1168,9 @@
                             TranslationService.GetTranslation("errors.updateError", "Errore durante l'aggiornamento"),
                             Severity.Error
                         );
+                        
+                        // Clear loading state on error
+                        _isUpdatingItems = false;
                     }
                 });
             };

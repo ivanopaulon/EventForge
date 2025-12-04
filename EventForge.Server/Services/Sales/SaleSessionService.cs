@@ -314,6 +314,7 @@ public class SaleSessionService : ISaleSessionService
             }
 
             item.Quantity = updateItemDto.Quantity;
+            item.UnitPrice = updateItemDto.UnitPrice;
             item.DiscountPercent = updateItemDto.DiscountPercent;
             item.Notes = updateItemDto.Notes;
 

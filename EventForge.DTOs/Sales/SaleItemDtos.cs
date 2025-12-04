@@ -56,6 +56,12 @@ namespace EventForge.DTOs.Sales
         public decimal Quantity { get; set; }
 
         /// <summary>
+        /// Unit price for this item.
+        /// </summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Unit price cannot be negative")]
+        public decimal UnitPrice { get; set; }
+
+        /// <summary>
         /// Discount percentage.
         /// </summary>
         [Range(0, 100, ErrorMessage = "Discount must be between 0 and 100")]
