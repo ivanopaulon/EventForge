@@ -396,14 +396,15 @@
             try
             {
                 await StoreUserGroupService.DeleteAsync(item.Id);
-                _items.Remove(item);
                 Snackbar.Add(TranslationService.GetTranslation("store.operatorGroupDeleted", "Gruppo eliminato con successo!"), Severity.Success);
-                StateHasChanged();
+                // Reload data to ensure consistency
+                await LoadDataAsync();
             }
             catch (Exception ex)
             {
+                var errorMessage = ex.Message;
                 Snackbar.Add(TranslationService.GetTranslation("store.deleteOperatorGroupError",
-                    "Errore nell'eliminazione del gruppo: {0}", ex.Message), Severity.Error);
+                    "Errore nell'eliminazione del gruppo: {0}", errorMessage), Severity.Error);
                 Logger.LogError(ex, "Error deleting operator group {GroupId}", item.Id);
             }
         }
@@ -439,18 +440,19 @@
             {
                 var deletedCount = 0;
                 var failedCount = 0;
+                var errorMessages = new List<string>();
 
                 foreach (var item in nonSystemGroups)
                 {
                     try
                     {
                         await StoreUserGroupService.DeleteAsync(item.Id);
-                        _items.RemoveAll(p => p.Id == item.Id);
                         deletedCount++;
                     }
                     catch (Exception ex)
                     {
                         failedCount++;
+                        errorMessages.Add(ex.Message);
                         Logger.LogError(ex, "Error deleting operator group {GroupId}", item.Id);
                     }
                 }
@@ -464,11 +466,17 @@
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("store.deletedMultipleOperatorGroupsPartial",
-                        "{0} gruppi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                    var message = TranslationService.GetTranslationFormatted("store.deletedMultipleOperatorGroupsPartial",
+                        "{0} gruppi eliminati, {1} falliti", deletedCount, failedCount);
+                    if (errorMessages.Any())
+                    {
+                        message += $" - Primo errore: {errorMessages.First()}";
+                    }
+                    Snackbar.Add(message, Severity.Warning);
                 }
 
-                StateHasChanged();
+                // Reload data to ensure consistency
+                await LoadDataAsync();
             }
             catch (Exception ex)
             {

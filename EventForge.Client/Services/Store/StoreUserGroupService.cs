@@ -1,6 +1,7 @@
 using EventForge.DTOs.Store;
 using EventForge.DTOs.Common;
 using System.Net.Http.Json;
+using System.Net;
 
 namespace EventForge.Client.Services.Store;
 
@@ -19,6 +20,8 @@ public class StoreUserGroupService : IStoreUserGroupService
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+
+
 
     public async Task<List<StoreUserGroupDto>> GetAllAsync()
     {
@@ -42,15 +45,26 @@ public class StoreUserGroupService : IStoreUserGroupService
         try
         {
             var response = await _httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
+                _logger.LogError("Error getting paged store user groups (page: {Page}, pageSize: {PageSize}): {StatusCode} - {ErrorMessage}", 
+                    page, pageSize, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
             
             return await response.Content.ReadFromJsonAsync<PagedResult<StoreUserGroupDto>>() 
                 ?? new PagedResult<StoreUserGroupDto>();
         }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting paged store user groups (page: {Page}, pageSize: {PageSize})", page, pageSize);
-            throw;
+            throw new InvalidOperationException("Errore nel caricamento dei gruppi.", ex);
         }
     }
 
@@ -76,13 +90,24 @@ public class StoreUserGroupService : IStoreUserGroupService
         try
         {
             var response = await _httpClient.PostAsJsonAsync(ApiBase, createDto);
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
+                _logger.LogError("Error creating store user group: {StatusCode} - {ErrorMessage}", response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
             return await response.Content.ReadFromJsonAsync<StoreUserGroupDto>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating store user group");
-            throw;
+            throw new InvalidOperationException("Errore nella creazione del gruppo. Verifica i dati e riprova.", ex);
         }
     }
 
@@ -91,13 +116,24 @@ public class StoreUserGroupService : IStoreUserGroupService
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
+                _logger.LogError("Error updating store user group {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
             return await response.Content.ReadFromJsonAsync<StoreUserGroupDto>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating store user group {Id}", id);
-            throw;
+            throw new InvalidOperationException("Errore nell'aggiornamento del gruppo. Verifica i dati e riprova.", ex);
         }
     }
 
@@ -106,12 +142,24 @@ public class StoreUserGroupService : IStoreUserGroupService
         try
         {
             var response = await _httpClient.DeleteAsync($"{ApiBase}/{id}");
-            return response.IsSuccessStatusCode;
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
+                _logger.LogError("Error deleting store user group {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting store user group {Id}", id);
-            return false;
+            throw new InvalidOperationException("Errore nell'eliminazione del gruppo.", ex);
         }
     }
 }

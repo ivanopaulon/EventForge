@@ -363,8 +363,9 @@
         }
         catch (Exception ex)
         {
+            var errorMessage = ex.Message;
             Logger.LogError(ex, "Error saving operator");
-            Snackbar.Add(TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio"), Severity.Error);
+            Snackbar.Add(errorMessage, Severity.Error);
         }
         finally
         {

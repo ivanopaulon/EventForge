@@ -1,6 +1,7 @@
 using EventForge.DTOs.Store;
 using EventForge.DTOs.Common;
 using System.Net.Http.Json;
+using System.Net;
 
 namespace EventForge.Client.Services.Store;
 
@@ -18,6 +19,8 @@ public class StoreUserService : IStoreUserService
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+
+
 
     public async Task<List<StoreUserDto>> GetAllAsync()
     {
@@ -75,13 +78,24 @@ public class StoreUserService : IStoreUserService
         try
         {
             var response = await _httpClient.PostAsJsonAsync(ApiBase, createDto);
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "operatore", _logger);
+                _logger.LogError("Error creating store user: {StatusCode} - {ErrorMessage}", response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
             return await response.Content.ReadFromJsonAsync<StoreUserDto>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw; // Re-throw with our custom message
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating store user");
-            throw;
+            throw new InvalidOperationException("Errore nella creazione dell'operatore. Verifica i dati e riprova.", ex);
         }
     }
 
@@ -90,13 +104,24 @@ public class StoreUserService : IStoreUserService
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "operatore", _logger);
+                _logger.LogError("Error updating store user {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
             return await response.Content.ReadFromJsonAsync<StoreUserDto>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw; // Re-throw with our custom message
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating store user {Id}", id);
-            throw;
+            throw new InvalidOperationException("Errore nell'aggiornamento dell'operatore. Verifica i dati e riprova.", ex);
         }
     }
 
@@ -105,12 +130,24 @@ public class StoreUserService : IStoreUserService
         try
         {
             var response = await _httpClient.DeleteAsync($"{ApiBase}/{id}");
-            return response.IsSuccessStatusCode;
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "operatore", _logger);
+                _logger.LogError("Error deleting store user {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            throw; // Re-throw with our custom message
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting store user {Id}", id);
-            throw;
+            throw new InvalidOperationException("Errore nell'eliminazione dell'operatore.", ex);
         }
     }
 
@@ -119,15 +156,26 @@ public class StoreUserService : IStoreUserService
         try
         {
             var response = await _httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "operatore", _logger);
+                _logger.LogError("Error getting paged store users (page: {Page}, pageSize: {PageSize}): {StatusCode} - {ErrorMessage}", 
+                    page, pageSize, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
             
             return await response.Content.ReadFromJsonAsync<PagedResult<StoreUserDto>>() 
                 ?? new PagedResult<StoreUserDto>();
         }
+        catch (InvalidOperationException)
+        {
+            throw; // Re-throw with our custom message
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting paged store users (page: {Page}, pageSize: {PageSize})", page, pageSize);
-            throw;
+            throw new InvalidOperationException("Errore nel caricamento degli operatori.", ex);
         }
     }
 }

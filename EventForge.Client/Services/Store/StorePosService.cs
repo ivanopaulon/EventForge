@@ -1,6 +1,7 @@
 using EventForge.DTOs.Store;
 using EventForge.DTOs.Common;
 using System.Net.Http.Json;
+using System.Net;
 
 namespace EventForge.Client.Services.Store;
 
@@ -18,6 +19,8 @@ public class StorePosService : IStorePosService
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+
+
 
     public async Task<List<StorePosDto>> GetAllAsync()
     {
@@ -72,13 +75,24 @@ public class StorePosService : IStorePosService
         try
         {
             var response = await _httpClient.PostAsJsonAsync(ApiBase, createDto);
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "punto cassa", _logger);
+                _logger.LogError("Error creating store POS: {StatusCode} - {ErrorMessage}", response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
             return await response.Content.ReadFromJsonAsync<StorePosDto>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating store POS");
-            throw;
+            throw new InvalidOperationException("Errore nella creazione del punto cassa. Verifica i dati e riprova.", ex);
         }
     }
 
@@ -87,13 +101,24 @@ public class StorePosService : IStorePosService
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "punto cassa", _logger);
+                _logger.LogError("Error updating store POS {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
             return await response.Content.ReadFromJsonAsync<StorePosDto>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating store POS {Id}", id);
-            throw;
+            throw new InvalidOperationException("Errore nell'aggiornamento del punto cassa. Verifica i dati e riprova.", ex);
         }
     }
 
@@ -102,12 +127,24 @@ public class StorePosService : IStorePosService
         try
         {
             var response = await _httpClient.DeleteAsync($"{ApiBase}/{id}");
-            return response.IsSuccessStatusCode;
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "punto cassa", _logger);
+                _logger.LogError("Error deleting store POS {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+            
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting store POS {Id}", id);
-            throw;
+            throw new InvalidOperationException("Errore nell'eliminazione del punto cassa.", ex);
         }
     }
 
@@ -116,15 +153,26 @@ public class StorePosService : IStorePosService
         try
         {
             var response = await _httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "punto cassa", _logger);
+                _logger.LogError("Error getting paged store POS terminals (page: {Page}, pageSize: {PageSize}): {StatusCode} - {ErrorMessage}", 
+                    page, pageSize, response.StatusCode, errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
             
             return await response.Content.ReadFromJsonAsync<PagedResult<StorePosDto>>() 
                 ?? new PagedResult<StorePosDto>();
         }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting paged store POS terminals (page: {Page}, pageSize: {PageSize})", page, pageSize);
-            throw;
+            throw new InvalidOperationException("Errore nel caricamento dei punti cassa.", ex);
         }
     }
 }
