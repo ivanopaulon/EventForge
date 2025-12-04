@@ -1074,7 +1074,10 @@
         _updateDebounceTimer?.Dispose();
         
         _updateDebounceTimer = new System.Timers.Timer(DebounceDelayMs);
-        _updateDebounceTimer.Elapsed += async (s, e) => await FlushPendingUpdatesAsync();
+        _updateDebounceTimer.Elapsed += (s, e) => 
+        {
+            _ = FlushPendingUpdatesAsync();
+        };
         _updateDebounceTimer.AutoReset = false;
         _updateDebounceTimer.Start();
     }
@@ -1084,19 +1087,26 @@
         if (_currentSession == null || !_pendingItemUpdates.Any())
             return;
 
-        var itemIds = _pendingItemUpdates.ToList();
-        _pendingItemUpdates.Clear();
-
-        foreach (var itemId in itemIds)
+        try
         {
-            var item = _currentSession.Items.FirstOrDefault(i => i.Id == itemId);
-            if (item != null)
-            {
-                await UpdateItemAsync(item);
-            }
-        }
+            var itemIds = _pendingItemUpdates.ToList();
+            _pendingItemUpdates.Clear();
 
-        await InvokeAsync(StateHasChanged);
+            foreach (var itemId in itemIds)
+            {
+                var item = _currentSession.Items.FirstOrDefault(i => i.Id == itemId);
+                if (item != null)
+                {
+                    await UpdateItemAsync(item);
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error flushing pending item updates");
+        }
     }
 
     // Keyboard shortcuts
