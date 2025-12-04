@@ -104,11 +104,11 @@
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="_username"
                                               Label="@TranslationService.GetTranslation("field.username", "Username")"
-                                              Required="true"
+                                              Required="@_isNewEntity"
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Disabled="@(!_isNewEntity)"
-                                              HelperText="@(_isNewEntity ? "" : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
+                                              HelperText="@(_isNewEntity ? TranslationService.GetTranslation("field.usernameRequired", "Username obbligatorio") : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
                                               @bind-Value:after="MarkAsChanged" />
                             </MudItem>
 
