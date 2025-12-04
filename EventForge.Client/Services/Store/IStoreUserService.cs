@@ -1,4 +1,5 @@
 using EventForge.DTOs.Store;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services.Store;
 
@@ -36,4 +37,9 @@ public interface IStoreUserService
     /// Deletes a store user.
     /// </summary>
     Task<bool> DeleteAsync(Guid id);
+
+    /// <summary>
+    /// Gets store users with pagination.
+    /// </summary>
+    Task<PagedResult<StoreUserDto>> GetPagedAsync(int page = 1, int pageSize = 20);
 }

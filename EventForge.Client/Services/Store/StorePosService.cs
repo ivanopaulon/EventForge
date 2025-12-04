@@ -110,4 +110,21 @@ public class StorePosService : IStorePosService
             throw;
         }
     }
+
+    public async Task<PagedResult<StorePosDto>> GetPagedAsync(int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
+            response.EnsureSuccessStatusCode();
+            
+            return await response.Content.ReadFromJsonAsync<PagedResult<StorePosDto>>() 
+                ?? new PagedResult<StorePosDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting paged store POS terminals (page: {Page}, pageSize: {PageSize})", page, pageSize);
+            throw;
+        }
+    }
 }
