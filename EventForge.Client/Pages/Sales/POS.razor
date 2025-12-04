@@ -334,6 +334,9 @@
     private int _currentRetryAttempt = 0;
     private int _maxRetryAttempts = 3;
     private int _manualRetryAttempts = 2; // Reduced retry count for manual retries
+    
+    // Page size for loading operators - matching OperatorManagement.razor pattern
+    private const int MaxOperatorsPageSize = 1000;
 
     protected override async Task OnInitializedAsync()
     {
@@ -357,27 +360,59 @@
                 Logger.LogWarning("User not authenticated in POS page");
             }
 
-            // Load data with resilient error handling - each call is independent
+            // Load data with explicit error handling - each call is independent
             Logger.LogDebug("Loading operators, POS terminals, and payment methods...");
             
-            _availableOperators = await SafeAsync(
-                () => StoreUserService.GetAllAsync(),
-                new List<StoreUserDto>(),
-                "operators"
-            );
+            // Load operators using GetPagedAsync (consistent with OperatorManagement.razor)
+            try 
+            {
+                var pagedResult = await StoreUserService.GetPagedAsync(1, MaxOperatorsPageSize);
+                _availableOperators = pagedResult?.Items?.ToList() ?? new List<StoreUserDto>();
+                Logger.LogInformation("Loaded {Count} operators", _availableOperators.Count);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading operators");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.loadOperatorsError", "Error loading operators"),
+                    Severity.Error
+                );
+                _availableOperators = new List<StoreUserDto>();
+            }
             
-            _availablePos = await SafeAsync(
-                () => StorePosService.GetActiveAsync(),
-                new List<StorePosDto>(),
-                "POS terminals"
-            );
+            // Load POS terminals with explicit error handling
+            try
+            {
+                var posResult = await StorePosService.GetActiveAsync();
+                _availablePos = posResult?.ToList() ?? new List<StorePosDto>();
+                Logger.LogInformation("Loaded {Count} POS terminals", _availablePos.Count);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading POS terminals");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.loadPosError", "Error loading POS terminals"),
+                    Severity.Error
+                );
+                _availablePos = new List<StorePosDto>();
+            }
             
-            var paymentMethodsResult = await SafeAsync(
-                () => PaymentMethodService.GetActiveAsync(),
-                new List<PaymentMethodDto>(),
-                "payment methods"
-            );
-            _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
+            // Load payment methods with explicit error handling
+            try
+            {
+                var paymentMethodsResult = await PaymentMethodService.GetActiveAsync();
+                _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
+                Logger.LogInformation("Loaded {Count} payment methods", _paymentMethods.Count);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading payment methods");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.loadPaymentMethodsError", "Error loading payment methods"),
+                    Severity.Error
+                );
+                _paymentMethods = new List<PaymentMethodDto>();
+            }
             
             Logger.LogInformation("POS initialization complete: Operators={OperatorCount}, POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
                 _availableOperators.Count, _availablePos.Count, _paymentMethods.Count);
@@ -454,32 +489,6 @@
         finally
         {
             _isLoading = false;
-        }
-    }
-
-    /// <summary>
-    /// Safely executes an async operation with error handling, returning a default value on failure.
-    /// </summary>
-    private async Task<T> SafeAsync<T>(Func<Task<T>> operation, T defaultValue, string operationName)
-    {
-        try
-        {
-            return await operation();
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            Logger.LogWarning("Not found error during {OperationName}: {Message}", operationName, httpEx.Message);
-            return defaultValue;
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.BadRequest)
-        {
-            Logger.LogWarning("Bad request error during {OperationName}: {Message}", operationName, httpEx.Message);
-            return defaultValue;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Error during {OperationName}, using default value", operationName);
-            return defaultValue;
         }
     }
 
