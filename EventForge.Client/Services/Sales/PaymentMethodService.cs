@@ -22,6 +22,8 @@ public class PaymentMethodService : IPaymentMethodService
     {
         try
         {
+            // Use a large page size (1000) to retrieve all items in a single request
+            // This is acceptable for payment methods as there are typically few records
             var pagedResult = await GetPagedAsync(1, 1000);
             return pagedResult.Items?.ToList();
         }
