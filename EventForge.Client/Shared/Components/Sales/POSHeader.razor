@@ -78,7 +78,7 @@
                                  SearchFunc="@SearchCustomers"
                                  ToStringFunc="@(c => c?.Name ?? string.Empty)"
                                  Clearable="true"
-                                 Disabled="@(!IsSessionActive)"
+                                 Disabled="@(!SelectedOperatorId.HasValue || !SelectedPosId.HasValue)"
                                  Adornment="Adornment.Start"
                                  AdornmentIcon="@Icons.Material.Filled.Person"
                                  Style="flex: 1;">
@@ -95,7 +95,7 @@
                                Variant="Variant.Outlined"
                                Size="Size.Medium"
                                OnClick="@OpenQuickCreateCustomerDialogAsync"
-                               Disabled="@(!IsSessionActive)"
+                               Disabled="@(!SelectedOperatorId.HasValue || !SelectedPosId.HasValue)"
                                Title="@TranslationService.GetTranslation("sales.quickCreateCustomer", "Creazione Rapida Cliente")" />
             </div>
         </MudItem>
