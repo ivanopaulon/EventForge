@@ -141,36 +141,39 @@
                                                        Size="Size.Small" 
                                                        OnClick="@(() => DecreaseQuantityAsync(context))"
                                                        Disabled="@(context.Quantity <= 1)" />
-                                        <MudNumericField @bind-Value="context.Quantity"
+                                        <MudNumericField T="decimal"
+                                                         Value="@context.Quantity"
+                                                         ValueChanged="@((decimal val) => { context.Quantity = val; QueueItemUpdate(context); })"
                                                          Min="1"
                                                          HideSpinButtons="true"
                                                          Style="width: 60px; text-align: center;"
-                                                         Variant="Variant.Text"
-                                                         OnBlur="@(() => QueueItemUpdate(context))" />
+                                                         Variant="Variant.Text" />
                                         <MudIconButton Icon="@Icons.Material.Filled.Add" 
                                                        Size="Size.Small" 
                                                        OnClick="@(() => IncreaseQuantityAsync(context))" />
                                     </div>
                                 </MudTd>
                                 <MudTd DataLabel="Price" Style="text-align: right;">
-                                    <MudNumericField @bind-Value="context.UnitPrice"
+                                    <MudNumericField T="decimal"
+                                                     Value="@context.UnitPrice"
+                                                     ValueChanged="@((decimal val) => { context.UnitPrice = val; QueueItemUpdate(context); })"
                                                      Format="N2"
                                                      Min="0"
                                                      HideSpinButtons="true"
                                                      Style="width: 100px;"
-                                                     Variant="Variant.Text"
-                                                     OnBlur="@(() => QueueItemUpdate(context))" />
+                                                     Variant="Variant.Text" />
                                 </MudTd>
                                 <MudTd DataLabel="Discount" Style="text-align: right;">
                                     <div class="d-flex align-center justify-end gap-1">
-                                        <MudNumericField @bind-Value="context.DiscountPercent"
+                                        <MudNumericField T="decimal"
+                                                         Value="@context.DiscountPercent"
+                                                         ValueChanged="@((decimal val) => { context.DiscountPercent = val; QueueItemUpdate(context); })"
                                                          Format="N1"
                                                          Min="0"
                                                          Max="100"
                                                          HideSpinButtons="true"
                                                          Style="width: 60px;"
-                                                         Variant="Variant.Text"
-                                                         OnBlur="@(() => QueueItemUpdate(context))" />
+                                                         Variant="Variant.Text" />
                                         <MudText Typo="Typo.body2">%</MudText>
                                     </div>
                                 </MudTd>
@@ -654,18 +657,20 @@
         }
     }
 
-    private async Task IncreaseQuantityAsync(SaleItemDto item)
+    private void IncreaseQuantityAsync(SaleItemDto item)
     {
         item.Quantity++;
-        await UpdateItemAsync(item);
+        QueueItemUpdate(item); // Use debounce to batch API calls
+        StateHasChanged();
     }
 
-    private async Task DecreaseQuantityAsync(SaleItemDto item)
+    private void DecreaseQuantityAsync(SaleItemDto item)
     {
         if (item.Quantity > 1)
         {
             item.Quantity--;
-            await UpdateItemAsync(item);
+            QueueItemUpdate(item); // Use debounce to batch API calls
+            StateHasChanged();
         }
     }
 
@@ -713,7 +718,7 @@
         if (!result.Canceled && result.Data is string newNotes)
         {
             item.Notes = newNotes;
-            await UpdateItemAsync(item);
+            QueueItemUpdate(item); // Use debounce for notes too
         }
     }
 
@@ -1093,49 +1098,69 @@
         return sb.ToString();
     }
 
-    // Debounce methods for item updates
+    /// <summary>
+    /// Queues an item update with debounce to avoid excessive API calls.
+    /// Multiple rapid changes are batched into a single API call after 500ms of inactivity.
+    /// </summary>
     private void QueueItemUpdate(SaleItemDto item)
     {
+        // Add item ID to pending updates
         _pendingItemUpdates.Add(item.Id);
         
-        // Reset timer
-        _updateDebounceTimer?.Stop();
-        _updateDebounceTimer?.Dispose();
-        
-        _updateDebounceTimer = new System.Timers.Timer(DebounceDelayMs);
-        _updateDebounceTimer.Elapsed += (s, e) => 
+        // Initialize timer on first use or reuse existing one
+        if (_updateDebounceTimer == null)
         {
-            _ = FlushPendingUpdatesAsync();
-        };
-        _updateDebounceTimer.AutoReset = false;
-        _updateDebounceTimer.Start();
-    }
-
-    private async Task FlushPendingUpdatesAsync()
-    {
-        if (_currentSession == null || !_pendingItemUpdates.Any())
-            return;
-
-        try
-        {
-            var itemIds = _pendingItemUpdates.ToList();
-            _pendingItemUpdates.Clear();
-
-            foreach (var itemId in itemIds)
+            _updateDebounceTimer = new System.Timers.Timer(DebounceDelayMs);
+            _updateDebounceTimer.AutoReset = false;
+            
+            // When timer fires, update all pending items
+            _updateDebounceTimer.Elapsed += async (sender, e) =>
             {
-                var item = _currentSession.Items.FirstOrDefault(i => i.Id == itemId);
-                if (item != null)
+                await InvokeAsync(async () =>
                 {
-                    await UpdateItemAsync(item);
-                }
-            }
-
-            await InvokeAsync(StateHasChanged);
+                    try
+                    {
+                        // Get list of items to update
+                        var itemsToUpdate = _pendingItemUpdates.ToList();
+                        _pendingItemUpdates.Clear();
+                        
+                        // Build dictionary for O(1) lookup (use GroupBy in case of duplicates)
+                        var itemsDict = _currentSession?.Items
+                            .GroupBy(i => i.Id)
+                            .ToDictionary(g => g.Key, g => g.First());
+                        
+                        // Update each pending item
+                        if (itemsDict != null)
+                        {
+                            foreach (var itemId in itemsToUpdate)
+                            {
+                                if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
+                                {
+                                    await UpdateItemAsync(itemToUpdate);
+                                }
+                            }
+                        }
+                        
+                        StateHasChanged();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error in debounced update");
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("errors.updateError", "Errore durante l'aggiornamento"),
+                            Severity.Error
+                        );
+                    }
+                });
+            };
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error flushing pending item updates");
-        }
+        
+        // Stop timer and restart it (resets the debounce window)
+        _updateDebounceTimer.Stop();
+        _updateDebounceTimer.Start();
+        
+        // Update UI immediately for responsive feel
+        StateHasChanged();
     }
 
     // Keyboard shortcuts
