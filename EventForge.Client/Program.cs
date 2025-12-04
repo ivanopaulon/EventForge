@@ -164,7 +164,6 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserServic
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService, EventForge.Client.Services.Store.StorePosService>(client =>
@@ -173,7 +172,6 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupService, EventForge.Client.Services.Store.StoreUserGroupService>(client =>
@@ -182,7 +180,6 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupS
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 // Add authentication services
