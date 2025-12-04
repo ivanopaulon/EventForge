@@ -861,6 +861,9 @@
         {
             _isLoading = true;
 
+            // Flush pending updates before closing session to prevent data loss
+            await FlushPendingUpdatesAsync();
+
             _currentSession = await SalesService.CloseSessionAsync(_currentSession.Id);
             _isSessionClosed = true;
 
@@ -894,6 +897,9 @@
 
         try
         {
+            // Flush pending updates before parking session to prevent data loss
+            await FlushPendingUpdatesAsync();
+            
             var updateDto = new UpdateSaleSessionDto
             {
                 Status = SaleSessionStatusDto.Suspended,
@@ -935,6 +941,9 @@
         {
             try
             {
+                // Flush pending updates before canceling session to prevent data loss
+                await FlushPendingUpdatesAsync();
+                
                 var updateDto = new UpdateSaleSessionDto
                 {
                     Status = SaleSessionStatusDto.Cancelled
@@ -1163,6 +1172,52 @@
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Forces immediate flush of all pending item updates.
+    /// Used before completing/canceling session to prevent data loss.
+    /// </summary>
+    private async Task FlushPendingUpdatesAsync()
+    {
+        // Check if there are pending updates
+        if (!_pendingItemUpdates.Any() || _currentSession == null)
+            return;
+        
+        try
+        {
+            // Stop timer to prevent double execution
+            _updateDebounceTimer?.Stop();
+            
+            // Get list of items to update
+            var itemsToUpdate = _pendingItemUpdates.ToList();
+            _pendingItemUpdates.Clear();
+            
+            // Build dictionary for O(1) lookup
+            var itemsDict = _currentSession.Items
+                .GroupBy(i => i.Id)
+                .ToDictionary(g => g.Key, g => g.First());
+            
+            // Update each pending item
+            foreach (var itemId in itemsToUpdate)
+            {
+                if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
+                {
+                    await UpdateItemAsync(itemToUpdate);
+                }
+            }
+            
+            Logger.LogInformation($"Flushed {itemsToUpdate.Count} pending item updates before session action");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error flushing pending item updates");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.updateError", "Errore durante l'aggiornamento"),
+                Severity.Error
+            );
+            throw; // Re-throw to prevent session completion if updates fail
+        }
+    }
+
     // Keyboard shortcuts
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -1213,9 +1268,17 @@
     }
 
     // Dispose pattern
+    /// <summary>
+    /// Cleanup resources to prevent memory leaks
+    /// </summary>
     public void Dispose()
     {
-        _updateDebounceTimer?.Stop();
-        _updateDebounceTimer?.Dispose();
+        // Stop and dispose timer to prevent memory leaks
+        if (_updateDebounceTimer != null)
+        {
+            _updateDebounceTimer.Stop();
+            _updateDebounceTimer.Dispose();
+            _updateDebounceTimer = null;
+        }
     }
 }
