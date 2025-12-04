@@ -65,15 +65,25 @@
                     <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Class="mr-1" />
                     @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
                 </MudText>
-                @if (SessionNumber != null)
-                {
-                    <MudChip T="string" 
-                             Size="Size.Small" 
-                             Color="Color.Primary" 
-                             Icon="@Icons.Material.Filled.Receipt">
-                        @TranslationService.GetTranslation("sales.session", "Sessione") #@SessionNumber.ToString().Substring(0, 8)
-                    </MudChip>
-                }
+                <div class="d-flex align-center" style="gap: 8px;">
+                    @if (SessionNumber != null)
+                    {
+                        <MudChip T="string" 
+                                 Size="Size.Small" 
+                                 Color="Color.Primary" 
+                                 Icon="@Icons.Material.Filled.Receipt">
+                            @TranslationService.GetTranslation("sales.session", "Sessione") #@SessionNumber.ToString().Substring(0, 8)
+                        </MudChip>
+                    }
+                    @if (IsUpdatingItems)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...")">
+                            <MudProgressCircular Size="Size.Small" 
+                                               Color="Color.Primary" 
+                                               Indeterminate="true" />
+                        </MudTooltip>
+                    }
+                </div>
             </div>
         </MudItem>
     </MudGrid>
@@ -132,4 +142,7 @@
 
     [Parameter]
     public EventCallback OnCancelClick { get; set; }
+
+    [Parameter]
+    public bool IsUpdatingItems { get; set; }
 }
