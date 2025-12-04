@@ -1,3 +1,4 @@
+@using EventForge.DTOs.Sales
 @using MudBlazor
 @inject ITranslationService TranslationService
 
@@ -9,11 +10,45 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudTextField @bind-Value="_notes"
-                      Label="@TranslationService.GetTranslation("common.notes", "Note")"
+        @if (Item != null)
+        {
+            <!-- Item Context -->
+            <MudPaper Elevation="1" Class="pa-3 mb-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                    @Item.ProductName
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @Item.Quantity × @Item.UnitPrice.ToString("C") = @Item.TotalAmount.ToString("C")
+                </MudText>
+            </MudPaper>
+        }
+
+        <!-- Quick Notes -->
+        <MudText Typo="Typo.subtitle2" Class="mb-2">
+            @TranslationService.GetTranslation("sales.quickNotes", "Note rapide")
+        </MudText>
+        <div class="mb-3">
+            @foreach (var quickNote in _quickNotes)
+            {
+                <MudChip T="string"
+                         Color="@(_selectedQuickNotes.Contains(quickNote) ? Color.Primary : Color.Default)"
+                         Variant="@(_selectedQuickNotes.Contains(quickNote) ? Variant.Filled : Variant.Outlined)"
+                         OnClick="@(() => ToggleQuickNote(quickNote))"
+                         Class="ma-1">
+                    @quickNote
+                </MudChip>
+            }
+        </div>
+
+        <!-- Custom Notes -->
+        <MudTextField @bind-Value="_customNotes"
+                      @ref="_notesField"
+                      Label="@TranslationService.GetTranslation("common.notes", "Note personalizzate")"
                       Variant="Variant.Outlined"
-                      Lines="5"
+                      Lines="4"
                       AutoFocus="true"
+                      HelperText="@TranslationService.GetTranslation("sales.ctrlEnterToSave", "Ctrl+Enter per salvare")"
+                      @onkeydown="@HandleKeyDown"
                       Class="mb-3" />
     </DialogContent>
     <DialogActions>
@@ -35,16 +70,89 @@
     [Parameter]
     public string InitialNotes { get; set; } = string.Empty;
 
-    private string _notes = string.Empty;
+    [Parameter]
+    public SaleItemDto? Item { get; set; }
+
+    private string _customNotes = string.Empty;
+    private HashSet<string> _selectedQuickNotes = new();
+    private MudTextField<string>? _notesField;
+
+    private readonly List<string> _quickNotes = new()
+    {
+        "Senza glutine",
+        "Extra formaggio",
+        "Piccante",
+        "Allergie",
+        "Poco sale",
+        "Ben cotto",
+        "Da asporto",
+        "Senza cipolla",
+        "Senza lattosio"
+    };
 
     protected override void OnInitialized()
     {
-        _notes = InitialNotes ?? string.Empty;
+        // Parse initial notes to extract quick notes and custom notes
+        if (!string.IsNullOrWhiteSpace(InitialNotes))
+        {
+            var parts = InitialNotes.Split(new[] { "; ", ";\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            var customNotesList = new List<string>();
+
+            foreach (var part in parts)
+            {
+                var trimmed = part.Trim();
+                if (_quickNotes.Contains(trimmed))
+                {
+                    _selectedQuickNotes.Add(trimmed);
+                }
+                else
+                {
+                    customNotesList.Add(trimmed);
+                }
+            }
+
+            _customNotes = string.Join("\n", customNotesList);
+        }
     }
 
-    private void Save()
+    private void ToggleQuickNote(string note)
     {
-        MudDialog?.Close(DialogResult.Ok(_notes));
+        if (_selectedQuickNotes.Contains(note))
+        {
+            _selectedQuickNotes.Remove(note);
+        }
+        else
+        {
+            _selectedQuickNotes.Add(note);
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && e.CtrlKey)
+        {
+            await Save();
+        }
+    }
+
+    private Task Save()
+    {
+        // Combine quick notes and custom notes
+        var allNotes = new List<string>();
+        
+        if (_selectedQuickNotes.Any())
+        {
+            allNotes.AddRange(_selectedQuickNotes);
+        }
+        
+        if (!string.IsNullOrWhiteSpace(_customNotes))
+        {
+            allNotes.Add(_customNotes.Trim());
+        }
+
+        var finalNotes = string.Join("; ", allNotes);
+        MudDialog?.Close(DialogResult.Ok(finalNotes));
+        return Task.CompletedTask;
     }
 
     private void Cancel()

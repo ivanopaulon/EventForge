@@ -2,6 +2,7 @@
 @using EventForge.DTOs.Products
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ILogger<ProductNotFoundDialog> Logger
 
@@ -147,15 +148,12 @@
         }
     </DialogContent>
     <DialogActions>
-        @if (IsInventoryContext)
-        {
-            <MudButton StartIcon="@Icons.Material.Outlined.SkipNext"
-                      Color="Color.Default"
-                      Variant="Variant.Outlined"
-                      OnClick="@(() => SelectAction("skip"))">
-                @TranslationService.GetTranslation("warehouse.skipProduct", "Salta")
-            </MudButton>
-        }
+        <MudButton StartIcon="@Icons.Material.Outlined.SkipNext"
+                  Color="Color.Default"
+                  Variant="Variant.Outlined"
+                  OnClick="@(() => SelectAction("skip"))">
+            @TranslationService.GetTranslation("sales.skipAndContinue", "Salta e Continua")
+        </MudButton>
         
         <MudSpacer />
 
@@ -168,7 +166,7 @@
             <MudButton StartIcon="@Icons.Material.Outlined.Add"
                       Color="Color.Primary"
                       Variant="Variant.Filled"
-                      OnClick="@(() => SelectAction("create"))">
+                      OnClick="CreateNewProduct">
                 @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
             </MudButton>
         }
@@ -362,6 +360,29 @@
         if (e.Key == "Enter" && _isFormValid && !e.ShiftKey)
         {
             await AssignBarcodeToProduct();
+        }
+    }
+
+    private async Task CreateNewProduct()
+    {
+        var parameters = new DialogParameters
+        {
+            { "PrefilledCode", Barcode },
+            { "AutoAssignCode", true }
+        };
+
+        var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
+            TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is ProductDto createdProduct)
+        {
+            // Return the created product to the caller
+            MudDialog.Close(DialogResult.Ok(createdProduct));
         }
     }
 }
