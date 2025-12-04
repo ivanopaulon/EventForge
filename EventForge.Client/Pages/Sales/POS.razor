@@ -61,8 +61,38 @@
                                 SearchButtonText="@TranslationService.GetTranslation("common.search", "Cerca")"
                                 IsDisabled="@(_currentSession == null)"
                                 OnProductFound="@HandleProductFoundAsync"
+                                OnMultipleProductsFound="@HandleMultipleProductsFoundAsync"
                                 OnProductNotFound="@HandleProductNotFoundAsync"
                                 OnError="@HandleScanErrorAsync" />
+
+                <!-- Scan Mode Toggle -->
+                <MudPaper Elevation="2" Class="pa-3 mb-4">
+                    <MudRadioGroup @bind-Value="_scanMode">
+                        <MudRadio T="ScanMode" Value="ScanMode.AddToCart" Color="Color.Primary">
+                            <MudText>
+                                <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Size="Size.Small" Class="mr-1" />
+                                @TranslationService.GetTranslation("sales.addToCart", "Aggiungi al conto")
+                            </MudText>
+                        </MudRadio>
+                        <MudRadio T="ScanMode" Value="ScanMode.PriceCheckOnly" Color="Color.Info">
+                            <MudText>
+                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Class="mr-1" />
+                                @TranslationService.GetTranslation("sales.priceCheckOnly", "Solo visualizza prezzo")
+                            </MudText>
+                        </MudRadio>
+                    </MudRadioGroup>
+                </MudPaper>
+
+                <!-- Product Preview Card -->
+                @if (_lastScannedProduct != null)
+                {
+                    <ProductPreviewCard Product="@_lastScannedProduct"
+                                        Code="@_lastScannedCode"
+                                        Mode="@_scanMode"
+                                        OnAddToCart="@AddProductFromPreviewAsync"
+                                        OnClose="@ClearPreview"
+                                        OnImageClick="@OpenImagePreviewAsync" />
+                }
 
                 <!-- Products Table -->
                 <MudPaper Elevation="2" Class="pa-4 mb-4">
@@ -253,6 +283,11 @@
     // Payment Methods
     private List<PaymentMethodDto> _paymentMethods = new();
 
+    // Scan mode and product preview
+    private ScanMode _scanMode = ScanMode.AddToCart;
+    private ProductDto? _lastScannedProduct;
+    private ProductCodeDto? _lastScannedCode;
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -392,10 +427,27 @@
         if (_currentSession == null || productWithCode.Product == null)
             return;
 
+        // Store for preview
+        _lastScannedProduct = productWithCode.Product;
+        _lastScannedCode = productWithCode.Code;
+
+        // If mode is AddToCart, add immediately
+        if (_scanMode == ScanMode.AddToCart)
+        {
+            await AddProductToCartAsync(productWithCode.Product);
+        }
+        // Otherwise just show preview (PriceCheckOnly mode)
+    }
+
+    private async Task AddProductToCartAsync(ProductDto product)
+    {
+        if (_currentSession == null || product == null)
+            return;
+
         try
         {
             // Check if product already in cart
-            var existingItem = _currentSession.Items.FirstOrDefault(i => i.ProductId == productWithCode.Product.Id);
+            var existingItem = _currentSession.Items.FirstOrDefault(i => i.ProductId == product.Id);
 
             if (existingItem != null)
             {
@@ -404,7 +456,7 @@
                 await UpdateItemAsync(existingItem);
                 
                 Snackbar.Add(
-                    TranslationService.GetTranslation("sales.quantityIncreased", "Quantità aumentata: {0}", productWithCode.Product.Name),
+                    TranslationService.GetTranslation("sales.quantityIncreased", "Quantità aumentata: {0}", product.Name),
                     Severity.Success
                 );
             }
@@ -413,9 +465,9 @@
                 // Add new item
                 var addItemDto = new AddSaleItemDto
                 {
-                    ProductId = productWithCode.Product.Id,
+                    ProductId = product.Id,
                     Quantity = 1,
-                    UnitPrice = productWithCode.Product.DefaultPrice ?? 0m,
+                    UnitPrice = product.DefaultPrice ?? 0m,
                     DiscountPercent = 0,
                     Notes = null
                 };
@@ -423,7 +475,7 @@
                 _currentSession = await SalesService.AddItemAsync(_currentSession.Id, addItemDto);
 
                 Snackbar.Add(
-                    TranslationService.GetTranslation("sales.productAdded", "Prodotto aggiunto: {0}", productWithCode.Product.Name),
+                    TranslationService.GetTranslation("sales.productAdded", "Prodotto aggiunto: {0}", product.Name),
                     Severity.Success
                 );
             }
@@ -436,6 +488,66 @@
                 Severity.Error
             );
         }
+    }
+
+    private async Task HandleMultipleProductsFoundAsync(List<ProductDto> products)
+    {
+        var parameters = new DialogParameters
+        {
+            { "InitialProducts", products }
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductSearchDialog>(
+            TranslationService.GetTranslation("sales.selectProduct", "Seleziona Prodotto"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true }
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is ProductDto selectedProduct)
+        {
+            var productWithCode = new ProductWithCodeDto
+            {
+                Product = selectedProduct,
+                Code = null
+            };
+            await HandleProductFoundAsync(productWithCode);
+        }
+    }
+
+    private async Task AddProductFromPreviewAsync()
+    {
+        if (_lastScannedProduct != null)
+        {
+            await AddProductToCartAsync(_lastScannedProduct);
+        }
+    }
+
+    private void ClearPreview()
+    {
+        _lastScannedProduct = null;
+        _lastScannedCode = null;
+    }
+
+    private async Task OpenImagePreviewAsync()
+    {
+        if (_lastScannedProduct == null)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            { "ImageUrl", _lastScannedProduct.ImageUrl },
+            { "ProductName", _lastScannedProduct.Name },
+            { "ProductCode", _lastScannedCode?.Code ?? _lastScannedProduct.Code },
+            { "Price", _lastScannedProduct.DefaultPrice }
+        };
+
+        await DialogService.ShowAsync<ImagePreviewDialog>(
+            _lastScannedProduct.Name,
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium }
+        );
     }
 
     private async Task HandleProductNotFoundAsync(string barcode)
