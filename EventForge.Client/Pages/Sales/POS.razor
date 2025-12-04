@@ -678,8 +678,33 @@
 
     private async Task AddPaymentAsync()
     {
+        // Pre-validation checks
         if (_currentSession == null)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.noActiveSession", "Nessuna sessione attiva"),
+                Severity.Warning
+            );
             return;
+        }
+
+        if (!_currentSession.Items.Any())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("sales.addProductsFirst", "Aggiungi prodotti prima di pagare"),
+                Severity.Warning
+            );
+            return;
+        }
+
+        if (_currentSession.IsFullyPaid)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("sales.billAlreadySettled", "Il conto è già saldato"),
+                Severity.Info
+            );
+            return;
+        }
 
         var parameters = new DialogParameters
         {
@@ -689,36 +714,53 @@
         };
 
         var dialog = await DialogService.ShowAsync<PaymentDialog>(
-            TranslationService.GetTranslation("sales.addPayment", "Aggiungi Pagamento"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }
+            TranslationService.GetTranslation("sales.payBill", "Paga Conto"),
+            parameters
         );
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is PaymentDialog.PaymentResult paymentResult)
+        if (!result.Canceled && result.Data is PaymentDialog.PaymentDialogResult paymentDialogResult)
         {
-            try
+            // Process all payments from the dialog
+            var successfulPayments = 0;
+            var failedPayments = 0;
+
+            foreach (var pendingPayment in paymentDialogResult.Payments)
             {
-                var addPaymentDto = new AddSalePaymentDto
+                try
                 {
-                    PaymentMethodId = paymentResult.Method.Id,
-                    Amount = paymentResult.Amount,
-                    Notes = paymentResult.Notes
-                };
+                    var addPaymentDto = new AddSalePaymentDto
+                    {
+                        PaymentMethodId = pendingPayment.Method.Id,
+                        Amount = pendingPayment.Amount,
+                        Notes = pendingPayment.Notes
+                    };
 
-                _currentSession = await SalesService.AddPaymentAsync(_currentSession.Id, addPaymentDto);
-
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto: {0}", paymentResult.Amount.ToString("C")),
-                    Severity.Success
-                );
+                    _currentSession = await SalesService.AddPaymentAsync(_currentSession.Id, addPaymentDto);
+                    successfulPayments++;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error adding payment for method {MethodName}", pendingPayment.Method.Name);
+                    failedPayments++;
+                }
             }
-            catch (Exception ex)
+
+            // Show summary
+            if (successfulPayments > 0)
             {
-                Logger.LogError(ex, "Error adding payment");
+                var message = successfulPayments == 1
+                    ? TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto")
+                    : TranslationService.GetTranslation("sales.paymentSuccess", "Pagamento completato!");
+                
+                Snackbar.Add(message, Severity.Success);
+            }
+
+            if (failedPayments > 0)
+            {
                 Snackbar.Add(
-                    TranslationService.GetTranslation("errors.addPaymentError", "Errore durante l'aggiunta del pagamento"),
+                    TranslationService.GetTranslation("errors.paymentError", "Errore durante il pagamento"),
                     Severity.Error
                 );
             }
