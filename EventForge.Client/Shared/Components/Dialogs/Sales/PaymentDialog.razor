@@ -303,11 +303,13 @@
         // Common round-ups above remaining amount (only for AllowsChange methods)
         if (_selectedMethod?.AllowsChange == true)
         {
+            var amountSet = new HashSet<decimal> { CurrentRemainingAmount };
             var roundups = new[] { 5m, 10m, 20m, 50m, 100m };
+            
             foreach (var divisor in roundups)
             {
                 var rounded = Math.Ceiling(CurrentRemainingAmount / divisor) * divisor;
-                if (rounded > CurrentRemainingAmount && !amounts.Any(a => a.Item1 == rounded))
+                if (rounded > CurrentRemainingAmount && amountSet.Add(rounded))
                 {
                     amounts.Add((rounded, false));
                 }
