@@ -47,6 +47,8 @@
                SessionNumber="@_currentSession?.Id"
                IsSessionActive="@(_currentSession != null)"
                IsUpdatingItems="@_isUpdatingItems"
+               LoadingTooltipText="@GetLoadingTooltipText()"
+               LoadingSpinnerColor="@GetLoadingSpinnerColor()"
                SearchCustomers="@SearchCustomersAsync"
                OnParkClick="@ParkSessionAsync"
                OnCancelClick="@CancelSessionAsync" />
@@ -315,6 +317,10 @@
     private System.Timers.Timer? _updateDebounceTimer;
     private const int DebounceDelayMs = 500;
     private bool _isUpdatingItems = false;
+
+    // Retry tracking
+    private int _currentRetryAttempt = 0;
+    private int _maxRetryAttempts = 3;
 
     protected override async Task OnInitializedAsync()
     {
@@ -699,6 +705,110 @@
             Snackbar.Add(
                 TranslationService.GetTranslation("errors.updateItemError", "Errore durante l'aggiornamento"),
                 Severity.Error
+            );
+        }
+    }
+
+    /// <summary>
+    /// Updates an item with automatic retry logic for network failures.
+    /// Implements exponential backoff: 1s, 2s, 4s delays.
+    /// </summary>
+    private async Task UpdateItemWithRetryAsync(SaleItemDto item, int maxRetries = 3)
+    {
+        if (_currentSession == null)
+            return;
+
+        Exception? lastException = null;
+
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                // Update retry state for UI
+                _currentRetryAttempt = attempt;
+                StateHasChanged();
+
+                var updateDto = new UpdateSaleItemDto
+                {
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    DiscountPercent = item.DiscountPercent,
+                    Notes = item.Notes
+                };
+
+                _currentSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
+                
+                // Success - reset retry counter and return
+                _currentRetryAttempt = 0;
+                StateHasChanged();
+                return;
+            }
+            catch (HttpRequestException ex) when (attempt < maxRetries)
+            {
+                // Network error - retry with exponential backoff
+                lastException = ex;
+                var delayMs = (int)Math.Pow(2, attempt) * 1000;
+                Logger.LogWarning(ex, $"Network error updating item (attempt {attempt + 1}/{maxRetries + 1}). Retrying in {delayMs}ms...");
+                await Task.Delay(delayMs);
+            }
+            catch (TaskCanceledException ex) when (attempt < maxRetries)
+            {
+                // Timeout error - retry with exponential backoff
+                lastException = ex;
+                var delayMs = (int)Math.Pow(2, attempt) * 1000;
+                Logger.LogWarning(ex, $"Timeout updating item (attempt {attempt + 1}/{maxRetries + 1}). Retrying in {delayMs}ms...");
+                await Task.Delay(delayMs);
+            }
+            catch (Exception ex)
+            {
+                // Non-retryable error - fail immediately
+                _currentRetryAttempt = 0;
+                Logger.LogError(ex, "Non-retryable error updating item");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.updateItemError", "Errore durante l'aggiornamento"),
+                    Severity.Error
+                );
+                StateHasChanged();
+                return;
+            }
+        }
+
+        // All retries failed - show dialog
+        _currentRetryAttempt = 0;
+        StateHasChanged();
+        await ShowRetryDialogAsync(item, lastException);
+    }
+
+    /// <summary>
+    /// Shows a dialog when all automatic retries fail, offering manual retry or cancel.
+    /// </summary>
+    private async Task ShowRetryDialogAsync(SaleItemDto item, Exception? lastException)
+    {
+        var errorMessage = lastException?.Message ?? 
+            TranslationService.GetTranslation("errors.networkError", "Errore di rete");
+
+        var message = $"{TranslationService.GetTranslation("errors.updateItemRetryFailed", "Impossibile aggiornare l'articolo dopo diversi tentativi")}.\n\n{errorMessage}";
+
+        bool? result = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("errors.operationFailed", "Operazione Fallita"),
+            message,
+            yesText: TranslationService.GetTranslation("common.retry", "Riprova"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla")
+        );
+
+        if (result == true)
+        {
+            // User wants to retry - call with reduced retry count
+            Logger.LogInformation("User requested manual retry for item update");
+            await UpdateItemWithRetryAsync(item, maxRetries: 2);
+        }
+        else
+        {
+            // User canceled - log warning
+            Logger.LogWarning("User canceled item update after retry failure. Changes not saved.");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.changesNotSaved", "Modifiche non salvate"),
+                Severity.Warning
             );
         }
     }
@@ -1151,7 +1261,7 @@
                             {
                                 if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
                                 {
-                                    await UpdateItemAsync(itemToUpdate);
+                                    await UpdateItemWithRetryAsync(itemToUpdate);
                                 }
                             }
                         }
@@ -1213,7 +1323,7 @@
             {
                 if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
                 {
-                    await UpdateItemAsync(itemToUpdate);
+                    await UpdateItemWithRetryAsync(itemToUpdate);
                 }
             }
             
@@ -1279,6 +1389,26 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    // UI Helper Methods
+    /// <summary>
+    /// Gets the tooltip text for the loading spinner based on retry state.
+    /// </summary>
+    private string GetLoadingTooltipText()
+    {
+        if (_currentRetryAttempt > 0)
+            return $"Tentativo {_currentRetryAttempt + 1}/{_maxRetryAttempts + 1}...";
+        return TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...");
+    }
+
+    /// <summary>
+    /// Gets the color for the loading spinner based on retry state.
+    /// Blue during normal save, orange during retry.
+    /// </summary>
+    private Color GetLoadingSpinnerColor()
+    {
+        return _currentRetryAttempt > 0 ? Color.Warning : Color.Primary;
+    }
+
     // Dispose pattern
     /// <summary>
     /// Cleanup resources to prevent memory leaks
@@ -1292,5 +1422,9 @@
             _updateDebounceTimer.Dispose();
             _updateDebounceTimer = null;
         }
+
+        // Reset retry state
+        _currentRetryAttempt = 0;
+        _isUpdatingItems = false;
     }
 }
