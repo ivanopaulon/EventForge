@@ -148,6 +148,11 @@ namespace EventForge.DTOs.Sales
         public int DisplayOrder { get; set; }
 
         /// <summary>
+        /// Requires integration flag.
+        /// </summary>
+        public bool RequiresIntegration { get; set; }
+
+        /// <summary>
         /// Integration configuration (JSON).
         /// </summary>
         [MaxLength(2000)]
