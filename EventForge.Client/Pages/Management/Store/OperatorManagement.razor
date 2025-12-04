@@ -1,0 +1,499 @@
+@page "/store/operators"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Store
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<OperatorManagement> Logger
+@inject EventForge.Client.Services.Store.IStoreUserService StoreUserService
+
+<PageLoadingOverlay Visible="_isLoading || _isLoadingData"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="product-page-root">
+        <div class="product-top">
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("store.operatorManagement", "Gestione Operatori")
+                </MudText>
+            </MudPaper>
+        </div>
+
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                     TItem="StoreUserDto"
+                     Items="_filteredItems"
+                     MultiSelection="true"
+                     SelectedItems="_selectedItems"
+                     SelectedItemsChanged="_selectedItemsChangedCallback"
+                     OnRowClick="@(args => NavigationManager.NavigateTo($"/store/operators/{args.Item.Id}"))"
+                     IsLoading="_isLoadingData"
+                     ComponentKey="OperatorManagement"
+                     InitialColumnConfigurations="_initialColumns"
+                     AllowDragDropGrouping="true">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h5">
+                        @TranslationService.GetTranslation("store.operatorsList", "Operatori")
+                    </MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("common.search", "Cerca")"
+                                  Placeholder="@TranslationService.GetTranslation("store.searchOperators", "Cerca per nome, username, email...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Class="ef-input" />
+                    <ManagementTableToolbar ShowSelectionBadge="true"
+                                            SelectedCount="@_selectedItems.Count"
+                                            ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowDelete="true"
+                                            CreateTooltip="store.createNewOperator"
+                                            IsDisabled="_isLoadingData"
+                                            OnRefresh="@LoadDataAsync"
+                                            OnCreate="@CreateNew"
+                                            OnDelete="@DeleteSelected" />
+                </ToolBarContent>
+                <HeaderContent Context="columnConfigurations">
+                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                    {
+                        @if (column.PropertyName == "Name")
+                        {
+                            <EFTableColumnHeader TItem="StoreUserDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<StoreUserDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Username")
+                        {
+                            <EFTableColumnHeader TItem="StoreUserDto" PropertyName="Username" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<StoreUserDto, object>(x => x.Username))">@TranslationService.GetTranslation("field.username", "Username")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Email")
+                        {
+                            <EFTableColumnHeader TItem="StoreUserDto" PropertyName="Email" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<StoreUserDto, object>(x => x.Email ?? string.Empty))">@TranslationService.GetTranslation("field.email", "Email")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Role")
+                        {
+                            <EFTableColumnHeader TItem="StoreUserDto" PropertyName="Role" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<StoreUserDto, object>(x => x.Role ?? string.Empty))">@TranslationService.GetTranslation("field.role", "Ruolo")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Status")
+                        {
+                            <EFTableColumnHeader TItem="StoreUserDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<StoreUserDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Status")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "CashierGroupName")
+                        {
+                            <EFTableColumnHeader TItem="StoreUserDto" PropertyName="CashierGroupName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<StoreUserDto, object>(x => x.CashierGroupName ?? string.Empty))">@TranslationService.GetTranslation("field.group", "Gruppo")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "IsOnShift")
+                        {
+                            <EFTableColumnHeader TItem="StoreUserDto" PropertyName="IsOnShift" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<StoreUserDto, object>(x => x.IsOnShift))">@TranslationService.GetTranslation("field.isOnShift", "In Turno")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                    }
+                    <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+
+                <RowTemplate Context="item">
+                    @{
+                        var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                    }
+                    @foreach (var column in visibleColumns)
+                    {
+                        @if (column.PropertyName == "Name")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                <div class="d-flex align-center">
+                                    <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                                    </MudAvatar>
+                                    <div>
+                                        <MudText Typo="Typo.body2">@item.Name</MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
+                                    </div>
+                                </div>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Username")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.username", "Username")">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                                    @item.Username
+                                </MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Email")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.email", "Email")">
+                                <MudText Typo="Typo.body2">
+                                    @(string.IsNullOrEmpty(item.Email) ? "-" : item.Email)
+                                </MudText>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Role")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.role", "Ruolo")">
+                                <MudText Typo="Typo.body2">
+                                    @(string.IsNullOrEmpty(item.Role) ? "-" : item.Role)
+                                </MudText>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Status")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Status")">
+                                <MudChip T="string" Size="Size.Small" Color="GetStatusColor(item.Status)">
+                                    @GetStatusText(item.Status)
+                                </MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "CashierGroupName")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.group", "Gruppo")">
+                                <MudText Typo="Typo.body2">
+                                    @(string.IsNullOrEmpty(item.CashierGroupName) ? "-" : item.CashierGroupName)
+                                </MudText>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "IsOnShift")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.isOnShift", "In Turno")">
+                                <MudChip T="string" Size="Size.Small" Color="@(item.IsOnShift ? Color.Success : Color.Default)" Icon="@(item.IsOnShift ? Icons.Material.Outlined.CheckCircle : Icons.Material.Outlined.Circle)">
+                                    @(item.IsOnShift ? "In Turno" : "Fuori Turno")
+                                </MudChip>
+                            </MudTd>
+                        }
+                    }
+                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                        <ActionButtonGroup EntityName="@item.Name"
+                                           ItemDisplayName="@item.Name"
+                                           ShowView="false"
+                                           ShowEdit="true"
+                                           ShowAuditLog="false"
+                                           ShowToggleStatus="false"
+                                           ShowDelete="true"
+                                           OnEdit="@(() => Edit(item.Id))"
+                                           OnDelete="@(() => Delete(item))" />
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                        <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                        <MudText Typo="Typo.h6" Class="mb-2">
+                            @(_items.Any() ?
+                                                TranslationService.GetTranslation("store.noOperatorsMatchFilters", "Nessun operatore corrisponde ai filtri applicati") :
+                                                TranslationService.GetTranslation("store.noOperatorsFound", "Nessun operatore trovato"))
+                        </MudText>
+                        @if (_items.Any())
+                        {
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Outlined.Clear"
+                                       OnClick="@ClearFilters">
+                                @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                            </MudButton>
+                        }
+                    </div>
+                </NoRecordsContent>
+            </EFTable>
+
+            <!-- Pagination -->
+            @if (_pagedResult != null)
+            {
+                <MudDivider Class="my-4" />
+                <div class="d-flex justify-center align-center flex-wrap gap-4">
+                    @if (_pagedResult.TotalPages > 1)
+                    {
+                        <MudPagination Count="@_pagedResult.TotalPages"
+                                       Selected="@_currentPage"
+                                       Color="Color.Primary"
+                                       Size="Size.Medium"
+                                       ShowFirstButton="true"
+                                       ShowLastButton="true"
+                                       SelectedChanged="@OnPageChanged" />
+                    }
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @if (_pagedResult.TotalPages > 1)
+                        {
+                            @TranslationService.GetTranslation("pagination.info",
+                                "Pagina {0} di {1} - Totale: {2} elementi",
+                                _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
+                        }
+                        else
+                        {
+                            @TranslationService.GetTranslation("pagination.singlePage",
+                                "Totale: {0} elementi",
+                                _pagedResult.TotalCount)
+                        }
+                    </MudText>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isLoadingData = false;
+    private string _searchTerm = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
+    private PagedResult<StoreUserDto>? _pagedResult;
+    private int _currentPage = 1;
+    private int _pageSize = 20;
+    private List<StoreUserDto> _items = new();
+    private HashSet<StoreUserDto> _selectedItems = new();
+    private EFTable<StoreUserDto> _efTable = null!;
+
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Username", DisplayName = "Username", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Email", DisplayName = "Email", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Role", DisplayName = "Ruolo", IsVisible = true, Order = 3 },
+        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 4 },
+        new() { PropertyName = "CashierGroupName", DisplayName = "Gruppo", IsVisible = true, Order = 5 },
+        new() { PropertyName = "IsOnShift", DisplayName = "In Turno", IsVisible = true, Order = 6 }
+    };
+
+    private EventCallback<HashSet<StoreUserDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StoreUserDto>>(this, OnSelectedItemsChanged);
+
+    private IEnumerable<StoreUserDto> _filteredItems =>
+        _items.Where(p =>
+            string.IsNullOrEmpty(_searchTerm) ||
+            p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            p.Username.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            (p.Email != null && p.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+            (p.Role != null && p.Role.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+
+    private void OnSelectedItemsChanged(HashSet<StoreUserDto> items)
+    {
+        _selectedItems = items;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("store.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading operator management page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _isLoadingData = true;
+            _pagedResult = await StoreUserService.GetPagedAsync(_currentPage, _pageSize);
+
+            if (_pagedResult != null)
+            {
+                _items = _pagedResult.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("store.loadingOperatorsError", "Errore nel caricamento degli operatori: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading operators");
+        }
+        finally
+        {
+            _isLoadingData = false;
+        }
+    }
+
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        _currentPage = 1;
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+
+        try
+        {
+            await Task.Delay(300, token);
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _currentPage = page;
+        await LoadDataAsync();
+    }
+
+    private void CreateNew()
+    {
+        NavigationManager.NavigateTo("/store/operators/new");
+    }
+
+    private void Edit(Guid id)
+    {
+        NavigationManager.NavigateTo($"/store/operators/{id}");
+    }
+
+    private async Task Delete(StoreUserDto item)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("store.confirmDeleteOperator",
+            "Sei sicuro di voler eliminare l'operatore '{0}'? Questa azione non può essere annullata.",
+            item.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await StoreUserService.DeleteAsync(item.Id);
+                _items.Remove(item);
+                Snackbar.Add(TranslationService.GetTranslation("store.operatorDeleted", "Operatore eliminato con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("store.deleteOperatorError",
+                    "Errore nell'eliminazione dell'operatore: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting operator {OperatorId}", item.Id);
+            }
+        }
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (_selectedItems.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("store.confirmDeleteMultipleOperators",
+            "Sei sicuro di voler eliminare {0} operatori selezionati? Questa azione non può essere annullata.",
+            _selectedItems.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+
+                foreach (var item in _selectedItems.ToList())
+                {
+                    try
+                    {
+                        await StoreUserService.DeleteAsync(item.Id);
+                        _items.RemoveAll(p => p.Id == item.Id);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting operator {OperatorId}", item.Id);
+                    }
+                }
+
+                _selectedItems.Clear();
+
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("store.deletedMultipleOperators",
+                        "{0} operatori eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("store.deletedMultipleOperatorsPartial",
+                        "{0} operatori eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslationFormatted("store.deleteError",
+                    "Errore nell'eliminazione degli operatori: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected operators");
+            }
+        }
+    }
+
+    private Color GetStatusColor(CashierStatus status) => status switch
+    {
+        CashierStatus.Active => Color.Success,
+        CashierStatus.Suspended => Color.Warning,
+        CashierStatus.Deleted => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(CashierStatus status) => status switch
+    {
+        CashierStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        CashierStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+        CashierStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+        _ => status.ToString()
+    };
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            await OnInitializedAsync();
+        }
+    }
+}
