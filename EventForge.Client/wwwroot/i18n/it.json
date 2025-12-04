@@ -1481,7 +1481,14 @@
     "scanProduct": "Scansiona Prodotto",
     "barcode": "Codice a Barre",
     "scanOrTypeBarcode": "Scansiona o digita il codice a barre e premi Invio",
-    "missing": "Mancano"
+    "missing": "Mancano",
+    "confirmRemoveItem": "Rimuovere {0} (x{1}) per {2}?",
+    "keyboardShortcuts": "Scorciatoie",
+    "pay": "Paga",
+    "park": "Parcheggia",
+    "removeLastItem": "Rimuovi ultimo",
+    "focusScanner": "Scanner",
+    "closeSaleShort": "Chiudi"
   },
   "status": {
     "active": "Attivo",
