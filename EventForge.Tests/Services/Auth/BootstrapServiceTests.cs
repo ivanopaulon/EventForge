@@ -1,4 +1,5 @@
 using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Store;
 using EventForge.Server.Services.Auth;
 using EventForge.Server.Services.Auth.Seeders;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,10 @@ public class BootstrapServiceTests
         var productSeeder = new ProductSeeder(context, productSeederLogger);
         var entitySeeder = new EntitySeeder(context, entitySeederLogger, productSeeder);
 
-        return new BootstrapService(context, userSeeder, tenantSeeder, licenseSeeder, entitySeeder, logger);
+        var storeSeederLogger = new LoggerFactory().CreateLogger<StoreSeeder>();
+        var storeSeeder = new StoreSeeder(context, passwordService, storeSeederLogger);
+
+        return new BootstrapService(context, userSeeder, tenantSeeder, licenseSeeder, entitySeeder, storeSeeder, logger);
     }
 
     [Fact]
@@ -298,7 +302,7 @@ public class BootstrapServiceTests
         var allFeatures = await context.LicenseFeatures
             .Where(f => f.LicenseId == license.Id)
             .ToListAsync();
-        Assert.Equal(16, allFeatures.Count); // All 16 features should be present (9 original + 7 new)
+        Assert.Equal(18, allFeatures.Count); // All 18 features should be present (16 original + 2 new store features: POSManagement, PaymentProcessing)
         Assert.All(allFeatures, f => Assert.True(f.IsActive));
     }
 
@@ -637,5 +641,84 @@ public class BootstrapServiceTests
 
         var docTypeCount = await verifyContext.DocumentTypes.CountAsync(d => d.TenantId == tenantId);
         Assert.Equal(12, docTypeCount);
+    }
+
+    [Fact]
+    public async Task EnsureAdminBootstrappedAsync_ShouldSeedStoreBaseEntities()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new EventForgeDbContext(options);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
+                ["Bootstrap:DefaultAdminUsername"] = "superadmin",
+                ["Bootstrap:DefaultAdminEmail"] = "superadmin@localhost",
+                ["Bootstrap:AutoCreateAdmin"] = "true"
+            })
+            .Build();
+
+        var bootstrapService = CreateBootstrapService(context, config);
+
+        // Act
+        var result = await bootstrapService.EnsureAdminBootstrappedAsync();
+
+        // Assert
+        Assert.True(result);
+
+        var defaultTenant = await context.Tenants.FirstOrDefaultAsync(t => t.Code == "default");
+        Assert.NotNull(defaultTenant);
+
+        // Verify PaymentMethods were seeded
+        var paymentMethods = await context.PaymentMethods
+            .Where(p => p.TenantId == defaultTenant.Id)
+            .ToListAsync();
+        Assert.NotEmpty(paymentMethods);
+        Assert.Equal(4, paymentMethods.Count);
+        Assert.Contains(paymentMethods, p => p.Code == "CASH" && p.Name == "Contanti");
+        Assert.Contains(paymentMethods, p => p.Code == "CC" && p.Name == "Carta di Credito");
+        Assert.Contains(paymentMethods, p => p.Code == "DEBIT" && p.Name == "Bancomat");
+        Assert.Contains(paymentMethods, p => p.Code == "CHECK" && p.Name == "Assegno");
+
+        // Verify POS was seeded
+        var poses = await context.StorePoses
+            .Where(p => p.TenantId == defaultTenant.Id)
+            .ToListAsync();
+        Assert.NotEmpty(poses);
+        Assert.Single(poses);
+        var pos = poses.First();
+        Assert.Equal("Cassa Principale", pos.Name);
+        Assert.Equal("POS001", pos.TerminalIdentifier);
+        Assert.Equal(CashRegisterStatus.Active, pos.Status);
+
+        // Verify Operator was seeded
+        var operators = await context.StoreUsers
+            .Where(o => o.TenantId == defaultTenant.Id)
+            .ToListAsync();
+        Assert.NotEmpty(operators);
+        Assert.Single(operators);
+        var operator1 = operators.First();
+        Assert.Equal("operator1", operator1.Username);
+        Assert.Equal("Operatore Cassa", operator1.Name);
+        Assert.Equal("Cashier", operator1.Role);
+        Assert.Equal(CashierStatus.Active, operator1.Status);
+        Assert.NotNull(operator1.PasswordHash);
+        Assert.NotEmpty(operator1.PasswordHash);
+
+        // Verify store features in SuperAdmin license
+        var license = await context.Licenses.FirstOrDefaultAsync(l => l.Name == "superadmin");
+        Assert.NotNull(license);
+
+        var storeFeatures = await context.LicenseFeatures
+            .Where(lf => lf.LicenseId == license.Id)
+            .ToListAsync();
+        Assert.Contains(storeFeatures, f => f.Name == "StoreManagement");
+        Assert.Contains(storeFeatures, f => f.Name == "POSManagement");
+        Assert.Contains(storeFeatures, f => f.Name == "PaymentProcessing");
     }
 }
