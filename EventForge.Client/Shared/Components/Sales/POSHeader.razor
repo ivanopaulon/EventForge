@@ -77,9 +77,9 @@
                     }
                     @if (IsUpdatingItems)
                     {
-                        <MudTooltip Text="@TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...")">
+                        <MudTooltip Text="@LoadingTooltipText">
                             <MudProgressCircular Size="Size.Small" 
-                                               Color="Color.Primary" 
+                                               Color="@LoadingSpinnerColor" 
                                                Indeterminate="true" />
                         </MudTooltip>
                     }
@@ -145,4 +145,10 @@
 
     [Parameter]
     public bool IsUpdatingItems { get; set; }
+
+    [Parameter]
+    public string LoadingTooltipText { get; set; } = string.Empty;
+
+    [Parameter]
+    public Color LoadingSpinnerColor { get; set; } = Color.Primary;
 }
