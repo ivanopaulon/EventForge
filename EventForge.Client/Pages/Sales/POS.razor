@@ -719,9 +719,9 @@
             return;
 
         Exception? lastException = null;
-        int maxAttempts = maxRetries + 1; // maxRetries=3 means 4 total attempts (initial + 3 retries)
+        int totalAttempts = maxRetries + 1; // maxRetries=3 means 4 total attempts (initial + 3 retries)
 
-        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        for (int attempt = 0; attempt < totalAttempts; attempt++)
         {
             try
             {
@@ -746,19 +746,13 @@
             }
             catch (HttpRequestException ex) when (attempt < maxRetries)
             {
-                // Network error - retry with exponential backoff
                 lastException = ex;
-                var delayMs = CalculateBackoffDelayMs(attempt);
-                Logger.LogWarning(ex, $"Network error updating item (attempt {attempt + 1}/{maxAttempts}). Retrying in {delayMs}ms...");
-                await Task.Delay(delayMs);
+                await HandleRetryableExceptionAsync(ex, "Network error", attempt, totalAttempts);
             }
             catch (TaskCanceledException ex) when (attempt < maxRetries)
             {
-                // Timeout error - retry with exponential backoff
                 lastException = ex;
-                var delayMs = CalculateBackoffDelayMs(attempt);
-                Logger.LogWarning(ex, $"Timeout updating item (attempt {attempt + 1}/{maxAttempts}). Retrying in {delayMs}ms...");
-                await Task.Delay(delayMs);
+                await HandleRetryableExceptionAsync(ex, "Timeout", attempt, totalAttempts);
             }
             catch (Exception ex)
             {
@@ -1392,14 +1386,18 @@
 
     // UI Helper Methods
     /// <summary>
+    /// Gets the total number of attempts (initial + retries).
+    /// </summary>
+    private int GetTotalAttempts() => _maxRetryAttempts + 1;
+
+    /// <summary>
     /// Gets the tooltip text for the loading spinner based on retry state.
     /// </summary>
     private string GetLoadingTooltipText()
     {
         if (_currentRetryAttempt > 0)
         {
-            int maxAttempts = _maxRetryAttempts + 1;
-            return $"Tentativo {_currentRetryAttempt + 1}/{maxAttempts}...";
+            return $"Tentativo {_currentRetryAttempt + 1}/{GetTotalAttempts()}...";
         }
         return TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...");
     }
@@ -1420,6 +1418,16 @@
     private int CalculateBackoffDelayMs(int attempt)
     {
         return (int)Math.Pow(2, attempt) * 1000;
+    }
+
+    /// <summary>
+    /// Handles retryable exceptions with exponential backoff and logging.
+    /// </summary>
+    private async Task HandleRetryableExceptionAsync(Exception ex, string errorType, int attempt, int totalAttempts)
+    {
+        var delayMs = CalculateBackoffDelayMs(attempt);
+        Logger.LogWarning(ex, $"{errorType} updating item (attempt {attempt + 1}/{totalAttempts}). Retrying in {delayMs}ms...");
+        await Task.Delay(delayMs);
     }
 
     // Dispose pattern
