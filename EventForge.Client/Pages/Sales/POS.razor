@@ -660,7 +660,7 @@
     private void IncreaseQuantityAsync(SaleItemDto item)
     {
         item.Quantity++;
-        QueueItemUpdate(item); // ✅ USA DEBOUNCE
+        QueueItemUpdate(item); // Use debounce to batch API calls
         StateHasChanged();
     }
 
@@ -669,7 +669,7 @@
         if (item.Quantity > 1)
         {
             item.Quantity--;
-            QueueItemUpdate(item); // ✅ USA DEBOUNCE
+            QueueItemUpdate(item); // Use debounce to batch API calls
             StateHasChanged();
         }
     }
@@ -718,7 +718,7 @@
         if (!result.Canceled && result.Data is string newNotes)
         {
             item.Notes = newNotes;
-            QueueItemUpdate(item); // ✅ USA DEBOUNCE ANCHE PER LE NOTE
+            QueueItemUpdate(item); // Use debounce for notes too
         }
     }
 
@@ -1124,13 +1124,18 @@
                         var itemsToUpdate = _pendingItemUpdates.ToList();
                         _pendingItemUpdates.Clear();
                         
+                        // Build dictionary for O(1) lookup
+                        var itemsDict = _currentSession?.Items.ToDictionary(i => i.Id);
+                        
                         // Update each pending item
-                        foreach (var itemId in itemsToUpdate)
+                        if (itemsDict != null)
                         {
-                            var itemToUpdate = _currentSession?.Items.FirstOrDefault(i => i.Id == itemId);
-                            if (itemToUpdate != null)
+                            foreach (var itemId in itemsToUpdate)
                             {
-                                await UpdateItemAsync(itemToUpdate);
+                                if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
+                                {
+                                    await UpdateItemAsync(itemToUpdate);
+                                }
                             }
                         }
                         
