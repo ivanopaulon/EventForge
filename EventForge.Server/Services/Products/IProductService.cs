@@ -354,4 +354,15 @@ public interface IProductService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of recent product transactions</returns>
     Task<IEnumerable<RecentProductTransactionDto>> GetRecentProductTransactionsAsync(Guid productId, string type = "purchase", Guid? partyId = null, int top = 3, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Performs unified product search with exact code match priority.
+    /// First searches for exact match on ProductCodes.Code and Product.Code (case-insensitive).
+    /// If no exact match found, performs text search on Product.Name, ShortDescription, Description, and Brand.Name.
+    /// </summary>
+    /// <param name="query">Search query string</param>
+    /// <param name="maxResults">Maximum number of results to return (default: 20)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Search result DTO with exact match and/or text search results</returns>
+    Task<ProductSearchResultDto> SearchProductsAsync(string query, int maxResults = 20, CancellationToken cancellationToken = default);
 }

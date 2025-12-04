@@ -58,6 +58,9 @@
     public EventCallback<ProductWithCodeDto> OnProductFound { get; set; }
 
     [Parameter]
+    public EventCallback<List<ProductDto>> OnMultipleProductsFound { get; set; }
+
+    [Parameter]
     public EventCallback<string> OnProductNotFound { get; set; }
 
     [Parameter]
@@ -100,26 +103,66 @@
 
         try
         {
-            var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(_barcode);
+            // Use unified search endpoint
+            var searchResult = await ProductService.SearchProductsAsync(_barcode, 20);
 
-            if (productWithCode?.Product != null)
+            if (searchResult == null)
             {
                 Snackbar.Add(
-                    TranslationService.GetTranslation("messages.productFound", "Prodotto trovato: {0}", productWithCode.Product.Name),
+                    TranslationService.GetTranslation("messages.productNotFound", "Prodotto non trovato: {0}", _barcode),
+                    Severity.Warning
+                );
+                await OnProductNotFound.InvokeAsync(_barcode);
+                _barcode = string.Empty;
+                return;
+            }
+
+            // Case 1: Exact code match found
+            if (searchResult.IsExactCodeMatch && searchResult.ExactMatch != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.productFound", "Prodotto trovato: {0}", searchResult.ExactMatch.Product?.Name ?? ""),
                     Severity.Success
                 );
-
-                await OnProductFound.InvokeAsync(productWithCode);
-                _barcode = string.Empty; // Clear after successful scan
+                await OnProductFound.InvokeAsync(searchResult.ExactMatch);
+                _barcode = string.Empty;
             }
+            // Case 2: Single text search result
+            else if (searchResult.SearchResults.Count == 1)
+            {
+                var product = searchResult.SearchResults[0];
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.productFound", "Prodotto trovato: {0}", product.Name),
+                    Severity.Success
+                );
+                // Create ProductWithCodeDto from single result
+                var productWithCode = new ProductWithCodeDto
+                {
+                    Product = product,
+                    Code = null
+                };
+                await OnProductFound.InvokeAsync(productWithCode);
+                _barcode = string.Empty;
+            }
+            // Case 3: Multiple text search results
+            else if (searchResult.SearchResults.Count > 1)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.multipleProductsFound", "Trovati {0} prodotti", searchResult.SearchResults.Count),
+                    Severity.Info
+                );
+                await OnMultipleProductsFound.InvokeAsync(searchResult.SearchResults);
+                _barcode = string.Empty;
+            }
+            // Case 4: No results
             else
             {
                 Snackbar.Add(
                     TranslationService.GetTranslation("messages.productNotFound", "Prodotto non trovato: {0}", _barcode),
                     Severity.Warning
                 );
-
                 await OnProductNotFound.InvokeAsync(_barcode);
+                _barcode = string.Empty;
             }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)

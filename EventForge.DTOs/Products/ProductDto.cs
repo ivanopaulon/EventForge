@@ -69,6 +69,16 @@ namespace EventForge.DTOs.Products
         public Guid? VatRateId { get; set; }
 
         /// <summary>
+        /// VAT rate name (e.g., "22%", "10%").
+        /// </summary>
+        public string? VatRateName { get; set; }
+
+        /// <summary>
+        /// VAT rate percentage value.
+        /// </summary>
+        public decimal? VatRatePercentage { get; set; }
+
+        /// <summary>
         /// Unit of measure identifier.
         /// </summary>
         public Guid? UnitOfMeasureId { get; set; }

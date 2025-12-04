@@ -79,4 +79,7 @@ public interface IProductService
 
     // Product Recent Transactions
     Task<IEnumerable<RecentProductTransactionDto>?> GetRecentProductTransactionsAsync(Guid productId, string type = "purchase", Guid? partyId = null, int top = 3);
+
+    // Unified Product Search
+    Task<ProductSearchResultDto?> SearchProductsAsync(string query, int maxResults = 20);
 }

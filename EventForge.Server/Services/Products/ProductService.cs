@@ -1489,6 +1489,8 @@ public class ProductService : IProductService
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
+            VatRateName = product.VatRate?.Name,
+            VatRatePercentage = product.VatRate?.Percentage,
             UnitOfMeasureId = product.UnitOfMeasureId,
             BrandId = product.BrandId,
             BrandName = product.Brand?.Name,
@@ -1569,6 +1571,9 @@ public class ProductService : IProductService
             Code = productCode.Code,
             AlternativeDescription = productCode.AlternativeDescription,
             Status = (EventForge.DTOs.Common.ProductCodeStatus)productCode.Status,
+            UnitOfMeasureId = productCode.ProductUnit?.UnitOfMeasureId,
+            UnitOfMeasureName = productCode.ProductUnit?.UnitOfMeasure?.Name,
+            ConversionFactor = productCode.ProductUnit?.ConversionFactor,
             CreatedAt = productCode.CreatedAt,
             CreatedBy = productCode.CreatedBy,
             ModifiedAt = productCode.ModifiedAt,
@@ -2332,6 +2337,92 @@ public class ProductService : IProductService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving recent product transactions for product {ProductId}", productId);
+            throw;
+        }
+    }
+
+    public async Task<ProductSearchResultDto> SearchProductsAsync(string query, int maxResults = 20, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product search operations.");
+            }
+
+            var result = new ProductSearchResultDto();
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return result;
+            }
+
+            var queryTrimmed = query.Trim();
+
+            // Step 1: Try exact match on ProductCodes.Code (case-insensitive)
+            var productCode = await _context.ProductCodes
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(pc => pc.Product)
+                    .ThenInclude(p => p.Brand)
+                .Include(pc => pc.Product)
+                    .ThenInclude(p => p.VatRate)
+                .Include(pc => pc.ProductUnit)
+                    .ThenInclude(pu => pu!.UnitOfMeasure)
+                .FirstOrDefaultAsync(pc => pc.Code.ToLower() == queryTrimmed.ToLower(), cancellationToken);
+
+            if (productCode?.Product != null && productCode.Product.Status == EntityProductStatus.Active)
+            {
+                result.IsExactCodeMatch = true;
+                result.ExactMatch = new ProductWithCodeDto
+                {
+                    Product = MapToProductDto(productCode.Product),
+                    Code = MapToProductCodeDto(productCode)
+                };
+                result.TotalCount = 1;
+                return result;
+            }
+
+            // Step 2: Try exact match on Product.Code (case-insensitive)
+            var productByCode = await _context.Products
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(p => p.Brand)
+                .Include(p => p.VatRate)
+                .FirstOrDefaultAsync(p => p.Code != null && p.Code.ToLower() == queryTrimmed.ToLower(), cancellationToken);
+
+            if (productByCode != null && productByCode.Status == EntityProductStatus.Active)
+            {
+                result.IsExactCodeMatch = true;
+                result.ExactMatch = new ProductWithCodeDto
+                {
+                    Product = MapToProductDto(productByCode),
+                    Code = null
+                };
+                result.TotalCount = 1;
+                return result;
+            }
+
+            // Step 3: Text search in Name, ShortDescription, Description, Brand.Name (case-insensitive)
+            var searchResults = await _context.Products
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(p => p.Brand)
+                .Include(p => p.VatRate)
+                .Where(p => p.Status == EntityProductStatus.Active &&
+                    (EF.Functions.Like(p.Name, $"%{queryTrimmed}%") ||
+                     (p.ShortDescription != null && EF.Functions.Like(p.ShortDescription, $"%{queryTrimmed}%")) ||
+                     (p.Description != null && EF.Functions.Like(p.Description, $"%{queryTrimmed}%")) ||
+                     (p.Brand != null && EF.Functions.Like(p.Brand.Name, $"%{queryTrimmed}%"))))
+                .Take(maxResults)
+                .ToListAsync(cancellationToken);
+
+            result.SearchResults = searchResults.Select(MapToProductDto).ToList();
+            result.TotalCount = result.SearchResults.Count;
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing unified product search for query {Query}", query);
             throw;
         }
     }
