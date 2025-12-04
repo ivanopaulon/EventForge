@@ -1124,8 +1124,10 @@
                         var itemsToUpdate = _pendingItemUpdates.ToList();
                         _pendingItemUpdates.Clear();
                         
-                        // Build dictionary for O(1) lookup
-                        var itemsDict = _currentSession?.Items.ToDictionary(i => i.Id);
+                        // Build dictionary for O(1) lookup (use GroupBy in case of duplicates)
+                        var itemsDict = _currentSession?.Items
+                            .GroupBy(i => i.Id)
+                            .ToDictionary(g => g.Key, g => g.First());
                         
                         // Update each pending item
                         if (itemsDict != null)
