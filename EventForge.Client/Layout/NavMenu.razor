@@ -48,174 +48,159 @@
         }
         @if (_isSuperAdmin || _isAdmin || _isManager)
         {
-            <MudNavGroup title="@TranslationService.GetTranslation("nav.administration", "Amministrazione")" 
-                         Icon="@Icons.Material.Outlined.Dashboard" 
-                         Expanded="true">
-                <MudNavLink Href="/admin" 
-                            Icon="@Icons.Material.Outlined.Dashboard" 
+            <!-- Dashboard Admin -->
+            <MudNavLink Href="/admin" 
+                        Icon="@Icons.Material.Outlined.Dashboard" 
+                        Match="NavLinkMatch.All">
+                @TranslationService.GetTranslation("nav.adminDashboard", "Dashboard Admin")
+            </MudNavLink>
+
+            <!-- Catalogo (Product Management) -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.catalog", "Catalogo")" 
+                         Icon="@Icons.Material.Outlined.Inventory" 
+                         Expanded="false">
+                <MudNavLink Href="/product-management/products"
+                            Icon="@Icons.Material.Outlined.Inventory2" 
                             Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.adminDashboard", "Dashboard Admin")
+                    @TranslationService.GetTranslation("nav.products", "Prodotti")
                 </MudNavLink>
-                
-                <!-- Financial Management Group -->
-                <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Gestione Finanziaria")" 
-                             Icon="@Icons.Material.Outlined.AccountBalance" 
+                <MudNavLink Href="/product-management/brands"
+                            Icon="@Icons.Material.Outlined.Sell" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.brandManagement", "Gestione Marchi")
+                </MudNavLink>
+                <MudNavLink Href="/settings/unit-of-measures"
+                            Icon="@Icons.Material.Outlined.Straighten" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unità di Misura")
+                </MudNavLink>
+                <MudNavLink Href="/management/classification-nodes"
+                            Icon="@Icons.Material.Outlined.AccountTree" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.classificationNodeManagement", "Gestione Classificazione")
+                </MudNavLink>
+            </MudNavGroup>
+
+            <!-- Warehouse Management Group -->
+            @if (_canManageWarehouse)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.warehouseManagement", "Magazzino")" 
+                             Icon="@Icons.Material.Outlined.Warehouse" 
                              Expanded="false">
-                    <MudNavLink Href="/financial/vat-rates" 
-                                Icon="@Icons.Material.Outlined.Percent" 
+                    <MudNavLink Href="/warehouse/facilities" 
+                                Icon="@Icons.Material.Outlined.Warehouse" 
                                 Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.vatRateManagement", "Gestione Aliquote IVA")
+                        @TranslationService.GetTranslation("nav.facilities", "Magazzini")
                     </MudNavLink>
-                    <MudNavLink Href="/financial/vat-natures" 
-                                Icon="@Icons.Material.Outlined.Category" 
+                    <MudNavLink Href="/warehouse/lot-management" 
+                                Icon="@Icons.Material.Outlined.QrCode" 
                                 Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.vatNatureManagement", "Gestione Nature IVA")
+                        @TranslationService.GetTranslation("nav.lotManagement", "Gestione Lotti")
                     </MudNavLink>
-                </MudNavGroup>
-
-                <!-- Warehouse Management Group -->
-                @if (_canManageWarehouse)
-                {
-                    <MudNavGroup title="@TranslationService.GetTranslation("nav.warehouseManagement", "Gestione Magazzino")" 
-                                 Icon="@Icons.Material.Outlined.Warehouse" 
-                                 Expanded="false">
-                        <MudNavLink Href="/warehouse/facilities" 
-                                    Icon="@Icons.Material.Outlined.Warehouse" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.facilities", "Magazzini")
-                        </MudNavLink>
-                        <MudNavLink Href="/warehouse/lot-management" 
-                                    Icon="@Icons.Material.Outlined.QrCode" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.lotManagement", "Gestione Lotti")
-                        </MudNavLink>
-                        <MudNavLink Href="/warehouse/inventory-procedure" 
-                                    Icon="@Icons.Material.Outlined.Inventory" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.inventoryProcedure", "Procedura Inventario")
-                        </MudNavLink>
-                        <MudNavLink Href="/warehouse/inventory-list" 
-                                    Icon="@Icons.Material.Outlined.Inventory2" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.inventoryDocuments", "Documenti Inventario")
-                        </MudNavLink>
-                        <MudNavLink Href="/warehouse/transfers" 
-                                    Icon="@Icons.Material.Outlined.CompareArrows" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.transferOrders", "Ordini di Trasferimento")
-                        </MudNavLink>
-                        <MudNavLink Href="/warehouse/inventory-seed" 
-                                    Icon="@Icons.Material.Outlined.Psychology" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.inventorySeed", "Genera Inventario Test")
-                        </MudNavLink>
-                    </MudNavGroup>
-                }
-
-                <!-- Document Management Group -->
-                @if (_canManageWarehouse || _isAdmin || _isSuperAdmin)
-                {
-                    <MudNavGroup title="@TranslationService.GetTranslation("nav.documentManagement", "Gestione Documenti")" 
-                                 Icon="@Icons.Material.Outlined.Description" 
-                                 Expanded="false">
-                        <MudNavLink Href="/documents/list" 
-                                    Icon="@Icons.Material.Outlined.ListAlt" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.documentList", "Elenco Documenti")
-                        </MudNavLink>
-                        <MudNavLink Href="/documents/create" 
-                                    Icon="@Icons.Material.Outlined.Add" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.createDocument", "Nuovo Documento")
-                        </MudNavLink>
-                        <MudNavLink Href="/documents/types" 
-                                    Icon="@Icons.Material.Outlined.Category" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.documentTypes", "Tipi Documento")
-                        </MudNavLink>
-                        <MudNavLink Href="/documents/types/create" 
-                                    Icon="@Icons.Material.Outlined.Add" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.createDocumentType", "Nuovo Tipo Documento")
-                        </MudNavLink>
-                        <MudNavLink Href="/documents/counters" 
-                                    Icon="@Icons.Material.Outlined.Pin" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.documentCounters", "Contatori Documenti")
-                        </MudNavLink>
-                    </MudNavGroup>
-                }
-
-                <!-- Business Partners Group -->
-                <MudNavGroup title="@TranslationService.GetTranslation("nav.businessPartners", "Gestione Partner")" 
-                             Icon="@Icons.Material.Outlined.Handshake" 
-                             Expanded="false">
-                    <MudNavLink Href="/business/suppliers"
-                                Icon="@Icons.Material.Outlined.Business" 
+                    <MudNavLink Href="/warehouse/inventory-procedure" 
+                                Icon="@Icons.Material.Outlined.Inventory" 
                                 Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.supplierManagement", "Gestione Fornitori")
+                        @TranslationService.GetTranslation("nav.inventoryProcedure", "Inventari")
                     </MudNavLink>
-                    <MudNavLink Href="/business/customers"
-                                Icon="@Icons.Material.Outlined.People" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.customerManagement", "Gestione Clienti")
-                    </MudNavLink>
-                </MudNavGroup>
-
-                <!-- Product Management Group -->
-                <MudNavGroup title="@TranslationService.GetTranslation("nav.productManagement", "Gestione Prodotti")" 
-                             Icon="@Icons.Material.Outlined.Inventory" 
-                             Expanded="false">
-                    <MudNavLink Href="/product-management/products"
+                    <MudNavLink Href="/warehouse/inventory-list" 
                                 Icon="@Icons.Material.Outlined.Inventory2" 
                                 Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.products", "Prodotti")
+                        @TranslationService.GetTranslation("nav.inventoryDocuments", "Documenti Inventario")
                     </MudNavLink>
-                    <MudNavLink Href="/product-management/brands"
-                                Icon="@Icons.Material.Outlined.Sell" 
+                    <MudNavLink Href="/warehouse/transfers" 
+                                Icon="@Icons.Material.Outlined.CompareArrows" 
                                 Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.brandManagement", "Gestione Marchi")
+                        @TranslationService.GetTranslation("nav.transferOrders", "Trasferimenti")
                     </MudNavLink>
-                    <MudNavLink Href="/settings/unit-of-measures"
-                                Icon="@Icons.Material.Outlined.Straighten" 
+                    <MudNavLink Href="/warehouse/inventory-seed" 
+                                Icon="@Icons.Material.Outlined.Psychology" 
                                 Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unità di Misura")
-                    </MudNavLink>
-                    <MudNavLink Href="/management/classification-nodes"
-                                Icon="@Icons.Material.Outlined.AccountTree" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.classificationNodeManagement", "Gestione Classificazione")
+                        @TranslationService.GetTranslation("nav.inventorySeed", "[DEV] Genera Test")
                     </MudNavLink>
                 </MudNavGroup>
-            </MudNavGroup>
-        }
+            }
 
-        <!-- Sales Management -->
-        @if (_isSuperAdmin || _isAdmin || _isManager)
-        {
-            <MudNavGroup title="@TranslationService.GetTranslation("nav.salesManagement", "Gestione Vendite")" 
-                         Icon="@Icons.Material.Outlined.PointOfSale" 
+            <!-- Document Management Group -->
+            @if (_canManageWarehouse || _isAdmin || _isSuperAdmin)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.documentManagement", "Documenti")" 
+                             Icon="@Icons.Material.Outlined.Description" 
+                             Expanded="false">
+                    <MudNavLink Href="/documents/list" 
+                                Icon="@Icons.Material.Outlined.ListAlt" 
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.documentList", "Elenco Documenti")
+                    </MudNavLink>
+                    <MudNavLink Href="/documents/create" 
+                                Icon="@Icons.Material.Outlined.Add" 
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.createDocument", "Nuovo Documento")
+                    </MudNavLink>
+                    <MudNavLink Href="/documents/types" 
+                                Icon="@Icons.Material.Outlined.Category" 
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.documentTypes", "Tipi Documento")
+                    </MudNavLink>
+                    <MudNavLink Href="/documents/counters" 
+                                Icon="@Icons.Material.Outlined.Pin" 
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.documentCounters", "Contatori")
+                    </MudNavLink>
+                </MudNavGroup>
+            }
+
+            <!-- Business Partners Group -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.businessPartners", "Partner Commerciali")" 
+                         Icon="@Icons.Material.Outlined.Handshake" 
                          Expanded="false">
-                <MudNavLink Href="/sales/pos" 
-                            Icon="@Icons.Material.Outlined.PointOfSale" 
+                <MudNavLink Href="/business/suppliers"
+                            Icon="@Icons.Material.Outlined.Business" 
                             Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.pos", "Punto Vendita (POS)")
+                    @TranslationService.GetTranslation("nav.supplierManagement", "Fornitori")
                 </MudNavLink>
-                <MudNavLink Href="/store/payment-methods" 
-                            Icon="@Icons.Material.Outlined.Payment" 
+                <MudNavLink Href="/business/customers"
+                            Icon="@Icons.Material.Outlined.People" 
                             Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.paymentMethods", "Metodi di Pagamento")
+                    @TranslationService.GetTranslation("nav.customerManagement", "Clienti")
                 </MudNavLink>
             </MudNavGroup>
+
+            <!-- Financial Management Group -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilità")" 
+                         Icon="@Icons.Material.Outlined.AccountBalance" 
+                         Expanded="false">
+                <MudNavLink Href="/financial/vat-rates" 
+                            Icon="@Icons.Material.Outlined.Percent" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.vatRateManagement", "Aliquote IVA")
+                </MudNavLink>
+                <MudNavLink Href="/financial/vat-natures" 
+                            Icon="@Icons.Material.Outlined.Category" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.vatNatureManagement", "Nature IVA")
+                </MudNavLink>
+            </MudNavGroup>
+
+            <!-- Direct POS Link -->
+            <MudNavLink Href="/sales/pos" 
+                        Icon="@Icons.Material.Outlined.PointOfSale" 
+                        Match="NavLinkMatch.All">
+                @TranslationService.GetTranslation("nav.pos", "Punto Vendita (POS)")
+            </MudNavLink>
 
             <!-- Store Settings -->
             <MudNavGroup title="@TranslationService.GetTranslation("nav.storeSettings", "Configurazione Store")" 
                          Icon="@Icons.Material.Outlined.Settings" 
                          Expanded="false">
+                <MudNavLink Href="/store/payment-methods" 
+                            Icon="@Icons.Material.Outlined.Payment" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.paymentMethods", "Metodi di Pagamento")
+                </MudNavLink>
                 <MudNavLink Href="/store/pos" 
                             Icon="@Icons.Material.Outlined.PointOfSale" 
                             Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.posManagement", "Punti Cassa")
+                    @TranslationService.GetTranslation("nav.posManagement", "Punti Cassa (Terminali)")
                 </MudNavLink>
                 <MudNavLink Href="/store/operators" 
                             Icon="@Icons.Material.Outlined.Person" 

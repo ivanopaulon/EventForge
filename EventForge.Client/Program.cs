@@ -152,10 +152,27 @@ builder.Services.AddScoped<EventForge.Client.Services.Sales.IPaymentMethodServic
 builder.Services.AddScoped<EventForge.Client.Services.Sales.INoteFlagService, EventForge.Client.Services.Sales.NoteFlagService>();
 builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementService, EventForge.Client.Services.Sales.TableManagementService>();
 
-// Add Store management services
-builder.Services.AddScoped<EventForge.Client.Services.Store.IStoreUserService, EventForge.Client.Services.Store.StoreUserService>();
-builder.Services.AddScoped<EventForge.Client.Services.Store.IStorePosService, EventForge.Client.Services.Store.StorePosService>();
-builder.Services.AddScoped<EventForge.Client.Services.Store.IStoreUserGroupService, EventForge.Client.Services.Store.StoreUserGroupService>();
+// Add Store management services with configured HttpClient
+builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserService, EventForge.Client.Services.Store.StoreUserService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService, EventForge.Client.Services.Store.StorePosService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupService, EventForge.Client.Services.Store.StoreUserGroupService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
 
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
