@@ -8,6 +8,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components.Sales
 @using EventForge.Client.Shared.Components.Dialogs.Sales
+@using EventForge.Client.Shared.Components.Dialogs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
@@ -23,6 +24,7 @@
 @inject ILogger<POS> Logger
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
 <PageLoadingOverlay Visible="_isLoading" 
@@ -438,11 +440,19 @@
 
     private async Task HandleProductNotFoundAsync(string barcode)
     {
-        // TODO: Show ProductNotFoundDialog
-        Snackbar.Add(
-            TranslationService.GetTranslation("sales.productNotFound", "Prodotto non trovato: {0}", barcode),
-            Severity.Warning
+        var parameters = new DialogParameters
+        {
+            { "Barcode", barcode }
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
+            TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
         );
+
+        await dialog.Result;
+        // User can create product or assign barcode through the dialog
     }
 
     private Task HandleScanErrorAsync(Exception exception)
@@ -511,8 +521,23 @@
 
     private async Task EditItemNotesAsync(SaleItemDto item)
     {
-        // TODO: Open notes dialog
-        Snackbar.Add("Note dialog - TODO", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { "InitialNotes", item.Notes ?? string.Empty }
+        };
+
+        var dialog = await DialogService.ShowAsync<ItemNotesDialog>(
+            TranslationService.GetTranslation("sales.editNotes", "Modifica Note"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }
+        );
+
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is string newNotes)
+        {
+            item.Notes = newNotes;
+            await UpdateItemAsync(item);
+        }
     }
 
     private async Task RemoveItemAsync(SaleItemDto item)
@@ -708,10 +733,129 @@
         }
     }
 
-    private Task PrintReceiptAsync()
+    private async Task PrintReceiptAsync()
     {
-        // TODO: Implement printing
-        Snackbar.Add("Stampa scontrino - TODO", Severity.Info);
-        return Task.CompletedTask;
+        if (_currentSession == null)
+            return;
+
+        try
+        {
+            // Generate printable receipt content
+            var receiptContent = GenerateReceiptContent(_currentSession);
+
+            // Use browser print functionality
+            await JSRuntime.InvokeVoidAsync("printReceipt", receiptContent);
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("sales.printingReceipt", "Stampa scontrino in corso..."),
+                Severity.Info
+            );
+
+            // After printing, prepare for new sale
+            await Task.Delay(1000);
+            await PrepareNewSaleAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error printing receipt");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.printError", "Errore durante la stampa"),
+                Severity.Error
+            );
+        }
+    }
+
+    private string GenerateReceiptContent(SaleSessionDto session)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html><head>");
+        sb.AppendLine("<meta charset='utf-8'>");
+        sb.AppendLine("<style>");
+        sb.AppendLine("body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; }");
+        sb.AppendLine("h1 { text-align: center; font-size: 18px; margin: 10px 0; }");
+        sb.AppendLine(".header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }");
+        sb.AppendLine(".item { margin: 5px 0; }");
+        sb.AppendLine(".item-name { font-weight: bold; }");
+        sb.AppendLine(".item-details { display: flex; justify-content: space-between; font-size: 12px; }");
+        sb.AppendLine(".totals { border-top: 2px dashed #000; padding-top: 10px; margin-top: 10px; }");
+        sb.AppendLine(".total-row { display: flex; justify-content: space-between; margin: 3px 0; }");
+        sb.AppendLine(".grand-total { font-size: 16px; font-weight: bold; border-top: 2px solid #000; padding-top: 5px; margin-top: 5px; }");
+        sb.AppendLine(".footer { text-align: center; margin-top: 20px; font-size: 12px; }");
+        sb.AppendLine("@media print { body { width: 80mm; } }");
+        sb.AppendLine("</style>");
+        sb.AppendLine("</head><body>");
+
+        // Header
+        sb.AppendLine("<div class='header'>");
+        sb.AppendLine("<h1>SCONTRINO</h1>");
+        sb.AppendLine($"<p>Sessione: #{session.Id.ToString("N")[..8]}</p>");
+        sb.AppendLine($"<p>{DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>");
+        if (!string.IsNullOrEmpty(_operatorName))
+        {
+            sb.AppendLine($"<p>Operatore: {_operatorName}</p>");
+        }
+        sb.AppendLine("</div>");
+
+        // Items
+        foreach (var item in session.Items)
+        {
+            sb.AppendLine("<div class='item'>");
+            sb.AppendLine($"<div class='item-name'>{item.ProductName}</div>");
+            sb.AppendLine("<div class='item-details'>");
+            sb.AppendLine($"<span>{item.Quantity} x {item.UnitPrice:C}");
+            if (item.DiscountPercent > 0)
+            {
+                sb.AppendLine($" (-{item.DiscountPercent:F1}%)");
+            }
+            sb.AppendLine("</span>");
+            sb.AppendLine($"<span>{item.TotalAmount:C}</span>");
+            sb.AppendLine("</div>");
+            sb.AppendLine("</div>");
+        }
+
+        // Totals
+        sb.AppendLine("<div class='totals'>");
+        var subtotal = session.Items.Sum(i => i.Quantity * i.UnitPrice);
+        var discount = session.Items.Sum(i => i.Quantity * i.UnitPrice * i.DiscountPercent / 100);
+        var tax = session.Items.Sum(i => i.TaxAmount);
+
+        sb.AppendLine($"<div class='total-row'><span>Subtotale:</span><span>{subtotal:C}</span></div>");
+        if (discount > 0)
+        {
+            sb.AppendLine($"<div class='total-row'><span>Sconto:</span><span>-{discount:C}</span></div>");
+        }
+        sb.AppendLine($"<div class='total-row'><span>IVA:</span><span>{tax:C}</span></div>");
+        sb.AppendLine($"<div class='total-row grand-total'><span>TOTALE:</span><span>{session.FinalTotal:C}</span></div>");
+
+        // Payments
+        if (session.Payments?.Any() == true)
+        {
+            sb.AppendLine("<div style='margin-top: 10px;'>");
+            var totalPaid = session.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount);
+            foreach (var payment in session.Payments.Where(p => p.Status == PaymentStatusDto.Completed))
+            {
+                sb.AppendLine($"<div class='total-row'><span>{payment.PaymentMethodName}:</span><span>{payment.Amount:C}</span></div>");
+            }
+            if (totalPaid > session.FinalTotal)
+            {
+                var change = totalPaid - session.FinalTotal;
+                sb.AppendLine($"<div class='total-row' style='font-weight: bold;'><span>RESTO:</span><span>{change:C}</span></div>");
+            }
+            sb.AppendLine("</div>");
+        }
+        sb.AppendLine("</div>");
+
+        // Footer
+        sb.AppendLine("<div class='footer'>");
+        sb.AppendLine("<p>Grazie per il vostro acquisto!</p>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("<script>");
+        sb.AppendLine("window.onload = function() { window.print(); };");
+        sb.AppendLine("</script>");
+        sb.AppendLine("</body></html>");
+
+        return sb.ToString();
     }
 }

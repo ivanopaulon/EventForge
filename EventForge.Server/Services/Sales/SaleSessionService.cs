@@ -230,8 +230,16 @@ public class SaleSessionService : ISaleSessionService
             var discountAmount = subtotal * (addItemDto.DiscountPercent / 100);
             var totalAmount = subtotal - discountAmount;
 
-            // Get VAT rate from product (simplified - in real scenario would fetch from VatRate entity)
-            var taxRate = 0m; // TODO: Fetch from product.VatRate
+            // Get VAT rate from product
+            var taxRate = 0m;
+            if (product.VatRateId.HasValue)
+            {
+                var vatRate = await _context.VatRates
+                    .Where(vr => vr.Id == product.VatRateId.Value && !vr.IsDeleted)
+                    .Select(vr => vr.Percentage)
+                    .FirstOrDefaultAsync(cancellationToken);
+                taxRate = vatRate;
+            }
             var taxAmount = totalAmount * (taxRate / 100);
 
             var item = new SaleItem
@@ -515,6 +523,9 @@ public class SaleSessionService : ISaleSessionService
                 return null;
             }
 
+            // Get user ID from username
+            var userId = await GetUserIdFromUsernameAsync(currentUser, cancellationToken);
+
             var note = new SessionNote
             {
                 Id = Guid.NewGuid(),
@@ -522,7 +533,7 @@ public class SaleSessionService : ISaleSessionService
                 SaleSessionId = sessionId,
                 NoteFlagId = addNoteDto.NoteFlagId,
                 Text = addNoteDto.Text,
-                CreatedByUserId = Guid.Empty, // TODO: Get actual user ID
+                CreatedByUserId = userId,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
                 ModifiedBy = currentUser,
@@ -906,6 +917,33 @@ public class SaleSessionService : ISaleSessionService
         {
             _logger.LogError(ex, "Error voiding sale session {SessionId}.", sessionId);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets user ID from username.
+    /// </summary>
+    private async Task<Guid> GetUserIdFromUsernameAsync(string username, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                return Guid.Empty;
+            }
+
+            var userId = await _context.Users
+                .Where(u => u.Username == username && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return userId != Guid.Empty ? userId : Guid.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error getting user ID for username {Username}, using Empty GUID", username);
+            return Guid.Empty;
         }
     }
 
