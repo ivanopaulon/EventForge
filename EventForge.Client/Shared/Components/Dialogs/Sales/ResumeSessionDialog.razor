@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Sales
 @using EventForge.Client.Services.Sales
 @using MudBlazor
+@using System
 @inject ITranslationService TranslationService
 @inject ISalesService SalesService
 @inject IDialogService DialogService
@@ -257,11 +258,10 @@
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(__searchText))
         {
-            var searchLower = __searchText.ToLower();
             filtered = filtered.Where(s =>
-                (s.CustomerName?.ToLower().Contains(searchLower) ?? false) ||
-                (s.OperatorName?.ToLower().Contains(searchLower) ?? false) ||
-                s.Items.Any(i => i.ProductName.ToLower().Contains(searchLower))
+                (s.CustomerName?.Contains(__searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (s.OperatorName?.Contains(__searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                s.Items.Any(i => i.ProductName.Contains(__searchText, StringComparison.OrdinalIgnoreCase))
             );
         }
 
@@ -326,7 +326,7 @@
             try
             {
                 // Delete the session - update status to Cancelled
-                var updateDto = new EventForge.DTOs.Sales.UpdateSaleSessionDto
+                var updateDto = new UpdateSaleSessionDto
                 {
                     Status = SaleSessionStatusDto.Cancelled
                 };

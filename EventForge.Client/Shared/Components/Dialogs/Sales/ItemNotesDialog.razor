@@ -76,7 +76,10 @@
     private string _customNotes = string.Empty;
     private HashSet<string> _selectedQuickNotes = new();
     private MudTextField<string>? _notesField;
+    private const string NoteSeparator = "; ";
 
+    // Quick notes are in Italian as this is the primary language for food service context
+    // TODO: Consider making these configurable through settings or translatable for multi-language support
     private readonly List<string> _quickNotes = new()
     {
         "Senza glutine",
@@ -95,7 +98,7 @@
         // Parse initial notes to extract quick notes and custom notes
         if (!string.IsNullOrWhiteSpace(InitialNotes))
         {
-            var parts = InitialNotes.Split(new[] { "; ", ";\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = InitialNotes.Split(new[] { NoteSeparator }, StringSplitOptions.RemoveEmptyEntries);
             var customNotesList = new List<string>();
 
             foreach (var part in parts)
@@ -150,7 +153,7 @@
             allNotes.Add(_customNotes.Trim());
         }
 
-        var finalNotes = string.Join("; ", allNotes);
+        var finalNotes = string.Join(NoteSeparator, allNotes);
         MudDialog?.Close(DialogResult.Ok(finalNotes));
         return Task.CompletedTask;
     }
