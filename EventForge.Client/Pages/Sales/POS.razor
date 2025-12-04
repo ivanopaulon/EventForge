@@ -347,19 +347,29 @@
 
             if (!string.IsNullOrEmpty(username))
             {
-                // Parallel API calls for faster loading
+                // Load data with resilient error handling - each call is independent
                 Logger.LogDebug("Loading operator, POS terminals, and payment methods...");
-                var operatorTask = StoreUserService.GetByUsernameAsync(username);
-                var posTask = StorePosService.GetActiveAsync();
-                var paymentMethodsTask = PaymentMethodService.GetActiveAsync();
-
-                await Task.WhenAll(operatorTask, posTask, paymentMethodsTask);
-
-                _currentOperator = await operatorTask;
-                _operatorName = _currentOperator?.Name ?? username;
-                _availablePos = await posTask ?? new List<StorePosDto>();
                 
-                var paymentMethodsResult = await paymentMethodsTask;
+                _currentOperator = await SafeAsync(
+                    () => StoreUserService.GetByUsernameAsync(username),
+                    null,
+                    "operator lookup"
+                );
+                
+                // Fallback to username if operator not found
+                _operatorName = _currentOperator?.Name ?? username;
+                
+                _availablePos = await SafeAsync(
+                    () => StorePosService.GetActiveAsync(),
+                    new List<StorePosDto>(),
+                    "POS terminals"
+                );
+                
+                var paymentMethodsResult = await SafeAsync(
+                    () => PaymentMethodService.GetActiveAsync(),
+                    new List<PaymentMethodDto>(),
+                    "payment methods"
+                );
                 _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
                 
                 Logger.LogInformation("POS initialization complete: Operator={OperatorName}, POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
@@ -369,18 +379,33 @@
             {
                 // Load POS and payment methods even without operator
                 Logger.LogDebug("Loading POS terminals and payment methods without operator...");
-                var posTask = StorePosService.GetActiveAsync();
-                var paymentMethodsTask = PaymentMethodService.GetActiveAsync();
                 
-                await Task.WhenAll(posTask, paymentMethodsTask);
+                _availablePos = await SafeAsync(
+                    () => StorePosService.GetActiveAsync(),
+                    new List<StorePosDto>(),
+                    "POS terminals"
+                );
                 
-                _availablePos = await posTask ?? new List<StorePosDto>();
-                
-                var paymentMethodsResult = await paymentMethodsTask;
+                var paymentMethodsResult = await SafeAsync(
+                    () => PaymentMethodService.GetActiveAsync(),
+                    new List<PaymentMethodDto>(),
+                    "payment methods"
+                );
                 _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
                 
                 Logger.LogInformation("POS initialization complete without operator: POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
                     _availablePos.Count, _paymentMethods.Count);
+            }
+
+            // Show warning if no POS available
+            if (_availablePos.Count == 0)
+            {
+                Logger.LogWarning("No active POS terminals available");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.noPosAvailable", "Nessun POS attivo disponibile. Contatta l'amministratore."),
+                    Severity.Warning,
+                    config => config.VisibleStateDuration = 5000
+                );
             }
 
             // Check for suspended sessions (depends on above data)
@@ -416,6 +441,32 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Safely executes an async operation with error handling, returning a default value on failure.
+    /// </summary>
+    private async Task<T> SafeAsync<T>(Func<Task<T>> operation, T defaultValue, string operationName)
+    {
+        try
+        {
+            return await operation();
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            Logger.LogWarning("Not found error during {OperationName}: {Message}", operationName, httpEx.Message);
+            return defaultValue;
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            Logger.LogWarning("Bad request error during {OperationName}: {Message}", operationName, httpEx.Message);
+            return defaultValue;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error during {OperationName}, using default value", operationName);
+            return defaultValue;
         }
     }
 
