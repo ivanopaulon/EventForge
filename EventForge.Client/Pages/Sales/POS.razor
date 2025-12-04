@@ -328,6 +328,7 @@
         try
         {
             _isLoading = true;
+            Logger.LogInformation("POS page initialization started");
 
             // Get current user from authentication
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -337,11 +338,17 @@
             if (user.Identity?.IsAuthenticated == true)
             {
                 username = user.Identity.Name;
+                Logger.LogDebug("Authenticated user: {Username}", username);
+            }
+            else
+            {
+                Logger.LogWarning("User not authenticated in POS page");
             }
 
             if (!string.IsNullOrEmpty(username))
             {
                 // Parallel API calls for faster loading
+                Logger.LogDebug("Loading operator, POS terminals, and payment methods...");
                 var operatorTask = StoreUserService.GetByUsernameAsync(username);
                 var posTask = StorePosService.GetActiveAsync();
                 var paymentMethodsTask = PaymentMethodService.GetActiveAsync();
@@ -350,29 +357,59 @@
 
                 _currentOperator = await operatorTask;
                 _operatorName = _currentOperator?.Name ?? username;
-                _availablePos = await posTask;
-                _paymentMethods = (await paymentMethodsTask).ToList();
+                _availablePos = await posTask ?? new List<StorePosDto>();
+                
+                var paymentMethodsResult = await paymentMethodsTask;
+                _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
+                
+                Logger.LogInformation("POS initialization complete: Operator={OperatorName}, POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
+                    _operatorName, _availablePos.Count, _paymentMethods.Count);
             }
             else
             {
                 // Load POS and payment methods even without operator
+                Logger.LogDebug("Loading POS terminals and payment methods without operator...");
                 var posTask = StorePosService.GetActiveAsync();
                 var paymentMethodsTask = PaymentMethodService.GetActiveAsync();
                 
                 await Task.WhenAll(posTask, paymentMethodsTask);
                 
-                _availablePos = await posTask;
-                _paymentMethods = (await paymentMethodsTask).ToList();
+                _availablePos = await posTask ?? new List<StorePosDto>();
+                
+                var paymentMethodsResult = await paymentMethodsTask;
+                _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
+                
+                Logger.LogInformation("POS initialization complete without operator: POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
+                    _availablePos.Count, _paymentMethods.Count);
             }
 
             // Check for suspended sessions (depends on above data)
             await CheckForSuspendedSessionsAsync();
         }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Logger.LogWarning(httpEx, "Unauthorized access during POS initialization");
+            await JSRuntime.InvokeVoidAsync("console.error", "POS: 401 Unauthorized - Token may be expired or invalid");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.unauthorized", "Accesso non autorizzato. Effettua nuovamente il login."),
+                Severity.Error
+            );
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            Logger.LogWarning(httpEx, "Forbidden access during POS initialization - possible tenant or license issue");
+            await JSRuntime.InvokeVoidAsync("console.error", "POS: 403 Forbidden - Tenant or license issue");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.forbidden", "Accesso negato. Verifica i permessi del tenant e la licenza."),
+                Severity.Error
+            );
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing POS page");
+            await JSRuntime.InvokeVoidAsync("console.error", $"POS initialization error: {ex.Message}");
             Snackbar.Add(
-                TranslationService.GetTranslation("errors.initializationError", "Errore durante l'inizializzazione"),
+                TranslationService.GetTranslation("errors.initializationError", "Errore durante l'inizializzazione: {0}", ex.Message),
                 Severity.Error
             );
         }
@@ -395,12 +432,22 @@
     {
         try
         {
+            Logger.LogDebug("Checking for suspended sessions...");
             var allSessions = await SalesService.GetActiveSessionsAsync();
-            var suspendedSessions = allSessions?
+            
+            if (allSessions == null)
+            {
+                Logger.LogWarning("GetActiveSessionsAsync returned null");
+                return;
+            }
+            
+            var suspendedSessions = allSessions
                 .Where(s => s.Status == SaleSessionStatusDto.Suspended)
                 .ToList();
 
-            if (suspendedSessions?.Any() == true)
+            Logger.LogDebug("Found {Count} suspended sessions", suspendedSessions.Count);
+
+            if (suspendedSessions.Any())
             {
                 var parameters = new DialogParameters
                 {
@@ -417,6 +464,7 @@
 
                 if (!result.Canceled && result.Data is SaleSessionDto selectedSession)
                 {
+                    Logger.LogInformation("Resuming suspended session {SessionId}", selectedSession.Id);
                     _currentSession = selectedSession;
                     _selectedPosId = selectedSession.PosId;
                     _selectedCustomer = selectedSession.CustomerId.HasValue 
@@ -425,20 +473,40 @@
                 }
             }
         }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Logger.LogWarning(httpEx, "Unauthorized error checking for suspended sessions");
+            await JSRuntime.InvokeVoidAsync("console.warn", "POS: 401 Unauthorized checking suspended sessions");
+            // Don't show error to user - this is optional functionality
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            Logger.LogWarning(httpEx, "Forbidden error checking for suspended sessions");
+            await JSRuntime.InvokeVoidAsync("console.warn", "POS: 403 Forbidden checking suspended sessions");
+            // Don't show error to user - this is optional functionality
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error checking for suspended sessions");
+            await JSRuntime.InvokeVoidAsync("console.error", $"POS: Error checking suspended sessions: {ex.Message}");
+            // Don't show error to user - this is optional functionality
         }
     }
 
     private async Task CreateNewSessionAsync()
     {
         if (!_selectedPosId.HasValue || _currentOperator == null)
+        {
+            Logger.LogWarning("Cannot create session: PosId={PosId}, OperatorId={OperatorId}", 
+                _selectedPosId, _currentOperator?.Id);
             return;
+        }
 
         try
         {
             _isLoading = true;
+            Logger.LogInformation("Creating new sale session for POS {PosId}, Operator {OperatorId}", 
+                _selectedPosId.Value, _currentOperator.Id);
 
             var createDto = new CreateSaleSessionDto
             {
@@ -450,18 +518,48 @@
             };
 
             _currentSession = await SalesService.CreateSessionAsync(createDto);
+            
+            if (_currentSession == null)
+            {
+                Logger.LogWarning("CreateSessionAsync returned null");
+                await JSRuntime.InvokeVoidAsync("console.error", "POS: Session creation returned null");
+                throw new InvalidOperationException("Failed to create session");
+            }
+            
             _isSessionClosed = false;
 
+            Logger.LogInformation("Sale session created successfully: SessionId={SessionId}", _currentSession.Id);
+            await JSRuntime.InvokeVoidAsync("console.info", $"POS: Session {_currentSession.Id} created successfully");
+            
             Snackbar.Add(
                 TranslationService.GetTranslation("sales.sessionCreated", "Sessione creata con successo"),
                 Severity.Success
             );
         }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Logger.LogWarning(httpEx, "Unauthorized when creating sale session");
+            await JSRuntime.InvokeVoidAsync("console.error", "POS: 401 Unauthorized creating session");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.unauthorized", "Accesso non autorizzato. Effettua nuovamente il login."),
+                Severity.Error
+            );
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            Logger.LogWarning(httpEx, "Forbidden when creating sale session");
+            await JSRuntime.InvokeVoidAsync("console.error", "POS: 403 Forbidden creating session");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.forbidden", "Accesso negato. Verifica i permessi del tenant e la licenza."),
+                Severity.Error
+            );
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error creating sale session");
+            await JSRuntime.InvokeVoidAsync("console.error", $"POS: Error creating session: {ex.Message}");
             Snackbar.Add(
-                TranslationService.GetTranslation("errors.sessionCreationError", "Errore durante la creazione della sessione"),
+                TranslationService.GetTranslation("errors.sessionCreationError", "Errore durante la creazione della sessione: {0}", ex.Message),
                 Severity.Error
             );
         }

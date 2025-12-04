@@ -11,6 +11,7 @@ public class PaymentMethodService : IPaymentMethodService
     private readonly IHttpClientService _httpClientService;
     private readonly ILogger<PaymentMethodService> _logger;
     private const string BaseUrl = "api/v1/payment-methods";
+    private const int DefaultPageSize = 100; // Default page size for pagination
 
     public PaymentMethodService(IHttpClientService httpClientService, ILogger<PaymentMethodService> logger)
     {
@@ -22,6 +23,35 @@ public class PaymentMethodService : IPaymentMethodService
     {
         try
         {
+            _logger.LogDebug("Fetching all payment methods from server");
+            
+            var allItems = new List<PaymentMethodDto>();
+            int page = 1;
+            int pageSize = DefaultPageSize;
+            
+            while (true)
+            {
+                // Server returns PagedResult<PaymentMethodDto>
+                var pagedResult = await _httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+                
+                if (pagedResult?.Items == null || !pagedResult.Items.Any())
+                {
+                    break;
+                }
+                
+                allItems.AddRange(pagedResult.Items);
+                
+                // Check if we've retrieved all items
+                if (!pagedResult.HasNextPage || allItems.Count >= pagedResult.TotalCount)
+                {
+                    break;
+                }
+                
+                page++;
+            }
+            
+            _logger.LogDebug("Retrieved {Count} payment methods from server across {Pages} page(s)", allItems.Count, page);
+            return allItems;
             // Use a large page size (1000) to retrieve all items in a single request
             // This is acceptable for payment methods as there are typically few records
             var pagedResult = await GetPagedAsync(1, 1000);

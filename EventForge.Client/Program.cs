@@ -152,6 +152,8 @@ builder.Services.AddScoped<EventForge.Client.Services.Sales.IPaymentMethodServic
 builder.Services.AddScoped<EventForge.Client.Services.Sales.INoteFlagService, EventForge.Client.Services.Sales.NoteFlagService>();
 builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementService, EventForge.Client.Services.Sales.TableManagementService>();
 
+// Register AuthenticatedHttpClientHandler for Store services
+builder.Services.AddTransient<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 // Register authenticated HTTP client handler for Store services
 builder.Services.AddTransient<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
@@ -162,6 +164,7 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserServic
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
+.AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService, EventForge.Client.Services.Store.StorePosService>(client =>
@@ -170,6 +173,7 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
+.AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupService, EventForge.Client.Services.Store.StoreUserGroupService>(client =>
@@ -178,6 +182,7 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupS
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
+.AddHttpMessageHandler<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 // Add authentication services
