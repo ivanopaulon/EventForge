@@ -21,57 +21,7 @@ public class StoreUserGroupService : IStoreUserGroupService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    /// <summary>
-    /// Extracts a user-friendly error message from the HTTP response, with special handling for tenant-related errors.
-    /// </summary>
-    private async Task<string> GetErrorMessageAsync(HttpResponseMessage response)
-    {
-        try
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            
-            // Check for tenant-related errors
-            if (content.Contains("Tenant context is required", StringComparison.OrdinalIgnoreCase) ||
-                content.Contains("TenantId", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Impossibile completare l'operazione: contesto tenant mancante. Effettua nuovamente l'accesso.";
-            }
 
-            // Try to parse ProblemDetails
-            try
-            {
-                var problemDetails = System.Text.Json.JsonSerializer.Deserialize<ProblemDetailsDto>(content);
-                if (!string.IsNullOrEmpty(problemDetails?.Detail))
-                {
-                    return problemDetails.Detail;
-                }
-                if (!string.IsNullOrEmpty(problemDetails?.Title))
-                {
-                    return problemDetails.Title;
-                }
-            }
-            catch
-            {
-                // Not a ProblemDetails response
-            }
-
-            // Return generic message based on status code
-            return response.StatusCode switch
-            {
-                HttpStatusCode.BadRequest => "Dati non validi. Verifica i campi inseriti.",
-                HttpStatusCode.Unauthorized => "Non autorizzato. Effettua nuovamente l'accesso.",
-                HttpStatusCode.Forbidden => "Non hai i permessi necessari per questa operazione.",
-                HttpStatusCode.NotFound => "Gruppo non trovato.",
-                HttpStatusCode.Conflict => "Il gruppo esiste già o c'è un conflitto con i dati esistenti.",
-                _ => $"Errore: {response.ReasonPhrase}"
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error extracting error message from response");
-            return "Si è verificato un errore durante l'operazione.";
-        }
-    }
 
     public async Task<List<StoreUserGroupDto>> GetAllAsync()
     {
@@ -98,7 +48,7 @@ public class StoreUserGroupService : IStoreUserGroupService
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorMessage = await GetErrorMessageAsync(response);
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
                 _logger.LogError("Error getting paged store user groups (page: {Page}, pageSize: {PageSize}): {StatusCode} - {ErrorMessage}", 
                     page, pageSize, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
@@ -143,7 +93,7 @@ public class StoreUserGroupService : IStoreUserGroupService
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorMessage = await GetErrorMessageAsync(response);
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
                 _logger.LogError("Error creating store user group: {StatusCode} - {ErrorMessage}", response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
@@ -169,7 +119,7 @@ public class StoreUserGroupService : IStoreUserGroupService
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorMessage = await GetErrorMessageAsync(response);
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
                 _logger.LogError("Error updating store user group {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
@@ -195,7 +145,7 @@ public class StoreUserGroupService : IStoreUserGroupService
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorMessage = await GetErrorMessageAsync(response);
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
                 _logger.LogError("Error deleting store user group {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
