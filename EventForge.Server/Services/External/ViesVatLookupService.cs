@@ -192,7 +192,7 @@ public class ViesVatLookupService : IVatLookupService
             {
                 parsed.PostalCode = match.Groups[1].Value;
                 parsed.City = match.Groups[2].Value.Trim();
-                if (match.Groups.Count > 3 && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
+                if (match.Groups[3].Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
                 {
                     parsed.Province = match.Groups[3].Value;
                 }

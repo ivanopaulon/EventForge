@@ -295,8 +295,10 @@
         if (!string.IsNullOrEmpty(_lookupResult.Name))
             _model.Name = _lookupResult.Name;
         
-        if (!string.IsNullOrEmpty(_lookupResult.CountryCode) && !string.IsNullOrEmpty(_lookupResult.VatNumber))
-            _model.VatNumber = $"{_lookupResult.CountryCode}{_lookupResult.VatNumber}";
+        // Use the original _vatNumber input as-is, since it's what the user entered
+        // and was already validated by VIES
+        if (!string.IsNullOrEmpty(_vatNumber))
+            _model.VatNumber = _vatNumber;
         
         // Apply parsed address components if available
         if (!string.IsNullOrEmpty(_lookupResult.Street))
