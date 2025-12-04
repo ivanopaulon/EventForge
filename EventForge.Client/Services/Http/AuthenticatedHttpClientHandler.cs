@@ -1,3 +1,4 @@
+using EventForge.Client.Services;
 using System.Net.Http.Headers;
 
 namespace EventForge.Client.Services.Http;

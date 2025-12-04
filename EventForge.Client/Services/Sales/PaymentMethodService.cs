@@ -24,17 +24,33 @@ public class PaymentMethodService : IPaymentMethodService
         {
             _logger.LogDebug("Fetching all payment methods from server");
             
-            // Server now returns PagedResult<PaymentMethodDto>, request large page to get all items
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}?page=1&pageSize=1000");
+            var allItems = new List<PaymentMethodDto>();
+            int page = 1;
+            const int pageSize = 100; // Reasonable page size
             
-            if (pagedResult?.Items == null)
+            while (true)
             {
-                _logger.LogWarning("Received null or empty PagedResult from payment methods endpoint");
-                return new List<PaymentMethodDto>();
+                // Server returns PagedResult<PaymentMethodDto>
+                var pagedResult = await _httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+                
+                if (pagedResult?.Items == null || !pagedResult.Items.Any())
+                {
+                    break;
+                }
+                
+                allItems.AddRange(pagedResult.Items);
+                
+                // Check if we've retrieved all items
+                if (!pagedResult.HasNextPage || allItems.Count >= pagedResult.TotalCount)
+                {
+                    break;
+                }
+                
+                page++;
             }
             
-            _logger.LogDebug("Retrieved {Count} payment methods from server", pagedResult.Items.Count());
-            return pagedResult.Items.ToList();
+            _logger.LogDebug("Retrieved {Count} payment methods from server across {Pages} page(s)", allItems.Count, page);
+            return allItems;
         }
         catch (Exception ex)
         {
