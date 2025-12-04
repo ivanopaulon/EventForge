@@ -40,7 +40,8 @@
     </MudText>
 
     <!-- POS Header -->
-    <POSHeader OperatorName="@_operatorName"
+    <POSHeader AvailableOperators="@_availableOperators"
+               @bind-SelectedOperatorId="@_selectedOperatorId"
                AvailablePos="@_availablePos"
                @bind-SelectedPosId="@_selectedPosId"
                @bind-SelectedCustomer="@_selectedCustomer"
@@ -273,7 +274,18 @@
             else
             {
                 <MudAlert Severity="Severity.Info">
-                    @TranslationService.GetTranslation("sales.selectPosToStart", "Seleziona un POS per iniziare")
+                    @if (!_selectedOperatorId.HasValue)
+                    {
+                        @TranslationService.GetTranslation("sales.selectOperatorToStart", "Seleziona un operatore per iniziare")
+                    }
+                    else if (!_selectedPosId.HasValue)
+                    {
+                        @TranslationService.GetTranslation("sales.selectPosToStart", "Seleziona un POS per iniziare")
+                    }
+                    else
+                    {
+                        @TranslationService.GetTranslation("sales.loading", "Caricamento sessione in corso...")
+                    }
                 </MudAlert>
             }
         </MudItem>
@@ -293,8 +305,8 @@
     private bool _isSessionClosed = false;
 
     // Operator and POS
-    private string? _operatorName;
-    private StoreUserDto? _currentOperator;
+    private List<StoreUserDto> _availableOperators = new();
+    private Guid? _selectedOperatorId;
     private List<StorePosDto> _availablePos = new();
     private Guid? _selectedPosId;
 
@@ -345,59 +357,60 @@
                 Logger.LogWarning("User not authenticated in POS page");
             }
 
-            if (!string.IsNullOrEmpty(username))
+            // Load data with resilient error handling - each call is independent
+            Logger.LogDebug("Loading operators, POS terminals, and payment methods...");
+            
+            _availableOperators = await SafeAsync(
+                () => StoreUserService.GetAllAsync(),
+                new List<StoreUserDto>(),
+                "operators"
+            );
+            
+            _availablePos = await SafeAsync(
+                () => StorePosService.GetActiveAsync(),
+                new List<StorePosDto>(),
+                "POS terminals"
+            );
+            
+            var paymentMethodsResult = await SafeAsync(
+                () => PaymentMethodService.GetActiveAsync(),
+                new List<PaymentMethodDto>(),
+                "payment methods"
+            );
+            _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
+            
+            Logger.LogInformation("POS initialization complete: Operators={OperatorCount}, POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
+                _availableOperators.Count, _availablePos.Count, _paymentMethods.Count);
+
+            // Auto-select operator if user has matching StoreUser record
+            if (!string.IsNullOrEmpty(username) && _availableOperators.Count > 0)
             {
-                // Load data with resilient error handling - each call is independent
-                Logger.LogDebug("Loading operator, POS terminals, and payment methods...");
+                var matchingOperator = _availableOperators.FirstOrDefault(op => 
+                    op.Username?.Equals(username, StringComparison.OrdinalIgnoreCase) == true);
                 
-                _currentOperator = await SafeAsync(
-                    () => StoreUserService.GetByUsernameAsync(username),
-                    null,
-                    "operator lookup"
-                );
-                
-                // Fallback to username if operator not found
-                _operatorName = _currentOperator?.Name ?? username;
-                
-                _availablePos = await SafeAsync(
-                    () => StorePosService.GetActiveAsync(),
-                    new List<StorePosDto>(),
-                    "POS terminals"
-                );
-                
-                var paymentMethodsResult = await SafeAsync(
-                    () => PaymentMethodService.GetActiveAsync(),
-                    new List<PaymentMethodDto>(),
-                    "payment methods"
-                );
-                _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
-                
-                Logger.LogInformation("POS initialization complete: Operator={OperatorName}, POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
-                    _operatorName, _availablePos.Count, _paymentMethods.Count);
-            }
-            else
-            {
-                // Load POS and payment methods even without operator
-                Logger.LogDebug("Loading POS terminals and payment methods without operator...");
-                
-                _availablePos = await SafeAsync(
-                    () => StorePosService.GetActiveAsync(),
-                    new List<StorePosDto>(),
-                    "POS terminals"
-                );
-                
-                var paymentMethodsResult = await SafeAsync(
-                    () => PaymentMethodService.GetActiveAsync(),
-                    new List<PaymentMethodDto>(),
-                    "payment methods"
-                );
-                _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
-                
-                Logger.LogInformation("POS initialization complete without operator: POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
-                    _availablePos.Count, _paymentMethods.Count);
+                if (matchingOperator != null)
+                {
+                    _selectedOperatorId = matchingOperator.Id;
+                    Logger.LogDebug("Auto-selected operator {OperatorName} for user {Username}", 
+                        matchingOperator.Name, username);
+                }
+                else
+                {
+                    Logger.LogWarning("No matching StoreUser found for username {Username}", username);
+                }
             }
 
-            // Show warning if no POS available
+            // Show warnings if resources are missing
+            if (_availableOperators.Count == 0)
+            {
+                Logger.LogWarning("No store operators available");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.noOperatorsAvailable", "Nessun operatore disponibile. Contatta l'amministratore."),
+                    Severity.Warning,
+                    config => config.VisibleStateDuration = 5000
+                );
+            }
+            
             if (_availablePos.Count == 0)
             {
                 Logger.LogWarning("No active POS terminals available");
@@ -472,8 +485,8 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Create session when POS is selected
-        if (_selectedPosId.HasValue && _currentSession == null && _currentOperator != null)
+        // Create session when both operator and POS are selected
+        if (_selectedOperatorId.HasValue && _selectedPosId.HasValue && _currentSession == null)
         {
             await CreateNewSessionAsync();
         }
@@ -517,6 +530,7 @@
                 {
                     Logger.LogInformation("Resuming suspended session {SessionId}", selectedSession.Id);
                     _currentSession = selectedSession;
+                    _selectedOperatorId = selectedSession.OperatorId;
                     _selectedPosId = selectedSession.PosId;
                     _selectedCustomer = selectedSession.CustomerId.HasValue 
                         ? await BusinessPartyService.GetBusinessPartyAsync(selectedSession.CustomerId.Value) 
@@ -546,10 +560,10 @@
 
     private async Task CreateNewSessionAsync()
     {
-        if (!_selectedPosId.HasValue || _currentOperator == null)
+        if (!_selectedPosId.HasValue || !_selectedOperatorId.HasValue)
         {
             Logger.LogWarning("Cannot create session: PosId={PosId}, OperatorId={OperatorId}", 
-                _selectedPosId, _currentOperator?.Id);
+                _selectedPosId, _selectedOperatorId);
             return;
         }
 
@@ -557,11 +571,11 @@
         {
             _isLoading = true;
             Logger.LogInformation("Creating new sale session for POS {PosId}, Operator {OperatorId}", 
-                _selectedPosId.Value, _currentOperator.Id);
+                _selectedPosId.Value, _selectedOperatorId.Value);
 
             var createDto = new CreateSaleSessionDto
             {
-                OperatorId = _currentOperator.Id,
+                OperatorId = _selectedOperatorId.Value,
                 PosId = _selectedPosId.Value,
                 CustomerId = _selectedCustomer?.Id,
                 SaleType = SaleTypes.Retail,
@@ -1297,9 +1311,10 @@
         sb.AppendLine("<h1>SCONTRINO</h1>");
         sb.AppendLine($"<p>Sessione: #{session.Id.ToString("N")[..8]}</p>");
         sb.AppendLine($"<p>{DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>");
-        if (!string.IsNullOrEmpty(_operatorName))
+        var operatorName = GetSelectedOperatorName();
+        if (!string.IsNullOrEmpty(operatorName))
         {
-            sb.AppendLine($"<p>Operatore: {_operatorName}</p>");
+            sb.AppendLine($"<p>Operatore: {operatorName}</p>");
         }
         sb.AppendLine("</div>");
 
@@ -1583,6 +1598,18 @@
         var delayMs = CalculateBackoffDelayMs(attempt);
         Logger.LogWarning(ex, $"{errorType} updating item (attempt {attempt + 1}/{totalAttempts}). Retrying in {delayMs}ms...");
         await Task.Delay(delayMs);
+    }
+
+    /// <summary>
+    /// Gets the name of the currently selected operator
+    /// </summary>
+    private string? GetSelectedOperatorName()
+    {
+        if (!_selectedOperatorId.HasValue || _availableOperators == null || _availableOperators.Count == 0)
+            return null;
+            
+        var selectedOperator = _availableOperators.FirstOrDefault(op => op.Id == _selectedOperatorId.Value);
+        return selectedOperator?.Name;
     }
 
     // Dispose pattern
