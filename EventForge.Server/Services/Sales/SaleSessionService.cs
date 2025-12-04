@@ -810,8 +810,8 @@ public class SaleSessionService : ISaleSessionService
             // Use ImageDocument if available, fallback to deprecated ImageUrl
             if (product.ImageDocument != null)
             {
-                dto.ProductThumbnailUrl = product.ImageDocument.ThumbnailStorageKey ?? product.ImageDocument.StorageKey;
-                dto.ProductImageUrl = product.ImageDocument.Url ?? product.ImageDocument.StorageKey;
+                dto.ProductThumbnailUrl = product.ImageDocument.ThumbnailStorageKey ?? product.ImageDocument.StorageKey ?? string.Empty;
+                dto.ProductImageUrl = product.ImageDocument.Url ?? product.ImageDocument.StorageKey ?? string.Empty;
             }
             dto.BrandName = product.Brand?.Name;
             dto.VatRateId = product.VatRateId;

@@ -1489,6 +1489,8 @@ public class ProductService : IProductService
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
+            VatRateName = product.VatRate?.Name,
+            VatRatePercentage = product.VatRate?.Percentage,
             UnitOfMeasureId = product.UnitOfMeasureId,
             BrandId = product.BrandId,
             BrandName = product.Brand?.Name,
@@ -1569,6 +1571,9 @@ public class ProductService : IProductService
             Code = productCode.Code,
             AlternativeDescription = productCode.AlternativeDescription,
             Status = (EventForge.DTOs.Common.ProductCodeStatus)productCode.Status,
+            UnitOfMeasureId = productCode.ProductUnit?.UnitOfMeasureId,
+            UnitOfMeasureName = productCode.ProductUnit?.UnitOfMeasure?.Name,
+            ConversionFactor = productCode.ProductUnit?.ConversionFactor,
             CreatedAt = productCode.CreatedAt,
             CreatedBy = productCode.CreatedBy,
             ModifiedAt = productCode.ModifiedAt,
@@ -2360,10 +2365,10 @@ public class ProductService : IProductService
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p.Brand)
-                .Include(pc => pc.ProductUnit)
-                    .ThenInclude(pu => pu!.UnitOfMeasure)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p.VatRate)
+                .Include(pc => pc.ProductUnit)
+                    .ThenInclude(pu => pu!.UnitOfMeasure)
                 .FirstOrDefaultAsync(pc => pc.Code.ToLower() == queryTrimmed.ToLower(), cancellationToken);
 
             if (productCode?.Product != null && productCode.Product.Status == EntityProductStatus.Active)
