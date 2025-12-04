@@ -1,0 +1,330 @@
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Business
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+@inject ITranslationService TranslationService
+@inject IBusinessPartyService BusinessPartyService
+@inject IEntityManagementService EntityManagementService
+@inject ISnackbar Snackbar
+@inject ILogger<QuickCreateCustomerDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.PersonAdd" Class="mr-2" />
+            @TranslationService.GetTranslation("sales.quickCreateCustomer", "Creazione Rapida Cliente")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <PageLoadingOverlay Visible="_isLoading"
+                            Message="@TranslationService.GetTranslation("common.saving", "Salvataggio...")" />
+
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            @TranslationService.GetTranslation("sales.quickCreateCustomerHint", "Compila i campi essenziali per creare velocemente un nuovo cliente durante la vendita.")
+        </MudAlert>
+
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudGrid Spacing="3">
+                <!-- Name Field -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Name"
+                                  Label="@($"{TranslationService.GetTranslation("field.name", "Nome/Ragione Sociale")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                  MaxLength="200"
+                                  Counter="200"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Person"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.nameHelper", "Nome completo o ragione sociale")" />
+                </MudItem>
+
+                <!-- Tax Code Field -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.TaxCode"
+                                  Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="16"
+                                  Counter="16"
+                                  Validation="@(ValidateTaxCode)"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Badge"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.taxCodeHelper", "Codice fiscale italiano (16 caratteri)")" />
+                </MudItem>
+
+                <!-- VAT Number Field -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.VatNumber"
+                                  Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="11"
+                                  Counter="11"
+                                  Validation="@(ValidateVatNumber)"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Business"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.vatNumberHelper", "Partita IVA italiana (11 cifre)")" />
+                </MudItem>
+
+                <!-- Email Field -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_emailValue"
+                                  Label="@TranslationService.GetTranslation("field.email", "Email")"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email"
+                                  MaxLength="100"
+                                  Validation="@(new EmailAddressAttribute())"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Email"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.emailHelper", "Indirizzo email")" />
+                </MudItem>
+
+                <!-- Phone Field -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_phoneValue"
+                                  Label="@TranslationService.GetTranslation("field.phone", "Telefono")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="20"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Phone"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.phoneHelper", "Numero di telefono")" />
+                </MudItem>
+
+                <!-- Address Field -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_addressStreet"
+                                  Label="@TranslationService.GetTranslation("field.address", "Indirizzo")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="100"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Home"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.addressHelper", "Via e numero civico")" />
+                </MudItem>
+
+                <!-- City Field -->
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_addressCity"
+                                  Label="@TranslationService.GetTranslation("field.city", "Città")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="50"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.LocationCity"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.cityHelper", "Città")" />
+                </MudItem>
+
+                <!-- ZIP Code Field -->
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_addressZipCode"
+                                  Label="@TranslationService.GetTranslation("field.zipCode", "CAP")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="10"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Mail"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.zipCodeHelper", "Codice postale")" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Color="Color.Default"
+                   Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+
+        <MudButton StartIcon="@Icons.Material.Outlined.Save"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="CreateCustomerAsync"
+                   Disabled="@(!_isFormValid || _isLoading)">
+            @TranslationService.GetTranslation("sales.saveAndSelect", "Salva e Seleziona")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private bool _isLoading = false;
+    private bool _isFormValid = false;
+    private MudForm? _form;
+    private CreateBusinessPartyDto _model = new();
+
+    // Contact fields
+    private string? _emailValue;
+    private string? _phoneValue;
+
+    // Address fields
+    private string? _addressStreet;
+    private string? _addressCity;
+    private string? _addressZipCode;
+
+    protected override void OnInitialized()
+    {
+        // Set defaults
+        _model.PartyType = BusinessPartyType.Cliente;
+    }
+
+    private string? ValidateTaxCode(string? taxCode)
+    {
+        if (string.IsNullOrWhiteSpace(taxCode))
+            return null; // Optional field
+
+        // Italian Tax Code validation: 16 alphanumeric characters
+        if (taxCode.Length != 16)
+            return TranslationService.GetTranslation("validation.taxCodeLength", "Il codice fiscale deve essere di 16 caratteri");
+
+        if (!Regex.IsMatch(taxCode, @"^[A-Z0-9]{16}$", RegexOptions.IgnoreCase))
+            return TranslationService.GetTranslation("validation.taxCodeFormat", "Il codice fiscale deve contenere solo lettere e numeri");
+
+        return null;
+    }
+
+    private string? ValidateVatNumber(string? vatNumber)
+    {
+        if (string.IsNullOrWhiteSpace(vatNumber))
+            return null; // Optional field
+
+        // Italian VAT Number validation: 11 digits
+        if (vatNumber.Length != 11)
+            return TranslationService.GetTranslation("validation.vatNumberLength", "La partita IVA deve essere di 11 cifre");
+
+        if (!Regex.IsMatch(vatNumber, @"^\d{11}$"))
+            return TranslationService.GetTranslation("validation.vatNumberFormat", "La partita IVA deve contenere solo numeri");
+
+        return null;
+    }
+
+    private async Task CreateCustomerAsync()
+    {
+        _isLoading = true;
+
+        try
+        {
+            // Validate form
+            if (_form != null)
+            {
+                await _form.Validate();
+                if (!_isFormValid)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"),
+                        Severity.Warning
+                    );
+                    _isLoading = false;
+                    return;
+                }
+            }
+
+            // Create the business party
+            var createdCustomer = await BusinessPartyService.CreateBusinessPartyAsync(_model);
+
+            if (createdCustomer != null)
+            {
+                // Create email contact if provided
+                if (!string.IsNullOrWhiteSpace(_emailValue))
+                {
+                    try
+                    {
+                        var emailContact = new CreateContactDto
+                        {
+                            OwnerId = createdCustomer.Id,
+                            OwnerType = "BusinessParty",
+                            ContactType = ContactType.Email,
+                            Value = _emailValue,
+                            Purpose = ContactPurpose.Primary,
+                            IsPrimary = true
+                        };
+                        await EntityManagementService.CreateContactAsync(emailContact);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to create email contact for customer {CustomerId}", createdCustomer.Id);
+                    }
+                }
+
+                // Create phone contact if provided
+                if (!string.IsNullOrWhiteSpace(_phoneValue))
+                {
+                    try
+                    {
+                        // Phone is primary only if no email was provided
+                        var isPhonePrimary = string.IsNullOrWhiteSpace(_emailValue);
+                        
+                        var phoneContact = new CreateContactDto
+                        {
+                            OwnerId = createdCustomer.Id,
+                            OwnerType = "BusinessParty",
+                            ContactType = ContactType.Phone,
+                            Value = _phoneValue,
+                            Purpose = ContactPurpose.Primary,
+                            IsPrimary = isPhonePrimary
+                        };
+                        await EntityManagementService.CreateContactAsync(phoneContact);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to create phone contact for customer {CustomerId}", createdCustomer.Id);
+                    }
+                }
+
+                // Create address if at least one address field is provided
+                if (!string.IsNullOrWhiteSpace(_addressStreet) ||
+                    !string.IsNullOrWhiteSpace(_addressCity) ||
+                    !string.IsNullOrWhiteSpace(_addressZipCode))
+                {
+                    try
+                    {
+                        var address = new CreateAddressDto
+                        {
+                            OwnerId = createdCustomer.Id,
+                            OwnerType = "BusinessParty",
+                            AddressType = AddressType.Operational,
+                            Street = _addressStreet,
+                            City = _addressCity,
+                            ZipCode = _addressZipCode
+                        };
+                        await EntityManagementService.CreateAddressAsync(address);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to create address for customer {CustomerId}", createdCustomer.Id);
+                    }
+                }
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("businessParty.createSuccess", "Cliente creato con successo"),
+                    Severity.Success
+                );
+
+                // Close dialog and return the created customer
+                MudDialog.Close(DialogResult.Ok(createdCustomer));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("businessParty.createError", "Errore nella creazione del cliente"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating customer");
+            var errorMessage = TranslationService.GetTranslation("businessParty.createError", "Errore nella creazione del cliente");
+            Snackbar.Add(
+                $"{errorMessage}: {ex.Message}",
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

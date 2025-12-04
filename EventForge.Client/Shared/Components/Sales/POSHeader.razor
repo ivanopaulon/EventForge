@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Store
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Sales
+@using EventForge.Client.Shared.Components.Dialogs.Sales
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
@@ -9,7 +10,8 @@
         <!-- Operator Selection -->
         <MudItem xs="12" sm="6" md="3">
             <MudSelect T="Guid?"
-                       @bind-Value="SelectedOperatorId"
+                       Value="SelectedOperatorId"
+                       ValueChanged="@OnOperatorChanged"
                        Label="@TranslationService.GetTranslation("sales.operator", "Operatore")"
                        Variant="Variant.Outlined"
                        Required="true"
@@ -35,7 +37,8 @@
         <!-- POS Selection -->
         <MudItem xs="12" sm="6" md="3">
             <MudSelect T="Guid?"
-                       @bind-Value="SelectedPosId"
+                       Value="SelectedPosId"
+                       ValueChanged="@OnPosChanged"
                        Label="@TranslationService.GetTranslation("sales.pos", "Cassa/POS")"
                        Variant="Variant.Outlined"
                        Required="true"
@@ -66,24 +69,35 @@
 
         <!-- Customer Selection -->
         <MudItem xs="12" sm="6" md="3">
-            <MudAutocomplete T="BusinessPartyDto"
-                             @bind-Value="SelectedCustomer"
-                             Label="@TranslationService.GetTranslation("sales.customer", "Cliente")"
-                             Variant="Variant.Outlined"
-                             SearchFunc="@SearchCustomers"
-                             ToStringFunc="@(c => c?.Name ?? string.Empty)"
-                             Clearable="true"
-                             Disabled="@(!IsSessionActive)"
-                             Adornment="Adornment.Start"
-                             AdornmentIcon="@Icons.Material.Filled.Person">
-                <ItemTemplate Context="customer">
-                    <MudText Typo="Typo.body2">@customer.Name</MudText>
-                    @if (!string.IsNullOrEmpty(customer.TaxCode))
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@customer.TaxCode</MudText>
-                    }
-                </ItemTemplate>
-            </MudAutocomplete>
+            <div class="d-flex align-center gap-2">
+                <MudAutocomplete T="BusinessPartyDto"
+                                 Value="SelectedCustomer"
+                                 ValueChanged="@OnCustomerChanged"
+                                 Label="@TranslationService.GetTranslation("sales.customer", "Cliente")"
+                                 Variant="Variant.Outlined"
+                                 SearchFunc="@SearchCustomers"
+                                 ToStringFunc="@(c => c?.Name ?? string.Empty)"
+                                 Clearable="true"
+                                 Disabled="@(!IsSessionActive)"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.Person"
+                                 Style="flex: 1;">
+                    <ItemTemplate Context="customer">
+                        <MudText Typo="Typo.body2">@customer.Name</MudText>
+                        @if (!string.IsNullOrEmpty(customer.TaxCode))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@customer.TaxCode</MudText>
+                        }
+                    </ItemTemplate>
+                </MudAutocomplete>
+                <MudIconButton Icon="@Icons.Material.Outlined.PersonAdd"
+                               Color="Color.Primary"
+                               Variant="Variant.Outlined"
+                               Size="Size.Medium"
+                               OnClick="@OpenQuickCreateCustomerDialogAsync"
+                               Disabled="@(!IsSessionActive)"
+                               Title="@TranslationService.GetTranslation("sales.quickCreateCustomer", "Creazione Rapida Cliente")" />
+            </div>
         </MudItem>
 
         <!-- Date/Time + Session -->
@@ -185,4 +199,44 @@
 
     [Parameter]
     public Color LoadingSpinnerColor { get; set; } = Color.Primary;
+
+    private async Task OnOperatorChanged(Guid? value)
+    {
+        SelectedOperatorId = value;
+        await SelectedOperatorIdChanged.InvokeAsync(value);
+    }
+
+    private async Task OnPosChanged(Guid? value)
+    {
+        SelectedPosId = value;
+        await SelectedPosIdChanged.InvokeAsync(value);
+    }
+
+    private async Task OnCustomerChanged(BusinessPartyDto? value)
+    {
+        SelectedCustomer = value;
+        await SelectedCustomerChanged.InvokeAsync(value);
+    }
+
+    private async Task OpenQuickCreateCustomerDialogAsync()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<QuickCreateCustomerDialog>(
+            TranslationService.GetTranslation("sales.quickCreateCustomer", "Creazione Rapida Cliente"),
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is BusinessPartyDto newCustomer)
+        {
+            // Update the selected customer
+            await OnCustomerChanged(newCustomer);
+        }
+    }
 }
