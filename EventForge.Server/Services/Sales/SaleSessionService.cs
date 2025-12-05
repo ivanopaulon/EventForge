@@ -265,13 +265,16 @@ public class SaleSessionService : ISaleSessionService
             };
 
             session.Items.Add(item);
+            
+            // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
+            // This prevents concurrency conflicts in the ChangeTracker
+            CalculateTotalsInline(session);
+            
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
+            // Single SaveChanges call to save both item and updated totals atomically
             _ = await _context.SaveChangesAsync(cancellationToken);
-
-            // Recalculate totals
-            await RecalculateTotalsAsync(session, cancellationToken);
 
             _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
 
@@ -326,13 +329,15 @@ public class SaleSessionService : ISaleSessionService
             item.ModifiedBy = currentUser;
             item.ModifiedAt = DateTime.UtcNow;
 
+            // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
+            // This prevents concurrency conflicts in the ChangeTracker
+            CalculateTotalsInline(session);
+            
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
+            // Single SaveChanges call to save both item and updated totals atomically
             _ = await _context.SaveChangesAsync(cancellationToken);
-
-            // Recalculate totals
-            await RecalculateTotalsAsync(session, cancellationToken);
 
             _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "UpdateItem", item.Quantity.ToString(), updateItemDto.Quantity.ToString(), currentUser, "Sale Session", cancellationToken);
 
@@ -378,13 +383,15 @@ public class SaleSessionService : ISaleSessionService
             item.DeletedAt = DateTime.UtcNow;
             item.DeletedBy = currentUser;
 
+            // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
+            // This prevents concurrency conflicts in the ChangeTracker
+            CalculateTotalsInline(session);
+            
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
+            // Single SaveChanges call to save both item and updated totals atomically
             _ = await _context.SaveChangesAsync(cancellationToken);
-
-            // Recalculate totals
-            await RecalculateTotalsAsync(session, cancellationToken);
 
             _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "RemoveItem", item.ProductName, "Removed", currentUser, "Sale Session", cancellationToken);
 
@@ -728,7 +735,26 @@ public class SaleSessionService : ISaleSessionService
         }
     }
 
+    /// <summary>
+    /// Calculates session totals inline without calling SaveChanges.
+    /// Used by Add/Update/Remove methods to avoid DbUpdateConcurrencyException.
+    /// </summary>
+    private void CalculateTotalsInline(SaleSession session)
+    {
+        CalculateTotals(session);
+    }
+
     private async Task RecalculateTotalsAsync(SaleSession session, CancellationToken cancellationToken)
+    {
+        CalculateTotals(session);
+        session.ModifiedAt = DateTime.UtcNow;
+        _ = await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Shared calculation logic for session totals.
+    /// </summary>
+    private void CalculateTotals(SaleSession session)
     {
         var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
 
@@ -737,10 +763,6 @@ public class SaleSessionService : ISaleSessionService
         session.DiscountAmount = session.OriginalTotal - itemsTotal;
         session.TaxAmount = activeItems.Sum(i => i.TaxAmount);
         session.FinalTotal = itemsTotal + session.TaxAmount;
-
-        session.ModifiedAt = DateTime.UtcNow;
-
-        _ = await _context.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken)
