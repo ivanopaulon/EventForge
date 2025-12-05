@@ -10,6 +10,18 @@ namespace EventForge.Server.Data;
 public partial class EventForgeDbContext : DbContext
 {
     private readonly IHttpContextAccessor? _httpContextAccessor;
+    
+    /// <summary>
+    /// HashSet of entity types that are excluded from automatic audit tracking.
+    /// Sales entities use manual audit logging in SaleSessionService for better control.
+    /// </summary>
+    private static readonly HashSet<Type> ExcludedFromAutomaticAudit = new()
+    {
+        typeof(SaleSession),
+        typeof(SaleItem),
+        typeof(SalePayment),
+        typeof(SessionNote)
+    };
 
     public EventForgeDbContext(DbContextOptions<EventForgeDbContext> options)
         : base(options)
@@ -854,6 +866,9 @@ public partial class EventForgeDbContext : DbContext
 
     /// <summary>
     /// Saves changes with automatic audit tracking for auditable entities.
+    /// Sales entities (SaleSession, SaleItem, SalePayment, SessionNote) are excluded from automatic audit tracking
+    /// to prevent DbUpdateConcurrencyException caused by ChangeTracker conflicts during high-frequency operations.
+    /// These entities use manual audit logging in SaleSessionService for better control and clarity.
     /// </summary>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -862,6 +877,7 @@ public partial class EventForgeDbContext : DbContext
 
         var auditableEntries = ChangeTracker.Entries<AuditableEntity>()
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .Where(e => !ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()))
             .ToList();
 
         foreach (var entry in auditableEntries)
