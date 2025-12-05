@@ -146,20 +146,14 @@ public static class ServiceCollectionExtensions
 
         _ = services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
 
-        // Configure VAT lookup service with named HttpClient
-        _ = services.AddHttpClient("VatLookup", client =>
+        // Configure simple VIES VAT validation service
+        _ = services.AddHttpClient<IViesValidationService, ViesValidationService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
-        _ = services.AddScoped<IVatLookupService>(sp =>
-        {
-            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("VatLookup");
-            var cache = sp.GetRequiredService<IMemoryCache>();
-            var logger = sp.GetRequiredService<ILogger<VatLookupService>>();
-            var configuration = sp.GetRequiredService<IConfiguration>();
-            return new VatLookupService(httpClient, cache, logger, configuration);
-        });
+        // Configure VAT lookup service using VIES
+        _ = services.AddScoped<IVatLookupService, VatLookupService>();
     }
 
     /// <summary>
