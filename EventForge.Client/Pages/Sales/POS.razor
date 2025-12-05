@@ -548,7 +548,16 @@
                 {
                     CustomerId = value.Id
                 };
-                _currentSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+                // FIX: Non sovrascrivere _currentSession se il risultato è null
+                var updatedSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+                if (updatedSession != null)
+                {
+                    _currentSession = updatedSession;
+                }
+                else
+                {
+                    Logger.LogWarning("UpdateSessionAsync returned null for session {SessionId}", _currentSession.Id);
+                }
             }
             catch (Exception ex)
             {
@@ -1008,12 +1017,31 @@
                     Notes = item.Notes
                 };
 
-                _currentSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
+                // FIX: Non sovrascrivere _currentSession se il risultato è null
+                var updatedSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
                 
-                // Success - reset retry counter and return
-                _currentRetryAttempt = 0;
-                StateHasChanged();
-                return;
+                if (updatedSession != null)
+                {
+                    _currentSession = updatedSession;
+                    // Success - reset retry counter and return
+                    _currentRetryAttempt = 0;
+                    StateHasChanged();
+                    return;
+                }
+                else
+                {
+                    // Treat null response as a retryable error
+                    Logger.LogWarning("UpdateItemAsync returned null in retry attempt {Attempt}/{Total}", 
+                        attempt + 1, totalAttempts);
+                    if (attempt < maxRetries)
+                    {
+                        await HandleRetryableExceptionAsync(
+                            new InvalidOperationException("API returned null response"), 
+                            "Null response", attempt, totalAttempts);
+                        continue;
+                    }
+                    // If we're on the last attempt, fall through to show retry dialog
+                }
             }
             catch (HttpRequestException ex) when (attempt < maxRetries)
             {
@@ -1220,8 +1248,18 @@
                         Notes = pendingPayment.Notes
                     };
 
-                    _currentSession = await SalesService.AddPaymentAsync(_currentSession.Id, addPaymentDto);
-                    successfulPayments++;
+                    // FIX: Non sovrascrivere _currentSession se il risultato è null
+                    var updatedSession = await SalesService.AddPaymentAsync(_currentSession.Id, addPaymentDto);
+                    if (updatedSession != null)
+                    {
+                        _currentSession = updatedSession;
+                        successfulPayments++;
+                    }
+                    else
+                    {
+                        Logger.LogError("AddPaymentAsync returned null for session {SessionId}", _currentSession.Id);
+                        failedPayments++;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1262,17 +1300,30 @@
             // Flush pending updates before closing session to prevent data loss
             await FlushPendingUpdatesAsync();
 
-            _currentSession = await SalesService.CloseSessionAsync(_currentSession.Id);
-            _isSessionClosed = true;
+            // FIX: Non sovrascrivere _currentSession se il risultato è null
+            var updatedSession = await SalesService.CloseSessionAsync(_currentSession.Id);
+            if (updatedSession != null)
+            {
+                _currentSession = updatedSession;
+                _isSessionClosed = true;
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.saleClosed", "Vendita completata con successo!"),
-                Severity.Success
-            );
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.saleClosed", "Vendita completata con successo!"),
+                    Severity.Success
+                );
 
-            // Auto-prepare for new sale after a short delay
-            await Task.Delay(2000);
-            await PrepareNewSaleAsync();
+                // Auto-prepare for new sale after a short delay
+                await Task.Delay(2000);
+                await PrepareNewSaleAsync();
+            }
+            else
+            {
+                Logger.LogError("CloseSessionAsync returned null for session {SessionId}", _currentSession.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.closeSaleError", "Errore durante la chiusura della vendita"),
+                    Severity.Error
+                );
+            }
         }
         catch (Exception ex)
         {
@@ -1304,14 +1355,27 @@
                 CustomerId = _selectedCustomer?.Id
             };
 
-            _currentSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+            // FIX: Non sovrascrivere _currentSession se il risultato è null
+            var updatedSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+            if (updatedSession != null)
+            {
+                _currentSession = updatedSession;
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.sessionParked", "Sessione parcheggiata"),
-                Severity.Info
-            );
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.sessionParked", "Sessione parcheggiata"),
+                    Severity.Info
+                );
 
-            await PrepareNewSaleAsync();
+                await PrepareNewSaleAsync();
+            }
+            else
+            {
+                Logger.LogError("UpdateSessionAsync returned null when parking session {SessionId}", _currentSession.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.parkSessionError", "Errore durante il parcheggio della sessione"),
+                    Severity.Error
+                );
+            }
         }
         catch (Exception ex)
         {
