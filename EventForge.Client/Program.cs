@@ -105,6 +105,9 @@ builder.Services.AddScoped<ILookupCacheService, LookupCacheService>();
 // Add DevTools services
 builder.Services.AddScoped<IDevToolsService, DevToolsService>();
 
+// Add External services
+builder.Services.AddScoped<EventForge.Client.Services.External.IVatLookupService, EventForge.Client.Services.External.VatLookupService>();
+
 // Add ViewModels
 builder.Services.AddScoped<EventForge.Client.ViewModels.ProductDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.InventoryDetailViewModel>();

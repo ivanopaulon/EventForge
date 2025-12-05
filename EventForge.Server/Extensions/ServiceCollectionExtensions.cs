@@ -9,6 +9,7 @@ using EventForge.Server.Services.Dashboard;
 using EventForge.Server.Services.DevTools;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
+using EventForge.Server.Services.External;
 using EventForge.Server.Services.Licensing;
 using EventForge.Server.Services.Logging;
 using EventForge.Server.Services.Logs;
@@ -143,6 +144,12 @@ public static class ServiceCollectionExtensions
         });
 
         _ = services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
+
+        // Configure VAT lookup service
+        _ = services.AddHttpClient<IVatLookupService, ViesVatLookupService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
     }
 
     /// <summary>
