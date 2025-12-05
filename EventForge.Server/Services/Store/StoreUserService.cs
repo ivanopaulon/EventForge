@@ -165,8 +165,13 @@ public class StoreUserService : IStoreUserService
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            // Validazione CashierGroupId
-            if (createStoreUserDto.CashierGroupId.HasValue && createStoreUserDto.CashierGroupId.Value != Guid.Empty)
+            // Validate CashierGroupId
+            if (createStoreUserDto.CashierGroupId == Guid.Empty)
+            {
+                throw new InvalidOperationException("Cashier group ID cannot be empty GUID. Use null to indicate no group.");
+            }
+
+            if (createStoreUserDto.CashierGroupId.HasValue)
             {
                 var groupExists = await _context.StoreUserGroups
                     .AnyAsync(g => g.Id == createStoreUserDto.CashierGroupId.Value 
@@ -180,11 +185,6 @@ public class StoreUserService : IStoreUserService
                 }
             }
 
-            // Normalizzare Guid.Empty a NULL
-            var cashierGroupId = createStoreUserDto.CashierGroupId == Guid.Empty 
-                ? null 
-                : createStoreUserDto.CashierGroupId;
-
             var storeUser = new StoreUser
             {
                 TenantId = currentTenantId.Value,
@@ -195,7 +195,7 @@ public class StoreUserService : IStoreUserService
                 Role = createStoreUserDto.Role,
                 Status = (EventForge.Server.Data.Entities.Store.CashierStatus)createStoreUserDto.Status,
                 Notes = createStoreUserDto.Notes,
-                CashierGroupId = cashierGroupId,
+                CashierGroupId = createStoreUserDto.CashierGroupId,
                 // Issue #315: Extended Fields
                 PhotoConsent = createStoreUserDto.PhotoConsent,
                 PhoneNumber = createStoreUserDto.PhoneNumber,
