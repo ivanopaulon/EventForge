@@ -297,7 +297,11 @@
         <MudItem xs="12" md="4">
             <POSReceipt SessionNumber="@_currentSession?.Id"
                         Items="@_currentSession?.Items"
-                        Payments="@_currentSession?.Payments" />
+                        Payments="@_currentSession?.Payments"
+                        Subtotal="@(_currentSession?.OriginalTotal ?? 0m)"
+                        TotalDiscount="@(_currentSession?.DiscountAmount ?? 0m)"
+                        TotalVat="@(_currentSession?.TaxAmount ?? 0m)"
+                        GrandTotal="@(_currentSession?.FinalTotal ?? 0m)" />
         </MudItem>
     </MudGrid>
 </MudContainer>
@@ -736,70 +740,49 @@
 
     private async Task AddProductToCartAsync(ProductDto product)
     {
-        if (_currentSession == null || product == null)
-            return;
+        if (_currentSession == null || product == null) return;
 
         try
         {
-            // Check if product already in cart
             var existingItem = _currentSession.Items.FirstOrDefault(i => i.ProductId == product.Id);
 
             if (existingItem != null)
             {
-                // Increment quantity
                 existingItem.Quantity++;
                 await UpdateItemAsync(existingItem);
-                
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.quantityIncreased", "Quantità aumentata: {0}", product.Name),
-                    Severity.Success
-                );
+                Snackbar.Add($"✅ {TranslationService.GetTranslation("sales.quantityIncreased", "Quantità aumentata")}: {product.Name}", Severity.Success);
             }
             else
             {
-                // Add new item
                 var addItemDto = new AddSaleItemDto
                 {
                     ProductId = product.Id,
                     Quantity = 1,
                     UnitPrice = product.DefaultPrice ?? 0m,
-                    DiscountPercent = 0,
-                    Notes = null
+                    DiscountPercent = 0
                 };
 
-                // FIX: Non sovrascrivere _currentSession se il risultato è null
                 var updatedSession = await SalesService.AddItemAsync(_currentSession.Id, addItemDto);
                 
                 if (updatedSession != null)
                 {
                     _currentSession = updatedSession;
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("sales.productAdded", "Prodotto aggiunto: {0}", product.Name),
-                        Severity.Success
-                    );
+                    await InvokeAsync(StateHasChanged);
+                    Snackbar.Add($"✅ {TranslationService.GetTranslation("sales.productAdded", "Prodotto aggiunto")}: {product.Name}", Severity.Success);
                 }
                 else
                 {
-                    Logger.LogError("AddItemAsync returned null for session {SessionId}", _currentSession.Id);
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta del prodotto"),
-                        Severity.Error
-                    );
+                    Logger.LogWarning("AddItemAsync returned null, reloading session");
+                    await ReloadCurrentSessionAsync();
+                    Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta"), Severity.Error);
                 }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error adding product to session");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta del prodotto"),
-                Severity.Error
-            );
-        }
-        finally
-        {
-            // FIX: Sempre aggiornare la UI
-            StateHasChanged();
+            Logger.LogError(ex, "Error adding product");
+            await ReloadCurrentSessionAsync();
+            Snackbar.Add($"❌ {TranslationService.GetTranslation("errors.error", "Errore")}: {ex.Message}", Severity.Error);
         }
     }
 
@@ -949,11 +932,13 @@
 
     private async Task UpdateItemAsync(SaleItemDto item)
     {
-        if (_currentSession == null)
-            return;
+        if (_currentSession == null) return;
 
         try
         {
+            _isUpdatingItems = true;
+            await InvokeAsync(StateHasChanged);
+
             var updateDto = new UpdateSaleItemDto
             {
                 Quantity = item.Quantity,
@@ -962,30 +947,65 @@
                 Notes = item.Notes
             };
 
-            // FIX: Non sovrascrivere _currentSession se il risultato è null
             var updatedSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
+            
             if (updatedSession != null)
             {
                 _currentSession = updatedSession;
+                await InvokeAsync(StateHasChanged);
             }
             else
             {
-                Logger.LogWarning("UpdateItemAsync returned null for session {SessionId}, item {ItemId}", 
-                    _currentSession.Id, item.Id);
+                Logger.LogWarning("UpdateItemAsync returned null, reloading");
+                await ReloadCurrentSessionAsync();
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating item");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.updateItemError", "Errore durante l'aggiornamento"),
-                Severity.Error
-            );
+            await ReloadCurrentSessionAsync();
+            Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.updateItemError", "Errore aggiornamento"), Severity.Error);
         }
         finally
         {
-            // FIX: Sempre aggiornare la UI
-            StateHasChanged();
+            _isUpdatingItems = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Reloads the current session from the server to ensure UI reflects server state.
+    /// Used for error recovery when API calls return null.
+    /// </summary>
+    private async Task<bool> ReloadCurrentSessionAsync()
+    {
+        if (_currentSession == null)
+        {
+            Logger.LogWarning("Cannot reload session: _currentSession is null");
+            return false;
+        }
+
+        try
+        {
+            Logger.LogInformation("Reloading session {SessionId} from server", _currentSession.Id);
+            
+            var reloadedSession = await SalesService.GetSessionAsync(_currentSession.Id);
+            
+            if (reloadedSession != null)
+            {
+                _currentSession = reloadedSession;
+                await InvokeAsync(StateHasChanged);
+                Logger.LogInformation("Session reloaded: {ItemCount} items", _currentSession.Items.Count);
+                return true;
+            }
+            
+            Logger.LogError("GetSessionAsync returned null");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to reload session");
+            return false;
         }
     }
 
@@ -1131,8 +1151,7 @@
 
     private async Task RemoveItemAsync(SaleItemDto item)
     {
-        if (_currentSession == null)
-            return;
+        if (_currentSession == null) return;
 
         // Conferma per articoli significativi
         if (item.Quantity > 1 || item.TotalAmount > 50)
@@ -1151,39 +1170,26 @@
 
         try
         {
-            // FIX: Non sovrascrivere _currentSession se il risultato è null
             var updatedSession = await SalesService.RemoveItemAsync(_currentSession.Id, item.Id);
             
             if (updatedSession != null)
             {
                 _currentSession = updatedSession;
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.itemRemoved", "Articolo rimosso"),
-                    Severity.Info
-                );
+                await InvokeAsync(StateHasChanged);
+                Snackbar.Add(TranslationService.GetTranslation("sales.itemRemoved", "Articolo rimosso"), Severity.Info);
             }
             else
             {
-                Logger.LogError("RemoveItemAsync returned null for session {SessionId}, item {ItemId}", 
-                    _currentSession.Id, item.Id);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"),
-                    Severity.Error
-                );
+                Logger.LogWarning("RemoveItemAsync returned null, reloading");
+                await ReloadCurrentSessionAsync();
+                Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"), Severity.Error);
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error removing item");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"),
-                Severity.Error
-            );
-        }
-        finally
-        {
-            // FIX: Sempre aggiornare la UI
-            StateHasChanged();
+            await ReloadCurrentSessionAsync();
+            Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"), Severity.Error);
         }
     }
 
