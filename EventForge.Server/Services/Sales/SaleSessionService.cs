@@ -1,4 +1,5 @@
 using EventForge.DTOs.Sales;
+using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Sales;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Warehouse;
@@ -216,6 +217,25 @@ public class SaleSessionService : ISaleSessionService
                 return null;
             }
 
+            // Verify session state immediately after loading
+            _logger.LogInformation(
+                "Session loaded - Id: {SessionId}, TenantId: {TenantId}, IsDeleted: {IsDeleted}, Status: {Status}, ItemsCount: {ItemCount}",
+                session.Id,
+                session.TenantId,
+                session.IsDeleted,
+                session.Status,
+                session.Items.Count);
+
+            // Verify tenant matches
+            if (session.TenantId != currentTenantId.Value)
+            {
+                _logger.LogError(
+                    "CRITICAL: TenantId mismatch! Session.TenantId={SessionTenantId}, CurrentTenantId={CurrentTenantId}",
+                    session.TenantId,
+                    currentTenantId.Value);
+                throw new InvalidOperationException($"Tenant mismatch: session belongs to {session.TenantId} but current tenant is {currentTenantId.Value}");
+            }
+
             // Fetch product details
             var product = await _context.Products
                 .FirstOrDefaultAsync(p => p.Id == addItemDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
@@ -264,19 +284,124 @@ public class SaleSessionService : ISaleSessionService
                 ModifiedAt = DateTime.UtcNow
             };
 
+            // Log new item details
+            _logger.LogInformation(
+                "New SaleItem created - Id: {ItemId}, ProductId: {ProductId}, Quantity: {Quantity}, UnitPrice: {UnitPrice}, TenantId: {TenantId}",
+                item.Id,
+                item.ProductId,
+                item.Quantity,
+                item.UnitPrice,
+                item.TenantId);
+
             session.Items.Add(item);
             
             // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
             // This prevents concurrency conflicts in the ChangeTracker
             CalculateTotalsInline(session);
+
+            // Log calculated totals
+            _logger.LogInformation(
+                "Totals calculated - SessionId: {SessionId}, OriginalTotal: {OriginalTotal}, DiscountAmount: {DiscountAmount}, TaxAmount: {TaxAmount}, FinalTotal: {FinalTotal}",
+                session.Id,
+                session.OriginalTotal,
+                session.DiscountAmount,
+                session.TaxAmount,
+                session.FinalTotal);
             
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            // Single SaveChanges call to save both item and updated totals atomically
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            // NEW CODE: Add comprehensive diagnostic logging
+            try
+            {
+                _logger.LogInformation(
+                    "SaveChanges attempt - SessionId: {SessionId}, TenantId: {TenantId}, ItemsCount: {ItemCount}, TrackedEntities: {TrackedCount}",
+                    sessionId,
+                    currentTenantId.Value,
+                    session.Items.Count,
+                    _context.ChangeTracker.Entries().Count());
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
+                // Log all tracked entities and their states
+                foreach (var entry in _context.ChangeTracker.Entries())
+                {
+                    var entityType = entry.Entity.GetType().Name;
+                    var entityId = entry.Entity is AuditableEntity ae ? ae.Id.ToString() : "N/A";
+                    var entityState = entry.State.ToString();
+                    
+                    _logger.LogDebug(
+                        "Tracked entity: Type={EntityType}, Id={EntityId}, State={State}",
+                        entityType,
+                        entityId,
+                        entityState);
+                        
+                    // Log IsDeleted for AuditableEntity
+                    if (entry.Entity is AuditableEntity auditableEntity)
+                    {
+                        _logger.LogDebug(
+                            "  -> IsDeleted={IsDeleted}, TenantId={TenantId}",
+                            auditableEntity.IsDeleted,
+                            auditableEntity.TenantId);
+                    }
+                }
+
+                // Attempt SaveChanges
+                var affectedRows = await _context.SaveChangesAsync(cancellationToken);
+                
+                _logger.LogInformation(
+                    "SaveChanges completed successfully - SessionId: {SessionId}, AffectedRows: {RowCount}",
+                    sessionId,
+                    affectedRows);
+
+                _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex,
+                    "DbUpdateConcurrencyException in AddItemAsync - SessionId: {SessionId}, TenantId: {TenantId}, ProductId: {ProductId}",
+                    sessionId,
+                    currentTenantId.Value,
+                    addItemDto.ProductId);
+
+                // Log detailed information about failed entities
+                _logger.LogError("Failed entities count: {Count}", ex.Entries.Count);
+                
+                foreach (var entry in ex.Entries)
+                {
+                    var entityType = entry.Entity.GetType().Name;
+                    var entityState = entry.State.ToString();
+                    
+                    _logger.LogError(
+                        "Failed entity: Type={EntityType}, State={State}",
+                        entityType,
+                        entityState);
+                    
+                    if (entry.Entity is AuditableEntity failedEntity)
+                    {
+                        _logger.LogError(
+                            "  -> Id={Id}, IsDeleted={IsDeleted}, TenantId={TenantId}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}",
+                            failedEntity.Id,
+                            failedEntity.IsDeleted,
+                            failedEntity.TenantId,
+                            failedEntity.CreatedAt,
+                            failedEntity.ModifiedAt);
+                    }
+                    
+                    // Log current and original values for modified entities
+                    if (entry.State == EntityState.Modified)
+                    {
+                        foreach (var property in entry.Properties.Where(p => p.IsModified))
+                        {
+                            _logger.LogError(
+                                "  -> Modified property: {PropertyName}, OriginalValue={OriginalValue}, CurrentValue={CurrentValue}",
+                                property.Metadata.Name,
+                                property.OriginalValue,
+                                property.CurrentValue);
+                        }
+                    }
+                }
+                
+                throw;
+            }
 
             _logger.LogInformation("Added item {ProductId} to sale session {SessionId}", addItemDto.ProductId, sessionId);
 
