@@ -1411,14 +1411,26 @@
                     Status = SaleSessionStatusDto.Cancelled
                 };
 
-                await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+                // FIX: Check for null response for consistency
+                var updatedSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
+                
+                if (updatedSession != null)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("sales.sessionCancelled", "Sessione annullata"),
+                        Severity.Info
+                    );
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.sessionCancelled", "Sessione annullata"),
-                    Severity.Info
-                );
-
-                await PrepareNewSaleAsync();
+                    await PrepareNewSaleAsync();
+                }
+                else
+                {
+                    Logger.LogError("UpdateSessionAsync returned null when cancelling session {SessionId}", _currentSession.Id);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("errors.cancelSessionError", "Errore durante l'annullamento della sessione"),
+                        Severity.Error
+                    );
+                }
             }
             catch (Exception ex)
             {
