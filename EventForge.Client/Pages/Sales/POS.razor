@@ -720,6 +720,9 @@
             await AddProductToCartAsync(productWithCode.Product);
         }
         // Otherwise just show preview (PriceCheckOnly mode)
+        
+        // FIX: Aggiornare UI per mostrare preview
+        StateHasChanged();
     }
 
     private async Task AddProductToCartAsync(ProductDto product)
@@ -755,12 +758,25 @@
                     Notes = null
                 };
 
-                _currentSession = await SalesService.AddItemAsync(_currentSession.Id, addItemDto);
-
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.productAdded", "Prodotto aggiunto: {0}", product.Name),
-                    Severity.Success
-                );
+                // FIX: Non sovrascrivere _currentSession se il risultato è null
+                var updatedSession = await SalesService.AddItemAsync(_currentSession.Id, addItemDto);
+                
+                if (updatedSession != null)
+                {
+                    _currentSession = updatedSession;
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("sales.productAdded", "Prodotto aggiunto: {0}", product.Name),
+                        Severity.Success
+                    );
+                }
+                else
+                {
+                    Logger.LogError("AddItemAsync returned null for session {SessionId}", _currentSession.Id);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta del prodotto"),
+                        Severity.Error
+                    );
+                }
             }
         }
         catch (Exception ex)
@@ -770,6 +786,11 @@
                 TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta del prodotto"),
                 Severity.Error
             );
+        }
+        finally
+        {
+            // FIX: Sempre aggiornare la UI
+            StateHasChanged();
         }
     }
 
@@ -932,7 +953,17 @@
                 Notes = item.Notes
             };
 
-            _currentSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
+            // FIX: Non sovrascrivere _currentSession se il risultato è null
+            var updatedSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
+            if (updatedSession != null)
+            {
+                _currentSession = updatedSession;
+            }
+            else
+            {
+                Logger.LogWarning("UpdateItemAsync returned null for session {SessionId}, item {ItemId}", 
+                    _currentSession.Id, item.Id);
+            }
         }
         catch (Exception ex)
         {
@@ -941,6 +972,11 @@
                 TranslationService.GetTranslation("errors.updateItemError", "Errore durante l'aggiornamento"),
                 Severity.Error
             );
+        }
+        finally
+        {
+            // FIX: Sempre aggiornare la UI
+            StateHasChanged();
         }
     }
 
@@ -1087,12 +1123,26 @@
 
         try
         {
-            _currentSession = await SalesService.RemoveItemAsync(_currentSession.Id, item.Id);
+            // FIX: Non sovrascrivere _currentSession se il risultato è null
+            var updatedSession = await SalesService.RemoveItemAsync(_currentSession.Id, item.Id);
             
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.itemRemoved", "Articolo rimosso"),
-                Severity.Info
-            );
+            if (updatedSession != null)
+            {
+                _currentSession = updatedSession;
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.itemRemoved", "Articolo rimosso"),
+                    Severity.Info
+                );
+            }
+            else
+            {
+                Logger.LogError("RemoveItemAsync returned null for session {SessionId}, item {ItemId}", 
+                    _currentSession.Id, item.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"),
+                    Severity.Error
+                );
+            }
         }
         catch (Exception ex)
         {
@@ -1101,6 +1151,11 @@
                 TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"),
                 Severity.Error
             );
+        }
+        finally
+        {
+            // FIX: Sempre aggiornare la UI
+            StateHasChanged();
         }
     }
 
