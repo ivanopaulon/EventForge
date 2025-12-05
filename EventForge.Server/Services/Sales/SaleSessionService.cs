@@ -741,16 +741,20 @@ public class SaleSessionService : ISaleSessionService
     /// </summary>
     private void CalculateTotalsInline(SaleSession session)
     {
-        var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
-
-        session.OriginalTotal = activeItems.Sum(i => i.UnitPrice * i.Quantity);
-        var itemsTotal = activeItems.Sum(i => i.TotalAmount);
-        session.DiscountAmount = session.OriginalTotal - itemsTotal;
-        session.TaxAmount = activeItems.Sum(i => i.TaxAmount);
-        session.FinalTotal = itemsTotal + session.TaxAmount;
+        CalculateTotals(session);
     }
 
     private async Task RecalculateTotalsAsync(SaleSession session, CancellationToken cancellationToken)
+    {
+        CalculateTotals(session);
+        session.ModifiedAt = DateTime.UtcNow;
+        _ = await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Shared calculation logic for session totals.
+    /// </summary>
+    private void CalculateTotals(SaleSession session)
     {
         var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
 
@@ -759,10 +763,6 @@ public class SaleSessionService : ISaleSessionService
         session.DiscountAmount = session.OriginalTotal - itemsTotal;
         session.TaxAmount = activeItems.Sum(i => i.TaxAmount);
         session.FinalTotal = itemsTotal + session.TaxAmount;
-
-        session.ModifiedAt = DateTime.UtcNow;
-
-        _ = await _context.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken)
