@@ -854,6 +854,9 @@ public partial class EventForgeDbContext : DbContext
 
     /// <summary>
     /// Saves changes with automatic audit tracking for auditable entities.
+    /// Sales entities (SaleSession, SaleItem, SalePayment, SessionNote) are excluded from automatic audit tracking
+    /// to prevent DbUpdateConcurrencyException caused by ChangeTracker conflicts during high-frequency operations.
+    /// These entities use manual audit logging in SaleSessionService for better control and clarity.
     /// </summary>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -862,6 +865,10 @@ public partial class EventForgeDbContext : DbContext
 
         var auditableEntries = ChangeTracker.Entries<AuditableEntity>()
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .Where(e => e.Entity.GetType() != typeof(SaleSession) && 
+                        e.Entity.GetType() != typeof(SaleItem) && 
+                        e.Entity.GetType() != typeof(SalePayment) &&
+                        e.Entity.GetType() != typeof(SessionNote))
             .ToList();
 
         foreach (var entry in auditableEntries)
