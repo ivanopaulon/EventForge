@@ -12,7 +12,7 @@ namespace EventForge.Tests.Services.External;
 /// Unit tests for ViesValidationService using the simplified VIES REST API.
 /// </summary>
 [Trait("Category", "Unit")]
-public class ViesValidationServiceTests
+public class ViesValidationServiceTests : IDisposable
 {
     private readonly Mock<ILogger<ViesValidationService>> _mockLogger;
     private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
@@ -25,6 +25,11 @@ public class ViesValidationServiceTests
         _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
         _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
         _service = new ViesValidationService(_httpClient, _mockLogger.Object);
+    }
+
+    public void Dispose()
+    {
+        _httpClient?.Dispose();
     }
 
     [Fact]

@@ -105,7 +105,7 @@ public class ViesValidationService : IViesValidationService
         // Remove country code prefix if present
         if (cleaned.StartsWith(countryCode, StringComparison.OrdinalIgnoreCase))
         {
-            cleaned = cleaned.Substring(countryCode.Length);
+            cleaned = cleaned[countryCode.Length..];
         }
         
         return cleaned;
