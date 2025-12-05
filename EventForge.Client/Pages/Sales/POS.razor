@@ -782,7 +782,7 @@
         {
             Logger.LogError(ex, "Error adding product");
             await ReloadCurrentSessionAsync();
-            Snackbar.Add($"❌ {TranslationService.GetTranslation("errors.error", "Errore")}: {ex.Message}", Severity.Error);
+            Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta"), Severity.Error);
         }
     }
 
@@ -995,7 +995,7 @@
             {
                 _currentSession = reloadedSession;
                 await InvokeAsync(StateHasChanged);
-                Logger.LogInformation("Session reloaded: {ItemCount} items", _currentSession.Items.Count);
+                Logger.LogInformation("Session reloaded: {ItemCount} items", _currentSession.Items?.Count ?? 0);
                 return true;
             }
             
