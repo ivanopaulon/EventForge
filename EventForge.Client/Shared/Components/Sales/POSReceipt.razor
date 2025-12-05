@@ -162,19 +162,15 @@
 </MudPaper>
 
 @code {
-    [Parameter]
-    public Guid? SessionNumber { get; set; }
+    [Parameter] public Guid? SessionNumber { get; set; }
+    [Parameter] public List<SaleItemDto>? Items { get; set; }
+    [Parameter] public List<SalePaymentDto>? Payments { get; set; }
+    
+    [Parameter] public decimal Subtotal { get; set; }
+    [Parameter] public decimal TotalDiscount { get; set; }
+    [Parameter] public decimal TotalVat { get; set; }
+    [Parameter] public decimal GrandTotal { get; set; }
 
-    [Parameter]
-    public List<SaleItemDto>? Items { get; set; }
-
-    [Parameter]
-    public List<SalePaymentDto>? Payments { get; set; }
-
-    private decimal Subtotal => Items?.Sum(i => i.Quantity * i.UnitPrice) ?? 0m;
-    private decimal TotalDiscount => Items?.Sum(i => i.Quantity * i.UnitPrice * i.DiscountPercent / 100) ?? 0m;
-    private decimal TotalVat => Items?.Sum(i => i.TaxAmount) ?? 0m;
-    private decimal GrandTotal => Items?.Sum(i => i.TotalAmount) ?? 0m;
     private decimal TotalPaid => Payments?.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) ?? 0m;
     private decimal Change => TotalPaid > GrandTotal ? TotalPaid - GrandTotal : 0m;
     private decimal Remaining => GrandTotal > TotalPaid ? GrandTotal - TotalPaid : 0m;
