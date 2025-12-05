@@ -168,7 +168,7 @@ public class StoreUserService : IStoreUserService
             // Validate CashierGroupId
             if (createStoreUserDto.CashierGroupId == Guid.Empty)
             {
-                throw new InvalidOperationException("Cashier group ID cannot be empty GUID. Use null to indicate no group.");
+                throw new InvalidOperationException("Cashier group ID cannot be an empty GUID. Use null to indicate no group.");
             }
 
             if (createStoreUserDto.CashierGroupId.HasValue)
@@ -1009,7 +1009,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store POS terminals for tenant {TenantId}", _tenantContext.CurrentTenantId);
+            _logger.LogError(ex, "Error retrieving store POS terminals for tenant {TenantId} (page: {Page}, pageSize: {PageSize})", _tenantContext.CurrentTenantId, page, pageSize);
             throw;
         }
     }
