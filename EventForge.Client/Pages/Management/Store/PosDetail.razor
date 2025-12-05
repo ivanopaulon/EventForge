@@ -10,15 +10,17 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<PosDetail> Logger
-@inject EventForge.Client.Services.Store.IStorePosService StorePosService
+@using EventForge.Client.ViewModels
+@inject PosDetailViewModel ViewModel
+@implements IDisposable
 
-<PageLoadingOverlay Visible="_isLoading || _isSaving"
-                     Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="ViewModel.IsLoading || ViewModel.IsSaving"
+                     Message="@(ViewModel.IsSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-@if (!_isLoading)
+@if (!ViewModel.IsLoading)
 {
     <div class="product-page-root">
-        @if (_entity == null)
+        @if (ViewModel.Entity == null)
         {
             <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
                 <MudAlert Severity="Severity.Error">
@@ -38,11 +40,11 @@
                                            Size="Size.Medium"
                                            title="@TranslationService.GetTranslation("common.back", "Indietro")" />
                             <MudText Typo="Typo.h5">
-                                @(_isNewEntity ? TranslationService.GetTranslation("store.newPos", "Nuovo Punto Cassa") : TranslationService.GetTranslation("store.posDetail", "Dettaglio Punto Cassa"))
+                                @(ViewModel.IsNewEntity ? TranslationService.GetTranslation("store.newPos", "Nuovo Punto Cassa") : TranslationService.GetTranslation("store.posDetail", "Dettaglio Punto Cassa"))
                             </MudText>
                         </div>
                         <div class="d-flex gap-2 align-center">
-                            @if (_hasUnsavedChanges)
+                            @if (ViewModel.HasUnsavedChanges())
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Edit">
                                     @TranslationService.GetTranslation("common.unsavedChanges", "Modifiche non salvate")
@@ -52,13 +54,13 @@
                                        Color="Color.Primary"
                                        StartIcon="@Icons.Material.Filled.Save"
                                        OnClick="SaveAsync"
-                                       Disabled="_isSaving"
+                                       Disabled="ViewModel.IsSaving"
                                        Size="Size.Medium">
                                 @TranslationService.GetTranslation("common.save", "Salva")
                             </MudButton>
                         </div>
                     </div>
-                    @if (!_isNewEntity)
+                    @if (!ViewModel.IsNewEntity)
                     {
                         <MudDivider Class="my-3" />
                         <div class="d-flex align-center gap-4 flex-wrap">
@@ -67,14 +69,14 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.PointOfSale" />
                                 </MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@_entity.Name</MudText>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                        ID: @_entity.Id.ToString()[..8]...
+                                        ID: @ViewModel.Entity.Id.ToString()[..8]...
                                     </MudText>
                                 </div>
                             </div>
-                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(_entity.Status)">
-                                @GetStatusText(_entity.Status)
+                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)">
+                                @GetStatusText(ViewModel.Entity.Status)
                             </MudChip>
                         </div>
                     }
@@ -83,22 +85,22 @@
 
             <div class="eftable-wrapper">
                 <MudPaper Elevation="2" Class="pa-4">
-                    <MudForm @ref="_form" Model="@_entity">
+                    <MudForm @ref="_form" Model="@ViewModel.Entity">
                         <MudGrid>
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.Name"
+                                <MudTextField @bind-Value="ViewModel.Entity.Name"
                                               Label="@TranslationService.GetTranslation("field.name", "Nome")"
                                               Required="true"
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudSelect @bind-Value="_entity.Status"
+                                <MudSelect @bind-Value="ViewModel.Entity.Status"
                                            Label="@TranslationService.GetTranslation("field.status", "Status")"
                                            Variant="Variant.Outlined"
-                                           @bind-Value:after="MarkAsChanged">
+                                           @bind-Value:after="HandleEntityChanged">
                                     @foreach (CashRegisterStatus status in Enum.GetValues(typeof(CashRegisterStatus)))
                                     {
                                         <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
@@ -107,81 +109,81 @@
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.Location"
+                                <MudTextField @bind-Value="ViewModel.Entity.Location"
                                               Label="@TranslationService.GetTranslation("field.location", "Location")"
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.TerminalIdentifier"
+                                <MudTextField @bind-Value="ViewModel.Entity.TerminalIdentifier"
                                               Label="@TranslationService.GetTranslation("field.terminalIdentifier", "Identificatore Terminale")"
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.IPAddress"
+                                <MudTextField @bind-Value="ViewModel.Entity.IPAddress"
                                               Label="@TranslationService.GetTranslation("field.ipAddress", "Indirizzo IP")"
                                               MaxLength="45"
                                               Variant="Variant.Outlined"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.CurrencyCode"
+                                <MudTextField @bind-Value="ViewModel.Entity.CurrencyCode"
                                               Label="@TranslationService.GetTranslation("field.currencyCode", "Codice Valuta")"
                                               MaxLength="3"
                                               Placeholder="EUR"
                                               Variant="Variant.Outlined"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.TimeZone"
+                                <MudTextField @bind-Value="ViewModel.Entity.TimeZone"
                                               Label="@TranslationService.GetTranslation("field.timeZone", "Fuso Orario")"
                                               MaxLength="50"
                                               Placeholder="Europe/Rome"
                                               Variant="Variant.Outlined"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudNumericField @bind-Value="_entity.LocationLatitude"
+                                <MudNumericField @bind-Value="ViewModel.Entity.LocationLatitude"
                                                  Label="@TranslationService.GetTranslation("field.locationLatitude", "Latitudine")"
                                                  Min="-90"
                                                  Max="90"
                                                  Variant="Variant.Outlined"
-                                                 @bind-Value:after="MarkAsChanged" />
+                                                 @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudNumericField @bind-Value="_entity.LocationLongitude"
+                                <MudNumericField @bind-Value="ViewModel.Entity.LocationLongitude"
                                                  Label="@TranslationService.GetTranslation("field.locationLongitude", "Longitudine")"
                                                  Min="-180"
                                                  Max="180"
                                                  Variant="Variant.Outlined"
-                                                 @bind-Value:after="MarkAsChanged" />
+                                                 @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="_entity.Description"
+                                <MudTextField @bind-Value="ViewModel.Entity.Description"
                                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                               Lines="3"
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="_entity.Notes"
+                                <MudTextField @bind-Value="ViewModel.Entity.Notes"
                                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                               Lines="3"
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
                         </MudGrid>
                     </MudForm>
@@ -195,24 +197,19 @@
     [Parameter] public Guid? PosId { get; set; }
     [Parameter] public string? PosIdString { get; set; }
 
-    private bool _isLoading = true;
-    private bool _isSaving = false;
-    private bool _isNewEntity = false;
-    private bool _hasUnsavedChanges = false;
-    private StorePosDto _entity = new();
-    private StorePosDto _originalEntity = new();
     private MudForm _form = null!;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadEntityAsync();
+        ViewModel.StateChanged += OnViewModelStateChanged;
+        await LoadPosAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
         var currentId = GetCurrentPosId();
-        if (_entity?.Id != currentId || (currentId == Guid.Empty && !_isNewEntity))
-            await LoadEntityAsync();
+        if (ViewModel.Entity?.Id != currentId || (currentId == Guid.Empty && !ViewModel.IsNewEntity))
+            await LoadPosAsync();
     }
 
     private Guid GetCurrentPosId()
@@ -232,69 +229,29 @@
         return Guid.Empty;
     }
 
-    private async Task LoadEntityAsync()
+    private async Task LoadPosAsync()
     {
         try
         {
-            _isLoading = true;
             var posId = GetCurrentPosId();
-
-            if (posId == Guid.Empty)
-            {
-                _isNewEntity = true;
-                _entity = new StorePosDto { Status = CashRegisterStatus.Active };
-                _originalEntity = new StorePosDto { Status = CashRegisterStatus.Active };
-            }
-            else
-            {
-                _isNewEntity = false;
-                var entity = await StorePosService.GetByIdAsync(posId);
-                if (entity == null)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("store.posNotFound", "Punto cassa non trovato"), Severity.Error);
-                    _entity = null!;
-                    return;
-                }
-                _entity = entity;
-                _originalEntity = new StorePosDto
-                {
-                    Id = entity.Id,
-                    Name = entity.Name,
-                    Description = entity.Description,
-                    Status = entity.Status,
-                    Location = entity.Location,
-                    Notes = entity.Notes,
-                    TerminalIdentifier = entity.TerminalIdentifier,
-                    IPAddress = entity.IPAddress,
-                    CurrencyCode = entity.CurrencyCode,
-                    TimeZone = entity.TimeZone,
-                    LocationLatitude = entity.LocationLatitude,
-                    LocationLongitude = entity.LocationLongitude
-                };
-            }
-            _hasUnsavedChanges = false;
+            await ViewModel.LoadEntityAsync(posId);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading POS {PosId}", GetCurrentPosId());
             Snackbar.Add(TranslationService.GetTranslation("store.loadError", "Errore nel caricamento"), Severity.Error);
         }
-        finally
-        {
-            _isLoading = false;
-        }
     }
 
-    private void MarkAsChanged()
+    private void HandleEntityChanged()
     {
-        _hasUnsavedChanges = true;
+        ViewModel.NotifyEntityChanged();
     }
 
     private async Task SaveAsync()
     {
         try
         {
-            _isSaving = true;
             await _form.Validate();
 
             if (!_form.IsValid)
@@ -303,59 +260,26 @@
                 return;
             }
 
-            if (_isNewEntity)
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
             {
-                var createDto = new CreateStorePosDto
-                {
-                    Name = _entity.Name,
-                    Description = _entity.Description,
-                    Status = _entity.Status,
-                    Location = _entity.Location,
-                    Notes = _entity.Notes,
-                    TerminalIdentifier = _entity.TerminalIdentifier,
-                    IPAddress = _entity.IPAddress,
-                    CurrencyCode = _entity.CurrencyCode,
-                    TimeZone = _entity.TimeZone,
-                    LocationLatitude = _entity.LocationLatitude,
-                    LocationLongitude = _entity.LocationLongitude
-                };
+                var message = ViewModel.IsNewEntity 
+                    ? TranslationService.GetTranslation("store.posCreated", "Punto cassa creato con successo")
+                    : TranslationService.GetTranslation("store.posSaved", "Punto cassa salvato con successo");
+                Snackbar.Add(message, Severity.Success);
 
-                var created = await StorePosService.CreateAsync(createDto);
-                if (created != null)
+                // If it was a new POS, navigate to its detail page
+                if (ViewModel.Entity?.Id != Guid.Empty && PosIdString?.Equals("new", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("store.posCreated", "Punto cassa creato con successo"), Severity.Success);
-                    NavigationManager.NavigateTo($"/store/pos/{created.Id}");
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("store.createError", "Errore nella creazione"), Severity.Error);
+                    NavigationManager.NavigateTo($"/store/pos/{ViewModel.Entity.Id}");
                 }
             }
             else
             {
-                var updateDto = new UpdateStorePosDto
-                {
-                    Name = _entity.Name,
-                    Description = _entity.Description,
-                    Status = _entity.Status,
-                    Location = _entity.Location,
-                    Notes = _entity.Notes,
-                    TerminalIdentifier = _entity.TerminalIdentifier,
-                    IPAddress = _entity.IPAddress,
-                    IsOnline = _entity.IsOnline
-                };
-
-                var updated = await StorePosService.UpdateAsync(_entity.Id, updateDto);
-                if (updated != null)
-                {
-                    _entity = updated;
-                    _hasUnsavedChanges = false;
-                    Snackbar.Add(TranslationService.GetTranslation("store.posSaved", "Punto cassa salvato con successo"), Severity.Success);
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio"), Severity.Error);
-                }
+                var message = ViewModel.IsNewEntity
+                    ? TranslationService.GetTranslation("store.createError", "Errore nella creazione")
+                    : TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio");
+                Snackbar.Add(message, Severity.Error);
             }
         }
         catch (Exception ex)
@@ -364,15 +288,11 @@
             Logger.LogError(ex, "Error saving POS");
             Snackbar.Add(errorMessage, Severity.Error);
         }
-        finally
-        {
-            _isSaving = false;
-        }
     }
 
     private async Task TryNavigateAway(string target)
     {
-        if (!_hasUnsavedChanges)
+        if (!ViewModel.HasUnsavedChanges())
         {
             NavigationManager.NavigateTo(target);
             return;
@@ -397,6 +317,11 @@
         }
     }
 
+    private void OnViewModelStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     private Color GetStatusColor(CashRegisterStatus status) => status switch
     {
         CashRegisterStatus.Active => Color.Success,
@@ -414,4 +339,9 @@
         CashRegisterStatus.Disabled => TranslationService.GetTranslation("status.disabled", "Disabilitato"),
         _ => status.ToString()
     };
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
 }

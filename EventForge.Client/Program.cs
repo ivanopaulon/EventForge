@@ -126,6 +126,11 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.PaymentTermDetailViewMod
 // Onda 3: BusinessParty ViewModels
 builder.Services.AddScoped<EventForge.Client.ViewModels.BusinessPartyDetailViewModel>();
 
+// Store configuration ViewModels
+builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorGroupDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.PosDetailViewModel>();
+
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
 
