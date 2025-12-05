@@ -30,6 +30,7 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -145,10 +146,19 @@ public static class ServiceCollectionExtensions
 
         _ = services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
 
-        // Configure VAT lookup service
-        _ = services.AddHttpClient<IVatLookupService, ViesVatLookupService>(client =>
+        // Configure VAT lookup service with named HttpClient
+        _ = services.AddHttpClient("VatLookup", client =>
         {
-            client.Timeout = TimeSpan.FromSeconds(10);
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
+        _ = services.AddScoped<IVatLookupService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("VatLookup");
+            var cache = sp.GetRequiredService<IMemoryCache>();
+            var logger = sp.GetRequiredService<ILogger<VatLookupService>>();
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            return new VatLookupService(httpClient, cache, logger, configuration);
         });
     }
 
