@@ -165,6 +165,26 @@ public class StoreUserService : IStoreUserService
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
+            // Validazione CashierGroupId
+            if (createStoreUserDto.CashierGroupId.HasValue && createStoreUserDto.CashierGroupId.Value != Guid.Empty)
+            {
+                var groupExists = await _context.StoreUserGroups
+                    .AnyAsync(g => g.Id == createStoreUserDto.CashierGroupId.Value 
+                                && g.TenantId == currentTenantId.Value 
+                                && !g.IsDeleted, 
+                            cancellationToken);
+                
+                if (!groupExists)
+                {
+                    throw new InvalidOperationException($"Cashier group with ID {createStoreUserDto.CashierGroupId.Value} does not exist.");
+                }
+            }
+
+            // Normalizzare Guid.Empty a NULL
+            var cashierGroupId = createStoreUserDto.CashierGroupId == Guid.Empty 
+                ? null 
+                : createStoreUserDto.CashierGroupId;
+
             var storeUser = new StoreUser
             {
                 TenantId = currentTenantId.Value,
@@ -175,7 +195,7 @@ public class StoreUserService : IStoreUserService
                 Role = createStoreUserDto.Role,
                 Status = (EventForge.Server.Data.Entities.Store.CashierStatus)createStoreUserDto.Status,
                 Notes = createStoreUserDto.Notes,
-                CashierGroupId = createStoreUserDto.CashierGroupId,
+                CashierGroupId = cashierGroupId,
                 // Issue #315: Extended Fields
                 PhotoConsent = createStoreUserDto.PhotoConsent,
                 PhoneNumber = createStoreUserDto.PhoneNumber,
@@ -962,11 +982,16 @@ public class StoreUserService : IStoreUserService
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
             }
 
+            _logger.LogDebug("Querying store POS terminals for tenant {TenantId}", currentTenantId.Value);
+
             var query = _context.StorePoses
                 .Where(sp => !sp.IsDeleted && sp.TenantId == currentTenantId.Value)
                 .OrderBy(sp => sp.Name);
 
             var totalCount = await query.CountAsync(cancellationToken);
+            
+            _logger.LogDebug("Found {Count} store POS terminals for tenant {TenantId}", totalCount, currentTenantId.Value);
+            
             var items = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -984,7 +1009,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store POSes with pagination (page: {Page}, pageSize: {PageSize}).", page, pageSize);
+            _logger.LogError(ex, "Error retrieving store POS terminals for tenant {TenantId}", _tenantContext.CurrentTenantId);
             throw;
         }
     }

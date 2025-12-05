@@ -161,6 +161,9 @@
                                            T="Guid?"
                                            Clearable="true"
                                            @bind-Value:after="MarkAsChanged">
+                                    <MudSelectItem Value="@((Guid?)null)">
+                                        @TranslationService.GetTranslation("common.none", "Nessuno")
+                                    </MudSelectItem>
                                     @foreach (var group in _userGroups)
                                     {
                                         <MudSelectItem Value="@((Guid?)group.Id)">@group.Name</MudSelectItem>
