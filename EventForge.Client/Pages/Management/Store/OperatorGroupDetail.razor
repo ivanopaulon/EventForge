@@ -10,15 +10,17 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<OperatorGroupDetail> Logger
-@inject EventForge.Client.Services.Store.IStoreUserGroupService StoreUserGroupService
+@using EventForge.Client.ViewModels
+@inject OperatorGroupDetailViewModel ViewModel
+@implements IDisposable
 
-<PageLoadingOverlay Visible="_isLoading || _isSaving"
-                     Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="ViewModel.IsLoading || ViewModel.IsSaving"
+                     Message="@(ViewModel.IsSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-@if (!_isLoading)
+@if (!ViewModel.IsLoading)
 {
     <div class="product-page-root">
-        @if (_entity == null)
+        @if (ViewModel.Entity == null)
         {
             <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
                 <MudAlert Severity="Severity.Error">
@@ -38,11 +40,11 @@
                                            Size="Size.Medium"
                                            title="@TranslationService.GetTranslation("common.back", "Indietro")" />
                             <MudText Typo="Typo.h5">
-                                @(_isNewEntity ? TranslationService.GetTranslation("store.newOperatorGroup", "Nuovo Gruppo Operatori") : TranslationService.GetTranslation("store.operatorGroupDetail", "Dettaglio Gruppo Operatori"))
+                                @(ViewModel.IsNewEntity ? TranslationService.GetTranslation("store.newOperatorGroup", "Nuovo Gruppo Operatori") : TranslationService.GetTranslation("store.operatorGroupDetail", "Dettaglio Gruppo Operatori"))
                             </MudText>
                         </div>
                         <div class="d-flex gap-2 align-center">
-                            @if (_hasUnsavedChanges)
+                            @if (ViewModel.HasUnsavedChanges())
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Edit">
                                     @TranslationService.GetTranslation("common.unsavedChanges", "Modifiche non salvate")
@@ -52,13 +54,13 @@
                                        Color="Color.Primary"
                                        StartIcon="@Icons.Material.Filled.Save"
                                        OnClick="SaveAsync"
-                                       Disabled="_isSaving || (_entity.IsSystemGroup && !_isNewEntity)"
+                                       Disabled="ViewModel.IsSaving || (ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
                                        Size="Size.Medium">
                                 @TranslationService.GetTranslation("common.save", "Salva")
                             </MudButton>
                         </div>
                     </div>
-                    @if (!_isNewEntity)
+                    @if (!ViewModel.IsNewEntity)
                     {
                         <MudDivider Class="my-3" />
                         <div class="d-flex align-center gap-4 flex-wrap">
@@ -67,22 +69,22 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.Groups" />
                                 </MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@_entity.Name</MudText>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                        Code: @_entity.Code - ID: @_entity.Id.ToString()[..8]...
+                                        Code: @ViewModel.Entity.Code - ID: @ViewModel.Entity.Id.ToString()[..8]...
                                     </MudText>
                                 </div>
                             </div>
-                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(_entity.Status)">
-                                @GetStatusText(_entity.Status)
+                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)">
+                                @GetStatusText(ViewModel.Entity.Status)
                             </MudChip>
-                            @if (_entity.IsSystemGroup)
+                            @if (ViewModel.Entity.IsSystemGroup)
                             {
                                 <MudChip T="string" Size="Size.Medium" Color="Color.Default" Icon="@Icons.Material.Outlined.Lock">
                                     @TranslationService.GetTranslation("status.systemGroup", "Gruppo di Sistema")
                                 </MudChip>
                             }
-                            @if (_entity.IsDefault)
+                            @if (ViewModel.Entity.IsDefault)
                             {
                                 <MudChip T="string" Size="Size.Medium" Color="Color.Warning" Icon="@Icons.Material.Outlined.Star">
                                     @TranslationService.GetTranslation("status.default", "Default")
@@ -95,40 +97,40 @@
 
             <div class="eftable-wrapper">
                 <MudPaper Elevation="2" Class="pa-4">
-                    @if (_entity.IsSystemGroup && !_isNewEntity)
+                    @if (ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)
                     {
                         <MudAlert Severity="Severity.Info" Class="mb-4">
                             @TranslationService.GetTranslation("store.systemGroupReadOnly", "Questo è un gruppo di sistema e non può essere modificato.")
                         </MudAlert>
                     }
-                    <MudForm @ref="_form" Model="@_entity">
+                    <MudForm @ref="_form" Model="@ViewModel.Entity">
                         <MudGrid>
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.Code"
+                                <MudTextField @bind-Value="ViewModel.Entity.Code"
                                               Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                               Required="true"
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
-                                              Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.Name"
+                                <MudTextField @bind-Value="ViewModel.Entity.Name"
                                               Label="@TranslationService.GetTranslation("field.name", "Nome")"
                                               Required="true"
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
-                                              Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudSelect @bind-Value="_entity.Status"
+                                <MudSelect @bind-Value="ViewModel.Entity.Status"
                                            Label="@TranslationService.GetTranslation("field.status", "Status")"
                                            Variant="Variant.Outlined"
-                                           Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
-                                           @bind-Value:after="MarkAsChanged">
+                                           Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                           @bind-Value:after="HandleEntityChanged">
                                     @foreach (CashierGroupStatus status in Enum.GetValues(typeof(CashierGroupStatus)))
                                     {
                                         <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
@@ -137,45 +139,45 @@
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_entity.ColorHex"
+                                <MudTextField @bind-Value="ViewModel.Entity.ColorHex"
                                               Label="@TranslationService.GetTranslation("field.colorHex", "Colore (Hex)")"
                                               MaxLength="7"
                                               Placeholder="#FF5733"
                                               Variant="Variant.Outlined"
-                                              Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
+                                              Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
                                               Pattern="^#([A-Fa-f0-9]{6})$"
-                                              @bind-Value:after="MarkAsChanged"
+                                              @bind-Value:after="HandleEntityChanged"
                                               HelperText="@TranslationService.GetTranslation("field.colorHexHelper", "Formato: #RRGGBB")" />
                             </MudItem>
 
-                            @if (_isNewEntity)
+                            @if (ViewModel.IsNewEntity)
                             {
                                 <MudItem xs="12" md="6">
-                                    <MudSwitch @bind-Value="_entity.IsSystemGroup"
+                                    <MudSwitch @bind-Value="ViewModel.Entity.IsSystemGroup"
                                                Label="@TranslationService.GetTranslation("field.isSystemGroup", "Gruppo di Sistema")"
                                                Color="Color.Primary"
-                                               @bind-Value:after="MarkAsChanged" />
+                                               @bind-Value:after="HandleEntityChanged" />
                                 </MudItem>
 
                                 <MudItem xs="12" md="6">
-                                    <MudSwitch @bind-Value="_entity.IsDefault"
+                                    <MudSwitch @bind-Value="ViewModel.Entity.IsDefault"
                                                Label="@TranslationService.GetTranslation("field.isDefault", "Gruppo Default")"
                                                Color="Color.Primary"
-                                               @bind-Value:after="MarkAsChanged" />
+                                               @bind-Value:after="HandleEntityChanged" />
                                 </MudItem>
                             }
 
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="_entity.Description"
+                                <MudTextField @bind-Value="ViewModel.Entity.Description"
                                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                               Lines="3"
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
-                                              Disabled="@(_entity.IsSystemGroup && !_isNewEntity)"
-                                              @bind-Value:after="MarkAsChanged" />
+                                              Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                              @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
-                            @if (!_isNewEntity)
+                            @if (!ViewModel.IsNewEntity)
                             {
                                 <MudItem xs="12">
                                     <MudDivider Class="my-4" />
@@ -191,7 +193,7 @@
                                                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                                             @TranslationService.GetTranslation("field.operatorsCount", "Operatori")
                                                         </MudText>
-                                                        <MudText Typo="Typo.h6">@_entity.CashierCount</MudText>
+                                                        <MudText Typo="Typo.h6">@ViewModel.Entity.CashierCount</MudText>
                                                     </div>
                                                 </div>
                                             </MudPaper>
@@ -204,7 +206,7 @@
                                                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                                             @TranslationService.GetTranslation("field.privilegesCount", "Privilegi")
                                                         </MudText>
-                                                        <MudText Typo="Typo.h6">@_entity.PrivilegeCount</MudText>
+                                                        <MudText Typo="Typo.h6">@ViewModel.Entity.PrivilegeCount</MudText>
                                                     </div>
                                                 </div>
                                             </MudPaper>
@@ -224,23 +226,19 @@
     [Parameter] public Guid? GroupId { get; set; }
     [Parameter] public string? GroupIdString { get; set; }
 
-    private bool _isLoading = true;
-    private bool _isSaving = false;
-    private bool _isNewEntity = false;
-    private bool _hasUnsavedChanges = false;
-    private StoreUserGroupDto _entity = new();
     private MudForm _form = null!;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadEntityAsync();
+        ViewModel.StateChanged += OnViewModelStateChanged;
+        await LoadGroupAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
         var currentId = GetCurrentGroupId();
-        if (_entity?.Id != currentId || (currentId == Guid.Empty && !_isNewEntity))
-            await LoadEntityAsync();
+        if (ViewModel.Entity?.Id != currentId || (currentId == Guid.Empty && !ViewModel.IsNewEntity))
+            await LoadGroupAsync();
     }
 
     private Guid GetCurrentGroupId()
@@ -260,59 +258,35 @@
         return Guid.Empty;
     }
 
-    private async Task LoadEntityAsync()
+    private async Task LoadGroupAsync()
     {
         try
         {
-            _isLoading = true;
             var groupId = GetCurrentGroupId();
-
-            if (groupId == Guid.Empty)
-            {
-                _isNewEntity = true;
-                _entity = new StoreUserGroupDto { Status = CashierGroupStatus.Active };
-            }
-            else
-            {
-                _isNewEntity = false;
-                var entity = await StoreUserGroupService.GetByIdAsync(groupId);
-                if (entity == null)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("store.operatorGroupNotFound", "Gruppo non trovato"), Severity.Error);
-                    _entity = null!;
-                    return;
-                }
-                _entity = entity;
-            }
-            _hasUnsavedChanges = false;
+            await ViewModel.LoadEntityAsync(groupId);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading operator group {GroupId}", GetCurrentGroupId());
             Snackbar.Add(TranslationService.GetTranslation("store.loadError", "Errore nel caricamento"), Severity.Error);
         }
-        finally
-        {
-            _isLoading = false;
-        }
     }
 
-    private void MarkAsChanged()
+    private void HandleEntityChanged()
     {
-        _hasUnsavedChanges = true;
+        ViewModel.NotifyEntityChanged();
     }
 
     private async Task SaveAsync()
     {
         try
         {
-            if (_entity.IsSystemGroup && !_isNewEntity)
+            if (ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)
             {
                 Snackbar.Add(TranslationService.GetTranslation("store.cannotModifySystemGroup", "Non è possibile modificare un gruppo di sistema"), Severity.Warning);
                 return;
             }
 
-            _isSaving = true;
             await _form.Validate();
 
             if (!_form.IsValid)
@@ -321,52 +295,26 @@
                 return;
             }
 
-            if (_isNewEntity)
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
             {
-                var createDto = new CreateStoreUserGroupDto
-                {
-                    Code = _entity.Code,
-                    Name = _entity.Name,
-                    Description = _entity.Description,
-                    Status = _entity.Status,
-                    ColorHex = _entity.ColorHex,
-                    IsSystemGroup = _entity.IsSystemGroup,
-                    IsDefault = _entity.IsDefault
-                };
+                var message = ViewModel.IsNewEntity 
+                    ? TranslationService.GetTranslation("store.operatorGroupCreated", "Gruppo creato con successo")
+                    : TranslationService.GetTranslation("store.operatorGroupSaved", "Gruppo salvato con successo");
+                Snackbar.Add(message, Severity.Success);
 
-                var created = await StoreUserGroupService.CreateAsync(createDto);
-                if (created != null)
+                // If it was a new group, navigate to its detail page
+                if (ViewModel.Entity?.Id != Guid.Empty && GroupIdString?.Equals("new", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("store.operatorGroupCreated", "Gruppo creato con successo"), Severity.Success);
-                    NavigationManager.NavigateTo($"/store/operator-groups/{created.Id}");
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("store.createError", "Errore nella creazione"), Severity.Error);
+                    NavigationManager.NavigateTo($"/store/operator-groups/{ViewModel.Entity.Id}");
                 }
             }
             else
             {
-                var updateDto = new UpdateStoreUserGroupDto
-                {
-                    Code = _entity.Code,
-                    Name = _entity.Name,
-                    Description = _entity.Description,
-                    Status = _entity.Status,
-                    ColorHex = _entity.ColorHex
-                };
-
-                var updated = await StoreUserGroupService.UpdateAsync(_entity.Id, updateDto);
-                if (updated != null)
-                {
-                    _entity = updated;
-                    _hasUnsavedChanges = false;
-                    Snackbar.Add(TranslationService.GetTranslation("store.operatorGroupSaved", "Gruppo salvato con successo"), Severity.Success);
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio"), Severity.Error);
-                }
+                var message = ViewModel.IsNewEntity
+                    ? TranslationService.GetTranslation("store.createError", "Errore nella creazione")
+                    : TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio");
+                Snackbar.Add(message, Severity.Error);
             }
         }
         catch (Exception ex)
@@ -375,15 +323,11 @@
             Logger.LogError(ex, "Error saving operator group");
             Snackbar.Add(errorMessage, Severity.Error);
         }
-        finally
-        {
-            _isSaving = false;
-        }
     }
 
     private async Task TryNavigateAway(string target)
     {
-        if (!_hasUnsavedChanges)
+        if (!ViewModel.HasUnsavedChanges())
         {
             NavigationManager.NavigateTo(target);
             return;
@@ -408,6 +352,11 @@
         }
     }
 
+    private void OnViewModelStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     private Color GetStatusColor(CashierGroupStatus status) => status switch
     {
         CashierGroupStatus.Active => Color.Success,
@@ -423,4 +372,9 @@
         CashierGroupStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
         _ => status.ToString()
     };
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
 }
