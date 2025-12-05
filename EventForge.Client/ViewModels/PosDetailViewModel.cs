@@ -65,6 +65,8 @@ public class PosDetailViewModel : BaseEntityDetailViewModel<StorePosDto, CreateS
             IPAddress = entity.IPAddress,
             IsOnline = entity.IsOnline
         };
+        // Note: CurrencyCode, TimeZone, LocationLatitude, LocationLongitude cannot be updated
+        // per UpdateStorePosDto definition - they are set only during creation
     }
 
     protected override Task<StorePosDto?> CreateEntityAsync(CreateStorePosDto createDto)

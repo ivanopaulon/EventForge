@@ -36,6 +36,8 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
         Password = null;
         PhotoConsent = false;
         
+        // Note: AvailableGroups will be loaded asynchronously via a custom LoadEntityAsync override
+        
         return new StoreUserDto
         {
             Id = Guid.Empty,
@@ -57,15 +59,26 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
     {
+        // Load available groups for both new and existing entities
         try
         {
             AvailableGroups = await _groupService.GetAllAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading available groups for operator {OperatorId}", entityId);
+            Logger.LogError(ex, "Error loading available groups for operator");
             AvailableGroups = new List<StoreUserGroupDto>();
         }
+    }
+
+    // Override to ensure groups are loaded even for new entities
+    public new async Task LoadEntityAsync(Guid entityId)
+    {
+        // Always load groups first, regardless of whether it's a new or existing entity
+        await LoadRelatedEntitiesAsync(entityId);
+        
+        // Call base implementation
+        await base.LoadEntityAsync(entityId);
     }
 
     protected override CreateStoreUserDto MapToCreateDto(StoreUserDto entity)
@@ -112,21 +125,5 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
     protected override Guid GetEntityId(StoreUserDto entity)
     {
         return entity.Id;
-    }
-
-    public new async Task LoadEntityAsync(Guid entityId)
-    {
-        // Load groups first before loading entity
-        try
-        {
-            AvailableGroups = await _groupService.GetAllAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading available groups");
-            AvailableGroups = new List<StoreUserGroupDto>();
-        }
-
-        await base.LoadEntityAsync(entityId);
     }
 }
