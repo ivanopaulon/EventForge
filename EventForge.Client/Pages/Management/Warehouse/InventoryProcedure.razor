@@ -381,6 +381,9 @@
     // Simulation UI update frequency (every N products)
     private const int SimulationUiUpdateFrequency = 10;
     
+    // Retry delay for transient server errors (milliseconds)
+    private const int RetryDelayMilliseconds = 200;
+    
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _inventoryRowColumns = new()
     {
@@ -658,11 +661,11 @@
                                 document.Rows?.Count ?? 0, document.TotalItems);
                             
                             // FIXED: Implement retry mechanism for row loading with delay for transient errors
-                            Logger.LogInformation("Attempting to reload document to fix row loading issue (with 200ms delay for transient errors)");
+                            Logger.LogInformation("Attempting to reload document to fix row loading issue (with {DelayMs}ms delay for transient errors)", RetryDelayMilliseconds);
                             try
                             {
                                 // Add small delay to allow transient server issues to resolve
-                                await Task.Delay(200);
+                                await Task.Delay(RetryDelayMilliseconds);
                                 
                                 var reloadedDocument = await InventoryService.GetInventoryDocumentAsync(document.Id);
                                 if (reloadedDocument != null && reloadedDocument.Rows != null && reloadedDocument.Rows.Count > 0)
