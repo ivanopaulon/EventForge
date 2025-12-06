@@ -381,6 +381,9 @@
     // Simulation UI update frequency (every N products)
     private const int SimulationUiUpdateFrequency = 10;
     
+    // Retry delay for transient server errors (milliseconds)
+    private const int RetryDelayMilliseconds = 200;
+    
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _inventoryRowColumns = new()
     {
@@ -512,6 +515,8 @@
 
     private async Task RestoreInventorySessionAsync()
     {
+        Logger.LogInformation("=== STARTING INVENTORY SESSION RESTORATION ===");
+        
         try
         {
             InventoryDocumentDto? document = null;
@@ -520,52 +525,211 @@
             string restorationSource = "localStorage";
 
             // Step 1: Try to restore from localStorage
-            var sessionState = await InventorySessionService.LoadSessionAsync();
-            if (sessionState != null)
+            Logger.LogInformation("Step 1: Checking localStorage for existing session");
+            
+            InventorySessionState? sessionState = null;
+            try
             {
-                // Try to load the inventory document from the server
-                document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
-                
-                if (document != null && document.Status == "Open")
+                sessionState = await InventorySessionService.LoadSessionAsync();
+                if (sessionState != null)
                 {
-                    warehouseId = sessionState.WarehouseId;
-                    sessionStartTime = sessionState.SessionStartTime;
+                    Logger.LogInformation("Found session state in localStorage - DocumentId: {DocumentId}, DocumentNumber: {DocumentNumber}, WarehouseId: {WarehouseId}",
+                        sessionState.DocumentId, sessionState.DocumentNumber, sessionState.WarehouseId);
                 }
                 else
                 {
-                    // Document not found or already finalized, clear the invalid session
-                    await InventorySessionService.ClearSessionAsync();
+                    Logger.LogInformation("No session state found in localStorage");
+                }
+            }
+            catch (Exception loadEx)
+            {
+                Logger.LogError(loadEx, "Error loading session state from localStorage");
+                sessionState = null;
+            }
+            
+            if (sessionState != null)
+            {
+                // Try to load the inventory document from the server
+                Logger.LogInformation("Step 1.1: Loading inventory document {DocumentId} from server", sessionState.DocumentId);
+                
+                try
+                {
+                    document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
+                    
+                    if (document != null)
+                    {
+                        Logger.LogInformation("Document {DocumentId} loaded - Status: {Status}, TotalItems: {TotalItems}, Rows: {RowCount}",
+                            document.Id, document.Status, document.TotalItems, document.Rows?.Count ?? 0);
+                        
+                        // FIXED: Check both "Open" AND "InProgress" statuses
+                        if (document.Status == "Open" || document.Status == "InProgress")
+                        {
+                            Logger.LogInformation("Document status is valid ({Status}), proceeding with restoration", document.Status);
+                            
+                            // FIXED: Validate that rows were actually loaded
+                            if (document.Rows == null)
+                            {
+                                Logger.LogWarning("Document.Rows is null! Expected {TotalItems} items", document.TotalItems);
+                                Snackbar.Add(
+                                    TranslationService.GetTranslation("warehouse.sessionRowsNotLoaded", "Avviso: Le righe del documento non sono state caricate correttamente"),
+                                    Severity.Warning
+                                );
+                            }
+                            else if (document.Rows.Count == 0 && document.TotalItems > 0)
+                            {
+                                Logger.LogWarning("Document.Rows is empty but TotalItems is {TotalItems}! Possible data loading issue", document.TotalItems);
+                                Snackbar.Add(
+                                    TranslationService.GetTranslation("warehouse.sessionRowsMismatch", "Avviso: Il conteggio delle righe non corrisponde ({0} attese, {1} caricate)", document.TotalItems, 0),
+                                    Severity.Warning
+                                );
+                            }
+                            else if (document.Rows.Count != document.TotalItems)
+                            {
+                                Logger.LogWarning("Row count mismatch: Rows.Count={RowCount}, TotalItems={TotalItems}",
+                                    document.Rows.Count, document.TotalItems);
+                                Snackbar.Add(
+                                    TranslationService.GetTranslation("warehouse.sessionRowsMismatch", "Avviso: Il conteggio delle righe non corrisponde ({0} attese, {1} caricate)", document.TotalItems, document.Rows.Count),
+                                    Severity.Warning
+                                );
+                            }
+                            else
+                            {
+                                Logger.LogInformation("Row count validation passed: {RowCount} rows loaded as expected", document.Rows.Count);
+                            }
+                            
+                            warehouseId = sessionState.WarehouseId;
+                            sessionStartTime = sessionState.SessionStartTime;
+                        }
+                        else
+                        {
+                            Logger.LogWarning("Document {DocumentId} has invalid status '{Status}' for restoration (expected 'Open' or 'InProgress')", 
+                                document.Id, document.Status);
+                            
+                            // Document already finalized, clear the invalid session
+                            await InventorySessionService.ClearSessionAsync();
+                            document = null;
+                            
+                            Snackbar.Add(
+                                TranslationService.GetTranslation("warehouse.sessionAlreadyFinalized", "La sessione precedente è stata finalizzata"),
+                                Severity.Info
+                            );
+                        }
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Document {DocumentId} not found on server", sessionState.DocumentId);
+                        
+                        // Document not found, clear the invalid session
+                        await InventorySessionService.ClearSessionAsync();
+                        
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("warehouse.sessionDocumentNotFound", "Il documento della sessione precedente non è stato trovato"),
+                            Severity.Warning
+                        );
+                    }
+                }
+                catch (Exception docEx)
+                {
+                    Logger.LogError(docEx, "Error loading document {DocumentId} from server", sessionState.DocumentId);
                     document = null;
-                    Logger.LogInformation("Inventory session in localStorage is invalid (document not found or finalized)");
+                    
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.sessionLoadError", "Errore nel caricamento della sessione precedente: {0}", docEx.Message),
+                        Severity.Error
+                    );
                 }
             }
 
             // Step 2: If localStorage restoration failed, try to get the most recent open document from server
             if (document == null)
             {
-                document = await InventoryService.GetMostRecentOpenInventoryDocumentAsync();
-                if (document != null)
+                Logger.LogInformation("Step 2: Attempting to restore from most recent open document on server");
+                
+                try
                 {
-                    warehouseId = document.WarehouseId;
-                    sessionStartTime = document.CreatedAt;
-                    restorationSource = "server";
+                    document = await InventoryService.GetMostRecentOpenInventoryDocumentAsync();
                     
-                    // Save this session to localStorage for future use
-                    await InventorySessionService.SaveSessionAsync(new InventorySessionState
+                    if (document != null)
                     {
-                        DocumentId = document.Id,
-                        DocumentNumber = document.Number,
-                        WarehouseId = warehouseId,
-                        SessionStartTime = sessionStartTime ?? DateTime.UtcNow
-                    });
+                        Logger.LogInformation("Found most recent open document - DocumentId: {DocumentId}, Status: {Status}, TotalItems: {TotalItems}, Rows: {RowCount}",
+                            document.Id, document.Status, document.TotalItems, document.Rows?.Count ?? 0);
+                        
+                        // FIXED: Validate rows for server-restored documents too
+                        if (document.Rows == null || (document.Rows.Count == 0 && document.TotalItems > 0))
+                        {
+                            Logger.LogWarning("Server document has row loading issues - Rows: {RowCount}, TotalItems: {TotalItems}",
+                                document.Rows?.Count ?? 0, document.TotalItems);
+                            
+                            // FIXED: Implement retry mechanism for row loading with delay for transient errors
+                            Logger.LogInformation("Attempting to reload document to fix row loading issue (with {DelayMs}ms delay for transient errors)", RetryDelayMilliseconds);
+                            try
+                            {
+                                // Add small delay to allow transient server issues to resolve
+                                await Task.Delay(RetryDelayMilliseconds);
+                                
+                                var reloadedDocument = await InventoryService.GetInventoryDocumentAsync(document.Id);
+                                if (reloadedDocument != null && reloadedDocument.Rows != null && reloadedDocument.Rows.Count > 0)
+                                {
+                                    Logger.LogInformation("Retry successful - Rows loaded: {RowCount}", reloadedDocument.Rows.Count);
+                                    document = reloadedDocument;
+                                }
+                                else
+                                {
+                                    Logger.LogError("Retry failed - Still no rows loaded");
+                                    Snackbar.Add(
+                                        TranslationService.GetTranslation("warehouse.sessionRowsLoadFailed", "Impossibile caricare le righe del documento. Contatta l'amministratore."),
+                                        Severity.Error
+                                    );
+                                }
+                            }
+                            catch (Exception retryEx)
+                            {
+                                Logger.LogError(retryEx, "Error during document reload retry");
+                            }
+                        }
+                        
+                        warehouseId = document.WarehouseId;
+                        sessionStartTime = document.CreatedAt;
+                        restorationSource = "server";
+                        
+                        // Save this session to localStorage for future use
+                        try
+                        {
+                            await InventorySessionService.SaveSessionAsync(new InventorySessionState
+                            {
+                                DocumentId = document.Id,
+                                DocumentNumber = document.Number,
+                                WarehouseId = warehouseId,
+                                SessionStartTime = sessionStartTime ?? DateTime.UtcNow
+                            });
+                            Logger.LogInformation("Saved session state to localStorage for future restoration");
+                        }
+                        catch (Exception saveEx)
+                        {
+                            Logger.LogError(saveEx, "Error saving session state to localStorage");
+                        }
+                    }
+                    else
+                    {
+                        Logger.LogInformation("No open documents found on server");
+                    }
+                }
+                catch (Exception serverEx)
+                {
+                    Logger.LogError(serverEx, "Error loading most recent open document from server");
                     
-                    Logger.LogInformation("Inventory session restored from most recent open document: {DocumentId}", document.Id);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.sessionRestoreServerError", "Errore nel recupero della sessione dal server: {0}", serverEx.Message),
+                        Severity.Error
+                    );
                 }
             }
 
             // Step 3: If we have a valid document to restore, apply it
             if (document != null)
             {
+                Logger.LogInformation("Step 3: Applying restored document to current session");
+                
                 _currentDocument = document;
                 _selectedStorageFacilityId = warehouseId;
                 _sessionStartTime = sessionStartTime ?? DateTime.UtcNow;
@@ -574,37 +738,51 @@
                     ? TranslationService.GetTranslation("warehouse.sessionRestoredFromCache", "Sessione ripristinata dalla cache")
                     : TranslationService.GetTranslation("warehouse.sessionRestoredFromServer", "Sessione ripristinata dal server (documento più recente aperto)");
                 
+                var rowCount = document.Rows?.Count ?? 0;
+                
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
-                    $"{sourceMessage} - Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli - {document.Rows?.Count ?? 0} righe",
+                    $"{sourceMessage} - Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli - {rowCount} righe",
                     "Success"
                 );
                 
                 Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"), 
-                    Severity.Info
+                    TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata: {0} articoli", rowCount), 
+                    Severity.Success
                 );
                 
-                Logger.LogInformation("Inventory session restored from {Source}: Document {DocumentId} with {RowCount} rows", restorationSource, document.Id, document.Rows?.Count ?? 0);
+                Logger.LogInformation("=== SESSION RESTORATION SUCCESSFUL === Source: {Source}, DocumentId: {DocumentId}, Rows: {RowCount}",
+                    restorationSource, document.Id, rowCount);
                 
                 // Force UI update to ensure rows are displayed
                 StateHasChanged();
             }
+            else
+            {
+                Logger.LogInformation("=== SESSION RESTORATION COMPLETED === No valid session found to restore");
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error restoring inventory session");
+            Logger.LogError(ex, "=== CRITICAL ERROR IN SESSION RESTORATION === {Message}", ex.Message);
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.sessionRestoreCriticalError", "Errore critico nel ripristino della sessione: {0}", ex.Message),
+                Severity.Error
+            );
+            
             // Clear invalid session only if it exists in localStorage
             try
             {
                 if (await InventorySessionService.HasActiveSessionAsync())
                 {
+                    Logger.LogInformation("Clearing invalid session from localStorage after error");
                     await InventorySessionService.ClearSessionAsync();
                 }
             }
             catch (Exception clearEx)
             {
-                Logger.LogError(clearEx, "Error clearing invalid session");
+                Logger.LogError(clearEx, "Error clearing invalid session after restoration failure");
             }
         }
     }
