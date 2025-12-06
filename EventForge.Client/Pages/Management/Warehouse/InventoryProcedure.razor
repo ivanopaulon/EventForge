@@ -657,10 +657,13 @@
                             Logger.LogWarning("Server document has row loading issues - Rows: {RowCount}, TotalItems: {TotalItems}",
                                 document.Rows?.Count ?? 0, document.TotalItems);
                             
-                            // FIXED: Implement retry mechanism for row loading
-                            Logger.LogInformation("Attempting to reload document to fix row loading issue");
+                            // FIXED: Implement retry mechanism for row loading with delay for transient errors
+                            Logger.LogInformation("Attempting to reload document to fix row loading issue (with 200ms delay for transient errors)");
                             try
                             {
+                                // Add small delay to allow transient server issues to resolve
+                                await Task.Delay(200);
+                                
                                 var reloadedDocument = await InventoryService.GetInventoryDocumentAsync(document.Id);
                                 if (reloadedDocument != null && reloadedDocument.Rows != null && reloadedDocument.Rows.Count > 0)
                                 {

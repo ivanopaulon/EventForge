@@ -153,6 +153,7 @@
     private MudForm? _form;
     private ProductDto _model = new();
     private IEnumerable<VatRateDto>? _vatRates;
+    private ProductDto? _cachedExistingProduct = null; // Cache for complete product data
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,7 +161,28 @@
         
         if (IsEditMode && ExistingProduct != null)
         {
-            // Load existing product data
+            // OPTIMIZATION: Load and cache the complete product data once at initialization
+            Logger.LogInformation("Loading complete product data for ProductId {ProductId}", ProductId);
+            try
+            {
+                _cachedExistingProduct = await ProductService.GetProductByIdAsync(ProductId!.Value);
+                if (_cachedExistingProduct == null)
+                {
+                    Logger.LogError("Product {ProductId} not found during initialization", ProductId);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), 
+                        Severity.Error
+                    );
+                    return;
+                }
+                Logger.LogInformation("Cached complete product data for {ProductCode}", _cachedExistingProduct.Code);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading product {ProductId} during initialization", ProductId);
+            }
+            
+            // Load existing product data for display
             _model = new ProductDto
             {
                 Id = ExistingProduct.Id,
@@ -244,16 +266,25 @@
 
             Logger.LogInformation("Starting product update for ProductId {ProductId}", ProductId);
 
-            // CRITICAL FIX: Load the complete product from the server to get all existing fields
-            var existingProduct = await ProductService.GetProductByIdAsync(ProductId!.Value);
+            // OPTIMIZATION: Use cached product data if available, otherwise load from server
+            ProductDto? existingProduct = _cachedExistingProduct;
             if (existingProduct == null)
             {
-                Logger.LogError("Product {ProductId} not found when attempting to update", ProductId);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), 
-                    Severity.Error
-                );
-                return;
+                Logger.LogInformation("Cached product not available, loading from server");
+                existingProduct = await ProductService.GetProductByIdAsync(ProductId!.Value);
+                if (existingProduct == null)
+                {
+                    Logger.LogError("Product {ProductId} not found when attempting to update", ProductId);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), 
+                        Severity.Error
+                    );
+                    return;
+                }
+            }
+            else
+            {
+                Logger.LogInformation("Using cached product data for update");
             }
 
             Logger.LogInformation("Loaded existing product {ProductCode} - {ProductName}", existingProduct.Code, existingProduct.Name);
