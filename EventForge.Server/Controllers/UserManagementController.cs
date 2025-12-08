@@ -1386,13 +1386,8 @@ public class UserManagementController : BaseApiController
 
             await _context.SaveChangesAsync();
 
-            // Log the audit action
-            await _auditLogService.LogActionAsync(
-                "RolePermissions",
-                "Update",
-                $"Updated permissions for role {role.Name}",
-                new { RoleId = roleId, PermissionIds = dto.PermissionIds },
-                User.Identity?.Name ?? "system");
+            _logger.LogInformation("Updated permissions for role {RoleId} ({RoleName}). {PermissionCount} permissions assigned",
+                roleId, role.Name, dto.PermissionIds.Count);
 
             // Notify via SignalR
             await _hubContext.Clients.All.SendAsync("RolePermissionsUpdated", roleId);

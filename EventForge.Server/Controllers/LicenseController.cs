@@ -617,47 +617,6 @@ public class LicenseController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while retrieving the tenant license", ex);
         }
     }
-
-    /// <summary>
-    /// Get all available features in the system.
-    /// </summary>
-    /// <returns>List of available features</returns>
-    /// <response code="200">Returns the list of available features</response>
-    /// <response code="500">If an internal error occurs</response>
-    [HttpGet("available-features")]
-    [Authorize(Roles = "SuperAdmin")]
-    [ProducesResponseType(typeof(IEnumerable<AvailableFeatureDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<AvailableFeatureDto>>> GetAvailableFeatures()
-    {
-        try
-        {
-            // Get all unique features from the database grouped by name
-            var features = await _context.LicenseFeatures
-                .Where(lf => lf.IsActive)
-                .GroupBy(lf => lf.Name)
-                .Select(g => g.OrderByDescending(f => f.CreatedAt).First())
-                .OrderBy(lf => lf.Category)
-                .ThenBy(lf => lf.DisplayName)
-                .ToListAsync();
-
-            var availableFeatures = features.Select(f => new AvailableFeatureDto
-            {
-                Name = f.Name,
-                DisplayName = f.DisplayName,
-                Description = f.Description,
-                Category = f.Category
-            }).ToList();
-
-            return Ok(availableFeatures);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving available features");
-            return CreateInternalServerErrorProblem("An error occurred while retrieving available features", ex);
-        }
-    }
-
     /// <summary>
     /// Update the features for a specific license.
     /// </summary>
