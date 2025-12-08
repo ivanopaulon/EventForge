@@ -1,12 +1,9 @@
 @page "/sales/pos"
-@using EventForge.Client.Services.Sales
-@using EventForge.Client.Services.Store
+@using EventForge.Client.ViewModels
 @using EventForge.DTOs.Sales
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Store
 @using EventForge.DTOs.Business
-@using EventForge.DTOs.Common
-@using EventForge.DTOs.Constants
 @using EventForge.Client.Shared.Components.Sales
 @using EventForge.Client.Shared.Components.Dialogs.Sales
 @using EventForge.Client.Shared.Components.Dialogs
@@ -14,22 +11,15 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @implements IDisposable
 @attribute [Authorize]
-@inject ISalesService SalesService
-@inject IStoreUserService StoreUserService
-@inject IStorePosService StorePosService
-@inject IProductService ProductService
-@inject IBusinessPartyService BusinessPartyService
-@inject IPaymentMethodService PaymentMethodService
+@inject POSViewModel ViewModel
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
-@inject ILogger<POS> Logger
-@inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
-<PageLoadingOverlay Visible="_isLoading" 
+<PageLoadingOverlay Visible="ViewModel.IsLoading" 
                     Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
@@ -40,25 +30,25 @@
     </MudText>
 
     <!-- POS Header -->
-    <POSHeader AvailableOperators="@_availableOperators"
-               SelectedOperatorId="@_selectedOperatorId"
-               SelectedOperatorIdChanged="@OnSelectedOperatorChangedAsync"
-               AvailablePos="@_availablePos"
-               SelectedPosId="@_selectedPosId"
-               SelectedPosIdChanged="@OnSelectedPosChangedAsync"
-               SelectedCustomer="@_selectedCustomer"
+    <POSHeader AvailableOperators="@ViewModel.AvailableOperators"
+               SelectedOperatorId="@ViewModel.SelectedOperatorId"
+               SelectedOperatorIdChanged="@((value) => ViewModel.SelectedOperatorId = value)"
+               AvailablePos="@ViewModel.AvailablePos"
+               SelectedPosId="@ViewModel.SelectedPosId"
+               SelectedPosIdChanged="@((value) => ViewModel.SelectedPosId = value)"
+               SelectedCustomer="@ViewModel.SelectedCustomer"
                SelectedCustomerChanged="@OnSelectedCustomerChangedAsync"
-               SessionNumber="@_currentSession?.Id"
-               IsSessionActive="@(_currentSession != null)"
-               IsUpdatingItems="@_isUpdatingItems"
+               SessionNumber="@ViewModel.CurrentSession?.Id"
+               IsSessionActive="@ViewModel.HasActiveSession"
+               IsUpdatingItems="@ViewModel.IsUpdatingItems"
                LoadingTooltipText="@GetLoadingTooltipText()"
                LoadingSpinnerColor="@GetLoadingSpinnerColor()"
-               SearchCustomers="@SearchCustomersAsync"
+               SearchCustomers="@ViewModel.SearchCustomersAsync"
                OnParkClick="@ParkSessionAsync"
                OnCancelClick="@CancelSessionAsync" />
 
     <!-- Keyboard Shortcuts Help Banner -->
-    @if (_currentSession != null)
+    @if (ViewModel.HasActiveSession)
     {
         <MudPaper Elevation="0" Class="pa-2 mb-2" Style="background: var(--mud-palette-background-grey);">
             <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
@@ -77,14 +67,14 @@
     <MudGrid Spacing="3">
         <!-- Left Column: Scanner + Products Table (70%) -->
         <MudItem xs="12" md="8">
-            @if (_currentSession != null)
+            @if (ViewModel.HasActiveSession)
             {
                 <!-- Barcode Scanner -->
                 <BarcodeScanner Title="@TranslationService.GetTranslation("sales.scanProduct", "Scansiona Prodotto")"
                                 Label="@TranslationService.GetTranslation("sales.barcode", "Codice a Barre")"
                                 HelperText="@TranslationService.GetTranslation("sales.scanOrTypeBarcode", "Scansiona o digita il codice a barre e premi Invio")"
                                 SearchButtonText="@TranslationService.GetTranslation("common.search", "Cerca")"
-                                IsDisabled="@(_currentSession == null)"
+                                IsDisabled="@(!ViewModel.HasActiveSession)"
                                 OnProductFound="@HandleProductFoundAsync"
                                 OnMultipleProductsFound="@HandleMultipleProductsFoundAsync"
                                 OnProductNotFound="@HandleProductNotFoundAsync"
@@ -92,7 +82,7 @@
 
                 <!-- Scan Mode Toggle -->
                 <MudPaper Elevation="2" Class="pa-3 mb-4">
-                    <MudRadioGroup @bind-Value="_scanMode">
+                    <MudRadioGroup @bind-Value="ViewModel.ScanMode">
                         <MudRadio T="ScanMode" Value="ScanMode.AddToCart" Color="Color.Primary">
                             <MudText>
                                 <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Size="Size.Small" Class="mr-1" />
@@ -109,13 +99,13 @@
                 </MudPaper>
 
                 <!-- Product Preview Card -->
-                @if (_lastScannedProduct != null)
+                @if (ViewModel.LastScannedProduct != null)
                 {
-                    <ProductPreviewCard Product="@_lastScannedProduct"
-                                        Code="@_lastScannedCode"
-                                        Mode="@_scanMode"
+                    <ProductPreviewCard Product="@ViewModel.LastScannedProduct"
+                                        Code="@ViewModel.LastScannedCode"
+                                        Mode="@ViewModel.ScanMode"
                                         OnAddToCart="@AddProductFromPreviewAsync"
-                                        OnClose="@ClearPreview"
+                                        OnClose="@(() => ViewModel.ClearPreview())"
                                         OnImageClick="@OpenImagePreviewAsync" />
                 }
 
@@ -124,12 +114,12 @@
                     <MudText Typo="Typo.h6" Class="mb-3">
                         <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-2" />
                         @TranslationService.GetTranslation("sales.items", "Articoli")
-                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">@_currentSession.Items.Count</MudChip>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">@ViewModel.ItemCount</MudChip>
                     </MudText>
 
-                    @if (_currentSession.Items.Any())
+                    @if (ViewModel.CurrentSession?.Items.Any() == true)
                     {
-                        <MudTable Items="@_currentSession.Items" Hover="true" Striped="true" Dense="true">
+                        <MudTable Items="@ViewModel.CurrentSession.Items" Hover="true" Striped="true" Dense="true">
                             <HeaderContent>
                                 <MudTh>@TranslationService.GetTranslation("products.code", "Codice")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("products.product", "Prodotto")</MudTh>
@@ -213,11 +203,11 @@
 
                 <!-- Main Action Button -->
                 <MudPaper Elevation="2" Class="pa-4">
-                    @if (_currentSession.Items.Any())
+                    @if (ViewModel.CurrentSession?.Items.Any() == true)
                     {
-                        @if (_currentSession.IsFullyPaid)
+                        @if (ViewModel.CurrentSession.IsFullyPaid)
                         {
-                            @if (_isSessionClosed)
+                            @if (ViewModel.IsSessionClosed)
                             {
                                 <!-- Post-closure: Print button -->
                                 <MudButton Color="Color.Primary"
@@ -252,10 +242,10 @@
                                        StartIcon="@Icons.Material.Filled.Payment"
                                        OnClick="@AddPaymentAsync">
                                 @TranslationService.GetTranslation("sales.addPayment", "AGGIUNGI PAGAMENTO") 
-                                @if (_currentSession.RemainingAmount > 0)
+                                @if (ViewModel.RemainingAmount > 0)
                                 {
                                     <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="ml-2">
-                                        @TranslationService.GetTranslation("sales.missing", "Mancano") @_currentSession.RemainingAmount.ToString("C")
+                                        @TranslationService.GetTranslation("sales.missing", "Mancano") @ViewModel.RemainingAmount.ToString("C")
                                     </MudChip>
                                 }
                             </MudButton>
@@ -277,11 +267,11 @@
             else
             {
                 <MudAlert Severity="Severity.Info">
-                    @if (!_selectedOperatorId.HasValue)
+                    @if (!ViewModel.SelectedOperatorId.HasValue)
                     {
                         @TranslationService.GetTranslation("sales.selectOperatorToStart", "Seleziona un operatore per iniziare")
                     }
-                    else if (!_selectedPosId.HasValue)
+                    else if (!ViewModel.SelectedPosId.HasValue)
                     {
                         @TranslationService.GetTranslation("sales.selectPosToStart", "Seleziona un POS per iniziare")
                     }
@@ -295,494 +285,60 @@
 
         <!-- Right Column: Receipt Preview (30%) -->
         <MudItem xs="12" md="4">
-            <POSReceipt SessionNumber="@_currentSession?.Id"
-                        Items="@_currentSession?.Items"
-                        Payments="@_currentSession?.Payments"
-                        Subtotal="@(_currentSession?.OriginalTotal ?? 0m)"
-                        TotalDiscount="@(_currentSession?.DiscountAmount ?? 0m)"
-                        TotalVat="@(_currentSession?.TaxAmount ?? 0m)"
-                        GrandTotal="@(_currentSession?.FinalTotal ?? 0m)" />
+            <POSReceipt SessionNumber="@ViewModel.CurrentSession?.Id"
+                        Items="@ViewModel.CurrentSession?.Items"
+                        Payments="@ViewModel.CurrentSession?.Payments"
+                        Subtotal="@(ViewModel.CurrentSession?.OriginalTotal ?? 0m)"
+                        TotalDiscount="@(ViewModel.CurrentSession?.DiscountAmount ?? 0m)"
+                        TotalVat="@(ViewModel.CurrentSession?.TaxAmount ?? 0m)"
+                        GrandTotal="@ViewModel.GrandTotal" />
         </MudItem>
     </MudGrid>
 </MudContainer>
 
 @code {
-    // State
-    private bool _isLoading = false;
-    private bool _isSessionClosed = false;
-
-    // Operator and POS
-    private List<StoreUserDto> _availableOperators = new();
-    private Guid? _selectedOperatorId;
-    private List<StorePosDto> _availablePos = new();
-    private Guid? _selectedPosId;
-
-    // Customer
-    private BusinessPartyDto? _selectedCustomer;
-
-    // Current Session
-    private SaleSessionDto? _currentSession;
-
-    // Payment Methods
-    private List<PaymentMethodDto> _paymentMethods = new();
-
-    // Scan mode and product preview
-    private ScanMode _scanMode = ScanMode.AddToCart;
-    private ProductDto? _lastScannedProduct;
-    private ProductCodeDto? _lastScannedCode;
-
-    // Debounce for item updates
-    private readonly HashSet<Guid> _pendingItemUpdates = new();
-    private System.Timers.Timer? _updateDebounceTimer;
-    private const int DebounceDelayMs = 500;
-    private bool _isUpdatingItems = false;
-
-    // Retry tracking
-    private int _currentRetryAttempt = 0;
-    private int _maxRetryAttempts = 3;
-    private int _manualRetryAttempts = 2; // Reduced retry count for manual retries
-    
-    // Page size for loading operators - matching OperatorManagement.razor pattern
-    private const int MaxOperatorsPageSize = 100;
-
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            _isLoading = true;
-            Logger.LogInformation("POS page initialization started");
+        // Subscribe to ViewModel events
+        ViewModel.StateChanged += StateHasChanged;
+        ViewModel.OnNotification += HandleNotification;
 
-            // Get current user from authentication
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            
-            string? username = null;
-            if (user.Identity?.IsAuthenticated == true)
-            {
-                username = user.Identity.Name;
-                Logger.LogDebug("Authenticated user: {Username}", username);
-            }
-            else
-            {
-                Logger.LogWarning("User not authenticated in POS page");
-            }
+        // Get current user
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var username = authState.User.Identity?.Name;
 
-            // Load data with explicit error handling - each call is independent
-            Logger.LogDebug("Loading operators, POS terminals, and payment methods...");
-            
-            // Load operators using GetPagedAsync (consistent with OperatorManagement.razor)
-            try 
-            {
-                var pagedResult = await StoreUserService.GetPagedAsync(1, MaxOperatorsPageSize);
-                _availableOperators = pagedResult?.Items?.ToList() ?? new List<StoreUserDto>();
-                Logger.LogInformation("Loaded {Count} operators", _availableOperators.Count);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error loading operators");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.loadOperatorsError", "Error loading operators"),
-                    Severity.Error
-                );
-                _availableOperators = new List<StoreUserDto>();
-            }
-            
-            // Load POS terminals with explicit error handling
-            try
-            {
-                var posResult = await StorePosService.GetActiveAsync();
-                _availablePos = posResult?.ToList() ?? new List<StorePosDto>();
-                Logger.LogInformation("Loaded {Count} POS terminals", _availablePos.Count);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error loading POS terminals");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.loadPosError", "Error loading POS terminals"),
-                    Severity.Error
-                );
-                _availablePos = new List<StorePosDto>();
-            }
-            
-            // Load payment methods with explicit error handling
-            try
-            {
-                var paymentMethodsResult = await PaymentMethodService.GetActiveAsync();
-                _paymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
-                Logger.LogInformation("Loaded {Count} payment methods", _paymentMethods.Count);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error loading payment methods");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.loadPaymentMethodsError", "Error loading payment methods"),
-                    Severity.Error
-                );
-                _paymentMethods = new List<PaymentMethodDto>();
-            }
-            
-            Logger.LogInformation("POS initialization complete: Operators={OperatorCount}, POS Count={PosCount}, Payment Methods={PaymentMethodsCount}",
-                _availableOperators.Count, _availablePos.Count, _paymentMethods.Count);
-
-            // Auto-select operator if user has matching StoreUser record
-            if (!string.IsNullOrEmpty(username) && _availableOperators.Count > 0)
-            {
-                var matchingOperator = _availableOperators.FirstOrDefault(op => 
-                    op.Username?.Equals(username, StringComparison.OrdinalIgnoreCase) == true);
-                
-                if (matchingOperator != null)
-                {
-                    _selectedOperatorId = matchingOperator.Id;
-                    Logger.LogDebug("Auto-selected operator {OperatorName} for user {Username}", 
-                        matchingOperator.Name, username);
-                }
-                else
-                {
-                    Logger.LogWarning("No matching StoreUser found for username {Username}", username);
-                }
-            }
-
-            // Auto-select POS if there is only one available
-            if (_selectedOperatorId.HasValue && _availablePos.Count == 1)
-            {
-                _selectedPosId = _availablePos[0].Id;
-                Logger.LogDebug("Auto-selected the only available POS: {PosName}", _availablePos[0].Name);
-            }
-
-            // Try to create session if both are selected
-            await TryCreateSessionAsync();
-
-            // Show warnings if resources are missing
-            if (_availableOperators.Count == 0)
-            {
-                Logger.LogWarning("No store operators available");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.noOperatorsAvailable", "Nessun operatore disponibile. Contatta l'amministratore."),
-                    Severity.Warning,
-                    config => config.VisibleStateDuration = 5000
-                );
-            }
-            
-            if (_availablePos.Count == 0)
-            {
-                Logger.LogWarning("No active POS terminals available");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.noPosAvailable", "Nessun POS attivo disponibile. Contatta l'amministratore."),
-                    Severity.Warning,
-                    config => config.VisibleStateDuration = 5000
-                );
-            }
-
-            // Check for suspended sessions (depends on above data)
-            await CheckForSuspendedSessionsAsync();
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            Logger.LogWarning(httpEx, "Unauthorized access during POS initialization");
-            await JSRuntime.InvokeVoidAsync("console.error", "POS: 401 Unauthorized - Token may be expired or invalid");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.unauthorized", "Accesso non autorizzato. Effettua nuovamente il login."),
-                Severity.Error
-            );
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
-        {
-            Logger.LogWarning(httpEx, "Forbidden access during POS initialization - possible tenant or license issue");
-            await JSRuntime.InvokeVoidAsync("console.error", "POS: 403 Forbidden - Tenant or license issue");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.forbidden", "Accesso negato. Verifica i permessi del tenant e la licenza."),
-                Severity.Error
-            );
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error initializing POS page");
-            await JSRuntime.InvokeVoidAsync("console.error", $"POS initialization error: {ex.Message}");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.initializationError", "Errore durante l'inizializzazione: {0}", ex.Message),
-                Severity.Error
-            );
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        // Initialize ViewModel
+        await ViewModel.InitializeAsync(username);
     }
 
-    protected override async Task OnParametersSetAsync()
+    private void HandleNotification(string message, bool isSuccess)
     {
-        // NOTE: Session creation is now handled in OnSelectedOperatorChangedAsync and OnSelectedPosChangedAsync
-        // This method is kept for potential future use with URL parameters
-        await base.OnParametersSetAsync();
-    }
-
-    private async Task TryCreateSessionAsync()
-    {
-        // Create session when both operator and POS are selected and no session exists
-        if (_selectedOperatorId.HasValue && _selectedPosId.HasValue && _currentSession == null)
-        {
-            await CreateNewSessionAsync();
-        }
-    }
-
-    private async Task OnSelectedOperatorChangedAsync(Guid? value)
-    {
-        _selectedOperatorId = value;
-        await TryCreateSessionAsync();
-        StateHasChanged();
-    }
-
-    private async Task OnSelectedPosChangedAsync(Guid? value)
-    {
-        _selectedPosId = value;
-        await TryCreateSessionAsync();
-        StateHasChanged();
-    }
-
-    private async Task OnSelectedCustomerChangedAsync(BusinessPartyDto? value)
-    {
-        _selectedCustomer = value;
-        
-        // If session exists, update it with the new customer
-        if (_currentSession != null && value != null)
-        {
-            try
-            {
-                var updateDto = new UpdateSaleSessionDto
-                {
-                    CustomerId = value.Id
-                };
-                // FIX: Non sovrascrivere _currentSession se il risultato è null
-                var updatedSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
-                if (updatedSession != null)
-                {
-                    _currentSession = updatedSession;
-                }
-                else
-                {
-                    Logger.LogWarning("UpdateSessionAsync returned null for session {SessionId}", _currentSession.Id);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error updating session with customer");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.updateCustomerError", "Errore nell'aggiornamento del cliente"),
-                    Severity.Error
-                );
-            }
-        }
-        
-        StateHasChanged();
-    }
-
-    private async Task CheckForSuspendedSessionsAsync()
-    {
-        try
-        {
-            Logger.LogDebug("Checking for suspended sessions...");
-            var allSessions = await SalesService.GetActiveSessionsAsync();
-            
-            if (allSessions == null)
-            {
-                Logger.LogWarning("GetActiveSessionsAsync returned null");
-                return;
-            }
-            
-            var suspendedSessions = allSessions
-                .Where(s => s.Status == SaleSessionStatusDto.Suspended)
-                .ToList();
-
-            Logger.LogDebug("Found {Count} suspended sessions", suspendedSessions.Count);
-
-            if (suspendedSessions.Any())
-            {
-                var parameters = new DialogParameters
-                {
-                    { "SuspendedSessions", suspendedSessions }
-                };
-
-                var dialog = await DialogService.ShowAsync<ResumeSessionDialog>(
-                    TranslationService.GetTranslation("sales.resumeSession", "Riprendi Sessione"),
-                    parameters,
-                    new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
-                );
-
-                var result = await dialog.Result;
-
-                if (!result.Canceled && result.Data is SaleSessionDto selectedSession)
-                {
-                    Logger.LogInformation("Resuming suspended session {SessionId}", selectedSession.Id);
-                    _currentSession = selectedSession;
-                    _selectedOperatorId = selectedSession.OperatorId;
-                    _selectedPosId = selectedSession.PosId;
-                    _selectedCustomer = selectedSession.CustomerId.HasValue 
-                        ? await BusinessPartyService.GetBusinessPartyAsync(selectedSession.CustomerId.Value) 
-                        : null;
-                }
-            }
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            Logger.LogWarning(httpEx, "Unauthorized error checking for suspended sessions");
-            await JSRuntime.InvokeVoidAsync("console.warn", "POS: 401 Unauthorized checking suspended sessions");
-            // Don't show error to user - this is optional functionality
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
-        {
-            Logger.LogWarning(httpEx, "Forbidden error checking for suspended sessions");
-            await JSRuntime.InvokeVoidAsync("console.warn", "POS: 403 Forbidden checking suspended sessions");
-            // Don't show error to user - this is optional functionality
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error checking for suspended sessions");
-            await JSRuntime.InvokeVoidAsync("console.error", $"POS: Error checking suspended sessions: {ex.Message}");
-            // Don't show error to user - this is optional functionality
-        }
-    }
-
-    private async Task CreateNewSessionAsync()
-    {
-        if (!_selectedPosId.HasValue || !_selectedOperatorId.HasValue)
-        {
-            Logger.LogWarning("Cannot create session: PosId={PosId}, OperatorId={OperatorId}", 
-                _selectedPosId, _selectedOperatorId);
-            return;
-        }
-
-        try
-        {
-            _isLoading = true;
-            Logger.LogInformation("Creating new sale session for POS {PosId}, Operator {OperatorId}", 
-                _selectedPosId.Value, _selectedOperatorId.Value);
-
-            var createDto = new CreateSaleSessionDto
-            {
-                OperatorId = _selectedOperatorId.Value,
-                PosId = _selectedPosId.Value,
-                CustomerId = _selectedCustomer?.Id,
-                SaleType = SaleTypes.Retail,
-                Currency = Currencies.EUR
-            };
-
-            _currentSession = await SalesService.CreateSessionAsync(createDto);
-            
-            if (_currentSession == null)
-            {
-                Logger.LogWarning("CreateSessionAsync returned null");
-                await JSRuntime.InvokeVoidAsync("console.error", "POS: Session creation returned null");
-                throw new InvalidOperationException("Failed to create session");
-            }
-            
-            _isSessionClosed = false;
-
-            Logger.LogInformation("Sale session created successfully: SessionId={SessionId}", _currentSession.Id);
-            await JSRuntime.InvokeVoidAsync("console.info", $"POS: Session {_currentSession.Id} created successfully");
-            
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.sessionCreated", "Sessione creata con successo"),
-                Severity.Success
-            );
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            Logger.LogWarning(httpEx, "Unauthorized when creating sale session");
-            await JSRuntime.InvokeVoidAsync("console.error", "POS: 401 Unauthorized creating session");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.unauthorized", "Accesso non autorizzato. Effettua nuovamente il login."),
-                Severity.Error
-            );
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
-        {
-            Logger.LogWarning(httpEx, "Forbidden when creating sale session");
-            await JSRuntime.InvokeVoidAsync("console.error", "POS: 403 Forbidden creating session");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.forbidden", "Accesso negato. Verifica i permessi del tenant e la licenza."),
-                Severity.Error
-            );
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error creating sale session");
-            await JSRuntime.InvokeVoidAsync("console.error", $"POS: Error creating session: {ex.Message}");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.sessionCreationError", "Errore durante la creazione della sessione: {0}", ex.Message),
-                Severity.Error
-            );
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        Snackbar.Add(message, isSuccess ? Severity.Success : Severity.Error);
     }
 
     private async Task HandleProductFoundAsync(ProductWithCodeDto productWithCode)
     {
-        if (_currentSession == null || productWithCode.Product == null)
+        if (!ViewModel.HasActiveSession || productWithCode.Product == null)
             return;
 
         // Store for preview
-        _lastScannedProduct = productWithCode.Product;
-        _lastScannedCode = productWithCode.Code;
+        ViewModel.LastScannedProduct = productWithCode.Product;
+        ViewModel.LastScannedCode = productWithCode.Code;
 
         // If mode is AddToCart, add immediately
-        if (_scanMode == ScanMode.AddToCart)
+        if (ViewModel.ScanMode == ScanMode.AddToCart)
         {
             await AddProductToCartAsync(productWithCode.Product);
         }
         // Otherwise just show preview (PriceCheckOnly mode)
-        
-        // FIX: Aggiornare UI per mostrare preview
-        StateHasChanged();
     }
 
     private async Task AddProductToCartAsync(ProductDto product)
     {
-        if (_currentSession == null || product == null) return;
-
-        try
+        var result = await ViewModel.AddProductAsync(product);
+        if (!result.Success && result.Error != null)
         {
-            var existingItem = _currentSession.Items.FirstOrDefault(i => i.ProductId == product.Id);
-
-            if (existingItem != null)
-            {
-                existingItem.Quantity++;
-                await UpdateItemAsync(existingItem);
-                Snackbar.Add($"✅ {TranslationService.GetTranslation("sales.quantityIncreased", "Quantità aumentata")}: {product.Name}", Severity.Success);
-            }
-            else
-            {
-                var addItemDto = new AddSaleItemDto
-                {
-                    ProductId = product.Id,
-                    Quantity = 1,
-                    UnitPrice = product.DefaultPrice ?? 0m,
-                    DiscountPercent = 0
-                };
-
-                var updatedSession = await SalesService.AddItemAsync(_currentSession.Id, addItemDto);
-                
-                if (updatedSession != null)
-                {
-                    _currentSession = updatedSession;
-                    await InvokeAsync(StateHasChanged);
-                    Snackbar.Add($"✅ {TranslationService.GetTranslation("sales.productAdded", "Prodotto aggiunto")}: {product.Name}", Severity.Success);
-                }
-                else
-                {
-                    Logger.LogWarning("AddItemAsync returned null, reloading session");
-                    await ReloadCurrentSessionAsync();
-                    Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta"), Severity.Error);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error adding product");
-            await ReloadCurrentSessionAsync();
-            Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.addProductError", "Errore durante l'aggiunta"), Severity.Error);
+            Snackbar.Add("❌ " + result.Error, Severity.Error);
         }
     }
 
@@ -814,33 +370,27 @@
 
     private async Task AddProductFromPreviewAsync()
     {
-        if (_lastScannedProduct != null)
+        if (ViewModel.LastScannedProduct != null)
         {
-            await AddProductToCartAsync(_lastScannedProduct);
+            await AddProductToCartAsync(ViewModel.LastScannedProduct);
         }
-    }
-
-    private void ClearPreview()
-    {
-        _lastScannedProduct = null;
-        _lastScannedCode = null;
     }
 
     private async Task OpenImagePreviewAsync()
     {
-        if (_lastScannedProduct == null)
+        if (ViewModel.LastScannedProduct == null)
             return;
 
         var parameters = new DialogParameters
         {
-            { "ImageUrl", _lastScannedProduct.ImageUrl },
-            { "ProductName", _lastScannedProduct.Name },
-            { "ProductCode", _lastScannedCode?.Code ?? _lastScannedProduct.Code },
-            { "Price", _lastScannedProduct.DefaultPrice }
+            { "ImageUrl", ViewModel.LastScannedProduct.ImageUrl },
+            { "ProductName", ViewModel.LastScannedProduct.Name },
+            { "ProductCode", ViewModel.LastScannedCode?.Code ?? ViewModel.LastScannedProduct.Code },
+            { "Price", ViewModel.LastScannedProduct.DefaultPrice }
         };
 
         await DialogService.ShowAsync<ImagePreviewDialog>(
-            _lastScannedProduct.Name,
+            ViewModel.LastScannedProduct.Name,
             parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium }
         );
@@ -891,32 +441,18 @@
 
     private Task HandleScanErrorAsync(Exception exception)
     {
-        Logger.LogError(exception, "Error during barcode scan");
         return Task.CompletedTask;
     }
 
-    private async Task<IEnumerable<BusinessPartyDto>> SearchCustomersAsync(string searchTerm, CancellationToken cancellationToken)
+    private async Task OnSelectedCustomerChangedAsync(BusinessPartyDto? customer)
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-            return Enumerable.Empty<BusinessPartyDto>();
-
-        try
-        {
-            var customers = await BusinessPartyService.SearchBusinessPartiesAsync(searchTerm, null, 50);
-            return customers ?? Enumerable.Empty<BusinessPartyDto>();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error searching customers");
-            return Enumerable.Empty<BusinessPartyDto>();
-        }
+        await ViewModel.UpdateSelectedCustomerAsync(customer);
     }
 
     private void IncreaseQuantityAsync(SaleItemDto item)
     {
         item.Quantity++;
-        QueueItemUpdate(item); // Use debounce to batch API calls
-        StateHasChanged();
+        ViewModel.QueueItemUpdate(item);
     }
 
     private void DecreaseQuantityAsync(SaleItemDto item)
@@ -924,206 +460,13 @@
         if (item.Quantity > 1)
         {
             item.Quantity--;
-            QueueItemUpdate(item); // Use debounce to batch API calls
-            StateHasChanged();
+            ViewModel.QueueItemUpdate(item);
         }
     }
 
-    private async Task UpdateItemAsync(SaleItemDto item)
+    private void QueueItemUpdate(SaleItemDto item)
     {
-        if (_currentSession == null) return;
-
-        try
-        {
-            _isUpdatingItems = true;
-            await InvokeAsync(StateHasChanged);
-
-            var updateDto = new UpdateSaleItemDto
-            {
-                Quantity = item.Quantity,
-                UnitPrice = item.UnitPrice,
-                DiscountPercent = item.DiscountPercent,
-                Notes = item.Notes
-            };
-
-            var updatedSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
-            
-            if (updatedSession != null)
-            {
-                _currentSession = updatedSession;
-                await InvokeAsync(StateHasChanged);
-            }
-            else
-            {
-                Logger.LogWarning("UpdateItemAsync returned null, reloading");
-                await ReloadCurrentSessionAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error updating item");
-            await ReloadCurrentSessionAsync();
-            Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.updateItemError", "Errore aggiornamento"), Severity.Error);
-        }
-        finally
-        {
-            _isUpdatingItems = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    /// <summary>
-    /// Reloads the current session from the server to ensure UI reflects server state.
-    /// Used for error recovery when API calls return null.
-    /// </summary>
-    private async Task<bool> ReloadCurrentSessionAsync()
-    {
-        if (_currentSession == null)
-        {
-            Logger.LogWarning("Cannot reload session: _currentSession is null");
-            return false;
-        }
-
-        try
-        {
-            Logger.LogInformation("Reloading session {SessionId} from server", _currentSession.Id);
-            
-            var reloadedSession = await SalesService.GetSessionAsync(_currentSession.Id);
-            
-            if (reloadedSession != null)
-            {
-                _currentSession = reloadedSession;
-                await InvokeAsync(StateHasChanged);
-                Logger.LogInformation("Session reloaded: {ItemCount} items", _currentSession.Items?.Count ?? 0);
-                return true;
-            }
-            
-            Logger.LogError("GetSessionAsync returned null");
-            return false;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to reload session");
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Updates an item with automatic retry logic for network failures.
-    /// Implements exponential backoff: 1s, 2s, 4s delays.
-    /// </summary>
-    private async Task UpdateItemWithRetryAsync(SaleItemDto item, int maxRetries = 3)
-    {
-        if (_currentSession == null)
-            return;
-
-        Exception? lastException = null;
-        int totalAttempts = maxRetries + 1; // maxRetries=3 means 4 total attempts (initial + 3 retries)
-
-        for (int attempt = 0; attempt < totalAttempts; attempt++)
-        {
-            try
-            {
-                // Update retry state for UI
-                _currentRetryAttempt = attempt;
-                StateHasChanged();
-
-                var updateDto = new UpdateSaleItemDto
-                {
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    DiscountPercent = item.DiscountPercent,
-                    Notes = item.Notes
-                };
-
-                // FIX: Non sovrascrivere _currentSession se il risultato è null
-                var updatedSession = await SalesService.UpdateItemAsync(_currentSession.Id, item.Id, updateDto);
-                
-                if (updatedSession != null)
-                {
-                    _currentSession = updatedSession;
-                    // Success - reset retry counter and return
-                    _currentRetryAttempt = 0;
-                    StateHasChanged();
-                    return;
-                }
-                else
-                {
-                    // Treat null response as a retryable error
-                    Logger.LogWarning("UpdateItemAsync returned null in retry attempt {Attempt}/{Total}", 
-                        attempt + 1, totalAttempts);
-                    if (attempt < maxRetries)
-                    {
-                        await HandleRetryableExceptionAsync(
-                            new InvalidOperationException("API returned null response"), 
-                            "Null response", attempt, totalAttempts);
-                        continue;
-                    }
-                    // If we're on the last attempt, fall through to show retry dialog
-                }
-            }
-            catch (HttpRequestException ex) when (attempt < maxRetries)
-            {
-                lastException = ex;
-                await HandleRetryableExceptionAsync(ex, "Network error", attempt, totalAttempts);
-            }
-            catch (TaskCanceledException ex) when (attempt < maxRetries)
-            {
-                lastException = ex;
-                await HandleRetryableExceptionAsync(ex, "Timeout", attempt, totalAttempts);
-            }
-            catch (Exception ex)
-            {
-                // Non-retryable error - fail immediately
-                _currentRetryAttempt = 0;
-                Logger.LogError(ex, "Non-retryable error updating item");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.updateItemError", "Errore durante l'aggiornamento"),
-                    Severity.Error
-                );
-                StateHasChanged();
-                return;
-            }
-        }
-
-        // All retries failed - show dialog
-        _currentRetryAttempt = 0;
-        StateHasChanged();
-        await ShowRetryDialogAsync(item, lastException);
-    }
-
-    /// <summary>
-    /// Shows a dialog when all automatic retries fail, offering manual retry or cancel.
-    /// </summary>
-    private async Task ShowRetryDialogAsync(SaleItemDto item, Exception? lastException)
-    {
-        var errorMessage = lastException?.Message ?? 
-            TranslationService.GetTranslation("errors.networkError", "Errore di rete");
-
-        var message = $"{TranslationService.GetTranslation("errors.updateItemRetryFailed", "Impossibile aggiornare l'articolo dopo diversi tentativi")}.\n\n{errorMessage}";
-
-        bool? result = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("errors.operationFailed", "Operazione Fallita"),
-            message,
-            yesText: TranslationService.GetTranslation("common.retry", "Riprova"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla")
-        );
-
-        if (result == true)
-        {
-            // User wants to retry - call with reduced retry count
-            Logger.LogInformation("User requested manual retry for item update");
-            await UpdateItemWithRetryAsync(item, maxRetries: _manualRetryAttempts);
-        }
-        else
-        {
-            // User canceled - log warning
-            Logger.LogWarning("User canceled item update after retry failure. Changes not saved.");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.changesNotSaved", "Modifiche non salvate"),
-                Severity.Warning
-            );
-        }
+        ViewModel.QueueItemUpdate(item);
     }
 
     private async Task EditItemNotesAsync(SaleItemDto item)
@@ -1144,15 +487,15 @@
         if (!result.Canceled && result.Data is string newNotes)
         {
             item.Notes = newNotes;
-            QueueItemUpdate(item); // Use debounce for notes too
+            ViewModel.QueueItemUpdate(item);
         }
     }
 
     private async Task RemoveItemAsync(SaleItemDto item)
     {
-        if (_currentSession == null) return;
+        if (!ViewModel.HasActiveSession) return;
 
-        // Conferma per articoli significativi
+        // Confirm removal for significant items
         if (item.Quantity > 1 || item.TotalAmount > 50)
         {
             bool? confirm = await DialogService.ShowMessageBox(
@@ -1167,35 +510,17 @@
             if (confirm != true) return;
         }
 
-        try
+        var result = await ViewModel.RemoveItemAsync(item);
+        if (!result.Success && result.Error != null)
         {
-            var updatedSession = await SalesService.RemoveItemAsync(_currentSession.Id, item.Id);
-            
-            if (updatedSession != null)
-            {
-                _currentSession = updatedSession;
-                await InvokeAsync(StateHasChanged);
-                Snackbar.Add(TranslationService.GetTranslation("sales.itemRemoved", "Articolo rimosso"), Severity.Info);
-            }
-            else
-            {
-                Logger.LogWarning("RemoveItemAsync returned null, reloading");
-                await ReloadCurrentSessionAsync();
-                Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"), Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error removing item");
-            await ReloadCurrentSessionAsync();
-            Snackbar.Add("❌ " + TranslationService.GetTranslation("errors.removeItemError", "Errore durante la rimozione"), Severity.Error);
+            Snackbar.Add("❌ " + result.Error, Severity.Error);
         }
     }
 
     private async Task AddPaymentAsync()
     {
         // Pre-validation checks
-        if (_currentSession == null)
+        if (!ViewModel.HasActiveSession)
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("errors.noActiveSession", "Nessuna sessione attiva"),
@@ -1204,7 +529,7 @@
             return;
         }
 
-        if (!_currentSession.Items.Any())
+        if (!ViewModel.CurrentSession!.Items.Any())
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("sales.addProductsFirst", "Aggiungi prodotti prima di pagare"),
@@ -1213,7 +538,7 @@
             return;
         }
 
-        if (_currentSession.IsFullyPaid)
+        if (ViewModel.CurrentSession.IsFullyPaid)
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("sales.billAlreadySettled", "Il conto è già saldato"),
@@ -1224,9 +549,9 @@
 
         var parameters = new DialogParameters
         {
-            { "TotalAmount", _currentSession.FinalTotal },
-            { "AlreadyPaid", _currentSession.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) },
-            { "PaymentMethods", _paymentMethods }
+            { "TotalAmount", ViewModel.CurrentSession.FinalTotal },
+            { "AlreadyPaid", ViewModel.CurrentSession.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) },
+            { "PaymentMethods", ViewModel.PaymentMethods }
         };
 
         var dialog = await DialogService.ShowAsync<PaymentDialog>(
@@ -1244,31 +569,13 @@
 
             foreach (var pendingPayment in paymentDialogResult.Payments)
             {
-                try
+                var paymentResult = await ViewModel.AddPaymentAsync(pendingPayment.Method, pendingPayment.Amount);
+                if (paymentResult.Success)
                 {
-                    var addPaymentDto = new AddSalePaymentDto
-                    {
-                        PaymentMethodId = pendingPayment.Method.Id,
-                        Amount = pendingPayment.Amount,
-                        Notes = pendingPayment.Notes
-                    };
-
-                    // FIX: Non sovrascrivere _currentSession se il risultato è null
-                    var updatedSession = await SalesService.AddPaymentAsync(_currentSession.Id, addPaymentDto);
-                    if (updatedSession != null)
-                    {
-                        _currentSession = updatedSession;
-                        successfulPayments++;
-                    }
-                    else
-                    {
-                        Logger.LogError("AddPaymentAsync returned null for session {SessionId}", _currentSession.Id);
-                        failedPayments++;
-                    }
+                    successfulPayments++;
                 }
-                catch (Exception ex)
+                else
                 {
-                    Logger.LogError(ex, "Error adding payment for method {MethodName}", pendingPayment.Method.Name);
                     failedPayments++;
                 }
             }
@@ -1295,106 +602,25 @@
 
     private async Task CloseSaleAsync()
     {
-        if (_currentSession == null || !_currentSession.IsFullyPaid)
-            return;
-
-        try
+        var result = await ViewModel.CloseSaleAsync();
+        if (!result.Success && result.Error != null)
         {
-            _isLoading = true;
-
-            // Flush pending updates before closing session to prevent data loss
-            await FlushPendingUpdatesAsync();
-
-            // FIX: Non sovrascrivere _currentSession se il risultato è null
-            var updatedSession = await SalesService.CloseSessionAsync(_currentSession.Id);
-            if (updatedSession != null)
-            {
-                _currentSession = updatedSession;
-                _isSessionClosed = true;
-
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.saleClosed", "Vendita completata con successo!"),
-                    Severity.Success
-                );
-
-                // Auto-prepare for new sale after a short delay
-                await Task.Delay(2000);
-                await PrepareNewSaleAsync();
-            }
-            else
-            {
-                Logger.LogError("CloseSessionAsync returned null for session {SessionId}", _currentSession.Id);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.closeSaleError", "Errore durante la chiusura della vendita"),
-                    Severity.Error
-                );
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error closing sale");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.closeSaleError", "Errore durante la chiusura della vendita"),
-                Severity.Error
-            );
-        }
-        finally
-        {
-            _isLoading = false;
+            Snackbar.Add(result.Error, Severity.Error);
         }
     }
 
     private async Task ParkSessionAsync()
     {
-        if (_currentSession == null)
-            return;
-
-        try
+        var result = await ViewModel.ParkSessionAsync();
+        if (!result.Success && result.Error != null)
         {
-            // Flush pending updates before parking session to prevent data loss
-            await FlushPendingUpdatesAsync();
-            
-            var updateDto = new UpdateSaleSessionDto
-            {
-                Status = SaleSessionStatusDto.Suspended,
-                CustomerId = _selectedCustomer?.Id
-            };
-
-            // FIX: Non sovrascrivere _currentSession se il risultato è null
-            var updatedSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
-            if (updatedSession != null)
-            {
-                _currentSession = updatedSession;
-
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.sessionParked", "Sessione parcheggiata"),
-                    Severity.Info
-                );
-
-                await PrepareNewSaleAsync();
-            }
-            else
-            {
-                Logger.LogError("UpdateSessionAsync returned null when parking session {SessionId}", _currentSession.Id);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.parkSessionError", "Errore durante il parcheggio della sessione"),
-                    Severity.Error
-                );
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error parking session");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.parkSessionError", "Errore durante il parcheggio della sessione"),
-                Severity.Error
-            );
+            Snackbar.Add(result.Error, Severity.Error);
         }
     }
 
     private async Task CancelSessionAsync()
     {
-        if (_currentSession == null)
+        if (!ViewModel.HasActiveSession)
             return;
 
         bool? confirm = await DialogService.ShowMessageBox(
@@ -1406,69 +632,23 @@
 
         if (confirm == true)
         {
-            try
+            var result = await ViewModel.CancelSessionAsync();
+            if (!result.Success && result.Error != null)
             {
-                // Flush pending updates before canceling session to prevent data loss
-                await FlushPendingUpdatesAsync();
-                
-                var updateDto = new UpdateSaleSessionDto
-                {
-                    Status = SaleSessionStatusDto.Cancelled
-                };
-
-                // FIX: Check for null response for consistency
-                var updatedSession = await SalesService.UpdateSessionAsync(_currentSession.Id, updateDto);
-                
-                if (updatedSession != null)
-                {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("sales.sessionCancelled", "Sessione annullata"),
-                        Severity.Info
-                    );
-
-                    await PrepareNewSaleAsync();
-                }
-                else
-                {
-                    Logger.LogError("UpdateSessionAsync returned null when cancelling session {SessionId}", _currentSession.Id);
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("errors.cancelSessionError", "Errore durante l'annullamento della sessione"),
-                        Severity.Error
-                    );
-                }
+                Snackbar.Add(result.Error, Severity.Error);
             }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error cancelling session");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.cancelSessionError", "Errore durante l'annullamento della sessione"),
-                    Severity.Error
-                );
-            }
-        }
-    }
-
-    private async Task PrepareNewSaleAsync()
-    {
-        _currentSession = null;
-        _selectedCustomer = null;
-        _isSessionClosed = false;
-
-        if (_selectedPosId.HasValue)
-        {
-            await CreateNewSessionAsync();
         }
     }
 
     private async Task PrintReceiptAsync()
     {
-        if (_currentSession == null)
+        if (!ViewModel.HasActiveSession)
             return;
 
         try
         {
             // Generate printable receipt content
-            var receiptContent = GenerateReceiptContent(_currentSession);
+            var receiptContent = GenerateReceiptContent(ViewModel.CurrentSession!);
 
             // Use browser print functionality
             await JSRuntime.InvokeVoidAsync("printReceipt", receiptContent);
@@ -1477,14 +657,9 @@
                 TranslationService.GetTranslation("sales.printingReceipt", "Stampa scontrino in corso..."),
                 Severity.Info
             );
-
-            // After printing, prepare for new sale
-            await Task.Delay(1000);
-            await PrepareNewSaleAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error printing receipt");
             Snackbar.Add(
                 TranslationService.GetTranslation("errors.printError", "Errore durante la stampa"),
                 Severity.Error
@@ -1587,124 +762,24 @@
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Queues an item update with debounce to avoid excessive API calls.
-    /// Multiple rapid changes are batched into a single API call after 500ms of inactivity.
-    /// </summary>
-    private void QueueItemUpdate(SaleItemDto item)
+    // UI Helper Methods
+    private string GetLoadingTooltipText()
     {
-        // Set loading state
-        _isUpdatingItems = true;
-        
-        // Add item ID to pending updates
-        _pendingItemUpdates.Add(item.Id);
-        
-        // Initialize timer on first use or reuse existing one
-        if (_updateDebounceTimer == null)
-        {
-            _updateDebounceTimer = new System.Timers.Timer(DebounceDelayMs);
-            _updateDebounceTimer.AutoReset = false;
-            
-            // When timer fires, update all pending items
-            _updateDebounceTimer.Elapsed += async (sender, e) =>
-            {
-                await InvokeAsync(async () =>
-                {
-                    try
-                    {
-                        // Get list of items to update
-                        var itemsToUpdate = _pendingItemUpdates.ToList();
-                        _pendingItemUpdates.Clear();
-                        
-                        // Build dictionary for O(1) lookup (use GroupBy in case of duplicates)
-                        var itemsDict = _currentSession?.Items
-                            .GroupBy(i => i.Id)
-                            .ToDictionary(g => g.Key, g => g.First());
-                        
-                        // Update each pending item
-                        if (itemsDict != null)
-                        {
-                            foreach (var itemId in itemsToUpdate)
-                            {
-                                if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
-                                {
-                                    await UpdateItemWithRetryAsync(itemToUpdate);
-                                }
-                            }
-                        }
-                        
-                        // Clear loading state after update completes
-                        _isUpdatingItems = false;
-                        StateHasChanged();
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, "Error in debounced update");
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("errors.updateError", "Errore durante l'aggiornamento"),
-                            Severity.Error
-                        );
-                        
-                        // Clear loading state on error
-                        _isUpdatingItems = false;
-                        StateHasChanged();
-                    }
-                });
-            };
-        }
-        
-        // Stop timer and restart it (resets the debounce window)
-        _updateDebounceTimer.Stop();
-        _updateDebounceTimer.Start();
-        
-        // Update UI immediately for responsive feel
-        StateHasChanged();
+        return TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...");
     }
 
-    /// <summary>
-    /// Forces immediate flush of all pending item updates.
-    /// Used before completing/canceling session to prevent data loss.
-    /// </summary>
-    private async Task FlushPendingUpdatesAsync()
+    private Color GetLoadingSpinnerColor()
     {
-        // Check if there are pending updates
-        if (_pendingItemUpdates.Count == 0 || _currentSession == null)
-            return;
-        
-        try
-        {
-            // Stop timer to prevent double execution
-            _updateDebounceTimer?.Stop();
+        return Color.Primary;
+    }
+
+    private string? GetSelectedOperatorName()
+    {
+        if (!ViewModel.SelectedOperatorId.HasValue || ViewModel.AvailableOperators == null || ViewModel.AvailableOperators.Count == 0)
+            return null;
             
-            // Get list of items to update
-            var itemsToUpdate = _pendingItemUpdates.ToList();
-            _pendingItemUpdates.Clear();
-            
-            // Build dictionary for O(1) lookup
-            var itemsDict = _currentSession.Items
-                .GroupBy(i => i.Id)
-                .ToDictionary(g => g.Key, g => g.First());
-            
-            // Update each pending item
-            foreach (var itemId in itemsToUpdate)
-            {
-                if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
-                {
-                    await UpdateItemWithRetryAsync(itemToUpdate);
-                }
-            }
-            
-            Logger.LogInformation($"Flushed {itemsToUpdate.Count} pending item updates before session action");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error flushing pending item updates");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.updateError", "Errore durante l'aggiornamento"),
-                Severity.Error
-            );
-            throw; // Re-throw to prevent session completion if updates fail
-        }
+        var selectedOperator = ViewModel.AvailableOperators.FirstOrDefault(op => op.Id == ViewModel.SelectedOperatorId.Value);
+        return selectedOperator?.Name;
     }
 
     // Keyboard shortcuts
@@ -1719,122 +794,46 @@
     [JSInvokable]
     public async Task HandleKeyboardShortcut(string key)
     {
-        if (_currentSession == null && key != "Escape")
+        if (!ViewModel.HasActiveSession && key != "Escape")
             return;
 
         switch (key)
         {
-            case "F2": // Pagamento
-                if (_currentSession?.Items.Any() == true && !_currentSession.IsFullyPaid)
+            case "F2": // Payment
+                if (ViewModel.CanPay)
                     await AddPaymentAsync();
                 break;
                 
-            case "F3": // Parcheggia
-                if (_currentSession != null)
+            case "F3": // Park
+                if (ViewModel.HasActiveSession)
                     await ParkSessionAsync();
                 break;
                 
-            case "F4": // Rimuovi ultimo articolo
-                if (_currentSession?.Items.LastOrDefault() is { } lastItem)
+            case "F4": // Remove last item
+                if (ViewModel.CurrentSession?.Items.LastOrDefault() is { } lastItem)
                     await RemoveItemAsync(lastItem);
                 break;
                 
-            case "F8": // Focus su scanner barcode (gestito in JS)
+            case "F8": // Focus on barcode scanner (handled in JS)
                 break;
                 
-            case "F12": // Chiudi vendita
-                if (_currentSession?.IsFullyPaid == true && !_isSessionClosed)
+            case "F12": // Close sale
+                if (ViewModel.CanCloseSale)
                     await CloseSaleAsync();
                 break;
                 
-            case "Escape": // Annulla sessione
-                if (_currentSession != null)
+            case "Escape": // Cancel session
+                if (ViewModel.HasActiveSession)
                     await CancelSessionAsync();
                 break;
         }
-        
-        await InvokeAsync(StateHasChanged);
-    }
-
-    // UI Helper Methods
-    /// <summary>
-    /// Gets the total number of attempts (initial + retries).
-    /// </summary>
-    private int GetTotalAttempts() => _maxRetryAttempts + 1;
-
-    /// <summary>
-    /// Gets the tooltip text for the loading spinner based on retry state.
-    /// </summary>
-    private string GetLoadingTooltipText()
-    {
-        if (_currentRetryAttempt > 0)
-        {
-            return TranslationService.GetTranslation(
-                "sales.retryAttempt", 
-                "Tentativo {0}/{1}...", 
-                _currentRetryAttempt + 1, 
-                GetTotalAttempts()
-            );
-        }
-        return TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...");
-    }
-
-    /// <summary>
-    /// Gets the color for the loading spinner based on retry state.
-    /// Blue during normal save, orange during retry.
-    /// </summary>
-    private Color GetLoadingSpinnerColor()
-    {
-        return _currentRetryAttempt > 0 ? Color.Warning : Color.Primary;
-    }
-
-    /// <summary>
-    /// Calculates the exponential backoff delay in milliseconds.
-    /// Returns: 1000ms (1s), 2000ms (2s), 4000ms (4s), etc.
-    /// </summary>
-    private int CalculateBackoffDelayMs(int attempt)
-    {
-        return (int)Math.Pow(2, attempt) * 1000;
-    }
-
-    /// <summary>
-    /// Handles retryable exceptions with exponential backoff and logging.
-    /// </summary>
-    private async Task HandleRetryableExceptionAsync(Exception ex, string errorType, int attempt, int totalAttempts)
-    {
-        var delayMs = CalculateBackoffDelayMs(attempt);
-        Logger.LogWarning(ex, $"{errorType} updating item (attempt {attempt + 1}/{totalAttempts}). Retrying in {delayMs}ms...");
-        await Task.Delay(delayMs);
-    }
-
-    /// <summary>
-    /// Gets the name of the currently selected operator
-    /// </summary>
-    private string? GetSelectedOperatorName()
-    {
-        if (!_selectedOperatorId.HasValue || _availableOperators == null || _availableOperators.Count == 0)
-            return null;
-            
-        var selectedOperator = _availableOperators.FirstOrDefault(op => op.Id == _selectedOperatorId.Value);
-        return selectedOperator?.Name;
     }
 
     // Dispose pattern
-    /// <summary>
-    /// Cleanup resources to prevent memory leaks
-    /// </summary>
     public void Dispose()
     {
-        // Stop and dispose timer to prevent memory leaks
-        if (_updateDebounceTimer != null)
-        {
-            _updateDebounceTimer.Stop();
-            _updateDebounceTimer.Dispose();
-            _updateDebounceTimer = null;
-        }
-
-        // Reset retry state
-        _currentRetryAttempt = 0;
-        _isUpdatingItems = false;
+        ViewModel.StateChanged -= StateHasChanged;
+        ViewModel.OnNotification -= HandleNotification;
+        ViewModel.Dispose();
     }
 }
