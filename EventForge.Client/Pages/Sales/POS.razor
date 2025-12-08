@@ -859,7 +859,6 @@
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
         );
 
-        await dialog.Result;
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data != null)
