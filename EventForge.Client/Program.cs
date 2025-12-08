@@ -131,6 +131,9 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorDetailViewModel>
 builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorGroupDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.PosDetailViewModel>();
 
+// POS ViewModel
+builder.Services.AddScoped<EventForge.Client.ViewModels.POSViewModel>();
+
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
 
