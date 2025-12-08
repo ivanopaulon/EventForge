@@ -97,7 +97,7 @@
                                 </div>
                                 <MudButton Variant="Variant.Text" 
                                            Color="Color.Primary" 
-                                           OnClick="@ApplyLookupData">
+                                           OnClick="@(async () => await ApplyLookupData())">
                                     @TranslationService.GetTranslation("vat.useData", "Usa questi dati")
                                 </MudButton>
                             </div>
@@ -286,7 +286,7 @@
         }
     }
 
-    private void ApplyLookupData()
+    private async Task ApplyLookupData()
     {
         if (_lookupResult == null || !_lookupResult.IsValid)
             return;
@@ -310,12 +310,18 @@
         if (!string.IsNullOrEmpty(_lookupResult.PostalCode))
             _addressZipCode = _lookupResult.PostalCode;
 
+        // Trigger form validation to enable the save button
+        if (_form != null)
+        {
+            await _form.Validate();
+            // Force UI update after validation
+            StateHasChanged();
+        }
+
         Snackbar.Add(
             TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo"),
             Severity.Success
         );
-        
-        StateHasChanged();
     }
 
     private async Task CreateCustomerAsync()
