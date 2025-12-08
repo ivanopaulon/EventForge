@@ -24,5 +24,13 @@ namespace EventForge.Client.Services
 
         // API Usage and Statistics
         Task<ApiUsageDto?> GetApiUsageAsync(Guid tenantId);
+
+        // Feature Template Management (SuperAdmin)
+        Task<IEnumerable<FeatureTemplateDto>> GetFeatureTemplatesAsync();
+        Task<FeatureTemplateDto?> GetFeatureTemplateAsync(Guid id);
+        Task<FeatureTemplateDto> CreateFeatureTemplateAsync(CreateFeatureTemplateDto dto);
+        Task<FeatureTemplateDto> UpdateFeatureTemplateAsync(Guid id, UpdateFeatureTemplateDto dto);
+        Task DeleteFeatureTemplateAsync(Guid id);
+        Task<FeatureTemplateDto> ToggleFeatureTemplateAvailabilityAsync(Guid id);
     }
 }

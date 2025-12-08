@@ -778,4 +778,343 @@ public class LicenseController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while retrieving available features", ex);
         }
     }
+
+    /// <summary>
+    /// Get all feature templates (admin view).
+    /// </summary>
+    /// <returns>List of all feature templates</returns>
+    /// <response code="200">Returns the list of feature templates</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpGet("feature-templates")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(IEnumerable<FeatureTemplateDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<FeatureTemplateDto>>> GetFeatureTemplates()
+    {
+        try
+        {
+            var templates = await _context.FeatureTemplates
+                .Where(ft => !ft.IsDeleted)
+                .OrderBy(ft => ft.Category)
+                .ThenBy(ft => ft.SortOrder)
+                .ThenBy(ft => ft.Name)
+                .Select(ft => new FeatureTemplateDto
+                {
+                    Id = ft.Id,
+                    Name = ft.Name,
+                    DisplayName = ft.DisplayName,
+                    Description = ft.Description,
+                    Category = ft.Category,
+                    MinimumTierLevel = ft.MinimumTierLevel,
+                    IsAvailable = ft.IsAvailable,
+                    SortOrder = ft.SortOrder,
+                    CreatedAt = ft.CreatedAt,
+                    CreatedBy = ft.CreatedBy ?? "system",
+                    ModifiedAt = ft.ModifiedAt,
+                    ModifiedBy = ft.ModifiedBy
+                })
+                .ToListAsync();
+
+            return Ok(templates);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving feature templates");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving feature templates", ex);
+        }
+    }
+
+    /// <summary>
+    /// Get a specific feature template by ID.
+    /// </summary>
+    /// <param name="id">Feature template ID</param>
+    /// <returns>Feature template details</returns>
+    /// <response code="200">Returns the feature template</response>
+    /// <response code="404">If the feature template is not found</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpGet("feature-templates/{id}")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(FeatureTemplateDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<FeatureTemplateDto>> GetFeatureTemplate(Guid id)
+    {
+        try
+        {
+            var template = await _context.FeatureTemplates
+                .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
+
+            if (template == null)
+            {
+                return NotFound($"Feature template with ID {id} not found");
+            }
+
+            var dto = new FeatureTemplateDto
+            {
+                Id = template.Id,
+                Name = template.Name,
+                DisplayName = template.DisplayName,
+                Description = template.Description,
+                Category = template.Category,
+                MinimumTierLevel = template.MinimumTierLevel,
+                IsAvailable = template.IsAvailable,
+                SortOrder = template.SortOrder,
+                CreatedAt = template.CreatedAt,
+                CreatedBy = template.CreatedBy ?? "system",
+                ModifiedAt = template.ModifiedAt,
+                ModifiedBy = template.ModifiedBy
+            };
+
+            return Ok(dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving feature template {Id}", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the feature template", ex);
+        }
+    }
+
+    /// <summary>
+    /// Create a new feature template.
+    /// </summary>
+    /// <param name="dto">Create feature template data</param>
+    /// <returns>Created feature template</returns>
+    /// <response code="201">Feature template created successfully</response>
+    /// <response code="400">If the data is invalid or feature name already exists</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpPost("feature-templates")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(FeatureTemplateDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<FeatureTemplateDto>> CreateFeatureTemplate([FromBody] CreateFeatureTemplateDto dto)
+    {
+        try
+        {
+            // Check if feature with same name already exists (excluding soft-deleted)
+            var exists = await _context.FeatureTemplates
+                .AnyAsync(ft => ft.Name == dto.Name && !ft.IsDeleted);
+
+            if (exists)
+            {
+                return BadRequest($"Feature template with name '{dto.Name}' already exists");
+            }
+
+            var template = new FeatureTemplate
+            {
+                Id = Guid.NewGuid(),
+                Name = dto.Name,
+                DisplayName = dto.DisplayName,
+                Description = dto.Description,
+                Category = dto.Category,
+                MinimumTierLevel = dto.MinimumTierLevel,
+                IsAvailable = dto.IsAvailable,
+                SortOrder = dto.SortOrder,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = User.Identity?.Name ?? "system",
+                TenantId = Guid.Empty
+            };
+
+            _context.FeatureTemplates.Add(template);
+            await _context.SaveChangesAsync();
+
+            var responseDto = new FeatureTemplateDto
+            {
+                Id = template.Id,
+                Name = template.Name,
+                DisplayName = template.DisplayName,
+                Description = template.Description,
+                Category = template.Category,
+                MinimumTierLevel = template.MinimumTierLevel,
+                IsAvailable = template.IsAvailable,
+                SortOrder = template.SortOrder,
+                CreatedAt = template.CreatedAt,
+                CreatedBy = template.CreatedBy ?? "system",
+                ModifiedAt = template.ModifiedAt,
+                ModifiedBy = template.ModifiedBy
+            };
+
+            _logger.LogInformation("Created feature template {FeatureName} ({FeatureId})", 
+                template.Name, template.Id);
+
+            return CreatedAtAction(nameof(GetFeatureTemplate), new { id = template.Id }, responseDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating feature template");
+            return CreateInternalServerErrorProblem("An error occurred while creating the feature template", ex);
+        }
+    }
+
+    /// <summary>
+    /// Update an existing feature template.
+    /// </summary>
+    /// <param name="id">Feature template ID</param>
+    /// <param name="dto">Update feature template data</param>
+    /// <returns>Updated feature template</returns>
+    /// <response code="200">Feature template updated successfully</response>
+    /// <response code="404">If the feature template is not found</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpPut("feature-templates/{id}")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(FeatureTemplateDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<FeatureTemplateDto>> UpdateFeatureTemplate(Guid id, [FromBody] UpdateFeatureTemplateDto dto)
+    {
+        try
+        {
+            var template = await _context.FeatureTemplates
+                .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
+
+            if (template == null)
+            {
+                return NotFound($"Feature template with ID {id} not found");
+            }
+
+            // Update properties
+            template.DisplayName = dto.DisplayName;
+            template.Description = dto.Description;
+            template.Category = dto.Category;
+            template.MinimumTierLevel = dto.MinimumTierLevel;
+            template.IsAvailable = dto.IsAvailable;
+            template.SortOrder = dto.SortOrder;
+            template.ModifiedAt = DateTime.UtcNow;
+            template.ModifiedBy = User.Identity?.Name ?? "system";
+
+            await _context.SaveChangesAsync();
+
+            var responseDto = new FeatureTemplateDto
+            {
+                Id = template.Id,
+                Name = template.Name,
+                DisplayName = template.DisplayName,
+                Description = template.Description,
+                Category = template.Category,
+                MinimumTierLevel = template.MinimumTierLevel,
+                IsAvailable = template.IsAvailable,
+                SortOrder = template.SortOrder,
+                CreatedAt = template.CreatedAt,
+                CreatedBy = template.CreatedBy ?? "system",
+                ModifiedAt = template.ModifiedAt,
+                ModifiedBy = template.ModifiedBy
+            };
+
+            _logger.LogInformation("Updated feature template {FeatureName} ({FeatureId})", 
+                template.Name, template.Id);
+
+            return Ok(responseDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating feature template {Id}", id);
+            return CreateInternalServerErrorProblem("An error occurred while updating the feature template", ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete (soft) a feature template.
+    /// </summary>
+    /// <param name="id">Feature template ID</param>
+    /// <returns>Success result</returns>
+    /// <response code="204">Feature template deleted successfully</response>
+    /// <response code="404">If the feature template is not found</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpDelete("feature-templates/{id}")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> DeleteFeatureTemplate(Guid id)
+    {
+        try
+        {
+            var template = await _context.FeatureTemplates
+                .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
+
+            if (template == null)
+            {
+                return NotFound($"Feature template with ID {id} not found");
+            }
+
+            // Soft delete
+            template.IsDeleted = true;
+            template.DeletedAt = DateTime.UtcNow;
+            template.DeletedBy = User.Identity?.Name ?? "system";
+            template.ModifiedAt = DateTime.UtcNow;
+            template.ModifiedBy = User.Identity?.Name ?? "system";
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted feature template {FeatureName} ({FeatureId})", 
+                template.Name, template.Id);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting feature template {Id}", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the feature template", ex);
+        }
+    }
+
+    /// <summary>
+    /// Toggle the availability of a feature template.
+    /// </summary>
+    /// <param name="id">Feature template ID</param>
+    /// <returns>Updated feature template</returns>
+    /// <response code="200">Feature template availability toggled successfully</response>
+    /// <response code="404">If the feature template is not found</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpPut("feature-templates/{id}/toggle-availability")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(FeatureTemplateDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<FeatureTemplateDto>> ToggleFeatureTemplateAvailability(Guid id)
+    {
+        try
+        {
+            var template = await _context.FeatureTemplates
+                .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
+
+            if (template == null)
+            {
+                return NotFound($"Feature template with ID {id} not found");
+            }
+
+            // Toggle availability
+            template.IsAvailable = !template.IsAvailable;
+            template.ModifiedAt = DateTime.UtcNow;
+            template.ModifiedBy = User.Identity?.Name ?? "system";
+
+            await _context.SaveChangesAsync();
+
+            var responseDto = new FeatureTemplateDto
+            {
+                Id = template.Id,
+                Name = template.Name,
+                DisplayName = template.DisplayName,
+                Description = template.Description,
+                Category = template.Category,
+                MinimumTierLevel = template.MinimumTierLevel,
+                IsAvailable = template.IsAvailable,
+                SortOrder = template.SortOrder,
+                CreatedAt = template.CreatedAt,
+                CreatedBy = template.CreatedBy ?? "system",
+                ModifiedAt = template.ModifiedAt,
+                ModifiedBy = template.ModifiedBy
+            };
+
+            _logger.LogInformation("Toggled feature template availability {FeatureName} ({FeatureId}) to {IsAvailable}", 
+                template.Name, template.Id, template.IsAvailable);
+
+            return Ok(responseDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling feature template availability {Id}", id);
+            return CreateInternalServerErrorProblem("An error occurred while toggling the feature template availability", ex);
+        }
+    }
 }
