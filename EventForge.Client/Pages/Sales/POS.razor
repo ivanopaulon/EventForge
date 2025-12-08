@@ -81,22 +81,7 @@
                                 OnError="@HandleScanErrorAsync" />
 
                 <!-- Scan Mode Toggle -->
-                <MudPaper Elevation="2" Class="pa-3 mb-4">
-                    <MudRadioGroup @bind-Value="ViewModel.ScanMode">
-                        <MudRadio T="ScanMode" Value="ScanMode.AddToCart" Color="Color.Primary">
-                            <MudText>
-                                <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Size="Size.Small" Class="mr-1" />
-                                @TranslationService.GetTranslation("sales.addToCart", "Aggiungi al conto")
-                            </MudText>
-                        </MudRadio>
-                        <MudRadio T="ScanMode" Value="ScanMode.PriceCheckOnly" Color="Color.Info">
-                            <MudText>
-                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Class="mr-1" />
-                                @TranslationService.GetTranslation("sales.priceCheckOnly", "Solo visualizza prezzo")
-                            </MudText>
-                        </MudRadio>
-                    </MudRadioGroup>
-                </MudPaper>
+                <POSScanModeToggle @bind-Value="ViewModel.ScanMode" />
 
                 <!-- Product Preview Card -->
                 @if (ViewModel.LastScannedProduct != null)
@@ -110,159 +95,21 @@
                 }
 
                 <!-- Products Table -->
-                <MudPaper Elevation="2" Class="pa-4 mb-4">
-                    <MudText Typo="Typo.h6" Class="mb-3">
-                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-2" />
-                        @TranslationService.GetTranslation("sales.items", "Articoli")
-                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">@ViewModel.ItemCount</MudChip>
-                    </MudText>
-
-                    @if (ViewModel.CurrentSession?.Items.Any() == true)
-                    {
-                        <MudTable Items="@ViewModel.CurrentSession.Items" Hover="true" Striped="true" Dense="true">
-                            <HeaderContent>
-                                <MudTh>@TranslationService.GetTranslation("products.code", "Codice")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("products.product", "Prodotto")</MudTh>
-                                <MudTh Style="text-align: center;">@TranslationService.GetTranslation("sales.quantity", "Quantità")</MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.price", "Prezzo")</MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.discount", "Sconto")</MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.total", "Totale")</MudTh>
-                                <MudTh Style="text-align: center;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd DataLabel="Code">@context.ProductCode</MudTd>
-                                <MudTd DataLabel="Product">@context.ProductName</MudTd>
-                                <MudTd DataLabel="Quantity" Style="text-align: center;">
-                                    <div class="d-flex align-center justify-center gap-1">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Remove" 
-                                                       Size="Size.Small" 
-                                                       OnClick="@(() => DecreaseQuantityAsync(context))"
-                                                       Disabled="@(context.Quantity <= 1)" />
-                                        <MudNumericField T="decimal"
-                                                         Value="@context.Quantity"
-                                                         ValueChanged="@((decimal val) => { context.Quantity = val; QueueItemUpdate(context); })"
-                                                         Min="1"
-                                                         HideSpinButtons="true"
-                                                         Style="width: 60px; text-align: center;"
-                                                         Variant="Variant.Text" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                       Size="Size.Small" 
-                                                       OnClick="@(() => IncreaseQuantityAsync(context))" />
-                                    </div>
-                                </MudTd>
-                                <MudTd DataLabel="Price" Style="text-align: right;">
-                                    <MudNumericField T="decimal"
-                                                     Value="@context.UnitPrice"
-                                                     ValueChanged="@((decimal val) => { context.UnitPrice = val; QueueItemUpdate(context); })"
-                                                     Format="N2"
-                                                     Min="0"
-                                                     HideSpinButtons="true"
-                                                     Style="width: 100px;"
-                                                     Variant="Variant.Text" />
-                                </MudTd>
-                                <MudTd DataLabel="Discount" Style="text-align: right;">
-                                    <div class="d-flex align-center justify-end gap-1">
-                                        <MudNumericField T="decimal"
-                                                         Value="@context.DiscountPercent"
-                                                         ValueChanged="@((decimal val) => { context.DiscountPercent = val; QueueItemUpdate(context); })"
-                                                         Format="N1"
-                                                         Min="0"
-                                                         Max="100"
-                                                         HideSpinButtons="true"
-                                                         Style="width: 60px;"
-                                                         Variant="Variant.Text" />
-                                        <MudText Typo="Typo.body2">%</MudText>
-                                    </div>
-                                </MudTd>
-                                <MudTd DataLabel="Total" Style="text-align: right;">
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">
-                                        @context.TotalAmount.ToString("C")
-                                    </MudText>
-                                </MudTd>
-                                <MudTd DataLabel="Actions" Style="text-align: center;">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                                   Size="Size.Small" 
-                                                   Color="Color.Primary"
-                                                   OnClick="@(() => EditItemNotesAsync(context))"
-                                                   Title="@TranslationService.GetTranslation("common.notes", "Note")" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                                   Size="Size.Small" 
-                                                   Color="Color.Error"
-                                                   OnClick="@(() => RemoveItemAsync(context))" />
-                                </MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    }
-                    else
-                    {
-                        <MudAlert Severity="Severity.Info" Dense="true">
-                            @TranslationService.GetTranslation("sales.emptyCart", "Nessun articolo nel carrello. Scansiona un prodotto per iniziare.")
-                        </MudAlert>
-                    }
-                </MudPaper>
+                <POSCartTable Items="@ViewModel.CurrentSession?.Items"
+                              OnQuantityChanged="@HandleQuantityChanged"
+                              OnPriceChanged="@HandlePriceChanged"
+                              OnDiscountChanged="@HandleDiscountChanged"
+                              OnEditNotes="@EditItemNotesAsync"
+                              OnRemoveItem="@RemoveItemAsync"
+                              OnIncreaseQuantity="@IncreaseQuantityAsync"
+                              OnDecreaseQuantity="@DecreaseQuantityAsync" />
 
                 <!-- Main Action Button -->
-                <MudPaper Elevation="2" Class="pa-4">
-                    @if (ViewModel.CurrentSession?.Items.Any() == true)
-                    {
-                        @if (ViewModel.CurrentSession.IsFullyPaid)
-                        {
-                            @if (ViewModel.IsSessionClosed)
-                            {
-                                <!-- Post-closure: Print button -->
-                                <MudButton Color="Color.Primary"
-                                           Variant="Variant.Filled"
-                                           FullWidth="true"
-                                           Size="Size.Large"
-                                           StartIcon="@Icons.Material.Filled.Print"
-                                           OnClick="@PrintReceiptAsync">
-                                    @TranslationService.GetTranslation("sales.printReceipt", "🖨️ STAMPA SCONTRINO")
-                                </MudButton>
-                            }
-                            else
-                            {
-                                <!-- Fully paid: Close sale -->
-                                <MudButton Color="Color.Success"
-                                           Variant="Variant.Filled"
-                                           FullWidth="true"
-                                           Size="Size.Large"
-                                           StartIcon="@Icons.Material.Filled.CheckCircle"
-                                           OnClick="@CloseSaleAsync">
-                                    @TranslationService.GetTranslation("sales.closeSale", "✅ CHIUDI VENDITA")
-                                </MudButton>
-                            }
-                        }
-                        else
-                        {
-                            <!-- Incomplete payment -->
-                            <MudButton Color="Color.Warning"
-                                       Variant="Variant.Filled"
-                                       FullWidth="true"
-                                       Size="Size.Large"
-                                       StartIcon="@Icons.Material.Filled.Payment"
-                                       OnClick="@AddPaymentAsync">
-                                @TranslationService.GetTranslation("sales.addPayment", "AGGIUNGI PAGAMENTO") 
-                                @if (ViewModel.RemainingAmount > 0)
-                                {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="ml-2">
-                                        @TranslationService.GetTranslation("sales.missing", "Mancano") @ViewModel.RemainingAmount.ToString("C")
-                                    </MudChip>
-                                }
-                            </MudButton>
-                        }
-                    }
-                    else
-                    {
-                        <!-- Empty cart -->
-                        <MudButton Color="Color.Default"
-                                   Variant="Variant.Filled"
-                                   FullWidth="true"
-                                   Size="Size.Large"
-                                   Disabled="true">
-                            @TranslationService.GetTranslation("sales.closeSale", "CHIUDI VENDITA")
-                        </MudButton>
-                    }
-                </MudPaper>
+                <POSActionButton Session="@ViewModel.CurrentSession"
+                                 IsSessionClosed="@ViewModel.IsSessionClosed"
+                                 OnAddPayment="@AddPaymentAsync"
+                                 OnCloseSale="@CloseSaleAsync"
+                                 OnPrintReceipt="@PrintReceiptAsync" />
             }
             else
             {
@@ -467,6 +314,24 @@
     private void QueueItemUpdate(SaleItemDto item)
     {
         ViewModel.QueueItemUpdate(item);
+    }
+
+    private void HandleQuantityChanged((SaleItemDto Item, decimal NewQuantity) args)
+    {
+        args.Item.Quantity = args.NewQuantity;
+        ViewModel.QueueItemUpdate(args.Item);
+    }
+
+    private void HandlePriceChanged((SaleItemDto Item, decimal NewPrice) args)
+    {
+        args.Item.UnitPrice = args.NewPrice;
+        ViewModel.QueueItemUpdate(args.Item);
+    }
+
+    private void HandleDiscountChanged((SaleItemDto Item, decimal NewDiscount) args)
+    {
+        args.Item.DiscountPercent = args.NewDiscount;
+        ViewModel.QueueItemUpdate(args.Item);
     }
 
     private async Task EditItemNotesAsync(SaleItemDto item)
