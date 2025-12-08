@@ -794,6 +794,7 @@ public class LicenseController : BaseApiController
         try
         {
             var templates = await _context.FeatureTemplates
+                .Where(ft => !ft.IsDeleted)
                 .OrderBy(ft => ft.Category)
                 .ThenBy(ft => ft.SortOrder)
                 .ThenBy(ft => ft.Name)
@@ -841,7 +842,7 @@ public class LicenseController : BaseApiController
         try
         {
             var template = await _context.FeatureTemplates
-                .FirstOrDefaultAsync(ft => ft.Id == id);
+                .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
 
             if (template == null)
             {
@@ -890,9 +891,9 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            // Check if feature with same name already exists
+            // Check if feature with same name already exists (excluding soft-deleted)
             var exists = await _context.FeatureTemplates
-                .AnyAsync(ft => ft.Name == dto.Name);
+                .AnyAsync(ft => ft.Name == dto.Name && !ft.IsDeleted);
 
             if (exists)
             {
@@ -964,7 +965,7 @@ public class LicenseController : BaseApiController
         try
         {
             var template = await _context.FeatureTemplates
-                .FirstOrDefaultAsync(ft => ft.Id == id);
+                .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
 
             if (template == null)
             {
@@ -1029,7 +1030,7 @@ public class LicenseController : BaseApiController
         try
         {
             var template = await _context.FeatureTemplates
-                .FirstOrDefaultAsync(ft => ft.Id == id);
+                .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
 
             if (template == null)
             {
@@ -1075,7 +1076,7 @@ public class LicenseController : BaseApiController
         try
         {
             var template = await _context.FeatureTemplates
-                .FirstOrDefaultAsync(ft => ft.Id == id);
+                .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
 
             if (template == null)
             {
