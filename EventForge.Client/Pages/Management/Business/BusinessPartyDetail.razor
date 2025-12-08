@@ -81,7 +81,7 @@
         <MudPaper Elevation="2" Class="pa-2">
             <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
                 <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
-                    <GeneralInfoTab Party="@_party" IsEditMode="@_isEditMode" IsNewParty="@_isCreateMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
+                    <GeneralInfoTab Party="@_party" IsEditMode="@_isEditMode" IsNewParty="@_isCreateMode" OnPartyUpdated="@HandlePartyLocallyChanged" OnAddressCreated="@HandleAddressCreated" />
                 </MudTabPanel>
 
                 @if (!_isCreateMode && _party != null)
@@ -253,6 +253,15 @@
     {
         _hasLocalChanges = true;
         StateHasChanged();
+    }
+
+    private async Task HandleAddressCreated()
+    {
+        // Refresh party to update address count
+        if (_party?.Id != Guid.Empty)
+        {
+            await LoadPartyAsync();
+        }
     }
 
     private string SerializeParty(BusinessPartyDto? p)

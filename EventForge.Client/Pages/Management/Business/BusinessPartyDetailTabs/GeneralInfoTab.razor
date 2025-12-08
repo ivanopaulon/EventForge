@@ -1,9 +1,11 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.External
+@using EventForge.DTOs.Common
 @using EventForge.Client.Services
 @using EventForge.Client.Services.External
 @inject ITranslationService TranslationService
 @inject IVatLookupService VatLookupService
+@inject IEntityManagementService EntityManagementService
 @inject ISnackbar Snackbar
 @inject ILogger<GeneralInfoTab> Logger
 
@@ -215,6 +217,7 @@
     [Parameter] public bool IsEditMode { get; set; } = true;
     [Parameter] public bool IsNewParty { get; set; } = false;
     [Parameter] public EventCallback OnPartyUpdated { get; set; }
+    [Parameter] public EventCallback OnAddressCreated { get; set; }
 
     // VAT lookup fields
     private bool _isLookingUp = false;
@@ -273,9 +276,90 @@
 
         NotifyUpdated();
 
-        Snackbar.Add(
-            TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo"),
-            Severity.Success
-        );
+        // Create address if party is already saved and we have address data
+        if (Party.Id != Guid.Empty && HasAddressData())
+        {
+            try
+            {
+                var address = new CreateAddressDto
+                {
+                    OwnerId = Party.Id,
+                    OwnerType = "BusinessParty",
+                    AddressType = AddressType.Legal,
+                    Street = _lookupResult.Street,
+                    City = _lookupResult.City,
+                    ZipCode = _lookupResult.PostalCode,
+                    Province = _lookupResult.Province,
+                    Country = GetCountryFromVatNumber(),
+                    Notes = TranslationService.GetTranslation("address.viesNotes", "Indirizzo da ricerca P.IVA VIES")
+                };
+
+                await EntityManagementService.CreateAddressAsync(address);
+                await OnAddressCreated.InvokeAsync();
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("vat.dataAndAddressApplied", "Dati e indirizzo applicati con successo"),
+                    Severity.Success
+                );
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error creating address from VAT lookup for party {PartyId}", Party.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("vat.dataAppliedAddressError", "Dati applicati, ma errore nella creazione dell'indirizzo"),
+                    Severity.Warning
+                );
+            }
+        }
+        else if (Party.Id == Guid.Empty && HasAddressData())
+        {
+            // Party is new (not yet saved)
+            Snackbar.Add(
+                TranslationService.GetTranslation("vat.dataAppliedSaveFirst", "Dati applicati. Salva prima il Business Party per creare l'indirizzo automaticamente."),
+                Severity.Info
+            );
+        }
+        else
+        {
+            // No address data available
+            Snackbar.Add(
+                TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo"),
+                Severity.Success
+            );
+        }
+    }
+
+    private bool HasAddressData()
+    {
+        return !string.IsNullOrEmpty(_lookupResult?.Street) ||
+               !string.IsNullOrEmpty(_lookupResult?.City) ||
+               !string.IsNullOrEmpty(_lookupResult?.PostalCode);
+    }
+
+    private string? GetCountryFromVatNumber()
+    {
+        // Extract country from VAT number prefix (e.g., "IT" from "IT12345678901")
+        if (!string.IsNullOrEmpty(Party.VatNumber) && Party.VatNumber.Length >= 2)
+        {
+            var prefix = Party.VatNumber[..2].ToUpperInvariant();
+            if (char.IsLetter(prefix[0]) && char.IsLetter(prefix[1]))
+            {
+                return prefix switch
+                {
+                    "IT" => "Italia",
+                    "DE" => "Germania",
+                    "FR" => "Francia",
+                    "ES" => "Spagna",
+                    "AT" => "Austria",
+                    "BE" => "Belgio",
+                    "NL" => "Paesi Bassi",
+                    "PT" => "Portogallo",
+                    "GR" => "Grecia",
+                    "PL" => "Polonia",
+                    _ => prefix
+                };
+            }
+        }
+        return _lookupResult?.CountryCode;
     }
 }
