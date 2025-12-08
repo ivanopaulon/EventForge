@@ -24,7 +24,6 @@
 
     private Task OnValueChanged(ScanMode newValue)
     {
-        Value = newValue;
         return ValueChanged.InvokeAsync(newValue);
     }
 }

@@ -31,7 +31,7 @@
                                        Disabled="@(context.Quantity <= 1)" />
                         <MudNumericField T="decimal"
                                          Value="@context.Quantity"
-                                         ValueChanged="@((decimal val) => OnQuantityChanged.InvokeAsync((context, val)))"
+                                         ValueChanged="@((decimal val) => HandleQuantityChanged(context, val))"
                                          Min="1"
                                          HideSpinButtons="true"
                                          Style="width: 60px; text-align: center;"
@@ -44,7 +44,7 @@
                 <MudTd DataLabel="Price" Style="text-align: right;">
                     <MudNumericField T="decimal"
                                      Value="@context.UnitPrice"
-                                     ValueChanged="@((decimal val) => OnPriceChanged.InvokeAsync((context, val)))"
+                                     ValueChanged="@((decimal val) => HandlePriceChanged(context, val))"
                                      Format="N2"
                                      Min="0"
                                      HideSpinButtons="true"
@@ -55,7 +55,7 @@
                     <div class="d-flex align-center justify-end gap-1">
                         <MudNumericField T="decimal"
                                          Value="@context.DiscountPercent"
-                                         ValueChanged="@((decimal val) => OnDiscountChanged.InvokeAsync((context, val)))"
+                                         ValueChanged="@((decimal val) => HandleDiscountChanged(context, val))"
                                          Format="N1"
                                          Min="0"
                                          Max="100"
@@ -101,4 +101,19 @@
     [Parameter] public EventCallback<SaleItemDto> OnRemoveItem { get; set; }
     [Parameter] public EventCallback<SaleItemDto> OnIncreaseQuantity { get; set; }
     [Parameter] public EventCallback<SaleItemDto> OnDecreaseQuantity { get; set; }
+
+    private Task HandleQuantityChanged(SaleItemDto item, decimal value)
+    {
+        return OnQuantityChanged.InvokeAsync((item, value));
+    }
+
+    private Task HandlePriceChanged(SaleItemDto item, decimal value)
+    {
+        return OnPriceChanged.InvokeAsync((item, value));
+    }
+
+    private Task HandleDiscountChanged(SaleItemDto item, decimal value)
+    {
+        return OnDiscountChanged.InvokeAsync((item, value));
+    }
 }
