@@ -419,8 +419,39 @@
 
     private async Task ManagePermissions(RoleDto role)
     {
-        _selectedRole = role;
-        await LoadPermissionsAsync();
+        var parameters = new DialogParameters
+        {
+            ["RoleId"] = role.Id,
+            ["RoleName"] = role.RoleName
+        };
+
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Large, 
+            FullWidth = true,
+            CloseButton = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<RolePermissionsDialog>(
+            TranslationService.GetTranslation("rolePermissions.manageTitle", "Gestisci Permessi - {0}", role.RoleName),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Reload role data to update permission count
+            await LoadRolesAsync();
+            
+            // If this role is currently selected, reload its permissions
+            if (_selectedRole?.Id == role.Id)
+            {
+                _selectedRole = role;
+                await LoadPermissionsAsync();
+            }
+        }
     }
 
     private async Task AddPermission()
