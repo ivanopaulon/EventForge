@@ -63,7 +63,7 @@
                                   MaxLength="20"
                                   Placeholder="IT12345678901"
                                   Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Numbers"
+                                  AdornmentIcon="@Icons.Material.Outlined.Business"
                                   HelperText="@TranslationService.GetTranslation("businessParty.vatNumberHelper", "Partita IVA (con o senza codice paese)")"
                                   @bind-Value:after="NotifyUpdated"
                                   Style="flex-grow: 1;" />
@@ -268,17 +268,13 @@
         if (!string.IsNullOrEmpty(_lookupResult.Name))
             Party.Name = _lookupResult.Name;
         
-        // The VAT number is already in the field from the search
-        // Optionally normalize it with the country code if needed
-        if (!string.IsNullOrEmpty(_lookupResult.VatNumber) && !string.IsNullOrEmpty(_lookupResult.CountryCode))
-        {
-            Party.VatNumber = $"{_lookupResult.CountryCode}{_lookupResult.VatNumber}";
-        }
+        // Keep the VAT number as entered by the user (already validated by VIES)
+        // It's already in Party.VatNumber from the input field
 
         NotifyUpdated();
 
         Snackbar.Add(
-            TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo. Gli indirizzi possono essere aggiunti nella scheda Indirizzi."),
+            TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo"),
             Severity.Success
         );
     }
