@@ -113,6 +113,13 @@ public class BootstrapService : IBootstrapService
                 return false;
             }
 
+            // Ensure FeatureTemplates are seeded
+            if (!await EnsureFeatureTemplatesSeededAsync(cancellationToken))
+            {
+                _logger.LogError("Failed to seed feature templates");
+                return false;
+            }
+
             // Check if SuperAdmin user already exists
             var superAdminUser = await _dbContext.Users
                 .FirstOrDefaultAsync(u => u.Username == "superadmin" || u.Email == "superadmin@localhost", cancellationToken);
@@ -345,5 +352,266 @@ public class BootstrapService : IBootstrapService
     public async Task<bool> SeedDefaultRolesAndPermissionsAsync(CancellationToken cancellationToken = default)
     {
         return await RolePermissionSeeder.SeedAsync(_dbContext, _logger, cancellationToken);
+    }
+
+    /// <summary>
+    /// Ensures FeatureTemplates catalog is seeded with default features.
+    /// </summary>
+    private async Task<bool> EnsureFeatureTemplatesSeededAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Checking FeatureTemplates seeding...");
+
+            var featureTemplates = new[]
+            {
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "BasicEventManagement",
+                    DisplayName = "Basic Event Management",
+                    Description = "Create and manage basic events",
+                    Category = "Events",
+                    MinimumTierLevel = 1,
+                    IsAvailable = true,
+                    SortOrder = 1,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "BasicTeamManagement",
+                    DisplayName = "Basic Team Management",
+                    Description = "Create and manage basic teams",
+                    Category = "Teams",
+                    MinimumTierLevel = 1,
+                    IsAvailable = true,
+                    SortOrder = 2,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "ProductManagement",
+                    DisplayName = "Product Management",
+                    Description = "Manage products, inventory, and pricing",
+                    Category = "Products",
+                    MinimumTierLevel = 1,
+                    IsAvailable = true,
+                    SortOrder = 3,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "DocumentManagement",
+                    DisplayName = "Document Management",
+                    Description = "Create and manage documents",
+                    Category = "Documents",
+                    MinimumTierLevel = 1,
+                    IsAvailable = true,
+                    SortOrder = 4,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "FinancialManagement",
+                    DisplayName = "Financial Management",
+                    Description = "Manage financial transactions and accounting",
+                    Category = "Finance",
+                    MinimumTierLevel = 2,
+                    IsAvailable = true,
+                    SortOrder = 5,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "AdvancedAnalytics",
+                    DisplayName = "Advanced Analytics",
+                    Description = "Access to advanced analytics and insights",
+                    Category = "Analytics",
+                    MinimumTierLevel = 2,
+                    IsAvailable = true,
+                    SortOrder = 6,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "ReportGeneration",
+                    DisplayName = "Report Generation",
+                    Description = "Generate custom reports",
+                    Category = "Reports",
+                    MinimumTierLevel = 2,
+                    IsAvailable = true,
+                    SortOrder = 7,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "SystemConfiguration",
+                    DisplayName = "System Configuration",
+                    Description = "Configure system settings",
+                    Category = "System",
+                    MinimumTierLevel = 2,
+                    IsAvailable = true,
+                    SortOrder = 8,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "UserManagement",
+                    DisplayName = "User Management",
+                    Description = "Manage users and their permissions",
+                    Category = "Administration",
+                    MinimumTierLevel = 1,
+                    IsAvailable = true,
+                    SortOrder = 9,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "TenantManagement",
+                    DisplayName = "Tenant Management",
+                    Description = "Manage tenants (SuperAdmin only)",
+                    Category = "Administration",
+                    MinimumTierLevel = 3,
+                    IsAvailable = true,
+                    SortOrder = 10,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "RetailManagement",
+                    DisplayName = "Retail Management",
+                    Description = "Manage retail operations",
+                    Category = "Retail",
+                    MinimumTierLevel = 2,
+                    IsAvailable = true,
+                    SortOrder = 11,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "StoreManagement",
+                    DisplayName = "Store Management",
+                    Description = "Manage multiple stores",
+                    Category = "Retail",
+                    MinimumTierLevel = 2,
+                    IsAvailable = true,
+                    SortOrder = 12,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "POSManagement",
+                    DisplayName = "POS Management",
+                    Description = "Point of Sale management",
+                    Category = "Retail",
+                    MinimumTierLevel = 1,
+                    IsAvailable = true,
+                    SortOrder = 13,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "PaymentProcessing",
+                    DisplayName = "Payment Processing",
+                    Description = "Process payments and transactions",
+                    Category = "Finance",
+                    MinimumTierLevel = 1,
+                    IsAvailable = true,
+                    SortOrder = 14,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "PrintingManagement",
+                    DisplayName = "Printing Management",
+                    Description = "Manage printing and receipt generation",
+                    Category = "System",
+                    MinimumTierLevel = 1,
+                    IsAvailable = true,
+                    SortOrder = 15,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new FeatureTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "APIIntegration",
+                    DisplayName = "API Integration",
+                    Description = "Access to API for integrations",
+                    Category = "Integration",
+                    MinimumTierLevel = 2,
+                    IsAvailable = true,
+                    SortOrder = 16,
+                    TenantId = Guid.Empty,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                }
+            };
+
+            // Check if features already exist
+            var existingFeatureCount = await _dbContext.FeatureTemplates.CountAsync(cancellationToken);
+            
+            if (existingFeatureCount == 0)
+            {
+                _logger.LogInformation("Seeding {Count} FeatureTemplates...", featureTemplates.Length);
+                await _dbContext.FeatureTemplates.AddRangeAsync(featureTemplates, cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("FeatureTemplates seeded successfully");
+            }
+            else
+            {
+                _logger.LogInformation("FeatureTemplates already seeded ({Count} features found)", existingFeatureCount);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error seeding FeatureTemplates");
+            return false;
+        }
     }
 }
