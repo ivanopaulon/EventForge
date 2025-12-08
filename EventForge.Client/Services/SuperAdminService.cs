@@ -8,6 +8,8 @@ namespace EventForge.Client.Services
         // Role Management
         Task<IEnumerable<RoleDto>> GetRolesAsync();
         Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId);
+        Task<IEnumerable<PermissionDto>> GetAllPermissionsAsync();
+        Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds);
 
         // Tenant Management
         Task<IEnumerable<TenantResponseDto>> GetTenantsAsync();
@@ -120,10 +122,46 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId)
         {
-            // Permissions endpoint not yet available
-            // Return empty list until backend implementation is ready
-            await Task.CompletedTask;
-            return new List<PermissionDto>();
+            try
+            {
+                var permissions = await _httpClientService.GetAsync<IEnumerable<PermissionDto>>(
+                    $"api/v1/user-management/roles/{roleId}/permissions");
+                return permissions ?? new List<PermissionDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving permissions for role {RoleId}", roleId);
+                return new List<PermissionDto>();
+            }
+        }
+
+        public async Task<IEnumerable<PermissionDto>> GetAllPermissionsAsync()
+        {
+            try
+            {
+                var permissions = await _httpClientService.GetAsync<IEnumerable<PermissionDto>>(
+                    "api/v1/user-management/permissions");
+                return permissions ?? new List<PermissionDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all permissions");
+                return new List<PermissionDto>();
+            }
+        }
+
+        public async Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds)
+        {
+            try
+            {
+                var dto = new UpdateRolePermissionsDto { PermissionIds = permissionIds };
+                await _httpClientService.PutAsync($"api/v1/user-management/roles/{roleId}/permissions", dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating permissions for role {RoleId}", roleId);
+                throw;
+            }
         }
 
         #endregion

@@ -140,6 +140,7 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<LicenseFeature> LicenseFeatures { get; set; }
     public DbSet<LicenseFeaturePermission> LicenseFeaturePermissions { get; set; }
     public DbSet<TenantLicense> TenantLicenses { get; set; }
+    public DbSet<FeatureTemplate> FeatureTemplates { get; set; }
 
     // System Configuration Entities
     public DbSet<SystemConfiguration> SystemConfigurations { get; set; }

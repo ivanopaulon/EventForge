@@ -783,4 +783,40 @@ public class LicenseController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while updating license features", ex);
         }
     }
+
+    /// <summary>
+    /// Get all available features from the master catalog.
+    /// </summary>
+    /// <returns>List of available features</returns>
+    /// <response code="200">Returns the list of available features</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpGet("available-features")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(IEnumerable<AvailableFeatureDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<AvailableFeatureDto>>> GetAvailableFeatures()
+    {
+        try
+        {
+            var templates = await _context.FeatureTemplates
+                .Where(ft => ft.IsAvailable)
+                .OrderBy(ft => ft.Category)
+                .ThenBy(ft => ft.SortOrder)
+                .Select(ft => new AvailableFeatureDto
+                {
+                    Name = ft.Name,
+                    DisplayName = ft.DisplayName,
+                    Description = ft.Description,
+                    Category = ft.Category
+                })
+                .ToListAsync();
+
+            return Ok(templates);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving available features");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving available features", ex);
+        }
+    }
 }
