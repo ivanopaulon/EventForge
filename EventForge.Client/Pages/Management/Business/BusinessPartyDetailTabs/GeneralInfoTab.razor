@@ -291,7 +291,7 @@
                     ZipCode = _lookupResult.PostalCode,
                     Province = _lookupResult.Province,
                     Country = GetCountryFromVatNumber(),
-                    Notes = "Indirizzo da ricerca P.IVA VIES"
+                    Notes = TranslationService.GetTranslation("address.viesNotes", "Indirizzo da ricerca P.IVA VIES")
                 };
 
                 await EntityManagementService.CreateAddressAsync(address);
@@ -341,7 +341,7 @@
         // Extract country from VAT number prefix (e.g., "IT" from "IT12345678901")
         if (!string.IsNullOrEmpty(Party.VatNumber) && Party.VatNumber.Length >= 2)
         {
-            var prefix = Party.VatNumber.Substring(0, 2).ToUpperInvariant();
+            var prefix = Party.VatNumber[..2].ToUpperInvariant();
             if (char.IsLetter(prefix[0]) && char.IsLetter(prefix[1]))
             {
                 return prefix switch
