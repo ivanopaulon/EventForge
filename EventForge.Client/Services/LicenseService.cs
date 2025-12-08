@@ -190,5 +190,88 @@ namespace EventForge.Client.Services
                 throw;
             }
         }
+
+        // Feature Template Management (SuperAdmin)
+        public async Task<IEnumerable<FeatureTemplateDto>> GetFeatureTemplatesAsync()
+        {
+            try
+            {
+                return await _httpClientService.GetAsync<IEnumerable<FeatureTemplateDto>>($"{BaseUrl}/feature-templates") 
+                    ?? Enumerable.Empty<FeatureTemplateDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting feature templates");
+                throw;
+            }
+        }
+
+        public async Task<FeatureTemplateDto?> GetFeatureTemplateAsync(Guid id)
+        {
+            try
+            {
+                return await _httpClientService.GetAsync<FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting feature template {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<FeatureTemplateDto> CreateFeatureTemplateAsync(CreateFeatureTemplateDto dto)
+        {
+            try
+            {
+                var result = await _httpClientService.PostAsync<CreateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates", dto);
+                return result ?? throw new InvalidOperationException("Failed to create feature template");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating feature template");
+                throw;
+            }
+        }
+
+        public async Task<FeatureTemplateDto> UpdateFeatureTemplateAsync(Guid id, UpdateFeatureTemplateDto dto)
+        {
+            try
+            {
+                var result = await _httpClientService.PutAsync<UpdateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}", dto);
+                return result ?? throw new InvalidOperationException("Failed to update feature template");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating feature template {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task DeleteFeatureTemplateAsync(Guid id)
+        {
+            try
+            {
+                await _httpClientService.DeleteAsync($"{BaseUrl}/feature-templates/{id}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting feature template {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<FeatureTemplateDto> ToggleFeatureTemplateAvailabilityAsync(Guid id)
+        {
+            try
+            {
+                var result = await _httpClientService.PutAsync<object, FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}/toggle-availability", new { });
+                return result ?? throw new InvalidOperationException("Failed to toggle feature template availability");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling feature template availability {Id}", id);
+                throw;
+            }
+        }
     }
 }
