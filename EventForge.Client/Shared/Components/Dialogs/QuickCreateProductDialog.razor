@@ -153,6 +153,7 @@
     private MudForm? _form;
     private ProductDto _model = new();
     private IEnumerable<VatRateDto>? _vatRates;
+    private ProductDto? _cachedExistingProduct = null; // Cache for complete product data
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,7 +161,28 @@
         
         if (IsEditMode && ExistingProduct != null)
         {
-            // Load existing product data
+            // OPTIMIZATION: Load and cache the complete product data once at initialization
+            Logger.LogInformation("Loading complete product data for ProductId {ProductId}", ProductId);
+            try
+            {
+                _cachedExistingProduct = await ProductService.GetProductByIdAsync(ProductId!.Value);
+                if (_cachedExistingProduct == null)
+                {
+                    Logger.LogError("Product {ProductId} not found during initialization", ProductId);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), 
+                        Severity.Error
+                    );
+                    return;
+                }
+                Logger.LogInformation("Cached complete product data for {ProductCode}", _cachedExistingProduct.Code);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading product {ProductId} during initialization", ProductId);
+            }
+            
+            // Load existing product data for display
             _model = new ProductDto
             {
                 Id = ExistingProduct.Id,
@@ -242,6 +264,31 @@
                 }
             }
 
+            Logger.LogInformation("Starting product update for ProductId {ProductId}", ProductId);
+
+            // OPTIMIZATION: Use cached product data if available, otherwise load from server
+            ProductDto? existingProduct = _cachedExistingProduct;
+            if (existingProduct == null)
+            {
+                Logger.LogInformation("Cached product not available, loading from server");
+                existingProduct = await ProductService.GetProductByIdAsync(ProductId!.Value);
+                if (existingProduct == null)
+                {
+                    Logger.LogError("Product {ProductId} not found when attempting to update", ProductId);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), 
+                        Severity.Error
+                    );
+                    return;
+                }
+            }
+            else
+            {
+                Logger.LogInformation("Using cached product data for update");
+            }
+
+            Logger.LogInformation("Loaded existing product {ProductCode} - {ProductName}", existingProduct.Code, existingProduct.Name);
+
             // Use Description as Name if Name is empty (simplified creation)
             if (string.IsNullOrWhiteSpace(_model.Name))
             {
@@ -250,21 +297,46 @@
                     : _model.Description ?? "Prodotto";
             }
 
-            // Update the product via API
+            // CRITICAL FIX: Create UpdateProductDto with ALL fields from existing product
+            // This preserves all values that are not modified in this quick edit dialog
             var updateDto = new UpdateProductDto
             {
+                // Fields modified in this dialog
                 Name = _model.Name,
                 Description = _model.Description,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,
                 IsVatIncluded = true, // Always true as per requirements
-                Status = _model.Status
+                Status = _model.Status,
+                
+                // FIXED: Preserve all other fields from existing product
+                ShortDescription = existingProduct.ShortDescription,
+                ImageUrl = existingProduct.ImageUrl,
+                ImageDocumentId = existingProduct.ImageDocumentId,
+                UnitOfMeasureId = existingProduct.UnitOfMeasureId,
+                CategoryNodeId = existingProduct.CategoryNodeId,
+                FamilyNodeId = existingProduct.FamilyNodeId,
+                GroupNodeId = existingProduct.GroupNodeId,
+                StationId = existingProduct.StationId,
+                BrandId = existingProduct.BrandId,
+                ModelId = existingProduct.ModelId,
+                PreferredSupplierId = existingProduct.PreferredSupplierId,
+                ReorderPoint = existingProduct.ReorderPoint,
+                SafetyStock = existingProduct.SafetyStock,
+                TargetStockLevel = existingProduct.TargetStockLevel,
+                AverageDailyDemand = existingProduct.AverageDailyDemand
             };
+
+            Logger.LogInformation("Updating product {ProductId} with DTO - Name: {Name}, Description: {Description}, Price: {Price}, VatRateId: {VatRateId}",
+                ProductId, updateDto.Name, updateDto.Description, updateDto.DefaultPrice, updateDto.VatRateId);
 
             var updatedProduct = await ProductService.UpdateProductAsync(ProductId!.Value, updateDto);
             
             if (updatedProduct != null)
             {
+                Logger.LogInformation("Product {ProductId} updated successfully - Name: {Name}, Description: {Description}",
+                    updatedProduct.Id, updatedProduct.Name, updatedProduct.Description);
+                
                 Snackbar.Add(
                     TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), 
                     Severity.Success
@@ -275,6 +347,7 @@
             }
             else
             {
+                Logger.LogError("Product update returned null for ProductId {ProductId}", ProductId);
                 Snackbar.Add(
                     TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto"), 
                     Severity.Error
@@ -283,7 +356,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error updating product");
+            Logger.LogError(ex, "Error updating product {ProductId}: {Message}", ProductId, ex.Message);
             Snackbar.Add(
                 TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto: {0}", ex.Message), 
                 Severity.Error
