@@ -1,0 +1,574 @@
+@page "/superadmin/feature-templates"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Licensing
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject ILicenseService LicenseService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<FeatureTemplateManagement> Logger
+
+<PageLoadingOverlay Visible="_isLoading || _isLoadingEntities"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="license-page-root">
+        <div class="license-top">
+            <ManagementDashboard TItem="FeatureTemplateDto"
+                                 Items="_filteredTemplates"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="FeatureTemplate"
+                                 AllowConfiguration="false"
+                                 UseServerSide="false" />
+        </div>
+
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                     TItem="FeatureTemplateDto"
+                     Items="_filteredTemplates"
+                     IsLoading="_isLoadingEntities"
+                     ComponentKey="FeatureTemplateManagement"
+                     InitialColumnConfigurations="_initialColumns">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h5">
+                        @TranslationService.GetTranslation("superAdmin.featureTemplateManagement", "Gestione Feature Templates")
+                    </MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("featureTemplate.search", "Cerca features")"
+                                  Placeholder="@TranslationService.GetTranslation("featureTemplate.searchPlaceholder", "Inserisci nome...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Class="ef-input" />
+                    <MudSelect T="string" @bind-Value="_categoryFilter" @bind-Value:after="OnCategoryFilterChanged"
+                               Label="@TranslationService.GetTranslation("featureTemplate.category", "Categoria")"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               Class="ef-input"
+                               Style="min-width: 180px;">
+                        <MudSelectItem Value="@((string)null)">@TranslationService.GetTranslation("filter.all", "Tutti")</MudSelectItem>
+                        @foreach (var category in _categories)
+                        {
+                            <MudSelectItem Value="@category">@category</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSwitch T="bool?" @bind-Value="_availabilityFilter" @bind-Value:after="OnAvailabilityFilterChanged"
+                               Label="@TranslationService.GetTranslation("status.availableOnly", "Solo Disponibili")"
+                               Color="Color.Success"
+                               ThumbIcon="@(_availabilityFilter == true ? Icons.Material.Filled.Done : null)" />
+                    <ManagementTableToolbar ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowExport="false"
+                                            CreateTooltip="featureTemplate.createNew"
+                                            IsDisabled="_isLoadingEntities"
+                                            OnRefresh="@LoadFeatureTemplates"
+                                            OnCreate="@CreateFeatureTemplate" />
+                </ToolBarContent>
+                <HeaderContent Context="columnConfigurations">
+                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                    {
+                        @if (column.PropertyName == "Name")
+                        {
+                            <EFTableColumnHeader TItem="FeatureTemplateDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<FeatureTemplateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "DisplayName")
+                        {
+                            <EFTableColumnHeader TItem="FeatureTemplateDto" PropertyName="DisplayName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<FeatureTemplateDto, object>(x => x.DisplayName))">@TranslationService.GetTranslation("field.displayName", "Nome Visualizzato")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Category")
+                        {
+                            <EFTableColumnHeader TItem="FeatureTemplateDto" PropertyName="Category" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<FeatureTemplateDto, object>(x => x.Category))">@TranslationService.GetTranslation("featureTemplate.category", "Categoria")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "MinimumTierLevel")
+                        {
+                            <EFTableColumnHeader TItem="FeatureTemplateDto" PropertyName="MinimumTierLevel" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<FeatureTemplateDto, object>(x => x.MinimumTierLevel))">@TranslationService.GetTranslation("featureTemplate.minimumTierLevel", "Tier Minimo")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "IsAvailable")
+                        {
+                            <EFTableColumnHeader TItem="FeatureTemplateDto" PropertyName="IsAvailable" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<FeatureTemplateDto, object>(x => x.IsAvailable))">@TranslationService.GetTranslation("field.status", "Disponibile")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "SortOrder")
+                        {
+                            <EFTableColumnHeader TItem="FeatureTemplateDto" PropertyName="SortOrder" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<FeatureTemplateDto, object>(x => x.SortOrder))">@TranslationService.GetTranslation("field.sortOrder", "Ordine")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Actions")
+                        {
+                            <EFTableColumnHeader TItem="FeatureTemplateDto" PropertyName="Actions" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel T="FeatureTemplateDto" Enabled="false">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                    }
+                </HeaderContent>
+
+                <RowTemplate Context="item">
+                    @foreach (var column in _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                    {
+                        @if (column.PropertyName == "Name")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                <div class="d-flex align-center">
+                                    <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                        <MudIcon Icon="@Icons.Material.Outlined.FeaturedPlayList" Size="Size.Small" />
+                                    </MudAvatar>
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@item.Name</MudText>
+                                    </div>
+                                </div>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "DisplayName")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.displayName", "Nome Visualizzato")">
+                                <MudText Typo="Typo.body2">@item.DisplayName</MudText>
+                                @if (!string.IsNullOrEmpty(item.Description))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.Description</MudText>
+                                }
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Category")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("featureTemplate.category", "Categoria")">
+                                <MudChip T="string" Size="Size.Small" Color="@GetCategoryColor(item.Category)">@item.Category</MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "MinimumTierLevel")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("featureTemplate.minimumTierLevel", "Tier Minimo")">
+                                <MudChip T="string" Size="Size.Small" Color="@GetTierColor(item.MinimumTierLevel)" Icon="@Icons.Material.Outlined.Star">
+                                    Tier @item.MinimumTierLevel
+                                </MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "IsAvailable")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Disponibile")">
+                                <MudSwitch T="bool" Value="@item.IsAvailable"
+                                           Color="Color.Success"
+                                           ValueChanged="@(async (bool value) => await ToggleAvailability(item))"
+                                           Disabled="@_isLoadingEntities" />
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "SortOrder")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.sortOrder", "Ordine")">
+                                <MudText Typo="Typo.body2">@item.SortOrder</MudText>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Actions")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                                <ActionButtonGroup Mode="ActionButtonGroupMode.Row"
+                                                   ShowEdit="true"
+                                                   ShowDelete="true"
+                                                   OnEdit="@(() => EditFeatureTemplate(item))"
+                                                   OnDelete="@(() => DeleteFeatureTemplate(item))" />
+                            </MudTd>
+                        }
+                    }
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                        <MudIcon Icon="@Icons.Material.Outlined.FeaturedPlayList" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                        <MudText Typo="Typo.h6" Class="mb-2">
+                            @(_templates.Any() ? 
+                                TranslationService.GetTranslation("featureTemplate.noFilteredTemplates", "Nessuna feature corrisponde ai filtri applicati") : 
+                                TranslationService.GetTranslation("featureTemplate.noTemplates", "Nessuna feature trovata"))
+                        </MudText>
+                        @if (_templates.Any())
+                        {
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Primary" 
+                                       StartIcon="@Icons.Material.Outlined.Clear"
+                                       OnClick="@ClearFilters">
+                                @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                            </MudButton>
+                        }
+                    </div>
+                </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
+
+@code {
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingEntities = false;
+
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private bool? _availabilityFilter = null;
+    private string? _categoryFilter = null;
+
+    // Data collections
+    private List<FeatureTemplateDto> _templates = new();
+    private List<string> _categories = new();
+
+    // EFTable reference
+    private EFTable<FeatureTemplateDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "DisplayName", DisplayName = "Nome Visualizzato", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Category", DisplayName = "Categoria", IsVisible = true, Order = 2 },
+        new() { PropertyName = "MinimumTierLevel", DisplayName = "Tier Minimo", IsVisible = true, Order = 3 },
+        new() { PropertyName = "IsAvailable", DisplayName = "Disponibile", IsVisible = true, Order = 4 },
+        new() { PropertyName = "SortOrder", DisplayName = "Ordine", IsVisible = true, Order = 5 },
+        new() { PropertyName = "Actions", DisplayName = "Azioni", IsVisible = true, Order = 6 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<FeatureTemplateDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Features",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.FeaturedPlayList,
+            Color = "primary",
+            Description = "Numero totale di feature templates",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Features Disponibili",
+            Type = MetricType.Count,
+            Filter = f => f.IsAvailable,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Features attualmente disponibili",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Categorie",
+            Type = MetricType.Count,
+            Filter = f => !string.IsNullOrEmpty(f.Category),
+            Icon = Icons.Material.Outlined.Category,
+            Color = "info",
+            Description = "Numero di categorie",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Tier Medio",
+            Type = MetricType.Average,
+            ValueSelector = f => f.MinimumTierLevel,
+            Icon = Icons.Material.Outlined.Star,
+            Color = "warning",
+            Description = "Tier medio richiesto",
+            Format = "N1"
+        }
+    };
+
+    /// <summary>
+    /// Computed property for filtered feature templates based on search criteria.
+    /// </summary>
+    private IEnumerable<FeatureTemplateDto> _filteredTemplates => 
+        _templates.Where(t => 
+            // Search filter
+            (string.IsNullOrEmpty(_searchTerm) || 
+             t.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             t.DisplayName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (t.Description != null && t.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+            // Availability filter
+            (!_availabilityFilter.HasValue || t.IsAvailable == _availabilityFilter.Value) &&
+            // Category filter
+            (string.IsNullOrEmpty(_categoryFilter) || t.Category == _categoryFilter));
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // SuperAdmin role verification
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            // Load feature templates
+            await LoadFeatureTemplates();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading feature template management page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads feature template data.
+    /// </summary>
+    private async Task LoadFeatureTemplates()
+    {
+        try
+        {
+            _isLoadingEntities = true;
+            var templates = await LicenseService.GetFeatureTemplatesAsync();
+            _templates = templates.ToList();
+            
+            // Extract unique categories
+            _categories = _templates
+                .Select(t => t.Category)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento delle feature templates: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading feature templates");
+        }
+        finally
+        {
+            _isLoadingEntities = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _availabilityFilter = null;
+        _categoryFilter = null;
+        StateHasChanged();
+    }
+
+    private void OnSearchChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void OnAvailabilityFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void OnCategoryFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    private Color GetTierColor(int tierLevel)
+    {
+        return tierLevel switch
+        {
+            1 => Color.Secondary,
+            2 => Color.Info,
+            3 => Color.Primary,
+            4 => Color.Success,
+            >= 5 => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetCategoryColor(string category)
+    {
+        // Simple hash-based color assignment for consistency
+        var hash = category.GetHashCode();
+        var colors = new[] { Color.Primary, Color.Secondary, Color.Tertiary, Color.Info, Color.Success };
+        return colors[Math.Abs(hash % colors.Length)];
+    }
+
+    private async Task CreateFeatureTemplate()
+    {
+        var parameters = new DialogParameters
+        {
+            ["IsEditMode"] = false,
+            ["Template"] = null
+        };
+
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<FeatureTemplateDialog>(
+            TranslationService.GetTranslation("featureTemplate.createNew", "Nuova Feature Template"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is FeatureTemplateDto newTemplate)
+        {
+            _templates.Add(newTemplate);
+            _templates = _templates.OrderBy(t => t.Category).ThenBy(t => t.SortOrder).ToList();
+            
+            // Update categories if new one was added
+            if (!_categories.Contains(newTemplate.Category))
+            {
+                _categories.Add(newTemplate.Category);
+                _categories = _categories.OrderBy(c => c).ToList();
+            }
+            
+            Snackbar.Add(TranslationService.GetTranslation("featureTemplate.created", "Feature template creata con successo!"), Severity.Success);
+            StateHasChanged();
+        }
+    }
+
+    private async Task EditFeatureTemplate(FeatureTemplateDto template)
+    {
+        var parameters = new DialogParameters
+        {
+            ["IsEditMode"] = true,
+            ["Template"] = template
+        };
+
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<FeatureTemplateDialog>(
+            TranslationService.GetTranslation("featureTemplate.edit", "Modifica Feature Template"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is FeatureTemplateDto updatedTemplate)
+        {
+            var index = _templates.FindIndex(t => t.Id == updatedTemplate.Id);
+            if (index >= 0)
+            {
+                _templates[index] = updatedTemplate;
+                _templates = _templates.OrderBy(t => t.Category).ThenBy(t => t.SortOrder).ToList();
+                
+                // Update categories
+                _categories = _templates
+                    .Select(t => t.Category)
+                    .Distinct()
+                    .OrderBy(c => c)
+                    .ToList();
+                
+                Snackbar.Add(TranslationService.GetTranslation("featureTemplate.updated", "Feature template aggiornata con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task DeleteFeatureTemplate(FeatureTemplateDto template)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("featureTemplate.confirmDelete", 
+            "Sei sicuro di voler eliminare la feature template '{0}'? Questa azione non può essere annullata.", 
+            template.DisplayName);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await LicenseService.DeleteFeatureTemplateAsync(template.Id);
+                _templates.Remove(template);
+                
+                // Update categories
+                _categories = _templates
+                    .Select(t => t.Category)
+                    .Distinct()
+                    .OrderBy(c => c)
+                    .ToList();
+                
+                Snackbar.Add(TranslationService.GetTranslation("featureTemplate.deleted", "Feature template eliminata con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("error.deleteFailed", 
+                    "Errore nell'eliminazione della feature template: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting feature template {TemplateId}", template.Id);
+            }
+        }
+    }
+
+    private async Task ToggleAvailability(FeatureTemplateDto template)
+    {
+        try
+        {
+            var updatedTemplate = await LicenseService.ToggleFeatureTemplateAvailabilityAsync(template.Id);
+            
+            var index = _templates.FindIndex(t => t.Id == template.Id);
+            if (index >= 0)
+            {
+                _templates[index] = updatedTemplate;
+                Snackbar.Add(TranslationService.GetTranslation("featureTemplate.availabilityToggled", 
+                    "Disponibilità aggiornata con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.updateFailed", 
+                "Errore nell'aggiornamento della disponibilità: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error toggling feature template availability {TemplateId}", template.Id);
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
+        }
+    }
+}

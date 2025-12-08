@@ -1,0 +1,210 @@
+@using MudBlazor
+@using EventForge.DTOs.Licensing
+@inject ILicenseService LicenseService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<FeatureTemplateDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_name"
+                                 Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 MaxLength="100"
+                                 ReadOnly="@IsEditMode"
+                                 HelperText="@(IsEditMode ? TranslationService.GetTranslation("featureTemplate.nameCannotBeChanged", "Il nome non può essere modificato") : TranslationService.GetTranslation("featureTemplate.nameHelp", "Nome univoco della feature (es: 'MultiStore', 'AdvancedInventory')"))" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_displayName"
+                                 Label="@($"{TranslationService.GetTranslation("field.displayName", "Nome Visualizzato")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 MaxLength="200"
+                                 HelperText="@TranslationService.GetTranslation("featureTemplate.displayNameHelp", "Nome leggibile da mostrare nell'interfaccia utente")" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_description"
+                                 Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                 Variant="Variant.Outlined"
+                                 Lines="3"
+                                 MaxLength="1000"
+                                 HelperText="@TranslationService.GetTranslation("featureTemplate.descriptionHelp", "Descrizione dettagliata della funzionalità fornita")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_category"
+                                 Label="@($"{TranslationService.GetTranslation("featureTemplate.category", "Categoria")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 MaxLength="100"
+                                 HelperText="@TranslationService.GetTranslation("featureTemplate.categoryHelp", "Categoria/modulo (es: 'Store', 'Warehouse', 'Reporting')")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_sortOrder"
+                                    Label="@TranslationService.GetTranslation("field.sortOrder", "Ordine di Visualizzazione")"
+                                    Variant="Variant.Outlined"
+                                    Min="0"
+                                    HelperText="@TranslationService.GetTranslation("featureTemplate.sortOrderHelp", "Ordine per la visualizzazione (minore = prima)")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="int" @bind-Value="_minimumTierLevel"
+                              Label="@($"{TranslationService.GetTranslation("featureTemplate.minimumTierLevel", "Tier Minimo Richiesto")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              HelperText="@TranslationService.GetTranslation("featureTemplate.tierHelp", "Tier minimo per accedere a questa feature")">
+                        @for (int i = 1; i <= 10; i++)
+                        {
+                            <MudSelectItem Value="@i">Tier @i</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_isAvailable"
+                              Label="@TranslationService.GetTranslation("featureTemplate.isAvailable", "Disponibile per l'assegnazione")"
+                              Color="Color.Success"
+                              For="@(() => _isAvailable)" />
+                </MudItem>
+
+                @if (IsEditMode && Template != null)
+                {
+                    <MudItem xs="12">
+                        <MudDivider Class="my-2" />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            <text>@TranslationService.GetTranslation("common.createdBy", "Creato da"): @Template.CreatedBy - @Template.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</text>
+                            @if (Template.ModifiedAt.HasValue)
+                            {
+                                <br />
+                                <text>@TranslationService.GetTranslation("common.modifiedBy", "Modificato da"): @Template.ModifiedBy - @Template.ModifiedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</text>
+                            }
+                        </MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled"
+                   Disabled="@(!_isValid || _isSaving)" 
+                   OnClick="Save">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public bool IsEditMode { get; set; }
+    [Parameter] public FeatureTemplateDto? Template { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isSaving;
+    
+    private string _name = string.Empty;
+    private string _displayName = string.Empty;
+    private string? _description;
+    private string _category = string.Empty;
+    private int _minimumTierLevel = 1;
+    private bool _isAvailable = true;
+    private int _sortOrder = 0;
+
+    protected override void OnInitialized()
+    {
+        if (IsEditMode && Template != null)
+        {
+            _name = Template.Name;
+            _displayName = Template.DisplayName;
+            _description = Template.Description;
+            _category = Template.Category;
+            _minimumTierLevel = Template.MinimumTierLevel;
+            _isAvailable = Template.IsAvailable;
+            _sortOrder = Template.SortOrder;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await _form.Validate();
+            if (!_isValid) return;
+
+            _isSaving = true;
+            StateHasChanged();
+
+            FeatureTemplateDto result;
+
+            if (IsEditMode && Template != null)
+            {
+                // Edit mode
+                var updateDto = new UpdateFeatureTemplateDto
+                {
+                    DisplayName = _displayName,
+                    Description = _description,
+                    Category = _category,
+                    MinimumTierLevel = _minimumTierLevel,
+                    IsAvailable = _isAvailable,
+                    SortOrder = _sortOrder
+                };
+
+                result = await LicenseService.UpdateFeatureTemplateAsync(Template.Id, updateDto);
+            }
+            else
+            {
+                // Create mode
+                var createDto = new CreateFeatureTemplateDto
+                {
+                    Name = _name,
+                    DisplayName = _displayName,
+                    Description = _description,
+                    Category = _category,
+                    MinimumTierLevel = _minimumTierLevel,
+                    IsAvailable = _isAvailable,
+                    SortOrder = _sortOrder
+                };
+
+                result = await LicenseService.CreateFeatureTemplateAsync(createDto);
+            }
+
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to {Action} feature template", IsEditMode ? "update" : "create");
+            var errorMsg = IsEditMode 
+                ? TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento: {0}", ex.Message)
+                : TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione: {0}", ex.Message);
+            Snackbar.Add(errorMsg, Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+}
