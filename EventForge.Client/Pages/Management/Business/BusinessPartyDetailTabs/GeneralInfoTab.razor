@@ -1,6 +1,11 @@
 @using EventForge.DTOs.Business
+@using EventForge.DTOs.External
 @using EventForge.Client.Services
+@using EventForge.Client.Services.External
 @inject ITranslationService TranslationService
+@inject IVatLookupService VatLookupService
+@inject ISnackbar Snackbar
+@inject ILogger<GeneralInfoTab> Logger
 
 <MudStack Spacing="3">
     <MudPaper Elevation="1" Class="pa-4">
@@ -48,17 +53,73 @@
                               @bind-Value:after="NotifyUpdated" />
             </MudItem>
             
-            <!-- VAT Number -->
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="Party.VatNumber"
-                              Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="@(!IsEditMode)"
-                              MaxLength="20"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Numbers"
-                              @bind-Value:after="NotifyUpdated" />
+            <!-- VAT Number with Lookup -->
+            <MudItem xs="12">
+                <div class="d-flex gap-2">
+                    <MudTextField @bind-Value="Party.VatNumber"
+                                  Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="@(!IsEditMode)"
+                                  MaxLength="20"
+                                  Placeholder="IT12345678901"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Business"
+                                  HelperText="@TranslationService.GetTranslation("businessParty.vatNumberHelper", "Partita IVA (con o senza codice paese)")"
+                                  @bind-Value:after="NotifyUpdated"
+                                  Style="flex-grow: 1;" />
+                    @if (IsEditMode)
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Search"
+                                   OnClick="@LookupVatAsync"
+                                   Disabled="@(_isLookingUp || string.IsNullOrWhiteSpace(Party.VatNumber))"
+                                   Style="align-self: flex-start; margin-top: 4px;">
+                            @if (_isLookingUp)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            }
+                            @TranslationService.GetTranslation("common.search", "Cerca")
+                        </MudButton>
+                    }
+                </div>
             </MudItem>
+            
+            <!-- VAT Lookup Result -->
+            @if (_lookupResult != null && _lookupResult.IsValid)
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.subtitle2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-1" />
+                                    @TranslationService.GetTranslation("vat.validVat", "P.IVA Valida")
+                                </MudText>
+                                <MudText Typo="Typo.body2"><strong>@_lookupResult.Name</strong></MudText>
+                                <MudText Typo="Typo.caption">@_lookupResult.Address</MudText>
+                            </div>
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Primary" 
+                                       OnClick="@(async () => await ApplyLookupData())">
+                                @TranslationService.GetTranslation("vat.useData", "Usa questi dati")
+                            </MudButton>
+                        </div>
+                    </MudAlert>
+                </MudItem>
+            }
+            else if (_lookupResult != null && !_lookupResult.IsValid)
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Warning" Dense="true">
+                        @TranslationService.GetTranslation("vat.invalidVat", "P.IVA non valida o non trovata")
+                        @if (!string.IsNullOrEmpty(_lookupResult.ErrorMessage))
+                        {
+                            <MudText Typo="Typo.caption" Class="mt-2">@_lookupResult.ErrorMessage</MudText>
+                        }
+                    </MudAlert>
+                </MudItem>
+            }
             
             <!-- SDI Code -->
             <MudItem xs="12" md="6">
@@ -155,8 +216,66 @@
     [Parameter] public bool IsNewParty { get; set; } = false;
     [Parameter] public EventCallback OnPartyUpdated { get; set; }
 
+    // VAT lookup fields
+    private bool _isLookingUp = false;
+    private VatLookupResultDto? _lookupResult;
+
     private void NotifyUpdated()
     {
         OnPartyUpdated.InvokeAsync();
+    }
+
+    private async Task LookupVatAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Party.VatNumber))
+            return;
+
+        _isLookingUp = true;
+        _lookupResult = null;
+
+        try
+        {
+            _lookupResult = await VatLookupService.LookupAsync(Party.VatNumber);
+            
+            if (_lookupResult == null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("vat.lookupError", "Errore durante la ricerca. Riprova più tardi."),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during VAT lookup");
+            Snackbar.Add(
+                TranslationService.GetTranslation("vat.lookupError", "Errore durante la ricerca. Riprova più tardi."),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLookingUp = false;
+        }
+    }
+
+    private async Task ApplyLookupData()
+    {
+        if (_lookupResult == null || !_lookupResult.IsValid)
+            return;
+
+        // Populate the form fields
+        if (!string.IsNullOrEmpty(_lookupResult.Name))
+            Party.Name = _lookupResult.Name;
+        
+        // Keep the VAT number as entered by the user (already validated by VIES)
+        // It's already in Party.VatNumber from the input field
+
+        NotifyUpdated();
+
+        Snackbar.Add(
+            TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo"),
+            Severity.Success
+        );
     }
 }
