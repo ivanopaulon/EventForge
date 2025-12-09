@@ -3,7 +3,6 @@ using EventForge.Server.Services.External;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Net;
 
 namespace EventForge.Tests.Services.External;
 
@@ -125,7 +124,7 @@ public class VatLookupServiceTests
 
         // Act - First call should hit the service
         var result1 = await _service.LookupAsync("FR12345678901");
-        
+
         // Act - Second call should return cached result
         var result2 = await _service.LookupAsync("FR12345678901");
 
@@ -133,7 +132,7 @@ public class VatLookupServiceTests
         Assert.NotNull(result1);
         Assert.NotNull(result2);
         Assert.Equal(result1.Name, result2.Name);
-        
+
         // Verify service was called only once (second call was cached)
         _mockViesService.Verify(
             x => x.ValidateVatAsync("FR", "12345678901", It.IsAny<CancellationToken>()),

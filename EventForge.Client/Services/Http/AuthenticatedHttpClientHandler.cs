@@ -1,4 +1,3 @@
-using EventForge.Client.Services;
 using System.Net.Http.Headers;
 
 namespace EventForge.Client.Services.Http;
@@ -33,7 +32,7 @@ public class AuthenticatedHttpClientHandler : DelegatingHandler
             {
                 // Add Authorization header with Bearer token
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                
+
                 _logger.LogDebug("Authorization header added for request to {RequestUri}", request.RequestUri);
             }
             else

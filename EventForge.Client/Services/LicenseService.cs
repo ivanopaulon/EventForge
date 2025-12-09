@@ -196,7 +196,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                return await _httpClientService.GetAsync<IEnumerable<FeatureTemplateDto>>($"{BaseUrl}/feature-templates") 
+                return await _httpClientService.GetAsync<IEnumerable<FeatureTemplateDto>>($"{BaseUrl}/feature-templates")
                     ?? Enumerable.Empty<FeatureTemplateDto>();
             }
             catch (Exception ex)

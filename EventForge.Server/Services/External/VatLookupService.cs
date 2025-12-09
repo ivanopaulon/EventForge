@@ -52,7 +52,7 @@ public class VatLookupService : IVatLookupService
         try
         {
             var viesResponse = await _viesValidationService.ValidateVatAsync(countryCode, vatNumberOnly, cancellationToken);
-            
+
             if (viesResponse == null)
             {
                 _logger.LogWarning("VIES service returned null for {CountryCode}{VatNumber}", countryCode, vatNumberOnly);
@@ -84,7 +84,7 @@ public class VatLookupService : IVatLookupService
             // Cache the result
             CacheResult(cacheKey, result);
 
-            _logger.LogInformation("VIES validation completed for {CountryCode}{VatNumber}: Valid={IsValid}", 
+            _logger.LogInformation("VIES validation completed for {CountryCode}{VatNumber}: Valid={IsValid}",
                 countryCode, vatNumberOnly, result.IsValid);
 
             return result;

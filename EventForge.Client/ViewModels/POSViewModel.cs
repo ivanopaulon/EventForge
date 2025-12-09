@@ -2,12 +2,10 @@ using EventForge.Client.Services;
 using EventForge.Client.Services.Sales;
 using EventForge.Client.Services.Store;
 using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Constants;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Sales;
 using EventForge.DTOs.Store;
-using System.Timers;
 using Timer = System.Timers.Timer;
 
 namespace EventForge.Client.ViewModels;
@@ -29,22 +27,22 @@ public class POSViewModel : IDisposable
     private Timer? _updateDebounceTimer;
     private readonly HashSet<Guid> _pendingItemUpdates = new();
     private const int DebounceDelayMs = 500;
-    
+
     // Thread-safe synchronization for updates
     private readonly SemaphoreSlim _updateSemaphore = new(1, 1);
     private CancellationTokenSource? _currentUpdateCts;
-    
+
     // Optimistic update rollback - stores original values before modification
     private readonly Dictionary<Guid, SaleItemDto> _itemBackups = new();
-    
+
     // Retry tracking
     private int _currentRetryAttempt = 0;
     private const int MaxRetryAttempts = 3;
     private const int ManualRetryAttempts = 2;
-    
+
     // Timeouts
     private const int FlushTimeoutMs = 5000;
-    
+
     // Page size for loading operators
     private const int MaxOperatorsPageSize = 100;
 
@@ -75,7 +73,7 @@ public class POSViewModel : IDisposable
 
     // Operator & POS selection
     public List<StoreUserDto> AvailableOperators { get; private set; } = new();
-    
+
     private Guid? _selectedOperatorId;
     public Guid? SelectedOperatorId
     {
@@ -92,7 +90,7 @@ public class POSViewModel : IDisposable
     }
 
     public List<StorePosDto> AvailablePos { get; private set; } = new();
-    
+
     private Guid? _selectedPosId;
     public Guid? SelectedPosId
     {
@@ -757,7 +755,7 @@ public class POSViewModel : IDisposable
             CurrentSession = session;
             _selectedOperatorId = session.OperatorId;
             _selectedPosId = session.PosId;
-            
+
             if (session.CustomerId.HasValue)
             {
                 SelectedCustomer = await _businessPartyService.GetBusinessPartyAsync(session.CustomerId.Value);
@@ -1043,7 +1041,7 @@ public class POSViewModel : IDisposable
         var delayMs = CalculateBackoffDelayMs(attempt);
         _logger.LogWarning(ex, "{ErrorType} updating item (attempt {Attempt}/{Total}). Retrying in {Delay}ms...",
             errorType, attempt + 1, totalAttempts, delayMs);
-        
+
         try
         {
             await Task.Delay(delayMs, cancellationToken);
@@ -1074,7 +1072,7 @@ public class POSViewModel : IDisposable
             item.TotalAmount = backup.TotalAmount;
             item.TaxAmount = backup.TaxAmount;
             item.Notes = backup.Notes;
-            
+
             _itemBackups.Remove(item.Id);
             _logger.LogInformation("Rolled back item {ItemId} to original state", item.Id);
         }

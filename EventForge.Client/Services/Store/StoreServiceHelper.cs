@@ -21,7 +21,7 @@ public static class StoreServiceHelper
         try
         {
             var content = await response.Content.ReadAsStringAsync();
-            
+
             // Check for tenant-related errors
             if (content.Contains("Tenant context is required", StringComparison.OrdinalIgnoreCase) ||
                 content.Contains("TenantId", StringComparison.OrdinalIgnoreCase))

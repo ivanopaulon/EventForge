@@ -934,7 +934,7 @@ public class LicenseController : BaseApiController
                 ModifiedBy = template.ModifiedBy
             };
 
-            _logger.LogInformation("Created feature template {FeatureName} ({FeatureId})", 
+            _logger.LogInformation("Created feature template {FeatureName} ({FeatureId})",
                 template.Name, template.Id);
 
             return CreatedAtAction(nameof(GetFeatureTemplate), new { id = template.Id }, responseDto);
@@ -1000,7 +1000,7 @@ public class LicenseController : BaseApiController
                 ModifiedBy = template.ModifiedBy
             };
 
-            _logger.LogInformation("Updated feature template {FeatureName} ({FeatureId})", 
+            _logger.LogInformation("Updated feature template {FeatureName} ({FeatureId})",
                 template.Name, template.Id);
 
             return Ok(responseDto);
@@ -1046,7 +1046,7 @@ public class LicenseController : BaseApiController
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Deleted feature template {FeatureName} ({FeatureId})", 
+            _logger.LogInformation("Deleted feature template {FeatureName} ({FeatureId})",
                 template.Name, template.Id);
 
             return NoContent();
@@ -1106,7 +1106,7 @@ public class LicenseController : BaseApiController
                 ModifiedBy = template.ModifiedBy
             };
 
-            _logger.LogInformation("Toggled feature template availability {FeatureName} ({FeatureId}) to {IsAvailable}", 
+            _logger.LogInformation("Toggled feature template availability {FeatureName} ({FeatureId}) to {IsAvailable}",
                 template.Name, template.Id, template.IsAvailable);
 
             return Ok(responseDto);

@@ -593,7 +593,7 @@ public class BootstrapService : IBootstrapService
 
             // Check if features already exist
             var existingFeatureCount = await _dbContext.FeatureTemplates.CountAsync(cancellationToken);
-            
+
             if (existingFeatureCount == 0)
             {
                 _logger.LogInformation("Seeding {Count} FeatureTemplates...", featureTemplates.Length);

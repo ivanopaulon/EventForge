@@ -174,11 +174,11 @@ public class StoreUserService : IStoreUserService
             if (createStoreUserDto.CashierGroupId.HasValue)
             {
                 var groupExists = await _context.StoreUserGroups
-                    .AnyAsync(g => g.Id == createStoreUserDto.CashierGroupId.Value 
-                                && g.TenantId == currentTenantId.Value 
-                                && !g.IsDeleted, 
+                    .AnyAsync(g => g.Id == createStoreUserDto.CashierGroupId.Value
+                                && g.TenantId == currentTenantId.Value
+                                && !g.IsDeleted,
                             cancellationToken);
-                
+
                 if (!groupExists)
                 {
                     throw new InvalidOperationException($"Cashier group with ID {createStoreUserDto.CashierGroupId.Value} does not exist.");
@@ -989,9 +989,9 @@ public class StoreUserService : IStoreUserService
                 .OrderBy(sp => sp.Name);
 
             var totalCount = await query.CountAsync(cancellationToken);
-            
+
             _logger.LogDebug("Found {Count} store POS terminals for tenant {TenantId}", totalCount, currentTenantId.Value);
-            
+
             var items = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)

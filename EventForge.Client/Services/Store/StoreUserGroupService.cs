@@ -1,7 +1,6 @@
-using EventForge.DTOs.Store;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.Store;
 using System.Net.Http.Json;
-using System.Net;
 
 namespace EventForge.Client.Services.Store;
 
@@ -29,7 +28,7 @@ public class StoreUserGroupService : IStoreUserGroupService
         {
             var response = await _httpClient.GetAsync($"{ApiBase}?page=1&pageSize={MaxPageSize}");
             response.EnsureSuccessStatusCode();
-            
+
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<StoreUserGroupDto>>();
             return pagedResult?.Items?.ToList() ?? new List<StoreUserGroupDto>();
         }
@@ -47,16 +46,16 @@ public class StoreUserGroupService : IStoreUserGroupService
         try
         {
             var response = await _httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
-                _logger.LogError("Error getting paged store user groups (page: {Page}, pageSize: {PageSize}): {StatusCode} - {ErrorMessage}", 
+                _logger.LogError("Error getting paged store user groups (page: {Page}, pageSize: {PageSize}): {StatusCode} - {ErrorMessage}",
                     page, pageSize, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
-            return await response.Content.ReadFromJsonAsync<PagedResult<StoreUserGroupDto>>() 
+
+            return await response.Content.ReadFromJsonAsync<PagedResult<StoreUserGroupDto>>()
                 ?? new PagedResult<StoreUserGroupDto>();
         }
         catch (InvalidOperationException)
@@ -96,14 +95,14 @@ public class StoreUserGroupService : IStoreUserGroupService
         try
         {
             var response = await _httpClient.PostAsJsonAsync(ApiBase, createDto);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
                 _logger.LogError("Error creating store user group: {StatusCode} - {ErrorMessage}", response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
+
             return await response.Content.ReadFromJsonAsync<StoreUserGroupDto>();
         }
         catch (InvalidOperationException)
@@ -124,14 +123,14 @@ public class StoreUserGroupService : IStoreUserGroupService
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
                 _logger.LogError("Error updating store user group {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
+
             return await response.Content.ReadFromJsonAsync<StoreUserGroupDto>();
         }
         catch (InvalidOperationException)
@@ -152,14 +151,14 @@ public class StoreUserGroupService : IStoreUserGroupService
         try
         {
             var response = await _httpClient.DeleteAsync($"{ApiBase}/{id}");
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "gruppo", _logger);
                 _logger.LogError("Error deleting store user group {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
+
             return true;
         }
         catch (InvalidOperationException)

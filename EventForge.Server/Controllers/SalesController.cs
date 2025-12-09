@@ -624,7 +624,7 @@ public class SalesController : BaseApiController
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            
+
             var voidedSession = await _saleSessionService.VoidSessionAsync(sessionId, currentUser, cancellationToken);
 
             if (voidedSession == null)

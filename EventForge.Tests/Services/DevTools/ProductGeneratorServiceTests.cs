@@ -4,7 +4,6 @@ using EventForge.Server.Services.DevTools;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace EventForge.Tests.Services.DevTools;
 

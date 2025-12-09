@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using EventForge.DTOs.Products;
 
 namespace EventForge.Client.Services

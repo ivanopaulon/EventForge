@@ -1,6 +1,5 @@
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Documents;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -17,7 +16,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
     private readonly IStorageLocationService _storageLocationService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<InventoryBulkSeedService> _logger;
-    
+
     // Thread-local Random to avoid thread safety issues
     private static readonly ThreadLocal<Random> _random = new(() => new Random());
 

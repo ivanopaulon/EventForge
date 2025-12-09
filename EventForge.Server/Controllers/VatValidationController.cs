@@ -33,14 +33,14 @@ public class VatValidationController : BaseApiController
     /// <returns>VIES validation response</returns>
     [HttpGet("validate/{countryCode}/{vatNumber}")]
     public async Task<IActionResult> ValidateVat(
-        [RegularExpression(@"^[A-Z]{2}$", ErrorMessage = "Country code must be 2 uppercase letters")] string countryCode, 
-        [RegularExpression(@"^[A-Z0-9]{1,20}$", ErrorMessage = "VAT number must contain only alphanumeric characters")] string vatNumber, 
+        [RegularExpression(@"^[A-Z]{2}$", ErrorMessage = "Country code must be 2 uppercase letters")] string countryCode,
+        [RegularExpression(@"^[A-Z0-9]{1,20}$", ErrorMessage = "VAT number must contain only alphanumeric characters")] string vatNumber,
         CancellationToken cancellationToken)
     {
         try
         {
             var result = await _viesService.ValidateVatAsync(countryCode, vatNumber, cancellationToken);
-            
+
             if (result == null)
             {
                 return BadRequest(new { error = "Unable to validate VAT number" });

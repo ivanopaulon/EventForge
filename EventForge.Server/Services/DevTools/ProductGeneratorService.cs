@@ -1,6 +1,5 @@
 using Bogus;
 using EventForge.DTOs.DevTools;
-using EventForge.Server.Data.Entities.Products;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -189,7 +188,7 @@ public class ProductGeneratorService : IProductGeneratorService
                 _logger.LogError(ex, "Errore nel salvataggio del batch per il job {JobId}", jobId);
                 var errorCount = products.Count;
                 IncrementJobErrors(jobId, errorCount);
-                
+
                 var status = _jobStatuses[jobId];
                 status.Processed += batchSize;
             }

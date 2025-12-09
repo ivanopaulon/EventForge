@@ -1,5 +1,4 @@
 using EventForge.DTOs.Sales;
-using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Sales;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Warehouse;
@@ -291,7 +290,7 @@ public class SaleSessionService : ISaleSessionService
                 item.TenantId);
 
             session.Items.Add(item);
-            
+
             // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
             // This prevents concurrency conflicts in the ChangeTracker
             CalculateTotalsInline(session);
@@ -304,14 +303,14 @@ public class SaleSessionService : ISaleSessionService
                 session.DiscountAmount,
                 session.TaxAmount,
                 session.FinalTotal);
-            
+
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
             try
             {
                 var affectedRows = await _context.SaveChangesAsync(cancellationToken);
-                
+
                 _logger.LogInformation(
                     "SaveChanges completed successfully - SessionId: {SessionId}, AffectedRows: {RowCount}",
                     sessionId,
@@ -328,7 +327,7 @@ public class SaleSessionService : ISaleSessionService
                     addItemDto.ProductId);
 
                 LogDetailedEntityStates(sessionId, currentTenantId.Value);
-                
+
                 throw new InvalidOperationException(
                     "The session was modified by another user. Please refresh and try again.", ex);
             }
@@ -387,7 +386,7 @@ public class SaleSessionService : ISaleSessionService
             // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
             // This prevents concurrency conflicts in the ChangeTracker
             CalculateTotalsInline(session);
-            
+
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
@@ -408,7 +407,7 @@ public class SaleSessionService : ISaleSessionService
                 itemId);
 
             LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty);
-            
+
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
         }
@@ -453,7 +452,7 @@ public class SaleSessionService : ISaleSessionService
             // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
             // This prevents concurrency conflicts in the ChangeTracker
             CalculateTotalsInline(session);
-            
+
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
@@ -474,7 +473,7 @@ public class SaleSessionService : ISaleSessionService
                 itemId);
 
             LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty);
-            
+
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
         }
@@ -719,7 +718,7 @@ public class SaleSessionService : ISaleSessionService
 
                 // Generate document INSIDE the transaction
                 var documentId = await GenerateReceiptDocumentAsync(session, currentUser, cancellationToken);
-                
+
                 if (documentId.HasValue)
                 {
                     session.DocumentId = documentId.Value;
@@ -728,10 +727,10 @@ public class SaleSessionService : ISaleSessionService
                 // SINGLE SaveChanges
                 await _context.SaveChangesAsync(cancellationToken);
                 await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
-                
+
                 // Commit transaction
                 await transaction.CommitAsync(cancellationToken);
-                
+
                 _logger.LogInformation("Closed sale session {SessionId}", sessionId);
             }
             catch (Exception ex)
@@ -764,8 +763,8 @@ public class SaleSessionService : ISaleSessionService
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .Where(s => s.TenantId == currentTenantId.Value && 
-                           !s.IsDeleted && 
+                .Where(s => s.TenantId == currentTenantId.Value &&
+                           !s.IsDeleted &&
                            (s.Status == SaleSessionStatus.Open || s.Status == SaleSessionStatus.Suspended))
                 .OrderByDescending(s => s.CreatedAt)
                 .ToListAsync(cancellationToken);
@@ -1016,12 +1015,12 @@ public class SaleSessionService : ISaleSessionService
                         };
 
                         await _stockMovementService.CreateMovementAsync(voidMovementDto, currentUser, cancellationToken);
-                        _logger.LogInformation("Created void stock movement for product {ProductId}, quantity {Quantity}", 
+                        _logger.LogInformation("Created void stock movement for product {ProductId}, quantity {Quantity}",
                             item.ProductId, item.Quantity);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error creating void stock movement for product {ProductId} in session {SessionId}", 
+                        _logger.LogError(ex, "Error creating void stock movement for product {ProductId} in session {SessionId}",
                             item.ProductId, session.Id);
                         // Continue with other items even if one fails
                     }
@@ -1033,7 +1032,7 @@ public class SaleSessionService : ISaleSessionService
                     var document = await _context.DocumentHeaders
                         .AsNoTracking()
                         .FirstOrDefaultAsync(
-                            d => d.Id == session.DocumentId.Value && d.TenantId == currentTenantId.Value && !d.IsDeleted, 
+                            d => d.Id == session.DocumentId.Value && d.TenantId == currentTenantId.Value && !d.IsDeleted,
                             cancellationToken);
 
                     if (document != null)
@@ -1161,12 +1160,12 @@ public class SaleSessionService : ISaleSessionService
                         };
 
                         await _stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
-                        _logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}", 
+                        _logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}",
                             item.ProductId, -item.Quantity, documentHeader.Id);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.", 
+                        _logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.",
                             item.ProductId, session.Id);
                         // Continue with other items even if one fails
                     }
@@ -1199,7 +1198,7 @@ public class SaleSessionService : ISaleSessionService
             // Note: LINQ iteration is acceptable here as this is only called on errors
             var itemsCount = _context.ChangeTracker.Entries()
                 .Count(e => e.Entity is SaleItem item && item.SaleSessionId == sessionId);
-            
+
             _logger.LogError(
                 "Diagnostic - SessionId: {SessionId}, TenantId: {TenantId}, ItemsCount: {ItemCount}, TrackedEntities: {TrackedCount}",
                 sessionId,
@@ -1213,13 +1212,13 @@ public class SaleSessionService : ISaleSessionService
                 var entityType = entry.Entity.GetType().Name;
                 var entityId = entry.Entity is AuditableEntity ae ? ae.Id.ToString() : "N/A";
                 var entityState = entry.State.ToString();
-                
+
                 _logger.LogError(
                     "Tracked entity: Type={EntityType}, Id={EntityId}, State={State}",
                     entityType,
                     entityId,
                     entityState);
-                    
+
                 // Log IsDeleted for AuditableEntity
                 if (entry.Entity is AuditableEntity auditableEntity)
                 {
@@ -1228,7 +1227,7 @@ public class SaleSessionService : ISaleSessionService
                         auditableEntity.IsDeleted,
                         auditableEntity.TenantId);
                 }
-                
+
                 // Log current and original values for modified entities
                 if (entry.State == EntityState.Modified)
                 {

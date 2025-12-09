@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using EventForge.Client.Services;
 
 namespace EventForge.Client.Services.Store;
 
@@ -38,7 +37,7 @@ public class AuthenticatedHttpClientHandler : DelegatingHandler
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
             Console.WriteLine($"[Store API Error] {request.Method} {request.RequestUri}: {response.StatusCode}");
             Console.WriteLine($"[Store API Error] Response: {content}");
-            _logger.LogError("Store API request failed: {Method} {Uri} returned {StatusCode}", 
+            _logger.LogError("Store API request failed: {Method} {Uri} returned {StatusCode}",
                 request.Method, request.RequestUri, response.StatusCode);
         }
 

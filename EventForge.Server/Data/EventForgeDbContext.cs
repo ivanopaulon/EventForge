@@ -2,7 +2,6 @@
 using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
 using EventForge.Server.Data.Entities.Sales;
-using EventForge.Server.Data.Entities.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -10,7 +9,7 @@ namespace EventForge.Server.Data;
 public partial class EventForgeDbContext : DbContext
 {
     private readonly IHttpContextAccessor? _httpContextAccessor;
-    
+
     /// <summary>
     /// HashSet of entity types that are excluded from automatic audit tracking.
     /// Sales entities use manual audit logging in SaleSessionService for better control.
@@ -915,11 +914,11 @@ public partial class EventForgeDbContext : DbContext
         var allModifiedEntries = ChangeTracker.Entries<AuditableEntity>()
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
             .ToList();
-        
+
         var salesEntries = allModifiedEntries
             .Where(e => ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()))
             .ToList();
-        
+
         var hasNonSalesChanges = allModifiedEntries.Any(e => !ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()));
 
         // CRITICAL FIX: Only add audit logs when there are non-Sales entity changes
@@ -932,7 +931,7 @@ public partial class EventForgeDbContext : DbContext
         foreach (var entry in salesEntries)
         {
             var entity = entry.Entity;
-            
+
             if (entry.State == EntityState.Added)
             {
                 entity.CreatedAt = DateTime.UtcNow;

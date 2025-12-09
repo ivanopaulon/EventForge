@@ -49,7 +49,7 @@ public class SwaggerAuthorizeCheckOperationFilter : IOperationFilter
 
         operation.Security.Add(new OpenApiSecurityRequirement
         {
-            [ bearerScheme ] = new string[] { }
+            [bearerScheme] = new string[] { }
         });
     }
 }

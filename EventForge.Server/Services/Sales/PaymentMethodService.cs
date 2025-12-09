@@ -41,9 +41,9 @@ public class PaymentMethodService : IPaymentMethodService
                 .Where(pm => pm.TenantId == currentTenantId.Value && !pm.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);
-            
+
             _logger.LogDebug("Found {Count} payment methods for tenant {TenantId}", totalCount, currentTenantId.Value);
-            
+
             var paymentMethods = await query
                 .OrderBy(pm => pm.DisplayOrder)
                 .ThenBy(pm => pm.Name)

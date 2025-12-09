@@ -1,8 +1,6 @@
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Products;
@@ -27,7 +25,7 @@ public class WarehouseManagementController : BaseApiController
 {
     // Maximum page size for bulk operations to prevent performance issues
     private const int MaxBulkOperationPageSize = 1000;
-    
+
     private readonly IStorageFacilityService _storageFacilityService;
     private readonly IStorageLocationService _storageLocationService;
     private readonly ILotService _lotService;
@@ -113,7 +111,7 @@ public class WarehouseManagementController : BaseApiController
                 .AsNoTracking()
                 .Where(p => productIds.Contains(p.Id))
                 .ToListAsync(cancellationToken);
-            
+
             productsDict = products.ToDictionary(p => p.Id);
             _logger.LogDebug("Batch loaded {ProductCount} unique products", productsDict.Count);
         }
@@ -132,7 +130,7 @@ public class WarehouseManagementController : BaseApiController
                 .AsNoTracking()
                 .Where(l => locationIds.Contains(l.Id))
                 .ToListAsync(cancellationToken);
-            
+
             locationsDict = locations.ToDictionary(l => l.Id);
             _logger.LogDebug("Batch loaded {LocationCount} unique locations", locationsDict.Count);
         }
@@ -153,7 +151,7 @@ public class WarehouseManagementController : BaseApiController
 
             var stocks = await _context.Stocks
                 .AsNoTracking()
-                .Where(s => stockProductIds.Contains(s.ProductId) && 
+                .Where(s => stockProductIds.Contains(s.ProductId) &&
                            stockLocationIds.Contains(s.StorageLocationId) &&
                            s.LotId == null) // Only get stock without lot for inventory
                 .ToListAsync(cancellationToken);
@@ -168,7 +166,7 @@ public class WarehouseManagementController : BaseApiController
         {
             var productId = row.ProductId;
             var locationId = row.LocationId;
-            
+
             // Lookup product from dictionary (O(1))
             Product? product = null;
             if (productId.HasValue)
@@ -224,7 +222,7 @@ public class WarehouseManagementController : BaseApiController
         _logger.LogInformation(
             "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. " +
             "Unique products: {ProductCount}, locations: {LocationCount}, stocks: {StockCount}",
-            rowsList.Count, stopwatch.ElapsedMilliseconds, 
+            rowsList.Count, stopwatch.ElapsedMilliseconds,
             productsDict.Count, locationsDict.Count, stocksDict.Count);
 
         return enrichedRows;
@@ -2644,7 +2642,7 @@ public class WarehouseManagementController : BaseApiController
                         Severity = "Error",
                         Code = "MISSING_PRODUCTS",
                         Message = $"Document references {missingProductIds.Count} non-existent product(s)",
-                        Details = $"Product IDs: {string.Join(", ", missingProductIds.Take(MAX_DISPLAYED_MISSING_IDS))}" + 
+                        Details = $"Product IDs: {string.Join(", ", missingProductIds.Take(MAX_DISPLAYED_MISSING_IDS))}" +
                                  (missingProductIds.Count > MAX_DISPLAYED_MISSING_IDS ? $" and {missingProductIds.Count - MAX_DISPLAYED_MISSING_IDS} more" : "")
                     });
                     result.IsValid = false;
@@ -2849,7 +2847,7 @@ public class WarehouseManagementController : BaseApiController
         if (tenantError != null) return tenantError;
 
         using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
-        
+
         try
         {
             // Get all open inventory documents
@@ -2880,7 +2878,7 @@ public class WarehouseManagementController : BaseApiController
                     // Call the existing finalize logic for each document
                     // We need to get the result as InventoryDocumentDto
                     var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(doc.Id, includeRows: true, cancellationToken);
-                    
+
                     if (documentHeader != null)
                     {
                         // Process each row and apply stock adjustments (reuse logic from FinalizeInventoryDocument)
@@ -2951,7 +2949,7 @@ public class WarehouseManagementController : BaseApiController
 
                         // Close the document
                         var closedDocument = await _documentHeaderService.CloseDocumentAsync(doc.Id, GetCurrentUser(), cancellationToken);
-                        
+
                         // Enrich rows with product and location data
                         var enrichedRows = closedDocument!.Rows != null && closedDocument.Rows.Any()
                             ? await EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)

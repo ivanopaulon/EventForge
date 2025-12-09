@@ -205,7 +205,7 @@ public class ViesVatLookupServiceTests
 
         // Act - First call should hit the API
         var result1 = await _service.LookupAsync("IT12345678901");
-        
+
         // Act - Second call should return cached result
         var result2 = await _service.LookupAsync("IT12345678901");
 
@@ -213,7 +213,7 @@ public class ViesVatLookupServiceTests
         Assert.NotNull(result1);
         Assert.NotNull(result2);
         Assert.Equal(result1.Name, result2.Name);
-        
+
         // Verify HTTP was called only once (second call was cached)
         _mockHttpMessageHandler.Protected().Verify(
             "SendAsync",

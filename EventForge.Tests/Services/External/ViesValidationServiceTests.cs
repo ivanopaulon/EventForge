@@ -1,4 +1,3 @@
-using EventForge.DTOs.External;
 using EventForge.Server.Services.External;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -70,8 +69,8 @@ public class ViesValidationServiceTests : IDisposable
         _mockHttpMessageHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => 
-                    req.Method == HttpMethod.Get && 
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
                     req.RequestUri!.ToString().Contains("/IT/vat/03640560268")),
                 ItExpr.IsAny<CancellationToken>()
             )
@@ -151,7 +150,7 @@ public class ViesValidationServiceTests : IDisposable
     {
         // Arrange
         string? capturedUrl = null;
-        
+
         var viesResponse = new
         {
             isValid = true,
@@ -163,7 +162,7 @@ public class ViesValidationServiceTests : IDisposable
         };
 
         var responseContent = JsonSerializer.Serialize(viesResponse);
-        
+
         _mockHttpMessageHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",

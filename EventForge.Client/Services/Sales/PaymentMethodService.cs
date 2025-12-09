@@ -1,5 +1,5 @@
-using EventForge.DTOs.Sales;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.Sales;
 
 namespace EventForge.Client.Services.Sales;
 
@@ -24,32 +24,32 @@ public class PaymentMethodService : IPaymentMethodService
         try
         {
             _logger.LogDebug("Fetching all payment methods from server");
-            
+
             var allItems = new List<PaymentMethodDto>();
             int page = 1;
             int pageSize = DefaultPageSize;
-            
+
             while (true)
             {
                 // Server returns PagedResult<PaymentMethodDto>
                 var pagedResult = await _httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
-                
+
                 if (pagedResult?.Items == null || !pagedResult.Items.Any())
                 {
                     break;
                 }
-                
+
                 allItems.AddRange(pagedResult.Items);
-                
+
                 // Check if we've retrieved all items
                 if (!pagedResult.HasNextPage || allItems.Count >= pagedResult.TotalCount)
                 {
                     break;
                 }
-                
+
                 page++;
             }
-            
+
             _logger.LogDebug("Retrieved {Count} payment methods from server across {Pages} page(s)", allItems.Count, page);
             return allItems;
         }

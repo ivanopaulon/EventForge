@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using SalesPaymentMethod = EventForge.Server.Data.Entities.Sales.PaymentMethod;
 
 namespace EventForge.Server.Services.Auth.Seeders;

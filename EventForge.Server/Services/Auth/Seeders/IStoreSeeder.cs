@@ -12,7 +12,7 @@ public interface IStoreSeeder
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if seeding was successful</returns>
     Task<bool> SeedPaymentMethodsAsync(Guid tenantId, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Seeds default POS terminal for a tenant.
     /// </summary>
@@ -20,7 +20,7 @@ public interface IStoreSeeder
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if seeding was successful</returns>
     Task<bool> SeedDefaultPosAsync(Guid tenantId, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Seeds default store operator for a tenant.
     /// </summary>
@@ -28,7 +28,7 @@ public interface IStoreSeeder
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if seeding was successful</returns>
     Task<bool> SeedDefaultOperatorAsync(Guid tenantId, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Seeds all store base entities (PaymentMethods + POS + Operator).
     /// </summary>

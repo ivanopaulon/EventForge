@@ -1,7 +1,7 @@
-using EventForge.DTOs.Store;
 using EventForge.DTOs.Common;
-using System.Net.Http.Json;
+using EventForge.DTOs.Store;
 using System.Net;
+using System.Net.Http.Json;
 
 namespace EventForge.Client.Services.Store;
 
@@ -45,13 +45,13 @@ public class StorePosService : IStorePosService
 
             // Fallback to paginated endpoint with reduced pageSize
             var response = await _httpClient.GetAsync($"{ApiBase}?page=1&pageSize=100");
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to get POS terminals: {StatusCode}", response.StatusCode);
                 return new List<StorePosDto>();
             }
-            
+
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<StorePosDto>>();
             return pagedResult?.Items?.ToList() ?? new List<StorePosDto>();
         }
@@ -105,14 +105,14 @@ public class StorePosService : IStorePosService
         try
         {
             var response = await _httpClient.PostAsJsonAsync(ApiBase, createDto);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "punto cassa", _logger);
                 _logger.LogError("Error creating store POS: {StatusCode} - {ErrorMessage}", response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
+
             return await response.Content.ReadFromJsonAsync<StorePosDto>();
         }
         catch (InvalidOperationException)
@@ -133,14 +133,14 @@ public class StorePosService : IStorePosService
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "punto cassa", _logger);
                 _logger.LogError("Error updating store POS {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
+
             return await response.Content.ReadFromJsonAsync<StorePosDto>();
         }
         catch (InvalidOperationException)
@@ -161,14 +161,14 @@ public class StorePosService : IStorePosService
         try
         {
             var response = await _httpClient.DeleteAsync($"{ApiBase}/{id}");
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "punto cassa", _logger);
                 _logger.LogError("Error deleting store POS {Id}: {StatusCode} - {ErrorMessage}", id, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
+
             return true;
         }
         catch (InvalidOperationException)
@@ -189,16 +189,16 @@ public class StorePosService : IStorePosService
         try
         {
             var response = await _httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "punto cassa", _logger);
-                _logger.LogError("Error getting paged store POS terminals (page: {Page}, pageSize: {PageSize}): {StatusCode} - {ErrorMessage}", 
+                _logger.LogError("Error getting paged store POS terminals (page: {Page}, pageSize: {PageSize}): {StatusCode} - {ErrorMessage}",
                     page, pageSize, response.StatusCode, errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
-            return await response.Content.ReadFromJsonAsync<PagedResult<StorePosDto>>() 
+
+            return await response.Content.ReadFromJsonAsync<PagedResult<StorePosDto>>()
                 ?? new PagedResult<StorePosDto>();
         }
         catch (InvalidOperationException)

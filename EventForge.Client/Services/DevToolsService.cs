@@ -1,5 +1,4 @@
 using EventForge.DTOs.DevTools;
-using System.Net.Http.Json;
 
 namespace EventForge.Client.Services;
 
@@ -82,7 +81,7 @@ public class DevToolsService : IDevToolsService
             await _httpClientService.PostAsync(
                 $"{BaseUrl}/generate-products/cancel/{Uri.EscapeDataString(jobId)}",
                 new { }); // Empty object as payload
-            
+
             return true;
         }
         catch (Exception ex)

@@ -35,9 +35,9 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
         Username = string.Empty;
         Password = null;
         PhotoConsent = false;
-        
+
         // Note: AvailableGroups will be loaded asynchronously via a custom LoadEntityAsync override
-        
+
         return new StoreUserDto
         {
             Id = Guid.Empty,
@@ -76,7 +76,7 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
     {
         // Always load groups first, regardless of whether it's a new or existing entity
         await LoadRelatedEntitiesAsync(entityId);
-        
+
         // Call base implementation
         await base.LoadEntityAsync(entityId);
     }

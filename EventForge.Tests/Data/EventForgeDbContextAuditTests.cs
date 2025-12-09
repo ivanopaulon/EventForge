@@ -46,10 +46,10 @@ public class EventForgeDbContextAuditTests : IDisposable
 
         // Act & Assert
         _ = _context.Products.Add(product);
-        
+
         // This should not throw DbUpdateConcurrencyException
         // The fix ensures audit entries are added before SaveChangesAsync is called
-        var exception = await Record.ExceptionAsync(async () => 
+        var exception = await Record.ExceptionAsync(async () =>
             await _context.SaveChangesAsync());
 
         Assert.Null(exception);
@@ -84,7 +84,7 @@ public class EventForgeDbContextAuditTests : IDisposable
             .ToListAsync();
 
         Assert.NotEmpty(auditLogs);
-        Assert.All(auditLogs, log => 
+        Assert.All(auditLogs, log =>
         {
             Assert.Equal("Product", log.EntityName);
             Assert.Equal("Insert", log.OperationType);
@@ -121,12 +121,12 @@ public class EventForgeDbContextAuditTests : IDisposable
         product.ModifiedAt = DateTime.UtcNow;
 
         // This should not throw DbUpdateConcurrencyException
-        var exception = await Record.ExceptionAsync(async () => 
+        var exception = await Record.ExceptionAsync(async () =>
             await _context.SaveChangesAsync());
 
         // Assert
         Assert.Null(exception);
-        
+
         var updateAuditLogs = await _context.EntityChangeLogs
             .Where(log => log.EntityId == product.Id && log.OperationType == "Update")
             .ToListAsync();
@@ -161,12 +161,12 @@ public class EventForgeDbContextAuditTests : IDisposable
         _ = _context.Products.Remove(product);
 
         // This should not throw DbUpdateConcurrencyException
-        var exception = await Record.ExceptionAsync(async () => 
+        var exception = await Record.ExceptionAsync(async () =>
             await _context.SaveChangesAsync());
 
         // Assert
         Assert.Null(exception);
-        
+
         // Product should be soft-deleted (marked as deleted but still in DB)
         var deletedProduct = await _context.Products
             .IgnoreQueryFilters()

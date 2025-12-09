@@ -104,12 +104,12 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Creating product with name: {Name}, code: {Code}", createDto.Name, createDto.Code);
             var result = await _httpClientService.PostAsync<CreateProductDto, ProductDto>(BaseUrl, createDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product created successfully with ID: {ProductId}", result.Id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)
@@ -132,12 +132,12 @@ public class ProductService : IProductService
             var result = await _httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
                 $"{BaseUrl}/create-with-codes-units",
                 createDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product with codes and units created successfully with ID: {ProductId}", result.Id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)
@@ -158,12 +158,12 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Updating product {ProductId} with name: {Name}", id, updateDto.Name);
             var result = await _httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product {ProductId} updated successfully", id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)
@@ -351,12 +351,12 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Creating product supplier for product {ProductId}", createDto.ProductId);
             var result = await _httpClientService.PostAsync<CreateProductSupplierDto, ProductSupplierDto>("api/v1/product-management/product-suppliers", createDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product supplier created successfully with ID: {ProductSupplierId}", result.Id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)
@@ -377,12 +377,12 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Updating product supplier {ProductSupplierId}", id);
             var result = await _httpClientService.PutAsync<UpdateProductSupplierDto, ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", updateDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product supplier {ProductSupplierId} updated successfully", id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)
@@ -497,12 +497,12 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Creating product code for product {ProductId}", createDto.ProductId);
             var result = await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product code created successfully with ID: {ProductCodeId}", result.Id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)
@@ -523,12 +523,12 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Updating product code {ProductCodeId}", id);
             var result = await _httpClientService.PutAsync<UpdateProductCodeDto, ProductCodeDto>($"api/v1/product-management/product-codes/{id}", updateDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product code {ProductCodeId} updated successfully", id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)
@@ -599,12 +599,12 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Creating product unit for product {ProductId}", createDto.ProductId);
             var result = await _httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>($"{BaseUrl}/{createDto.ProductId}/units", createDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product unit created successfully with ID: {ProductUnitId}", result.Id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)
@@ -625,12 +625,12 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Updating product unit {ProductUnitId}", id);
             var result = await _httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/products/units/{id}", updateDto);
-            
+
             if (result != null)
             {
                 _logger.LogInformation("Product unit {ProductUnitId} updated successfully", id);
             }
-            
+
             return result;
         }
         catch (HttpRequestException ex)

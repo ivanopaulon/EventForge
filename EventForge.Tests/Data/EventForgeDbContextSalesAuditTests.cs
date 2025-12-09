@@ -101,21 +101,21 @@ public class EventForgeDbContextSalesAuditTests : IDisposable
 
         // Act - Add both session and item in one operation
         session.Items.Add(item);
-        
+
         // Simulate CalculateTotalsInline - update session totals
         session.OriginalTotal = 20.00m;
         session.FinalTotal = 20.00m;
         session.TaxAmount = 4.40m;
 
         _ = _context.SaleSessions.Add(session);
-        
+
         // This should NOT throw DbUpdateConcurrencyException and should not create audit logs
-        var exception = await Record.ExceptionAsync(async () => 
+        var exception = await Record.ExceptionAsync(async () =>
             await _context.SaveChangesAsync());
 
         // Assert
         Assert.Null(exception);
-        
+
         // Verify no automatic audit logs were created for Sales entities
         var auditLogs = await _context.EntityChangeLogs
             .Where(log => log.EntityId == session.Id || log.EntityId == item.Id)

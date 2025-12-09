@@ -1,5 +1,5 @@
-using EventForge.DTOs.Store;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.Store;
 
 namespace EventForge.Client.Services.Store;
 
