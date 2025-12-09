@@ -910,14 +910,44 @@ public partial class EventForgeDbContext : DbContext
             auditEntries.AddRange(CreateAuditEntries(entry, currentUser));
         }
 
-        // Add audit entries BEFORE SaveChanges to ensure they are saved in the same transaction
-        // This prevents DbUpdateConcurrencyException with RowVersion optimistic concurrency control
-        if (auditEntries.Any())
+        // Handle Sales entities CreatedBy/ModifiedBy without audit logs
+        // Query once and reuse to avoid duplicate iteration
+        var allModifiedEntries = ChangeTracker.Entries<AuditableEntity>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+            .ToList();
+        
+        var salesEntries = allModifiedEntries
+            .Where(e => ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()))
+            .ToList();
+        
+        var hasNonSalesChanges = allModifiedEntries.Any(e => !ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()));
+
+        // CRITICAL FIX: Only add audit logs when there are non-Sales entity changes
+        // This prevents DbUpdateConcurrencyException when saving Sales entities
+        if (auditEntries.Any() && hasNonSalesChanges)
         {
             EntityChangeLogs.AddRange(auditEntries);
         }
 
-        // Single SaveChanges call saves both entities and audit logs atomically
+        foreach (var entry in salesEntries)
+        {
+            var entity = entry.Entity;
+            
+            if (entry.State == EntityState.Added)
+            {
+                entity.CreatedAt = DateTime.UtcNow;
+                entity.CreatedBy = currentUser;
+                entity.IsActive = true;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entity.ModifiedAt = DateTime.UtcNow;
+                entity.ModifiedBy = currentUser;
+            }
+        }
+
+        // Single SaveChanges call saves all entities atomically
+        // Audit logs are only created for non-Sales entities
         return await base.SaveChangesAsync(cancellationToken);
     }
 
