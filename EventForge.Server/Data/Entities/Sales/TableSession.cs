@@ -9,11 +9,6 @@ namespace EventForge.Server.Data.Entities.Sales;
 public class TableSession : AuditableEntity
 {
     /// <summary>
-    /// Table unique identifier.
-    /// </summary>
-    public new Guid Id { get; set; }
-
-    /// <summary>
     /// Table number or identifier.
     /// </summary>
     [Required]
@@ -64,11 +59,6 @@ public class TableSession : AuditableEntity
     public int? PositionY { get; set; }
 
     /// <summary>
-    /// Indicates if this table is active.
-    /// </summary>
-    public new bool IsActive { get; set; } = true;
-
-    /// <summary>
     /// Reservations for this table.
     /// </summary>
     public ICollection<TableReservation> Reservations { get; set; } = new List<TableReservation>();
@@ -110,11 +100,6 @@ public enum TableStatus
 /// </summary>
 public class TableReservation : AuditableEntity
 {
-    /// <summary>
-    /// Reservation unique identifier.
-    /// </summary>
-    public new Guid Id { get; set; }
-
     /// <summary>
     /// Reference to the table.
     /// </summary>

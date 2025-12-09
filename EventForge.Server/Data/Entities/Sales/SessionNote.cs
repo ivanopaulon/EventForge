@@ -9,11 +9,6 @@ namespace EventForge.Server.Data.Entities.Sales;
 public class SessionNote : AuditableEntity
 {
     /// <summary>
-    /// Note unique identifier.
-    /// </summary>
-    public new Guid Id { get; set; }
-
-    /// <summary>
     /// Reference to the sale session.
     /// </summary>
     [Required]
@@ -56,11 +51,6 @@ public class SessionNote : AuditableEntity
 public class NoteFlag : AuditableEntity
 {
     /// <summary>
-    /// Flag unique identifier.
-    /// </summary>
-    public new Guid Id { get; set; }
-
-    /// <summary>
     /// Flag code (e.g., URGENT, ALLERGY, SPECIAL_REQUEST).
     /// </summary>
     [Required]
@@ -91,11 +81,6 @@ public class NoteFlag : AuditableEntity
     /// </summary>
     [MaxLength(50)]
     public string? Icon { get; set; }
-
-    /// <summary>
-    /// Indicates if this flag is active.
-    /// </summary>
-    public new bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Display order for UI sorting.

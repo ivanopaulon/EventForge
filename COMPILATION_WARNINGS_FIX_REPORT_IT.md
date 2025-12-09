@@ -33,47 +33,61 @@
 
 ## 🔧 Analisi Dettagliata delle Correzioni
 
-### 1. CS0108 - Membri che Nascondono Membri Ereditati (26 warning)
+### 1. CS0108 - Membri che Nascondono Membri Ereditati (26 warning) - ⚠️ CORREZIONE ERRATA - REVERTITA
 
 **Causa**: Le entità Sales ridefinivano proprietà già presenti nella classe base `AuditableEntity` (Id, IsActive) senza dichiarare esplicitamente l'hiding.
 
-**Soluzione**: Aggiunto keyword `new` per indicare che l'hiding è intenzionale.
+**Soluzione Precedente (ERRATA)**: Aggiunto keyword `new` per indicare che l'hiding è intenzionale.
+
+**⚠️ PROBLEMA SCOPERTO**: Questa soluzione ha causato `DbUpdateConcurrencyException` durante le operazioni di salvataggio perché Entity Framework Core non riusciva a tracciare correttamente le entità e il loro `RowVersion`.
+
+#### Causa Principale del Problema
+L'uso di `new` nasconde la proprietà `Id` della classe base `AuditableEntity`, causando:
+1. EF Core traccia l'entità usando la proprietà `Id` della classe base
+2. Il `RowVersion` è configurato sulla classe base
+3. Quando si salva, EF usa valori di `Id` potenzialmente diversi
+4. Questo causa il `DbUpdateConcurrencyException` perché EF non trova la riga da aggiornare
+
+#### Soluzione Corretta (Dicembre 2025)
+**RIMOSSE** tutte le dichiarazioni `public new Guid Id` e `public new bool IsActive` dalle entità Sales.
 
 **File Modificati**:
 
-#### Entità Sales
+#### Entità Sales - PROPRIETÀ RIMOSSE
 ```csharp
-// Prima:
-public class PaymentMethod : AuditableEntity
-{
-    public Guid Id { get; set; }
-    public bool IsActive { get; set; } = true;
-}
-
-// Dopo:
+// PRIMA (ERRATO - con new):
 public class PaymentMethod : AuditableEntity
 {
     public new Guid Id { get; set; }
     public new bool IsActive { get; set; } = true;
+    // ... altri campi
+}
+
+// DOPO (CORRETTO - eredita da base):
+public class PaymentMethod : AuditableEntity
+{
+    // Id e IsActive sono ereditati da AuditableEntity
+    // ... altri campi
 }
 ```
 
 **Entità corrette**:
-- `PaymentMethod.cs` - Id, IsActive
-- `SaleItem.cs` - Id
-- `SalePayment.cs` - Id
-- `SaleSession.cs` - Id
-- `SessionNote.cs` - Id (SessionNote), Id e IsActive (NoteFlag)
-- `TableSession.cs` - Id e IsActive (TableSession), Id (TableReservation)
+- `PaymentMethod.cs` - **RIMOSSO** Id, IsActive
+- `SaleItem.cs` - **RIMOSSO** Id
+- `SalePayment.cs` - **RIMOSSO** Id
+- `SaleSession.cs` - **RIMOSSO** Id
+- `SessionNote.cs` - **RIMOSSO** Id (SessionNote), Id e IsActive (NoteFlag)
+- `TableSession.cs` - **RIMOSSO** Id e IsActive (TableSession), Id (TableReservation)
 
-#### Controller
+**Motivazione della Correzione**: La classe base `AuditableEntity` già definisce correttamente `Id`, `IsActive` e `RowVersion`. Le entità derivate devono **ereditare** queste proprietà, non ridefinirle, per permettere a Entity Framework Core di tracciare correttamente le entità e gestire il concurrency control con `RowVersion`.
+
+#### Controller (Non Modificato)
 ```csharp
-// PaymentMethodsController.cs
+// PaymentMethodsController.cs - Questi rimangono invariati
 private new ActionResult CreateConflictProblem(string message)
 private new async Task<ActionResult?> ValidateTenantAccessAsync(ITenantContext tenantContext)
 ```
-
-**Motivazione**: Queste classi hanno bisogno di ridefinire Id per usare Guid invece della definizione base, mantenendo però tutti i benefici dell'audit trail.
+**Nota**: I metodi del controller mantengono il keyword `new` perché non causano problemi di concorrenza EF Core.
 
 ---
 
