@@ -2298,7 +2298,23 @@
     "noOtherInventories": "Nessun altro inventario aperto",
     "openInventoriesFound": "Ci sono {0} inventari non finalizzati.",
     "openInventoriesFoundMessage": "Riprendi una sessione esistente o gestiscili.",
-    "startNewInventory": "Avvia Nuovo Inventario"
+    "startNewInventory": "Avvia Nuovo Inventario",
+    "diagnostics": {
+      "title": "Diagnostica Inventario",
+      "comingSoon": "🚀 Funzionalità in Arrivo!",
+      "description": "Questa pagina fornirà strumenti avanzati per diagnosticare e correggere anomalie negli inventari:",
+      "featureAnomalyDetection": "Rilevamento Anomalie:",
+      "featureAnomalyDetectionDesc": "Identifica discrepanze tra stock registrati e documenti",
+      "featureAutoCorrection": "Correzione Automatica:",
+      "featureAutoCorrectionDesc": "Suggerimenti intelligenti per correggere errori comuni",
+      "featureDiagnosticReports": "Report Diagnostici:",
+      "featureDiagnosticReportsDesc": "Analisi dettagliate sullo stato degli inventari",
+      "featureChangeHistory": "Cronologia Modifiche:",
+      "featureChangeHistoryDesc": "Tracciamento completo delle correzioni applicate",
+      "featureBatchRepair": "Riparazione Batch:",
+      "featureBatchRepairDesc": "Correggi multiple anomalie con un solo click",
+      "footerNote": "Questa funzionalità è attualmente in fase di sviluppo. Sarà disponibile in una prossima versione."
+    }
   },
   "nav": {
     "activityFeed": "Feed Attività",
@@ -2351,7 +2367,19 @@
     "documentList": "Lista Documenti",
     "createDocument": "Nuovo Documento",
     "documentTypes": "Tipi Documento",
-    "documentCounters": "Contatori Documenti"
+    "documentCounters": "Contatori Documenti",
+    "catalog": "Catalogo",
+    "pos": "Punto Vendita (POS)",
+    "transferOrders": "Trasferimenti",
+    "rolePermissionManagement": "Gestione Ruoli e Permessi",
+    "featureTemplates": "Feature Templates",
+    "paymentMethods": "Metodi di Pagamento",
+    "posManagement": "Punti Cassa (Terminali)",
+    "operatorManagement": "Operatori",
+    "operatorGroupManagement": "Gruppi Operatori",
+    "storeSettings": "Configurazione Store",
+    "inventoryManagement": "Inventari",
+    "inventoryDiagnostics": "Diagnostica e Correggi"
   },
   "tour": {
     "chat": "Tour Chat",

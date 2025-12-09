@@ -1,0 +1,69 @@
+@page "/warehouse/inventory-diagnostics"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject ITranslationService TranslationService
+
+<PageTitle>@TranslationService.GetTranslation("warehouse.diagnostics.title", "Diagnostica Inventario")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Class="pa-8" Elevation="2">
+        <MudStack Spacing="4" AlignItems="AlignItems.Center">
+            
+            <!-- Header -->
+            <MudText Typo="Typo.h4" Align="Align.Center">
+                <MudIcon Icon="@Icons.Material.Outlined.HealthAndSafety" Class="mr-2" Size="Size.Large" Color="Color.Primary" />
+                @TranslationService.GetTranslation("warehouse.diagnostics.title", "Diagnostica Inventario")
+            </MudText>
+            
+            <!-- Coming Soon Badge -->
+            <MudChip T="string" Color="Color.Info" Size="Size.Large" Icon="@Icons.Material.Outlined.Info">
+                @TranslationService.GetTranslation("warehouse.diagnostics.comingSoon", "🚀 Funzionalità in Arrivo!")
+            </MudChip>
+            
+            <!-- Description -->
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-4">
+                @TranslationService.GetTranslation("warehouse.diagnostics.description", "Questa pagina fornirà strumenti avanzati per diagnosticare e correggere anomalie negli inventari:")
+            </MudText>
+            
+            <!-- Features List -->
+            <MudList T="string" Class="mt-4">
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.BugReport">
+                    <MudText>
+                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureAnomalyDetection", "Rilevamento Anomalie:")</strong>
+                        @TranslationService.GetTranslation("warehouse.diagnostics.featureAnomalyDetectionDesc", "Identifica discrepanze tra stock registrati e documenti")
+                    </MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.BuildCircle">
+                    <MudText>
+                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureAutoCorrection", "Correzione Automatica:")</strong>
+                        @TranslationService.GetTranslation("warehouse.diagnostics.featureAutoCorrectionDesc", "Suggerimenti intelligenti per correggere errori comuni")
+                    </MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.Assessment">
+                    <MudText>
+                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureDiagnosticReports", "Report Diagnostici:")</strong>
+                        @TranslationService.GetTranslation("warehouse.diagnostics.featureDiagnosticReportsDesc", "Analisi dettagliate sullo stato degli inventari")
+                    </MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.History">
+                    <MudText>
+                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureChangeHistory", "Cronologia Modifiche:")</strong>
+                        @TranslationService.GetTranslation("warehouse.diagnostics.featureChangeHistoryDesc", "Tracciamento completo delle correzioni applicate")
+                    </MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.Healing">
+                    <MudText>
+                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureBatchRepair", "Riparazione Batch:")</strong>
+                        @TranslationService.GetTranslation("warehouse.diagnostics.featureBatchRepairDesc", "Correggi multiple anomalie con un solo click")
+                    </MudText>
+                </MudListItem>
+            </MudList>
+            
+            <!-- Footer Note -->
+            <MudAlert Severity="Severity.Info" Class="mt-4" Dense="true">
+                @TranslationService.GetTranslation("warehouse.diagnostics.footerNote", "Questa funzionalità è attualmente in fase di sviluppo. Sarà disponibile in una prossima versione.")
+            </MudAlert>
+            
+        </MudStack>
+    </MudPaper>
+</MudContainer>

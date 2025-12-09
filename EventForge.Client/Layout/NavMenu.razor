@@ -92,26 +92,43 @@
                 <MudNavGroup title="@TranslationService.GetTranslation("nav.warehouseManagement", "Magazzino")" 
                              Icon="@Icons.Material.Outlined.Warehouse" 
                              Expanded="false">
+                    
                     <MudNavLink Href="/warehouse/facilities" 
                                 Icon="@Icons.Material.Outlined.Warehouse" 
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.facilities", "Magazzini")
                     </MudNavLink>
-                    <MudNavLink Href="/warehouse/lot-management" 
-                                Icon="@Icons.Material.Outlined.QrCode" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.lotManagement", "Gestione Lotti")
-                    </MudNavLink>
-                    <MudNavLink Href="/warehouse/inventory-procedure" 
-                                Icon="@Icons.Material.Outlined.Inventory" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.inventoryProcedure", "Inventari")
-                    </MudNavLink>
+                    
+                    <MudNavGroup title="@TranslationService.GetTranslation("nav.inventoryManagement", "Inventari")" 
+                                 Icon="@Icons.Material.Outlined.Inventory" 
+                                 Expanded="false">
+                        
+                        <MudNavLink Href="/warehouse/inventory-procedure" 
+                                    Icon="@Icons.Material.Outlined.PlayArrow" 
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.inventoryProcedure", "Esegui Inventario")
+                        </MudNavLink>
+                        
+                        <MudNavLink Href="/warehouse/inventory-diagnostics" 
+                                    Icon="@Icons.Material.Outlined.HealthAndSafety" 
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.inventoryDiagnostics", "Diagnostica e Correggi")
+                        </MudNavLink>
+                        
+                    </MudNavGroup>
+                    
                     <MudNavLink Href="/warehouse/transfers" 
                                 Icon="@Icons.Material.Outlined.CompareArrows" 
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.transferOrders", "Trasferimenti")
                     </MudNavLink>
+                    
+                    <MudNavLink Href="/warehouse/lot-management" 
+                                Icon="@Icons.Material.Outlined.QrCode" 
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.lotManagement", "Gestione Lotti")
+                    </MudNavLink>
+                    
                 </MudNavGroup>
             }
 

@@ -2295,7 +2295,23 @@
     "searchFacilities": "[FROM IT] Cerca magazzini",
     "searchLocationPlaceholder": "[FROM IT] Inserisci codice...",
     "searchLocations": "[FROM IT] Cerca ubicazioni",
-    "searchPlaceholder": "[FROM IT] Inserisci nome o codice..."
+    "searchPlaceholder": "[FROM IT] Inserisci nome o codice...",
+    "diagnostics": {
+      "title": "Inventory Diagnostics",
+      "comingSoon": "🚀 Coming Soon!",
+      "description": "This page will provide advanced tools to diagnose and correct inventory anomalies:",
+      "featureAnomalyDetection": "Anomaly Detection:",
+      "featureAnomalyDetectionDesc": "Identify discrepancies between recorded stock and documents",
+      "featureAutoCorrection": "Automatic Correction:",
+      "featureAutoCorrectionDesc": "Smart suggestions to fix common errors",
+      "featureDiagnosticReports": "Diagnostic Reports:",
+      "featureDiagnosticReportsDesc": "Detailed analysis of inventory status",
+      "featureChangeHistory": "Change History:",
+      "featureChangeHistoryDesc": "Complete tracking of applied corrections",
+      "featureBatchRepair": "Batch Repair:",
+      "featureBatchRepairDesc": "Fix multiple anomalies with one click",
+      "footerNote": "This feature is currently under development. It will be available in an upcoming release."
+    }
   },
   "nav": {
     "activityFeed": "Activity Feed",
@@ -2348,7 +2364,19 @@
     "documentTypes": "Document Types",
     "documentCounters": "Document Counters",
     "modelManagement": "[FROM IT] Modelli",
-    "storageLocationManagement": "[FROM IT] Ubicazioni"
+    "storageLocationManagement": "[FROM IT] Ubicazioni",
+    "catalog": "Catalog",
+    "pos": "Point of Sale (POS)",
+    "transferOrders": "Transfers",
+    "rolePermissionManagement": "Role & Permission Management",
+    "featureTemplates": "Feature Templates",
+    "paymentMethods": "Payment Methods",
+    "posManagement": "POS Terminals",
+    "operatorManagement": "Operators",
+    "operatorGroupManagement": "Operator Groups",
+    "storeSettings": "Store Settings",
+    "inventoryManagement": "Inventories",
+    "inventoryDiagnostics": "Diagnose & Repair"
   },
   "tour": {
     "chat": "Chat Tour",
