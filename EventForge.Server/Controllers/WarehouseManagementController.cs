@@ -37,6 +37,7 @@ public class WarehouseManagementController : BaseApiController
     private readonly IDocumentHeaderService _documentHeaderService;
     private readonly IProductService _productService;
     private readonly IInventoryBulkSeedService _inventoryBulkSeedService;
+    private readonly IInventoryDiagnosticService _inventoryDiagnosticService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<WarehouseManagementController> _logger;
     private readonly EventForgeDbContext _context;
@@ -51,6 +52,7 @@ public class WarehouseManagementController : BaseApiController
         IDocumentHeaderService documentHeaderService,
         IProductService productService,
         IInventoryBulkSeedService inventoryBulkSeedService,
+        IInventoryDiagnosticService inventoryDiagnosticService,
         ITenantContext tenantContext,
         ILogger<WarehouseManagementController> logger,
         EventForgeDbContext context)
@@ -64,6 +66,7 @@ public class WarehouseManagementController : BaseApiController
         _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _inventoryBulkSeedService = inventoryBulkSeedService ?? throw new ArgumentNullException(nameof(inventoryBulkSeedService));
+        _inventoryDiagnosticService = inventoryDiagnosticService ?? throw new ArgumentNullException(nameof(inventoryDiagnosticService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -3154,6 +3157,139 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while cancelling all open inventory documents.");
             return CreateInternalServerErrorProblem("An error occurred while cancelling all open inventory documents.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Diagnoses an inventory document to identify data quality issues.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Diagnostic report with issues and statistics</returns>
+    /// <response code="200">Returns the diagnostic report</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/{documentId:guid}/diagnose")]
+    [ProducesResponseType(typeof(InventoryDiagnosticReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DiagnoseInventoryDocument(Guid documentId, CancellationToken cancellationToken)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var report = await _inventoryDiagnosticService.DiagnoseDocumentAsync(documentId, cancellationToken);
+            return Ok(report);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while diagnosing inventory document {DocumentId}.", documentId);
+            return CreateInternalServerErrorProblem("An error occurred while diagnosing the inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Automatically repairs an inventory document based on the specified options.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="options">Repair options</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Repair result with actions performed</returns>
+    /// <response code="200">Returns the repair result</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/{documentId:guid}/auto-repair")]
+    [ProducesResponseType(typeof(InventoryRepairResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AutoRepairInventoryDocument(Guid documentId, [FromBody] InventoryAutoRepairOptionsDto options, CancellationToken cancellationToken)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _inventoryDiagnosticService.AutoRepairDocumentAsync(documentId, options, GetCurrentUser(), cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while auto-repairing inventory document {DocumentId}.", documentId);
+            return CreateInternalServerErrorProblem("An error occurred while auto-repairing the inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Manually repairs a specific row in an inventory document.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="rowId">Row ID to repair</param>
+    /// <param name="repairData">Repair data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success indicator</returns>
+    /// <response code="200">If the row was repaired successfully</response>
+    /// <response code="404">If the document or row is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPatch("inventory/documents/{documentId:guid}/rows/{rowId:guid}/repair")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> RepairInventoryRow(Guid documentId, Guid rowId, [FromBody] InventoryRowRepairDto repairData, CancellationToken cancellationToken)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var success = await _inventoryDiagnosticService.RepairRowAsync(documentId, rowId, repairData, GetCurrentUser(), cancellationToken);
+            if (!success)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Row not found",
+                    Detail = $"Row with ID {rowId} was not found in document {documentId}.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while repairing row {RowId} in document {DocumentId}.", rowId, documentId);
+            return CreateInternalServerErrorProblem("An error occurred while repairing the inventory row.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Removes problematic rows from an inventory document.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="rowIds">List of row IDs to remove</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of rows removed</returns>
+    /// <response code="200">Returns the number of rows removed</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/{documentId:guid}/remove-problematic-rows")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> RemoveProblematicRows(Guid documentId, [FromBody] List<Guid> rowIds, CancellationToken cancellationToken)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var removedCount = await _inventoryDiagnosticService.RemoveProblematicRowsAsync(documentId, rowIds, GetCurrentUser(), cancellationToken);
+            return Ok(removedCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while removing problematic rows from document {DocumentId}.", documentId);
+            return CreateInternalServerErrorProblem("An error occurred while removing problematic rows.", ex);
         }
     }
 
