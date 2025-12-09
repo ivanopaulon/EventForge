@@ -16,7 +16,7 @@
             </MudText>
             
             <!-- Coming Soon Badge -->
-            <MudChip Color="Color.Info" Size="Size.Large" Icon="@Icons.Material.Outlined.Info">
+            <MudChip T="string" Color="Color.Info" Size="Size.Large" Icon="@Icons.Material.Outlined.Info">
                 @TranslationService.GetTranslation("warehouse.diagnostics.comingSoon", "🚀 Funzionalità in Arrivo!")
             </MudChip>
             
@@ -26,20 +26,20 @@
             </MudText>
             
             <!-- Features List -->
-            <MudList Class="mt-4">
-                <MudListItem Icon="@Icons.Material.Outlined.BugReport">
+            <MudList T="string" Class="mt-4">
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.BugReport">
                     <MudText><strong>Rilevamento Anomalie:</strong> Identifica discrepanze tra stock registrati e documenti</MudText>
                 </MudListItem>
-                <MudListItem Icon="@Icons.Material.Outlined.BuildCircle">
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.BuildCircle">
                     <MudText><strong>Correzione Automatica:</strong> Suggerimenti intelligenti per correggere errori comuni</MudText>
                 </MudListItem>
-                <MudListItem Icon="@Icons.Material.Outlined.Assessment">
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.Assessment">
                     <MudText><strong>Report Diagnostici:</strong> Analisi dettagliate sullo stato degli inventari</MudText>
                 </MudListItem>
-                <MudListItem Icon="@Icons.Material.Outlined.History">
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.History">
                     <MudText><strong>Cronologia Modifiche:</strong> Tracciamento completo delle correzioni applicate</MudText>
                 </MudListItem>
-                <MudListItem Icon="@Icons.Material.Outlined.Healing">
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.Healing">
                     <MudText><strong>Riparazione Batch:</strong> Correggi multiple anomalie con un solo click</MudText>
                 </MudListItem>
             </MudList>
