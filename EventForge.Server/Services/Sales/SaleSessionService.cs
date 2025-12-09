@@ -327,7 +327,7 @@ public class SaleSessionService : ISaleSessionService
                     currentTenantId.Value,
                     addItemDto.ProductId);
 
-                LogDetailedEntityStates(sessionId, currentTenantId.Value, session.Items.Count);
+                LogDetailedEntityStates(sessionId, currentTenantId.Value);
                 
                 throw new InvalidOperationException(
                     "The session was modified by another user. Please refresh and try again.", ex);
@@ -407,7 +407,7 @@ public class SaleSessionService : ISaleSessionService
                 sessionId,
                 itemId);
 
-            LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty, 0);
+            LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty);
             
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
@@ -473,7 +473,7 @@ public class SaleSessionService : ISaleSessionService
                 sessionId,
                 itemId);
 
-            LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty, 0);
+            LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty);
             
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
@@ -1189,10 +1189,14 @@ public class SaleSessionService : ISaleSessionService
     /// Logs detailed entity states for diagnostic purposes. 
     /// This method should only be called in error/catch blocks to avoid excessive logging.
     /// </summary>
-    private void LogDetailedEntityStates(Guid sessionId, Guid tenantId, int itemsCount)
+    private void LogDetailedEntityStates(Guid sessionId, Guid tenantId)
     {
         try
         {
+            // Calculate items count from ChangeTracker
+            var itemsCount = _context.ChangeTracker.Entries()
+                .Count(e => e.Entity is SaleItem item && item.SaleSessionId == sessionId);
+            
             _logger.LogError(
                 "Diagnostic - SessionId: {SessionId}, TenantId: {TenantId}, ItemsCount: {ItemCount}, TrackedEntities: {TrackedCount}",
                 sessionId,
