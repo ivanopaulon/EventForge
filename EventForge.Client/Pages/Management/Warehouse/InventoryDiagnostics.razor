@@ -1,69 +1,517 @@
 @page "/warehouse/inventory-diagnostics"
 @using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject IInventoryService InventoryService
 @inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ILogger<InventoryDiagnostics> Logger
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.diagnostics.title", "Diagnostica Inventario")</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudPaper Class="pa-8" Elevation="2">
-        <MudStack Spacing="4" AlignItems="AlignItems.Center">
-            
-            <!-- Header -->
-            <MudText Typo="Typo.h4" Align="Align.Center">
-                <MudIcon Icon="@Icons.Material.Outlined.HealthAndSafety" Class="mr-2" Size="Size.Large" Color="Color.Primary" />
-                @TranslationService.GetTranslation("warehouse.diagnostics.title", "Diagnostica Inventario")
-            </MudText>
-            
-            <!-- Coming Soon Badge -->
-            <MudChip T="string" Color="Color.Info" Size="Size.Large" Icon="@Icons.Material.Outlined.Info">
-                @TranslationService.GetTranslation("warehouse.diagnostics.comingSoon", "🚀 Funzionalità in Arrivo!")
-            </MudChip>
-            
-            <!-- Description -->
-            <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-4">
-                @TranslationService.GetTranslation("warehouse.diagnostics.description", "Questa pagina fornirà strumenti avanzati per diagnosticare e correggere anomalie negli inventari:")
-            </MudText>
-            
-            <!-- Features List -->
-            <MudList T="string" Class="mt-4">
-                <MudListItem T="string" Icon="@Icons.Material.Outlined.BugReport">
-                    <MudText>
-                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureAnomalyDetection", "Rilevamento Anomalie:")</strong>
-                        @TranslationService.GetTranslation("warehouse.diagnostics.featureAnomalyDetectionDesc", "Identifica discrepanze tra stock registrati e documenti")
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="4">
+        
+        <!-- Header -->
+        <MudText Typo="Typo.h4">
+            <MudIcon Icon="@Icons.Material.Outlined.HealthAndSafety" Class="mr-2" Size="Size.Large" Color="Color.Primary" />
+            @TranslationService.GetTranslation("warehouse.diagnostics.title", "Diagnostica Inventario")
+        </MudText>
+
+        <!-- Document Selection Section -->
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h6">
+                    @TranslationService.GetTranslation("inventory.diagnostics.selectDocument", "Seleziona Documento da Analizzare")
+                </MudText>
+
+                <MudGrid>
+                    <MudItem xs="12" md="8">
+                        <MudSelect T="Guid?"
+                                   @bind-Value="_selectedDocumentId"
+                                   Label="@TranslationService.GetTranslation("inventory.diagnostics.documentSelect", "Documento Inventario")"
+                                   Variant="Variant.Outlined"
+                                   Disabled="_isLoading || _isAnalyzing">
+                            @foreach (var doc in _draftDocuments)
+                            {
+                                <MudSelectItem Value="@((Guid?)doc.Id)">
+                                    @doc.Number - @doc.WarehouseName (@doc.CreatedAt.ToString("dd/MM/yyyy"))
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                                   OnClick="AnalyzeDocument"
+                                   Disabled="_selectedDocumentId == null || _isAnalyzing"
+                                   FullWidth="true"
+                                   Size="Size.Large">
+                            @if (_isAnalyzing)
+                            {
+                                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                            }
+                            @TranslationService.GetTranslation("inventory.diagnostics.analyzeButton", "Analizza")
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Diagnostic Report Section -->
+        @if (_diagnosticReport != null)
+        {
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Outlined.Assessment" Class="mr-2" />
+                        @TranslationService.GetTranslation("inventory.diagnostics.reportTitle", "Report Diagnostico")
                     </MudText>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Outlined.BuildCircle">
-                    <MudText>
-                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureAutoCorrection", "Correzione Automatica:")</strong>
-                        @TranslationService.GetTranslation("warehouse.diagnostics.featureAutoCorrectionDesc", "Suggerimenti intelligenti per correggere errori comuni")
-                    </MudText>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Outlined.Assessment">
-                    <MudText>
-                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureDiagnosticReports", "Report Diagnostici:")</strong>
-                        @TranslationService.GetTranslation("warehouse.diagnostics.featureDiagnosticReportsDesc", "Analisi dettagliate sullo stato degli inventari")
-                    </MudText>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Outlined.History">
-                    <MudText>
-                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureChangeHistory", "Cronologia Modifiche:")</strong>
-                        @TranslationService.GetTranslation("warehouse.diagnostics.featureChangeHistoryDesc", "Tracciamento completo delle correzioni applicate")
-                    </MudText>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Outlined.Healing">
-                    <MudText>
-                        <strong>@TranslationService.GetTranslation("warehouse.diagnostics.featureBatchRepair", "Riparazione Batch:")</strong>
-                        @TranslationService.GetTranslation("warehouse.diagnostics.featureBatchRepairDesc", "Correggi multiple anomalie con un solo click")
-                    </MudText>
-                </MudListItem>
-            </MudList>
-            
-            <!-- Footer Note -->
-            <MudAlert Severity="Severity.Info" Class="mt-4" Dense="true">
-                @TranslationService.GetTranslation("warehouse.diagnostics.footerNote", "Questa funzionalità è attualmente in fase di sviluppo. Sarà disponibile in una prossima versione.")
-            </MudAlert>
-            
-        </MudStack>
-    </MudPaper>
+
+                    <!-- Health Status -->
+                    @if (_diagnosticReport.IsHealthy)
+                    {
+                        <MudAlert Severity="Severity.Success" Dense="false">
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
+                                @TranslationService.GetTranslation("inventory.diagnostics.healthy", "Nessun Problema")
+                            </MudText>
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="false">
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2" />
+                                @TranslationService.GetTranslation("inventory.diagnostics.issuesFound", "Problemi Trovati"): @_diagnosticReport.TotalIssues
+                            </MudText>
+                        </MudAlert>
+                    }
+
+                    <!-- Statistics -->
+                    <MudGrid>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.TableRows" Size="Size.Large" Color="Color.Primary" />
+                                    <MudText Typo="Typo.h4">@_diagnosticReport.TotalRows</MudText>
+                                    <MudText Typo="Typo.body2" Align="Align.Center">
+                                        @TranslationService.GetTranslation("inventory.diagnostics.totalRows", "Righe Totali")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="Size.Large" Color="@(_diagnosticReport.Stats.RowsWithMissingData > 0 ? Color.Warning : Color.Default)" />
+                                    <MudText Typo="Typo.h4">@_diagnosticReport.Stats.RowsWithMissingData</MudText>
+                                    <MudText Typo="Typo.body2" Align="Align.Center">
+                                        @TranslationService.GetTranslation("inventory.diagnostics.missingData", "Dati Mancanti")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.ContentCopy" Size="Size.Large" Color="@(_diagnosticReport.Stats.DuplicateProducts > 0 ? Color.Warning : Color.Default)" />
+                                    <MudText Typo="Typo.h4">@_diagnosticReport.Stats.DuplicateProducts</MudText>
+                                    <MudText Typo="Typo.body2" Align="Align.Center">
+                                        @TranslationService.GetTranslation("inventory.diagnostics.duplicates", "Duplicati")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.BrokenImage" Size="Size.Large" Color="@(_diagnosticReport.Stats.InvalidReferences > 0 ? Color.Error : Color.Default)" />
+                                    <MudText Typo="Typo.h4">@_diagnosticReport.Stats.InvalidReferences</MudText>
+                                    <MudText Typo="Typo.body2" Align="Align.Center">
+                                        @TranslationService.GetTranslation("inventory.diagnostics.invalidRefs", "Riferimenti Invalidi")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+
+                    <!-- Issues Table -->
+                    @if (_diagnosticReport.Issues.Any())
+                    {
+                        <MudTable Items="@_diagnosticReport.Issues"
+                                  Hover="true"
+                                  Bordered="true"
+                                  Dense="true"
+                                  Striped="true"
+                                  FixedHeader="true"
+                                  Height="400px">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("inventory.diagnostics.severity", "Severità")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("inventory.diagnostics.issueType", "Tipo")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("inventory.diagnostics.description", "Descrizione")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("inventory.diagnostics.canAutoFix", "Auto-Fix")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(context.Severity)">
+                                        @context.Severity
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>@context.IssueType</MudTd>
+                                <MudTd>@context.Description</MudTd>
+                                <MudTd>
+                                    @if (context.CanAutoFix)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                    }
+                                    else
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+                                    }
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+
+                        <!-- Action Buttons -->
+                        <MudText Typo="Typo.h6" Class="mt-4">
+                            @TranslationService.GetTranslation("inventory.diagnostics.actions", "Azioni Disponibili")
+                        </MudText>
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       StartIcon="@Icons.Material.Filled.BuildCircle"
+                                       OnClick="ShowAutoRepairDialog"
+                                       Disabled="_isRepairing">
+                                @if (_isRepairing)
+                                {
+                                    <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                                }
+                                @TranslationService.GetTranslation("inventory.diagnostics.autoRepair", "Correzione Automatica")
+                            </MudButton>
+
+                            <MudButton Color="Color.Error"
+                                       Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.DeleteForever"
+                                       OnClick="RemoveProblematicRows"
+                                       Disabled="@(_isRepairing || !_diagnosticReport.Issues.Any(i => i.Severity == "Critical"))">
+                                @TranslationService.GetTranslation("inventory.diagnostics.removeRows", "Rimuovi Righe Problematiche")
+                            </MudButton>
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+
+        <!-- Repair Results Section -->
+        @if (_repairResult != null)
+        {
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Spacing="3">
+                    <MudAlert Severity="Severity.Success" Dense="false">
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
+                            @TranslationService.GetTranslation("inventory.diagnostics.repairSuccess", "Correzione Completata con Successo")
+                        </MudText>
+                    </MudAlert>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudText Typo="Typo.h4">@_repairResult.RowsAnalyzed</MudText>
+                                    <MudText Typo="Typo.body2" Align="Align.Center">
+                                        @TranslationService.GetTranslation("inventory.diagnostics.rowsAnalyzed", "Righe Analizzate")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudText Typo="Typo.h4" Color="Color.Success">@_repairResult.RowsCorrected</MudText>
+                                    <MudText Typo="Typo.body2" Align="Align.Center">
+                                        @TranslationService.GetTranslation("inventory.diagnostics.rowsCorrected", "Righe Corrette")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+                                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudText Typo="Typo.h4" Color="Color.Error">@_repairResult.RowsRemoved</MudText>
+                                    <MudText Typo="Typo.body2" Align="Align.Center">
+                                        @TranslationService.GetTranslation("inventory.diagnostics.rowsRemoved", "Righe Rimosse")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+
+                    @if (_repairResult.ActionsPerformed.Any())
+                    {
+                        <MudText Typo="Typo.subtitle1" Class="mt-2">
+                            @TranslationService.GetTranslation("inventory.diagnostics.actionsPerformed", "Azioni Eseguite:")
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            @foreach (var action in _repairResult.ActionsPerformed)
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Done" IconColor="Color.Success">
+                                    @action
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+
+                    <MudButton Color="Color.Primary"
+                               Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="ReanalyzeDocument">
+                        @TranslationService.GetTranslation("inventory.diagnostics.reanalyze", "Rianalizza")
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        }
+
+    </MudStack>
 </MudContainer>
+
+@code {
+    private List<InventoryDocumentDto> _draftDocuments = new();
+    private Guid? _selectedDocumentId;
+    private InventoryDiagnosticReportDto? _diagnosticReport;
+    private InventoryRepairResultDto? _repairResult;
+    private bool _isLoading = true;
+    private bool _isAnalyzing = false;
+    private bool _isRepairing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadDraftDocuments();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing inventory diagnostics page");
+            Snackbar.Add(
+                TranslationService.GetTranslation("messages.errorLoadingData", "Errore nel caricamento dei dati"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadDraftDocuments()
+    {
+        var result = await InventoryService.GetInventoryDocumentsAsync(
+            page: 1,
+            pageSize: 100,
+            status: "Draft",
+            includeRows: false
+        );
+
+        if (result?.Items != null)
+        {
+            _draftDocuments = result.Items.ToList();
+        }
+    }
+
+    private async Task AnalyzeDocument()
+    {
+        if (_selectedDocumentId == null)
+        {
+            return;
+        }
+
+        _isAnalyzing = true;
+        _diagnosticReport = null;
+        _repairResult = null;
+
+        try
+        {
+            _diagnosticReport = await InventoryService.DiagnoseInventoryDocumentAsync(_selectedDocumentId.Value);
+
+            if (_diagnosticReport != null)
+            {
+                var messageKey = _diagnosticReport.IsHealthy
+                    ? "inventory.diagnostics.analysisCompleteHealthy"
+                    : "inventory.diagnostics.analysisCompleteIssues";
+                var defaultMessage = _diagnosticReport.IsHealthy
+                    ? "Analisi completata: nessun problema trovato"
+                    : $"Analisi completata: {_diagnosticReport.TotalIssues} problemi trovati";
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation(messageKey, defaultMessage),
+                    _diagnosticReport.IsHealthy ? Severity.Success : Severity.Warning
+                );
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.errorAnalyzing", "Errore durante l'analisi"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error analyzing inventory document");
+            Snackbar.Add(
+                TranslationService.GetTranslation("messages.errorAnalyzing", "Errore durante l'analisi"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isAnalyzing = false;
+        }
+    }
+
+    private async Task ShowAutoRepairDialog()
+    {
+        if (_selectedDocumentId == null || _diagnosticReport == null)
+        {
+            return;
+        }
+
+        var dialog = await DialogService.ShowAsync<AutoRepairOptionsDialog>(
+            TranslationService.GetTranslation("inventory.diagnostics.autoRepairOptions", "Opzioni Correzione Automatica")
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is InventoryAutoRepairOptionsDto options)
+        {
+            await ExecuteAutoRepair(options);
+        }
+    }
+
+    private async Task ExecuteAutoRepair(InventoryAutoRepairOptionsDto options)
+    {
+        if (_selectedDocumentId == null)
+        {
+            return;
+        }
+
+        _isRepairing = true;
+
+        try
+        {
+            _repairResult = await InventoryService.AutoRepairInventoryDocumentAsync(_selectedDocumentId.Value, options);
+
+            if (_repairResult != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("inventory.diagnostics.repairSuccess", "Correzione Completata con Successo"),
+                    Severity.Success
+                );
+
+                // Clear diagnostic report to show repair results
+                _diagnosticReport = null;
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.errorRepairing", "Errore durante la correzione"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error executing auto repair");
+            Snackbar.Add(
+                TranslationService.GetTranslation("messages.errorRepairing", "Errore durante la correzione"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isRepairing = false;
+        }
+    }
+
+    private async Task RemoveProblematicRows()
+    {
+        if (_selectedDocumentId == null || _diagnosticReport == null)
+        {
+            return;
+        }
+
+        var criticalIssues = _diagnosticReport.Issues
+            .Where(i => i.Severity == "Critical")
+            .Select(i => i.RowId)
+            .ToList();
+
+        if (!criticalIssues.Any())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("inventory.diagnostics.noCriticalIssues", "Nessuna riga critica da rimuovere"),
+                Severity.Info
+            );
+            return;
+        }
+
+        _isRepairing = true;
+
+        try
+        {
+            var removedCount = await InventoryService.RemoveProblematicRowsAsync(_selectedDocumentId.Value, criticalIssues);
+
+            if (removedCount > 0)
+            {
+                Snackbar.Add(
+                    $"{removedCount} {TranslationService.GetTranslation("inventory.diagnostics.rowsRemovedSuccess", "righe rimosse con successo")}",
+                    Severity.Success
+                );
+
+                // Re-analyze after removal
+                await AnalyzeDocument();
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.errorRemovingRows", "Errore durante la rimozione delle righe"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing problematic rows");
+            Snackbar.Add(
+                TranslationService.GetTranslation("messages.errorRemovingRows", "Errore durante la rimozione delle righe"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isRepairing = false;
+        }
+    }
+
+    private async Task ReanalyzeDocument()
+    {
+        _repairResult = null;
+        await AnalyzeDocument();
+    }
+
+    private Color GetSeverityColor(string severity)
+    {
+        return severity?.ToLowerInvariant() switch
+        {
+            "critical" => Color.Error,
+            "warning" => Color.Warning,
+            "info" => Color.Info,
+            _ => Color.Default
+        };
+    }
+}
