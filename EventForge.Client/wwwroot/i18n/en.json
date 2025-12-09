@@ -2298,7 +2298,19 @@
     "searchPlaceholder": "[FROM IT] Inserisci nome o codice...",
     "diagnostics": {
       "title": "Inventory Diagnostics",
-      "comingSoon": "🚀 Coming Soon!"
+      "comingSoon": "🚀 Coming Soon!",
+      "description": "This page will provide advanced tools to diagnose and correct inventory anomalies:",
+      "featureAnomalyDetection": "Anomaly Detection:",
+      "featureAnomalyDetectionDesc": "Identify discrepancies between recorded stock and documents",
+      "featureAutoCorrection": "Automatic Correction:",
+      "featureAutoCorrectionDesc": "Smart suggestions to fix common errors",
+      "featureDiagnosticReports": "Diagnostic Reports:",
+      "featureDiagnosticReportsDesc": "Detailed analysis of inventory status",
+      "featureChangeHistory": "Change History:",
+      "featureChangeHistoryDesc": "Complete tracking of applied corrections",
+      "featureBatchRepair": "Batch Repair:",
+      "featureBatchRepairDesc": "Fix multiple anomalies with one click",
+      "footerNote": "This feature is currently under development. It will be available in an upcoming release."
     }
   },
   "nav": {
@@ -2364,7 +2376,7 @@
     "operatorGroupManagement": "Operator Groups",
     "storeSettings": "Store Settings",
     "inventoryManagement": "Inventories",
-    "inventoryDiagnostics": "Diagnose &amp; Repair"
+    "inventoryDiagnostics": "Diagnose & Repair"
   },
   "tour": {
     "chat": "Chat Tour",
