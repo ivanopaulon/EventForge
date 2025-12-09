@@ -2378,7 +2378,9 @@
             MaxWidth = MaxWidth.Large, 
             FullWidth = true,
             CloseButton = true,
-            BackdropClick = !autoShow, // Prevent backdrop click if auto-show (force choice)
+            // When auto-showing (inventories detected on page load), prevent backdrop click
+            // to force user to make a deliberate choice about open inventories
+            BackdropClick = !autoShow,
             CloseOnEscapeKey = !autoShow
         };
 
