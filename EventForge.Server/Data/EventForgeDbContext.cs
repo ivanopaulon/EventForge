@@ -910,26 +910,24 @@ public partial class EventForgeDbContext : DbContext
             auditEntries.AddRange(CreateAuditEntries(entry, currentUser));
         }
 
-        // CRITICAL FIX: Add audit entries BEFORE SaveChanges ONLY if there are non-Sales entities
-        // This prevents DbUpdateConcurrencyException when saving Sales entities
-        if (auditEntries.Any())
-        {
-            // Verify that we're not adding audit logs for an operation that only involves Sales entities
-            var hasNonSalesChanges = ChangeTracker.Entries<AuditableEntity>()
-                .Any(e => (e.State == EntityState.Added || e.State == EntityState.Modified) 
-                       && !ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()));
-            
-            if (hasNonSalesChanges)
-            {
-                EntityChangeLogs.AddRange(auditEntries);
-            }
-        }
-
         // Handle Sales entities CreatedBy/ModifiedBy without audit logs
-        var salesEntries = ChangeTracker.Entries<AuditableEntity>()
+        // Query once and reuse to avoid duplicate iteration
+        var allModifiedEntries = ChangeTracker.Entries<AuditableEntity>()
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+            .ToList();
+        
+        var salesEntries = allModifiedEntries
             .Where(e => ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()))
             .ToList();
+        
+        var hasNonSalesChanges = allModifiedEntries.Any(e => !ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()));
+
+        // CRITICAL FIX: Only add audit logs when there are non-Sales entity changes
+        // This prevents DbUpdateConcurrencyException when saving Sales entities
+        if (auditEntries.Any() && hasNonSalesChanges)
+        {
+            EntityChangeLogs.AddRange(auditEntries);
+        }
 
         foreach (var entry in salesEntries)
         {
@@ -949,6 +947,7 @@ public partial class EventForgeDbContext : DbContext
         }
 
         // Single SaveChanges call saves all entities atomically
+        // Audit logs are only created for non-Sales entities
         return await base.SaveChangesAsync(cancellationToken);
     }
 
