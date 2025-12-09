@@ -197,6 +197,10 @@ public class InventoryService : IInventoryService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating inventory document");
+            throw;
+        }
+    }
+
     public async Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync()
     {
         try

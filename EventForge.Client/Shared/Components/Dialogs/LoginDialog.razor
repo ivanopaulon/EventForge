@@ -5,11 +5,19 @@
 @inject IProfileService ProfileService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
-@inject IDialogService DialogService
 
 <MudDialog ClassActions="pa-4" ClassContent="py-0" Class="ef-dialog">
     <TitleContent>
-        <MudImage Src="/eventforgetitle.svg" Alt="EventForge Logo"></MudImage>
+        @if (_isChangePasswordMode)
+        {
+            <MudText Typo="Typo.h6">
+                @TranslationService.GetTranslation("auth.changePassword", "Change Password")
+            </MudText>
+        }
+        else
+        {
+            <MudImage Src="/eventforgetitle.svg" Alt="EventForge Logo"></MudImage>
+        }
     </TitleContent>
     <DialogContent>
         <!-- Overlay during login submission -->
@@ -22,80 +30,91 @@
 
         @if (!_isLoadingTenants)
         {
-            <MudForm @ref="form"
-                     @bind-IsValid="@_isFormValid"
-                     role="form"
-                     aria-label="Modulo di accesso">
-                <MudStack Spacing="3" Class="mt-4">
-                    <!-- Tenant selector -->
-                    @if (_tenants?.Any() == true)
-                    {
-                        <MudSelect T="string"
-                                   Class="ef-select" 
-                                   @bind-Value="_selectedTenantId"
-                                   Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
-                                   Variant="Variant.Outlined"
-                                   Required="true"
-                                   RequiredError="@TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant")"
-                                   Disabled="_isLoading"
-                                   Dense="true"
-                                   Placeholder="@TranslationService.GetTranslation("auth.selectTenantPlaceholder", "Scegli tenant...")"
-                                   For="@(() => _selectedTenantId)">
-                            @foreach (var t in _tenants)
-                            {
-                                <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
-                            }
-                        </MudSelect>
-                    }
-                    else
-                    {
-                        <MudAlert Severity="Severity.Warning">
-                            @TranslationService.GetTranslation("auth.noTenantsAvailable", "Nessun tenant disponibile. Contatta l'amministratore.")
-                        </MudAlert>
-                    }
+            @if (_isChangePasswordMode)
+            {
+                <!-- Change Password Mode -->
+                <ChangePasswordForm IsMandatory="_changePasswordIsMandatory"
+                                    OnCompleted="HandlePasswordChangeCompleted"
+                                    OnCancelled="HandlePasswordChangeCancelled" />
+            }
+            else
+            {
+                <!-- Login Mode -->
+                <MudForm @ref="form"
+                         @bind-IsValid="@_isFormValid"
+                         role="form"
+                         aria-label="Modulo di accesso">
+                    <MudStack Spacing="3" Class="mt-4">
+                        <!-- Tenant selector -->
+                        @if (_tenants?.Any() == true)
+                        {
+                            <MudSelect T="string"
+                                       Class="ef-select" 
+                                       @bind-Value="_selectedTenantId"
+                                       Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
+                                       Variant="Variant.Outlined"
+                                       Required="true"
+                                       RequiredError="@TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant")"
+                                       Disabled="_isLoading"
+                                       Dense="true"
+                                       Placeholder="@TranslationService.GetTranslation("auth.selectTenantPlaceholder", "Scegli tenant...")"
+                                       For="@(() => _selectedTenantId)">
+                                @foreach (var t in _tenants)
+                                {
+                                    <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Warning">
+                                @TranslationService.GetTranslation("auth.noTenantsAvailable", "Nessun tenant disponibile. Contatta l'amministratore.")
+                            </MudAlert>
+                        }
 
-                    <MudTextField @bind-Value="_loginRequest.Username"
-                                  Class="ef-input"
-                                  For="@(() => _loginRequest.Username)"
-                                  Label="@TranslationService.GetTranslation("auth.username", "Username")"
-                                  Variant="Variant.Outlined"
-                                  Required="true"
-                                  RequiredError="@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")"
-                                  Disabled="_isLoading"
-                                  autocomplete="username"
-                                  InputType="InputType.Text"
-                                  Margin="Margin.Dense" />
+                        <MudTextField @bind-Value="_loginRequest.Username"
+                                      Class="ef-input"
+                                      For="@(() => _loginRequest.Username)"
+                                      Label="@TranslationService.GetTranslation("auth.username", "Username")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")"
+                                      Disabled="_isLoading"
+                                      autocomplete="username"
+                                      InputType="InputType.Text"
+                                      Margin="Margin.Dense" />
 
-                    <MudTextField @bind-Value="_loginRequest.Password"
-                                  Class="ef-input"
-                                  For="@(() => _loginRequest.Password)"
-                                  Label="@TranslationService.GetTranslation("auth.password", "Password")"
-                                  Variant="Variant.Outlined"
-                                  InputType="@_passwordInputType"
-                                  Required="true"
-                                  RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
-                                  Disabled="_isLoading"
-                                  autocomplete="current-password"
-                                  Margin="Margin.Dense"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@_passwordVisibilityIcon"
-                                  OnAdornmentClick="TogglePasswordVisibility"
-                                  AdornmentAriaLabel="@TranslationService.GetTranslation("auth.togglePasswordVisibility", "Toggle password visibility")" />
+                        <MudTextField @bind-Value="_loginRequest.Password"
+                                      Class="ef-input"
+                                      For="@(() => _loginRequest.Password)"
+                                      Label="@TranslationService.GetTranslation("auth.password", "Password")"
+                                      Variant="Variant.Outlined"
+                                      InputType="@_passwordInputType"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
+                                      Disabled="_isLoading"
+                                      autocomplete="current-password"
+                                      Margin="Margin.Dense"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@_passwordVisibilityIcon"
+                                      OnAdornmentClick="TogglePasswordVisibility"
+                                      AdornmentAriaLabel="@TranslationService.GetTranslation("auth.togglePasswordVisibility", "Toggle password visibility")" />
 
-                    <MudCheckBox T="bool"
-                                 @bind-Value="_loginRequest.RememberMe"
-                                 Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
-                                 Disabled="_isLoading" />
+                        <MudCheckBox T="bool"
+                                     @bind-Value="_loginRequest.RememberMe"
+                                     Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
+                                     Disabled="_isLoading" />
 
-                    <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-2">
-                        @TranslationService.GetTranslation("auth.temporaryPasswordHint", "Did you receive a temporary password from the administrator? Log in and you will be guided through the password change.")
-                    </MudText>
-                </MudStack>
-            </MudForm>
+                        <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-2">
+                            @TranslationService.GetTranslation("auth.temporaryPasswordHint", "Did you receive a temporary password from the administrator? Log in and you will be guided through the password change.")
+                        </MudText>
+                    </MudStack>
+                </MudForm>
+            }
         }
     </DialogContent>
     <DialogActions>
-        @if (!_isLoadingTenants)
+        @if (!_isLoadingTenants && !_isChangePasswordMode)
         {
             <MudStack Row="true" Spacing="2" Style="width: 100%;">
                 <MudButton ButtonType="ButtonType.Button"
@@ -109,7 +128,7 @@
                 <MudButton ButtonType="ButtonType.Button"
                            Variant="Variant.Outlined"
                            Color="Color.Secondary"
-                           OnClick="OpenChangePasswordDialog"
+                           OnClick="OpenChangePasswordInline"
                            Disabled="_isLoading">
                     @TranslationService.GetTranslation("auth.changePassword", "Change Password")
                 </MudButton>
@@ -140,6 +159,10 @@
     private bool _passwordVisible = false;
     private InputType _passwordInputType = InputType.Password;
     private string _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
+    
+    // Inline password change mode
+    private bool _isChangePasswordMode = false;
+    private bool _changePasswordIsMandatory = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -209,7 +232,7 @@
                 // Check if user must change password
                 if (result.MustChangePassword)
                 {
-                    await HandleMustChangePassword();
+                    HandleMustChangePassword();
                 }
                 else
                 {
@@ -239,31 +262,43 @@
         }
     }
 
-    private async Task HandleMustChangePassword()
+    private void HandleMustChangePassword()
     {
-        // Open ChangePasswordDialog as blocking dialog
-        var options = new DialogOptions 
-        { 
-            CloseButton = false, 
-            BackdropClick = false,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
+        // Switch to inline change password mode (mandatory)
+        _isChangePasswordMode = true;
+        _changePasswordIsMandatory = true;
+        _isLoading = false;
+        StateHasChanged();
+    }
 
-        var dialog = await DialogService.ShowAsync<ChangePasswordDialog>(
-            TranslationService.GetTranslation("auth.mustChangePassword", "You must change your password"),
-            options);
-        
-        var result = await dialog.Result;
+    private void OpenChangePasswordInline()
+    {
+        // Switch to inline change password mode (voluntary)
+        _isChangePasswordMode = true;
+        _changePasswordIsMandatory = false;
+        StateHasChanged();
+    }
 
-        if (result != null && !result.Canceled)
+    private async Task HandlePasswordChangeCompleted()
+    {
+        if (_changePasswordIsMandatory)
         {
-            // Password changed successfully, close login dialog
+            // Mandatory change: close dialog with success
             MudDialog.Close(DialogResult.Ok(true));
         }
         else
         {
-            // User cancelled password change, logout
+            // Voluntary change: return to login form
+            _isChangePasswordMode = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandlePasswordChangeCancelled()
+    {
+        if (_changePasswordIsMandatory)
+        {
+            // Mandatory change cancelled: logout and close dialog
             Snackbar.Add(
                 TranslationService.GetTranslation("auth.passwordChangeRequired", 
                     "Password change is required. You have been logged out."),
@@ -271,33 +306,15 @@
             
             await AuthService.LogoutAsync();
             
-            // Keep login dialog open for retry
-            _isLoading = false;
+            // Close the dialog
+            MudDialog.Cancel();
+        }
+        else
+        {
+            // Voluntary change cancelled: return to login form
+            _isChangePasswordMode = false;
             StateHasChanged();
         }
-    }
-
-    private async Task OpenChangePasswordDialog()
-    {
-        // Open ChangePasswordDialog for voluntary password change
-        // This is a voluntary change from the login screen, so the dialog can be dismissed
-        var options = new DialogOptions 
-        { 
-            CloseButton = true, 
-            BackdropClick = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ChangePasswordDialog>(
-            TranslationService.GetTranslation("auth.changePassword", "Change Password"),
-            options);
-        
-        // Note: We intentionally don't handle the dialog result here because:
-        // - This is a voluntary password change (not mandatory)
-        // - User can dismiss the dialog without changing password
-        // - The change password dialog shows its own success/error messages via Snackbar
-        // - The login dialog should remain open after change password dialog closes
     }
 
     private void TogglePasswordVisibility()
