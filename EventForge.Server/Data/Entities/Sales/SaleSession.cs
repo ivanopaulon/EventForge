@@ -9,11 +9,6 @@ namespace EventForge.Server.Data.Entities.Sales;
 public class SaleSession : AuditableEntity
 {
     /// <summary>
-    /// Session unique identifier.
-    /// </summary>
-    public new Guid Id { get; set; }
-
-    /// <summary>
     /// Reference to the store user (operator/cashier) who created the session.
     /// </summary>
     [Required]

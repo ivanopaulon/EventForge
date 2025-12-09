@@ -8,11 +8,6 @@ namespace EventForge.Server.Data.Entities.Sales;
 public class SaleItem : AuditableEntity
 {
     /// <summary>
-    /// Item unique identifier.
-    /// </summary>
-    public new Guid Id { get; set; }
-
-    /// <summary>
     /// Reference to the sale session.
     /// </summary>
     [Required]

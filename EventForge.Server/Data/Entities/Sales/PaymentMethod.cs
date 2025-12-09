@@ -9,11 +9,6 @@ namespace EventForge.Server.Data.Entities.Sales;
 public class PaymentMethod : AuditableEntity
 {
     /// <summary>
-    /// Payment method unique identifier.
-    /// </summary>
-    public new Guid Id { get; set; }
-
-    /// <summary>
     /// Payment method code (e.g., CASH, CARD, VOUCHER).
     /// </summary>
     [Required]
@@ -38,11 +33,6 @@ public class PaymentMethod : AuditableEntity
     /// </summary>
     [MaxLength(50)]
     public string? Icon { get; set; }
-
-    /// <summary>
-    /// Indicates if this payment method is active.
-    /// </summary>
-    public new bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Display order for UI sorting.
