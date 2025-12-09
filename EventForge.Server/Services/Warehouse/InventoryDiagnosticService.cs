@@ -1,6 +1,5 @@
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Data.Entities.Documents;
-using EventForge.Server.Services.Products;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -12,19 +11,13 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
 {
     private readonly EventForgeDbContext _context;
     private readonly ILogger<InventoryDiagnosticService> _logger;
-    private readonly IProductService _productService;
-    private readonly IStorageLocationService _storageLocationService;
 
     public InventoryDiagnosticService(
         EventForgeDbContext context,
-        ILogger<InventoryDiagnosticService> logger,
-        IProductService productService,
-        IStorageLocationService storageLocationService)
+        ILogger<InventoryDiagnosticService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _productService = productService ?? throw new ArgumentNullException(nameof(productService));
-        _storageLocationService = storageLocationService ?? throw new ArgumentNullException(nameof(storageLocationService));
     }
 
     public async Task<InventoryDiagnosticReportDto> DiagnoseDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
@@ -286,7 +279,7 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
                 result.RowsCorrected += negativeRows.Count;
                 if (negativeRows.Count > 0)
                 {
-                    result.ActionsPerformed.Add($"Converted {negativeRows.Count} negative quantit(ies) to positive");
+                    result.ActionsPerformed.Add($"Converted {negativeRows.Count} negative quantities to positive");
                 }
             }
 
