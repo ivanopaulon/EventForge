@@ -30,10 +30,20 @@ public class POSViewModel : IDisposable
     private readonly HashSet<Guid> _pendingItemUpdates = new();
     private const int DebounceDelayMs = 500;
     
+    // Thread-safe synchronization for updates
+    private readonly SemaphoreSlim _updateSemaphore = new(1, 1);
+    private CancellationTokenSource? _currentUpdateCts;
+    
+    // Optimistic update rollback - stores original values before modification
+    private readonly Dictionary<Guid, SaleItemDto> _itemBackups = new();
+    
     // Retry tracking
     private int _currentRetryAttempt = 0;
     private const int MaxRetryAttempts = 3;
     private const int ManualRetryAttempts = 2;
+    
+    // Timeouts
+    private const int FlushTimeoutMs = 5000;
     
     // Page size for loading operators
     private const int MaxOperatorsPageSize = 100;
@@ -430,11 +440,39 @@ public class POSViewModel : IDisposable
 
     /// <summary>
     /// Queues an item update with debounce to batch rapid changes.
+    /// Thread-safe with optimistic backup for rollback on errors.
     /// </summary>
     public void QueueItemUpdate(SaleItemDto item)
     {
         // Set loading state
         IsUpdatingItems = true;
+
+        // Store backup of current item state for potential rollback
+        if (!_itemBackups.ContainsKey(item.Id))
+        {
+            _itemBackups[item.Id] = new SaleItemDto
+            {
+                Id = item.Id,
+                ProductId = item.ProductId,
+                ProductCode = item.ProductCode,
+                ProductName = item.ProductName,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                DiscountPercent = item.DiscountPercent,
+                TotalAmount = item.TotalAmount,
+                TaxRate = item.TaxRate,
+                TaxAmount = item.TaxAmount,
+                Notes = item.Notes,
+                IsService = item.IsService,
+                PromotionId = item.PromotionId,
+                ProductThumbnailUrl = item.ProductThumbnailUrl,
+                ProductImageUrl = item.ProductImageUrl,
+                VatRateName = item.VatRateName,
+                VatRateId = item.VatRateId,
+                UnitOfMeasureName = item.UnitOfMeasureName,
+                BrandName = item.BrandName
+            };
+        }
 
         // Add item ID to pending updates
         _pendingItemUpdates.Add(item.Id);
@@ -448,8 +486,22 @@ public class POSViewModel : IDisposable
             // When timer fires, update all pending items
             _updateDebounceTimer.Elapsed += async (sender, e) =>
             {
+                // Try to acquire semaphore - if already processing, this prevents double execution
+                if (!await _updateSemaphore.WaitAsync(0))
+                {
+                    _logger.LogDebug("Skipping debounce execution - update already in progress");
+                    return;
+                }
+
                 try
                 {
+                    // Cancel any previous update batch
+                    _currentUpdateCts?.Cancel();
+                    _currentUpdateCts?.Dispose();
+                    _currentUpdateCts = new CancellationTokenSource();
+
+                    var cancellationToken = _currentUpdateCts.Token;
+
                     // Get list of items to update
                     var itemsToUpdate = _pendingItemUpdates.ToList();
                     _pendingItemUpdates.Clear();
@@ -464,9 +516,15 @@ public class POSViewModel : IDisposable
                     {
                         foreach (var itemId in itemsToUpdate)
                         {
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                _logger.LogDebug("Update batch cancelled");
+                                break;
+                            }
+
                             if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
                             {
-                                await UpdateItemWithRetryAsync(itemToUpdate);
+                                await UpdateItemWithRetryAsync(itemToUpdate, MaxRetryAttempts, cancellationToken);
                             }
                         }
                     }
@@ -474,6 +532,11 @@ public class POSViewModel : IDisposable
                     // Clear loading state after update completes
                     IsUpdatingItems = false;
                     NotifyStateChanged();
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogDebug("Update batch was cancelled");
+                    // Don't clear IsUpdatingItems - new batch is starting
                 }
                 catch (Exception ex)
                 {
@@ -483,6 +546,10 @@ public class POSViewModel : IDisposable
                     // Clear loading state on error
                     IsUpdatingItems = false;
                     NotifyStateChanged();
+                }
+                finally
+                {
+                    _updateSemaphore.Release();
                 }
             };
         }
@@ -876,7 +943,7 @@ public class POSViewModel : IDisposable
         }
     }
 
-    private async Task UpdateItemWithRetryAsync(SaleItemDto item, int maxRetries = MaxRetryAttempts)
+    private async Task UpdateItemWithRetryAsync(SaleItemDto item, int maxRetries = MaxRetryAttempts, CancellationToken cancellationToken = default)
     {
         if (CurrentSession == null)
             return;
@@ -886,6 +953,14 @@ public class POSViewModel : IDisposable
 
         for (int attempt = 0; attempt < totalAttempts; attempt++)
         {
+            // Check for cancellation before each attempt
+            if (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogDebug("Update cancelled for item {ItemId}", item.Id);
+                RollbackItem(item);
+                return;
+            }
+
             try
             {
                 // Update retry state for UI
@@ -905,8 +980,9 @@ public class POSViewModel : IDisposable
                 if (updatedSession != null)
                 {
                     CurrentSession = updatedSession;
-                    // Success - reset retry counter and return
+                    // Success - reset retry counter and remove backup
                     _currentRetryAttempt = 0;
+                    _itemBackups.Remove(item.Id);
                     NotifyStateChanged();
                     return;
                 }
@@ -919,7 +995,7 @@ public class POSViewModel : IDisposable
                     {
                         await HandleRetryableExceptionAsync(
                             new InvalidOperationException("API returned null response"),
-                            "Null response", attempt, totalAttempts);
+                            "Null response", attempt, totalAttempts, cancellationToken);
                         continue;
                     }
                 }
@@ -927,41 +1003,81 @@ public class POSViewModel : IDisposable
             catch (HttpRequestException ex) when (attempt < maxRetries)
             {
                 lastException = ex;
-                await HandleRetryableExceptionAsync(ex, "Network error", attempt, totalAttempts);
+                await HandleRetryableExceptionAsync(ex, "Network error", attempt, totalAttempts, cancellationToken);
             }
             catch (TaskCanceledException ex) when (attempt < maxRetries)
             {
                 lastException = ex;
-                await HandleRetryableExceptionAsync(ex, "Timeout", attempt, totalAttempts);
+                await HandleRetryableExceptionAsync(ex, "Timeout", attempt, totalAttempts, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Update was cancelled - rollback and rethrow
+                _currentRetryAttempt = 0;
+                _logger.LogDebug("Update cancelled for item {ItemId}", item.Id);
+                RollbackItem(item);
+                NotifyStateChanged();
+                throw;
             }
             catch (Exception ex)
             {
-                // Non-retryable error - fail immediately
+                // Non-retryable error - rollback and fail immediately
                 _currentRetryAttempt = 0;
                 _logger.LogError(ex, "Non-retryable error updating item");
+                RollbackItem(item);
                 NotifyError("Error updating item");
                 NotifyStateChanged();
                 return;
             }
         }
 
-        // All retries failed
+        // All retries failed - rollback
         _currentRetryAttempt = 0;
+        RollbackItem(item);
         NotifyStateChanged();
         NotifyError($"Failed to update item after {totalAttempts} attempts");
     }
 
-    private async Task HandleRetryableExceptionAsync(Exception ex, string errorType, int attempt, int totalAttempts)
+    private async Task HandleRetryableExceptionAsync(Exception ex, string errorType, int attempt, int totalAttempts, CancellationToken cancellationToken)
     {
         var delayMs = CalculateBackoffDelayMs(attempt);
         _logger.LogWarning(ex, "{ErrorType} updating item (attempt {Attempt}/{Total}). Retrying in {Delay}ms...",
             errorType, attempt + 1, totalAttempts, delayMs);
-        await Task.Delay(delayMs);
+        
+        try
+        {
+            await Task.Delay(delayMs, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Retry delay cancelled");
+            throw;
+        }
     }
 
     private int CalculateBackoffDelayMs(int attempt)
     {
         return (int)Math.Pow(2, attempt) * 1000;
+    }
+
+    /// <summary>
+    /// Rollback item to its original backed-up state on error.
+    /// </summary>
+    private void RollbackItem(SaleItemDto item)
+    {
+        if (_itemBackups.TryGetValue(item.Id, out var backup))
+        {
+            // Restore original values (all modifiable and calculated fields)
+            item.Quantity = backup.Quantity;
+            item.UnitPrice = backup.UnitPrice;
+            item.DiscountPercent = backup.DiscountPercent;
+            item.TotalAmount = backup.TotalAmount;
+            item.TaxAmount = backup.TaxAmount;
+            item.Notes = backup.Notes;
+            
+            _itemBackups.Remove(item.Id);
+            _logger.LogInformation("Rolled back item {ItemId} to original state", item.Id);
+        }
     }
 
     private async Task FlushPendingUpdatesAsync()
@@ -970,26 +1086,41 @@ public class POSViewModel : IDisposable
         if (_pendingItemUpdates.Count == 0 || CurrentSession == null)
             return;
 
+        // Try to acquire semaphore with timeout to prevent deadlock
+        if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
+        {
+            _logger.LogWarning("Timeout waiting for update lock in FlushPendingUpdatesAsync");
+            throw new TimeoutException("Timeout waiting for pending updates to complete");
+        }
+
         try
         {
-            // Stop timer to prevent double execution
+            // Cancel any in-progress timer batch and stop timer
+            _currentUpdateCts?.Cancel();
+            _currentUpdateCts?.Dispose();
+            _currentUpdateCts = null;
             _updateDebounceTimer?.Stop();
 
             // Get list of items to update
             var itemsToUpdate = _pendingItemUpdates.ToList();
             _pendingItemUpdates.Clear();
 
+            if (itemsToUpdate.Count == 0)
+            {
+                return;
+            }
+
             // Build dictionary for O(1) lookup
             var itemsDict = CurrentSession.Items
                 .GroupBy(i => i.Id)
                 .ToDictionary(g => g.Key, g => g.First());
 
-            // Update each pending item
+            // Update each pending item without cancellation support (must complete)
             foreach (var itemId in itemsToUpdate)
             {
                 if (itemsDict.TryGetValue(itemId, out var itemToUpdate))
                 {
-                    await UpdateItemWithRetryAsync(itemToUpdate);
+                    await UpdateItemWithRetryAsync(itemToUpdate, MaxRetryAttempts, CancellationToken.None);
                 }
             }
 
@@ -1001,6 +1132,10 @@ public class POSViewModel : IDisposable
             NotifyError("Error updating items");
             throw; // Re-throw to prevent session completion if updates fail
         }
+        finally
+        {
+            _updateSemaphore.Release();
+        }
     }
 
     #endregion
@@ -1009,6 +1144,11 @@ public class POSViewModel : IDisposable
 
     public void Dispose()
     {
+        // Cancel any in-flight operations
+        _currentUpdateCts?.Cancel();
+        _currentUpdateCts?.Dispose();
+        _currentUpdateCts = null;
+
         // Stop and dispose timer to prevent memory leaks
         if (_updateDebounceTimer != null)
         {
@@ -1016,6 +1156,13 @@ public class POSViewModel : IDisposable
             _updateDebounceTimer.Dispose();
             _updateDebounceTimer = null;
         }
+
+        // Dispose semaphore
+        _updateSemaphore?.Dispose();
+
+        // Clear collections
+        _pendingItemUpdates.Clear();
+        _itemBackups.Clear();
 
         // Reset retry state
         _currentRetryAttempt = 0;
