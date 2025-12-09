@@ -1,3 +1,4 @@
+using EventForge.Server.Filters;
 using EventForge.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
@@ -67,12 +68,19 @@ builder.Services.AddSwaggerGen(c =>
     // Configure custom schema IDs to avoid conflicts between classes with the same name
     c.CustomSchemaIds(type => type.FullName);
 
-    // TODO: Re-enable ProblemDetails schema mapping with Microsoft.OpenApi 2.x compatible syntax
-    // TODO: Re-enable JWT Authentication schema with Microsoft.OpenApi 2.x compatible syntax
-    // TODO: Re-enable FileUploadOperationFilter with Microsoft.OpenApi 2.x compatible syntax
+    // Add JWT Authentication security definition for Swagger UI
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Inserisci il token JWT come: Bearer {token}",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
 
-    // All advanced Swagger configuration has been temporarily commented out due to
-    // Microsoft.OpenApi 2.x breaking changes. Need to update to new API syntax.
+    // Add operation filter to apply security requirements to authorized endpoints
+    c.OperationFilter<SwaggerAuthorizeCheckOperationFilter>();
 });
 
 builder.Services.AddCors(options =>
