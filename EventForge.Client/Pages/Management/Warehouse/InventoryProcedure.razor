@@ -45,6 +45,18 @@
         </MudItem>
     </MudGrid>
 
+    <!-- Active Inventories Dashboard -->
+    @if (_openInventories.Count > 0 && _currentDocument == null)
+    {
+        <ActiveInventoriesManager 
+            OpenInventories="_openInventories"
+            OnInventoryResumed="HandleInventoryResumed"
+            OnInventoryFinalized="HandleInventoryFinalized"
+            OnInventoryCancelled="HandleInventoryCancelled"
+            OnFinalizeAllRequested="HandleFinalizeAll"
+            OnCancelAllRequested="HandleCancelAll" />
+    }
+
     <!-- Session Status Banner with Enhanced Statistics -->
     @if (_currentDocument != null)
     {
@@ -415,6 +427,7 @@
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private bool _showOnlyAdjustments = false;
     private List<BarcodeAssignmentInfo> _barcodeAssignments = new();
+    private List<InventoryDocumentDto> _openInventories = new();
     
     // Simulation state variables
     private bool _isSimulating = false;
@@ -795,10 +808,11 @@
             // Initialize cancellation token source
             _cts = new CancellationTokenSource();
             
-            // Load facilities and locations in parallel
+            // Load facilities, locations, and open inventories in parallel
             await Task.WhenAll(
                 LoadStorageFacilitiesAsync(),
-                LoadLocationsAsync()
+                LoadLocationsAsync(),
+                LoadOpenInventoriesAsync()
             );
             
             // Try to restore active inventory session
@@ -866,6 +880,309 @@
         {
             Logger.LogError(ex, "Error loading storage locations");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), Severity.Error);
+        }
+    }
+
+    private async Task LoadOpenInventoriesAsync()
+    {
+        try
+        {
+            _openInventories = await InventoryService.GetOpenInventoryDocumentsAsync() ?? new();
+            Logger.LogInformation("Loaded {Count} open inventory documents", _openInventories.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading open inventories");
+            _openInventories = new();
+        }
+    }
+
+    private async Task HandleInventoryResumed(InventoryDocumentDto inventory)
+    {
+        try
+        {
+            _isLoading = true;
+            
+            // Load the full document from the server
+            var document = await InventoryService.GetInventoryDocumentAsync(inventory.Id);
+            
+            if (document != null && (document.Status == "Open" || document.Status == "InProgress"))
+            {
+                _currentDocument = document;
+                _selectedStorageFacilityId = document.WarehouseId;
+                _sessionStartTime = document.CreatedAt;
+                
+                // Save session state to localStorage
+                await InventorySessionService.SaveSessionAsync(new InventorySessionState
+                {
+                    DocumentId = document.Id,
+                    DocumentNumber = document.Number,
+                    WarehouseId = document.WarehouseId,
+                    SessionStartTime = _sessionStartTime
+                });
+                
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.sessionResumed", "Sessione di inventario ripresa"),
+                    $"Documento: #{document.Number}, Articoli: {document.TotalItems}",
+                    "Info"
+                );
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.sessionResumedSuccess", "Sessione di inventario ripresa con successo"),
+                    Severity.Success
+                );
+                
+                // Reload open inventories to update the list
+                await LoadOpenInventoriesAsync();
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.sessionCannotResume", "Impossibile riprendere la sessione. Il documento potrebbe essere già stato finalizzato."),
+                    Severity.Warning
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resuming inventory session");
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.sessionResumeError", "Errore durante il ripristino della sessione: {0}", ex.Message),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleInventoryFinalized(InventoryDocumentDto inventory)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("warehouse.confirmFinalizeTitle", "Conferma Finalizzazione"),
+            TranslationService.GetTranslation("warehouse.confirmFinalizeMessage", "Sei sicuro di voler finalizzare l'inventario {0}? Questa operazione applicherà tutti gli aggiustamenti di stock.", inventory.Number),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            _isLoading = true;
+            
+            var result = await InventoryService.FinalizeInventoryDocumentAsync(inventory.Id);
+            
+            if (result != null)
+            {
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.inventoryFinalized", "Inventario finalizzato"),
+                    $"Documento: #{result.Number}, Articoli: {result.TotalItems}",
+                    "Success"
+                );
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.inventoryFinalizedSuccess", "Inventario {0} finalizzato con successo", result.Number),
+                    Severity.Success
+                );
+                
+                // Reload open inventories to update the list
+                await LoadOpenInventoriesAsync();
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.inventoryFinalizeError", "Errore durante la finalizzazione dell'inventario"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing inventory {DocumentId}", inventory.Id);
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.inventoryFinalizeError", "Errore durante la finalizzazione: {0}", ex.Message),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleInventoryCancelled(InventoryDocumentDto inventory)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("warehouse.confirmCancelTitle", "Conferma Chiusura"),
+            TranslationService.GetTranslation("warehouse.confirmCancelMessage", "ATTENZIONE: Sei sicuro di voler chiudere l'inventario {0} senza salvare? Tutti i dati raccolti andranno persi.", inventory.Number),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            _isLoading = true;
+            
+            var success = await InventoryService.CancelInventoryDocumentAsync(inventory.Id);
+            
+            if (success)
+            {
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.inventoryCancelled", "Inventario chiuso senza salvare"),
+                    $"Documento: #{inventory.Number}",
+                    "Warning"
+                );
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.inventoryCancelledSuccess", "Inventario {0} chiuso senza salvare", inventory.Number),
+                    Severity.Warning
+                );
+                
+                // Reload open inventories to update the list
+                await LoadOpenInventoriesAsync();
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.inventoryCancelError", "Errore durante la chiusura dell'inventario"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling inventory {DocumentId}", inventory.Id);
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.inventoryCancelError", "Errore durante la chiusura: {0}", ex.Message),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleFinalizeAll()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("warehouse.confirmFinalizeAllTitle", "Conferma Finalizzazione Multipla"),
+            TranslationService.GetTranslation("warehouse.confirmFinalizeAllMessage", "Sei sicuro di voler finalizzare TUTTI i {0} inventari aperti? Questa operazione applicherà tutti gli aggiustamenti di stock per ciascun inventario.", _openInventories.Count),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            _isLoading = true;
+            
+            var results = await InventoryService.FinalizeAllOpenInventoriesAsync();
+            
+            if (results != null && results.Count > 0)
+            {
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.allInventoriesFinalized", "Tutti gli inventari finalizzati"),
+                    $"Finalizzati: {results.Count} inventari",
+                    "Success"
+                );
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.allInventoriesFinalizedSuccess", "Finalizzati con successo {0} inventari", results.Count),
+                    Severity.Success
+                );
+                
+                // Reload open inventories to update the list
+                await LoadOpenInventoriesAsync();
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.allInventoriesFinalizeError", "Errore durante la finalizzazione degli inventari"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing all inventories");
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.allInventoriesFinalizeError", "Errore durante la finalizzazione: {0}", ex.Message),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleCancelAll()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("warehouse.confirmCancelAllTitle", "Conferma Chiusura Multipla"),
+            TranslationService.GetTranslation("warehouse.confirmCancelAllMessage", "ATTENZIONE: Sei sicuro di voler chiudere TUTTI i {0} inventari aperti senza salvare? TUTTI i dati raccolti andranno persi.", _openInventories.Count),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            _isLoading = true;
+            
+            var cancelledCount = await InventoryService.CancelAllOpenInventoriesAsync();
+            
+            if (cancelledCount > 0)
+            {
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.allInventoriesCancelled", "Tutti gli inventari chiusi senza salvare"),
+                    $"Chiusi: {cancelledCount} inventari",
+                    "Warning"
+                );
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.allInventoriesCancelledSuccess", "Chiusi senza salvare {0} inventari", cancelledCount),
+                    Severity.Warning
+                );
+                
+                // Reload open inventories to update the list
+                await LoadOpenInventoriesAsync();
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.allInventoriesCancelError", "Errore durante la chiusura degli inventari"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling all inventories");
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.allInventoriesCancelError", "Errore durante la chiusura: {0}", ex.Message),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
         }
     }
 
