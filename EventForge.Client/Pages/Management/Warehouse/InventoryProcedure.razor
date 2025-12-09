@@ -773,8 +773,8 @@
                 Logger.LogInformation("=== SESSION RESTORATION SUCCESSFUL === Source: {Source}, DocumentId: {DocumentId}, Rows: {RowCount}",
                     restorationSource, document.Id, rowCount);
                 
-                // Force UI update to ensure rows are displayed
-                StateHasChanged();
+                // Force UI update to ensure rows are displayed - using InvokeAsync for thread safety
+                await InvokeAsync(StateHasChanged);
             }
             else
             {
