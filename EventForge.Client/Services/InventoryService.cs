@@ -136,14 +136,15 @@ public class InventoryService : IInventoryService
         }
     }
 
-    public async Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null)
+    public async Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null, bool includeRows = false)
     {
         try
         {
             var queryParams = new List<string>
             {
                 $"page={page}",
-                $"pageSize={pageSize}"
+                $"pageSize={pageSize}",
+                $"includeRows={includeRows.ToString().ToLower()}"
             };
 
             if (!string.IsNullOrWhiteSpace(status))
@@ -176,7 +177,8 @@ public class InventoryService : IInventoryService
         try
         {
             // Query for Open documents, sorted by date descending, get only the first one
-            var result = await GetInventoryDocumentsAsync(page: 1, pageSize: 1, status: "Open");
+            // Don't include rows for performance - caller can load them separately if needed
+            var result = await GetInventoryDocumentsAsync(page: 1, pageSize: 1, status: "Open", includeRows: false);
             return result?.Items?.FirstOrDefault();
         }
         catch (Exception ex)
@@ -186,6 +188,15 @@ public class InventoryService : IInventoryService
         }
     }
 
+    public async Task<InventoryValidationResultDto?> ValidateInventoryDocumentAsync(Guid documentId)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<object, InventoryValidationResultDto>($"{BaseUrl}/documents/{documentId}/validate", new { });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating inventory document");
     public async Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync()
     {
         try
@@ -199,6 +210,18 @@ public class InventoryService : IInventoryService
         }
     }
 
+    public async Task<PagedResult<InventoryDocumentRowDto>?> GetInventoryDocumentRowsAsync(Guid documentId, int page = 1, int pageSize = 50)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<PagedResult<InventoryDocumentRowDto>>($"{BaseUrl}/documents/{documentId}/rows?page={page}&pageSize={pageSize}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving inventory document rows");
+            return null;
+        }
+    }
     public async Task<bool> CancelInventoryDocumentAsync(Guid documentId)
     {
         try

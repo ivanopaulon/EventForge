@@ -19,8 +19,12 @@ public interface IInventoryService
     Task<InventoryDocumentDto?> DeleteInventoryDocumentRowAsync(Guid documentId, Guid rowId);
     Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId);
     Task<InventoryDocumentDto?> GetInventoryDocumentAsync(Guid documentId);
-    Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null);
+    Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null, bool includeRows = false);
     Task<InventoryDocumentDto?> GetMostRecentOpenInventoryDocumentAsync();
+
+    // Diagnostic and optimization operations
+    Task<InventoryValidationResultDto?> ValidateInventoryDocumentAsync(Guid documentId);
+    Task<PagedResult<InventoryDocumentRowDto>?> GetInventoryDocumentRowsAsync(Guid documentId, int page = 1, int pageSize = 50);
     
     // Active inventory management methods
     Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync();
