@@ -402,29 +402,44 @@ public class POSViewModel : IDisposable
             }
             else
             {
-                // Add new item
-                var addItemDto = new AddSaleItemDto
+                // Add new item - FLUSH and LOCK before calling API
+                await FlushPendingUpdatesAsync();
+                
+                if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
                 {
-                    ProductId = product.Id,
-                    Quantity = 1,
-                    UnitPrice = product.DefaultPrice ?? 0m,
-                    DiscountPercent = 0
-                };
-
-                var updatedSession = await _salesService.AddItemAsync(CurrentSession.Id, addItemDto);
-
-                if (updatedSession != null)
-                {
-                    CurrentSession = updatedSession;
-                    NotifyStateChanged();
-                    NotifySuccess($"Product added: {product.Name}");
-                    return (true, null);
+                    _logger.LogWarning("Timeout waiting for update lock in AddProductAsync");
+                    return (false, "Timeout acquiring lock");
                 }
-                else
+
+                try
                 {
-                    _logger.LogWarning("AddItemAsync returned null, reloading session");
-                    await ReloadSessionAsync();
-                    return (false, "Error adding product");
+                    var addItemDto = new AddSaleItemDto
+                    {
+                        ProductId = product.Id,
+                        Quantity = 1,
+                        UnitPrice = product.DefaultPrice ?? 0m,
+                        DiscountPercent = 0
+                    };
+
+                    var updatedSession = await _salesService.AddItemAsync(CurrentSession.Id, addItemDto);
+
+                    if (updatedSession != null)
+                    {
+                        CurrentSession = updatedSession;
+                        NotifyStateChanged();
+                        NotifySuccess($"Product added: {product.Name}");
+                        return (true, null);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("AddItemAsync returned null, reloading session");
+                        await ReloadSessionAsync();
+                        return (false, "Error adding product");
+                    }
+                }
+                finally
+                {
+                    _updateSemaphore.Release();
                 }
             }
         }
@@ -568,6 +583,15 @@ public class POSViewModel : IDisposable
         if (CurrentSession == null)
             return (false, "No active session");
 
+        // Flush pending updates and acquire semaphore
+        await FlushPendingUpdatesAsync();
+        
+        if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
+        {
+            _logger.LogWarning("Timeout waiting for update lock in RemoveItemAsync");
+            return (false, "Timeout acquiring lock");
+        }
+
         try
         {
             var updatedSession = await _salesService.RemoveItemAsync(CurrentSession.Id, item.Id);
@@ -592,6 +616,10 @@ public class POSViewModel : IDisposable
             await ReloadSessionAsync();
             return (false, $"Error removing item: {ex.Message}");
         }
+        finally
+        {
+            _updateSemaphore.Release();
+        }
     }
 
     /// <summary>
@@ -601,6 +629,15 @@ public class POSViewModel : IDisposable
     {
         if (CurrentSession == null)
             return (false, "No active session");
+
+        // Flush pending updates and acquire semaphore
+        await FlushPendingUpdatesAsync();
+        
+        if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
+        {
+            _logger.LogWarning("Timeout waiting for update lock in AddPaymentAsync");
+            return (false, "Timeout acquiring lock");
+        }
 
         try
         {
@@ -628,6 +665,10 @@ public class POSViewModel : IDisposable
         {
             _logger.LogError(ex, "Error adding payment for method {MethodName}", method.Name);
             return (false, $"Error adding payment: {ex.Message}");
+        }
+        finally
+        {
+            _updateSemaphore.Release();
         }
     }
 
@@ -902,6 +943,15 @@ public class POSViewModel : IDisposable
     {
         if (CurrentSession == null) return;
 
+        // Flush pending updates and acquire semaphore
+        await FlushPendingUpdatesAsync();
+        
+        if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
+        {
+            _logger.LogWarning("Timeout waiting for update lock in UpdateItemInternalAsync");
+            return;
+        }
+
         try
         {
             IsUpdatingItems = true;
@@ -936,6 +986,7 @@ public class POSViewModel : IDisposable
         }
         finally
         {
+            _updateSemaphore.Release();
             IsUpdatingItems = false;
             NotifyStateChanged();
         }
