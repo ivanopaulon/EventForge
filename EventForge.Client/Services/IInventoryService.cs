@@ -31,4 +31,10 @@ public interface IInventoryService
     Task<bool> CancelInventoryDocumentAsync(Guid documentId);
     Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync();
     Task<int> CancelAllOpenInventoriesAsync();
+    
+    // Inventory Diagnostics
+    Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId);
+    Task<InventoryRepairResultDto?> AutoRepairInventoryDocumentAsync(Guid documentId, InventoryAutoRepairOptionsDto options);
+    Task<bool> RepairInventoryRowAsync(Guid documentId, Guid rowId, InventoryRowRepairDto repairData);
+    Task<int> RemoveProblematicRowsAsync(Guid documentId, List<Guid> rowIds);
 }
