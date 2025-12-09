@@ -68,6 +68,11 @@ public class WarehouseManagementController : BaseApiController
 
     #region Helper Methods
 
+    // Performance estimation constants
+    private const double ESTIMATED_SECONDS_PER_ROW = 0.01;
+    private const int LARGE_DOCUMENT_THRESHOLD = 300;
+    private const int MAX_DISPLAYED_MISSING_IDS = 5;
+
     /// <summary>
     /// Enriches inventory document rows with complete product and location data using optimized batch queries.
     /// Solves N+1 query problem by fetching all related data in 3 batch queries instead of N queries per row.
@@ -160,7 +165,11 @@ public class WarehouseManagementController : BaseApiController
             Product? product = null;
             if (productId.HasValue)
             {
-                productsDict.TryGetValue(productId.Value, out product);
+                if (!productsDict.TryGetValue(productId.Value, out product))
+                {
+                    // Product lookup failed - log for data quality tracking
+                    _logger.LogWarning("Product {ProductId} not found in batch - using row description as fallback", productId.Value);
+                }
             }
 
             // Lookup location from dictionary (O(1))
@@ -218,7 +227,7 @@ public class WarehouseManagementController : BaseApiController
     /// This method is kept for reference but should not be used.
     /// Performance issue: 500 rows = 1500 queries = 60+ seconds.
     /// </summary>
-    [Obsolete("This method has N+1 query problem. Use the optimized EnrichInventoryDocumentRowsAsync instead.")]
+    [Obsolete("This method has N+1 query problem. Use the optimized EnrichInventoryDocumentRowsAsync instead.", error: true)]
     private async Task<List<InventoryDocumentRowDto>> EnrichInventoryDocumentRowsAsync_Old(
         IEnumerable<DocumentRowDto> rows,
         CancellationToken cancellationToken = default)
@@ -2627,8 +2636,8 @@ public class WarehouseManagementController : BaseApiController
                         Severity = "Error",
                         Code = "MISSING_PRODUCTS",
                         Message = $"Document references {missingProductIds.Count} non-existent product(s)",
-                        Details = $"Product IDs: {string.Join(", ", missingProductIds.Take(5))}" + 
-                                 (missingProductIds.Count > 5 ? $" and {missingProductIds.Count - 5} more" : "")
+                        Details = $"Product IDs: {string.Join(", ", missingProductIds.Take(MAX_DISPLAYED_MISSING_IDS))}" + 
+                                 (missingProductIds.Count > MAX_DISPLAYED_MISSING_IDS ? $" and {missingProductIds.Count - MAX_DISPLAYED_MISSING_IDS} more" : "")
                     });
                     result.IsValid = false;
                 }
@@ -2651,8 +2660,8 @@ public class WarehouseManagementController : BaseApiController
                         Severity = "Error",
                         Code = "MISSING_LOCATIONS",
                         Message = $"Document references {missingLocationIds.Count} non-existent location(s)",
-                        Details = $"Location IDs: {string.Join(", ", missingLocationIds.Take(5))}" +
-                                 (missingLocationIds.Count > 5 ? $" and {missingLocationIds.Count - 5} more" : "")
+                        Details = $"Location IDs: {string.Join(", ", missingLocationIds.Take(MAX_DISPLAYED_MISSING_IDS))}" +
+                                 (missingLocationIds.Count > MAX_DISPLAYED_MISSING_IDS ? $" and {missingLocationIds.Count - MAX_DISPLAYED_MISSING_IDS} more" : "")
                     });
                     result.IsValid = false;
                 }
@@ -2661,9 +2670,9 @@ public class WarehouseManagementController : BaseApiController
             // 7. Estimate load time based on row count
             // Optimized method: ~0.01 seconds per row (3 batch queries regardless of size)
             // Old method would be: ~0.12 seconds per row (3 queries per row)
-            result.Stats.EstimatedLoadTimeSeconds = Math.Max(1.0, totalRows * 0.01);
+            result.Stats.EstimatedLoadTimeSeconds = Math.Max(1.0, totalRows * ESTIMATED_SECONDS_PER_ROW);
 
-            if (totalRows > 300)
+            if (totalRows > LARGE_DOCUMENT_THRESHOLD)
             {
                 result.Issues.Add(new InventoryValidationIssue
                 {
