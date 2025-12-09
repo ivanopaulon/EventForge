@@ -127,6 +127,7 @@ public class SalesService : ISalesService
         try
         {
             // Optimized: DELETE + GET (2 calls instead of 3)
+            // Future optimization: Modify server DELETE endpoint to return updated session (1 call)
             await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/items/{itemId}", cancellationToken);
             // Fetch updated session
             return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);

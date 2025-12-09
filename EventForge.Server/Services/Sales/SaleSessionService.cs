@@ -1188,12 +1188,15 @@ public class SaleSessionService : ISaleSessionService
     /// <summary>
     /// Logs detailed entity states for diagnostic purposes. 
     /// This method should only be called in error/catch blocks to avoid excessive logging.
+    /// Note: This method iterates through ChangeTracker entries which is acceptable since
+    /// it's only called during error scenarios and diagnostic accuracy is prioritized.
     /// </summary>
     private void LogDetailedEntityStates(Guid sessionId, Guid tenantId)
     {
         try
         {
             // Calculate items count from ChangeTracker
+            // Note: LINQ iteration is acceptable here as this is only called on errors
             var itemsCount = _context.ChangeTracker.Entries()
                 .Count(e => e.Entity is SaleItem item && item.SaleSessionId == sessionId);
             
