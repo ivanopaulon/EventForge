@@ -242,7 +242,12 @@ public class SaleSessionService : ISaleSessionService
 
             if (product == null)
             {
-                throw new InvalidOperationException($"Product {addItemDto.ProductId} not found.");
+                _logger.LogWarning(
+                    "Product not found - ProductId: {ProductId}, TenantId: {TenantId}, SessionId: {SessionId}",
+                    addItemDto.ProductId,
+                    currentTenantId.Value,
+                    sessionId);
+                throw new InvalidOperationException($"Product {addItemDto.ProductId} not found or not accessible.");
             }
 
             var unitPrice = addItemDto.UnitPrice ?? product.DefaultPrice ?? 0;
