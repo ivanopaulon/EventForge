@@ -2339,7 +2339,6 @@
     "classificationNodeManagement": "Classification",
     "unitOfMeasureManagement": "Units of Measure",
     "vatNatureManagement": "VAT Natures",
-    "inventoryDocuments": "Inventory Docs",
     "documentManagement": "Documents",
     "documentList": "Document List",
     "createDocument": "New Document",
