@@ -1081,8 +1081,12 @@ public class SaleSessionService : ISaleSessionService
 
                     if (document != null)
                     {
-                        // Re-attach to modify
-                        _context.Attach(document);
+                        // Re-attach to modify (only if not already tracked)
+                        var entry = _context.Entry(document);
+                        if (entry.State == EntityState.Detached)
+                        {
+                            _context.Attach(document);
+                        }
                         document.Status = EventForge.Server.Data.Entities.Documents.DocumentStatus.Cancelled;
                         document.ModifiedBy = currentUser;
                         document.ModifiedAt = DateTime.UtcNow;
