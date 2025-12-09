@@ -78,21 +78,6 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT"
     });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] { }
-        }
-    });
-
     // Register operation filter to apply security only to [Authorize] endpoints
     c.OperationFilter<EventForge.Server.Swagger.SwaggerAuthorizeCheckOperationFilter>();
 

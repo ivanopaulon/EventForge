@@ -12,11 +12,15 @@ public class SwaggerAuthorizeCheckOperationFilter : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
+        // Check if the operation has [AllowAnonymous] attribute
+        var actionAttrs = context.MethodInfo.GetCustomAttributes(true);
+        if (actionAttrs.OfType<AllowAnonymousAttribute>().Any())
+            return; // Skip endpoints explicitly marked as anonymous
+
         // Check if the operation has [Authorize] attribute
         var hasAuthorize = false;
 
         // Check action attributes
-        var actionAttrs = context.MethodInfo.GetCustomAttributes(true);
         if (actionAttrs.OfType<AuthorizeAttribute>().Any())
             hasAuthorize = true;
 
