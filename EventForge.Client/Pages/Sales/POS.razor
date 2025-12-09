@@ -96,6 +96,7 @@
 
                 <!-- Products Table -->
                 <POSCartTable Items="@ViewModel.CurrentSession?.Items"
+                              IsDisabled="@ViewModel.IsUpdatingItems"
                               OnQuantityChanged="@HandleQuantityChanged"
                               OnPriceChanged="@HandlePriceChanged"
                               OnDiscountChanged="@HandleDiscountChanged"
@@ -298,12 +299,18 @@
 
     private void IncreaseQuantityAsync(SaleItemDto item)
     {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
         item.Quantity++;
         ViewModel.QueueItemUpdate(item);
     }
 
     private void DecreaseQuantityAsync(SaleItemDto item)
     {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
         if (item.Quantity > 1)
         {
             item.Quantity--;
@@ -313,29 +320,44 @@
 
     private void QueueItemUpdate(SaleItemDto item)
     {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
         ViewModel.QueueItemUpdate(item);
     }
 
     private void HandleQuantityChanged((SaleItemDto Item, decimal NewQuantity) args)
     {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
         args.Item.Quantity = args.NewQuantity;
         ViewModel.QueueItemUpdate(args.Item);
     }
 
     private void HandlePriceChanged((SaleItemDto Item, decimal NewPrice) args)
     {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
         args.Item.UnitPrice = args.NewPrice;
         ViewModel.QueueItemUpdate(args.Item);
     }
 
     private void HandleDiscountChanged((SaleItemDto Item, decimal NewDiscount) args)
     {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
         args.Item.DiscountPercent = args.NewDiscount;
         ViewModel.QueueItemUpdate(args.Item);
     }
 
     private async Task EditItemNotesAsync(SaleItemDto item)
     {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
         var parameters = new DialogParameters
         {
             { "InitialNotes", item.Notes ?? string.Empty },

@@ -28,17 +28,19 @@
                         <MudIconButton Icon="@Icons.Material.Filled.Remove" 
                                        Size="Size.Small" 
                                        OnClick="@(() => OnDecreaseQuantity.InvokeAsync(context))"
-                                       Disabled="@(context.Quantity <= 1)" />
+                                       Disabled="@(IsDisabled || context.Quantity <= 1)" />
                         <MudNumericField T="decimal"
                                          Value="@context.Quantity"
                                          ValueChanged="@((decimal val) => HandleQuantityChanged(context, val))"
                                          Min="1"
                                          HideSpinButtons="true"
                                          Style="width: 60px; text-align: center;"
-                                         Variant="Variant.Text" />
+                                         Variant="Variant.Text"
+                                         Disabled="@IsDisabled" />
                         <MudIconButton Icon="@Icons.Material.Filled.Add" 
                                        Size="Size.Small" 
-                                       OnClick="@(() => OnIncreaseQuantity.InvokeAsync(context))" />
+                                       OnClick="@(() => OnIncreaseQuantity.InvokeAsync(context))"
+                                       Disabled="@IsDisabled" />
                     </div>
                 </MudTd>
                 <MudTd DataLabel="Price" Style="text-align: right;">
@@ -49,7 +51,8 @@
                                      Min="0"
                                      HideSpinButtons="true"
                                      Style="width: 100px;"
-                                     Variant="Variant.Text" />
+                                     Variant="Variant.Text"
+                                     Disabled="@IsDisabled" />
                 </MudTd>
                 <MudTd DataLabel="Discount" Style="text-align: right;">
                     <div class="d-flex align-center justify-end gap-1">
@@ -61,7 +64,8 @@
                                          Max="100"
                                          HideSpinButtons="true"
                                          Style="width: 60px;"
-                                         Variant="Variant.Text" />
+                                         Variant="Variant.Text"
+                                         Disabled="@IsDisabled" />
                         <MudText Typo="Typo.body2">%</MudText>
                     </div>
                 </MudTd>
@@ -75,11 +79,13 @@
                                    Size="Size.Small" 
                                    Color="Color.Primary"
                                    OnClick="@(() => OnEditNotes.InvokeAsync(context))"
-                                   Title="@TranslationService.GetTranslation("common.notes", "Note")" />
+                                   Title="@TranslationService.GetTranslation("common.notes", "Note")"
+                                   Disabled="@IsDisabled" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                    Size="Size.Small" 
                                    Color="Color.Error"
-                                   OnClick="@(() => OnRemoveItem.InvokeAsync(context))" />
+                                   OnClick="@(() => OnRemoveItem.InvokeAsync(context))"
+                                   Disabled="@IsDisabled" />
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -94,6 +100,7 @@
 
 @code {
     [Parameter] public List<SaleItemDto>? Items { get; set; }
+    [Parameter] public bool IsDisabled { get; set; }
     [Parameter] public EventCallback<(SaleItemDto Item, decimal NewQuantity)> OnQuantityChanged { get; set; }
     [Parameter] public EventCallback<(SaleItemDto Item, decimal NewPrice)> OnPriceChanged { get; set; }
     [Parameter] public EventCallback<(SaleItemDto Item, decimal NewDiscount)> OnDiscountChanged { get; set; }
