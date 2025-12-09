@@ -460,7 +460,17 @@ public class POSViewModel : IDisposable
                 UnitPrice = item.UnitPrice,
                 DiscountPercent = item.DiscountPercent,
                 TotalAmount = item.TotalAmount,
-                Notes = item.Notes
+                TaxRate = item.TaxRate,
+                TaxAmount = item.TaxAmount,
+                Notes = item.Notes,
+                IsService = item.IsService,
+                PromotionId = item.PromotionId,
+                ProductThumbnailUrl = item.ProductThumbnailUrl,
+                ProductImageUrl = item.ProductImageUrl,
+                VatRateName = item.VatRateName,
+                VatRateId = item.VatRateId,
+                UnitOfMeasureName = item.UnitOfMeasureName,
+                BrandName = item.BrandName
             };
         }
 
@@ -1057,10 +1067,12 @@ public class POSViewModel : IDisposable
     {
         if (_itemBackups.TryGetValue(item.Id, out var backup))
         {
-            // Restore original values
+            // Restore original values (all modifiable and calculated fields)
             item.Quantity = backup.Quantity;
             item.UnitPrice = backup.UnitPrice;
             item.DiscountPercent = backup.DiscountPercent;
+            item.TotalAmount = backup.TotalAmount;
+            item.TaxAmount = backup.TaxAmount;
             item.Notes = backup.Notes;
             
             _itemBackups.Remove(item.Id);
