@@ -17,11 +17,11 @@ public class SalesService : ISalesService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<SaleSessionDto?> CreateSessionAsync(CreateSaleSessionDto createDto)
+    public async Task<SaleSessionDto?> CreateSessionAsync(CreateSaleSessionDto createDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateSaleSessionDto, SaleSessionDto>(BaseUrl, createDto);
+            return await _httpClientService.PostAsync<CreateSaleSessionDto, SaleSessionDto>(BaseUrl, createDto, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -30,11 +30,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> GetSessionAsync(Guid sessionId)
+    public async Task<SaleSessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}");
+            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
         }
         catch (Exception ex)
         {
@@ -43,11 +43,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> UpdateSessionAsync(Guid sessionId, UpdateSaleSessionDto updateDto)
+    public async Task<SaleSessionDto?> UpdateSessionAsync(Guid sessionId, UpdateSaleSessionDto updateDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateSaleSessionDto, SaleSessionDto>($"{BaseUrl}/{sessionId}", updateDto);
+            return await _httpClientService.PutAsync<UpdateSaleSessionDto, SaleSessionDto>($"{BaseUrl}/{sessionId}", updateDto, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -56,11 +56,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<bool> DeleteSessionAsync(Guid sessionId)
+    public async Task<bool> DeleteSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}", cancellationToken);
             return true;
         }
         catch (Exception ex)
@@ -70,11 +70,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<List<SaleSessionDto>?> GetActiveSessionsAsync()
+    public async Task<List<SaleSessionDto>?> GetActiveSessionsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.GetAsync<List<SaleSessionDto>>(BaseUrl);
+            return await _httpClientService.GetAsync<List<SaleSessionDto>>(BaseUrl, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -83,11 +83,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<List<SaleSessionDto>?> GetOperatorSessionsAsync(Guid operatorId)
+    public async Task<List<SaleSessionDto>?> GetOperatorSessionsAsync(Guid operatorId, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.GetAsync<List<SaleSessionDto>>($"{BaseUrl}/operator/{operatorId}");
+            return await _httpClientService.GetAsync<List<SaleSessionDto>>($"{BaseUrl}/operator/{operatorId}", cancellationToken);
         }
         catch (Exception ex)
         {
@@ -96,11 +96,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> AddItemAsync(Guid sessionId, AddSaleItemDto itemDto)
+    public async Task<SaleSessionDto?> AddItemAsync(Guid sessionId, AddSaleItemDto itemDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<AddSaleItemDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/items", itemDto);
+            return await _httpClientService.PostAsync<AddSaleItemDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/items", itemDto, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -109,11 +109,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> UpdateItemAsync(Guid sessionId, Guid itemId, UpdateSaleItemDto updateDto)
+    public async Task<SaleSessionDto?> UpdateItemAsync(Guid sessionId, Guid itemId, UpdateSaleItemDto updateDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateSaleItemDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/items/{itemId}", updateDto);
+            return await _httpClientService.PutAsync<UpdateSaleItemDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/items/{itemId}", updateDto, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -122,15 +122,15 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> RemoveItemAsync(Guid sessionId, Guid itemId)
+    public async Task<SaleSessionDto?> RemoveItemAsync(Guid sessionId, Guid itemId, CancellationToken cancellationToken = default)
     {
         try
         {
-            // DeleteAsync with return type requires special handling - we'll use a workaround
-            var result = await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}");
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/items/{itemId}");
+            // Optimized: DELETE + GET (2 calls instead of 3)
+            // Future optimization: Modify server DELETE endpoint to return updated session (1 call)
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/items/{itemId}", cancellationToken);
             // Fetch updated session
-            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}");
+            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
         }
         catch (Exception ex)
         {
@@ -139,11 +139,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> AddPaymentAsync(Guid sessionId, AddSalePaymentDto paymentDto)
+    public async Task<SaleSessionDto?> AddPaymentAsync(Guid sessionId, AddSalePaymentDto paymentDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<AddSalePaymentDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/payments", paymentDto);
+            return await _httpClientService.PostAsync<AddSalePaymentDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/payments", paymentDto, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -152,13 +152,13 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> RemovePaymentAsync(Guid sessionId, Guid paymentId)
+    public async Task<SaleSessionDto?> RemovePaymentAsync(Guid sessionId, Guid paymentId, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/payments/{paymentId}");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/payments/{paymentId}", cancellationToken);
             // Fetch updated session
-            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}");
+            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
         }
         catch (Exception ex)
         {
@@ -167,11 +167,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> AddNoteAsync(Guid sessionId, AddSessionNoteDto noteDto)
+    public async Task<SaleSessionDto?> AddNoteAsync(Guid sessionId, AddSessionNoteDto noteDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<AddSessionNoteDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/notes", noteDto);
+            return await _httpClientService.PostAsync<AddSessionNoteDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/notes", noteDto, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -180,11 +180,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> CalculateTotalsAsync(Guid sessionId)
+    public async Task<SaleSessionDto?> CalculateTotalsAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/totals", new { });
+            return await _httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/totals", new { }, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -193,11 +193,11 @@ public class SalesService : ISalesService
         }
     }
 
-    public async Task<SaleSessionDto?> CloseSessionAsync(Guid sessionId)
+    public async Task<SaleSessionDto?> CloseSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/close", new { });
+            return await _httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/close", new { }, cancellationToken);
         }
         catch (Exception ex)
         {

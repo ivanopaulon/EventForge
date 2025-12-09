@@ -308,40 +308,8 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            // NEW CODE: Add comprehensive diagnostic logging
             try
             {
-                _logger.LogDebug(
-                    "SaveChanges attempt - SessionId: {SessionId}, TenantId: {TenantId}, ItemsCount: {ItemCount}, TrackedEntities: {TrackedCount}",
-                    sessionId,
-                    currentTenantId.Value,
-                    session.Items.Count,
-                    _context.ChangeTracker.Entries().Count());
-
-                // Log all tracked entities and their states
-                foreach (var entry in _context.ChangeTracker.Entries())
-                {
-                    var entityType = entry.Entity.GetType().Name;
-                    var entityId = entry.Entity is AuditableEntity ae ? ae.Id.ToString() : "N/A";
-                    var entityState = entry.State.ToString();
-                    
-                    _logger.LogDebug(
-                        "Tracked entity: Type={EntityType}, Id={EntityId}, State={State}",
-                        entityType,
-                        entityId,
-                        entityState);
-                        
-                    // Log IsDeleted for AuditableEntity
-                    if (entry.Entity is AuditableEntity auditableEntity)
-                    {
-                        _logger.LogDebug(
-                            "  -> IsDeleted={IsDeleted}, TenantId={TenantId}",
-                            auditableEntity.IsDeleted,
-                            auditableEntity.TenantId);
-                    }
-                }
-
-                // Attempt SaveChanges
                 var affectedRows = await _context.SaveChangesAsync(cancellationToken);
                 
                 _logger.LogInformation(
@@ -354,50 +322,15 @@ public class SaleSessionService : ISaleSessionService
             catch (DbUpdateConcurrencyException ex)
             {
                 _logger.LogError(ex,
-                    "DbUpdateConcurrencyException in AddItemAsync - SessionId: {SessionId}, TenantId: {TenantId}, ProductId: {ProductId}",
+                    "DbUpdateConcurrencyException in AddItemAsync - SessionId: {SessionId}, TenantId: {TenantId}, ProductId: {ProductId}. The session was modified by another user.",
                     sessionId,
                     currentTenantId.Value,
                     addItemDto.ProductId);
 
-                // Log detailed information about failed entities
-                _logger.LogError("Failed entities count: {Count}", ex.Entries.Count);
+                LogDetailedEntityStates(sessionId, currentTenantId.Value);
                 
-                foreach (var entry in ex.Entries)
-                {
-                    var entityType = entry.Entity.GetType().Name;
-                    var entityState = entry.State.ToString();
-                    
-                    _logger.LogError(
-                        "Failed entity: Type={EntityType}, State={State}",
-                        entityType,
-                        entityState);
-                    
-                    if (entry.Entity is AuditableEntity failedEntity)
-                    {
-                        _logger.LogError(
-                            "  -> Id={Id}, IsDeleted={IsDeleted}, TenantId={TenantId}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}",
-                            failedEntity.Id,
-                            failedEntity.IsDeleted,
-                            failedEntity.TenantId,
-                            failedEntity.CreatedAt,
-                            failedEntity.ModifiedAt);
-                    }
-                    
-                    // Log current and original values for modified entities
-                    if (entry.State == EntityState.Modified)
-                    {
-                        foreach (var property in entry.Properties.Where(p => p.IsModified))
-                        {
-                            _logger.LogError(
-                                "  -> Modified property: {PropertyName}, OriginalValue={OriginalValue}, CurrentValue={CurrentValue}",
-                                property.Metadata.Name,
-                                property.OriginalValue,
-                                property.CurrentValue);
-                        }
-                    }
-                }
-                
-                throw;
+                throw new InvalidOperationException(
+                    "The session was modified by another user. Please refresh and try again.", ex);
             }
 
             _logger.LogInformation("Added item {ProductId} to sale session {SessionId}", addItemDto.ProductId, sessionId);
@@ -467,6 +400,18 @@ public class SaleSessionService : ISaleSessionService
 
             return await MapToDtoAsync(session, cancellationToken);
         }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogError(ex,
+                "DbUpdateConcurrencyException in UpdateItemAsync - SessionId: {SessionId}, ItemId: {ItemId}. The session or item was modified by another user.",
+                sessionId,
+                itemId);
+
+            LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty);
+            
+            throw new InvalidOperationException(
+                "The session or item was modified by another user. Please refresh and try again.", ex);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating item {ItemId} in sale session {SessionId}.", itemId, sessionId);
@@ -520,6 +465,18 @@ public class SaleSessionService : ISaleSessionService
             _logger.LogInformation("Removed item {ItemId} from sale session {SessionId}", itemId, sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogError(ex,
+                "DbUpdateConcurrencyException in RemoveItemAsync - SessionId: {SessionId}, ItemId: {ItemId}. The session or item was modified by another user.",
+                sessionId,
+                itemId);
+
+            LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty);
+            
+            throw new InvalidOperationException(
+                "The session or item was modified by another user. Please refresh and try again.", ex);
         }
         catch (Exception ex)
         {
@@ -1225,6 +1182,70 @@ public class SaleSessionService : ISaleSessionService
         {
             _logger.LogError(ex, "Error generating receipt document for session {SessionId}", session.Id);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Logs detailed entity states for diagnostic purposes. 
+    /// This method should only be called in error/catch blocks to avoid excessive logging.
+    /// Note: This method iterates through ChangeTracker entries which is acceptable since
+    /// it's only called during error scenarios and diagnostic accuracy is prioritized.
+    /// </summary>
+    private void LogDetailedEntityStates(Guid sessionId, Guid tenantId)
+    {
+        try
+        {
+            // Calculate items count from ChangeTracker
+            // Note: LINQ iteration is acceptable here as this is only called on errors
+            var itemsCount = _context.ChangeTracker.Entries()
+                .Count(e => e.Entity is SaleItem item && item.SaleSessionId == sessionId);
+            
+            _logger.LogError(
+                "Diagnostic - SessionId: {SessionId}, TenantId: {TenantId}, ItemsCount: {ItemCount}, TrackedEntities: {TrackedCount}",
+                sessionId,
+                tenantId,
+                itemsCount,
+                _context.ChangeTracker.Entries().Count());
+
+            // Log all tracked entities and their states
+            foreach (var entry in _context.ChangeTracker.Entries())
+            {
+                var entityType = entry.Entity.GetType().Name;
+                var entityId = entry.Entity is AuditableEntity ae ? ae.Id.ToString() : "N/A";
+                var entityState = entry.State.ToString();
+                
+                _logger.LogError(
+                    "Tracked entity: Type={EntityType}, Id={EntityId}, State={State}",
+                    entityType,
+                    entityId,
+                    entityState);
+                    
+                // Log IsDeleted for AuditableEntity
+                if (entry.Entity is AuditableEntity auditableEntity)
+                {
+                    _logger.LogError(
+                        "  -> IsDeleted={IsDeleted}, TenantId={TenantId}",
+                        auditableEntity.IsDeleted,
+                        auditableEntity.TenantId);
+                }
+                
+                // Log current and original values for modified entities
+                if (entry.State == EntityState.Modified)
+                {
+                    foreach (var property in entry.Properties.Where(p => p.IsModified))
+                    {
+                        _logger.LogError(
+                            "  -> Modified property: {PropertyName}, OriginalValue={OriginalValue}, CurrentValue={CurrentValue}",
+                            property.Metadata.Name,
+                            property.OriginalValue,
+                            property.CurrentValue);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error logging detailed entity states");
         }
     }
 }
