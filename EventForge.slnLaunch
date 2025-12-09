@@ -1,6 +1,6 @@
 [
   {
-    "Name": "Nuovo profilo",
+    "Name": "Avvia tutto",
     "Projects": [
       {
         "Path": "EventForge.Server\\EventForge.Server.csproj",
