@@ -52,12 +52,6 @@
                         <MudText>@TranslationService.GetTranslation("warehouse.manageInventories", "Gestisci Inventari")</MudText>
                     }
                 </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.List" 
-                           Color="Color.Default" 
-                           Variant="Variant.Outlined"
-                           OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-list"))">
-                    @TranslationService.GetTranslation("warehouse.viewInventory", "Visualizza Inventario")
-                </MudButton>
             </MudStack>
         </MudItem>
     </MudGrid>

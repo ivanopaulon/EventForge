@@ -107,20 +107,10 @@
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.inventoryProcedure", "Inventari")
                     </MudNavLink>
-                    <MudNavLink Href="/warehouse/inventory-list" 
-                                Icon="@Icons.Material.Outlined.Inventory2" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.inventoryDocuments", "Documenti Inventario")
-                    </MudNavLink>
                     <MudNavLink Href="/warehouse/transfers" 
                                 Icon="@Icons.Material.Outlined.CompareArrows" 
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.transferOrders", "Trasferimenti")
-                    </MudNavLink>
-                    <MudNavLink Href="/warehouse/inventory-seed" 
-                                Icon="@Icons.Material.Outlined.Psychology" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.inventorySeed", "[DEV] Genera Test")
                     </MudNavLink>
                 </MudNavGroup>
             }
