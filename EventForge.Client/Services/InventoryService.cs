@@ -197,6 +197,15 @@ public class InventoryService : IInventoryService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating inventory document");
+    public async Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync()
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<List<InventoryDocumentDto>>($"{BaseUrl}/documents/open");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving open inventory documents");
             return null;
         }
     }
@@ -211,6 +220,46 @@ public class InventoryService : IInventoryService
         {
             _logger.LogError(ex, "Error retrieving inventory document rows");
             return null;
+        }
+    }
+    public async Task<bool> CancelInventoryDocumentAsync(Guid documentId)
+    {
+        try
+        {
+            await _httpClientService.PostAsync<object, object>($"{BaseUrl}/documents/{documentId}/cancel", new { });
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling inventory document {DocumentId}", documentId);
+            return false;
+        }
+    }
+
+    public async Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync()
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<object, List<InventoryDocumentDto>>($"{BaseUrl}/documents/finalize-all", new { });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error finalizing all open inventories");
+            return null;
+        }
+    }
+
+    public async Task<int> CancelAllOpenInventoriesAsync()
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<object, int>($"{BaseUrl}/documents/cancel-all", new { });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling all open inventories");
+            return 0;
         }
     }
 }

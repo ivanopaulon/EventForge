@@ -25,4 +25,10 @@ public interface IInventoryService
     // Diagnostic and optimization operations
     Task<InventoryValidationResultDto?> ValidateInventoryDocumentAsync(Guid documentId);
     Task<PagedResult<InventoryDocumentRowDto>?> GetInventoryDocumentRowsAsync(Guid documentId, int page = 1, int pageSize = 50);
+    
+    // Active inventory management methods
+    Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync();
+    Task<bool> CancelInventoryDocumentAsync(Guid documentId);
+    Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync();
+    Task<int> CancelAllOpenInventoriesAsync();
 }
