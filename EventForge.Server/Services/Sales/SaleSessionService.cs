@@ -236,8 +236,9 @@ public class SaleSessionService : ISaleSessionService
                 throw new InvalidOperationException($"Tenant mismatch: session belongs to {session.TenantId} but current tenant is {currentTenantId.Value}");
             }
 
-            // Fetch product details
+            // Fetch product details INCLUDING VatRate
             var product = await _context.Products
+                .Include(p => p.VatRate)
                 .FirstOrDefaultAsync(p => p.Id == addItemDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
 
             if (product == null)
@@ -250,15 +251,11 @@ public class SaleSessionService : ISaleSessionService
             var discountAmount = subtotal * (addItemDto.DiscountPercent / 100);
             var totalAmount = subtotal - discountAmount;
 
-            // Get VAT rate from product
+            // Get VAT rate from product - already loaded via Include
             var taxRate = 0m;
-            if (product.VatRateId.HasValue)
+            if (product.VatRateId.HasValue && product.VatRate != null)
             {
-                var vatRate = await _context.VatRates
-                    .Where(vr => vr.Id == product.VatRateId.Value && !vr.IsDeleted)
-                    .Select(vr => vr.Percentage)
-                    .FirstOrDefaultAsync(cancellationToken);
-                taxRate = vatRate;
+                taxRate = product.VatRate.Percentage;
             }
             var taxAmount = totalAmount * (taxRate / 100);
 
@@ -314,7 +311,7 @@ public class SaleSessionService : ISaleSessionService
             // NEW CODE: Add comprehensive diagnostic logging
             try
             {
-                _logger.LogInformation(
+                _logger.LogDebug(
                     "SaveChanges attempt - SessionId: {SessionId}, TenantId: {TenantId}, ItemsCount: {ItemCount}, TrackedEntities: {TrackedCount}",
                     sessionId,
                     currentTenantId.Value,
@@ -645,6 +642,9 @@ public class SaleSessionService : ISaleSessionService
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
+            // Get user ID from username BEFORE loading session to avoid DataReader conflicts
+            var userId = await GetUserIdFromUsernameAsync(currentUser, cancellationToken);
+
             var session = await _context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
@@ -655,9 +655,6 @@ public class SaleSessionService : ISaleSessionService
             {
                 return null;
             }
-
-            // Get user ID from username
-            var userId = await GetUserIdFromUsernameAsync(currentUser, cancellationToken);
 
             var note = new SessionNote
             {
@@ -754,33 +751,37 @@ public class SaleSessionService : ISaleSessionService
                 throw new InvalidOperationException($"Session cannot be closed. Total paid ({completedPayments}) is less than final total ({session.FinalTotal}).");
             }
 
-            session.Status = SaleSessionStatus.Closed;
-            session.ClosedAt = DateTime.UtcNow;
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
-            _ = await _context.SaveChangesAsync(cancellationToken);
-
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
-
-            _logger.LogInformation("Closed sale session {SessionId}", sessionId);
-
-            // Generate document (receipt) for the closed session
+            // Use transaction to ensure atomicity
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
+                session.Status = SaleSessionStatus.Closed;
+                session.ClosedAt = DateTime.UtcNow;
+                session.ModifiedBy = currentUser;
+                session.ModifiedAt = DateTime.UtcNow;
+
+                // Generate document INSIDE the transaction
                 var documentId = await GenerateReceiptDocumentAsync(session, currentUser, cancellationToken);
                 
                 if (documentId.HasValue)
                 {
                     session.DocumentId = documentId.Value;
-                    await _context.SaveChangesAsync(cancellationToken);
-                    _logger.LogInformation("Generated receipt document {DocumentId} for sale session {SessionId}", documentId.Value, sessionId);
                 }
+
+                // SINGLE SaveChanges
+                await _context.SaveChangesAsync(cancellationToken);
+                await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
+                
+                // Commit transaction
+                await transaction.CommitAsync(cancellationToken);
+                
+                _logger.LogInformation("Closed sale session {SessionId}", sessionId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating receipt document for sale session {SessionId}. Session is closed but document generation failed.", sessionId);
-                // Session is already closed, we don't throw here to avoid rolling back the closure
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Error closing sale session {SessionId}. Transaction rolled back.", sessionId);
+                throw;
             }
 
             return await MapToDtoAsync(session, cancellationToken);
@@ -1072,12 +1073,20 @@ public class SaleSessionService : ISaleSessionService
                 // Mark document as cancelled
                 try
                 {
-                    var document = await _context.DocumentHeaders.FirstOrDefaultAsync(
-                        d => d.Id == session.DocumentId.Value && d.TenantId == currentTenantId.Value && !d.IsDeleted, 
-                        cancellationToken);
+                    var document = await _context.DocumentHeaders
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(
+                            d => d.Id == session.DocumentId.Value && d.TenantId == currentTenantId.Value && !d.IsDeleted, 
+                            cancellationToken);
 
                     if (document != null)
                     {
+                        // Re-attach to modify (only if not already tracked)
+                        var entry = _context.Entry(document);
+                        if (entry.State == EntityState.Detached)
+                        {
+                            _context.Attach(document);
+                        }
                         document.Status = EventForge.Server.Data.Entities.Documents.DocumentStatus.Cancelled;
                         document.ModifiedBy = currentUser;
                         document.ModifiedAt = DateTime.UtcNow;
