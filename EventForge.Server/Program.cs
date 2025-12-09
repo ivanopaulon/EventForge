@@ -67,12 +67,37 @@ builder.Services.AddSwaggerGen(c =>
     // Configure custom schema IDs to avoid conflicts between classes with the same name
     c.CustomSchemaIds(type => type.FullName);
 
-    // TODO: Re-enable ProblemDetails schema mapping with Microsoft.OpenApi 2.x compatible syntax
-    // TODO: Re-enable JWT Authentication schema with Microsoft.OpenApi 2.x compatible syntax
-    // TODO: Re-enable FileUploadOperationFilter with Microsoft.OpenApi 2.x compatible syntax
+    // JWT Bearer Authentication configuration
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Inserisci il token JWT come: Bearer {token}\nEsempio: \"Bearer eyJhbGciOi...\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
 
-    // All advanced Swagger configuration has been temporarily commented out due to
-    // Microsoft.OpenApi 2.x breaking changes. Need to update to new API syntax.
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+
+    // Register operation filter to apply security only to [Authorize] endpoints
+    c.OperationFilter<EventForge.Server.Swagger.SwaggerAuthorizeCheckOperationFilter>();
+
+    // TODO: Re-enable ProblemDetails schema mapping with Microsoft.OpenApi 2.x compatible syntax
+    // TODO: Re-enable FileUploadOperationFilter with Microsoft.OpenApi 2.x compatible syntax
 });
 
 builder.Services.AddCors(options =>
