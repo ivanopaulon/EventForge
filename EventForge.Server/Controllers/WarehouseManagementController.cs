@@ -2532,17 +2532,6 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ValidateInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
-    /// Gets all open inventory documents (Status == "Open").
-    /// Returns documents ordered by creation date (most recent first).
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of open inventory documents</returns>
-    /// <response code="200">Returns the list of open inventory documents</response>
-    /// <response code="403">If the user doesn't have access to the current tenant</response>
-    [HttpGet("inventory/documents/open")]
-    [ProducesResponseType(typeof(List<InventoryDocumentDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<List<InventoryDocumentDto>>> GetOpenInventoryDocuments(CancellationToken cancellationToken = default)
     {
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -2562,84 +2551,6 @@ public class WarehouseManagementController : BaseApiController
             };
 
             // 1. Verify document exists
-            // Get or create the inventory document type
-            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
-                _tenantContext.CurrentTenantId!.Value,
-                cancellationToken);
-
-            // Query for Open status documents
-            var queryParams = new DocumentHeaderQueryParameters
-            {
-                DocumentTypeId = inventoryDocType.Id,
-                Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
-                Page = 1,
-                PageSize = MaxBulkOperationPageSize,
-                IncludeRows = true
-            };
-
-            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
-
-            var inventoryDocuments = new List<InventoryDocumentDto>();
-
-            if (documentsResult?.Items != null)
-            {
-                foreach (var doc in documentsResult.Items.OrderByDescending(d => d.CreatedAt))
-                {
-                    // Enrich rows with product and location data
-                    var enrichedRows = doc.Rows != null && doc.Rows.Any()
-                        ? await EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
-                        : new List<InventoryDocumentRowDto>();
-
-                    inventoryDocuments.Add(new InventoryDocumentDto
-                    {
-                        Id = doc.Id,
-                        Number = doc.Number,
-                        Series = doc.Series,
-                        InventoryDate = doc.Date,
-                        WarehouseId = doc.SourceWarehouseId,
-                        WarehouseName = doc.SourceWarehouseName,
-                        Status = doc.Status.ToString(),
-                        Notes = doc.Notes,
-                        CreatedAt = doc.CreatedAt,
-                        CreatedBy = doc.CreatedBy,
-                        FinalizedAt = doc.ClosedAt,
-                        FinalizedBy = doc.Status.ToString() == "Closed" ? doc.ModifiedBy : null,
-                        Rows = enrichedRows
-                    });
-                }
-            }
-
-            return Ok(inventoryDocuments);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while retrieving open inventory documents.");
-            return CreateInternalServerErrorProblem("An error occurred while retrieving open inventory documents.", ex);
-        }
-    }
-
-    /// <summary>
-    /// Cancels an inventory document without saving (changes status to "Cancelled").
-    /// Does NOT apply stock adjustments.
-    /// </summary>
-    /// <param name="documentId">Inventory document ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Success status</returns>
-    /// <response code="200">If the document was successfully cancelled</response>
-    /// <response code="404">If the document is not found</response>
-    /// <response code="403">If the user doesn't have access to the current tenant</response>
-    [HttpPost("inventory/documents/{documentId:guid}/cancel")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> CancelInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
-    {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
-
-        try
-        {
-            // Get the document header
             var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
             if (documentHeader == null)
             {
@@ -2789,6 +2700,104 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while validating inventory document {DocumentId}.", documentId);
             return CreateInternalServerErrorProblem("An error occurred while validating inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets all open inventory documents (Status == "Open").
+    /// Returns documents ordered by creation date (most recent first).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of open inventory documents</returns>
+    /// <response code="200">Returns the list of open inventory documents</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("inventory/documents/open")]
+    [ProducesResponseType(typeof(List<InventoryDocumentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<List<InventoryDocumentDto>>> GetOpenInventoryDocuments(CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get or create the inventory document type
+            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+                _tenantContext.CurrentTenantId!.Value,
+                cancellationToken);
+
+            // Query for Open status documents
+            var queryParams = new DocumentHeaderQueryParameters
+            {
+                DocumentTypeId = inventoryDocType.Id,
+                Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
+                Page = 1,
+                PageSize = MaxBulkOperationPageSize,
+                IncludeRows = true
+            };
+
+            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+
+            var inventoryDocuments = new List<InventoryDocumentDto>();
+
+            if (documentsResult?.Items != null)
+            {
+                foreach (var doc in documentsResult.Items.OrderByDescending(d => d.CreatedAt))
+                {
+                    // Enrich rows with product and location data
+                    var enrichedRows = doc.Rows != null && doc.Rows.Any()
+                        ? await EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
+                        : new List<InventoryDocumentRowDto>();
+
+                    inventoryDocuments.Add(new InventoryDocumentDto
+                    {
+                        Id = doc.Id,
+                        Number = doc.Number,
+                        Series = doc.Series,
+                        InventoryDate = doc.Date,
+                        WarehouseId = doc.SourceWarehouseId,
+                        WarehouseName = doc.SourceWarehouseName,
+                        Status = doc.Status.ToString(),
+                        Notes = doc.Notes,
+                        CreatedAt = doc.CreatedAt,
+                        CreatedBy = doc.CreatedBy,
+                        FinalizedAt = doc.ClosedAt,
+                        FinalizedBy = doc.Status.ToString() == "Closed" ? doc.ModifiedBy : null,
+                        Rows = enrichedRows
+                    });
+                }
+            }
+
+            return Ok(inventoryDocuments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving open inventory documents.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving open inventory documents.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancels an inventory document without saving (changes status to "Cancelled").
+    /// Does NOT apply stock adjustments.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success status</returns>
+    /// <response code="200">If the document was successfully cancelled</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/{documentId:guid}/cancel")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CancelInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
             // Update status to Cancelled using direct database access
             var documentEntity = await _context.DocumentHeaders
                 .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
@@ -3005,18 +3014,6 @@ public class WarehouseManagementController : BaseApiController
         var paginationError = ValidatePaginationParameters(page, pageSize);
         if (paginationError != null) return paginationError;
 
-    /// Cancels ALL open inventory documents without saving (changes status to "Cancelled").
-    /// Does NOT apply stock adjustments.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Number of inventory documents cancelled</returns>
-    /// <response code="200">Returns the count of cancelled inventory documents</response>
-    /// <response code="403">If the user doesn't have access to the current tenant</response>
-    [HttpPost("inventory/documents/cancel-all")]
-    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<int>> CancelAllOpenInventories(CancellationToken cancellationToken = default)
-    {
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
@@ -3086,6 +3083,27 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while fetching inventory document rows for {DocumentId}.", documentId);
             return CreateInternalServerErrorProblem("An error occurred while fetching inventory document rows.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancels ALL open inventory documents without saving (changes status to "Cancelled").
+    /// Does NOT apply stock adjustments.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of inventory documents cancelled</returns>
+    /// <response code="200">Returns the count of cancelled inventory documents</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/cancel-all")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<int>> CancelAllOpenInventories(CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
             // Get all open inventory documents
             var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
                 _tenantContext.CurrentTenantId!.Value,
