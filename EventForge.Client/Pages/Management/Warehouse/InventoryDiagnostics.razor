@@ -1,0 +1,57 @@
+@page "/warehouse/inventory-diagnostics"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject ITranslationService TranslationService
+
+<PageTitle>@TranslationService.GetTranslation("warehouse.diagnostics.title", "Diagnostica Inventario")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Class="pa-8" Elevation="2">
+        <MudStack Spacing="4" AlignItems="AlignItems.Center">
+            
+            <!-- Header -->
+            <MudText Typo="Typo.h4" Align="Align.Center">
+                <MudIcon Icon="@Icons.Material.Outlined.HealthAndSafety" Class="mr-2" Size="Size.Large" Color="Color.Primary" />
+                @TranslationService.GetTranslation("warehouse.diagnostics.title", "Diagnostica Inventario")
+            </MudText>
+            
+            <!-- Coming Soon Badge -->
+            <MudChip Color="Color.Info" Size="Size.Large" Icon="@Icons.Material.Outlined.Info">
+                @TranslationService.GetTranslation("warehouse.diagnostics.comingSoon", "🚀 Funzionalità in Arrivo!")
+            </MudChip>
+            
+            <!-- Description -->
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-4">
+                Questa pagina fornirà strumenti avanzati per diagnosticare e correggere anomalie negli inventari:
+            </MudText>
+            
+            <!-- Features List -->
+            <MudList Class="mt-4">
+                <MudListItem Icon="@Icons.Material.Outlined.BugReport">
+                    <MudText><strong>Rilevamento Anomalie:</strong> Identifica discrepanze tra stock registrati e documenti</MudText>
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Outlined.BuildCircle">
+                    <MudText><strong>Correzione Automatica:</strong> Suggerimenti intelligenti per correggere errori comuni</MudText>
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Outlined.Assessment">
+                    <MudText><strong>Report Diagnostici:</strong> Analisi dettagliate sullo stato degli inventari</MudText>
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Outlined.History">
+                    <MudText><strong>Cronologia Modifiche:</strong> Tracciamento completo delle correzioni applicate</MudText>
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Outlined.Healing">
+                    <MudText><strong>Riparazione Batch:</strong> Correggi multiple anomalie con un solo click</MudText>
+                </MudListItem>
+            </MudList>
+            
+            <!-- Illustration -->
+            <MudImage Src="/images/coming-soon.svg" Alt="Coming Soon" Height="200" Class="mt-4" Style="opacity: 0.7;" ObjectFit="ObjectFit.Contain" />
+            
+            <!-- Footer Note -->
+            <MudAlert Severity="Severity.Info" Class="mt-4" Dense="true">
+                Questa funzionalità è attualmente in fase di sviluppo. Sarà disponibile in una prossima versione.
+            </MudAlert>
+            
+        </MudStack>
+    </MudPaper>
+</MudContainer>

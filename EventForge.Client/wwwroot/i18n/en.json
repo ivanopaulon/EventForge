@@ -2295,7 +2295,11 @@
     "searchFacilities": "[FROM IT] Cerca magazzini",
     "searchLocationPlaceholder": "[FROM IT] Inserisci codice...",
     "searchLocations": "[FROM IT] Cerca ubicazioni",
-    "searchPlaceholder": "[FROM IT] Inserisci nome o codice..."
+    "searchPlaceholder": "[FROM IT] Inserisci nome o codice...",
+    "diagnostics": {
+      "title": "Inventory Diagnostics",
+      "comingSoon": "🚀 Coming Soon!"
+    }
   },
   "nav": {
     "activityFeed": "Activity Feed",
@@ -2348,7 +2352,19 @@
     "documentTypes": "Document Types",
     "documentCounters": "Document Counters",
     "modelManagement": "[FROM IT] Modelli",
-    "storageLocationManagement": "[FROM IT] Ubicazioni"
+    "storageLocationManagement": "[FROM IT] Ubicazioni",
+    "catalog": "Catalog",
+    "pos": "Point of Sale (POS)",
+    "transferOrders": "Transfers",
+    "rolePermissionManagement": "Role & Permission Management",
+    "featureTemplates": "Feature Templates",
+    "paymentMethods": "Payment Methods",
+    "posManagement": "POS Terminals",
+    "operatorManagement": "Operators",
+    "operatorGroupManagement": "Operator Groups",
+    "storeSettings": "Store Settings",
+    "inventoryManagement": "Inventories",
+    "inventoryDiagnostics": "Diagnose &amp; Repair"
   },
   "tour": {
     "chat": "Chat Tour",
