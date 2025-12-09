@@ -6,6 +6,7 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs.UnifiedInventoryDialog
 @using EventForge.Client.Shared.Components.Warehouse
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
@@ -35,6 +36,22 @@
         </MudItem>
         <MudItem xs="12" md="4">
             <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.ManageSearch"
+                           Color="@(_openInventoriesCount > 0 ? Color.Warning : Color.Default)"
+                           Variant="Variant.Outlined"
+                           OnClick="OpenManageInventoriesDialog"
+                           Disabled="_isLoading">
+                    @if (_openInventoriesCount > 0)
+                    {
+                        <MudBadge Content="@_openInventoriesCount" Color="Color.Error" Overlap="true">
+                            <MudText>@TranslationService.GetTranslation("warehouse.manageInventories", "Gestisci Inventari")</MudText>
+                        </MudBadge>
+                    }
+                    else
+                    {
+                        <MudText>@TranslationService.GetTranslation("warehouse.manageInventories", "Gestisci Inventari")</MudText>
+                    }
+                </MudButton>
                 <MudButton StartIcon="@Icons.Material.Outlined.List" 
                            Color="Color.Default" 
                            Variant="Variant.Outlined"
@@ -44,18 +61,6 @@
             </MudStack>
         </MudItem>
     </MudGrid>
-
-    <!-- Active Inventories Dashboard -->
-    @if (_openInventories.Count > 0 && _currentDocument == null)
-    {
-        <ActiveInventoriesManager 
-            OpenInventories="_openInventories"
-            OnInventoryResumed="HandleInventoryResumed"
-            OnInventoryFinalized="HandleInventoryFinalized"
-            OnInventoryCancelled="HandleInventoryCancelled"
-            OnFinalizeAllRequested="HandleFinalizeAll"
-            OnCancelAllRequested="HandleCancelAll" />
-    }
 
     <!-- Session Status Banner with Enhanced Statistics -->
     @if (_currentDocument != null)
@@ -428,6 +433,7 @@
     private bool _showOnlyAdjustments = false;
     private List<BarcodeAssignmentInfo> _barcodeAssignments = new();
     private List<InventoryDocumentDto> _openInventories = new();
+    private int _openInventoriesCount = 0;
     
     // Simulation state variables
     private bool _isSimulating = false;
@@ -818,6 +824,14 @@
             // Try to restore active inventory session
             await RestoreInventorySessionAsync();
             
+            // Auto-show dialog if there are open inventories and no current document
+            if (_openInventories.Count > 0 && _currentDocument == null)
+            {
+                // Small delay to allow page to finish rendering
+                await Task.Delay(500);
+                await ShowManageInventoriesDialogAuto();
+            }
+            
             // Start session keepalive timer - check every 5 minutes
             _sessionKeepAliveTimer = new System.Threading.Timer(
                 _ => OnSessionKeepAliveTimer(),
@@ -888,12 +902,14 @@
         try
         {
             _openInventories = await InventoryService.GetOpenInventoryDocumentsAsync() ?? new();
-            Logger.LogInformation("Loaded {Count} open inventory documents", _openInventories.Count);
+            _openInventoriesCount = _openInventories.Count;
+            Logger.LogInformation("Loaded {Count} open inventory documents", _openInventoriesCount);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading open inventories");
             _openInventories = new();
+            _openInventoriesCount = 0;
         }
     }
 
@@ -2319,6 +2335,63 @@
         {
             Logger.LogError(ex, "Unhandled exception in session keepalive timer");
         }
+    }
+
+    // ========== Manage Inventories Dialog Methods ==========
+
+    private async Task ShowManageInventoriesDialogAuto()
+    {
+        await ShowManageInventoriesDialog(ManageActiveInventoriesDialog.InventoryDialogMode.InitialCheck, autoShow: true);
+    }
+
+    private async Task OpenManageInventoriesDialog()
+    {
+        var mode = _currentDocument != null 
+            ? ManageActiveInventoriesDialog.InventoryDialogMode.SwitchInventory 
+            : ManageActiveInventoriesDialog.InventoryDialogMode.InitialCheck;
+        await ShowManageInventoriesDialog(mode, autoShow: false);
+    }
+
+    private async Task ShowManageInventoriesDialog(ManageActiveInventoriesDialog.InventoryDialogMode mode, bool autoShow)
+    {
+        // Reload the list of open inventories to ensure it's up-to-date
+        await LoadOpenInventoriesAsync();
+        
+        // Skip auto-show if there are no inventories
+        if (_openInventories.Count == 0 && autoShow)
+            return;
+        
+        var parameters = new DialogParameters
+        {
+            ["Mode"] = mode,
+            ["CurrentDocument"] = _currentDocument,
+            ["AllOpenInventories"] = _openInventories,
+            ["OnInventoryResumed"] = EventCallback.Factory.Create<InventoryDocumentDto>(this, HandleInventoryResumed),
+            ["OnInventoryFinalized"] = EventCallback.Factory.Create<InventoryDocumentDto>(this, HandleInventoryFinalized),
+            ["OnInventoryCancelled"] = EventCallback.Factory.Create<InventoryDocumentDto>(this, HandleInventoryCancelled),
+            ["OnFinalizeAllRequested"] = EventCallback.Factory.Create(this, HandleFinalizeAll),
+            ["OnCancelAllRequested"] = EventCallback.Factory.Create(this, HandleCancelAll)
+        };
+
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Large, 
+            FullWidth = true,
+            CloseButton = true,
+            BackdropClick = !autoShow, // Prevent backdrop click if auto-show (force choice)
+            CloseOnEscapeKey = !autoShow
+        };
+
+        var dialog = await DialogService.ShowAsync<ManageActiveInventoriesDialog>(
+            TranslationService.GetTranslation("warehouse.manageOpenInventories", "Gestione Inventari Aperti"),
+            parameters, 
+            options);
+
+        await dialog.Result;
+        
+        // Reload count and update UI
+        await LoadOpenInventoriesAsync();
+        StateHasChanged();
     }
 
     private async Task CheckSessionValidityAsync(CancellationToken cancellationToken)
