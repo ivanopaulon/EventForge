@@ -23,6 +23,9 @@ namespace EventForge.Server.Controllers;
 [RequireLicenseFeature("ProductManagement")]
 public class WarehouseManagementController : BaseApiController
 {
+    // Maximum page size for bulk operations to prevent performance issues
+    private const int MaxBulkOperationPageSize = 1000;
+    
     private readonly IStorageFacilityService _storageFacilityService;
     private readonly IStorageLocationService _storageLocationService;
     private readonly ILotService _lotService;
@@ -2380,7 +2383,7 @@ public class WarehouseManagementController : BaseApiController
                 DocumentTypeId = inventoryDocType.Id,
                 Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
                 Page = 1,
-                PageSize = 1000, // Get all open documents
+                PageSize = MaxBulkOperationPageSize,
                 IncludeRows = true
             };
 
@@ -2505,7 +2508,7 @@ public class WarehouseManagementController : BaseApiController
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
         
         try
         {
@@ -2519,7 +2522,7 @@ public class WarehouseManagementController : BaseApiController
                 DocumentTypeId = inventoryDocType.Id,
                 Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
                 Page = 1,
-                PageSize = 1000,
+                PageSize = MaxBulkOperationPageSize,
                 IncludeRows = false
             };
 
@@ -2675,7 +2678,7 @@ public class WarehouseManagementController : BaseApiController
                 DocumentTypeId = inventoryDocType.Id,
                 Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
                 Page = 1,
-                PageSize = 1000,
+                PageSize = MaxBulkOperationPageSize,
                 IncludeRows = false
             };
 
@@ -2688,18 +2691,21 @@ public class WarehouseManagementController : BaseApiController
                 var itemsList = documentsResult.Items.ToList();
                 _logger.LogInformation("Cancelling {Count} open inventory documents", itemsList.Count);
 
-                foreach (var doc in itemsList)
-                {
-                    var documentEntity = await _context.DocumentHeaders
-                        .FirstOrDefaultAsync(d => d.Id == doc.Id && !d.IsDeleted, cancellationToken);
+                // Fetch all document entities in a single query to avoid N+1 problem
+                var documentIds = itemsList.Select(d => d.Id).ToList();
+                var documentEntities = await _context.DocumentHeaders
+                    .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
+                    .ToListAsync(cancellationToken);
 
-                    if (documentEntity != null)
-                    {
-                        documentEntity.Status = EntityDocumentStatus.Cancelled;
-                        documentEntity.ModifiedAt = DateTime.UtcNow;
-                        documentEntity.ModifiedBy = GetCurrentUser();
-                        cancelledCount++;
-                    }
+                var currentUser = GetCurrentUser();
+                var now = DateTime.UtcNow;
+
+                foreach (var documentEntity in documentEntities)
+                {
+                    documentEntity.Status = EntityDocumentStatus.Cancelled;
+                    documentEntity.ModifiedAt = now;
+                    documentEntity.ModifiedBy = currentUser;
+                    cancelledCount++;
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
