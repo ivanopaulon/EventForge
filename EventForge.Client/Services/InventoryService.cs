@@ -266,4 +266,58 @@ public class InventoryService : IInventoryService
             return 0;
         }
     }
+
+    public async Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<object, InventoryDiagnosticReportDto>($"{BaseUrl}/documents/{documentId}/diagnose", new { });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error diagnosing inventory document {DocumentId}", documentId);
+            return null;
+        }
+    }
+
+    public async Task<InventoryRepairResultDto?> AutoRepairInventoryDocumentAsync(Guid documentId, InventoryAutoRepairOptionsDto options)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<InventoryAutoRepairOptionsDto, InventoryRepairResultDto>($"{BaseUrl}/documents/{documentId}/auto-repair", options);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error auto-repairing inventory document {DocumentId}", documentId);
+            return null;
+        }
+    }
+
+    public async Task<bool> RepairInventoryRowAsync(Guid documentId, Guid rowId, InventoryRowRepairDto repairData)
+    {
+        try
+        {
+            await _httpClientService.PatchAsync<InventoryRowRepairDto, object>($"{BaseUrl}/documents/{documentId}/rows/{rowId}/repair", repairData);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error repairing row {RowId} in inventory document {DocumentId}", rowId, documentId);
+            return false;
+        }
+    }
+
+    public async Task<int> RemoveProblematicRowsAsync(Guid documentId, List<Guid> rowIds)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<List<Guid>, Dictionary<string, int>>($"{BaseUrl}/documents/{documentId}/remove-problematic-rows", rowIds);
+            return result?.GetValueOrDefault("removedCount", 0) ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing problematic rows from inventory document {DocumentId}", documentId);
+            return 0;
+        }
+    }
 }
