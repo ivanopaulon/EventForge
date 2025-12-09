@@ -910,14 +910,45 @@ public partial class EventForgeDbContext : DbContext
             auditEntries.AddRange(CreateAuditEntries(entry, currentUser));
         }
 
-        // Add audit entries BEFORE SaveChanges to ensure they are saved in the same transaction
-        // This prevents DbUpdateConcurrencyException with RowVersion optimistic concurrency control
+        // CRITICAL FIX: Add audit entries BEFORE SaveChanges ONLY if there are non-Sales entities
+        // This prevents DbUpdateConcurrencyException when saving Sales entities
         if (auditEntries.Any())
         {
-            EntityChangeLogs.AddRange(auditEntries);
+            // Verify that we're not adding audit logs for an operation that only involves Sales entities
+            var hasNonSalesChanges = ChangeTracker.Entries<AuditableEntity>()
+                .Any(e => (e.State == EntityState.Added || e.State == EntityState.Modified) 
+                       && !ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()));
+            
+            if (hasNonSalesChanges)
+            {
+                EntityChangeLogs.AddRange(auditEntries);
+            }
         }
 
-        // Single SaveChanges call saves both entities and audit logs atomically
+        // Handle Sales entities CreatedBy/ModifiedBy without audit logs
+        var salesEntries = ChangeTracker.Entries<AuditableEntity>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+            .Where(e => ExcludedFromAutomaticAudit.Contains(e.Entity.GetType()))
+            .ToList();
+
+        foreach (var entry in salesEntries)
+        {
+            var entity = entry.Entity;
+            
+            if (entry.State == EntityState.Added)
+            {
+                entity.CreatedAt = DateTime.UtcNow;
+                entity.CreatedBy = currentUser;
+                entity.IsActive = true;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entity.ModifiedAt = DateTime.UtcNow;
+                entity.ModifiedBy = currentUser;
+            }
+        }
+
+        // Single SaveChanges call saves all entities atomically
         return await base.SaveChangesAsync(cancellationToken);
     }
 
