@@ -69,9 +69,11 @@ public class WarehouseManagementController : BaseApiController
     #region Helper Methods
 
     // Performance estimation constants
+    // NOTE: These could be made configurable through appsettings.json in future if needed
     private const double ESTIMATED_SECONDS_PER_ROW = 0.01;
     private const int LARGE_DOCUMENT_THRESHOLD = 300;
     private const int MAX_DISPLAYED_MISSING_IDS = 5;
+    private const double MIN_ESTIMATED_LOAD_TIME_SECONDS = 1.0;
 
     /// <summary>
     /// Enriches inventory document rows with complete product and location data using optimized batch queries.
@@ -188,10 +190,10 @@ public class WarehouseManagementController : BaseApiController
             decimal? adjustmentQuantity = null;
             if (productId.HasValue && locationId.HasValue)
             {
-                if (stocksDict.TryGetValue((productId.Value, locationId.Value), out var stock))
+                if (stocksDict.TryGetValue((productId.Value, locationId.Value), out var stock) && stock != null)
                 {
                     previousQuantity = stock.Quantity;
-                    adjustmentQuantity = row.Quantity - previousQuantity.Value;
+                    adjustmentQuantity = row.Quantity - previousQuantity;
                 }
             }
 
@@ -2670,7 +2672,7 @@ public class WarehouseManagementController : BaseApiController
             // 7. Estimate load time based on row count
             // Optimized method: ~0.01 seconds per row (3 batch queries regardless of size)
             // Old method would be: ~0.12 seconds per row (3 queries per row)
-            result.Stats.EstimatedLoadTimeSeconds = Math.Max(1.0, totalRows * ESTIMATED_SECONDS_PER_ROW);
+            result.Stats.EstimatedLoadTimeSeconds = Math.Max(MIN_ESTIMATED_LOAD_TIME_SECONDS, totalRows * ESTIMATED_SECONDS_PER_ROW);
 
             if (totalRows > LARGE_DOCUMENT_THRESHOLD)
             {
