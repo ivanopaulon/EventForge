@@ -47,7 +47,8 @@ public class SwaggerAuthorizeCheckOperationFilter : IOperationFilter
                 }
             };
 
-            operation.Security = new List<OpenApiSecurityRequirement> { securityRequirement };
+            operation.Security ??= new List<OpenApiSecurityRequirement>();
+            operation.Security.Add(securityRequirement);
         }
     }
 }
