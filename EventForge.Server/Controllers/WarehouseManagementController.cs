@@ -23,6 +23,9 @@ namespace EventForge.Server.Controllers;
 [RequireLicenseFeature("ProductManagement")]
 public class WarehouseManagementController : BaseApiController
 {
+    // Maximum page size for bulk operations to prevent performance issues
+    private const int MaxBulkOperationPageSize = 1000;
+    
     private readonly IStorageFacilityService _storageFacilityService;
     private readonly IStorageLocationService _storageLocationService;
     private readonly ILotService _lotService;
@@ -2348,6 +2351,373 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while seeding inventory document.");
             return CreateInternalServerErrorProblem("An error occurred while seeding inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets all open inventory documents (Status == "Open").
+    /// Returns documents ordered by creation date (most recent first).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of open inventory documents</returns>
+    /// <response code="200">Returns the list of open inventory documents</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("inventory/documents/open")]
+    [ProducesResponseType(typeof(List<InventoryDocumentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<List<InventoryDocumentDto>>> GetOpenInventoryDocuments(CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get or create the inventory document type
+            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+                _tenantContext.CurrentTenantId!.Value,
+                cancellationToken);
+
+            // Query for Open status documents
+            var queryParams = new DocumentHeaderQueryParameters
+            {
+                DocumentTypeId = inventoryDocType.Id,
+                Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
+                Page = 1,
+                PageSize = MaxBulkOperationPageSize,
+                IncludeRows = true
+            };
+
+            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+
+            var inventoryDocuments = new List<InventoryDocumentDto>();
+
+            if (documentsResult?.Items != null)
+            {
+                foreach (var doc in documentsResult.Items.OrderByDescending(d => d.CreatedAt))
+                {
+                    // Enrich rows with product and location data
+                    var enrichedRows = doc.Rows != null && doc.Rows.Any()
+                        ? await EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
+                        : new List<InventoryDocumentRowDto>();
+
+                    inventoryDocuments.Add(new InventoryDocumentDto
+                    {
+                        Id = doc.Id,
+                        Number = doc.Number,
+                        Series = doc.Series,
+                        InventoryDate = doc.Date,
+                        WarehouseId = doc.SourceWarehouseId,
+                        WarehouseName = doc.SourceWarehouseName,
+                        Status = doc.Status.ToString(),
+                        Notes = doc.Notes,
+                        CreatedAt = doc.CreatedAt,
+                        CreatedBy = doc.CreatedBy,
+                        FinalizedAt = doc.ClosedAt,
+                        FinalizedBy = doc.Status.ToString() == "Closed" ? doc.ModifiedBy : null,
+                        Rows = enrichedRows
+                    });
+                }
+            }
+
+            return Ok(inventoryDocuments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving open inventory documents.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving open inventory documents.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancels an inventory document without saving (changes status to "Cancelled").
+    /// Does NOT apply stock adjustments.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success status</returns>
+    /// <response code="200">If the document was successfully cancelled</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/{documentId:guid}/cancel")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CancelInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get the document header
+            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
+            if (documentHeader == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Document not found",
+                    Detail = $"Inventory document with ID {documentId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Update status to Cancelled using direct database access
+            var documentEntity = await _context.DocumentHeaders
+                .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
+
+            if (documentEntity == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Document not found",
+                    Detail = $"Inventory document with ID {documentId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            documentEntity.Status = EntityDocumentStatus.Cancelled;
+            documentEntity.ModifiedAt = DateTime.UtcNow;
+            documentEntity.ModifiedBy = GetCurrentUser();
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Cancelled inventory document {DocumentId} without applying adjustments", documentId);
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while cancelling inventory document {DocumentId}.", documentId);
+            return CreateInternalServerErrorProblem("An error occurred while cancelling inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Finalizes ALL open inventory documents by applying stock adjustments to each one.
+    /// This operation is transactional - if one fails, all changes are rolled back.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of finalized inventory documents</returns>
+    /// <response code="200">Returns the list of finalized inventory documents</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/finalize-all")]
+    [ProducesResponseType(typeof(List<InventoryDocumentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<List<InventoryDocumentDto>>> FinalizeAllOpenInventories(CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
+        
+        try
+        {
+            // Get all open inventory documents
+            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+                _tenantContext.CurrentTenantId!.Value,
+                cancellationToken);
+
+            var queryParams = new DocumentHeaderQueryParameters
+            {
+                DocumentTypeId = inventoryDocType.Id,
+                Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
+                Page = 1,
+                PageSize = MaxBulkOperationPageSize,
+                IncludeRows = false
+            };
+
+            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+
+            var finalizedDocuments = new List<InventoryDocumentDto>();
+
+            if (documentsResult?.Items != null && documentsResult.Items.Any())
+            {
+                var itemsList = documentsResult.Items.ToList();
+                _logger.LogInformation("Finalizing {Count} open inventory documents", itemsList.Count);
+
+                foreach (var doc in itemsList)
+                {
+                    // Call the existing finalize logic for each document
+                    // We need to get the result as InventoryDocumentDto
+                    var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(doc.Id, includeRows: true, cancellationToken);
+                    
+                    if (documentHeader != null)
+                    {
+                        // Process each row and apply stock adjustments (reuse logic from FinalizeInventoryDocument)
+                        if (documentHeader.Rows != null && documentHeader.Rows.Any())
+                        {
+                            foreach (var row in documentHeader.Rows)
+                            {
+                                try
+                                {
+                                    Guid productId = row.ProductId ?? Guid.Empty;
+                                    Guid locationId = row.LocationId ?? Guid.Empty;
+                                    Guid? lotId = null;
+
+                                    if (productId == Guid.Empty || locationId == Guid.Empty)
+                                    {
+                                        _logger.LogWarning("Row {RowId} missing ProductId or LocationId, skipping", row.Id);
+                                        continue;
+                                    }
+
+                                    var newQuantity = row.Quantity;
+                                    var existingStocks = await _stockService.GetStockAsync(
+                                        page: 1,
+                                        pageSize: 1,
+                                        productId: productId,
+                                        locationId: locationId,
+                                        lotId: lotId,
+                                        cancellationToken: cancellationToken);
+
+                                    var currentQuantity = existingStocks.Items.FirstOrDefault()?.Quantity ?? 0;
+                                    var adjustmentQuantity = newQuantity - currentQuantity;
+
+                                    if (adjustmentQuantity != 0)
+                                    {
+                                        _ = await _stockMovementService.ProcessAdjustmentMovementAsync(
+                                            productId: productId,
+                                            locationId: locationId,
+                                            adjustmentQuantity: adjustmentQuantity,
+                                            reason: "Inventory Count - Bulk Finalization",
+                                            lotId: lotId,
+                                            notes: $"Inventory adjustment from document {documentHeader.Number}. Previous: {currentQuantity}, New: {newQuantity}",
+                                            currentUser: GetCurrentUser(),
+                                            movementDate: documentHeader.Date,
+                                            cancellationToken: cancellationToken);
+
+                                        var createStockDto = new CreateStockDto
+                                        {
+                                            ProductId = productId,
+                                            StorageLocationId = locationId,
+                                            LotId = lotId,
+                                            Quantity = newQuantity,
+                                            Notes = $"Adjusted by inventory document {documentHeader.Number}"
+                                        };
+
+                                        var updatedStock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+                                        if (updatedStock != null)
+                                        {
+                                            await _stockService.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
+                                        }
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "Error processing inventory row {RowId} in document {DocumentId}", row.Id, doc.Id);
+                                    throw; // Re-throw to trigger transaction rollback
+                                }
+                            }
+                        }
+
+                        // Close the document
+                        var closedDocument = await _documentHeaderService.CloseDocumentAsync(doc.Id, GetCurrentUser(), cancellationToken);
+                        
+                        // Enrich rows with product and location data
+                        var enrichedRows = closedDocument!.Rows != null && closedDocument.Rows.Any()
+                            ? await EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
+                            : new List<InventoryDocumentRowDto>();
+
+                        finalizedDocuments.Add(new InventoryDocumentDto
+                        {
+                            Id = closedDocument.Id,
+                            Number = closedDocument.Number,
+                            Series = closedDocument.Series,
+                            InventoryDate = closedDocument.Date,
+                            WarehouseId = closedDocument.SourceWarehouseId,
+                            WarehouseName = closedDocument.SourceWarehouseName,
+                            Status = closedDocument.Status.ToString(),
+                            Notes = closedDocument.Notes,
+                            CreatedAt = closedDocument.CreatedAt,
+                            CreatedBy = closedDocument.CreatedBy,
+                            FinalizedAt = closedDocument.ClosedAt,
+                            FinalizedBy = closedDocument.ModifiedBy,
+                            Rows = enrichedRows
+                        });
+                    }
+                }
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            _logger.LogInformation("Successfully finalized {Count} inventory documents", finalizedDocuments.Count);
+
+            return Ok(finalizedDocuments);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "An error occurred while finalizing all open inventory documents. Transaction rolled back.");
+            return CreateInternalServerErrorProblem("An error occurred while finalizing all open inventory documents.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancels ALL open inventory documents without saving (changes status to "Cancelled").
+    /// Does NOT apply stock adjustments.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of inventory documents cancelled</returns>
+    /// <response code="200">Returns the count of cancelled inventory documents</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/cancel-all")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<int>> CancelAllOpenInventories(CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get all open inventory documents
+            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+                _tenantContext.CurrentTenantId!.Value,
+                cancellationToken);
+
+            var queryParams = new DocumentHeaderQueryParameters
+            {
+                DocumentTypeId = inventoryDocType.Id,
+                Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
+                Page = 1,
+                PageSize = MaxBulkOperationPageSize,
+                IncludeRows = false
+            };
+
+            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+
+            int cancelledCount = 0;
+
+            if (documentsResult?.Items != null && documentsResult.Items.Any())
+            {
+                var itemsList = documentsResult.Items.ToList();
+                _logger.LogInformation("Cancelling {Count} open inventory documents", itemsList.Count);
+
+                // Fetch all document entities in a single query to avoid N+1 problem
+                var documentIds = itemsList.Select(d => d.Id).ToList();
+                var documentEntities = await _context.DocumentHeaders
+                    .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
+                    .ToListAsync(cancellationToken);
+
+                var currentUser = GetCurrentUser();
+                var now = DateTime.UtcNow;
+
+                foreach (var documentEntity in documentEntities)
+                {
+                    documentEntity.Status = EntityDocumentStatus.Cancelled;
+                    documentEntity.ModifiedAt = now;
+                    documentEntity.ModifiedBy = currentUser;
+                    cancelledCount++;
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Successfully cancelled {Count} inventory documents without applying adjustments", cancelledCount);
+            }
+
+            return Ok(cancelledCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while cancelling all open inventory documents.");
+            return CreateInternalServerErrorProblem("An error occurred while cancelling all open inventory documents.", ex);
         }
     }
 

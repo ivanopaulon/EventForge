@@ -1,0 +1,98 @@
+@using EventForge.DTOs.Warehouse
+@inject ITranslationService TranslationService
+
+<MudCard Class="mb-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Outlined.FolderOpen" Class="mr-2" />
+                @TranslationService.GetTranslation("warehouse.openInventories", "Inventari Aperti") (@OpenInventories.Count)
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (OpenInventories.Count > 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                @TranslationService.GetTranslation("warehouse.openInventoriesWarning", "Sono presenti inventari aperti. Riprendi una sessione esistente o gestiscili prima di avviarne uno nuovo.")
+            </MudAlert>
+
+            <MudDataGrid T="InventoryDocumentDto"
+                         Items="@OpenInventories"
+                         Dense="true"
+                         Hover="true"
+                         ReadOnly="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.Number" Title="@TranslationService.GetTranslation("warehouse.documentNumber", "Numero Documento")" />
+                    <PropertyColumn Property="x => x.WarehouseName" Title="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")" />
+                    <PropertyColumn Property="x => x.CreatedBy" Title="@TranslationService.GetTranslation("common.createdBy", "Creato Da")" />
+                    <TemplateColumn Title="@TranslationService.GetTranslation("warehouse.startDate", "Data Avvio")">
+                        <CellTemplate>
+                            @context.Item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.TotalItems" Title="@TranslationService.GetTranslation("warehouse.items", "Articoli")" />
+                    <TemplateColumn Title="@TranslationService.GetTranslation("common.actions", "Azioni")" Sortable="false">
+                        <CellTemplate>
+                            <MudStack Row="true" Spacing="1">
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.resumeInventory", "Riprendi inventario")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.PlayArrow"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => OnInventoryResumed.InvokeAsync(context.Item))" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeInventory", "Finalizza")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Check"
+                                                   Color="Color.Success"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => OnInventoryFinalized.InvokeAsync(context.Item))" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.closeWithoutSaving", "Chiudi senza salvare")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => OnInventoryCancelled.InvokeAsync(context.Item))" />
+                                </MudTooltip>
+                            </MudStack>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.DoneAll"
+                           Color="Color.Success"
+                           Variant="Variant.Filled"
+                           OnClick="@(() => OnFinalizeAllRequested.InvokeAsync())">
+                    @TranslationService.GetTranslation("warehouse.finalizeAll", "Finalizza Tutti") (@OpenInventories.Count)
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.CancelPresentation"
+                           Color="Color.Error"
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => OnCancelAllRequested.InvokeAsync())">
+                    @TranslationService.GetTranslation("warehouse.closeAllWithoutSaving", "Chiudi Tutti Senza Salvare")
+                </MudButton>
+            </MudStack>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter]
+    public List<InventoryDocumentDto> OpenInventories { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<InventoryDocumentDto> OnInventoryResumed { get; set; }
+
+    [Parameter]
+    public EventCallback<InventoryDocumentDto> OnInventoryFinalized { get; set; }
+
+    [Parameter]
+    public EventCallback<InventoryDocumentDto> OnInventoryCancelled { get; set; }
+
+    [Parameter]
+    public EventCallback OnFinalizeAllRequested { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelAllRequested { get; set; }
+}
