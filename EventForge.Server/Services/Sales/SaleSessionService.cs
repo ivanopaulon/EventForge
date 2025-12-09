@@ -236,8 +236,9 @@ public class SaleSessionService : ISaleSessionService
                 throw new InvalidOperationException($"Tenant mismatch: session belongs to {session.TenantId} but current tenant is {currentTenantId.Value}");
             }
 
-            // Fetch product details
+            // Fetch product details including VatRate
             var product = await _context.Products
+                .Include(p => p.VatRate)
                 .FirstOrDefaultAsync(p => p.Id == addItemDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
 
             if (product == null)
@@ -250,15 +251,11 @@ public class SaleSessionService : ISaleSessionService
             var discountAmount = subtotal * (addItemDto.DiscountPercent / 100);
             var totalAmount = subtotal - discountAmount;
 
-            // Get VAT rate from product
+            // Get VAT rate from product - now already loaded via Include
             var taxRate = 0m;
-            if (product.VatRateId.HasValue)
+            if (product.VatRateId.HasValue && product.VatRate != null)
             {
-                var vatRate = await _context.VatRates
-                    .Where(vr => vr.Id == product.VatRateId.Value && !vr.IsDeleted)
-                    .Select(vr => vr.Percentage)
-                    .FirstOrDefaultAsync(cancellationToken);
-                taxRate = vatRate;
+                taxRate = product.VatRate.Percentage;
             }
             var taxAmount = totalAmount * (taxRate / 100);
 
