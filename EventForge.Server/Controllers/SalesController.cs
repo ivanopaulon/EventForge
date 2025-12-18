@@ -47,7 +47,7 @@ public class SalesController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -94,7 +94,7 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.GetSessionAsync(sessionId, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
@@ -127,7 +127,7 @@ public class SalesController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -138,7 +138,7 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.UpdateSessionAsync(sessionId, updateDto, currentUser, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
@@ -175,7 +175,7 @@ public class SalesController : BaseApiController
             var deleted = await _saleSessionService.DeleteSessionAsync(sessionId, currentUser, cancellationToken);
 
             if (!deleted)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return NoContent();
         }
@@ -266,7 +266,7 @@ public class SalesController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -277,14 +277,15 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.AddItemAsync(sessionId, addItemDto, currentUser, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while adding item to session {SessionId}.", sessionId);
-            return BadRequest(new { message = ex.Message });
+            _logger.LogWarning(ex, "Invalid operation while adding item to session {SessionId}. ProductId: {ProductId}", 
+                sessionId, addItemDto.ProductId);
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -317,7 +318,7 @@ public class SalesController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -328,14 +329,14 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.UpdateItemAsync(sessionId, itemId, updateItemDto, currentUser, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation while updating item {ItemId} in session {SessionId}.", itemId, sessionId);
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -372,14 +373,14 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.RemoveItemAsync(sessionId, itemId, currentUser, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation while removing item {ItemId} from session {SessionId}.", itemId, sessionId);
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -410,7 +411,7 @@ public class SalesController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -421,7 +422,7 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.AddPaymentAsync(sessionId, addPaymentDto, currentUser, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
@@ -460,14 +461,14 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.RemovePaymentAsync(sessionId, paymentId, currentUser, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation while removing payment {PaymentId} from session {SessionId}.", paymentId, sessionId);
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -498,7 +499,7 @@ public class SalesController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -509,7 +510,7 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.AddNoteAsync(sessionId, addNoteDto, currentUser, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
@@ -545,7 +546,7 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.CalculateTotalsAsync(sessionId, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
@@ -584,14 +585,14 @@ public class SalesController : BaseApiController
             var session = await _saleSessionService.CloseSessionAsync(sessionId, currentUser, cancellationToken);
 
             if (session == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Cannot close sale session {SessionId}: {Message}", sessionId, ex.Message);
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -628,7 +629,7 @@ public class SalesController : BaseApiController
             var voidedSession = await _saleSessionService.VoidSessionAsync(sessionId, currentUser, cancellationToken);
 
             if (voidedSession == null)
-                return NotFound(new { message = $"Sale session {sessionId} not found." });
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             _logger.LogInformation("Voided sale session {SessionId} by {User}", sessionId, currentUser);
 
@@ -637,7 +638,7 @@ public class SalesController : BaseApiController
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Cannot void sale session {SessionId}: {Message}", sessionId, ex.Message);
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
