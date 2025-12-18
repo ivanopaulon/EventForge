@@ -17,30 +17,12 @@ builder.AddCustomSerilogLogging();
 builder.Services.AddAuthentication(builder.Configuration);
 builder.Services.AddAuthorization(builder.Configuration);
 
-// Configure Cookie Authentication with Sliding Expiration to prevent session timeout
-// This ensures the session automatically renews on each request, working together with JWT token refresh
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Strict;
-    options.ExpireTimeSpan = TimeSpan.FromHours(8); // 8-hour session duration
-    options.SlidingExpiration = true; // ✅ CRITICAL: Auto-renew session on each request
-    options.Cookie.Name = "EventForge.Auth";
-    
-    // Handle authentication redirects for API endpoints (return 401 instead of redirect)
-    options.Events.OnRedirectToLogin = context =>
-    {
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        return Task.CompletedTask;
-    };
-    
-    options.Events.OnRedirectToAccessDenied = context =>
-    {
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        return Task.CompletedTask;
-    };
-});
+// Note: Session state configuration (including IdleTimeout with sliding behavior) is handled
+// in AddAuthentication extension method in ServiceCollectionExtensions.cs.
+// Blazor WebAssembly uses JWT Bearer authentication, not cookie authentication, so
+// ConfigureApplicationCookie is not applicable. The session IdleTimeout of 8 hours
+// automatically provides sliding expiration behavior - it resets on each API request
+// that accesses the session (e.g., tenant context operations).
 
 // Add Health Checks
 builder.Services.AddHealthChecks(builder.Configuration);

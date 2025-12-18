@@ -2410,7 +2410,7 @@
         
         try
         {
-            Logger.LogInformation("🔄 Keepalive check started at {Time}", DateTime.UtcNow);
+            Logger.LogInformation("[KEEPALIVE] Token refresh started at {Time}", DateTime.UtcNow);
             
             // Attempt to refresh the token to extend the session
             var refreshSuccess = await AuthService.RefreshTokenAsync();
@@ -2422,11 +2422,11 @@
             
             if (refreshSuccess)
             {
-                Logger.LogInformation("✅ Token refreshed successfully during keepalive check");
+                Logger.LogInformation("[KEEPALIVE] Token refreshed successfully");
             }
             else
             {
-                Logger.LogWarning("⚠️ Token refresh failed at {Time}", DateTime.UtcNow);
+                Logger.LogWarning("[KEEPALIVE] Token refresh failed at {Time}", DateTime.UtcNow);
                 
                 // Token refresh failed - user may need to re-authenticate
                 await InvokeAsync(() =>
@@ -2453,7 +2453,7 @@
                 return;
             }
             
-            Logger.LogError(ex, "❌ Session expired - JWT token no longer valid");
+            Logger.LogError(ex, "[KEEPALIVE] Session expired - JWT token no longer valid");
             
             // Token has expired - warn the user
             await InvokeAsync(() =>
@@ -2479,7 +2479,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "❌ Keepalive check failed");
+            Logger.LogError(ex, "[KEEPALIVE] Token refresh check failed");
             
             if (!cancellationToken.IsCancellationRequested)
             {
