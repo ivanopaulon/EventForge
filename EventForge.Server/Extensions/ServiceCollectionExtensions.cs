@@ -393,9 +393,10 @@ public static class ServiceCollectionExtensions
 
         _ = services.AddSession(options =>
         {
-            options.IdleTimeout = TimeSpan.FromHours(8); // Session timeout
+            options.IdleTimeout = TimeSpan.FromHours(8); // Session timeout aligned with cookie expiration
             options.Cookie.HttpOnly = true;
             options.Cookie.IsEssential = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             options.Cookie.Name = "EventForge.Session";
         });
 

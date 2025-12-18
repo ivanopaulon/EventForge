@@ -386,6 +386,9 @@
     // Feature flag: Enable unified inventory dialog
     private const bool UseUnifiedInventoryDialog = true;
     
+    // Keepalive interval in minutes (changed from 5 to 4 for better session maintenance)
+    private const int KEEPALIVE_INTERVAL_MINUTES = 4;
+    
     // Limit for _barcodeAssignments to prevent memory leaks
     private const int MaxBarcodeAssignments = 200;
     
@@ -826,12 +829,12 @@
                 await ShowManageInventoriesDialogAuto();
             }
             
-            // Start session keepalive timer - check every 5 minutes
+            // Start session keepalive timer - check every 4 minutes for better session maintenance
             _sessionKeepAliveTimer = new System.Threading.Timer(
                 _ => OnSessionKeepAliveTimer(),
                 null,
-                TimeSpan.FromMinutes(5),
-                TimeSpan.FromMinutes(5)
+                TimeSpan.FromMinutes(KEEPALIVE_INTERVAL_MINUTES),
+                TimeSpan.FromMinutes(KEEPALIVE_INTERVAL_MINUTES)
             );
             
             Logger.LogInformation("InventoryProcedure component initialized with session keepalive");
@@ -2392,14 +2395,23 @@
 
     private async Task CheckSessionValidityAsync(CancellationToken cancellationToken)
     {
-        // Only check if we have an active session and not being cancelled
-        if (_currentDocument == null || cancellationToken.IsCancellationRequested)
+        // If there's no active session, skip the keepalive check
+        if (_currentDocument == null)
+        {
+            Logger.LogDebug("Keepalive check skipped - no active session");
+            return;
+        }
+        
+        // Check if component is being disposed
+        if (cancellationToken.IsCancellationRequested)
         {
             return;
         }
         
         try
         {
+            Logger.LogInformation("🔄 Keepalive check started at {Time}", DateTime.UtcNow);
+            
             // Attempt to refresh the token to extend the session
             var refreshSuccess = await AuthService.RefreshTokenAsync();
             
@@ -2410,10 +2422,12 @@
             
             if (refreshSuccess)
             {
-                Logger.LogDebug("Token refreshed successfully during keepalive check");
+                Logger.LogInformation("✅ Token refreshed successfully during keepalive check");
             }
             else
             {
+                Logger.LogWarning("⚠️ Token refresh failed at {Time}", DateTime.UtcNow);
+                
                 // Token refresh failed - user may need to re-authenticate
                 await InvokeAsync(() =>
                 {
@@ -2430,8 +2444,6 @@
                         StateHasChanged();
                     }
                 });
-                
-                Logger.LogWarning("Token refresh failed during keepalive check");
             }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -2440,6 +2452,8 @@
             {
                 return;
             }
+            
+            Logger.LogError(ex, "❌ Session expired - JWT token no longer valid");
             
             // Token has expired - warn the user
             await InvokeAsync(() =>
@@ -2457,8 +2471,6 @@
                     StateHasChanged();
                 }
             });
-            
-            Logger.LogWarning("Session expired - JWT token no longer valid");
         }
         catch (OperationCanceledException)
         {
@@ -2467,6 +2479,8 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "❌ Keepalive check failed");
+            
             if (!cancellationToken.IsCancellationRequested)
             {
                 Logger.LogWarning(ex, "Error during session validity check and token refresh");
