@@ -17,6 +17,13 @@ builder.AddCustomSerilogLogging();
 builder.Services.AddAuthentication(builder.Configuration);
 builder.Services.AddAuthorization(builder.Configuration);
 
+// Note: Session state configuration (including IdleTimeout with sliding behavior) is handled
+// in AddAuthentication extension method in ServiceCollectionExtensions.cs.
+// Blazor WebAssembly uses JWT Bearer authentication, not cookie authentication, so
+// ConfigureApplicationCookie is not applicable. The session IdleTimeout of 8 hours
+// automatically provides sliding expiration behavior - it resets on each API request
+// that accesses the session (e.g., tenant context operations).
+
 // Add Health Checks
 builder.Services.AddHealthChecks(builder.Configuration);
 
