@@ -1,0 +1,102 @@
+@using EventForge.DTOs.Products
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="mr-2" />
+            @TranslationService.GetTranslation("sales.priceCheck", "Verifica Prezzo")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (Product != null)
+        {
+            <MudPaper Elevation="1" Class="pa-4">
+                <!-- Product Name -->
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    @Product.Name
+                </MudText>
+
+                <!-- Product Code -->
+                @if (!string.IsNullOrWhiteSpace(ScannedCode))
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        @TranslationService.GetTranslation("product.code", "Codice"): <strong>@ScannedCode</strong>
+                    </MudText>
+                }
+
+                <!-- Price Display -->
+                <MudPaper Elevation="0" Class="pa-3 mt-3" Style="background: var(--mud-palette-primary-lighten);">
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center">
+                        @GetDisplayPrice().ToString("C")
+                    </MudText>
+                    @if (Product.IsVatIncluded)
+                    {
+                        <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("product.vatIncluded", "IVA Inclusa")
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("product.vatExcluded", "IVA Esclusa")
+                        </MudText>
+                    }
+                </MudPaper>
+
+                <!-- Optional: Product Description -->
+                @if (!string.IsNullOrWhiteSpace(Product.ShortDescription))
+                {
+                    <MudText Typo="Typo.body2" Class="mt-3" Color="Color.Secondary">
+                        @Product.ShortDescription
+                    </MudText>
+                }
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+        @if (ShowAddToCartButton)
+        {
+            <MudButton Color="Color.Primary" 
+                       Variant="Variant.Filled" 
+                       OnClick="AddToCart"
+                       StartIcon="@Icons.Material.Filled.ShoppingCart">
+                @TranslationService.GetTranslation("sales.addToCart", "Aggiungi al Carrello")
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public ProductDto? Product { get; set; }
+
+    [Parameter]
+    public string? ScannedCode { get; set; }
+
+    [Parameter]
+    public bool ShowAddToCartButton { get; set; } = false;
+
+    private decimal GetDisplayPrice()
+    {
+        // Return the default price, or 0 if not set
+        return Product?.DefaultPrice ?? 0m;
+    }
+
+    private void Close()
+    {
+        MudDialog?.Close(DialogResult.Ok(false));
+    }
+
+    private void AddToCart()
+    {
+        MudDialog?.Close(DialogResult.Ok(true));
+    }
+}
