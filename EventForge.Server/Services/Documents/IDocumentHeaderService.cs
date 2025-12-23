@@ -132,6 +132,16 @@ public interface IDocumentHeaderService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets or creates a receipt document type for sales.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Receipt document type</returns>
+    Task<DocumentTypeDto> GetOrCreateReceiptDocumentTypeAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets or creates a system business party for internal operations.
     /// </summary>
     /// <param name="tenantId">Tenant ID</param>

@@ -1,4 +1,5 @@
 using EventForge.DTOs.Sales;
+using EventForge.DTOs.Documents;
 using EventForge.Server.Data.Entities.Sales;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Warehouse;
@@ -1115,15 +1116,46 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 return null;
             }
 
-            // Find or get RECEIPT document type
-            var receiptDocumentType = await _context.DocumentTypes
-                .FirstOrDefaultAsync(dt => dt.Code == "RECEIPT" && dt.TenantId == currentTenantId.Value && !dt.IsDeleted, cancellationToken);
+            _logger.LogInformation("Starting receipt document generation for session {SessionId}", session.Id);
 
-            if (receiptDocumentType == null)
+            // Get or create RECEIPT document type
+            DocumentTypeDto receiptDocumentType;
+            try
             {
-                _logger.LogWarning("RECEIPT document type not found. Document generation skipped for session {SessionId}", session.Id);
+                receiptDocumentType = await _documentHeaderService.GetOrCreateReceiptDocumentTypeAsync(currentTenantId.Value, cancellationToken);
+                _logger.LogInformation("RECEIPT document type obtained: {DocumentTypeId}", receiptDocumentType.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get or create RECEIPT document type for session {SessionId}", session.Id);
+                throw;
+            }
+
+            // Get or create System Internal business party if no customer is specified
+            Guid businessPartyId = session.CustomerId ?? Guid.Empty;
+            if (businessPartyId == Guid.Empty)
+            {
+                try
+                {
+                    businessPartyId = await _documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
+                    _logger.LogInformation("Using System Internal business party: {BusinessPartyId}", businessPartyId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to get or create System Internal business party for session {SessionId}", session.Id);
+                    throw;
+                }
+            }
+
+            // Validate items have required data
+            var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
+            if (activeItems.Count == 0)
+            {
+                _logger.LogWarning("No active items in session {SessionId}, skipping document generation", session.Id);
                 return null;
             }
+
+            _logger.LogInformation("Creating document with {ItemCount} items for session {SessionId}", activeItems.Count, session.Id);
 
             // Create document header
             var createDocumentDto = new EventForge.DTOs.Documents.CreateDocumentHeaderDto
@@ -1131,14 +1163,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 DocumentTypeId = receiptDocumentType.Id,
                 Number = null, // Will be auto-generated
                 Date = DateTime.UtcNow,
-                BusinessPartyId = session.CustomerId ?? Guid.Empty,
+                BusinessPartyId = businessPartyId,
                 CashRegisterId = session.PosId,
                 CashierId = session.OperatorId,
                 Currency = session.Currency ?? "EUR",
                 IsFiscal = true,
                 TotalDiscountAmount = session.DiscountAmount,
                 Notes = $"Generato dalla sessione di vendita {session.Id}",
-                Rows = session.Items.Where(i => !i.IsDeleted).Select(item => new EventForge.DTOs.Documents.CreateDocumentRowDto
+                Rows = activeItems.Select(item => new EventForge.DTOs.Documents.CreateDocumentRowDto
                 {
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
@@ -1147,44 +1179,68 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 }).ToList()
             };
 
-            var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createDocumentDto, currentUser, cancellationToken);
-
-            if (documentHeader != null)
+            DocumentHeaderDto? documentHeader;
+            try
             {
-                // Create stock movements for each item (outbound)
-                foreach (var item in session.Items.Where(i => !i.IsDeleted && !i.IsService))
+                documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createDocumentDto, currentUser, cancellationToken);
+                if (documentHeader == null)
                 {
-                    try
-                    {
-                        var movementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
-                        {
-                            MovementType = "SALE",
-                            ProductId = item.ProductId,
-                            Quantity = -item.Quantity, // Negative for outbound
-                            MovementDate = DateTime.UtcNow,
-                            DocumentHeaderId = documentHeader.Id,
-                            Reason = "Vendita",
-                            Notes = $"Vendita da sessione {session.Id}",
-                            Reference = $"SESS-{session.Id.ToString("N")[..8]}"
-                        };
-
-                        await _stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
-                        _logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}",
-                            item.ProductId, -item.Quantity, documentHeader.Id);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.",
-                            item.ProductId, session.Id);
-                        // Continue with other items even if one fails
-                    }
+                    _logger.LogError("CreateDocumentHeaderAsync returned null for session {SessionId}", session.Id);
+                    return null;
                 }
-
-                _logger.LogInformation("Document {DocumentId} created with stock movements for session {SessionId}", documentHeader.Id, session.Id);
-                return documentHeader.Id;
+                _logger.LogInformation("Document header created: {DocumentId} for session {SessionId}", documentHeader.Id, session.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create document header for session {SessionId}", session.Id);
+                throw;
             }
 
-            return null;
+            // Create stock movements for each item (outbound)
+            var stockMovementErrors = 0;
+            foreach (var item in activeItems.Where(i => !i.IsService))
+            {
+                try
+                {
+                    _logger.LogInformation("Creating stock movement for product {ProductId}, quantity {Quantity}", item.ProductId, item.Quantity);
+
+                    var movementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
+                    {
+                        MovementType = "SALE",
+                        ProductId = item.ProductId,
+                        Quantity = -item.Quantity, // Negative for outbound
+                        MovementDate = DateTime.UtcNow,
+                        DocumentHeaderId = documentHeader.Id,
+                        Reason = "Vendita",
+                        Notes = $"Vendita da sessione {session.Id}",
+                        Reference = $"SESS-{session.Id.ToString("N")[..8]}"
+                    };
+
+                    await _stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
+                    _logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}",
+                        item.ProductId, -item.Quantity, documentHeader.Id);
+                }
+                catch (Exception ex)
+                {
+                    stockMovementErrors++;
+                    _logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.",
+                        item.ProductId, session.Id);
+                    // Continue with other items even if one fails
+                }
+            }
+
+            if (stockMovementErrors > 0)
+            {
+                _logger.LogWarning("Completed document {DocumentId} creation with {ErrorCount} stock movement errors for session {SessionId}",
+                    documentHeader.Id, stockMovementErrors, session.Id);
+            }
+            else
+            {
+                _logger.LogInformation("Document {DocumentId} created successfully with all stock movements for session {SessionId}",
+                    documentHeader.Id, session.Id);
+            }
+
+            return documentHeader.Id;
         }
         catch (Exception ex)
         {

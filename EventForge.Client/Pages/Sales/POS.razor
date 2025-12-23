@@ -83,17 +83,6 @@
                 <!-- Scan Mode Toggle -->
                 <POSScanModeToggle @bind-Value="ViewModel.ScanMode" />
 
-                <!-- Product Preview Card -->
-                @if (ViewModel.LastScannedProduct != null)
-                {
-                    <ProductPreviewCard Product="@ViewModel.LastScannedProduct"
-                                        Code="@ViewModel.LastScannedCode"
-                                        Mode="@ViewModel.ScanMode"
-                                        OnAddToCart="@AddProductFromPreviewAsync"
-                                        OnClose="@(() => ViewModel.ClearPreview())"
-                                        OnImageClick="@OpenImagePreviewAsync" />
-                }
-
                 <!-- Products Table -->
                 <POSCartTable Items="@ViewModel.CurrentSession?.Items"
                               IsDisabled="@ViewModel.IsUpdatingItems"
@@ -169,16 +158,40 @@
         if (!ViewModel.HasActiveSession || productWithCode.Product == null)
             return;
 
-        // Store for preview
-        ViewModel.LastScannedProduct = productWithCode.Product;
-        ViewModel.LastScannedCode = productWithCode.Code;
-
         // If mode is AddToCart, add immediately
         if (ViewModel.ScanMode == ScanMode.AddToCart)
         {
             await AddProductToCartAsync(productWithCode.Product);
         }
-        // Otherwise just show preview (PriceCheckOnly mode)
+        else
+        {
+            // PriceCheckOnly mode - show price dialog
+            await ShowPriceCheckDialogAsync(productWithCode.Product, productWithCode.Code?.Code ?? string.Empty);
+        }
+    }
+
+    private async Task ShowPriceCheckDialogAsync(ProductDto product, string code)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Product", product },
+            { "ScannedCode", code },
+            { "ShowAddToCartButton", true }
+        };
+
+        var dialog = await DialogService.ShowAsync<PriceCheckDialog>(
+            TranslationService.GetTranslation("sales.priceCheck", "Verifica Prezzo"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small }
+        );
+
+        var result = await dialog.Result;
+
+        // If user clicked "Add to Cart" button
+        if (!result.Canceled && result.Data is bool addToCart && addToCart)
+        {
+            await AddProductToCartAsync(product);
+        }
     }
 
     private async Task AddProductToCartAsync(ProductDto product)
@@ -214,34 +227,6 @@
             };
             await HandleProductFoundAsync(productWithCode);
         }
-    }
-
-    private async Task AddProductFromPreviewAsync()
-    {
-        if (ViewModel.LastScannedProduct != null)
-        {
-            await AddProductToCartAsync(ViewModel.LastScannedProduct);
-        }
-    }
-
-    private async Task OpenImagePreviewAsync()
-    {
-        if (ViewModel.LastScannedProduct == null)
-            return;
-
-        var parameters = new DialogParameters
-        {
-            { "ImageUrl", ViewModel.LastScannedProduct.ImageUrl },
-            { "ProductName", ViewModel.LastScannedProduct.Name },
-            { "ProductCode", ViewModel.LastScannedCode?.Code ?? ViewModel.LastScannedProduct.Code },
-            { "Price", ViewModel.LastScannedProduct.DefaultPrice }
-        };
-
-        await DialogService.ShowAsync<ImagePreviewDialog>(
-            ViewModel.LastScannedProduct.Name,
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium }
-        );
     }
 
     private async Task HandleProductNotFoundAsync(string barcode)

@@ -573,6 +573,52 @@ public class DocumentHeaderService : IDocumentHeaderService
     }
 
     /// <summary>
+    /// Gets or creates a receipt document type for sales.
+    /// </summary>
+    public async Task<DocumentTypeDto> GetOrCreateReceiptDocumentTypeAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Try to find existing receipt document type
+            var existingType = await _context.DocumentTypes
+                .Where(dt => dt.TenantId == tenantId && dt.Code == "RECEIPT" && !dt.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingType != null)
+            {
+                return DocumentTypeMapper.ToDto(existingType);
+            }
+
+            // Create new receipt document type
+            var newType = new DocumentType
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Code = "RECEIPT",
+                Name = "Receipt Document",
+                Notes = "Sales receipt document",
+                IsActive = true,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _ = _context.DocumentTypes.Add(newType);
+            _ = await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Created receipt document type for tenant {TenantId}.", tenantId);
+
+            return DocumentTypeMapper.ToDto(newType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting or creating receipt document type for tenant {TenantId}.", tenantId);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Gets or creates a system business party for internal operations.
     /// </summary>
     public async Task<Guid> GetOrCreateSystemBusinessPartyAsync(

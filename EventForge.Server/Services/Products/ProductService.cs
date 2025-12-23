@@ -224,7 +224,8 @@ public class ProductService : IProductService
                     // Audit log for the created product
                     _ = await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
 
-                    _logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}.", product.Id, product.Code, currentUser);
+                    _logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}. IsVatIncluded: {IsVatIncluded}", 
+                        product.Id, product.Code, currentUser, product.IsVatIncluded);
 
                     return MapToProductDto(product);
                 }
@@ -503,7 +504,8 @@ public class ProductService : IProductService
             // Audit log for the updated product
             _ = await _auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
 
-            _logger.LogInformation("Product {ProductId} updated by user {User}.", id, currentUser);
+            _logger.LogInformation("Product {ProductId} updated by user {User}. IsVatIncluded changed from {OldValue} to {NewValue}", 
+                id, currentUser, originalProduct.IsVatIncluded, product.IsVatIncluded);
 
             return MapToProductDto(product);
         }
