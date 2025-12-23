@@ -205,37 +205,17 @@ public class SaleSessionService : ISaleSessionService
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+            // Validate session exists (no tracking to avoid modifying tracked SaleSession)
+            var sessionExists = await _context.SaleSessions
+                .AsNoTracking()
+                .AnyAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (!sessionExists)
             {
                 return null;
             }
 
-            // Verify session state immediately after loading
-            _logger.LogInformation(
-                "Session loaded - Id: {SessionId}, TenantId: {TenantId}, IsDeleted: {IsDeleted}, Status: {Status}, ItemsCount: {ItemCount}",
-                session.Id,
-                session.TenantId,
-                session.IsDeleted,
-                session.Status,
-                session.Items.Count);
-
-            // Verify tenant matches
-            if (session.TenantId != currentTenantId.Value)
-            {
-                _logger.LogError(
-                    "CRITICAL: TenantId mismatch! Session.TenantId={SessionTenantId}, CurrentTenantId={CurrentTenantId}",
-                    session.TenantId,
-                    currentTenantId.Value);
-                throw new InvalidOperationException($"Tenant mismatch: session belongs to {session.TenantId} but current tenant is {currentTenantId.Value}");
-            }
-
-            // Fetch product details INCLUDING VatRate
+            // Load product (we need VAT and price info)
             var product = await _context.Products
                 .Include(p => p.VatRate)
                 .FirstOrDefaultAsync(p => p.Id == addItemDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
@@ -250,18 +230,17 @@ public class SaleSessionService : ISaleSessionService
                 throw new InvalidOperationException($"Product {addItemDto.ProductId} not found or not accessible.");
             }
 
-            var unitPrice = addItemDto.UnitPrice ?? product.DefaultPrice ?? 0;
+            var unitPrice = addItemDto.UnitPrice ?? product.DefaultPrice ?? 0m;
             var subtotal = unitPrice * addItemDto.Quantity;
-            var discountAmount = subtotal * (addItemDto.DiscountPercent / 100);
+            var discountAmount = subtotal * (addItemDto.DiscountPercent / 100m);
             var totalAmount = subtotal - discountAmount;
 
-            // Get VAT rate from product - already loaded via Include
             var taxRate = 0m;
             if (product.VatRateId.HasValue && product.VatRate != null)
             {
                 taxRate = product.VatRate.Percentage;
             }
-            var taxAmount = totalAmount * (taxRate / 100);
+            var taxAmount = totalAmount * (taxRate / 100m);
 
             var item = new SaleItem
             {
@@ -285,61 +264,76 @@ public class SaleSessionService : ISaleSessionService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            // Log new item details
             _logger.LogInformation(
-                "New SaleItem created - Id: {ItemId}, ProductId: {ProductId}, Quantity: {Quantity}, UnitPrice: {UnitPrice}, TenantId: {TenantId}",
-                item.Id,
-                item.ProductId,
-                item.Quantity,
-                item.UnitPrice,
-                item.TenantId);
+                "Preparing to add SaleItem - Id: {ItemId}, ProductId: {ProductId}, Quantity: {Quantity}, UnitPrice: {UnitPrice}, TenantId: {TenantId}",
+                item.Id, item.ProductId, item.Quantity, item.UnitPrice, item.TenantId);
 
-            session.Items.Add(item);
-
-            // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
-            // This prevents concurrency conflicts in the ChangeTracker
-            CalculateTotalsInline(session);
-
-            // Log calculated totals
-            _logger.LogInformation(
-                "Totals calculated - SessionId: {SessionId}, OriginalTotal: {OriginalTotal}, DiscountAmount: {DiscountAmount}, TaxAmount: {TaxAmount}, FinalTotal: {FinalTotal}",
-                session.Id,
-                session.OriginalTotal,
-                session.DiscountAmount,
-                session.TaxAmount,
-                session.FinalTotal);
-
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
+            // Use explicit transaction: INSERT item via EF (tracked only for the item), then update session totals via raw SQL.
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                var affectedRows = await _context.SaveChangesAsync(cancellationToken);
+                // Insert the new sale item (tracked only as SaleItem)
+                _context.SaleItems.Add(item);
+                await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation(
-                    "SaveChanges completed successfully - SessionId: {SessionId}, AffectedRows: {RowCount}",
-                    sessionId,
-                    affectedRows);
+                _logger.LogInformation("Inserted SaleItem {ItemId} for Session {SessionId}", item.Id, sessionId);
 
-                _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
+                // Recalculate and update totals using a single SQL statement to avoid loading/modifying the SaleSession entity
+                var now = DateTime.UtcNow;
+
+                // This uses parameterization via EF Core interpolated SQL to avoid SQL injection.
+                await _context.Database.ExecuteSqlInterpolatedAsync($@"
+UPDATE ss
+SET ss.OriginalTotal = COALESCE(s.OriginalTotal, 0),
+    ss.DiscountAmount = COALESCE(s.DiscountAmount, 0),
+    ss.TaxAmount = COALESCE(s.TaxAmount, 0),
+    ss.FinalTotal = COALESCE(s.FinalTotal, 0),
+    ss.ModifiedAt = {now},
+    ss.ModifiedBy = {currentUser}
+FROM SaleSessions ss
+LEFT JOIN (
+    SELECT si.SaleSessionId,
+           SUM(si.UnitPrice * si.Quantity) AS OriginalTotal,
+           SUM(si.TotalAmount) AS ItemsTotal,
+           SUM(si.TaxAmount) AS TaxAmount,
+           SUM(si.UnitPrice * si.Quantity) - SUM(si.TotalAmount) AS DiscountAmount,
+           SUM(si.TotalAmount) + SUM(si.TaxAmount) AS FinalTotal
+    FROM SaleItems si
+    WHERE si.SaleSessionId = {sessionId} AND si.TenantId = {currentTenantId.Value} AND ISNULL(si.IsDeleted, 0) = 0
+    GROUP BY si.SaleSessionId
+) s ON s.SaleSessionId = ss.Id
+WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
+", cancellationToken);
+
+                // Commit SQL transaction (item insert + totals update)
+                await transaction.CommitAsync(cancellationToken);
+
+                _logger.LogInformation("Updated totals for Session {SessionId} after adding Item {ItemId}", sessionId, item.Id);
+
+                // Audit log: record that an item was added to the session
+                _ = await _auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
+
+                // Reload full session (with includes) to map and return DTO
+                var reloadedSession = await _context.SaleSessions
+                    .Include(s => s.Items)
+                    .Include(s => s.Payments)
+                    .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                    .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+                if (reloadedSession == null)
+                {
+                    _logger.LogWarning("Session {SessionId} not found after insert/update", sessionId);
+                    return null;
+                }
+
+                return await MapToDtoAsync(reloadedSession, cancellationToken);
             }
-            catch (DbUpdateConcurrencyException ex)
+            catch
             {
-                _logger.LogError(ex,
-                    "DbUpdateConcurrencyException in AddItemAsync - SessionId: {SessionId}, TenantId: {TenantId}, ProductId: {ProductId}. The session was modified by another user.",
-                    sessionId,
-                    currentTenantId.Value,
-                    addItemDto.ProductId);
-
-                LogDetailedEntityStates(sessionId, currentTenantId.Value);
-
-                throw new InvalidOperationException(
-                    "The session was modified by another user. Please refresh and try again.", ex);
+                // If something goes wrong, ensure rollback and rethrow
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
             }
-
-            _logger.LogInformation("Added item {ProductId} to sale session {SessionId}", addItemDto.ProductId, sessionId);
-
-            return await MapToDtoAsync(session, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -499,13 +493,12 @@ public class SaleSessionService : ISaleSessionService
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+            // Verify session exists (no tracking to avoid modifying SaleSession row)
+            var sessionExists = await _context.SaleSessions
+                .AsNoTracking()
+                .AnyAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (!sessionExists)
             {
                 return null;
             }
@@ -525,17 +518,28 @@ public class SaleSessionService : ISaleSessionService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            session.Payments.Add(payment);
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
+            // Insert payment only (avoid touching SaleSession entity)
+            _context.SalePayments.Add(payment);
+            await _context.SaveChangesAsync(cancellationToken);
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Payments", "AddPayment", null, $"Payment: {addPaymentDto.Amount}", currentUser, "Sale Session", cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "AddPayment", null, $"Payment: {addPaymentDto.Amount}", currentUser, "Sale Session", cancellationToken);
+            _logger.LogInformation("Inserted payment {PaymentId} of {Amount} for sale session {SessionId}", payment.Id, payment.Amount, sessionId);
 
-            _logger.LogInformation("Added payment of {Amount} to sale session {SessionId}", addPaymentDto.Amount, sessionId);
+            // Reload full session with includes to return a consistent DTO
+            var reloadedSession = await _context.SaleSessions
+                .Include(s => s.Items)
+                .Include(s => s.Payments)
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            return await MapToDtoAsync(session, cancellationToken);
+            if (reloadedSession == null)
+            {
+                _logger.LogWarning("Session {SessionId} not found after inserting payment {PaymentId}", sessionId, payment.Id);
+                return null;
+            }
+
+            return await MapToDtoAsync(reloadedSession, cancellationToken);
         }
         catch (Exception ex)
         {
