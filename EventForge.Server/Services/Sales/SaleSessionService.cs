@@ -1132,8 +1132,8 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             // Get or create System Internal business party if no customer is specified
-            Guid businessPartyId = session.CustomerId ?? Guid.Empty;
-            if (businessPartyId == Guid.Empty)
+            Guid businessPartyId;
+            if (!session.CustomerId.HasValue)
             {
                 try
                 {
@@ -1145,6 +1145,10 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     _logger.LogError(ex, "Failed to get or create System Internal business party for session {SessionId}", session.Id);
                     throw;
                 }
+            }
+            else
+            {
+                businessPartyId = session.CustomerId.Value;
             }
 
             // Validate items have required data

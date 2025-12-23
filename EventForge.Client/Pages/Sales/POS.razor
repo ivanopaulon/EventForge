@@ -166,7 +166,8 @@
         else
         {
             // PriceCheckOnly mode - show price dialog
-            await ShowPriceCheckDialogAsync(productWithCode.Product, productWithCode.Code?.Code ?? string.Empty);
+            var scannedCode = productWithCode.Code?.Code ?? productWithCode.Product.Code ?? string.Empty;
+            await ShowPriceCheckDialogAsync(productWithCode.Product, scannedCode);
         }
     }
 
