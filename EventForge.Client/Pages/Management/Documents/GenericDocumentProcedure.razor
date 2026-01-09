@@ -144,7 +144,7 @@
         else
         {
             <!-- Documento salvato - mostra sempre la toolbar con il pulsante Aggiungi Riga -->
-            <ManagementTableToolbar ShowSelectionBadge="@(_currentDocument.Rows?.Any() ?? false)"
+            <ManagementTableToolbar ShowSelectionBadge="@HasRows"
                                     SelectedCount="@_selectedRows.Count"
                                     ShowRefresh="false"
                                     ShowCreate="true"
@@ -169,7 +169,7 @@
                 </AdditionalActions>
             </ManagementTableToolbar>
             
-            @if (_currentDocument.Rows != null && _currentDocument.Rows.Any())
+            @if (HasRows)
             {
                 <!-- Mostra la tabella delle righe -->
                 <MudTable T="DocumentRowDto"
@@ -295,6 +295,9 @@
     
     // Selection management for rows
     private HashSet<DocumentRowDto> _selectedRows = new();
+    
+    // Computed property for checking if document has rows
+    private bool HasRows => _currentDocument?.Rows?.Any() ?? false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -346,10 +349,7 @@
             
             if (_currentDocument != null)
             {
-                Logger.LogInformation("Document loaded successfully. Id={Id}, Status={Status}, RowsCount={RowsCount}", 
-                    _currentDocument.Id, 
-                    _currentDocument.Status,
-                    _currentDocument.Rows?.Count ?? 0);
+                Logger.LogInformation("Document loaded successfully. Id={Id}, Status={Status}, RowsCount={RowsCount}", _currentDocument.Id, _currentDocument.Status, _currentDocument.Rows?.Count ?? 0);
                 
                 _model.DocumentTypeId = _currentDocument.DocumentTypeId;
                 _model.Series = _currentDocument.Series;
