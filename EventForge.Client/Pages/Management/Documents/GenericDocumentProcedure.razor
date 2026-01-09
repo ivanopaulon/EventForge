@@ -141,7 +141,7 @@
                 </MudStack>
             </MudAlert>
         }
-        else if (!_currentDocument.Rows?.Any() ?? true)
+        else if (_currentDocument.Rows == null || !_currentDocument.Rows.Any())
         {
             <!-- Documento salvato ma senza righe -->
             <MudAlert Severity="Severity.Info" Class="mb-4">
