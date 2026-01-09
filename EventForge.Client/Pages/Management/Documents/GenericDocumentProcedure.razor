@@ -148,7 +148,7 @@
                                     SelectedCount="@_selectedRows.Count"
                                     ShowRefresh="false"
                                     ShowCreate="true"
-                                    ShowDelete="@(_selectedRows.Count > 0)"
+                                    ShowDelete="@(HasRows && _selectedRows.Count > 0)"
                                     CreateLabel="documents.addRow"
                                     CreateTooltip="documents.addRowTooltip"
                                     IsDisabled="_isLoading"
