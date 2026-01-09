@@ -50,14 +50,15 @@
         @if (ShowCreate)
         {
             <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
-                <MudIconButton Icon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
-                               Color="Color.Primary"
-                               OnClick="@OnCreateAsync"
-                               Disabled="@IsDisabled"
-                               Variant="Variant.Filled"
-                               Size="Size.Small"
-                               AriaLabel="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")"
-                               Class="ef-toolbar-button" />
+                <MudButton StartIcon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
+                           Color="Color.Primary"
+                           OnClick="@OnCreateAsync"
+                           Disabled="@IsDisabled"
+                           Variant="Variant.Filled"
+                           Size="Size.Small"
+                           Class="ef-toolbar-button">
+                    @TranslationService.GetTranslation(CreateLabel, "Crea")
+                </MudButton>
             </MudTooltip>
         }
 
@@ -110,6 +111,12 @@
     /// </summary>
     [Parameter]
     public string RefreshTooltip { get; set; } = "tooltip.refresh";
+
+    /// <summary>
+    /// Translation key for the create button label text.
+    /// </summary>
+    [Parameter]
+    public string CreateLabel { get; set; } = "button.create";
 
     /// <summary>
     /// Translation key for the create button tooltip.
