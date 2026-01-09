@@ -121,14 +121,48 @@
     </MudPaper>
 
     <!-- Document Rows Section -->
-    @if (_currentDocument != null)
-    {
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.h6" Class="mb-3">
-                <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                @TranslationService.GetTranslation("documents.rows", "Righe Documento")
-            </MudText>
+    <MudPaper Elevation="2" Class="pa-4 mt-4">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+            @TranslationService.GetTranslation("documents.rows", "Righe Documento")
+        </MudText>
 
+        @if (_currentDocument == null)
+        {
+            <!-- Documento non ancora salvato -->
+            <MudAlert Severity="Severity.Info" Class="mb-4" Icon="@Icons.Material.Outlined.Info">
+                <MudStack Spacing="2">
+                    <MudText>
+                        <strong>@TranslationService.GetTranslation("documents.saveFirstTitle", "Salva prima il documento")</strong>
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        @TranslationService.GetTranslation("documents.saveFirstMessage", "Per poter aggiungere righe al documento, è necessario salvarlo prima compilando i campi della testata (Tipo Documento, Cliente, Data) e cliccando su 'Salva'.")
+                    </MudText>
+                </MudStack>
+            </MudAlert>
+        }
+        else if (!_currentDocument.Rows?.Any() ?? true)
+        {
+            <!-- Documento salvato ma senza righe -->
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                <MudText>
+                    @TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente. Clicca 'Aggiungi Riga' per iniziare.")
+                </MudText>
+            </MudAlert>
+            
+            <ManagementTableToolbar ShowSelectionBadge="false"
+                                    SelectedCount="0"
+                                    ShowRefresh="false"
+                                    ShowCreate="true"
+                                    ShowDelete="false"
+                                    CreateLabel="documents.addRow"
+                                    CreateTooltip="documents.addRowTooltip"
+                                    IsDisabled="_isLoading"
+                                    OnCreate="@AddRowAsync" />
+        }
+        else
+        {
+            <!-- Documento salvato con righe - UI completa esistente -->
             <ManagementTableToolbar ShowSelectionBadge="true"
                                     SelectedCount="@_selectedRows.Count"
                                     ShowRefresh="false"
@@ -154,89 +188,83 @@
                 </AdditionalActions>
             </ManagementTableToolbar>
 
-            @if (_currentDocument.Rows != null && _currentDocument.Rows.Any())
-            {
-                <MudTable T="DocumentRowDto"
-                          Items="@_currentDocument.Rows"
-                          MultiSelection="true"
-                          @bind-SelectedItems="_selectedRows"
-                          Dense="true"
-                          Hover="true"
-                          Striped="true"
-                          FixedHeader="true"
-                          Height="calc(100vh - 400px)">
-                    <HeaderContent>
-                        <MudTh>@TranslationService.GetTranslation("documents.productCode", "Codice")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("documents.description", "Descrizione")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("documents.quantity", "Quantità")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("documents.discount", "Sconto")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("documents.total", "Totale")</MudTh>
-                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.productCode", "Codice")">@context.ProductCode</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.description", "Descrizione")">@context.Description</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.quantity", "Quantità")">@context.Quantity</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")">@(context.UnitOfMeasure ?? "-")</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">
-                            @{
-                                decimal effectiveUnitPrice = context.Quantity > 0 
-                                    ? Math.Round(context.LineTotal / context.Quantity, 2) 
-                                    : context.UnitPrice;
-                            }
-                            <MudTooltip Text="@TranslationService.GetTranslation("documents.netUnitPriceTooltip", "Prezzo netto per unità (dopo sconto)")">
-                                <span>@effectiveUnitPrice.ToString("C2")</span>
-                            </MudTooltip>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.discount", "Sconto")">
-                            @if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage && context.LineDiscount > 0)
-                            {
-                                <span>@context.LineDiscount.ToString("N2")%</span>
-                            }
-                            else if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Value && context.LineDiscountValue > 0)
-                            {
-                                <span>@context.LineDiscountValue.ToString("C2")</span>
-                            }
-                            else
-                            {
-                                <span>-</span>
-                            }
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.total", "Totale")">@context.LineTotal.ToString("C2")</MudTd>
-                        <MudTd Style="text-align: right;">
-                            <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.documentRow", "Riga")"
-                                               ItemDisplayName="@context.Description"
-                                               ShowView="false"
-                                               ShowEdit="true"
-                                               ShowAuditLog="false"
-                                               ShowToggleStatus="false"
-                                               ShowDelete="true"
-                                               OnEdit="@(() => EditRow(context.Id))"
-                                               OnDelete="@(() => DeleteRowAsync(context.Id))" />
-                        </MudTd>
-                    </RowTemplate>
-                    <NoRecordsContent>
-                        <MudText>@TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente")</MudText>
-                    </NoRecordsContent>
-                </MudTable>
+            <MudTable T="DocumentRowDto"
+                      Items="@_currentDocument.Rows"
+                      MultiSelection="true"
+                      @bind-SelectedItems="_selectedRows"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true"
+                      FixedHeader="true"
+                      Height="calc(100vh - 400px)">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("documents.productCode", "Codice")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.description", "Descrizione")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.quantity", "Quantità")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.discount", "Sconto")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.total", "Totale")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.productCode", "Codice")">@context.ProductCode</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.description", "Descrizione")">@context.Description</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.quantity", "Quantità")">@context.Quantity</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")">@(context.UnitOfMeasure ?? "-")</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">
+                        @{
+                            decimal effectiveUnitPrice = context.Quantity > 0 
+                                ? Math.Round(context.LineTotal / context.Quantity, 2) 
+                                : context.UnitPrice;
+                        }
+                        <MudTooltip Text="@TranslationService.GetTranslation("documents.netUnitPriceTooltip", "Prezzo netto per unità (dopo sconto)")">
+                            <span>@effectiveUnitPrice.ToString("C2")</span>
+                        </MudTooltip>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.discount", "Sconto")">
+                        @if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage && context.LineDiscount > 0)
+                        {
+                            <span>@context.LineDiscount.ToString("N2")%</span>
+                        }
+                        else if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Value && context.LineDiscountValue > 0)
+                        {
+                            <span>@context.LineDiscountValue.ToString("C2")</span>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.total", "Totale")">@context.LineTotal.ToString("C2")</MudTd>
+                    <MudTd Style="text-align: right;">
+                        <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.documentRow", "Riga")"
+                                           ItemDisplayName="@context.Description"
+                                           ShowView="false"
+                                           ShowEdit="true"
+                                           ShowAuditLog="false"
+                                           ShowToggleStatus="false"
+                                           ShowDelete="true"
+                                           OnEdit="@(() => EditRow(context.Id))"
+                                           OnDelete="@(() => DeleteRowAsync(context.Id))" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>@TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente")</MudText>
+                </NoRecordsContent>
+            </MudTable>
 
-                <MudDivider Class="my-4" />
-                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
-                    <MudText Typo="Typo.h6">
-                        @TranslationService.GetTranslation("documents.totalAmount", "Totale"): @CalculateTotalAmount().ToString("C2")
-                    </MudText>
-                </MudStack>
-            }
-            else
-            {
-                <MudAlert Severity="Severity.Info">
-                    @TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente. Aggiungi righe al documento.")
-                </MudAlert>
-            }
-        </MudPaper>
+            <MudDivider Class="my-4" />
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                <MudText Typo="Typo.h6">
+                    @TranslationService.GetTranslation("documents.totalAmount", "Totale"): @CalculateTotalAmount().ToString("C2")
+                </MudText>
+            </MudStack>
+        }
+    </MudPaper>
 
+    @if (_currentDocument != null)
+    {
         <!-- Actions -->
         <MudStack Row="true" Class="mt-4" Justify="Justify.FlexEnd">
             @if (_currentDocument.Status == DocumentStatus.Draft)
