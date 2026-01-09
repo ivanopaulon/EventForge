@@ -75,7 +75,7 @@ public static class MappingExtensions
             CreatedBy = entity.CreatedBy,
             ModifiedAt = entity.ModifiedAt,
             ModifiedBy = entity.ModifiedBy,
-            Rows = entity.Rows?.Select(r => r.ToDto()).ToList()
+            Rows = entity.Rows?.Where(r => !r.IsDeleted).Select(r => r.ToDto()).ToList() ?? new List<DocumentRowDto>()
         };
     }
 

@@ -308,7 +308,7 @@ namespace EventForge.DTOs.Documents
         /// <summary>
         /// Document rows.
         /// </summary>
-        public List<DocumentRowDto>? Rows { get; set; }
+        public List<DocumentRowDto>? Rows { get; set; } = new List<DocumentRowDto>();
 
         /// <summary>
         /// Total before discounts (calculated).
