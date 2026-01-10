@@ -258,45 +258,114 @@
                 <MudStack Spacing="2">
                     <MudText Typo="Typo.subtitle2" Color="Color.Primary">
                         <MudIcon Icon="@Icons.Material.Outlined.Calculate" Class="mr-2" Size="Size.Small" />
-                        @TranslationService.GetTranslation("documents.lineTotal", "Totale Riga")
-                    </MudText>
-                    <MudDivider />
-                    <MudGrid Spacing="1">
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.baseAmount", "Imponibile base"):</MudText>
-                        </MudItem>
-                        <MudItem xs="6" Style="text-align: right;">
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@((_model.Quantity * _model.UnitPrice).ToString("N2")) €</MudText>
-                        </MudItem>
-                        @if (_model.LineDiscount > 0 || _model.LineDiscountValue > 0)
+                        @TranslationService.GetTranslation("documents.lineCalculation", "Calcolo Riga")
+                        
+                        @if (IsProductVatIncluded)
                         {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ml-2" Icon="@Icons.Material.Outlined.Info">
+                                @TranslationService.GetTranslation("documents.productPriceWasVatIncluded", "Prezzo prodotto IVA inclusa")
+                            </MudChip>
+                        }
+                    </MudText>
+                    
+                    <MudDivider />
+                    
+                    <MudGrid Spacing="1">
+                        @if (IsProductVatIncluded)
+                        {
+                            <MudItem xs="12">
+                                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                                    @TranslationService.GetTranslation("documents.priceAutoConverted", "Il prezzo è stato automaticamente convertito da lordo a netto")
+                                </MudAlert>
+                            </MudItem>
+                            
                             <MudItem xs="6">
-                                <MudText Typo="Typo.body2" Color="Color.Success">@TranslationService.GetTranslation("documents.discount", "Sconto"):</MudText>
+                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                                    @TranslationService.GetTranslation("documents.originalGrossPrice", "Prezzo lordo prodotto"):
+                                </MudText>
                             </MudItem>
                             <MudItem xs="6" Style="text-align: right;">
-                                <MudText Typo="Typo.body2" Color="Color.Success" Style="font-weight: 600;">- @GetDiscountAmount().ToString("N2") €</MudText>
+                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); text-decoration: line-through;">
+                                    @GetOriginalGrossPrice().ToString("N2") €
+                                </MudText>
+                            </MudItem>
+                            
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-success);">
+                                    @TranslationService.GetTranslation("documents.vatExtracted", "IVA scorporata") (@(_model.VatRate.ToString("0.##"))%):
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="6" Style="text-align: right;">
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-success);">
+                                    -@((GetOriginalGrossPrice() - CalculateSubtotal()).ToString("N2")) €
+                                </MudText>
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudDivider DividerType="DividerType.Middle" />
                             </MudItem>
                         }
+                        
                         <MudItem xs="6">
-                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.subtotal", "Subtotale"):</MudText>
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("documents.netSubtotal", "Imponibile"):
+                            </MudText>
                         </MudItem>
                         <MudItem xs="6" Style="text-align: right;">
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@CalculateSubtotal().ToString("N2") €</MudText>
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                @CalculateSubtotal().ToString("N2") €
+                            </MudText>
                         </MudItem>
+                        
+                        @if (GetDiscountAmount() > 0)
+                        {
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-error);">
+                                    @TranslationService.GetTranslation("documents.discount", "Sconto"):
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="6" Style="text-align: right;">
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-error);">
+                                    -@GetDiscountAmount().ToString("N2") €
+                                </MudText>
+                            </MudItem>
+                            
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                    @TranslationService.GetTranslation("documents.netTotal", "Totale netto"):
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="6" Style="text-align: right;">
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                    @CalculateNetTotal().ToString("N2") €
+                                </MudText>
+                            </MudItem>
+                        }
+                        
                         <MudItem xs="6">
-                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.vat", "IVA") (@(_model.VatRate.ToString("0.##"))%):</MudText>
+                            <MudText Typo="Typo.body2">
+                                @TranslationService.GetTranslation("documents.vat", "IVA") (@(_model.VatRate.ToString("0.##"))%):
+                            </MudText>
                         </MudItem>
                         <MudItem xs="6" Style="text-align: right;">
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@CalculateVatAmount().ToString("N2") €</MudText>
+                            <MudText Typo="Typo.body2">
+                                +@CalculateVatAmount().ToString("N2") €
+                            </MudText>
                         </MudItem>
+                        
                         <MudItem xs="12">
                             <MudDivider />
                         </MudItem>
+                        
                         <MudItem xs="6">
-                            <MudText Typo="Typo.h6" Color="Color.Primary">@TranslationService.GetTranslation("documents.total", "Totale"):</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">
+                                @TranslationService.GetTranslation("documents.grossTotal", "Totale"):
+                            </MudText>
                         </MudItem>
                         <MudItem xs="6" Style="text-align: right;">
-                            <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">@CalculateLineTotal().ToString("N2") €</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                                @CalculateGrossTotal().ToString("N2") €
+                            </MudText>
                         </MudItem>
                     </MudGrid>
                 </MudStack>
@@ -621,19 +690,33 @@
         _model.ProductId = product.Id;
         _model.ProductCode = product.Code;
         _model.Description = product.Name;
-        _model.UnitPrice = product.DefaultPrice ?? 0;
+        
+        // ✅ CHIAVE: Normalizza il prezzo in base a IsVatIncluded
+        decimal productPrice = product.DefaultPrice ?? 0m;
+        decimal vatRate = 0m;
 
         // Load VAT rate from product if available
         if (product.VatRateId.HasValue)
         {
             _selectedVatRateId = product.VatRateId;
-            var vatRate = _allVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
-            if (vatRate != null)
+            var vatRateDto = _allVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
+            if (vatRateDto != null)
             {
-                _model.VatRate = vatRate.Percentage;
-                _model.VatDescription = vatRate.Name;
+                vatRate = vatRateDto.Percentage;
+                _model.VatRate = vatRate;
+                _model.VatDescription = vatRateDto.Name;
             }
         }
+        
+        // ✅ Se il prodotto ha IVA inclusa, scorporiamo SUBITO
+        if (product.IsVatIncluded && vatRate > 0)
+        {
+            // Scorporo IVA: Prezzo / (1 + IVA%)
+            productPrice = productPrice / (1 + vatRate / 100m);
+        }
+        
+        // Salva il prezzo già NETTO
+        _model.UnitPrice = productPrice;
 
         // Load units of measure for this product
         try
@@ -778,6 +861,27 @@
         var subtotal = CalculateSubtotal();
         var vatAmount = subtotal * (_model.VatRate / 100m);
         return subtotal + vatAmount;
+    }
+    
+    private decimal CalculateNetTotal()
+    {
+        return CalculateSubtotal();
+    }
+    
+    private decimal CalculateGrossTotal()
+    {
+        return CalculateLineTotal();
+    }
+    
+    private bool IsProductVatIncluded => _selectedProduct?.IsVatIncluded ?? false;
+    
+    private decimal GetOriginalGrossPrice()
+    {
+        if (!IsProductVatIncluded)
+            return _model.Quantity * _model.UnitPrice;
+            
+        // Se il prodotto aveva IVA inclusa, mostra il prezzo lordo originale
+        return _model.Quantity * _model.UnitPrice * (1 + _model.VatRate / 100m);
     }
 
     private void UpdateModelUnitOfMeasure(Guid? unitOfMeasureId)
