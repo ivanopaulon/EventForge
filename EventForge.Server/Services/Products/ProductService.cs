@@ -471,6 +471,10 @@ public class ProductService : IProductService
                 ModifiedAt = product.ModifiedAt
             };
 
+            // Log incoming DTO values for diagnostic purposes
+            _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, Incoming IsVatIncluded: {IncomingIsVatIncluded}, Current IsVatIncluded: {CurrentIsVatIncluded}", 
+                id, updateProductDto.IsVatIncluded, originalProduct.IsVatIncluded);
+
             // Update properties
             product.Name = updateProductDto.Name;
             product.ShortDescription = updateProductDto.ShortDescription;
@@ -498,6 +502,10 @@ public class ProductService : IProductService
             product.AverageDailyDemand = updateProductDto.AverageDailyDemand;
             product.ModifiedBy = currentUser;
             product.ModifiedAt = DateTime.UtcNow;
+
+            // Log product entity value before SaveChanges for diagnostic purposes
+            _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, IsVatIncluded value before SaveChanges: {IsVatIncludedBeforeSave}", 
+                id, product.IsVatIncluded);
 
             _ = await _context.SaveChangesAsync(cancellationToken);
 
