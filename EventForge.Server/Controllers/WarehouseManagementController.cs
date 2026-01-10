@@ -2327,6 +2327,43 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
+            // Validation: verify that all ProductId and LocationId exist before processing
+            var productIds = documentHeader.Rows.Where(r => r.ProductId.HasValue).Select(r => r.ProductId!.Value).Distinct().ToList();
+            var locationIds = documentHeader.Rows.Where(r => r.LocationId.HasValue).Select(r => r.LocationId!.Value).Distinct().ToList();
+
+            var existingProducts = await _context.Products
+                .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
+                .Select(p => p.Id)
+                .ToListAsync(cancellationToken);
+
+            var missingProducts = productIds.Except(existingProducts).ToList();
+            if (missingProducts.Any())
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid inventory data",
+                    Detail = $"Document contains {missingProducts.Count} non-existent product(s). Cannot finalize.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Validate locations
+            var existingLocations = await _context.StorageLocations
+                .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
+                .Select(l => l.Id)
+                .ToListAsync(cancellationToken);
+
+            var missingLocations = locationIds.Except(existingLocations).ToList();
+            if (missingLocations.Any())
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid inventory data",
+                    Detail = $"Document contains {missingLocations.Count} non-existent location(s). Cannot finalize.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
             // Process each row and apply stock adjustments
             if (documentHeader.Rows != null && documentHeader.Rows.Any())
             {
@@ -2388,31 +2425,28 @@ public class WarehouseManagementController : BaseApiController
                                 productId, locationId, adjustmentQuantity, currentQuantity, newQuantity);
 
                             // 2) Ensure the Stocks table is updated to reflect the counted quantity
-                            try
+                            var createStockDto = new CreateStockDto
                             {
-                                var createStockDto = new CreateStockDto
-                                {
-                                    ProductId = productId,
-                                    StorageLocationId = locationId,
-                                    LotId = lotId,
-                                    Quantity = newQuantity,
-                                    Notes = $"Adjusted by inventory document {documentHeader.Number}"
-                                    // Other fields (ReservedQuantity, MinimumLevel etc.) can be left null or set if known
-                                };
+                                ProductId = productId,
+                                StorageLocationId = locationId,
+                                LotId = lotId,
+                                Quantity = newQuantity,
+                                Notes = $"Adjusted by inventory document {documentHeader.Number}"
+                                // Other fields (ReservedQuantity, MinimumLevel etc.) can be left null or set if known
+                            };
 
-                                // This call will create or update a Stock record
-                                var updatedStock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+                            // This call will create or update a Stock record
+                            var updatedStock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
 
-                                // Optionally update LastInventoryDate
-                                if (updatedStock != null)
-                                {
-                                    await _stockService.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
-                                }
+                            // Verify stock was successfully created/updated
+                            if (updatedStock != null)
+                            {
+                                await _stockService.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
                             }
-                            catch (Exception stockEx)
+                            else
                             {
-                                // Log and continue: movement exists, but Stocks update failed
-                                _logger.LogError(stockEx, "Failed updating Stocks table for product {ProductId} at location {LocationId} after creating movement", productId, locationId);
+                                // If stock creation/update fails, this is a critical error - propagate it
+                                throw new InvalidOperationException($"Failed to create or update stock for product {productId} at location {locationId}");
                             }
                         }
                         else
@@ -3288,6 +3322,200 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while removing problematic rows from document {DocumentId}.", documentId);
             return CreateInternalServerErrorProblem("An error occurred while removing problematic rows.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Merges multiple open inventory documents into a single consolidated document.
+    /// Groups rows by (ProductId, LocationId, LotId) and sums quantities.
+    /// </summary>
+    /// <param name="request">Merge request with source document IDs</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Merged inventory document</returns>
+    /// <response code="200">Returns the merged inventory document</response>
+    /// <response code="400">If validation fails</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/merge")]
+    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> MergeInventoryDocuments(
+        [FromBody] MergeInventoryDocumentsDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // 1. Validations
+            if (request.SourceDocumentIds.Count < 2)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid merge request",
+                    Detail = "At least 2 documents are required to merge",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // 2. Load source documents
+            var documents = await _context.DocumentHeaders
+                .Include(d => d.Rows)
+                .Where(d => request.SourceDocumentIds.Contains(d.Id) && !d.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            if (documents.Count != request.SourceDocumentIds.Count)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid merge request",
+                    Detail = "One or more source documents not found",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // 3. Verify all documents belong to the same warehouse
+            var warehouseId = documents.First().SourceWarehouseId;
+            if (documents.Any(d => d.SourceWarehouseId != warehouseId))
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid merge request",
+                    Detail = "All documents must belong to the same warehouse",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // 4. Verify all documents are in Open status
+            if (documents.Any(d => d.Status != EntityDocumentStatus.Open))
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid merge request",
+                    Detail = "All documents must be in Open status to be merged",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // 5. Create new destination document
+            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+                _tenantContext.CurrentTenantId!.Value,
+                cancellationToken);
+
+            var systemBusinessPartyId = await _documentHeaderService.GetOrCreateSystemBusinessPartyAsync(
+                _tenantContext.CurrentTenantId!.Value,
+                cancellationToken);
+
+            var mergedDocNumber = $"INV-MERGED-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
+            var sourceDocNumbers = string.Join(", ", documents.Select(d => d.Number));
+
+            var createHeaderDto = new CreateDocumentHeaderDto
+            {
+                DocumentTypeId = inventoryDocType.Id,
+                Series = "INV",
+                Number = mergedDocNumber,
+                Date = DateTime.UtcNow,
+                BusinessPartyId = systemBusinessPartyId,
+                SourceWarehouseId = warehouseId,
+                Notes = $"Merged from: {sourceDocNumbers}. {request.Notes ?? ""}",
+                IsFiscal = false,
+                IsProforma = true
+            };
+
+            var mergedDocument = await _documentHeaderService.CreateDocumentHeaderAsync(
+                createHeaderDto,
+                GetCurrentUser(),
+                cancellationToken);
+
+            // 6. Group rows by (ProductId, LocationId, LotId) and sum quantities
+            var allRows = documents.SelectMany(d => d.Rows.Where(r => !r.IsDeleted)).ToList();
+
+            var groupedRows = allRows
+                .GroupBy(r => new
+                {
+                    ProductId = r.ProductId ?? Guid.Empty,
+                    LocationId = r.LocationId ?? Guid.Empty,
+                    LotId = r.LotId
+                })
+                .Select(g => new
+                {
+                    g.Key.ProductId,
+                    g.Key.LocationId,
+                    g.Key.LotId,
+                    Quantity = g.Sum(r => r.Quantity),
+                    ProductCode = g.First().ProductCode,
+                    Description = g.First().Description,
+                    Notes = string.Join("; ", g.Where(r => !string.IsNullOrWhiteSpace(r.Notes)).Select(r => r.Notes).Distinct())
+                })
+                .Where(g => g.ProductId != Guid.Empty && g.LocationId != Guid.Empty)
+                .ToList();
+
+            // 7. Add merged rows to the new document
+            foreach (var group in groupedRows)
+            {
+                var createRowDto = new CreateDocumentRowDto
+                {
+                    DocumentHeaderId = mergedDocument.Id,
+                    ProductCode = group.ProductCode,
+                    ProductId = group.ProductId,
+                    LocationId = group.LocationId,
+                    Description = group.Description,
+                    Quantity = group.Quantity,
+                    Notes = group.Notes,
+                    UnitPrice = 0
+                };
+
+                await _documentHeaderService.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
+            }
+
+            _logger.LogInformation(
+                "Merged {SourceCount} inventory documents into {MergedNumber}. " +
+                "Total rows: {TotalRows}, Unique rows: {UniqueRows}, Duplicates removed: {DuplicatesRemoved}",
+                documents.Count, mergedDocNumber, allRows.Count, groupedRows.Count, allRows.Count - groupedRows.Count);
+
+            // 8. Cancel the source documents
+            foreach (var doc in documents)
+            {
+                doc.Status = EntityDocumentStatus.Cancelled;
+                doc.Notes = $"{doc.Notes ?? ""} [Merged into {mergedDocNumber}]";
+                doc.ModifiedAt = DateTime.UtcNow;
+                doc.ModifiedBy = GetCurrentUser();
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // 9. Load the merged document with enriched rows
+            var resultDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(
+                mergedDocument.Id,
+                includeRows: true,
+                cancellationToken);
+
+            var enrichedRows = resultDocument!.Rows != null && resultDocument.Rows.Any()
+                ? await EnrichInventoryDocumentRowsAsync(resultDocument.Rows, cancellationToken)
+                : new List<InventoryDocumentRowDto>();
+
+            var result = new InventoryDocumentDto
+            {
+                Id = resultDocument.Id,
+                Number = resultDocument.Number,
+                Series = resultDocument.Series,
+                InventoryDate = resultDocument.Date,
+                WarehouseId = resultDocument.SourceWarehouseId,
+                WarehouseName = resultDocument.SourceWarehouseName,
+                Status = resultDocument.Status.ToString(),
+                Notes = resultDocument.Notes,
+                CreatedAt = resultDocument.CreatedAt,
+                CreatedBy = resultDocument.CreatedBy,
+                Rows = enrichedRows
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while merging inventory documents.");
+            return CreateInternalServerErrorProblem("An error occurred while merging inventory documents.", ex);
         }
     }
 

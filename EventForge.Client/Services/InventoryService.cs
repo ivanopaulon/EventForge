@@ -267,6 +267,20 @@ public class InventoryService : IInventoryService
         }
     }
 
+    public async Task<InventoryDocumentDto?> MergeInventoryDocumentsAsync(List<Guid> sourceDocumentIds, string? notes = null)
+    {
+        try
+        {
+            var request = new { SourceDocumentIds = sourceDocumentIds, Notes = notes };
+            return await _httpClientService.PostAsync<object, InventoryDocumentDto>($"{BaseUrl}/documents/merge", request);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error merging inventory documents");
+            return null;
+        }
+    }
+
     public async Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId)
     {
         try

@@ -31,6 +31,7 @@ public interface IInventoryService
     Task<bool> CancelInventoryDocumentAsync(Guid documentId);
     Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync();
     Task<int> CancelAllOpenInventoriesAsync();
+    Task<InventoryDocumentDto?> MergeInventoryDocumentsAsync(List<Guid> sourceDocumentIds, string? notes = null);
 
     // Inventory Diagnostics
     Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId);

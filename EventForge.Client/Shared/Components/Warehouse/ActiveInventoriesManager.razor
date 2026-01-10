@@ -1,5 +1,8 @@
 @using EventForge.DTOs.Warehouse
+@using EventForge.Client.Shared.Components.Dialogs.Warehouse
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <MudCard Class="mb-4">
     <MudCardHeader>
@@ -21,8 +24,12 @@
                          Items="@OpenInventories"
                          Dense="true"
                          Hover="true"
+                         SelectOnRowClick="true"
+                         MultiSelection="true"
+                         @bind-SelectedItems="_selectedInventories"
                          ReadOnly="true">
                 <Columns>
+                    <SelectColumn T="InventoryDocumentDto" />
                     <PropertyColumn Property="x => x.Number" Title="@TranslationService.GetTranslation("warehouse.documentNumber", "Numero Documento")" />
                     <PropertyColumn Property="x => x.WarehouseName" Title="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")" />
                     <PropertyColumn Property="x => x.CreatedBy" Title="@TranslationService.GetTranslation("common.createdBy", "Creato Da")" />
@@ -60,6 +67,13 @@
             </MudDataGrid>
 
             <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.MergeType"
+                           Color="Color.Primary"
+                           Variant="Variant.Outlined"
+                           OnClick="MergeSelectedInventories"
+                           Disabled="@(_selectedInventories.Count < 2)">
+                    @TranslationService.GetTranslation("warehouse.mergeSelected", "Accorpa Selezionati") (@_selectedInventories.Count)
+                </MudButton>
                 <MudButton StartIcon="@Icons.Material.Outlined.DoneAll"
                            Color="Color.Success"
                            Variant="Variant.Filled"
@@ -95,4 +109,50 @@
 
     [Parameter]
     public EventCallback OnCancelAllRequested { get; set; }
+
+    [Parameter]
+    public EventCallback OnInventoriesChanged { get; set; }
+
+    private HashSet<InventoryDocumentDto> _selectedInventories = new();
+
+    private async Task MergeSelectedInventories()
+    {
+        // Validation: same warehouse
+        var warehouses = _selectedInventories.Select(i => i.WarehouseId).Distinct().ToList();
+        if (warehouses.Count > 1)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.differentWarehousesError",
+                    "Tutti gli inventari devono appartenere allo stesso magazzino"),
+                Severity.Error
+            );
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            { nameof(MergeInventoriesDialog.SelectedInventories), _selectedInventories.ToList() }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<MergeInventoriesDialog>(
+            TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            _selectedInventories.Clear();
+            await OnInventoriesChanged.InvokeAsync();
+        }
+    }
 }
+
