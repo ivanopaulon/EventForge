@@ -376,10 +376,10 @@
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private void ClearFilters()
+    private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
-        StateHasChanged();
+        await LoadProductsAsync();
     }
 
     private async Task OnSearchChanged()
