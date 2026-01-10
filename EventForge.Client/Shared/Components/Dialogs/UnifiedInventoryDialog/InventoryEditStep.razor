@@ -182,12 +182,16 @@
     {
         if (firstRender)
         {
+            // Small delay to ensure DOM is ready
+            await Task.Delay(50);
+            
             if (State.IsEditMode)
             {
                 // In edit mode, focus on quantity field
                 if (_quantityField != null)
                 {
                     await _quantityField.FocusAsync();
+                    await _quantityField.SelectAsync(); // Select the text for easy editing
                 }
             }
             else
@@ -200,6 +204,7 @@
                     StateHasChanged();
                     
                     // Focus on quantity field since location is auto-selected
+                    await Task.Delay(50); // Ensure state update is rendered
                     if (_quantityField != null)
                     {
                         await _quantityField.FocusAsync();
