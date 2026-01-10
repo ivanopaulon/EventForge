@@ -3428,21 +3428,19 @@ public class WarehouseManagementController : BaseApiController
                 GetCurrentUser(),
                 cancellationToken);
 
-            // 6. Group rows by (ProductId, LocationId, LotId) and sum quantities
+            // 6. Group rows by (ProductId, LocationId) and sum quantities
             var allRows = documents.SelectMany(d => d.Rows.Where(r => !r.IsDeleted)).ToList();
 
             var groupedRows = allRows
                 .GroupBy(r => new
                 {
                     ProductId = r.ProductId ?? Guid.Empty,
-                    LocationId = r.LocationId ?? Guid.Empty,
-                    LotId = r.LotId
+                    LocationId = r.LocationId ?? Guid.Empty
                 })
                 .Select(g => new
                 {
                     g.Key.ProductId,
                     g.Key.LocationId,
-                    g.Key.LotId,
                     Quantity = g.Sum(r => r.Quantity),
                     ProductCode = g.First().ProductCode,
                     Description = g.First().Description,

@@ -22,14 +22,14 @@
                 @TranslationService.GetTranslation("warehouse.selectedInventories", "Inventari Selezionati") (@SelectedInventories.Count)
             </MudText>
 
-            <MudList Dense="true">
+            <MudList T="string" Dense="true">
                 @foreach (var inv in SelectedInventories)
                 {
-                    <MudListItem>
+                    <MudListItem T="string">
                         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                             <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Small" />
                             <MudText>@inv.Number</MudText>
-                            <MudChip Size="Size.Small">@inv.WarehouseName</MudChip>
+                            <MudChip T="string" Size="Size.Small">@inv.WarehouseName</MudChip>
                             <MudText Typo="Typo.caption">@inv.TotalItems articoli</MudText>
                         </MudStack>
                     </MudListItem>
@@ -71,7 +71,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public List<InventoryDocumentDto> SelectedInventories { get; set; } = new();
 
     private string? _notes;

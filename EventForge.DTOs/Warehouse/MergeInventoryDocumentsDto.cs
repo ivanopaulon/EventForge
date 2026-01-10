@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace EventForge.DTOs.Warehouse;
 
 /// <summary>
