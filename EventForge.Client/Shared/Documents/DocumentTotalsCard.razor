@@ -1,0 +1,149 @@
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Outlined.AccountBalanceWallet" Class="mr-2" />
+        @TranslationService.GetTranslation("documents.totals", "Totali")
+    </MudText>
+
+    @if (Document == null)
+    {
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info">
+            @TranslationService.GetTranslation("documents.noDocumentData", "Nessun documento selezionato")
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            <!-- Net Total -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.body1">
+                    @TranslationService.GetTranslation("documents.netTotal", "Totale Netto")
+                </MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                    @Document.TotalNetAmount.ToString("C2")
+                </MudText>
+            </MudStack>
+
+            <!-- VAT Total -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.body1">
+                    @TranslationService.GetTranslation("documents.vatTotal", "Totale IVA")
+                </MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                    @Document.VatAmount.ToString("C2")
+                </MudText>
+            </MudStack>
+
+            <MudDivider />
+
+            <!-- Gross Total -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6" Style="font-weight: bold;">
+                    @TranslationService.GetTranslation("documents.grossTotal", "Totale Lordo")
+                </MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: bold;" Color="Color.Primary">
+                    @Document.TotalGrossAmount.ToString("C2")
+                </MudText>
+            </MudStack>
+
+            <!-- Document-level Discount Alert -->
+            @if (Document.TotalDiscount > 0 || Document.TotalDiscountAmount > 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    <MudText Typo="Typo.body2">
+                        <strong>@TranslationService.GetTranslation("documents.discountApplied", "Sconto Applicato"):</strong>
+                    </MudText>
+                    @if (Document.TotalDiscount > 0)
+                    {
+                        <MudText Typo="Typo.body2">
+                            @TranslationService.GetTranslation("documents.discountPercentage", "Percentuale"): @Document.TotalDiscount.ToString("N2")%
+                        </MudText>
+                    }
+                    @if (Document.TotalDiscountAmount > 0)
+                    {
+                        <MudText Typo="Typo.body2">
+                            @TranslationService.GetTranslation("documents.discountAmount", "Importo"): @Document.TotalDiscountAmount.ToString("C2")
+                        </MudText>
+                    }
+                </MudAlert>
+            }
+
+            <!-- Payment Status Section -->
+            @if (Document.PaymentStatus != PaymentStatus.Paid)
+            {
+                <MudDivider Class="mt-2" />
+                
+                <MudText Typo="Typo.subtitle2" Class="mt-2">
+                    @TranslationService.GetTranslation("documents.paymentStatus", "Stato Pagamento")
+                </MudText>
+
+                <MudStack Spacing="2">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">
+                            @TranslationService.GetTranslation("documents.status", "Stato"):
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@GetPaymentStatusColor(Document.PaymentStatus)">
+                            @GetPaymentStatusText(Document.PaymentStatus)
+                        </MudChip>
+                    </MudStack>
+
+                    @if (Document.AmountPaid > 0)
+                    {
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">
+                                @TranslationService.GetTranslation("documents.amountPaid", "Importo Pagato"):
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;">
+                                @Document.AmountPaid.ToString("C2")
+                            </MudText>
+                        </MudStack>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">
+                                @TranslationService.GetTranslation("documents.amountRemaining", "Importo Residuo"):
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;" Color="Color.Warning">
+                                @((Document.TotalGrossAmount - Document.AmountPaid).ToString("C2"))
+                            </MudText>
+                        </MudStack>
+                    }
+                </MudStack>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    /// <summary>
+    /// Document header to display totals for
+    /// </summary>
+    [Parameter]
+    public DocumentHeaderDto? Document { get; set; }
+
+    private Color GetPaymentStatusColor(PaymentStatus status)
+    {
+        return status switch
+        {
+            PaymentStatus.Paid => Color.Success,
+            PaymentStatus.Partial => Color.Warning,
+            PaymentStatus.Pending => Color.Info,
+            PaymentStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetPaymentStatusText(PaymentStatus status)
+    {
+        return status switch
+        {
+            PaymentStatus.Paid => TranslationService.GetTranslation("paymentStatus.paid", "Pagato"),
+            PaymentStatus.Partial => TranslationService.GetTranslation("paymentStatus.partial", "Parzialmente Pagato"),
+            PaymentStatus.Pending => TranslationService.GetTranslation("paymentStatus.pending", "In Attesa"),
+            PaymentStatus.Cancelled => TranslationService.GetTranslation("paymentStatus.cancelled", "Annullato"),
+            _ => TranslationService.GetTranslation("paymentStatus.unknown", "Sconosciuto")
+        };
+    }
+}
