@@ -1273,9 +1273,17 @@
 
     private async Task OnBarcodeKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_scannedBarcode))
+        // Read value directly from component reference instead of bound variable
+        // to avoid synchronization issues between KeyDown event and data binding
+        if (e.Key == "Enter")
         {
-            await SearchBarcode();
+            var currentValue = _barcodeInput?.Value;
+            if (!string.IsNullOrWhiteSpace(currentValue))
+            {
+                // Update the bound variable to stay in sync before calling search
+                _scannedBarcode = currentValue;
+                await SearchBarcode();
+            }
         }
     }
 
