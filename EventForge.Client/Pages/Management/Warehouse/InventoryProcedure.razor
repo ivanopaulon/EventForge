@@ -848,9 +848,14 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && _barcodeInput != null && _currentDocument != null)
+        if (firstRender)
         {
-            await _barcodeInput.FocusAsync();
+            // Auto-focus on barcode input when page loads with an active session
+            if (_barcodeInput != null && _currentDocument != null)
+            {
+                await Task.Delay(100); // Small delay to ensure DOM is ready
+                await _barcodeInput.FocusAsync();
+            }
         }
     }
 
@@ -1239,10 +1244,12 @@
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionStarted", "Sessione di inventario avviata"), Severity.Success);
                 
-                // Focus on barcode input after session start
+                // Focus on barcode input after session start - ensure DOM is updated
+                StateHasChanged();
+                await Task.Delay(100); // Small delay to ensure barcode field is rendered
                 if (_barcodeInput != null)
                 {
-                    await InvokeAsync(async () => await _barcodeInput.FocusAsync());
+                    await _barcodeInput.FocusAsync();
                 }
             }
             else
@@ -1433,7 +1440,7 @@
         else
         {
             // User canceled, just clear the barcode and refocus
-            ClearProductForm();
+            await ClearProductForm();
         }
     }
 
@@ -1478,7 +1485,7 @@
         else
         {
             // User canceled, just clear the barcode and refocus
-            ClearProductForm();
+            await ClearProductForm();
         }
     }
 
@@ -1594,7 +1601,7 @@
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto al documento"), Severity.Success);
                 
                 // Clear form and refocus on barcode
-                ClearProductForm();
+                await ClearProductForm();
                 
                 // Force UI refresh to show the newly added item
                 StateHasChanged();
@@ -1638,7 +1645,7 @@
         }
     }
 
-    private void ClearProductForm()
+    private async Task ClearProductForm()
     {
         _scannedBarcode = string.Empty;
         _currentProduct = null;
@@ -1649,9 +1656,13 @@
         _quantity = 0;
         _notes = string.Empty;
         
+        // Ensure UI is updated before focusing
+        StateHasChanged();
+        await Task.Delay(100); // Allow DOM to update
+        
         if (_barcodeInput != null)
         {
-            InvokeAsync(async () => await _barcodeInput.FocusAsync());
+            await _barcodeInput.FocusAsync();
         }
     }
 
@@ -1700,7 +1711,7 @@
                 
                 // Reset the session
                 _currentDocument = null;
-                ClearProductForm();
+                await ClearProductForm();
             }
             else
             {
@@ -1756,7 +1767,7 @@
 
         // Simply reset the document without finalizing
         _currentDocument = null;
-        ClearProductForm();
+        await ClearProductForm();
         Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"), Severity.Info);
     }
 
@@ -1950,7 +1961,7 @@
                     );
                     
                     // Clear the form and refocus on barcode input
-                    ClearProductForm();
+                    await ClearProductForm();
                 }
             }
             // Handle assignment result from integrated search
@@ -2028,7 +2039,7 @@
         else
         {
             // User canceled, clear and refocus
-            ClearProductForm();
+            await ClearProductForm();
         }
     }
 
