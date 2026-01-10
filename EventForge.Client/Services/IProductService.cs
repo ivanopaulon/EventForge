@@ -19,7 +19,7 @@ public interface IProductService
     // NEW: dettagli prodotto (include codes/units/bundle-items)
     Task<ProductDto?> GetProductDetailAsync(Guid id);
 
-    Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20);
+    Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null);
     Task<ProductDto?> CreateProductAsync(CreateProductDto createDto);
     Task<ProductDetailDto?> CreateProductWithCodesAndUnitsAsync(CreateProductWithCodesAndUnitsDto createDto);
     Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto);

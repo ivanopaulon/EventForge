@@ -46,7 +46,7 @@ public class ProductService : IProductService
 
     // Product CRUD operations
 
-    public async Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -62,6 +62,16 @@ public class ProductService : IProductService
                 .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value))
                 .Include(p => p.ImageDocument);
+
+            // Apply search filter if provided
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var lowerSearchTerm = searchTerm.ToLower();
+                query = query.Where(p => 
+                    p.Code.ToLower().Contains(lowerSearchTerm) ||
+                    p.Name.ToLower().Contains(lowerSearchTerm) ||
+                    (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)));
+            }
 
             var totalCount = await query.CountAsync(cancellationToken);
             var products = await query
