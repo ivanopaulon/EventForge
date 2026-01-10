@@ -1,0 +1,105 @@
+@using EventForge.DTOs.Warehouse
+@inject ITranslationService TranslationService
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.MergeType" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            @TranslationService.GetTranslation("warehouse.mergeInventoriesHint", 
+                "Gli inventari selezionati verranno accorpati in un unico documento. Le righe con lo stesso prodotto e ubicazione verranno sommate.")
+        </MudAlert>
+
+        @if (SelectedInventories.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                @TranslationService.GetTranslation("warehouse.selectedInventories", "Inventari Selezionati") (@SelectedInventories.Count)
+            </MudText>
+
+            <MudList T="string" Dense="true">
+                @foreach (var inv in SelectedInventories)
+                {
+                    <MudListItem T="string">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Small" />
+                            <MudText>@inv.Number</MudText>
+                            <MudChip T="string" Size="Size.Small">@inv.WarehouseName</MudChip>
+                            <MudText Typo="Typo.caption">@inv.TotalItems articoli</MudText>
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+
+            <MudDivider Class="my-4" />
+
+            <MudAlert Severity="Severity.Success" Dense="true">
+                <MudText Typo="Typo.body2">
+                    <strong>@TranslationService.GetTranslation("warehouse.totalRows", "Righe totali"):</strong> @SelectedInventories.Sum(i => i.TotalItems)
+                </MudText>
+            </MudAlert>
+
+            <MudTextField @bind-Value="_notes"
+                          Label="@TranslationService.GetTranslation("common.notes", "Note")"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          Class="mt-4" />
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning">
+                @TranslationService.GetTranslation("warehouse.noInventoriesSelected", "Nessun inventario selezionato")
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="MergeDocuments"
+                   Disabled="@(SelectedInventories.Count < 2)">
+            @TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<InventoryDocumentDto> SelectedInventories { get; set; } = new();
+
+    private string? _notes;
+
+    private async Task MergeDocuments()
+    {
+        try
+        {
+            var sourceIds = SelectedInventories.Select(i => i.Id).ToList();
+            var result = await InventoryService.MergeInventoryDocumentsAsync(sourceIds, _notes);
+
+            if (result != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.mergeSuccess",
+                        "{0} inventari accorpati con successo in {1}",
+                        SelectedInventories.Count, result.Number),
+                    Severity.Success
+                );
+
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
