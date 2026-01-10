@@ -10,6 +10,7 @@ namespace EventForge.Client.ViewModels;
 public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, CreateProductDto, UpdateProductDto>
 {
     private readonly IProductService _productService;
+    private bool _manualDirtyFlag = false;
 
     public ProductDetailViewModel(
         IProductService productService,
@@ -145,13 +146,51 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
         return _productService.CreateProductAsync(createDto);
     }
 
-    protected override Task<ProductDto?> UpdateEntityAsync(Guid entityId, UpdateProductDto updateDto)
+    protected override async Task<ProductDto?> UpdateEntityAsync(Guid entityId, UpdateProductDto updateDto)
     {
-        return _productService.UpdateProductAsync(entityId, updateDto);
+        var result = await _productService.UpdateProductAsync(entityId, updateDto);
+        if (result != null)
+        {
+            Logger.LogDebug("UpdateEntityAsync: Resetting manual dirty flag after successful save");
+            _manualDirtyFlag = false;
+        }
+        return result;
     }
 
     protected override Guid GetEntityId(ProductDto entity)
     {
         return entity.Id;
+    }
+
+    /// <summary>
+    /// Override to include manual dirty flag for reliable change tracking
+    /// </summary>
+    public override bool HasUnsavedChanges()
+    {
+        if (_manualDirtyFlag)
+        {
+            Logger.LogDebug("HasUnsavedChanges: Manual dirty flag is set");
+            return true;
+        }
+        return base.HasUnsavedChanges();
+    }
+
+    /// <summary>
+    /// Override to set manual dirty flag when entity changes
+    /// </summary>
+    public override void NotifyEntityChanged()
+    {
+        Logger.LogDebug("NotifyEntityChanged: Setting manual dirty flag");
+        _manualDirtyFlag = true;
+        base.NotifyEntityChanged();
+    }
+
+    /// <summary>
+    /// Override LoadEntityAsync to reset manual dirty flag
+    /// </summary>
+    public override async Task LoadEntityAsync(Guid entityId)
+    {
+        _manualDirtyFlag = false;
+        await base.LoadEntityAsync(entityId);
     }
 }
