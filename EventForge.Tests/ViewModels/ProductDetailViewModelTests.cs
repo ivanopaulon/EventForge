@@ -329,6 +329,161 @@ public class ProductDetailViewModelTests : IDisposable
         Assert.Equal(productId, _viewModel.Entity.Id);
     }
 
+    [Fact]
+    public async Task IsVatIncluded_Change_TriggersUnsavedChanges()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        var existingProduct = new ProductDto
+        {
+            Id = productId,
+            Code = "PROD-001",
+            Name = "Test Product",
+            ShortDescription = "Short desc",
+            Description = "Full description",
+            Status = ProductStatus.Active,
+            IsVatIncluded = false,
+            IsBundle = false,
+            DefaultPrice = 100.00m
+        };
+
+        _mockProductService.Setup(s => s.GetProductDetailAsync(productId))
+            .ReturnsAsync(existingProduct);
+
+        _mockProductService.Setup(s => s.GetProductCodesAsync(productId))
+            .ReturnsAsync(new List<ProductCodeDto>());
+
+        _mockProductService.Setup(s => s.GetProductUnitsAsync(productId))
+            .ReturnsAsync(new List<ProductUnitDto>());
+
+        _mockProductService.Setup(s => s.GetProductSuppliersAsync(productId))
+            .ReturnsAsync(new List<ProductSupplierDto>());
+
+        await _viewModel.LoadEntityAsync(productId);
+
+        // Verify no unsaved changes initially
+        Assert.False(_viewModel.HasUnsavedChanges());
+
+        // Act - Change IsVatIncluded
+        _viewModel.Entity!.IsVatIncluded = true;
+        _viewModel.NotifyEntityChanged();
+
+        // Assert - Should now have unsaved changes
+        Assert.True(_viewModel.HasUnsavedChanges());
+    }
+
+    [Fact]
+    public async Task IsVatIncluded_AfterSave_ResetsUnsavedChanges()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        var existingProduct = new ProductDto
+        {
+            Id = productId,
+            Code = "PROD-001",
+            Name = "Test Product",
+            ShortDescription = "Short desc",
+            Description = "Full description",
+            Status = ProductStatus.Active,
+            IsVatIncluded = false,
+            IsBundle = false,
+            DefaultPrice = 100.00m
+        };
+
+        _mockProductService.Setup(s => s.GetProductDetailAsync(productId))
+            .ReturnsAsync(existingProduct);
+
+        _mockProductService.Setup(s => s.GetProductCodesAsync(productId))
+            .ReturnsAsync(new List<ProductCodeDto>());
+
+        _mockProductService.Setup(s => s.GetProductUnitsAsync(productId))
+            .ReturnsAsync(new List<ProductUnitDto>());
+
+        _mockProductService.Setup(s => s.GetProductSuppliersAsync(productId))
+            .ReturnsAsync(new List<ProductSupplierDto>());
+
+        await _viewModel.LoadEntityAsync(productId);
+
+        // Change IsVatIncluded
+        _viewModel.Entity!.IsVatIncluded = true;
+        _viewModel.NotifyEntityChanged();
+        
+        Assert.True(_viewModel.HasUnsavedChanges());
+
+        // Setup update to return updated product
+        var updatedProduct = new ProductDto
+        {
+            Id = productId,
+            Code = "PROD-001",
+            Name = "Test Product",
+            ShortDescription = "Short desc",
+            Description = "Full description",
+            Status = ProductStatus.Active,
+            IsVatIncluded = true,
+            IsBundle = false,
+            DefaultPrice = 100.00m
+        };
+
+        _mockProductService.Setup(s => s.UpdateProductAsync(
+            productId,
+            It.IsAny<UpdateProductDto>()))
+            .ReturnsAsync(updatedProduct);
+
+        // Act - Save changes
+        var result = await _viewModel.SaveEntityAsync();
+
+        // Assert - Should no longer have unsaved changes
+        Assert.True(result);
+        Assert.False(_viewModel.HasUnsavedChanges());
+        Assert.True(_viewModel.Entity.IsVatIncluded);
+        
+        // Verify UpdateProductAsync was called with IsVatIncluded = true
+        _mockProductService.Verify(s => s.UpdateProductAsync(
+            productId,
+            It.Is<UpdateProductDto>(dto => dto.IsVatIncluded == true)), Times.Once);
+    }
+
+    [Fact]
+    public async Task NotifyEntityChanged_MultipleTimes_MaintainsUnsavedChanges()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        var existingProduct = new ProductDto
+        {
+            Id = productId,
+            Code = "PROD-001",
+            Name = "Test Product",
+            Status = ProductStatus.Active,
+            IsVatIncluded = false,
+            IsBundle = false,
+            DefaultPrice = 100.00m
+        };
+
+        _mockProductService.Setup(s => s.GetProductDetailAsync(productId))
+            .ReturnsAsync(existingProduct);
+
+        _mockProductService.Setup(s => s.GetProductCodesAsync(productId))
+            .ReturnsAsync(new List<ProductCodeDto>());
+
+        _mockProductService.Setup(s => s.GetProductUnitsAsync(productId))
+            .ReturnsAsync(new List<ProductUnitDto>());
+
+        _mockProductService.Setup(s => s.GetProductSuppliersAsync(productId))
+            .ReturnsAsync(new List<ProductSupplierDto>());
+
+        await _viewModel.LoadEntityAsync(productId);
+
+        // Act - Make multiple changes
+        _viewModel.Entity!.IsVatIncluded = true;
+        _viewModel.NotifyEntityChanged();
+        
+        _viewModel.Entity.DefaultPrice = 200.00m;
+        _viewModel.NotifyEntityChanged();
+
+        // Assert - Should still have unsaved changes
+        Assert.True(_viewModel.HasUnsavedChanges());
+    }
+
     public void Dispose()
     {
         _viewModel.Dispose();

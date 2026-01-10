@@ -56,7 +56,7 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
     /// <summary>
     /// Loads an entity by its ID
     /// </summary>
-    public async Task LoadEntityAsync(Guid entityId)
+    public virtual async Task LoadEntityAsync(Guid entityId)
     {
         IsLoading = true;
         NotifyStateChanged();
@@ -146,11 +146,20 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
     /// <summary>
     /// Checks if there are unsaved changes
     /// </summary>
-    public bool HasUnsavedChanges()
+    public virtual bool HasUnsavedChanges()
     {
         if (Entity == null) return false;
         var current = SerializeEntity(Entity);
-        return !string.Equals(current, _originalSnapshot, StringComparison.Ordinal);
+        var hasChanges = !string.Equals(current, _originalSnapshot, StringComparison.Ordinal);
+        
+        Logger.LogDebug("HasUnsavedChanges check: {HasChanges}", hasChanges);
+        if (hasChanges)
+        {
+            Logger.LogDebug("Original snapshot length: {OriginalLength}, Current snapshot length: {CurrentLength}", 
+                _originalSnapshot?.Length ?? 0, current?.Length ?? 0);
+        }
+        
+        return hasChanges;
     }
 
     /// <summary>
@@ -166,7 +175,7 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
     /// <summary>
     /// Notifies that the entity has been changed locally
     /// </summary>
-    public void NotifyEntityChanged()
+    public virtual void NotifyEntityChanged()
     {
         NotifyStateChanged();
     }
