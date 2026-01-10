@@ -1432,7 +1432,7 @@
   "sales": {
     "payBill": "Paga Conto",
     "billSettled": "Conto Saldato",
-    "changeToGive": "Resto da dare al cliente",
+    "changeToGive": "Resto da dare",
     "exactAmount": "Importo esatto",
     "paymentsAdded": "Pagamenti Inseriti",
     "noPaymentsYet": "Nessun pagamento inserito",
@@ -1456,7 +1456,6 @@
     "amount": "Importo",
     "quickAmounts": "Importi Rapidi",
     "exact": "Esatto",
-    "changeToGive": "Resto da dare",
     "selectPosToStart": "Seleziona un POS per iniziare",
     "selectOperatorToStart": "Seleziona un operatore per iniziare",
     "selectOperatorFirst": "Seleziona prima un operatore",
@@ -2334,7 +2333,14 @@
       "reanalyze": "Rianalizza",
       "noCriticalIssues": "Nessuna riga critica da rimuovere",
       "rowsRemovedSuccess": "righe rimosse con successo"
-    }
+    },
+    "productCreatedAndSelected": "Prodotto creato e selezionato",
+    "codeAssignedAndProductSelected": "Codice assegnato e prodotto selezionato",
+    "createNewProductQuestion": "Il codice \"{0}\" non esiste. Vuoi creare un nuovo prodotto?",
+    "assignCodeToProduct": "Assegna Codice a Prodotto",
+    "selectProductForCode": "Seleziona il prodotto a cui assegnare il codice",
+    "codeWillBeAssigned": "Il codice {0} sarà assegnato al prodotto selezionato",
+    "codeAssignedSuccess": "Codice assegnato con successo"
   },
   "nav": {
     "activityFeed": "Feed Attività",

@@ -1429,7 +1429,7 @@
   "sales": {
     "payBill": "Pay Bill",
     "billSettled": "Bill Settled",
-    "changeToGive": "Change to give to customer",
+    "changeToGive": "Change to give",
     "exactAmount": "Exact amount",
     "paymentsAdded": "Payments Added",
     "noPaymentsYet": "No payments added yet",
@@ -1453,7 +1453,6 @@
     "amount": "Amount",
     "quickAmounts": "Quick Amounts",
     "exact": "Exact",
-    "changeToGive": "Change to give",
     "selectPosToStart": "Select a POS to start",
     "selectOperatorToStart": "Select an operator to start",
     "selectOperatorFirst": "Select an operator first",
@@ -2331,7 +2330,14 @@
       "reanalyze": "Reanalyze",
       "noCriticalIssues": "No critical rows to remove",
       "rowsRemovedSuccess": "rows removed successfully"
-    }
+    },
+    "productCreatedAndSelected": "Product created and selected",
+    "codeAssignedAndProductSelected": "Code assigned and product selected",
+    "createNewProductQuestion": "The code \"{0}\" does not exist. Do you want to create a new product?",
+    "assignCodeToProduct": "Assign Code to Product",
+    "selectProductForCode": "Select the product to assign the code to",
+    "codeWillBeAssigned": "The code {0} will be assigned to the selected product",
+    "codeAssignedSuccess": "Code assigned successfully"
   },
   "nav": {
     "activityFeed": "Activity Feed",

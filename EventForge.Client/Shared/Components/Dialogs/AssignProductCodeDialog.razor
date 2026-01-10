@@ -1,0 +1,145 @@
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
+@using MudBlazor
+@inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ILogger<AssignProductCodeDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Link" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.assignCodeToProduct", "Assegna Codice a Prodotto")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            @TranslationService.GetTranslation("warehouse.codeWillBeAssigned", "Il codice {0} sarà assegnato al prodotto selezionato", Code)
+        </MudAlert>
+
+        <MudStack Spacing="3">
+            <MudTextField Value="@Code"
+                          Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Outlined.QrCode" />
+
+            <MudAutocomplete T="ProductDto"
+                             @bind-Value="_selectedProduct"
+                             Label="@($"{TranslationService.GetTranslation("documents.product", "Prodotto")} *")"
+                             Variant="Variant.Outlined"
+                             SearchFunc="@SearchProductsAsync"
+                             ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                             ShowProgressIndicator="true"
+                             Required="true"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Outlined.Inventory">
+                <ItemTemplate Context="product">
+                    <MudText>@product.Name</MudText>
+                    <MudText Typo="Typo.caption">@product.Code</MudText>
+                </ItemTemplate>
+            </MudAutocomplete>
+
+            @if (_selectedProduct != null)
+            {
+                <MudPaper Elevation="2" Class="pa-3">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("common.productDetails", "Dettagli Prodotto")</MudText>
+                        <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("field.name", "Nome"):</strong> @_selectedProduct.Name</MudText>
+                        <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("field.code", "Codice"):</strong> @_selectedProduct.Code</MudText>
+                        @if (!string.IsNullOrWhiteSpace(_selectedProduct.Description))
+                        {
+                            <MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("field.description", "Descrizione"):</strong> @_selectedProduct.Description</MudText>
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit"
+                   Disabled="@(_selectedProduct == null || _isSaving)">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                @TranslationService.GetTranslation("common.assign", "Assegna")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public string Code { get; set; } = string.Empty;
+    [Parameter] public string CodeType { get; set; } = "Barcode";
+    
+    private ProductDto? _selectedProduct;
+    private bool _isSaving = false;
+
+    private async Task<IEnumerable<ProductDto>> SearchProductsAsync(string searchTerm, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return Enumerable.Empty<ProductDto>();
+
+        try
+        {
+            var result = await ProductService.SearchProductsAsync(searchTerm, 20);
+            return result.SearchResults ?? Enumerable.Empty<ProductDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching products");
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            return Enumerable.Empty<ProductDto>();
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (_selectedProduct == null) return;
+
+        try
+        {
+            _isSaving = true;
+
+            // Crea il DTO per l'assegnazione del codice
+            var codeDto = new CreateProductCodeDto
+            {
+                ProductId = _selectedProduct.Id,
+                Code = Code,
+                CodeType = CodeType,
+                Status = ProductCodeStatus.Active
+            };
+
+            // Assegna il codice al prodotto
+            await ProductService.CreateProductCodeAsync(codeDto);
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.codeAssignedSuccess", "Codice assegnato con successo"),
+                Severity.Success
+            );
+
+            MudDialog.Close(DialogResult.Ok(_selectedProduct));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error assigning code to product");
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
