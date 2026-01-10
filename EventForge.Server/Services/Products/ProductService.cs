@@ -56,14 +56,9 @@ public class ProductService : IProductService
                 throw new InvalidOperationException("Tenant context is required for product operations.");
             }
 
-            var query = _context.Products
-                .WhereActiveTenant(currentTenantId.Value)
-                .Include(p => p.Codes.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value))
-                .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
-                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value))
-                .Include(p => p.ImageDocument);
+            var query = _context.Products.WhereActiveTenant(currentTenantId.Value);
 
-            // Apply search filter if provided
+            // Apply search filter if provided (before includes to avoid type conversion issues)
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var lowerSearchTerm = searchTerm.ToLower();
@@ -72,6 +67,12 @@ public class ProductService : IProductService
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
                     (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)));
             }
+
+            query = query
+                .Include(p => p.Codes.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value))
+                .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
+                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value))
+                .Include(p => p.ImageDocument);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var products = await query
