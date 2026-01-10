@@ -11,6 +11,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<AddDocumentRowDialog> Logger
 @inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
 
 <MudDialog>
     <TitleContent>
@@ -363,6 +364,10 @@
     private Guid? _selectedVatRateId = null;
     private Guid? _barcodeProductUnitId = null; // Track unit from barcode lookup
     
+    // Quick insert state variables
+    private string _scannedBarcode = string.Empty;
+    private bool _isProcessingBarcode = false;
+    
     // Document type detection keywords
     private static readonly string[] PurchaseKeywords = { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
     private static readonly string[] SaleKeywords = { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
@@ -442,11 +447,13 @@
 
     private async Task SearchByBarcode(string barcode)
     {
-        if (string.IsNullOrWhiteSpace(barcode))
-            return;
-
+        if (_isProcessingBarcode) return;
+        
         try
         {
+            _isProcessingBarcode = true;
+            _scannedBarcode = barcode;
+            
             // Use new API that returns ProductWithCodeDto
             var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(barcode);
             if (productWithCode?.Product != null)
@@ -455,7 +462,13 @@
                 _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
                 
                 await OnProductSelected(productWithCode.Product);
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", productWithCode.Product.Name), Severity.Success);
+                _barcodeInput = string.Empty;
+                _scannedBarcode = string.Empty;
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
+                    Severity.Success
+                );
                 
                 // Focus on quantity field after product is found
                 if (_quantityField != null)
@@ -466,13 +479,105 @@
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato per il codice: {0}", barcode), Severity.Warning);
+                // PRODOTTO NON TROVATO - Mostra dialog
+                await ShowProductNotFoundDialog(barcode);
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error searching product by barcode {Barcode}", barcode);
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"), Severity.Error);
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessingBarcode = false;
+        }
+    }
+
+    // Nuovo metodo ShowProductNotFoundDialog
+    private async Task ShowProductNotFoundDialog(string code)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(ProductNotFoundDialog.Barcode), code },
+            { nameof(ProductNotFoundDialog.IsInventoryContext), false }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseOnEscapeKey = false
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
+            TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            // Handle ProductDto result (created product from QuickCreateProductDialog)
+            if (result.Data is ProductDto createdProduct)
+            {
+                // Prodotto creato con successo, selezionalo automaticamente
+                _selectedProduct = createdProduct;
+                await OnProductSelected(createdProduct);
+                _barcodeInput = string.Empty;
+                _scannedBarcode = string.Empty;
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.productCreatedAndSelected", "Prodotto creato e selezionato"),
+                    Severity.Success
+                );
+            }
+            // Handle string actions (skip)
+            else if (result.Data is string action)
+            {
+                if (action == "skip")
+                {
+                    // Skip - pulisci e torna al dialog
+                    _barcodeInput = string.Empty;
+                    _scannedBarcode = string.Empty;
+                }
+            }
+            else
+            {
+                // Try to handle assignment result
+                try
+                {
+                    dynamic assignResult = result.Data;
+                    if (assignResult.Action == "assigned" && assignResult.Product != null)
+                    {
+                        ProductDto assignedProduct = assignResult.Product;
+                        
+                        // Prodotto assegnato, selezionalo automaticamente
+                        _selectedProduct = assignedProduct;
+                        await OnProductSelected(assignedProduct);
+                        _barcodeInput = string.Empty;
+                        _scannedBarcode = string.Empty;
+                        
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("warehouse.codeAssignedAndProductSelected", "Codice assegnato e prodotto selezionato"),
+                            Severity.Success
+                        );
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Could not extract assignment info from dialog result");
+                    _barcodeInput = string.Empty;
+                    _scannedBarcode = string.Empty;
+                }
+            }
+        }
+        else
+        {
+            _barcodeInput = string.Empty;
+            _scannedBarcode = string.Empty;
         }
     }
 
