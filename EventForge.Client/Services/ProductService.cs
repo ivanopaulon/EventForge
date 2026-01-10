@@ -85,11 +85,16 @@ public class ProductService : IProductService
         }
     }
 
-    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20)
+    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null)
     {
         try
         {
-            return await _httpClientService.GetAsync<PagedResult<ProductDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            var url = $"{BaseUrl}?page={page}&pageSize={pageSize}";
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
+            }
+            return await _httpClientService.GetAsync<PagedResult<ProductDto>>(url);
         }
         catch (Exception ex)
         {

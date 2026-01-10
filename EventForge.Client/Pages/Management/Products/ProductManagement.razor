@@ -305,14 +305,9 @@
 
     /// <summary>
     /// Computed property for filtered products based on search criteria.
+    /// Since we now filter server-side, this just returns the products as-is.
     /// </summary>
-    private IEnumerable<ProductDto> _filteredProducts => 
-        _products.Where(p => 
-            // Search filter: check code, name, and description
-            (string.IsNullOrEmpty(_searchTerm) || 
-             p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             (p.ShortDescription != null && p.ShortDescription.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))));
+    private IEnumerable<ProductDto> _filteredProducts => _products;
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -353,14 +348,14 @@
     }
 
     /// <summary>
-    /// Loads product data.
+    /// Loads product data with optional search term.
     /// </summary>
     private async Task LoadProductsAsync()
     {
         try
         {
             _isLoadingProducts = true;
-            _pagedResult = await ProductService.GetProductsAsync(_currentPage, _pageSize);
+            _pagedResult = await ProductService.GetProductsAsync(_currentPage, _pageSize, _searchTerm);
             
             if (_pagedResult != null)
             {
@@ -381,10 +376,10 @@
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private void ClearFilters()
+    private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
-        StateHasChanged();
+        await LoadProductsAsync();
     }
 
     private async Task OnSearchChanged()
@@ -401,7 +396,7 @@
             await Task.Delay(300, token); // Debounce with cancellation
             if (!token.IsCancellationRequested)
             {
-                StateHasChanged();
+                await LoadProductsAsync(); // Call server-side search
             }
         }
         catch (OperationCanceledException)

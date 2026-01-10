@@ -46,7 +46,7 @@ public class ProductService : IProductService
 
     // Product CRUD operations
 
-    public async Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -56,8 +56,19 @@ public class ProductService : IProductService
                 throw new InvalidOperationException("Tenant context is required for product operations.");
             }
 
-            var query = _context.Products
-                .WhereActiveTenant(currentTenantId.Value)
+            var query = _context.Products.WhereActiveTenant(currentTenantId.Value);
+
+            // Apply search filter if provided (before includes to avoid type conversion issues)
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var lowerSearchTerm = searchTerm.ToLower();
+                query = query.Where(p => 
+                    p.Code.ToLower().Contains(lowerSearchTerm) ||
+                    p.Name.ToLower().Contains(lowerSearchTerm) ||
+                    (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)));
+            }
+
+            query = query
                 .Include(p => p.Codes.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value))
                 .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value))

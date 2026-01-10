@@ -14,9 +14,10 @@ public interface IProductService
     /// </summary>
     /// <param name="page">Page number (1-based)</param>
     /// <param name="pageSize">Number of items per page</param>
+    /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
-    Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a product by ID.

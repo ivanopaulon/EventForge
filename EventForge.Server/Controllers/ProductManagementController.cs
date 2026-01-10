@@ -73,6 +73,7 @@ public class ProductManagementController : BaseApiController
     /// </summary>
     /// <param name="page">Page number (1-based)</param>
     /// <param name="pageSize">Number of items per page</param>
+    /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
     /// <response code="200">Returns the paginated list of products</response>
@@ -85,6 +86,7 @@ public class ProductManagementController : BaseApiController
     public async Task<ActionResult<PagedResult<ProductDto>>> GetProducts(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
         var paginationError = ValidatePaginationParameters(page, pageSize);
@@ -95,7 +97,7 @@ public class ProductManagementController : BaseApiController
 
         try
         {
-            var result = await _productService.GetProductsAsync(page, pageSize, cancellationToken);
+            var result = await _productService.GetProductsAsync(page, pageSize, searchTerm, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
