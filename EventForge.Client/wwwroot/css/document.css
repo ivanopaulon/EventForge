@@ -20,6 +20,15 @@
 
 /* Document Procedure Page Enhancements */
 
+/* Sticky sidebar for totals */
+.document-sidebar-sticky {
+    position: sticky;
+    top: 80px;
+    align-self: flex-start;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
 /* Smooth transitions for cards */
 .total-card-animate {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

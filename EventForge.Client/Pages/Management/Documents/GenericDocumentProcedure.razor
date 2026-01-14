@@ -160,7 +160,6 @@
                                           AdornmentColor="Color.Primary"
                                           Immediate="true"
                                           Clearable="true"
-                                          OnKeyUp="@OnSearchKeyUp"
                                           DebounceInterval="300"
                                           HelperText="@GetSearchHelperText()"
                                           Class="mb-2" />
@@ -302,7 +301,7 @@
         </MudItem>
 
         <!-- Right column: VAT Summary and Totals -->
-        <MudItem xs="12" lg="4" Style="position: sticky; top: 80px; align-self: flex-start; max-height: calc(100vh - 100px); overflow-y: auto;">
+        <MudItem xs="12" lg="4" Class="document-sidebar-sticky">
             <MudStack Spacing="3">
                 <DocumentVatSummary Rows="@_currentDocument?.Rows" />
                 <DocumentTotalsCard Document="@_currentDocument" />
@@ -815,15 +814,8 @@
             (!string.IsNullOrEmpty(row.ProductCode) && 
              row.ProductCode.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)) ||
             (!string.IsNullOrEmpty(row.Description) && 
-             row.Description.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)) ||
-            (!string.IsNullOrEmpty(row.ProductName) && 
-             row.ProductName.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+             row.Description.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
         );
-    }
-    
-    private void OnSearchKeyUp(KeyboardEventArgs e)
-    {
-        StateHasChanged();
     }
     
     private string GetSearchHelperText()
