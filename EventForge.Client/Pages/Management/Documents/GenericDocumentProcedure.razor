@@ -255,32 +255,6 @@
                                         <span>@effectiveUnitPrice.ToString("C2")</span>
                                     </MudTooltip>
                                 </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.discount", "Sconto")">
-                                    @if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage && context.LineDiscount > 0)
-                                    {
-                                        <span>@context.LineDiscount.ToString("N2")%</span>
-                                    }
-                                    else if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Value && context.LineDiscountValue > 0)
-                                    {
-                                        <span>@context.LineDiscountValue.ToString("C2")</span>
-                                    }
-                                    else
-                                    {
-                                        <span>-</span>
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.total", "Totale")">@context.LineTotal.ToString("C2")</MudTd>
-                                <MudTd Style="text-align: right;">
-                                    <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.documentRow", "Riga")"
-                                                       ItemDisplayName="@context.Description"
-                                                       ShowView="false"
-                                                       ShowEdit="true"
-                                                       ShowAuditLog="false"
-                                                       ShowToggleStatus="false"
-                                                       ShowDelete="true"
-                                                       OnEdit="@(() => EditRow(context.Id))"
-                                                       OnDelete="@(() => DeleteRowAsync(context.Id))" />
-                                </MudTd>
                             </RowTemplate>
                             <NoRecordsContent>
                                 <MudText>@TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente")</MudText>
@@ -355,8 +329,89 @@
     // Computed property for checking if document has rows
     private bool HasRows => _currentDocument?.Rows?.Any() ?? false;
 
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _documentRowColumns = new();
+    private Dictionary<string, EFTableColumnConfiguration> _columnLookup = new();
+
+    // Helper per verificare visibilità colonna
+    private bool IsColumnVisible(string propertyName)
+    {
+        return _columnLookup.TryGetValue(propertyName, out var column) && column.IsVisible;
+    }
+    
+    // Helper per ottenere label colonna (con traduzione)
+    private string GetColumnLabel(string propertyName)
+    {
+        if (_columnLookup.TryGetValue(propertyName, out var column))
+        {
+            return column.DisplayName;
+        }
+        return propertyName;
+    }
+    
+    // Helper per stili header colonne
+    private string GetHeaderStyle(string propertyName)
+    {
+        // Allinea a destra le colonne numeriche
+        var numericColumns = new[] { "Quantity", "UnitPrice", "VatRate", "DiscountTotal", "LineTotal", "VatTotal", "GrossTotal", "LineDiscount", "LineDiscountValue" };
+        
+        if (numericColumns.Contains(propertyName))
+            return "text-align: right; white-space: nowrap;";
+        
+        if (propertyName == "UnitOfMeasure")
+            return "text-align: center; white-space: nowrap;";
+        
+        return "white-space: nowrap;";
+    }
+    
+    // Funzioni di ordinamento per colonne
+    private Func<DocumentRowDto, object> GetSortFunc(string propertyName)
+    {
+        return propertyName switch
+        {
+            "ProductCode" => x => x.ProductCode ?? string.Empty,
+            "Description" => x => x.Description ?? string.Empty,
+            "Quantity" => x => x.Quantity,
+            "UnitOfMeasure" => x => x.UnitOfMeasure ?? string.Empty,
+            "UnitPrice" => x => x.UnitPrice,
+            "VatRate" => x => x.VatRate,
+            "DiscountTotal" => x => x.DiscountTotal,
+            "LineTotal" => x => x.LineTotal,
+            "VatTotal" => x => x.VatTotal,
+            "GrossTotal" => x => x.LineTotal + x.VatTotal,
+            "VatDescription" => x => x.VatDescription ?? string.Empty,
+            "LineDiscount" => x => x.LineDiscount,
+            "LineDiscountValue" => x => x.LineDiscountValue,
+            _ => x => x.Id
+        };
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        // Initialize column configurations with translations
+        _documentRowColumns = new List<EFTableColumnConfiguration>
+        {
+            // Colonne sempre visibili di default
+            new() { PropertyName = "ProductCode", DisplayName = TranslationService.GetTranslation("documents.column.productcode", "Codice"), IsVisible = true, Order = 0 },
+            new() { PropertyName = "Description", DisplayName = TranslationService.GetTranslation("documents.column.description", "Descrizione"), IsVisible = true, Order = 1 },
+            new() { PropertyName = "Quantity", DisplayName = TranslationService.GetTranslation("documents.column.quantity", "Quantità"), IsVisible = true, Order = 2 },
+            new() { PropertyName = "UnitOfMeasure", DisplayName = TranslationService.GetTranslation("documents.column.unitofmeasure", "UM"), IsVisible = true, Order = 3 },
+            new() { PropertyName = "UnitPrice", DisplayName = TranslationService.GetTranslation("documents.column.unitprice", "Prezzo Unit."), IsVisible = true, Order = 4 },
+            new() { PropertyName = "VatRate", DisplayName = TranslationService.GetTranslation("documents.column.vatrate", "IVA %"), IsVisible = true, Order = 5 },
+            new() { PropertyName = "DiscountTotal", DisplayName = TranslationService.GetTranslation("documents.column.discounttotal", "Sconto"), IsVisible = true, Order = 6 },
+            new() { PropertyName = "LineTotal", DisplayName = TranslationService.GetTranslation("documents.column.linetotal", "Imponibile"), IsVisible = true, Order = 7 },
+            new() { PropertyName = "VatTotal", DisplayName = TranslationService.GetTranslation("documents.column.vattotal", "Imposta"), IsVisible = true, Order = 8 },
+            new() { PropertyName = "GrossTotal", DisplayName = TranslationService.GetTranslation("documents.column.grosstotal", "Totale Lordo"), IsVisible = true, Order = 9 },
+            
+            // Colonne opzionali (nascoste di default, utente può abilitarle)
+            new() { PropertyName = "VatDescription", DisplayName = TranslationService.GetTranslation("documents.column.vatdescription", "Desc. IVA"), IsVisible = false, Order = 10 },
+            new() { PropertyName = "LineDiscount", DisplayName = TranslationService.GetTranslation("documents.column.linediscount", "Sconto %"), IsVisible = false, Order = 11 },
+            new() { PropertyName = "LineDiscountValue", DisplayName = TranslationService.GetTranslation("documents.column.linediscountvalue", "Valore Sconto"), IsVisible = false, Order = 12 },
+        };
+
+        // Build lookup dictionary for efficient column access
+        _columnLookup = _documentRowColumns.ToDictionary(c => c.PropertyName, c => c);
+
         _pageTitle = _isEditMode
             ? TranslationService.GetTranslation("documents.editDocument", "Modifica Documento")
             : TranslationService.GetTranslation("documents.createDocument", "Nuovo Documento");
@@ -556,42 +611,6 @@
         await LoadDocumentAsync(_currentDocument.Id);
     }
 
-    private async Task DeleteRowAsync(Guid rowId)
-    {
-        bool? confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
-            TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            noText: TranslationService.GetTranslation("common.no", "No"));
-
-        if (confirmed == true)
-        {
-            _isLoading = true;
-            try
-            {
-                bool success = await DocumentHeaderService.DeleteDocumentRowAsync(rowId);
-                if (success)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
-                    await LoadDocumentAsync(_currentDocument!.Id);
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error deleting document row");
-                Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
-            }
-            finally
-            {
-                _isLoading = false;
-            }
-        }
-    }
-
     private async Task ApproveDocumentAsync()
     {
         _isLoading = true;
@@ -620,12 +639,12 @@
         }
     }
 
-    private async Task EditRow(Guid rowId)
+    private async Task EditRow(DocumentRowDto row)
     {
         var parameters = new DialogParameters
         {
             { "DocumentHeaderId", _currentDocument!.Id },
-            { "RowId", rowId }
+            { "RowId", row.Id }
         };
 
         var options = new DialogOptions 
@@ -643,6 +662,42 @@
         var result = await dialog.Result;
         // Always reload the document when the dialog closes
         await LoadDocumentAsync(_currentDocument.Id);
+    }
+
+    private async Task DeleteRow(DocumentRowDto row)
+    {
+        bool? confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _isLoading = true;
+            try
+            {
+                bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
+                if (success)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
+                    await LoadDocumentAsync(_currentDocument!.Id);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting document row");
+                Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
     }
 
     private async Task DeleteSelectedRowsAsync()
