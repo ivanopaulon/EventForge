@@ -75,6 +75,10 @@ public partial class AddDocumentRowDialog
     private bool _discountsPanelExpanded = false;
     private bool _notesPanelExpanded = false;
     
+    // Cached calculation result to avoid redundant calculations
+    private Client.Models.Documents.DocumentRowCalculationResult? _cachedCalculationResult = null;
+    private string _cachedCalculationKey = string.Empty;
+    
     #endregion
 
     #region Constants
@@ -704,10 +708,27 @@ public partial class AddDocumentRowDialog
     #region Calculation Methods
     
     /// <summary>
-    /// Ottiene i risultati del calcolo dalla centralizzata service
+    /// Genera una chiave univoca per il caching basata sui valori correnti
+    /// </summary>
+    private string GetCalculationCacheKey()
+    {
+        return $"{_model.Quantity}|{_model.UnitPrice}|{_model.VatRate}|{_model.LineDiscount}|{_model.LineDiscountValue}|{_model.DiscountType}";
+    }
+    
+    /// <summary>
+    /// Ottiene i risultati del calcolo dalla centralizzata service con caching
     /// </summary>
     private Client.Models.Documents.DocumentRowCalculationResult GetCalculationResult()
     {
+        var currentKey = GetCalculationCacheKey();
+        
+        // Usa il risultato in cache se la chiave corrisponde
+        if (_cachedCalculationResult != null && _cachedCalculationKey == currentKey)
+        {
+            return _cachedCalculationResult;
+        }
+        
+        // Calcola e metti in cache il risultato
         var input = new Client.Models.Documents.DocumentRowCalculationInput
         {
             Quantity = _model.Quantity,
@@ -718,7 +739,10 @@ public partial class AddDocumentRowDialog
             DiscountType = _model.DiscountType
         };
         
-        return CalculationService.CalculateRowTotals(input);
+        _cachedCalculationResult = CalculationService.CalculateRowTotals(input);
+        _cachedCalculationKey = currentKey;
+        
+        return _cachedCalculationResult;
     }
     
     private bool IsProductVatIncluded => _selectedProduct?.IsVatIncluded ?? false;
