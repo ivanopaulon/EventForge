@@ -822,9 +822,14 @@
     {
         if (string.IsNullOrWhiteSpace(_searchQuery))
             return TranslationService.GetTranslation("documents.searchHelp", "Digita per filtrare le righe");
-            
-        var count = _filteredRows?.Count() ?? 0;
+        
         var total = _currentDocument?.Rows?.Count() ?? 0;
+        if (total == 0)
+            return TranslationService.GetTranslation("documents.searchHelp", "Digita per filtrare le righe");
+        
+        // Materialize the filtered collection to avoid multiple enumerations
+        var filtered = _filteredRows?.ToList();
+        var count = filtered?.Count ?? 0;
         
         return count == total 
             ? TranslationService.GetTranslationFormatted("documents.showingAllRows", "Visualizzate tutte le {0} righe", total)

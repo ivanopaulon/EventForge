@@ -69,6 +69,12 @@
     border-radius: 3px;
 }
 
+/* Gross total gradient background */
+.gross-total-gradient {
+    background: linear-gradient(135deg, var(--mud-palette-primary-lighten) 0%, var(--mud-palette-primary) 100%);
+    border-radius: 8px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .document-page-root {
