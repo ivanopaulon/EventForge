@@ -485,10 +485,10 @@ public class DocumentRowCalculationServiceTests
 
         // Assert
         Assert.Equal(127.50m, result.GrossAmount); // 5 × 25.50 = 127.50
-        Assert.Equal(19.13m, result.DiscountAmount); // 127.50 × 0.15 = 19.125 → 19.13
-        Assert.Equal(108.38m, result.NetAmount); // 127.50 - 19.13 = 108.37 → 108.38
-        Assert.Equal(23.84m, result.VatAmount); // 108.38 × 0.22 = 23.8436 → 23.84
-        Assert.Equal(132.22m, result.TotalAmount); // 108.38 + 23.84 = 132.22
+        Assert.Equal(19.13m, result.DiscountAmount); // 127.50 × 0.15 = 19.125 → 19.13 (rounded at end)
+        Assert.Equal(108.38m, result.NetAmount); // 127.50 - 19.125 = 108.375 → 108.38 (rounded at end)
+        Assert.Equal(23.84m, result.VatAmount); // 108.375 × 0.22 = 23.8425 → 23.84 (rounded at end)
+        Assert.Equal(132.22m, result.TotalAmount); // 108.375 + 23.8425 = 132.2175 → 132.22 (rounded at end)
     }
 
     [Fact]

@@ -764,8 +764,20 @@
             _model.DiscountType);
     }
 
-    private decimal CalculateSubtotal()
+    private DocumentRowCalculationResult? _cachedCalculationResult;
+    private (decimal quantity, decimal unitPrice, decimal vatRate, decimal lineDiscount, decimal lineDiscountValue, DiscountType discountType) _cachedInputValues;
+
+    private DocumentRowCalculationResult GetCurrentCalculationResult()
     {
+        var currentValues = (_model.Quantity, _model.UnitPrice, _model.VatRate, _model.LineDiscount, _model.LineDiscountValue, _model.DiscountType);
+        
+        // Use cached result if input values haven't changed
+        if (_cachedCalculationResult != null && _cachedInputValues == currentValues)
+        {
+            return _cachedCalculationResult;
+        }
+
+        // Calculate new result
         var input = new DocumentRowCalculationInput
         {
             Quantity = _model.Quantity,
@@ -776,40 +788,25 @@
             DiscountType = _model.DiscountType
         };
 
-        var result = CalculationService.CalculateRowTotals(input);
-        return result.NetAmount;
+        _cachedCalculationResult = CalculationService.CalculateRowTotals(input);
+        _cachedInputValues = currentValues;
+        
+        return _cachedCalculationResult;
+    }
+
+    private decimal CalculateSubtotal()
+    {
+        return GetCurrentCalculationResult().NetAmount;
     }
 
     private decimal CalculateVatAmount()
     {
-        var input = new DocumentRowCalculationInput
-        {
-            Quantity = _model.Quantity,
-            UnitPrice = _model.UnitPrice,
-            VatRate = _model.VatRate,
-            DiscountPercentage = _model.LineDiscount,
-            DiscountValue = _model.LineDiscountValue,
-            DiscountType = _model.DiscountType
-        };
-
-        var result = CalculationService.CalculateRowTotals(input);
-        return result.VatAmount;
+        return GetCurrentCalculationResult().VatAmount;
     }
 
     private decimal CalculateLineTotal()
     {
-        var input = new DocumentRowCalculationInput
-        {
-            Quantity = _model.Quantity,
-            UnitPrice = _model.UnitPrice,
-            VatRate = _model.VatRate,
-            DiscountPercentage = _model.LineDiscount,
-            DiscountValue = _model.LineDiscountValue,
-            DiscountType = _model.DiscountType
-        };
-
-        var result = CalculationService.CalculateRowTotals(input);
-        return result.TotalAmount;
+        return GetCurrentCalculationResult().TotalAmount;
     }
     
     private decimal CalculateNetTotal()
