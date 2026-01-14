@@ -153,6 +153,19 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
+    public async Task<DocumentHeaderDto?> CalculateDocumentTotalsAsync(Guid documentId)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<object?, DocumentHeaderDto>($"{BaseUrl}/{documentId}/calculate-totals", null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating document totals for {DocumentId}", documentId);
+            return null;
+        }
+    }
+
     private static string BuildQueryString(DocumentHeaderQueryParameters parameters)
     {
         var queryParams = new List<string>

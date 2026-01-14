@@ -80,4 +80,11 @@ public interface IDocumentHeaderService
     /// <param name="rowId">Document row ID</param>
     /// <returns>True if deleted successfully</returns>
     Task<bool> DeleteDocumentRowAsync(Guid rowId);
+
+    /// <summary>
+    /// Calculates document totals (net, VAT, gross) for a document header.
+    /// </summary>
+    /// <param name="documentId">Document header ID</param>
+    /// <returns>Document header with updated totals or null if not found</returns>
+    Task<DocumentHeaderDto?> CalculateDocumentTotalsAsync(Guid documentId);
 }

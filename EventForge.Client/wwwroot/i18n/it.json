@@ -2537,6 +2537,7 @@
     "confirmDeleteRowMessage": "Sei sicuro di voler eliminare questa riga?",
     "deleteRowSuccess": "Riga eliminata con successo",
     "deleteRowError": "Errore durante l'eliminazione della riga",
+    "totalsCalculationError": "Errore nel calcolo dei totali",
     "rowAddedSuccess": "Riga aggiunta con successo",
     "rowAddedError": "Errore durante l'aggiunta della riga",
     "fromDate": "Da Data",
