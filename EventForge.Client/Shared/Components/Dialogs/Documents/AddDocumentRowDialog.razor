@@ -683,7 +683,7 @@
                 var exactMatchList = new List<ProductDto> { result.ExactMatch.Product };
                 
                 // Add other results if present
-                if (result.SearchResults != null && result.SearchResults.Any())
+                if (result.SearchResults.Any())
                 {
                     exactMatchList.AddRange(result.SearchResults.Where(p => p.Id != result.ExactMatch.Product.Id));
                 }
