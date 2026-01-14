@@ -175,72 +175,191 @@
                     
                     @if (HasRows)
                     {
-                        <!-- Mostra la tabella delle righe -->
-                        <MudTable T="DocumentRowDto"
-                                  Items="@_currentDocument.Rows"
-                                  MultiSelection="true"
-                                  @bind-SelectedItems="_selectedRows"
-                                  Dense="true"
-                                  Hover="true"
-                                  Striped="true"
-                                  FixedHeader="true"
-                                  Height="calc(100vh - 400px)">
-                            <HeaderContent>
-                                <MudTh>@TranslationService.GetTranslation("documents.productCode", "Codice")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("documents.description", "Descrizione")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("documents.quantity", "Quantità")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("documents.discount", "Sconto")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("documents.total", "Totale")</MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                        <!-- Mostra la tabella delle righe con EFTable -->
+                        <EFTable TItem="DocumentRowDto"
+                                 Items="@_currentDocument.Rows"
+                                 Title=""
+                                 ComponentKey="GenericDocumentRows"
+                                 ShowColumnConfiguration="true"
+                                 AllowDragDropGrouping="true"
+                                 ShowSearch="false"
+                                 ShowExport="true"
+                                 ExportFormats="@(new List<string> { "Excel", "CSV" })"
+                                 ExcelFileName="DocumentRows"
+                                 EnableExcelExport="true"
+                                 ShowInternalPager="false"
+                                 Dense="true"
+                                 Hover="true"
+                                 Striped="true"
+                                 InitialColumnConfigurations="@_documentRowColumns">
+                            <HeaderContent Context="columnConfigurations">
+                                @foreach (var col in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                                {
+                                    <MudTh Style="@GetHeaderStyle(col.PropertyName)">
+                                        <MudTableSortLabel T="DocumentRowDto" 
+                                                          SortBy="@(GetSortFunc(col.PropertyName))">
+                                            @col.DisplayName
+                                        </MudTableSortLabel>
+                                    </MudTh>
+                                }
+                                <MudTh Style="text-align: right; white-space: nowrap;">
+                                    @TranslationService.GetTranslation("common.actions", "Azioni")
+                                </MudTh>
                             </HeaderContent>
                             <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.productCode", "Codice")">@context.ProductCode</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.description", "Descrizione")">@context.Description</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.quantity", "Quantità")">@context.Quantity</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")">@(context.UnitOfMeasure ?? "-")</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">
-                                    @{
-                                        decimal effectiveUnitPrice = context.Quantity > 0 
-                                            ? Math.Round(context.LineTotal / context.Quantity, 2) 
-                                            : context.UnitPrice;
-                                    }
-                                    <MudTooltip Text="@TranslationService.GetTranslation("documents.netUnitPriceTooltip", "Prezzo netto per unità (dopo sconto)")">
-                                        <span>@effectiveUnitPrice.ToString("C2")</span>
+                                @{
+                                    var row = context;
+                                    var grossTotal = row.LineTotal + row.VatTotal;
+                                }
+                                
+                                @if (IsColumnVisible("ProductCode"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("ProductCode")">
+                                        <MudText Typo="Typo.body2">@row.ProductCode</MudText>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("Description"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("Description")">
+                                        <MudText Typo="Typo.body2">@row.Description</MudText>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("Quantity"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("Quantity")" Style="text-align: right;">
+                                        <MudText Typo="Typo.body2">@row.Quantity.ToString("N2")</MudText>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("UnitOfMeasure"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("UnitOfMeasure")" Style="text-align: center;">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                            @(row.UnitOfMeasure ?? "-")
+                                        </MudChip>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("UnitPrice"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("UnitPrice")" Style="text-align: right;">
+                                        <MudText Typo="Typo.body2">@row.UnitPrice.ToString("C2")</MudText>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("VatRate"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("VatRate")" Style="text-align: center;">
+                                        <MudChip T="string" 
+                                                 Size="Size.Small" 
+                                                 Color="Color.Info"
+                                                 Icon="@Icons.Material.Outlined.Percent">
+                                            @row.VatRate.ToString("N0")%
+                                        </MudChip>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("DiscountTotal"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("DiscountTotal")" Style="text-align: right;">
+                                        @if (row.DiscountTotal > 0)
+                                        {
+                                            <MudText Typo="Typo.body2" Color="Color.Success">
+                                                -@row.DiscountTotal.ToString("C2")
+                                            </MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">
+                                                —
+                                            </MudText>
+                                        }
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("LineTotal"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("LineTotal")" Style="text-align: right;">
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">
+                                            @row.LineTotal.ToString("C2")
+                                        </MudText>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("VatTotal"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("VatTotal")" Style="text-align: right;">
+                                        <MudText Typo="Typo.body2" Color="Color.Info">
+                                            @row.VatTotal.ToString("C2")
+                                        </MudText>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("GrossTotal"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("GrossTotal")" Style="text-align: right;">
+                                        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                                            @grossTotal.ToString("C2")
+                                        </MudText>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("VatDescription"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("VatDescription")">
+                                        <MudText Typo="Typo.caption">@row.VatDescription</MudText>
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("LineDiscount"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("LineDiscount")" Style="text-align: right;">
+                                        @if (row.LineDiscount > 0)
+                                        {
+                                            <MudText Typo="Typo.body2">@row.LineDiscount.ToString("N2")%</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">—</MudText>
+                                        }
+                                    </MudTd>
+                                }
+                                
+                                @if (IsColumnVisible("LineDiscountValue"))
+                                {
+                                    <MudTd DataLabel="@GetColumnLabel("LineDiscountValue")" Style="text-align: right;">
+                                        @if (row.LineDiscountValue > 0)
+                                        {
+                                            <MudText Typo="Typo.body2">@row.LineDiscountValue.ToString("C2")</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">—</MudText>
+                                        }
+                                    </MudTd>
+                                }
+                                
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right; white-space: nowrap;">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                      Size="Size.Small" 
+                                                      Color="Color.Primary"
+                                                      OnClick="@(() => EditRow(row))" />
                                     </MudTooltip>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.discount", "Sconto")">
-                                    @if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage && context.LineDiscount > 0)
-                                    {
-                                        <span>@context.LineDiscount.ToString("N2")%</span>
-                                    }
-                                    else if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Value && context.LineDiscountValue > 0)
-                                    {
-                                        <span>@context.LineDiscountValue.ToString("C2")</span>
-                                    }
-                                    else
-                                    {
-                                        <span>-</span>
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.total", "Totale")">@context.LineTotal.ToString("C2")</MudTd>
-                                <MudTd Style="text-align: right;">
-                                    <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.documentRow", "Riga")"
-                                                       ItemDisplayName="@context.Description"
-                                                       ShowView="false"
-                                                       ShowEdit="true"
-                                                       ShowAuditLog="false"
-                                                       ShowToggleStatus="false"
-                                                       ShowDelete="true"
-                                                       OnEdit="@(() => EditRow(context.Id))"
-                                                       OnDelete="@(() => DeleteRowAsync(context.Id))" />
+                                    <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                      Size="Size.Small" 
+                                                      Color="Color.Error"
+                                                      OnClick="@(() => DeleteRow(row))" />
+                                    </MudTooltip>
                                 </MudTd>
                             </RowTemplate>
                             <NoRecordsContent>
                                 <MudText>@TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente")</MudText>
                             </NoRecordsContent>
-                        </MudTable>
+                        </EFTable>
 
                         <MudDivider Class="my-4" />
                         <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
@@ -312,6 +431,80 @@
     
     // Computed property for checking if document has rows
     private bool HasRows => _currentDocument?.Rows?.Any() ?? false;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _documentRowColumns = new()
+    {
+        // Colonne sempre visibili di default
+        new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 2 },
+        new() { PropertyName = "UnitOfMeasure", DisplayName = "UM", IsVisible = true, Order = 3 },
+        new() { PropertyName = "UnitPrice", DisplayName = "Prezzo Unit.", IsVisible = true, Order = 4 },
+        new() { PropertyName = "VatRate", DisplayName = "IVA %", IsVisible = true, Order = 5 },
+        new() { PropertyName = "DiscountTotal", DisplayName = "Sconto", IsVisible = true, Order = 6 },
+        new() { PropertyName = "LineTotal", DisplayName = "Imponibile", IsVisible = true, Order = 7 },
+        new() { PropertyName = "VatTotal", DisplayName = "Imposta", IsVisible = true, Order = 8 },
+        new() { PropertyName = "GrossTotal", DisplayName = "Totale Lordo", IsVisible = true, Order = 9 },
+        
+        // Colonne opzionali (nascoste di default, utente può abilitarle)
+        new() { PropertyName = "VatDescription", DisplayName = "Desc. IVA", IsVisible = false, Order = 10 },
+        new() { PropertyName = "LineDiscount", DisplayName = "Sconto %", IsVisible = false, Order = 11 },
+        new() { PropertyName = "LineDiscountValue", DisplayName = "Valore Sconto", IsVisible = false, Order = 12 },
+    };
+
+    // Helper per verificare visibilità colonna
+    private bool IsColumnVisible(string propertyName)
+    {
+        return _documentRowColumns
+            .FirstOrDefault(c => c.PropertyName == propertyName)?.IsVisible ?? false;
+    }
+    
+    // Helper per ottenere label colonna (con traduzione)
+    private string GetColumnLabel(string propertyName)
+    {
+        var column = _documentRowColumns.FirstOrDefault(c => c.PropertyName == propertyName);
+        if (column == null) return propertyName;
+        
+        return TranslationService.GetTranslation($"documents.column.{propertyName.ToLower()}", column.DisplayName);
+    }
+    
+    // Helper per stili header colonne
+    private string GetHeaderStyle(string propertyName)
+    {
+        // Allinea a destra le colonne numeriche
+        var numericColumns = new[] { "Quantity", "UnitPrice", "VatRate", "DiscountTotal", "LineTotal", "VatTotal", "GrossTotal", "LineDiscount", "LineDiscountValue" };
+        
+        if (numericColumns.Contains(propertyName))
+            return "text-align: right; white-space: nowrap;";
+        
+        if (propertyName == "UnitOfMeasure")
+            return "text-align: center; white-space: nowrap;";
+        
+        return "white-space: nowrap;";
+    }
+    
+    // Funzioni di ordinamento per colonne
+    private Func<DocumentRowDto, object> GetSortFunc(string propertyName)
+    {
+        return propertyName switch
+        {
+            "ProductCode" => x => x.ProductCode ?? string.Empty,
+            "Description" => x => x.Description ?? string.Empty,
+            "Quantity" => x => x.Quantity,
+            "UnitOfMeasure" => x => x.UnitOfMeasure ?? string.Empty,
+            "UnitPrice" => x => x.UnitPrice,
+            "VatRate" => x => x.VatRate,
+            "DiscountTotal" => x => x.DiscountTotal,
+            "LineTotal" => x => x.LineTotal,
+            "VatTotal" => x => x.VatTotal,
+            "GrossTotal" => x => x.LineTotal + x.VatTotal,
+            "VatDescription" => x => x.VatDescription ?? string.Empty,
+            "LineDiscount" => x => x.LineDiscount,
+            "LineDiscountValue" => x => x.LineDiscountValue,
+            _ => x => x.Id
+        };
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -514,42 +707,6 @@
         await LoadDocumentAsync(_currentDocument.Id);
     }
 
-    private async Task DeleteRowAsync(Guid rowId)
-    {
-        bool? confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
-            TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            noText: TranslationService.GetTranslation("common.no", "No"));
-
-        if (confirmed == true)
-        {
-            _isLoading = true;
-            try
-            {
-                bool success = await DocumentHeaderService.DeleteDocumentRowAsync(rowId);
-                if (success)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
-                    await LoadDocumentAsync(_currentDocument!.Id);
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error deleting document row");
-                Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
-            }
-            finally
-            {
-                _isLoading = false;
-            }
-        }
-    }
-
     private async Task ApproveDocumentAsync()
     {
         _isLoading = true;
@@ -578,12 +735,12 @@
         }
     }
 
-    private async Task EditRow(Guid rowId)
+    private async Task EditRow(DocumentRowDto row)
     {
         var parameters = new DialogParameters
         {
             { "DocumentHeaderId", _currentDocument!.Id },
-            { "RowId", rowId }
+            { "RowId", row.Id }
         };
 
         var options = new DialogOptions 
@@ -601,6 +758,42 @@
         var result = await dialog.Result;
         // Always reload the document when the dialog closes
         await LoadDocumentAsync(_currentDocument.Id);
+    }
+
+    private async Task DeleteRow(DocumentRowDto row)
+    {
+        bool? confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _isLoading = true;
+            try
+            {
+                bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
+                if (success)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
+                    await LoadDocumentAsync(_currentDocument!.Id);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting document row");
+                Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
     }
 
     private async Task DeleteSelectedRowsAsync()
