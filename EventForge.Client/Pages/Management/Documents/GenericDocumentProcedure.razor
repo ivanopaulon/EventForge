@@ -123,12 +123,12 @@
 
             <!-- Document Status Selector -->
             <MudSelect T="DocumentStatus" 
-                      @bind-Value="_documentStatus"
+                      Value="_documentStatus"
+                      ValueChanged="@OnStatusChanged"
                       Variant="Variant.Outlined"
                       Dense="true"
                       Margin="Margin.Dense"
                       Style="min-width: 140px;"
-                      ValueChanged="@OnStatusChanged"
                       Disabled="@(!_isEditMode || _currentDocument == null)"
                       aria-label="@TranslationService.GetTranslation("documents.status", "Stato Documento")">
                 <MudSelectItem Value="@DocumentStatus.Draft">
