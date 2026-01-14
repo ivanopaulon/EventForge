@@ -165,6 +165,9 @@ namespace EventForge.Client.Services
                 }
 
                 // Attempt refresh with retry logic
+                // Note: AuthService.RefreshTokenAsync has its own internal retry (max 2 attempts) for 5xx errors.
+                // This outer retry handles overall operation failures including network issues, 
+                // ensuring robust session management at the application level.
                 bool success = false;
                 for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
                 {

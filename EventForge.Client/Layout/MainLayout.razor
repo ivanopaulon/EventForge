@@ -75,6 +75,7 @@
     private bool _isAuthenticated = false;
     private MudThemeProvider? _mudThemeProvider;
     private MudTheme _currentTheme = new();
+    private readonly SemaphoreSlim _authStateLock = new(1, 1);
 
     protected override async Task OnInitializedAsync()
     {
@@ -238,24 +239,33 @@
 
     private async Task CheckAuthenticationState()
     {
-        var wasAuthenticated = _isAuthenticated;
-        _isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        
-        // Start or stop session keepalive based on authentication state
-        if (_isAuthenticated && !wasAuthenticated)
+        // Use semaphore to prevent race conditions from concurrent calls
+        await _authStateLock.WaitAsync();
+        try
         {
-            // User just logged in - start the keepalive service
-            Logger.LogInformation("User authenticated, starting session keepalive service");
-            SessionKeepaliveService.Start();
+            var wasAuthenticated = _isAuthenticated;
+            _isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            
+            // Start or stop session keepalive based on authentication state
+            if (_isAuthenticated && !wasAuthenticated)
+            {
+                // User just logged in - start the keepalive service
+                Logger.LogInformation("User authenticated, starting session keepalive service");
+                SessionKeepaliveService.Start();
+            }
+            else if (!_isAuthenticated && wasAuthenticated)
+            {
+                // User just logged out - stop the keepalive service
+                Logger.LogInformation("User logged out, stopping session keepalive service");
+                SessionKeepaliveService.Stop();
+            }
+            
+            StateHasChanged();
         }
-        else if (!_isAuthenticated && wasAuthenticated)
+        finally
         {
-            // User just logged out - stop the keepalive service
-            Logger.LogInformation("User logged out, stopping session keepalive service");
-            SessionKeepaliveService.Stop();
+            _authStateLock.Release();
         }
-        
-        StateHasChanged();
     }
 
     private async void OnAuthenticationStateChanged()
@@ -331,5 +341,8 @@
         
         // Ensure the keepalive service is stopped when the layout is disposed
         SessionKeepaliveService.Stop();
+        
+        // Dispose the semaphore
+        _authStateLock.Dispose();
     }
 }
