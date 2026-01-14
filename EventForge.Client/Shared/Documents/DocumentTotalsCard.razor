@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Common
 @inject ITranslationService TranslationService
 
-<MudPaper Elevation="2" Class="pa-4">
+<MudPaper Elevation="2" Class="pa-4 total-card-animate">
     <MudText Typo="Typo.h6" Class="mb-3">
         <MudIcon Icon="@Icons.Material.Outlined.AccountBalanceWallet" Class="mr-2" />
         @TranslationService.GetTranslation("documents.totals", "Totali")
@@ -39,12 +39,13 @@
 
             <MudDivider />
 
-            <!-- Gross Total -->
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                <MudText Typo="Typo.h6" Style="font-weight: bold;">
+            <!-- Gross Total - Enhanced -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="pa-3 gross-total-gradient">
+                <MudText Typo="Typo.h6" Style="font-weight: 700; color: white;">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Class="mr-2" />
                     @TranslationService.GetTranslation("documents.grossTotal", "Totale Lordo")
                 </MudText>
-                <MudText Typo="Typo.h6" Style="font-weight: bold;" Color="Color.Primary">
+                <MudText Typo="Typo.h5" Style="font-weight: 700; color: white;" Class="total-value-highlight">
                     @Document.TotalGrossAmount.ToString("C2")
                 </MudText>
             </MudStack>

@@ -147,6 +147,25 @@
                 }
                 else
                 {
+                    <!-- Search/Filter Section -->
+                    @if (HasRows)
+                    {
+                        <MudPaper Elevation="1" Class="pa-3 mb-3">
+                            <MudTextField @bind-Value="_searchQuery"
+                                          Label="@TranslationService.GetTranslation("documents.searchArticles", "Cerca articolo")"
+                                          Placeholder="@TranslationService.GetTranslation("documents.searchByCodeOrDescription", "Cerca per codice o descrizione...")"
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Outlined.Search"
+                                          AdornmentColor="Color.Primary"
+                                          Immediate="true"
+                                          Clearable="true"
+                                          DebounceInterval="300"
+                                          HelperText="@GetSearchHelperText()"
+                                          Class="mb-2" />
+                        </MudPaper>
+                    }
+                    
                     <!-- Documento salvato - mostra sempre la toolbar con il pulsante Aggiungi Riga -->
                     <ManagementTableToolbar ShowSelectionBadge="@HasRows"
                                             SelectedCount="@_selectedRows.Count"
@@ -177,7 +196,7 @@
                     {
                         <!-- Mostra la tabella delle righe -->
                         <MudTable T="DocumentRowDto"
-                                  Items="@_currentDocument.Rows"
+                                  Items="@_filteredRows"
                                   MultiSelection="true"
                                   @bind-SelectedItems="_selectedRows"
                                   Dense="true"
@@ -196,8 +215,34 @@
                                 <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
                             <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.productCode", "Codice")">@context.ProductCode</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.description", "Descrizione")">@context.Description</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.productCode", "Codice")">
+                                    @if (!string.IsNullOrWhiteSpace(_searchQuery) && 
+                                         !string.IsNullOrEmpty(context.ProductCode) &&
+                                         context.ProductCode.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <MudHighlighter Text="@context.ProductCode" 
+                                                       HighlightedText="@_searchQuery" 
+                                                       CaseSensitive="false" />
+                                    }
+                                    else
+                                    {
+                                        @context.ProductCode
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("documents.description", "Descrizione")">
+                                    @if (!string.IsNullOrWhiteSpace(_searchQuery) && 
+                                         !string.IsNullOrEmpty(context.Description) &&
+                                         context.Description.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <MudHighlighter Text="@context.Description" 
+                                                       HighlightedText="@_searchQuery" 
+                                                       CaseSensitive="false" />
+                                    }
+                                    else
+                                    {
+                                        @context.Description
+                                    }
+                                </MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("documents.quantity", "Quantità")">@context.Quantity</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")">@(context.UnitOfMeasure ?? "-")</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">
@@ -241,13 +286,6 @@
                                 <MudText>@TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente")</MudText>
                             </NoRecordsContent>
                         </MudTable>
-
-                        <MudDivider Class="my-4" />
-                        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
-                            <MudText Typo="Typo.h6">
-                                @TranslationService.GetTranslation("documents.totalAmount", "Totale"): @CalculateTotalAmount().ToString("C2")
-                            </MudText>
-                        </MudStack>
                     }
                     else
                     {
@@ -263,7 +301,7 @@
         </MudItem>
 
         <!-- Right column: VAT Summary and Totals -->
-        <MudItem xs="12" lg="4">
+        <MudItem xs="12" lg="4" Class="document-sidebar-sticky">
             <MudStack Spacing="3">
                 <DocumentVatSummary Rows="@_currentDocument?.Rows" />
                 <DocumentTotalsCard Document="@_currentDocument" />
@@ -309,6 +347,10 @@
     
     // Selection management for rows
     private HashSet<DocumentRowDto> _selectedRows = new();
+    
+    // Search functionality
+    private string _searchQuery = string.Empty;
+    private IEnumerable<DocumentRowDto>? _filteredRows => FilterRows();
     
     // Computed property for checking if document has rows
     private bool HasRows => _currentDocument?.Rows?.Any() ?? false;
@@ -758,5 +800,39 @@
                 _isLoading = false;
             }
         }
+    }
+    
+    private IEnumerable<DocumentRowDto>? FilterRows()
+    {
+        if (_currentDocument?.Rows == null)
+            return null;
+            
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return _currentDocument.Rows;
+            
+        return _currentDocument.Rows.Where(row =>
+            (!string.IsNullOrEmpty(row.ProductCode) && 
+             row.ProductCode.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrEmpty(row.Description) && 
+             row.Description.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+        );
+    }
+    
+    private string GetSearchHelperText()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return TranslationService.GetTranslation("documents.searchHelp", "Digita per filtrare le righe");
+        
+        var total = _currentDocument?.Rows?.Count() ?? 0;
+        if (total == 0)
+            return TranslationService.GetTranslation("documents.searchHelp", "Digita per filtrare le righe");
+        
+        // Materialize the filtered collection to avoid multiple enumerations
+        var filtered = _filteredRows?.ToList();
+        var count = filtered?.Count ?? 0;
+        
+        return count == total 
+            ? TranslationService.GetTranslationFormatted("documents.showingAllRows", "Visualizzate tutte le {0} righe", total)
+            : TranslationService.GetTranslationFormatted("documents.showingFilteredRows", "Visualizzate {0} di {1} righe", count, total);
     }
 }
