@@ -2485,24 +2485,11 @@
     "baseUnitsLabel": "Base units",
     "conversionInfo": "1 {0} = {1} {2}",
     "dualInputHelp": "You can enter quantity in either unit. The system will always save the value in base units.",
-    "discount": "Discount",
-    "groupTotal": "Group total",
-    "vatRate": "VAT",
-    "column": {
-      "productcode": "Code",
-      "description": "Description",
-      "quantity": "Quantity",
-      "unitofmeasure": "UoM",
-      "unitprice": "Unit Price",
-      "vatrate": "VAT %",
-      "discounttotal": "Discount",
-      "linetotal": "Taxable",
-      "vattotal": "Tax",
-      "grosstotal": "Gross Total",
-      "vatdescription": "VAT Desc.",
-      "linediscount": "Discount %",
-      "linediscountvalue": "Discount Value"
-    }
+    "searchArticles": "Search article",
+    "searchByCodeOrDescription": "Search by code or description...",
+    "searchHelp": "Type to filter rows",
+    "showingAllRows": "Showing all {0} rows",
+    "showingFilteredRows": "Showing {0} of {1} rows"
   },
   "documentType": {
     "management": "Document Type Management",

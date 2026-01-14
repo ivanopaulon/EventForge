@@ -2557,24 +2557,11 @@
     "baseUnitsLabel": "Unità base",
     "conversionInfo": "1 {0} = {1} {2}",
     "dualInputHelp": "Puoi inserire la quantità in entrambe le unità. Il sistema salverà sempre il valore in unità base.",
-    "discount": "Sconto",
-    "groupTotal": "Totale gruppo",
-    "vatRate": "IVA",
-    "column": {
-      "productcode": "Codice",
-      "description": "Descrizione",
-      "quantity": "Quantità",
-      "unitofmeasure": "UM",
-      "unitprice": "Prezzo Unit.",
-      "vatrate": "IVA %",
-      "discounttotal": "Sconto",
-      "linetotal": "Imponibile",
-      "vattotal": "Imposta",
-      "grosstotal": "Totale Lordo",
-      "vatdescription": "Desc. IVA",
-      "linediscount": "Sconto %",
-      "linediscountvalue": "Valore Sconto"
-    }
+    "searchArticles": "Cerca articolo",
+    "searchByCodeOrDescription": "Cerca per codice o descrizione...",
+    "searchHelp": "Digita per filtrare le righe",
+    "showingAllRows": "Visualizzate tutte le {0} righe",
+    "showingFilteredRows": "Visualizzate {0} di {1} righe"
   },
   "documentType": {
     "management": "Gestione Tipi Documento",
