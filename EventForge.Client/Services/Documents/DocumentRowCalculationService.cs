@@ -1,5 +1,6 @@
 using EventForge.Client.Models.Documents;
 using EventForge.DTOs.Common;
+using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.Services.Documents;
 
