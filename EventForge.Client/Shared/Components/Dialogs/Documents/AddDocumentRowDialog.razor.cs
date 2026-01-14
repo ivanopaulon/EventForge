@@ -708,7 +708,7 @@ public partial class AddDocumentRowDialog
     #region Calculation Methods
     
     /// <summary>
-    /// Genera una chiave univoca per il caching basata sui valori correnti
+    /// Generates a unique key for caching based on current values
     /// </summary>
     private string GetCalculationCacheKey()
     {
@@ -716,19 +716,19 @@ public partial class AddDocumentRowDialog
     }
     
     /// <summary>
-    /// Ottiene i risultati del calcolo dalla centralizzata service con caching
+    /// Gets calculation results from centralized service with caching
     /// </summary>
     private Client.Models.Documents.DocumentRowCalculationResult GetCalculationResult()
     {
         var currentKey = GetCalculationCacheKey();
         
-        // Usa il risultato in cache se la chiave corrisponde
+        // Use cached result if key matches
         if (_cachedCalculationResult != null && _cachedCalculationKey == currentKey)
         {
             return _cachedCalculationResult;
         }
         
-        // Calcola e metti in cache il risultato
+        // Calculate and cache the result
         var input = new Client.Models.Documents.DocumentRowCalculationInput
         {
             Quantity = _model.Quantity,
