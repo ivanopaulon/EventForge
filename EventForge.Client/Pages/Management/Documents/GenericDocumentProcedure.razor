@@ -129,7 +129,7 @@
                       Dense="true"
                       Margin="Margin.Dense"
                       Style="min-width: 140px;"
-                      Disabled="@(!_isEditMode || _currentDocument == null)"
+                      Disabled="@(!_isEditMode || _currentDocument == null || !IsDocumentEditable())"
                       aria-label="@TranslationService.GetTranslation("documents.status", "Stato Documento")">
                 <MudSelectItem Value="@DocumentStatus.Draft">
                     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
@@ -629,6 +629,15 @@
         };
     }
 
+    /// <summary>
+    /// Checks if the document can be modified (not closed or cancelled)
+    /// </summary>
+    private bool IsDocumentEditable()
+    {
+        return _currentDocument?.Status != DocumentStatus.Closed && 
+               _currentDocument?.Status != DocumentStatus.Cancelled;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         // Initialize column configurations with translations
@@ -803,8 +812,7 @@
     private async Task SaveDocumentHeaderAsync()
     {
         // Block modification if document is closed or cancelled
-        if (_currentDocument != null && 
-            (_currentDocument.Status == DocumentStatus.Closed || _currentDocument.Status == DocumentStatus.Cancelled))
+        if (!IsDocumentEditable())
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento chiuso o annullato"),
@@ -900,9 +908,9 @@
             }
             else
             {
-                // For other states, update the Status field in the document
-                // Note: This requires a backend endpoint to update only the status
-                // For now, update locally and it will be saved with the next SaveDocumentHeaderAsync
+                // For other states, update the Status field in the document locally
+                // NOTE: The status change will be persisted to the backend when the user next saves the document header
+                // If a dedicated status update endpoint is added in the future, this should call it immediately
                 _currentDocument.Status = newStatus;
                 _documentStatus = newStatus;
                 
@@ -939,7 +947,7 @@
     private async Task AddRowAsync()
     {
         // Block if document is closed or cancelled
-        if (_currentDocument?.Status == DocumentStatus.Closed || _currentDocument?.Status == DocumentStatus.Cancelled)
+        if (!IsDocumentEditable())
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
@@ -978,7 +986,7 @@
     private async Task EditRow(DocumentRowDto row)
     {
         // Block if document is closed or cancelled
-        if (_currentDocument?.Status == DocumentStatus.Closed || _currentDocument?.Status == DocumentStatus.Cancelled)
+        if (!IsDocumentEditable())
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
@@ -1016,7 +1024,7 @@
     private async Task DeleteRow(DocumentRowDto row)
     {
         // Block if document is closed or cancelled
-        if (_currentDocument?.Status == DocumentStatus.Closed || _currentDocument?.Status == DocumentStatus.Cancelled)
+        if (!IsDocumentEditable())
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
@@ -1068,7 +1076,7 @@
             return;
 
         // Block if document is closed or cancelled
-        if (_currentDocument?.Status == DocumentStatus.Closed || _currentDocument?.Status == DocumentStatus.Cancelled)
+        if (!IsDocumentEditable())
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
@@ -1153,7 +1161,7 @@
         }
 
         // Block if document is closed or cancelled
-        if (_currentDocument?.Status == DocumentStatus.Closed || _currentDocument?.Status == DocumentStatus.Cancelled)
+        if (!IsDocumentEditable())
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
