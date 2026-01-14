@@ -26,6 +26,9 @@ namespace EventForge.Client.Services
 
         // Refresh the JWT token to extend the session
         Task<bool> RefreshTokenAsync();
+
+        // Get token expiry time
+        Task<TimeSpan?> GetTokenTimeToExpiryAsync();
     }
 
     public class AuthService : IAuthService
@@ -341,6 +344,8 @@ namespace EventForge.Client.Services
 
         public async Task<bool> RefreshTokenAsync()
         {
+            const int maxRetries = 2;
+
             try
             {
                 // Check if we're authenticated first
@@ -350,36 +355,118 @@ namespace EventForge.Client.Services
                     return false;
                 }
 
-                var client = _httpClientFactory.CreateClient("EventForge.ServerAPI");
-                var response = await client.PostAsync($"{BaseUrl}/refresh-token", null);
-
-                if (response.IsSuccessStatusCode)
+                // Check if token is about to expire (give at least 5 minutes margin)
+                var currentToken = await GetAccessTokenAsync();
+                if (!string.IsNullOrEmpty(currentToken))
                 {
-                    var refreshResponse = await response.Content.ReadFromJsonAsync<RefreshTokenResponseDto>();
-                    if (refreshResponse != null && !string.IsNullOrEmpty(refreshResponse.AccessToken))
+                    var tokenHandler = new JwtSecurityTokenHandler();
+                    var jwtToken = tokenHandler.ReadJwtToken(currentToken);
+                    var timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
+
+                    if (timeToExpiry.TotalMinutes > 10)
                     {
-                        // Update token in memory
-                        _accessToken = refreshResponse.AccessToken;
+                        _logger.LogInformation("Token still has {Minutes} minutes validity, skipping refresh", timeToExpiry.TotalMinutes);
+                        return true; // Token still valid, no need to refresh
+                    }
 
-                        // Save to localStorage
-                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
+                    _logger.LogInformation("Token will expire in {Minutes} minutes, proceeding with refresh", timeToExpiry.TotalMinutes);
+                }
 
-                        _logger.LogInformation("Token refreshed successfully");
+                for (int attempt = 1; attempt <= maxRetries; attempt++)
+                {
+                    try
+                    {
+                        // FIXED: Use ApiClient instead of EventForge.ServerAPI
+                        var client = _httpClientFactory.CreateClient("ApiClient");
 
-                        // Notify that authentication state may have changed
-                        OnAuthenticationStateChanged?.Invoke();
+                        _logger.LogInformation("Attempting token refresh (attempt {Attempt}/{MaxRetries})", attempt, maxRetries);
 
-                        return true;
+                        var response = await client.PostAsync($"{BaseUrl}/refresh-token", null);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var refreshResponse = await response.Content.ReadFromJsonAsync<RefreshTokenResponseDto>();
+                            if (refreshResponse != null && !string.IsNullOrEmpty(refreshResponse.AccessToken))
+                            {
+                                // Update token in memory
+                                _accessToken = refreshResponse.AccessToken;
+
+                                // Save to localStorage
+                                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
+
+                                _logger.LogInformation("Token refreshed successfully on attempt {Attempt}", attempt);
+
+                                // Notify that authentication state may have changed
+                                OnAuthenticationStateChanged?.Invoke();
+
+                                return true;
+                            }
+                        }
+
+                        _logger.LogWarning("Token refresh failed with status code: {StatusCode} (attempt {Attempt}/{MaxRetries})",
+                            response.StatusCode, attempt, maxRetries);
+
+                        // Retry only on 5xx errors or network issues
+                        if ((int)response.StatusCode >= 500 && attempt < maxRetries)
+                        {
+                            await Task.Delay(1000 * attempt); // Linear backoff: 1s, 2s
+                            continue;
+                        }
+
+                        // For 401/403 errors, don't retry
+                        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                            response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        {
+                            _logger.LogError("Token refresh denied by server (status {StatusCode}). User may need to re-login.", response.StatusCode);
+                            return false;
+                        }
+                    }
+                    catch (Exception attemptEx)
+                    {
+                        _logger.LogError(attemptEx, "Error during token refresh attempt {Attempt}/{MaxRetries}", attempt, maxRetries);
+
+                        if (attempt < maxRetries)
+                        {
+                            await Task.Delay(1000 * attempt); // Linear backoff: 1s, 2s
+                            continue;
+                        }
                     }
                 }
 
-                _logger.LogWarning("Token refresh failed with status code: {StatusCode}", response.StatusCode);
+                _logger.LogError("Token refresh failed after {MaxRetries} attempts", maxRetries);
                 return false;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error refreshing token");
+                _logger.LogError(ex, "Critical error refreshing token");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the time remaining until token expiration
+        /// </summary>
+        public async Task<TimeSpan?> GetTokenTimeToExpiryAsync()
+        {
+            try
+            {
+                var token = await GetAccessTokenAsync();
+                if (string.IsNullOrEmpty(token))
+                    return null;
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+                return jwtToken.ValidTo - DateTime.UtcNow;
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid JWT token format when checking expiry");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error checking token expiry");
+                return null;
             }
         }
     }

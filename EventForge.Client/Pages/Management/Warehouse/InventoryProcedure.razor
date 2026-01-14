@@ -386,8 +386,8 @@
     // Feature flag: Enable unified inventory dialog
     private const bool UseUnifiedInventoryDialog = true;
     
-    // Keepalive interval in minutes (changed from 5 to 4 for better session maintenance)
-    private const int KEEPALIVE_INTERVAL_MINUTES = 4;
+    // Keepalive interval in minutes (changed from 4 to 3 for better safety margin)
+    private const int KEEPALIVE_INTERVAL_MINUTES = 3;
     
     // Limit for _barcodeAssignments to prevent memory leaks
     private const int MaxBarcodeAssignments = 200;
@@ -2414,56 +2414,115 @@
 
     private async Task CheckSessionValidityAsync(CancellationToken cancellationToken)
     {
-        // If there's no active session, skip the keepalive check
+        // Only run keepalive if there's an active inventory session
         if (_currentDocument == null)
         {
-            Logger.LogDebug("Keepalive check skipped - no active session");
+            Logger.LogDebug("Session keepalive: Skipping (no active inventory document)");
             return;
         }
-        
+
         // Check if component is being disposed
         if (cancellationToken.IsCancellationRequested)
         {
             return;
         }
-        
+
         try
         {
-            Logger.LogInformation("[KEEPALIVE] Token refresh started at {Time}", DateTime.UtcNow);
-            
-            // Attempt to refresh the token to extend the session
-            var refreshSuccess = await AuthService.RefreshTokenAsync();
-            
+            Logger.LogInformation("Session keepalive: Starting token refresh check");
+
+            // Check token expiry time first
+            var timeToExpiry = await AuthService.GetTokenTimeToExpiryAsync();
+
+            if (timeToExpiry.HasValue)
+            {
+                Logger.LogInformation("Session keepalive: Token expires in {Minutes} minutes", timeToExpiry.Value.TotalMinutes);
+
+                // If less than 5 minutes remaining, show critical warning
+                if (timeToExpiry.Value.TotalMinutes < 5)
+                {
+                    Logger.LogWarning("Session keepalive: CRITICAL - Token expires in less than 5 minutes!");
+
+                    var minutesLeft = (int)Math.Floor(timeToExpiry.Value.TotalMinutes);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.sessionCriticalWarning",
+                            "ATTENZIONE: La sessione scadrà tra {0} minuti! Salva il lavoro immediatamente.",
+                            minutesLeft),
+                        Severity.Error,
+                        config =>
+                        {
+                            config.VisibleStateDuration = 15000;
+                            config.ShowCloseIcon = true;
+                        }
+                    );
+                }
+                // If less than 10 minutes remaining, show warning
+                else if (timeToExpiry.Value.TotalMinutes < 10)
+                {
+                    Logger.LogWarning("Session keepalive: Token expires in less than 10 minutes");
+
+                    var minutesLeft = (int)Math.Floor(timeToExpiry.Value.TotalMinutes);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.sessionWarning",
+                            "La sessione scadrà tra {0} minuti. Il token verrà rinnovato automaticamente.",
+                            minutesLeft),
+                        Severity.Warning,
+                        config =>
+                        {
+                            config.VisibleStateDuration = 8000;
+                        }
+                    );
+                }
+            }
+
             if (cancellationToken.IsCancellationRequested)
             {
-                return; // Stop if component is being disposed
+                return;
             }
-            
-            if (refreshSuccess)
+
+            // Attempt token refresh
+            var success = await AuthService.RefreshTokenAsync();
+
+            if (cancellationToken.IsCancellationRequested)
             {
-                Logger.LogInformation("[KEEPALIVE] Token refreshed successfully");
+                return;
+            }
+
+            if (success)
+            {
+                Logger.LogInformation("Session keepalive: Token refreshed successfully");
+
+                // Optional: Show subtle success message (can be commented out if too noisy)
+                // Snackbar.Add(
+                //     TranslationService.GetTranslation("warehouse.sessionRefreshed", "Sessione rinnovata automaticamente"),
+                //     Severity.Success,
+                //     config => { config.VisibleStateDuration = 3000; }
+                // );
             }
             else
             {
-                Logger.LogWarning("[KEEPALIVE] Token refresh failed at {Time}", DateTime.UtcNow);
-                
-                // Token refresh failed - user may need to re-authenticate
-                await InvokeAsync(() =>
-                {
-                    if (!cancellationToken.IsCancellationRequested)
+                Logger.LogWarning("Session keepalive: Token refresh FAILED");
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.sessionRefreshFailed",
+                        "Impossibile rinnovare la sessione. Salva il lavoro e rieffettua il login."),
+                    Severity.Error,
+                    config =>
                     {
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("auth.sessionExpiring", "La sessione sta per scadere. Salva il lavoro e preparati a rieffettuare il login."),
-                            Severity.Warning,
-                            config => 
-                            {
-                                config.VisibleStateDuration = 15000; // Show for 15 seconds
-                            }
-                        );
-                        StateHasChanged();
+                        config.VisibleStateDuration = 12000;
+                        config.ShowCloseIcon = true;
                     }
-                });
+                );
+
+                // Log detailed error for diagnostics
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.sessionRefreshFailedLog", "Rinnovo sessione fallito"),
+                    "Il token JWT non può essere rinnovato. Potrebbe essere necessario rieffettuare il login.",
+                    "Error"
+                );
             }
+
+            StateHasChanged();
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -2471,9 +2530,9 @@
             {
                 return;
             }
-            
-            Logger.LogError(ex, "[KEEPALIVE] Session expired - JWT token no longer valid");
-            
+
+            Logger.LogError(ex, "Session keepalive: Session expired - JWT token no longer valid");
+
             // Token has expired - warn the user
             await InvokeAsync(() =>
             {
@@ -2482,7 +2541,7 @@
                     Snackbar.Add(
                         TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
                         Severity.Error,
-                        config => 
+                        config =>
                         {
                             config.VisibleStateDuration = 15000; // Show for 15 seconds
                         }
@@ -2498,11 +2557,16 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "[KEEPALIVE] Token refresh check failed");
-            
+            Logger.LogError(ex, "Session keepalive: Critical error during token refresh");
+
             if (!cancellationToken.IsCancellationRequested)
             {
-                Logger.LogWarning(ex, "Error during session validity check and token refresh");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.sessionRefreshError",
+                        "Errore durante il rinnovo della sessione: {0}", ex.Message),
+                    Severity.Error,
+                    config => { config.VisibleStateDuration = 10000; }
+                );
             }
         }
     }
