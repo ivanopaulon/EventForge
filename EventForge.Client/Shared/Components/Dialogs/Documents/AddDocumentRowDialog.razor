@@ -1225,15 +1225,15 @@
 
         if (!result.Canceled && result.Data is ProductDto updatedProduct)
         {
-            // Aggiorna il prodotto selezionato
+            // Update the selected product
             _selectedProduct = updatedProduct;
             
-            // Aggiorna i campi nel form
+            // Update form fields
             _model.Description = updatedProduct.Description;
             _model.ProductCode = updatedProduct.Code;
             _model.UnitPrice = updatedProduct.DefaultPrice ?? _model.UnitPrice;
             
-            // Se il prodotto ha un'aliquota IVA, aggiornala
+            // Update VAT rate if product has one
             if (updatedProduct.VatRateId.HasValue)
             {
                 _selectedVatRateId = updatedProduct.VatRateId.Value;
