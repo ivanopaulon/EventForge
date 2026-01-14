@@ -316,7 +316,8 @@
     "warning": "Attenzione",
     "yes": "Sì",
     "days": "giorni",
-    "itemsFound": "elementi trovati"
+    "itemsFound": "elementi trovati",
+    "advancedOptions": "Opzioni Avanzate"
   },
   "dataRetention": {
     "indefinite": "Indefinito"
@@ -1415,7 +1416,9 @@
     "searchPlaceholder": "Inserisci nome o codice...",
     "searchByCodeOrDescription": "Cerca per codice o descrizione",
     "list": "Lista Prodotti",
-    "createNew": "Crea nuovo prodotto"
+    "createNew": "Crea nuovo prodotto",
+    "noProductSelected": "Nessun prodotto selezionato",
+    "updatedSuccess": "Prodotto aggiornato con successo"
   },
   "profile": {
     "accountStatus": "Stato Account",
@@ -2562,7 +2565,12 @@
     "searchByCodeOrDescription": "Cerca per codice o descrizione...",
     "searchHelp": "Digita per filtrare le righe",
     "showingAllRows": "Visualizzate tutte le {0} righe",
-    "showingFilteredRows": "Visualizzate {0} di {1} righe"
+    "showingFilteredRows": "Visualizzate {0} di {1} righe",
+    "productSection": "Prodotto",
+    "pricesAndTaxesSection": "Prezzi e Imposte",
+    "lineSummary": "Riepilogo Riga",
+    "taxableAmount": "Imponibile (netto)",
+    "vatAmount": "Imposta IVA"
   },
   "documentType": {
     "management": "Gestione Tipi Documento",
