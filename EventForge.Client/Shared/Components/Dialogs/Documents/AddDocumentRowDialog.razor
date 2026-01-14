@@ -677,15 +677,16 @@
             if (result == null)
                 return Array.Empty<ProductDto>();
             
-            if (result.ExactMatch?.Product != null)
+            var exactMatchProduct = result.ExactMatch?.Product;
+            if (exactMatchProduct != null)
             {
                 // If exact match found, show it first
-                var exactMatchList = new List<ProductDto> { result.ExactMatch.Product };
+                var exactMatchList = new List<ProductDto> { exactMatchProduct };
                 
-                // Add other results if present
+                // Add other results if present, excluding the exact match
                 if (result.SearchResults.Any())
                 {
-                    exactMatchList.AddRange(result.SearchResults.Where(p => p.Id != result.ExactMatch.Product.Id));
+                    exactMatchList.AddRange(result.SearchResults.Where(p => p.Id != exactMatchProduct.Id));
                 }
                 
                 return exactMatchList;
