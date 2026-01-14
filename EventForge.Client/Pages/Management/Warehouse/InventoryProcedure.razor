@@ -2443,10 +2443,11 @@
                 {
                     Logger.LogWarning("Session keepalive: CRITICAL - Token expires in less than 5 minutes!");
 
+                    var minutesLeft = (int)Math.Floor(timeToExpiry.Value.TotalMinutes);
                     Snackbar.Add(
                         TranslationService.GetTranslation("warehouse.sessionCriticalWarning",
                             "ATTENZIONE: La sessione scadrà tra {0} minuti! Salva il lavoro immediatamente.",
-                            Math.Ceiling(timeToExpiry.Value.TotalMinutes)),
+                            minutesLeft),
                         Severity.Error,
                         config =>
                         {
@@ -2460,10 +2461,11 @@
                 {
                     Logger.LogWarning("Session keepalive: Token expires in less than 10 minutes");
 
+                    var minutesLeft = (int)Math.Floor(timeToExpiry.Value.TotalMinutes);
                     Snackbar.Add(
                         TranslationService.GetTranslation("warehouse.sessionWarning",
                             "La sessione scadrà tra {0} minuti. Il token verrà rinnovato automaticamente.",
-                            Math.Ceiling(timeToExpiry.Value.TotalMinutes)),
+                            minutesLeft),
                         Severity.Warning,
                         config =>
                         {

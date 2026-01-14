@@ -409,7 +409,7 @@ namespace EventForge.Client.Services
                         // Retry only on 5xx errors or network issues
                         if ((int)response.StatusCode >= 500 && attempt < maxRetries)
                         {
-                            await Task.Delay(1000 * attempt); // Exponential backoff
+                            await Task.Delay(1000 * attempt); // Linear backoff: 1s, 2s
                             continue;
                         }
 
@@ -427,7 +427,7 @@ namespace EventForge.Client.Services
 
                         if (attempt < maxRetries)
                         {
-                            await Task.Delay(1000 * attempt); // Exponential backoff
+                            await Task.Delay(1000 * attempt); // Linear backoff: 1s, 2s
                             continue;
                         }
                     }
@@ -458,8 +458,14 @@ namespace EventForge.Client.Services
                 var jwtToken = tokenHandler.ReadJwtToken(token);
                 return jwtToken.ValidTo - DateTime.UtcNow;
             }
-            catch
+            catch (ArgumentException ex)
             {
+                _logger.LogWarning(ex, "Invalid JWT token format when checking expiry");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error checking token expiry");
                 return null;
             }
         }
