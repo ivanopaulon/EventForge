@@ -671,12 +671,29 @@
 
         try
         {
-            // Use GetProductsAsync and filter locally for simplicity
-            var result = await ProductService.GetProductsAsync(1, 50);
-            return result?.Items.Where(p => 
-                (p.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.Code?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-            ) ?? Array.Empty<ProductDto>();
+            // Use unified search API that searches entire product catalog
+            var result = await ProductService.SearchProductsAsync(searchTerm, 50);
+            
+            if (result == null)
+                return Array.Empty<ProductDto>();
+            
+            var exactMatchProduct = result.ExactMatch?.Product;
+            if (exactMatchProduct != null)
+            {
+                // If exact match found, show it first
+                var exactMatchList = new List<ProductDto> { exactMatchProduct };
+                
+                // Add other results if present, excluding the exact match
+                var searchResults = result.SearchResults ?? Enumerable.Empty<ProductDto>();
+                if (searchResults.Any())
+                {
+                    exactMatchList.AddRange(searchResults.Where(p => p.Id != exactMatchProduct.Id));
+                }
+                
+                return exactMatchList;
+            }
+            
+            return result.SearchResults ?? Enumerable.Empty<ProductDto>();
         }
         catch (Exception ex)
         {
