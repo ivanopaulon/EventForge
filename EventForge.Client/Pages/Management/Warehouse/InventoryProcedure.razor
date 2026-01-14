@@ -386,7 +386,7 @@
     // Feature flag: Enable unified inventory dialog
     private const bool UseUnifiedInventoryDialog = true;
     
-    // Keepalive interval in minutes (changed from 4 to 3 for better safety margin)
+    // Keepalive interval in minutes (reference only - managed by global SessionKeepaliveService)
     private const int KEEPALIVE_INTERVAL_MINUTES = 3;
     
     // Limit for _barcodeAssignments to prevent memory leaks
@@ -436,9 +436,6 @@
     private bool _isSimulating = false;
     private int _simulationProgress = 0;
     private int _simulationTotal = 0;
-    
-    // Timer for session keepalive and token validity check
-    private System.Threading.Timer? _sessionKeepAliveTimer;
     
     // Cancellation token for async operations
     private CancellationTokenSource? _cts;
@@ -829,15 +826,7 @@
                 await ShowManageInventoriesDialogAuto();
             }
             
-            // Start session keepalive timer - check every 4 minutes for better session maintenance
-            _sessionKeepAliveTimer = new System.Threading.Timer(
-                _ => OnSessionKeepAliveTimer(),
-                null,
-                TimeSpan.FromMinutes(KEEPALIVE_INTERVAL_MINUTES),
-                TimeSpan.FromMinutes(KEEPALIVE_INTERVAL_MINUTES)
-            );
-            
-            Logger.LogInformation("InventoryProcedure component initialized with session keepalive");
+            Logger.LogInformation("InventoryProcedure component initialized (session keepalive managed by global service)");
         }
         finally
         {
@@ -2333,26 +2322,6 @@
         }
     }
     
-    private void OnSessionKeepAliveTimer()
-    {
-        // Synchronous wrapper for timer callback to avoid fire-and-forget async issues
-        try
-        {
-            // Check if component is being disposed
-            if (_cts?.IsCancellationRequested == true)
-            {
-                return;
-            }
-
-            // Execute async operation synchronously in the timer context
-            _ = InvokeAsync(async () => await CheckSessionValidityAsync(_cts?.Token ?? default));
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Unhandled exception in session keepalive timer");
-        }
-    }
-
     // ========== Manage Inventories Dialog Methods ==========
 
     private async Task ShowManageInventoriesDialogAuto()
@@ -2411,165 +2380,6 @@
         await LoadOpenInventoriesAsync();
         StateHasChanged();
     }
-
-    private async Task CheckSessionValidityAsync(CancellationToken cancellationToken)
-    {
-        // Only run keepalive if there's an active inventory session
-        if (_currentDocument == null)
-        {
-            Logger.LogDebug("Session keepalive: Skipping (no active inventory document)");
-            return;
-        }
-
-        // Check if component is being disposed
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-
-        try
-        {
-            Logger.LogInformation("Session keepalive: Starting token refresh check");
-
-            // Check token expiry time first
-            var timeToExpiry = await AuthService.GetTokenTimeToExpiryAsync();
-
-            if (timeToExpiry.HasValue)
-            {
-                Logger.LogInformation("Session keepalive: Token expires in {Minutes} minutes", timeToExpiry.Value.TotalMinutes);
-
-                // If less than 5 minutes remaining, show critical warning
-                if (timeToExpiry.Value.TotalMinutes < 5)
-                {
-                    Logger.LogWarning("Session keepalive: CRITICAL - Token expires in less than 5 minutes!");
-
-                    var minutesLeft = (int)Math.Floor(timeToExpiry.Value.TotalMinutes);
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.sessionCriticalWarning",
-                            "ATTENZIONE: La sessione scadrà tra {0} minuti! Salva il lavoro immediatamente.",
-                            minutesLeft),
-                        Severity.Error,
-                        config =>
-                        {
-                            config.VisibleStateDuration = 15000;
-                            config.ShowCloseIcon = true;
-                        }
-                    );
-                }
-                // If less than 10 minutes remaining, show warning
-                else if (timeToExpiry.Value.TotalMinutes < 10)
-                {
-                    Logger.LogWarning("Session keepalive: Token expires in less than 10 minutes");
-
-                    var minutesLeft = (int)Math.Floor(timeToExpiry.Value.TotalMinutes);
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.sessionWarning",
-                            "La sessione scadrà tra {0} minuti. Il token verrà rinnovato automaticamente.",
-                            minutesLeft),
-                        Severity.Warning,
-                        config =>
-                        {
-                            config.VisibleStateDuration = 8000;
-                        }
-                    );
-                }
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
-            // Attempt token refresh
-            var success = await AuthService.RefreshTokenAsync();
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
-            if (success)
-            {
-                Logger.LogInformation("Session keepalive: Token refreshed successfully");
-
-                // Optional: Show subtle success message (can be commented out if too noisy)
-                // Snackbar.Add(
-                //     TranslationService.GetTranslation("warehouse.sessionRefreshed", "Sessione rinnovata automaticamente"),
-                //     Severity.Success,
-                //     config => { config.VisibleStateDuration = 3000; }
-                // );
-            }
-            else
-            {
-                Logger.LogWarning("Session keepalive: Token refresh FAILED");
-
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.sessionRefreshFailed",
-                        "Impossibile rinnovare la sessione. Salva il lavoro e rieffettua il login."),
-                    Severity.Error,
-                    config =>
-                    {
-                        config.VisibleStateDuration = 12000;
-                        config.ShowCloseIcon = true;
-                    }
-                );
-
-                // Log detailed error for diagnostics
-                AddOperationLog(
-                    TranslationService.GetTranslation("warehouse.sessionRefreshFailedLog", "Rinnovo sessione fallito"),
-                    "Il token JWT non può essere rinnovato. Potrebbe essere necessario rieffettuare il login.",
-                    "Error"
-                );
-            }
-
-            StateHasChanged();
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
-            Logger.LogError(ex, "Session keepalive: Session expired - JWT token no longer valid");
-
-            // Token has expired - warn the user
-            await InvokeAsync(() =>
-            {
-                if (!cancellationToken.IsCancellationRequested)
-                {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
-                        Severity.Error,
-                        config =>
-                        {
-                            config.VisibleStateDuration = 15000; // Show for 15 seconds
-                        }
-                    );
-                    StateHasChanged();
-                }
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected when component is being disposed
-            Logger.LogDebug("Session validity check cancelled");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Session keepalive: Critical error during token refresh");
-
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.sessionRefreshError",
-                        "Errore durante il rinnovo della sessione: {0}", ex.Message),
-                    Severity.Error,
-                    config => { config.VisibleStateDuration = 10000; }
-                );
-            }
-        }
-    }
     
     public void Dispose()
     {
@@ -2579,10 +2389,6 @@
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = null;
-        
-        // Dispose the session keepalive timer
-        _sessionKeepAliveTimer?.Dispose();
-        _sessionKeepAliveTimer = null;
         
         // Clear barcode assignments to free memory
         _barcodeAssignments.Clear();

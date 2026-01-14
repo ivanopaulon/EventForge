@@ -2,11 +2,13 @@
 @inherits LayoutComponentBase
 @using EventForge.Client.Constants
 @inject IAuthService AuthService
+@inject ISessionKeepaliveService SessionKeepaliveService
 @inject IThemeService ThemeService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
+@inject ILogger<MainLayout> Logger
 @implements IDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
@@ -80,6 +82,10 @@
         ThemeService.OnThemeChanged += OnThemeChanged;
         TranslationService.LanguageChanged += OnLanguageChanged;
         NavigationManager.LocationChanged += OnLocationChanged;
+        
+        // Subscribe to session keepalive events
+        SessionKeepaliveService.OnRefreshSuccess += OnSessionRefreshSuccess;
+        SessionKeepaliveService.OnRefreshFailure += OnSessionRefreshFailure;
         
         await ThemeService.InitializeAsync();
         await CheckAuthenticationState();
@@ -232,7 +238,23 @@
 
     private async Task CheckAuthenticationState()
     {
+        var wasAuthenticated = _isAuthenticated;
         _isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        
+        // Start or stop session keepalive based on authentication state
+        if (_isAuthenticated && !wasAuthenticated)
+        {
+            // User just logged in - start the keepalive service
+            Logger.LogInformation("User authenticated, starting session keepalive service");
+            SessionKeepaliveService.Start();
+        }
+        else if (!_isAuthenticated && wasAuthenticated)
+        {
+            // User just logged out - stop the keepalive service
+            Logger.LogInformation("User logged out, stopping session keepalive service");
+            SessionKeepaliveService.Stop();
+        }
+        
         StateHasChanged();
     }
 
@@ -263,11 +285,51 @@
         }
     }
 
+    private void OnSessionRefreshSuccess()
+    {
+        // Optional: Show subtle success notification
+        // Commented out to avoid noise, but can be enabled if desired
+        Logger.LogDebug("Session token refreshed successfully");
+        
+        // Uncomment to show success notification:
+        // InvokeAsync(() =>
+        // {
+        //     Snackbar.Add(
+        //         TranslationService.GetTranslation("session.refreshSuccess", "Sessione rinnovata automaticamente"),
+        //         Severity.Success,
+        //         config => { config.VisibleStateDuration = 2000; }
+        //     );
+        // });
+    }
+
+    private void OnSessionRefreshFailure(string errorMessage)
+    {
+        Logger.LogWarning("Session token refresh failed: {Error}", errorMessage);
+        
+        InvokeAsync(() =>
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("session.refreshFailure", "Impossibile rinnovare la sessione. Salva il lavoro e rieffettua il login."),
+                Severity.Error,
+                config =>
+                {
+                    config.VisibleStateDuration = 10000;
+                    config.ShowCloseIcon = true;
+                }
+            );
+        });
+    }
+
     public void Dispose()
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
         ThemeService.OnThemeChanged -= OnThemeChanged;
         TranslationService.LanguageChanged -= OnLanguageChanged;
         NavigationManager.LocationChanged -= OnLocationChanged;
+        SessionKeepaliveService.OnRefreshSuccess -= OnSessionRefreshSuccess;
+        SessionKeepaliveService.OnRefreshFailure -= OnSessionRefreshFailure;
+        
+        // Ensure the keepalive service is stopped when the layout is disposed
+        SessionKeepaliveService.Stop();
     }
 }
