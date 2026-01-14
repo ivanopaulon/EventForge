@@ -3,10 +3,13 @@
 @using EventForge.DTOs.UnitOfMeasures
 @using EventForge.DTOs.VatRates
 @using EventForge.DTOs.Common
+@using EventForge.Client.Models.Documents
+@using EventForge.Client.Services.Documents
 @using MudBlazor
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IProductService ProductService
 @inject IFinancialService FinancialService
+@inject IDocumentRowCalculationService CalculationService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject ILogger<AddDocumentRowDialog> Logger
@@ -629,8 +632,8 @@
         // ✅ Se il prodotto ha IVA inclusa, scorporiamo SUBITO
         if (product.IsVatIncluded && vatRate > 0)
         {
-            // Scorporo IVA: Prezzo / (1 + IVA%)
-            productPrice = productPrice / (1 + vatRate / 100m);
+            // Scorporo IVA usando il servizio
+            productPrice = CalculationService.ExtractVat(productPrice, vatRate);
         }
         
         // Salva il prezzo già NETTO
@@ -754,31 +757,59 @@
     private decimal GetDiscountAmount()
     {
         var baseAmount = _model.Quantity * _model.UnitPrice;
-        var discount = _model.DiscountType == DiscountType.Percentage
-            ? baseAmount * (_model.LineDiscount / 100m)
-            : _model.LineDiscountValue;
-        
-        // Ensure discount doesn't exceed base amount
-        return Math.Min(discount, baseAmount);
+        return CalculationService.CalculateDiscountAmount(
+            baseAmount,
+            _model.LineDiscount,
+            _model.LineDiscountValue,
+            _model.DiscountType);
     }
 
     private decimal CalculateSubtotal()
     {
-        var baseAmount = _model.Quantity * _model.UnitPrice;
-        return baseAmount - GetDiscountAmount();
+        var input = new DocumentRowCalculationInput
+        {
+            Quantity = _model.Quantity,
+            UnitPrice = _model.UnitPrice,
+            VatRate = _model.VatRate,
+            DiscountPercentage = _model.LineDiscount,
+            DiscountValue = _model.LineDiscountValue,
+            DiscountType = _model.DiscountType
+        };
+
+        var result = CalculationService.CalculateRowTotals(input);
+        return result.NetAmount;
     }
 
     private decimal CalculateVatAmount()
     {
-        var subtotal = CalculateSubtotal();
-        return subtotal * (_model.VatRate / 100m);
+        var input = new DocumentRowCalculationInput
+        {
+            Quantity = _model.Quantity,
+            UnitPrice = _model.UnitPrice,
+            VatRate = _model.VatRate,
+            DiscountPercentage = _model.LineDiscount,
+            DiscountValue = _model.LineDiscountValue,
+            DiscountType = _model.DiscountType
+        };
+
+        var result = CalculationService.CalculateRowTotals(input);
+        return result.VatAmount;
     }
 
     private decimal CalculateLineTotal()
     {
-        var subtotal = CalculateSubtotal();
-        var vatAmount = subtotal * (_model.VatRate / 100m);
-        return subtotal + vatAmount;
+        var input = new DocumentRowCalculationInput
+        {
+            Quantity = _model.Quantity,
+            UnitPrice = _model.UnitPrice,
+            VatRate = _model.VatRate,
+            DiscountPercentage = _model.LineDiscount,
+            DiscountValue = _model.LineDiscountValue,
+            DiscountType = _model.DiscountType
+        };
+
+        var result = CalculationService.CalculateRowTotals(input);
+        return result.TotalAmount;
     }
     
     private decimal CalculateNetTotal()
@@ -1095,7 +1126,7 @@
         if (_model.UnitPrice <= 0 || _model.VatRate < 0)
             return _model.UnitPrice;
         
-        return _model.UnitPrice * (1 + _model.VatRate / 100);
+        return CalculationService.ApplyVat(_model.UnitPrice, _model.VatRate);
     }
     
     private decimal GetSubtotal()

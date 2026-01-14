@@ -145,6 +145,7 @@ builder.Services.AddScoped<EventForge.Client.Services.Schema.IEntitySchemaProvid
 builder.Services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<IDocumentCounterService, DocumentCounterService>();
+builder.Services.AddScoped<EventForge.Client.Services.Documents.IDocumentRowCalculationService, EventForge.Client.Services.Documents.DocumentRowCalculationService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
