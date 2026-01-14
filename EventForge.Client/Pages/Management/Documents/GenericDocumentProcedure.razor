@@ -191,6 +191,9 @@
                                  Dense="true"
                                  Hover="true"
                                  Striped="true"
+                                 MultiSelection="true"
+                                 SelectedItems="@_selectedRows"
+                                 SelectedItemsChanged="@((HashSet<DocumentRowDto> items) => _selectedRows = items)"
                                  InitialColumnConfigurations="@_documentRowColumns">
                             <HeaderContent Context="columnConfigurations">
                                 @foreach (var col in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
@@ -433,40 +436,23 @@
     private bool HasRows => _currentDocument?.Rows?.Any() ?? false;
 
     // Column configuration for EFTable
-    private List<EFTableColumnConfiguration> _documentRowColumns = new()
-    {
-        // Colonne sempre visibili di default
-        new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 2 },
-        new() { PropertyName = "UnitOfMeasure", DisplayName = "UM", IsVisible = true, Order = 3 },
-        new() { PropertyName = "UnitPrice", DisplayName = "Prezzo Unit.", IsVisible = true, Order = 4 },
-        new() { PropertyName = "VatRate", DisplayName = "IVA %", IsVisible = true, Order = 5 },
-        new() { PropertyName = "DiscountTotal", DisplayName = "Sconto", IsVisible = true, Order = 6 },
-        new() { PropertyName = "LineTotal", DisplayName = "Imponibile", IsVisible = true, Order = 7 },
-        new() { PropertyName = "VatTotal", DisplayName = "Imposta", IsVisible = true, Order = 8 },
-        new() { PropertyName = "GrossTotal", DisplayName = "Totale Lordo", IsVisible = true, Order = 9 },
-        
-        // Colonne opzionali (nascoste di default, utente può abilitarle)
-        new() { PropertyName = "VatDescription", DisplayName = "Desc. IVA", IsVisible = false, Order = 10 },
-        new() { PropertyName = "LineDiscount", DisplayName = "Sconto %", IsVisible = false, Order = 11 },
-        new() { PropertyName = "LineDiscountValue", DisplayName = "Valore Sconto", IsVisible = false, Order = 12 },
-    };
+    private List<EFTableColumnConfiguration> _documentRowColumns = new();
+    private Dictionary<string, EFTableColumnConfiguration> _columnLookup = new();
 
     // Helper per verificare visibilità colonna
     private bool IsColumnVisible(string propertyName)
     {
-        return _documentRowColumns
-            .FirstOrDefault(c => c.PropertyName == propertyName)?.IsVisible ?? false;
+        return _columnLookup.TryGetValue(propertyName, out var column) && column.IsVisible;
     }
     
     // Helper per ottenere label colonna (con traduzione)
     private string GetColumnLabel(string propertyName)
     {
-        var column = _documentRowColumns.FirstOrDefault(c => c.PropertyName == propertyName);
-        if (column == null) return propertyName;
-        
-        return TranslationService.GetTranslation($"documents.column.{propertyName.ToLower()}", column.DisplayName);
+        if (_columnLookup.TryGetValue(propertyName, out var column))
+        {
+            return column.DisplayName;
+        }
+        return propertyName;
     }
     
     // Helper per stili header colonne
@@ -508,6 +494,30 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Initialize column configurations with translations
+        _documentRowColumns = new List<EFTableColumnConfiguration>
+        {
+            // Colonne sempre visibili di default
+            new() { PropertyName = "ProductCode", DisplayName = TranslationService.GetTranslation("documents.column.productcode", "Codice"), IsVisible = true, Order = 0 },
+            new() { PropertyName = "Description", DisplayName = TranslationService.GetTranslation("documents.column.description", "Descrizione"), IsVisible = true, Order = 1 },
+            new() { PropertyName = "Quantity", DisplayName = TranslationService.GetTranslation("documents.column.quantity", "Quantità"), IsVisible = true, Order = 2 },
+            new() { PropertyName = "UnitOfMeasure", DisplayName = TranslationService.GetTranslation("documents.column.unitofmeasure", "UM"), IsVisible = true, Order = 3 },
+            new() { PropertyName = "UnitPrice", DisplayName = TranslationService.GetTranslation("documents.column.unitprice", "Prezzo Unit."), IsVisible = true, Order = 4 },
+            new() { PropertyName = "VatRate", DisplayName = TranslationService.GetTranslation("documents.column.vatrate", "IVA %"), IsVisible = true, Order = 5 },
+            new() { PropertyName = "DiscountTotal", DisplayName = TranslationService.GetTranslation("documents.column.discounttotal", "Sconto"), IsVisible = true, Order = 6 },
+            new() { PropertyName = "LineTotal", DisplayName = TranslationService.GetTranslation("documents.column.linetotal", "Imponibile"), IsVisible = true, Order = 7 },
+            new() { PropertyName = "VatTotal", DisplayName = TranslationService.GetTranslation("documents.column.vattotal", "Imposta"), IsVisible = true, Order = 8 },
+            new() { PropertyName = "GrossTotal", DisplayName = TranslationService.GetTranslation("documents.column.grosstotal", "Totale Lordo"), IsVisible = true, Order = 9 },
+            
+            // Colonne opzionali (nascoste di default, utente può abilitarle)
+            new() { PropertyName = "VatDescription", DisplayName = TranslationService.GetTranslation("documents.column.vatdescription", "Desc. IVA"), IsVisible = false, Order = 10 },
+            new() { PropertyName = "LineDiscount", DisplayName = TranslationService.GetTranslation("documents.column.linediscount", "Sconto %"), IsVisible = false, Order = 11 },
+            new() { PropertyName = "LineDiscountValue", DisplayName = TranslationService.GetTranslation("documents.column.linediscountvalue", "Valore Sconto"), IsVisible = false, Order = 12 },
+        };
+
+        // Build lookup dictionary for efficient column access
+        _columnLookup = _documentRowColumns.ToDictionary(c => c.PropertyName, c => c);
+
         _pageTitle = _isEditMode
             ? TranslationService.GetTranslation("documents.editDocument", "Modifica Documento")
             : TranslationService.GetTranslation("documents.createDocument", "Nuovo Documento");
