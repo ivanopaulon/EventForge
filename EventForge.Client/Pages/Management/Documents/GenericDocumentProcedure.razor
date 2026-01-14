@@ -118,6 +118,45 @@
                 </ItemTemplate>
             </MudAutocomplete>
 
+            <!-- Separator -->
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-disabled);">•</MudText>
+
+            <!-- Document Status Selector -->
+            <MudSelect T="DocumentStatus" 
+                      Value="_documentStatus"
+                      ValueChanged="@OnStatusChanged"
+                      Variant="Variant.Outlined"
+                      Dense="true"
+                      Margin="Margin.Dense"
+                      Style="min-width: 140px;"
+                      Disabled="@(!_isEditMode || _currentDocument == null || !IsDocumentEditable())"
+                      aria-label="@TranslationService.GetTranslation("documents.status", "Stato Documento")">
+                <MudSelectItem Value="@DocumentStatus.Draft">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" Color="Color.Default" />
+                        <MudText>@TranslationService.GetTranslation("status.draft", "Bozza")</MudText>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem Value="@DocumentStatus.Open">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="Size.Small" Color="Color.Success" />
+                        <MudText>@TranslationService.GetTranslation("status.open", "Aperto")</MudText>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem Value="@DocumentStatus.Closed">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" />
+                        <MudText>@TranslationService.GetTranslation("status.closed", "Chiuso")</MudText>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem Value="@DocumentStatus.Cancelled">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Outlined.Cancel" Size="Size.Small" Color="Color.Error" />
+                        <MudText>@TranslationService.GetTranslation("status.cancelled", "Annullato")</MudText>
+                    </MudStack>
+                </MudSelectItem>
+            </MudSelect>
+
             <MudSpacer />
 
             <!-- Save Button -->
@@ -500,29 +539,6 @@
             </MudStack>
         </MudItem>
     </MudGrid>
-
-    @if (_currentDocument != null)
-    {
-        <!-- Actions -->
-        <MudStack Row="true" Class="mt-4" Justify="Justify.FlexEnd">
-            @if (_currentDocument.Status == DocumentStatus.Draft)
-            {
-                <MudButton StartIcon="@Icons.Material.Outlined.Check"
-                           Color="Color.Success"
-                           Variant="Variant.Filled"
-                           OnClick="@ApproveDocumentAsync"
-                           Disabled="@(_currentDocument.Rows == null || !_currentDocument.Rows.Any())">
-                    @TranslationService.GetTranslation("documents.approve", "Approva")
-                </MudButton>
-            }
-            <MudButton StartIcon="@Icons.Material.Outlined.Close"
-                       Color="Color.Default"
-                       Variant="Variant.Outlined"
-                       OnClick="@(() => NavigationManager.NavigateTo("/documents/list"))">
-                @TranslationService.GetTranslation("common.close", "Chiudi")
-            </MudButton>
-        </MudStack>
-    }
 </MudContainer>
 
 @code {
@@ -536,6 +552,9 @@
     private DateTime? _documentDate = DateTime.Now;
     private List<DocumentTypeDto> _documentTypes = new();
     private BusinessPartyDto? _selectedBusinessParty = null;
+    
+    // Document status binding
+    private DocumentStatus _documentStatus = DocumentStatus.Draft;
     
     // Selection management for rows
     private HashSet<DocumentRowDto> _selectedRows = new();
@@ -610,6 +629,15 @@
         };
     }
 
+    /// <summary>
+    /// Checks if the document can be modified (not closed or cancelled)
+    /// </summary>
+    private bool IsDocumentEditable()
+    {
+        return _currentDocument?.Status != DocumentStatus.Closed && 
+               _currentDocument?.Status != DocumentStatus.Cancelled;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         // Initialize column configurations with translations
@@ -656,6 +684,9 @@
         {
             _model.Date = DateTime.UtcNow;
             
+            // Initialize status for new document
+            _documentStatus = DocumentStatus.Draft;
+            
             // Set DDT_VEND (Sales Delivery Note) as default document type
             var defaultDocType = _documentTypes.FirstOrDefault(dt => dt.Code == "DDT_VEND");
             if (defaultDocType != null)
@@ -699,6 +730,9 @@
                 _model.BusinessPartyId = _currentDocument.BusinessPartyId;
                 _model.Notes = _currentDocument.Notes;
                 _documentDate = _currentDocument.Date.ToLocalTime();
+                
+                // Initialize document status
+                _documentStatus = _currentDocument.Status;
                 
                 // Load the business party to populate the autocomplete
                 if (_currentDocument.BusinessPartyId != Guid.Empty)
@@ -777,6 +811,16 @@
 
     private async Task SaveDocumentHeaderAsync()
     {
+        // Block modification if document is closed or cancelled
+        if (!IsDocumentEditable())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento chiuso o annullato"),
+                Severity.Warning
+            );
+            return;
+        }
+        
         _isLoading = true;
         try
         {
@@ -823,8 +867,95 @@
         }
     }
 
+    /// <summary>
+    /// Called when the user changes the document status from the selector
+    /// </summary>
+    private async Task OnStatusChanged(DocumentStatus newStatus)
+    {
+        if (_currentDocument == null || !_isEditMode) return;
+        
+        try
+        {
+            _isLoading = true;
+            
+            var previousStatus = _currentDocument.Status;
+            
+            // If the status is "Closed", call the dedicated endpoint
+            if (newStatus == DocumentStatus.Closed && previousStatus != DocumentStatus.Closed)
+            {
+                var closed = await DocumentHeaderService.CloseDocumentAsync(_currentDocument.Id);
+                if (closed != null)
+                {
+                    _currentDocument = closed;
+                    _documentStatus = closed.Status;
+                    
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("documents.statusClosedSuccess", "Documento chiuso con successo"),
+                        Severity.Success
+                    );
+                    
+                    Logger.LogInformation("Document {DocumentId} closed successfully", _currentDocument.Id);
+                }
+                else
+                {
+                    // Rollback if close failed
+                    _documentStatus = previousStatus;
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("documents.statusUpdateError", "Errore nell'aggiornamento dello stato"),
+                        Severity.Error
+                    );
+                }
+            }
+            else
+            {
+                // For other states, update the Status field in the document locally
+                // NOTE: The status change will be persisted to the backend when the user next saves the document header
+                // If a dedicated status update endpoint is added in the future, this should call it immediately
+                _currentDocument.Status = newStatus;
+                _documentStatus = newStatus;
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("documents.statusUpdated", "Stato documento aggiornato"),
+                    Severity.Info
+                );
+                
+                Logger.LogInformation("Document {DocumentId} status changed to {Status}", _currentDocument.Id, newStatus);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating document status for document {DocumentId}", _currentDocument?.Id);
+            
+            // Rollback on error
+            if (_currentDocument != null)
+            {
+                _documentStatus = _currentDocument.Status;
+            }
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.statusUpdateError", "Errore nell'aggiornamento dello stato"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task AddRowAsync()
     {
+        // Block if document is closed or cancelled
+        if (!IsDocumentEditable())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
+                Severity.Warning
+            );
+            return;
+        }
+        
         var parameters = new DialogParameters
         {
             { "DocumentHeaderId", _currentDocument!.Id }
@@ -851,36 +982,19 @@
         await RecalculateDocumentTotalsAsync();
     }
 
-    private async Task ApproveDocumentAsync()
-    {
-        _isLoading = true;
-        try
-        {
-            var result = await DocumentHeaderService.ApproveDocumentAsync(_currentDocument!.Id);
-            if (result != null)
-            {
-                _currentDocument = result;
-                Snackbar.Add(TranslationService.GetTranslation("documents.approveSuccess", "Documento approvato con successo"), Severity.Success);
-                NavigationManager.NavigateTo("/documents/list");
-            }
-            else
-            {
-                Snackbar.Add(TranslationService.GetTranslation("documents.approveError", "Errore durante l'approvazione del documento"), Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error approving document");
-            Snackbar.Add(TranslationService.GetTranslation("documents.approveError", "Errore durante l'approvazione del documento"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
 
     private async Task EditRow(DocumentRowDto row)
     {
+        // Block if document is closed or cancelled
+        if (!IsDocumentEditable())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
+                Severity.Warning
+            );
+            return;
+        }
+        
         var parameters = new DialogParameters
         {
             { "DocumentHeaderId", _currentDocument!.Id },
@@ -909,6 +1023,16 @@
 
     private async Task DeleteRow(DocumentRowDto row)
     {
+        // Block if document is closed or cancelled
+        if (!IsDocumentEditable())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
+                Severity.Warning
+            );
+            return;
+        }
+        
         bool? confirmed = await DialogService.ShowMessageBox(
             TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
             TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
@@ -950,6 +1074,16 @@
     {
         if (_selectedRows.Count == 0)
             return;
+
+        // Block if document is closed or cancelled
+        if (!IsDocumentEditable())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
+                Severity.Warning
+            );
+            return;
+        }
 
         bool? confirmed = await DialogService.ShowMessageBox(
             TranslationService.GetTranslation("documents.confirmDeleteRows", "Conferma Eliminazione"),
@@ -1023,6 +1157,16 @@
         if (!CanMergeSelectedRows())
         {
             Snackbar.Add(TranslationService.GetTranslation("documents.cannotMergeRows", "Impossibile unire le righe selezionate. Assicurati che abbiano lo stesso prodotto e unità di misura."), Severity.Warning);
+            return;
+        }
+
+        // Block if document is closed or cancelled
+        if (!IsDocumentEditable())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
+                Severity.Warning
+            );
             return;
         }
 

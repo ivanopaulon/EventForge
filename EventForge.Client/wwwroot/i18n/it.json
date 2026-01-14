@@ -1526,7 +1526,11 @@
   },
   "status": {
     "active": "Attivo",
-    "inactive": "Inattivo"
+    "inactive": "Inattivo",
+    "draft": "Bozza",
+    "open": "Aperto",
+    "closed": "Chiuso",
+    "cancelled": "Annullato"
   },
   "success": {
     "eventCategoryCreated": "Categoria evento creata con successo",
@@ -2545,10 +2549,16 @@
     "rowAddedError": "Errore durante l'aggiunta della riga",
     "fromDate": "Da Data",
     "toDate": "A Data",
-    "status": {
+    "status": "Stato Documento",
+    "statusUpdated": "Stato documento aggiornato",
+    "statusUpdateError": "Errore nell'aggiornamento dello stato",
+    "statusClosedSuccess": "Documento chiuso con successo",
+    "cannotEditClosed": "Impossibile modificare un documento chiuso o annullato",
+    "cannotModifyRows": "Impossibile modificare righe di un documento chiuso",
+    "documentStatus": {
       "draft": "Bozza",
-      "approved": "Approvato",
-      "rejected": "Rifiutato",
+      "open": "Aperto",
+      "closed": "Chiuso",
       "cancelled": "Annullato"
     },
     "mergeDuplicates": "Somma quantità se articolo già presente",

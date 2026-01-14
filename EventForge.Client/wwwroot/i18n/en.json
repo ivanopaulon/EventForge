@@ -1523,7 +1523,11 @@
   },
   "status": {
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "draft": "Draft",
+    "open": "Open",
+    "closed": "Closed",
+    "cancelled": "Cancelled"
   },
   "success": {
     "eventCategoryCreated": "Event category created successfully",
@@ -2473,10 +2477,16 @@
     "rowAddedError": "Error adding row",
     "fromDate": "From Date",
     "toDate": "To Date",
-    "status": {
+    "status": "Document Status",
+    "statusUpdated": "Document status updated",
+    "statusUpdateError": "Error updating document status",
+    "statusClosedSuccess": "Document closed successfully",
+    "cannotEditClosed": "Cannot edit a closed or cancelled document",
+    "cannotModifyRows": "Cannot modify rows of a closed document",
+    "documentStatus": {
       "draft": "Draft",
-      "approved": "Approved",
-      "rejected": "Rejected",
+      "open": "Open",
+      "closed": "Closed",
       "cancelled": "Cancelled"
     },
     "mergeDuplicates": "Sum quantity if item already present",
