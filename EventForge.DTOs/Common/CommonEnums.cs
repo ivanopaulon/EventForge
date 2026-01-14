@@ -146,8 +146,8 @@ namespace EventForge.DTOs.Common
     public enum DocumentStatus
     {
         Draft,      // Document is in draft state
-        Approved,   // Document is approved
-        Rejected,   // Document is rejected
+        Open,       // Document is open and being worked on
+        Closed,     // Document is closed (finalized)
         Cancelled   // Document is cancelled
     }
 

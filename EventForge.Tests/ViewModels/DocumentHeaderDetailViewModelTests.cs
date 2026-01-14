@@ -218,7 +218,7 @@ public class DocumentHeaderDetailViewModelTests : IDisposable
         // Modify entity
         _viewModel.Entity!.TotalGrossAmount = 2000m;
         _viewModel.Entity.Notes = "Updated notes";
-        _viewModel.Entity.Status = DocumentStatus.Approved;
+        _viewModel.Entity.Status = DocumentStatus.Open;
 
         var updatedDocumentHeader = new DocumentHeaderDto
         {
@@ -228,7 +228,7 @@ public class DocumentHeaderDetailViewModelTests : IDisposable
             Number = "INV-2024-001",
             Date = existingDocumentHeader.Date,
             TotalGrossAmount = 2000m,
-            Status = DocumentStatus.Approved,
+            Status = DocumentStatus.Open,
             Notes = "Updated notes"
         };
 
@@ -244,7 +244,7 @@ public class DocumentHeaderDetailViewModelTests : IDisposable
         Assert.True(result);
         Assert.Equal(2000m, _viewModel.Entity.TotalGrossAmount);
         Assert.Equal("Updated notes", _viewModel.Entity.Notes);
-        Assert.Equal(DocumentStatus.Approved, _viewModel.Entity.Status);
+        Assert.Equal(DocumentStatus.Open, _viewModel.Entity.Status);
         _mockDocumentHeaderService.Verify(s => s.UpdateDocumentHeaderAsync(
             documentHeaderId,
             It.IsAny<UpdateDocumentHeaderDto>()), Times.Once);

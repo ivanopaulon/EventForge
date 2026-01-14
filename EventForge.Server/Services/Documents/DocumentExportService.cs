@@ -568,8 +568,8 @@ public class DocumentExportService : IDocumentExportService
         // Map entity DocumentStatus to DTO DocumentStatus
         var dtoStatus = doc.Status switch
         {
-            Data.Entities.Documents.DocumentStatus.Open => DTOs.Common.DocumentStatus.Draft,
-            Data.Entities.Documents.DocumentStatus.Closed => DTOs.Common.DocumentStatus.Approved,
+            Data.Entities.Documents.DocumentStatus.Open => DTOs.Common.DocumentStatus.Open,
+            Data.Entities.Documents.DocumentStatus.Closed => DTOs.Common.DocumentStatus.Closed,
             Data.Entities.Documents.DocumentStatus.Cancelled => DTOs.Common.DocumentStatus.Cancelled,
             _ => DTOs.Common.DocumentStatus.Draft
         };
