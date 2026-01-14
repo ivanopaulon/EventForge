@@ -1092,7 +1092,7 @@
     // Helper methods for new Line Summary section
     private decimal GetUnitPriceGross()
     {
-        if (_model.UnitPrice <= 0 || _model.VatRate <= 0)
+        if (_model.UnitPrice <= 0 || _model.VatRate < 0)
             return _model.UnitPrice;
         
         return _model.UnitPrice * (1 + _model.VatRate / 100);
