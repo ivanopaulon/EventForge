@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Logging;
-using System.Threading;
-
 namespace EventForge.Client.Services
 {
     /// <summary>
@@ -41,7 +38,7 @@ namespace EventForge.Client.Services
         private const int KEEPALIVE_INTERVAL_MINUTES = 3;
         private const int MAX_RETRIES = 3;
         private const int INITIAL_RETRY_DELAY_MS = 1000; // 1 second
-        
+
         private readonly IAuthService _authService;
         private readonly ILogger<SessionKeepaliveService> _logger;
         private Timer? _keepaliveTimer;
@@ -70,7 +67,7 @@ namespace EventForge.Client.Services
             }
 
             _logger.LogInformation("Starting SessionKeepaliveService with {IntervalMinutes} minute interval", KEEPALIVE_INTERVAL_MINUTES);
-            
+
             _cts = new CancellationTokenSource();
             _isRunning = true;
             _consecutiveFailures = 0;

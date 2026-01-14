@@ -151,14 +151,14 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
         if (Entity == null) return false;
         var current = SerializeEntity(Entity);
         var hasChanges = !string.Equals(current, _originalSnapshot, StringComparison.Ordinal);
-        
+
         Logger.LogDebug("HasUnsavedChanges check: {HasChanges}", hasChanges);
         if (hasChanges)
         {
-            Logger.LogDebug("Original snapshot length: {OriginalLength}, Current snapshot length: {CurrentLength}", 
+            Logger.LogDebug("Original snapshot length: {OriginalLength}, Current snapshot length: {CurrentLength}",
                 _originalSnapshot?.Length ?? 0, current?.Length ?? 0);
         }
-        
+
         return hasChanges;
     }
 

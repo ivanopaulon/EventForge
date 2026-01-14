@@ -407,7 +407,7 @@ public class ProductDetailViewModelTests : IDisposable
         // Change IsVatIncluded
         _viewModel.Entity!.IsVatIncluded = true;
         _viewModel.NotifyEntityChanged();
-        
+
         Assert.True(_viewModel.HasUnsavedChanges());
 
         // Setup update to return updated product
@@ -436,7 +436,7 @@ public class ProductDetailViewModelTests : IDisposable
         Assert.True(result);
         Assert.False(_viewModel.HasUnsavedChanges());
         Assert.True(_viewModel.Entity.IsVatIncluded);
-        
+
         // Verify UpdateProductAsync was called with IsVatIncluded = true
         _mockProductService.Verify(s => s.UpdateProductAsync(
             productId,
@@ -476,7 +476,7 @@ public class ProductDetailViewModelTests : IDisposable
         // Act - Make multiple changes
         _viewModel.Entity!.IsVatIncluded = true;
         _viewModel.NotifyEntityChanged();
-        
+
         _viewModel.Entity.DefaultPrice = 200.00m;
         _viewModel.NotifyEntityChanged();
 

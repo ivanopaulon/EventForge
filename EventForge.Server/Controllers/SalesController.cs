@@ -283,7 +283,7 @@ public class SalesController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while adding item to session {SessionId}. ProductId: {ProductId}", 
+            _logger.LogWarning(ex, "Invalid operation while adding item to session {SessionId}. ProductId: {ProductId}",
                 sessionId, addItemDto.ProductId);
             return CreateValidationProblemDetails(ex.Message);
         }

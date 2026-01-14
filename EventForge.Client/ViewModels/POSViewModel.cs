@@ -404,7 +404,7 @@ public class POSViewModel : IDisposable
             {
                 // Add new item - FLUSH and LOCK before calling API
                 await FlushPendingUpdatesAsync();
-                
+
                 if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
                 {
                     _logger.LogWarning("Timeout waiting for update lock in AddProductAsync");
@@ -585,7 +585,7 @@ public class POSViewModel : IDisposable
 
         // Flush pending updates and acquire semaphore
         await FlushPendingUpdatesAsync();
-        
+
         if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
         {
             _logger.LogWarning("Timeout waiting for update lock in RemoveItemAsync");
@@ -632,7 +632,7 @@ public class POSViewModel : IDisposable
 
         // Flush pending updates and acquire semaphore
         await FlushPendingUpdatesAsync();
-        
+
         if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
         {
             _logger.LogWarning("Timeout waiting for update lock in AddPaymentAsync");
@@ -945,7 +945,7 @@ public class POSViewModel : IDisposable
 
         // Flush pending updates and acquire semaphore
         await FlushPendingUpdatesAsync();
-        
+
         if (!await _updateSemaphore.WaitAsync(FlushTimeoutMs))
         {
             _logger.LogWarning("Timeout waiting for update lock in UpdateItemInternalAsync");

@@ -62,7 +62,7 @@ public class ProductService : IProductService
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var lowerSearchTerm = searchTerm.ToLower();
-                query = query.Where(p => 
+                query = query.Where(p =>
                     p.Code.ToLower().Contains(lowerSearchTerm) ||
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
                     (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)));
@@ -235,7 +235,7 @@ public class ProductService : IProductService
                     // Audit log for the created product
                     _ = await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
 
-                    _logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}. IsVatIncluded: {IsVatIncluded}", 
+                    _logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}. IsVatIncluded: {IsVatIncluded}",
                         product.Id, product.Code, currentUser, product.IsVatIncluded);
 
                     return MapToProductDto(product);
@@ -483,7 +483,7 @@ public class ProductService : IProductService
             };
 
             // Log incoming DTO values for diagnostic purposes
-            _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, Incoming IsVatIncluded: {IncomingIsVatIncluded}, Current IsVatIncluded: {CurrentIsVatIncluded}", 
+            _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, Incoming IsVatIncluded: {IncomingIsVatIncluded}, Current IsVatIncluded: {CurrentIsVatIncluded}",
                 id, updateProductDto.IsVatIncluded, originalProduct.IsVatIncluded);
 
             // Update properties
@@ -515,7 +515,7 @@ public class ProductService : IProductService
             product.ModifiedAt = DateTime.UtcNow;
 
             // Log product entity value before SaveChanges for diagnostic purposes
-            _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, IsVatIncluded value before SaveChanges: {IsVatIncludedBeforeSave}", 
+            _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, IsVatIncluded value before SaveChanges: {IsVatIncludedBeforeSave}",
                 id, product.IsVatIncluded);
 
             _ = await _context.SaveChangesAsync(cancellationToken);
@@ -523,7 +523,7 @@ public class ProductService : IProductService
             // Audit log for the updated product
             _ = await _auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
 
-            _logger.LogInformation("Product {ProductId} updated by user {User}. IsVatIncluded changed from {OldValue} to {NewValue}", 
+            _logger.LogInformation("Product {ProductId} updated by user {User}. IsVatIncluded changed from {OldValue} to {NewValue}",
                 id, currentUser, originalProduct.IsVatIncluded, product.IsVatIncluded);
 
             return MapToProductDto(product);

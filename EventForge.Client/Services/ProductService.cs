@@ -161,7 +161,7 @@ public class ProductService : IProductService
     {
         try
         {
-            _logger.LogInformation("Updating product {ProductId} with name: {Name}, IsVatIncluded: {IsVatIncluded}", 
+            _logger.LogInformation("Updating product {ProductId} with name: {Name}, IsVatIncluded: {IsVatIncluded}",
                 id, updateDto.Name, updateDto.IsVatIncluded);
             var result = await _httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto);
 
