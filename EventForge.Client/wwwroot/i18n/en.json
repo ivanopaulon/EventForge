@@ -2545,6 +2545,9 @@
     "totalDiscount": "Total Discount",
     "lineTotal": "LINE TOTAL",
     "rowSaveError": "Error saving the row",
+    "vatAndPricesSection": "VAT & Prices",
+    "discountsSection": "Discounts",
+    "notesAndDetailsSection": "Notes & Details",
     "column": {
       "productcode": "Code",
       "description": "Description",

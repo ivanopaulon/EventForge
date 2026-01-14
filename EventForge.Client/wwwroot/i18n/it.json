@@ -2617,6 +2617,9 @@
     "totalDiscount": "Sconto Totale",
     "lineTotal": "TOTALE RIGA",
     "rowSaveError": "Errore durante il salvataggio della riga",
+    "vatAndPricesSection": "IVA e Prezzi",
+    "discountsSection": "Sconti",
+    "notesAndDetailsSection": "Note e Dettagli",
     "column": {
       "productcode": "Codice",
       "description": "Descrizione",

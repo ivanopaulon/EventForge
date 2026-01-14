@@ -77,163 +77,123 @@
                                             Variant="Variant.Outlined"
                                             @ref="_quantityField"
                                             Adornment="Adornment.Start"
-                                            AdornmentIcon="@Icons.Material.Outlined.Numbers"
-                                            Required="true" />
-                        </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudNumericField T="decimal"
-                                            Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto *")"
-                                            @bind-Value="_model.UnitPrice"
-                                            Min="0"
-                                            Format="N2"
-                                            Variant="Variant.Outlined"
-                                            Adornment="Adornment.Start"
-                                            AdornmentIcon="@Icons.Material.Outlined.Euro"
-                                            Required="true" />
-                        </MudItem>
-                    </MudGrid>
-                    
-                    <!-- Unità di Misura -->
-                    <MudSelect T="Guid?"
-                              Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura *")"
-                              Value="_selectedUnitOfMeasureId"
-                              ValueChanged="@OnUnitOfMeasureChanged"
-                              Variant="Variant.Outlined"
-                              Disabled="@(_availableUnits.Count == 0)"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Outlined.Scale"
-                              Required="true">
-                        @foreach (var unit in _availableUnits)
-                        {
-                            var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
-                            if (uom != null)
-                            {
-                                <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
-                            }
-                        }
-                    </MudSelect>
-                    
-                    <!-- Merge Duplicates Checkbox -->
-                    <MudCheckBox T="bool"
-                                @bind-Checked="_model.MergeDuplicateProducts"
-                                Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se già presente")"
-                                Color="Color.Primary"
-                                Dense="true"
-                                Disabled="@(_selectedProduct == null)">
-                        @if (_selectedProduct == null)
-                        {
-                            <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesRequiresProduct", "Seleziona un prodotto dall'autocomplete per abilitare la fusione")">
-                                <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Warning" Class="ml-1" />
-                            </MudTooltip>
-                        }
-                        else
-                        {
-                            <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "Quando abilitato, se aggiungi lo stesso prodotto più volte, la quantità verrà sommata alla riga esistente invece di crearne una nuova")">
-                                <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
-                            </MudTooltip>
-                        }
-                    </MudCheckBox>
-                    
-                </MudStack>
-            </MudPaper>
-            
-            <!-- 3. PROGRESSIVE DISCLOSURE: Sezioni Avanzate in ExpansionPanels -->
-            <MudExpansionPanels MultiExpansion="true" Class="mt-3">
-                
-                <!-- 1. IVA E PREZZI (expanded di default) -->
-                <MudExpansionPanel Text="💶 IVA e Prezzi" IsInitiallyExpanded="true">
-                    <MudGrid Spacing="2" Class="pa-2">
-                        
-                        <!-- Aliquota IVA -->
-                        <MudItem xs="12" sm="6">
+                                            AdornmentIcon="@Icons.Material.Outlined.Numbers" />
+                            
                             <MudSelect T="Guid?"
-                                      Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
-                                      Value="_selectedVatRateId"
-                                      ValueChanged="@OnVatRateChanged"
+                                      Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura")"
+                                      Value="_selectedUnitOfMeasureId"
+                                      ValueChanged="@OnUnitOfMeasureChanged"
                                       Variant="Variant.Outlined"
                                       Dense="true"
+                                      Disabled="@(_availableUnits.Count == 0)"
                                       Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Outlined.Percent">
-                                @foreach (var vatRate in _allVatRates)
+                                      AdornmentIcon="@Icons.Material.Outlined.Scale">
+                                @foreach (var unit in _availableUnits)
                                 {
-                                    <MudSelectItem T="Guid?" Value="@vatRate.Id">@vatRate.Name (@vatRate.Percentage%)</MudSelectItem>
+                                    var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
+                                    if (uom != null)
+                                    {
+                                        <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
+                                    }
                                 }
                             </MudSelect>
-                        </MudItem>
-                        
-                        <!-- Prezzo Unitario Lordo (calcolato) -->
-                        <MudItem xs="12" sm="6">
-                            <MudTextField T="string"
-                                         Label="@TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo Unit. Lordo")"
-                                         Value="@GetUnitPriceGross().ToString("C2")"
-                                         ReadOnly="true"
-                                         Variant="Variant.Filled"
-                                         Dense="true"
-                                         Adornment="Adornment.Start"
-                                         AdornmentIcon="@Icons.Material.Outlined.Calculate"
-                                         HelperText="@TranslationService.GetTranslation("documents.autoCalculated", "Calcolato automaticamente")" />
-                        </MudItem>
-                        
-                        <!-- Importo IVA (calcolato) -->
-                        <MudItem xs="12" sm="6">
-                            <MudTextField T="string"
-                                         Label="@TranslationService.GetTranslation("documents.vatAmount", "Importo IVA")"
-                                         Value="@GetVatAmount().ToString("C2")"
-                                         ReadOnly="true"
-                                         Variant="Variant.Filled"
-                                         Dense="true"
-                                         Adornment="Adornment.Start"
-                                         AdornmentIcon="@Icons.Material.Outlined.Calculate" />
-                        </MudItem>
-                        
-                    </MudGrid>
-                </MudExpansionPanel>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+            
+            <!-- 3. PREZZO UNITARIO NETTO (visible by default) -->
+            <MudNumericField T="decimal"
+                            Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto")"
+                            @bind-Value="_model.UnitPrice"
+                            Min="0"
+                            Format="N2"
+                            Variant="Variant.Outlined"
+                            Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Outlined.Euro" />
+            
+            <!-- 4. EXPANSION PANELS FOR ADVANCED SECTIONS -->
+            <MudExpansionPanels MultiExpansion="true" Elevation="1">
                 
-                <!-- 2. SCONTI (collapsed di default) -->
-                <MudExpansionPanel Text="🎁 Sconti" IsInitiallyExpanded="false">
-                    <MudGrid Spacing="2" Class="pa-2">
+                <!-- IVA e Prezzi Panel -->
+                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.vatAndPricesSection", "IVA e Prezzi")" 
+                                   @bind-Expanded="@_vatPanelExpanded"
+                                   id="vat-prices-panel">
+                    <MudStack Spacing="2">
+                        <MudSelect T="Guid?"
+                                  Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
+                                  Value="_selectedVatRateId"
+                                  ValueChanged="@OnVatRateChanged"
+                                  Variant="Variant.Outlined"
+                                  Dense="true"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Percent">
+                            @foreach (var vatRate in _allVatRates)
+                            {
+                                <MudSelectItem T="Guid?" Value="@vatRate.Id">@vatRate.Name (@vatRate.Percentage%)</MudSelectItem>
+                            }
+                        </MudSelect>
                         
-                        <!-- Sconto Percentuale -->
-                        <MudItem xs="12" sm="6">
-                            <MudNumericField T="decimal"
-                                            Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
-                                            @bind-Value="_model.LineDiscount"
-                                            Min="0"
-                                            Max="100"
-                                            Format="N2"
-                                            Variant="Variant.Outlined"
-                                            Dense="true"
-                                            Adornment="Adornment.End"
-                                            AdornmentIcon="@Icons.Material.Outlined.Percent" />
-                        </MudItem>
-                        
-                        <!-- Sconto Valore Fisso -->
-                        <MudItem xs="12" sm="6">
-                            <MudNumericField T="decimal"
-                                            Label="@TranslationService.GetTranslation("documents.lineDiscountValue", "Sconto €")"
-                                            @bind-Value="_model.LineDiscountValue"
-                                            Min="0"
-                                            Format="N2"
-                                            Variant="Variant.Outlined"
-                                            Dense="true"
-                                            Adornment="Adornment.Start"
-                                            AdornmentIcon="@Icons.Material.Outlined.Euro" />
-                        </MudItem>
-                        
-                    </MudGrid>
-                </MudExpansionPanel>
-                
-                <!-- 3. NOTE E DETTAGLI (collapsed di default) -->
-                <MudExpansionPanel Text="📝 Note e Dettagli" IsInitiallyExpanded="false">
-                    <div class="pa-2">
                         <MudTextField T="string"
-                                     Label="@TranslationService.GetTranslation("documents.notes", "Note (opzionali)")"
-                                     @bind-Value="_model.Notes"
-                                     Lines="3"
-                                     Variant="Variant.Outlined"
+                                     Label="@TranslationService.GetTranslation("documents.vatAmount", "Importo IVA")"
+                                     Value="@GetVatAmount().ToString("C2")"
+                                     ReadOnly="true"
+                                     Variant="Variant.Filled"
+                                     Dense="true"
                                      Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Outlined.Comment" />
-                    </div>
+                                     AdornmentIcon="@Icons.Material.Outlined.Calculate" />
+                        
+                        <MudTextField T="string"
+                                     Label="@TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo Unit. Lordo")"
+                                     Value="@GetUnitPriceGross().ToString("C2")"
+                                     ReadOnly="true"
+                                     Variant="Variant.Filled"
+                                     Dense="true"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.Calculate"
+                                     HelperText="@TranslationService.GetTranslation("documents.autoCalculated", "Calcolato automaticamente")" />
+                    </MudStack>
+                </MudExpansionPanel>
+                
+                <!-- Sconti Panel -->
+                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.discountsSection", "Sconti")"
+                                   @bind-Expanded="@_discountsPanelExpanded"
+                                   id="discounts-panel">
+                    <MudStack Spacing="2">
+                        <MudNumericField T="decimal"
+                                        Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
+                                        @bind-Value="_model.LineDiscount"
+                                        Min="0"
+                                        Max="100"
+                                        Format="N2"
+                                        Variant="Variant.Outlined"
+                                        Dense="true"
+                                        Adornment="Adornment.End"
+                                        AdornmentIcon="@Icons.Material.Outlined.Percent" />
+                        
+                        <MudNumericField T="decimal"
+                                        Label="@TranslationService.GetTranslation("documents.lineDiscountValue", "Sconto €")"
+                                        @bind-Value="_model.LineDiscountValue"
+                                        Min="0"
+                                        Format="N2"
+                                        Variant="Variant.Outlined"
+                                        Dense="true"
+                                        Adornment="Adornment.Start"
+                                        AdornmentIcon="@Icons.Material.Outlined.Euro" />
+                    </MudStack>
+                </MudExpansionPanel>
+                
+                <!-- Note e Dettagli Panel -->
+                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.notesAndDetailsSection", "Note e Dettagli")"
+                                   @bind-Expanded="@_notesPanelExpanded"
+                                   id="notes-details-panel">
+                    <MudTextField T="string"
+                                 Label="@TranslationService.GetTranslation("documents.notes", "Note (opzionali)")"
+                                 @bind-Value="_model.Notes"
+                                 Lines="2"
+                                 Variant="Variant.Outlined"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Outlined.Comment" />
                 </MudExpansionPanel>
                 
             </MudExpansionPanels>
@@ -296,3 +256,4 @@
         </MudButton>
     </DialogActions>
 </MudDialog>
+

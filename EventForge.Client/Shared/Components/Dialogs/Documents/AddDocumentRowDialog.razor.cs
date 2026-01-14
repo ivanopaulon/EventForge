@@ -1,4 +1,5 @@
 using EventForge.Client.Services;
+using EventForge.Client.Services.Documents;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.UnitOfMeasures;
@@ -22,6 +23,7 @@ public partial class AddDocumentRowDialog
     [Inject] private IDocumentHeaderService DocumentHeaderService { get; set; } = null!;
     [Inject] private IProductService ProductService { get; set; } = null!;
     [Inject] private IFinancialService FinancialService { get; set; } = null!;
+    [Inject] private IDocumentRowCalculationService CalculationService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private ITranslationService TranslationService { get; set; } = null!;
     [Inject] private ILogger<AddDocumentRowDialog> Logger { get; set; } = null!;
@@ -67,6 +69,11 @@ public partial class AddDocumentRowDialog
     private DocumentHeaderDto? _documentHeader = null;
     private List<RecentProductTransactionDto> _recentTransactions = new();
     private bool _loadingTransactions = false;
+    
+    // Expansion panel states for accessibility
+    private bool _vatPanelExpanded = false;
+    private bool _discountsPanelExpanded = false;
+    private bool _notesPanelExpanded = false;
     
     #endregion
 

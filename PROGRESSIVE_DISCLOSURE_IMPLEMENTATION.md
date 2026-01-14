@@ -1,399 +1,208 @@
-# Progressive Disclosure Pattern Implementation - AddDocumentRowDialog
+# Progressive Disclosure Implementation - AddDocumentRowDialog
 
-## 🎯 Obiettivo Raggiunto
+## Obiettivo
+Implementare il pattern Progressive Disclosure nel componente `AddDocumentRowDialog` per ridurre l'altezza del dialog da ~850-900px a ~500-600px e migliorare l'esperienza utente, specialmente su dispositivi mobili.
 
-Ridisegnato il layout del dialog `AddDocumentRowDialog.razor` applicando il pattern **Progressive Disclosure** per migliorare l'usabilità riducendo il cognitive load iniziale.
+## Modifiche Implementate
 
----
+### 1. Chiavi di Traduzione Aggiunte
+Aggiunte 3 nuove chiavi di traduzione in `it.json` e `en.json`:
 
-## 📊 Metriche: Prima vs Dopo
+| Chiave | Italiano | English |
+|--------|----------|---------|
+| `documents.vatAndPricesSection` | IVA e Prezzi | VAT & Prices |
+| `documents.discountsSection` | Sconti | Discounts |
+| `documents.notesAndDetailsSection` | Note e Dettagli | Notes & Details |
 
-| Metrica | PRIMA | DOPO | Miglioramento |
-|---------|-------|------|---------------|
-| **Altezza Dialog** | ~850-900px | ~500-600px | ✅ -40% |
-| **Scroll Necessario** | SÌ (>70% utenti) | NO (<10% utenti) | ✅ 86% riduzione |
-| **Campi Visibili** | 15+ campi | 3-5 essenziali | ✅ 70% riduzione |
-| **Cognitive Load** | ALTO | BASSO | ✅ Drasticamente ridotto |
-| **Mobile UX** | SCARSA (scroll intenso) | OTTIMA (no scroll) | ✅ Significativo miglioramento |
+### 2. Ristrutturazione Layout
 
----
-
-## 🏗️ Struttura: Prima vs Dopo
-
-### ❌ PRIMA (Layout Problematico)
-
-```razor
-<MudDialog>
-  <DialogContent>
-    <MudStack Spacing="3">
-      
-      <!-- 1. Barcode Scanner - SEMPRE VISIBILE -->
-      <MudPaper>...</MudPaper>
-      
-      <!-- 2. PRODOTTO + QUANTITÀ - 2 COLONNE PESANTI -->
-      <MudGrid Spacing="3">
-        <MudItem xs="12" md="6">
-          <MudPaper Elevation="2" Style="height: 100%;">
-            <MudText Typo="subtitle1">🏷️ Prodotto</MudText>
-            <!-- Autocomplete, Description, MergeDuplicates -->
-          </MudPaper>
-        </MudItem>
-        <MudItem xs="12" md="6">
-          <MudPaper Elevation="2" Style="height: 100%;">
-            <MudText Typo="subtitle1">📏 Quantità e Unità</MudText>
-            <!-- Quantity, UnitOfMeasure -->
-          </MudPaper>
-        </MudItem>
-      </MudGrid>
-      
-      <!-- 3. PREZZI + IVA + SCONTI - 3 COLONNE PESANTI -->
-      <MudGrid Spacing="3">
-        <MudItem xs="12" md="4">
-          <MudPaper Elevation="2" Style="height: 100%;">
-            <MudText Typo="subtitle1">💰 Prezzo Netto</MudText>
-            <!-- UnitPrice, UnitPriceGross (calc) -->
-          </MudPaper>
-        </MudItem>
-        <MudItem xs="12" md="4">
-          <MudPaper Elevation="2" Style="height: 100%;">
-            <MudText Typo="subtitle1">🧾 IVA</MudText>
-            <!-- VatRate, VatAmount (calc) -->
-          </MudPaper>
-        </MudItem>
-        <MudItem xs="12" md="4">
-          <MudPaper Elevation="2" Style="height: 100%;">
-            <MudText Typo="subtitle1">🎁 Sconti</MudText>
-            <!-- LineDiscount %, LineDiscountValue € -->
-          </MudPaper>
-        </MudItem>
-      </MudGrid>
-      
-      <!-- 4. NOTE - SEMPRE VISIBILE -->
-      <MudTextField Lines="2">...</MudTextField>
-      
-      <!-- 5. RIEPILOGO - SEMPRE VISIBILE -->
-      <MudPaper>...</MudPaper>
-      
-    </MudStack>
-  </DialogContent>
-</MudDialog>
+#### PRIMA (Layout Tradizionale - ~850-900px)
+```
+┌─────────────────────────────────────────┐
+│ ┌─────────────────────────────────────┐ │
+│ │ 1. BARCODE SCANNER                  │ │
+│ └─────────────────────────────────────┘ │
+│                                           │
+│ ┌──────────────┐ ┌──────────────────┐   │
+│ │ 2. PRODOTTO  │ │ 2. QUANTITÀ + UM │   │
+│ │              │ │                  │   │
+│ └──────────────┘ └──────────────────┘   │
+│                                           │
+│ ┌──────┐ ┌──────┐ ┌──────────────┐      │
+│ │PREZZI│ │  IVA │ │    SCONTI    │      │
+│ │Netto │ │      │ │              │      │
+│ │Lordo │ │      │ │              │      │
+│ └──────┘ └──────┘ └──────────────┘      │
+│                                           │
+│ ┌─────────────────────────────────────┐ │
+│ │ 4. NOTE (Full Width)                │ │
+│ └─────────────────────────────────────┘ │
+│                                           │
+│ ┌─────────────────────────────────────┐ │
+│ │ 5. RIEPILOGO RIGA                   │ │
+│ │ (Sempre Visibile)                   │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
 ```
 
-**Problemi:**
-- ⚠️ Altezza totale: ~850-900px
-- ⚠️ 15+ campi simultaneamente visibili
-- ⚠️ Scroll obbligatorio su schermi <1080p
-- ⚠️ Cognitive overload: troppe informazioni subito
-- ⚠️ Mobile UX pessima: scroll infinito
-
----
-
-### ✅ DOPO (Layout Ottimizzato)
-
-```razor
-<MudDialog>
-  <DialogContent>
-    <MudStack Spacing="3">
-      
-      <!-- 1. Barcode Scanner - SEMPRE VISIBILE (UNCHANGED) -->
-      <MudPaper Elevation="1" Class="pa-3">...</MudPaper>
-      
-      <!-- 2. CAMPI ESSENZIALI - SEMPLIFICATO (NEW) -->
-      <MudPaper Elevation="2" Class="pa-3">
-        <MudStack Spacing="3">
-          
-          <!-- Prodotto -->
-          <MudAutocomplete>...</MudAutocomplete>
-          
-          <!-- Descrizione -->
-          <MudTextField Lines="2">...</MudTextField>
-          
-          <!-- Quantità + Prezzo (Grid compatto 2 colonne) -->
-          <MudGrid Spacing="2">
-            <MudItem xs="12" sm="6">
-              <MudNumericField>Quantità *</MudNumericField>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-              <MudNumericField>Prezzo Unitario Netto *</MudNumericField>
-            </MudItem>
-          </MudGrid>
-          
-          <!-- Unità di Misura -->
-          <MudSelect>...</MudSelect>
-          
-          <!-- Merge Duplicates Checkbox -->
-          <MudCheckBox>...</MudCheckBox>
-          
-        </MudStack>
-      </MudPaper>
-      
-      <!-- 3. PROGRESSIVE DISCLOSURE - ExpansionPanels (NEW) -->
-      <MudExpansionPanels MultiExpansion="true" Class="mt-3">
-        
-        <!-- Panel 1: IVA E PREZZI (EXPANDED) -->
-        <MudExpansionPanel Text="💶 IVA e Prezzi" IsInitiallyExpanded="true">
-          <MudGrid Spacing="2" Class="pa-2">
-            <MudItem xs="12" sm="6">
-              <MudSelect Dense="true">Aliquota IVA %</MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-              <MudTextField Dense="true" ReadOnly>Prezzo Unit. Lordo (calc)</MudTextField>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-              <MudTextField Dense="true" ReadOnly>Importo IVA (calc)</MudTextField>
-            </MudItem>
-          </MudGrid>
-        </MudExpansionPanel>
-        
-        <!-- Panel 2: SCONTI (COLLAPSED) -->
-        <MudExpansionPanel Text="🎁 Sconti" IsInitiallyExpanded="false">
-          <MudGrid Spacing="2" Class="pa-2">
-            <MudItem xs="12" sm="6">
-              <MudNumericField Dense="true">Sconto %</MudNumericField>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-              <MudNumericField Dense="true">Sconto €</MudNumericField>
-            </MudItem>
-          </MudGrid>
-        </MudExpansionPanel>
-        
-        <!-- Panel 3: NOTE (COLLAPSED) -->
-        <MudExpansionPanel Text="📝 Note e Dettagli" IsInitiallyExpanded="false">
-          <div class="pa-2">
-            <MudTextField Lines="3">Note (opzionali)</MudTextField>
-          </div>
-        </MudExpansionPanel>
-        
-      </MudExpansionPanels>
-      
-      <!-- 4. RIEPILOGO - SEMPRE VISIBILE (UNCHANGED) -->
-      <MudPaper Elevation="3" Class="pa-4">...</MudPaper>
-      
-    </MudStack>
-  </DialogContent>
-</MudDialog>
+#### DOPO (Progressive Disclosure - ~500-600px)
+```
+┌─────────────────────────────────────────┐
+│ ┌─────────────────────────────────────┐ │
+│ │ 1. BARCODE SCANNER                  │ │
+│ └─────────────────────────────────────┘ │
+│                                           │
+│ ┌──────────────┐ ┌──────────────────┐   │
+│ │ 2. PRODOTTO  │ │ 2. QUANTITÀ + UM │   │
+│ │              │ │                  │   │
+│ └──────────────┘ └──────────────────┘   │
+│                                           │
+│ ┌─────────────────────────────────────┐ │
+│ │ 3. PREZZO UNITARIO NETTO            │ │
+│ └─────────────────────────────────────┘ │
+│                                           │
+│ ▼ IVA e Prezzi                          │ ← Collapsible
+│ ▼ Sconti                                │ ← Collapsible
+│ ▼ Note e Dettagli                       │ ← Collapsible
+│                                           │
+│ ┌─────────────────────────────────────┐ │
+│ │ 4. RIEPILOGO RIGA                   │ │
+│ │ (Sempre Visibile)                   │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
 ```
 
-**Miglioramenti:**
-- ✅ Altezza totale: ~500-600px (-40%)
-- ✅ 3-5 campi essenziali visibili inizialmente
-- ✅ NO scroll su schermi ≥1080p
-- ✅ Cognitive load ridotto: focus sui campi chiave
-- ✅ Mobile UX eccellente: scroll controllato
-- ✅ IVA espansa di default (caso d'uso comune)
-- ✅ Sconti/Note collassati (uso meno frequente)
+### 3. Dettagli dei Pannelli Espandibili
 
----
-
-## 🔧 Modifiche Tecniche Dettagliate
-
-### 1. Sezione Essenziali Semplificata (linee 38-138)
-
-**PRIMA:**
-- 2 `MudGrid` con 2 colonne separate
-- Ogni colonna aveva un `MudPaper` con header `MudText`
-- Altezza fissa `Style="height: 100%"`
-- Campi `Dense="true"` ma layout pesante
-
-**DOPO:**
-- Singolo `MudPaper` senza colonne separate
-- `MudStack` verticale per layout fluido
-- `MudGrid` compatto solo per Quantità + Prezzo
-- Nessun header visibile (labels nei campi)
-- Campi standard (non `Dense`) per leggibilità
-
-**Campi Rimossi dalla vista principale:**
-- ❌ Prezzo Unitario Lordo → Spostato in panel IVA
-- ❌ Aliquota IVA → Spostato in panel IVA
-- ❌ Importo IVA → Spostato in panel IVA
-- ❌ Sconto % → Spostato in panel Sconti
-- ❌ Sconto € → Spostato in panel Sconti
-- ❌ Note → Spostato in panel Note
-
-**Campi Mantenuti Visibili:**
-- ✅ Barcode Scanner (caso d'uso primario)
-- ✅ Prodotto Autocomplete (essenziale)
-- ✅ Descrizione (sempre richiesta)
-- ✅ Quantità (sempre richiesta)
-- ✅ Prezzo Unitario Netto (sempre richiesto)
-- ✅ Unità di Misura (sempre richiesta)
-- ✅ Merge Duplicates Checkbox (workflow ottimizzato)
-
----
-
-### 2. Progressive Disclosure con MudExpansionPanels (linee 140-239)
-
-**Pattern Adottato:**
-```razor
-<MudExpansionPanels MultiExpansion="true" Class="mt-3">
-  <MudExpansionPanel Text="💶 IVA e Prezzi" IsInitiallyExpanded="true">
-    <!-- Contenuto -->
-  </MudExpansionPanel>
-</MudExpansionPanels>
-```
-
-**Proprietà Chiave:**
-- `MultiExpansion="true"` → Permette apertura multipla dei pannelli
-- `IsInitiallyExpanded="true/false"` → Stato iniziale
-- `Text="..."` → Titolo con emoji per UX migliore
-- `Class="pa-2"` → Padding interno contenuto
-- `Dense="true"` → Campi compatti nei pannelli
-
-**Pannelli Implementati:**
-
-#### Panel 1: 💶 IVA e Prezzi (EXPANDED)
-- **Stato Iniziale:** Espanso (`IsInitiallyExpanded="true"`)
-- **Motivo:** Aliquota IVA è un campo frequentemente modificato
-- **Contenuto:**
+#### Panel 1: "IVA e Prezzi"
+- **ID**: `vat-prices-panel`
+- **Campi**:
   - Aliquota IVA % (select)
-  - Prezzo Unit. Lordo (calcolato, readonly)
-  - Importo IVA (calcolato, readonly)
+  - Importo IVA (calcolato, read-only)
+  - Prezzo Unit. Lordo (calcolato, read-only)
+- **Stato**: Chiuso per default
 
-#### Panel 2: 🎁 Sconti (COLLAPSED)
-- **Stato Iniziale:** Collassato (`IsInitiallyExpanded="false"`)
-- **Motivo:** Sconti non sempre applicati, uso occasionale
-- **Contenuto:**
-  - Sconto % (numeric)
-  - Sconto € (numeric)
+#### Panel 2: "Sconti"
+- **ID**: `discounts-panel`
+- **Campi**:
+  - Sconto % (0-100)
+  - Sconto € (valore assoluto)
+- **Stato**: Chiuso per default
 
-#### Panel 3: 📝 Note e Dettagli (COLLAPSED)
-- **Stato Iniziale:** Collassato (`IsInitiallyExpanded="false"`)
-- **Motivo:** Note opzionali, uso raro
-- **Contenuto:**
-  - Note (textarea 3 righe)
+#### Panel 3: "Note e Dettagli"
+- **ID**: `notes-details-panel`
+- **Campi**:
+  - Note (opzionali, 2 righe)
+- **Stato**: Chiuso per default
 
----
+### 4. Campi Sempre Visibili
 
-### 3. Riepilogo Sempre Visibile (linee 241-294)
+#### Sezione Essenziale (in alto)
+1. **Barcode Scanner** - Scansione rapida prodotti
+2. **Prodotto** (colonna sinistra):
+   - Autocomplete prodotto
+   - Descrizione
+   - Checkbox "Somma quantità se già presente"
+3. **Quantità e Unità** (colonna destra):
+   - Quantità numerica
+   - Unità di misura (select)
+4. **Prezzo Unitario Netto** - Campo principale per il prezzo
 
-**Nessuna modifica** - mantiene esattamente la struttura precedente:
-- Gradient background viola (`#667eea` → `#764ba2`)
-- 4 colonne responsive: Subtotale Netto, Imposta IVA, Sconto Totale, TOTALE RIGA
-- Sempre visibile in fondo per monitoraggio continuo
+#### Riepilogo (in basso - sempre visibile)
+- Subtotale Netto
+- Imposta IVA
+- Sconto Totale
+- **TOTALE RIGA** (evidenziato)
 
----
+## Benefici dell'Implementazione
 
-## 🎨 Pattern Consistency
+### 1. Riduzione Altezza Dialog
+- **Prima**: ~850-900px
+- **Dopo**: ~500-600px  
+- **Riduzione**: ~40-50%
 
-### MudExpansionPanels già usati in:
+### 2. Miglioramenti UX
+- ✅ Meno scrolling richiesto
+- ✅ Focus sui campi essenziali
+- ✅ Interfaccia più pulita
+- ✅ Migliore esperienza mobile
+- ✅ Accesso rapido alle funzioni avanzate quando necessario
 
-1. **AdvancedQuickCreateProductDialog.razor** (linee 114-315)
-   ```razor
-   <MudExpansionPanels Class="mt-4" MultiExpansion="true">
-       <MudExpansionPanel Text="Unità Alternative" Expanded="@(_alternativeUnits.Any())">
-   ```
+### 3. Accessibilità
+- ID univoci su tutti i pannelli
+- Controllo programmatico dello stato dei pannelli
+- Supporto keyboard navigation (MudBlazor nativo)
+- Screen reader friendly
 
-2. **ImportCsvDialog.razor** (linee 363-416)
-   ```razor
-   <MudExpansionPanels>
-       <MudExpansionPanel Text="Visualizza Errori ({count})">
-   ```
+## Modifiche Tecniche
 
-3. **BulkEditSupplierProductsDialog.razor** (linee 71-144)
-   ```razor
-   <MudExpansionPanels>
-       <MudExpansionPanel Text="Errori">
-   ```
+### File Modificati
+1. **AddDocumentRowDialog.razor**
+   - Rimossi `@inject` directives (ora in .razor.cs)
+   - Rimosso `@code` block (ora in .razor.cs)
+   - Implementati MudExpansionPanels
+   - Ridotto da ~1225 a ~293 righe
 
-**Conformità:** ✅ Il nostro pattern è consistente con l'architettura esistente.
+2. **AddDocumentRowDialog.razor.cs**
+   - Aggiunto `using EventForge.Client.Services.Documents;`
+   - Aggiunto `IDocumentRowCalculationService` injection
+   - Aggiunte variabili di stato per pannelli:
+     - `_vatPanelExpanded`
+     - `_discountsPanelExpanded`
+     - `_notesPanelExpanded`
 
----
+3. **Translation Files**
+   - `it.json`: +3 chiavi
+   - `en.json`: +3 chiavi
 
-## ✅ Criteri di Accettazione
+### Pattern Utilizzati
+- **Progressive Disclosure**: Nascondi complessità fino a quando necessaria
+- **Code-Behind**: Separazione markup/logica
+- **Component Composition**: MudExpansionPanels per UI modulare
 
-### Funzionalità (Zero Cambiamenti Comportamentali)
-- ✅ **Tutti i calcoli funzionano esattamente come prima**
-- ✅ Barcode scan funzionante
-- ✅ Selezione prodotto funzionante
-- ✅ Tutti i campi accessibili (anche se in expansion panels)
-- ✅ Riepilogo totali sempre visibile
-- ✅ Salvataggio riga (create/update) invariato
+## Testing Checklist
 
-### UX Improvements
-- ✅ **Altezza dialog ridotta** a ~500-600px (da ~850px)
-- ✅ **No scroll** su schermi ≥1080p
-- ✅ **Campi essenziali visibili**: Prodotto, Quantità, Prezzo (3-5 campi)
-- ✅ **IVA espansa di default** (IsInitiallyExpanded="true")
-- ✅ **Sconti e Note collassati** di default
-- ✅ **Riepilogo sempre visibile** in fondo
+### Funzionalità Core
+- [ ] Barcode scanner funziona correttamente
+- [ ] Autocomplete prodotto carica risultati
+- [ ] Selezione prodotto popola campi
+- [ ] Quantità e unità di misura funzionano
+- [ ] Prezzo unitario accetta input
 
-### Code Quality
-- ✅ **Build Success**: 0 errori di compilazione
-- ✅ **Nessuna modifica logica**: Solo riorganizzazione layout
-- ✅ **Code-behind pattern**: Logica in `.razor.cs` (già esistente)
-- ✅ **Pattern consistency**: Segue gli standard del codebase
+### Pannelli Espandibili
+- [ ] Panel "IVA e Prezzi" si apre/chiude
+- [ ] Calcoli IVA funzionano correttamente
+- [ ] Panel "Sconti" si apre/chiude
+- [ ] Calcoli sconti funzionano
+- [ ] Panel "Note" si apre/chiude
+- [ ] Note vengono salvate
 
----
+### Calcoli e Riepilogo
+- [ ] Subtotale calcolato correttamente
+- [ ] IVA calcolata correttamente
+- [ ] Sconti applicati correttamente
+- [ ] Totale finale corretto
 
-## 🧪 Testing Raccomandato
+### Responsive Design
+- [ ] Dialog responsivo su desktop
+- [ ] Dialog responsivo su tablet
+- [ ] Dialog responsivo su mobile
+- [ ] Pannelli funzionano su tutti i dispositivi
 
-### Test Funzionali Manuali
+### Accessibilità
+- [ ] Navigazione da tastiera funziona
+- [ ] Tab order corretto
+- [ ] Screen reader compatibile
+- [ ] ID univoci presenti
 
-1. **Desktop (1920×1080)**
-   - [ ] Dialog aperto senza scroll
-   - [ ] Tutti i campi accessibili tramite expansion panels
-   - [ ] IVA espansa di default
-   - [ ] Sconti/Note collassati di default
+## Note per il Testing
+- L'altezza effettiva del dialog dipende dal contenuto dei pannelli quando espansi
+- Con tutti i pannelli chiusi, l'altezza dovrebbe essere ~500-600px
+- Il riepilogo rimane sempre visibile indipendentemente dallo stato dei pannelli
+- I calcoli automatici (IVA, lordo, sconti) devono aggiornarsi in real-time
 
-2. **Tablet (1024×768)**
-   - [ ] Dialog aperto con scroll minimo
-   - [ ] Expansion panels responsive
-
-3. **Mobile (375×667 - iPhone SE)**
-   - [ ] Dialog usabile con scroll controllato
-   - [ ] Touch su expansion panels funzionante
-   - [ ] Campi input accessibili
-
-### Test Workflow
-
-4. **Inserimento Riga**
-   - [ ] Scansione barcode → prodotto selezionato
-   - [ ] Modifica quantità → riepilogo aggiornato
-   - [ ] Modifica prezzo → riepilogo aggiornato
-   - [ ] Apertura pannello IVA → selezione aliquota → totale corretto
-   - [ ] Apertura pannello Sconti → applicazione sconto → totale corretto
-   - [ ] Salvataggio riga → righe documento aggiornate
-
-5. **Keyboard Navigation**
-   - [ ] Tab naviga tra campi visibili
-   - [ ] Tab su expansion panel → Enter espande/collassa
-   - [ ] Esc chiude dialog
-
----
-
-## 🚀 Deployment Notes
-
-### Breaking Changes
-**NESSUNO** - Solo modifiche UI/layout, zero breaking changes funzionali.
-
-### Database Migrations
-**NON RICHIESTE** - Nessuna modifica al data model.
-
-### Feature Flags
-**NON RICHIESTE** - Rollout immediato sicuro.
-
-### Rollback Plan
-Se necessario, revert del commit `ec1de47` ripristina il layout precedente.
-
----
-
-## 📝 Riferimenti
-
-- **Issue originale**: #[numero issue]
-- **Pattern Reference**: MudBlazor ExpansionPanels documentation
-- **Esempi esistenti**: `AdvancedQuickCreateProductDialog.razor`, `ImportCsvDialog.razor`
-- **Design Principle**: Progressive Disclosure (Nielsen Norman Group)
-
----
-
-## 🎉 Conclusione
-
-**Obiettivo raggiunto:** Dialog più compatto, usabile e accessibile senza compromettere funzionalità.
-
-**Impatto utente:**
-- ⚡ Workflow più veloce: focus sui campi essenziali
-- 📱 Mobile-friendly: no scroll frustante
-- 🧠 Cognitive load ridotto: informazioni progressive
-- 🎯 Stessa potenza: tutte le features accessibili
-
-**Successo della PR:** ✅ Stesso comportamento, UX drasticamente migliorata!
+## Compatibilità
+- ✅ .NET 10.0
+- ✅ MudBlazor 7.x
+- ✅ Browser moderni (Chrome, Firefox, Edge, Safari)
+- ✅ Mobile browsers (iOS Safari, Chrome Mobile)
