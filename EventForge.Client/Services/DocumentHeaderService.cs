@@ -157,7 +157,7 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{documentId}/calculate-totals", new { });
+            return await _httpClientService.PostAsync<object?, DocumentHeaderDto>($"{BaseUrl}/{documentId}/calculate-totals", null);
         }
         catch (Exception ex)
         {

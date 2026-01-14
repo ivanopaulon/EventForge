@@ -481,10 +481,7 @@
                 }
                 
                 // Recalculate totals if they are zero but rows exist
-                if (_currentDocument.Rows?.Any() == true &&
-                    _currentDocument.TotalNetAmount == 0 &&
-                    _currentDocument.VatAmount == 0 &&
-                    _currentDocument.TotalGrossAmount == 0)
+                if (_currentDocument.Rows?.Any() == true && HasZeroTotals(_currentDocument))
                 {
                     Logger.LogInformation("Document {DocumentId} has rows but totals are zero. Recalculating...", documentId);
                     await RecalculateDocumentTotalsAsync();
@@ -883,14 +880,24 @@
     }
 
     /// <summary>
+    /// Checks if the document has zero totals.
+    /// </summary>
+    private static bool HasZeroTotals(DocumentHeaderDto document)
+    {
+        return document.TotalNetAmount == 0m && 
+               document.VatAmount == 0m && 
+               document.TotalGrossAmount == 0m;
+    }
+
+    /// <summary>
     /// Recalculates document totals by calling the backend API.
     /// Updates the current document with the latest calculated values.
     /// </summary>
     private async Task RecalculateDocumentTotalsAsync()
     {
-        if (_currentDocument?.Id == null)
+        if (_currentDocument?.Id == Guid.Empty || _currentDocument == null)
         {
-            Logger.LogWarning("Cannot recalculate totals: document ID is null");
+            Logger.LogWarning("Cannot recalculate totals: document is null or ID is empty");
             return;
         }
 
