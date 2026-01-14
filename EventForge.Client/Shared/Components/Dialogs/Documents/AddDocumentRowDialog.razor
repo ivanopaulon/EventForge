@@ -671,15 +671,18 @@
 
         try
         {
-            // Usa la ricerca unificata che cerca in tutto l'archivio
+            // Use unified search API that searches entire product catalog
             var result = await ProductService.SearchProductsAsync(searchTerm, 50);
             
-            if (result?.ExactMatch != null)
+            if (result == null)
+                return Array.Empty<ProductDto>();
+            
+            if (result.ExactMatch != null)
             {
-                // Se c'è un match esatto, mostralo per primo
+                // If exact match found, show it first
                 var exactMatchList = new List<ProductDto> { result.ExactMatch.Product };
                 
-                // Aggiungi gli altri risultati se presenti
+                // Add other results if present
                 if (result.SearchResults != null && result.SearchResults.Any())
                 {
                     exactMatchList.AddRange(result.SearchResults.Where(p => p.Id != result.ExactMatch.Product.Id));
@@ -688,7 +691,7 @@
                 return exactMatchList;
             }
             
-            return result?.SearchResults ?? (IEnumerable<ProductDto>)Array.Empty<ProductDto>();
+            return result.SearchResults;
         }
         catch (Exception ex)
         {
