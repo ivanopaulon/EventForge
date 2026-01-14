@@ -1,5 +1,6 @@
 using EventForge.Client;
 using EventForge.Client.Services;
+using EventForge.Client.Services.Documents;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -145,6 +146,7 @@ builder.Services.AddScoped<EventForge.Client.Services.Schema.IEntitySchemaProvid
 builder.Services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<IDocumentCounterService, DocumentCounterService>();
+builder.Services.AddScoped<IDocumentRowCalculationService, DocumentRowCalculationService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
