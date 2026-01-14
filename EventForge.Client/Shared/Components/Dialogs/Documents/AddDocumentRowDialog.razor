@@ -152,7 +152,9 @@
             <MudExpansionPanels MultiExpansion="true" Elevation="1">
                 
                 <!-- IVA e Prezzi Panel -->
-                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.vatAndPricesSection", "IVA e Prezzi")">
+                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.vatAndPricesSection", "IVA e Prezzi")" 
+                                   @bind-Expanded="@_vatPanelExpanded"
+                                   id="vat-prices-panel">
                     <MudStack Spacing="2">
                         <MudSelect T="Guid?"
                                   Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
@@ -190,7 +192,9 @@
                 </MudExpansionPanel>
                 
                 <!-- Sconti Panel -->
-                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.discountsSection", "Sconti")">
+                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.discountsSection", "Sconti")"
+                                   @bind-Expanded="@_discountsPanelExpanded"
+                                   id="discounts-panel">
                     <MudStack Spacing="2">
                         <MudNumericField T="decimal"
                                         Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
@@ -216,11 +220,13 @@
                 </MudExpansionPanel>
                 
                 <!-- Note e Dettagli Panel -->
-                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.notesAndDetailsSection", "Note e Dettagli")">
+                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.notesAndDetailsSection", "Note e Dettagli")"
+                                   @bind-Expanded="@_notesPanelExpanded"
+                                   id="notes-details-panel">
                     <MudTextField T="string"
                                  Label="@TranslationService.GetTranslation("documents.notes", "Note (opzionali)")"
                                  @bind-Value="_model.Notes"
-                                 Lines="3"
+                                 Lines="2"
                                  Variant="Variant.Outlined"
                                  Adornment="Adornment.Start"
                                  AdornmentIcon="@Icons.Material.Outlined.Comment" />

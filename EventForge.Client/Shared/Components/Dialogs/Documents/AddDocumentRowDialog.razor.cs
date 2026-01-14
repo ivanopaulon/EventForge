@@ -70,6 +70,11 @@ public partial class AddDocumentRowDialog
     private List<RecentProductTransactionDto> _recentTransactions = new();
     private bool _loadingTransactions = false;
     
+    // Expansion panel states for accessibility
+    private bool _vatPanelExpanded = false;
+    private bool _discountsPanelExpanded = false;
+    private bool _notesPanelExpanded = false;
+    
     #endregion
 
     #region Constants
