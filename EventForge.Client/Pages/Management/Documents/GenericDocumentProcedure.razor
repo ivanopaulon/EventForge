@@ -317,7 +317,7 @@
                                     <EFTableColumnHeader TItem="DocumentRowDto" 
                                                        PropertyName="@column.PropertyName" 
                                                        OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                        <MudTableSortLabel>@column.DisplayName</MudTableSortLabel>
+                                        <MudTableSortLabel T="DocumentRowDto">@column.DisplayName</MudTableSortLabel>
                                     </EFTableColumnHeader>
                                 }
                                 
