@@ -313,7 +313,8 @@
     "warning": "Warning",
     "yes": "Yes",
     "days": "[FROM IT] giorni",
-    "itemsFound": "[FROM IT] elementi trovati"
+    "itemsFound": "[FROM IT] elementi trovati",
+    "advancedOptions": "Advanced Options"
   },
   "dataRetention": {
     "indefinite": "Indefinite"
@@ -1412,7 +1413,9 @@
     "management": "[FROM IT] Gestione Prodotti",
     "managementDescription": "[FROM IT] Gestisci i prodotti e i loro fornitori",
     "search": "[FROM IT] Cerca prodotti",
-    "searchPlaceholder": "[FROM IT] Inserisci nome o codice..."
+    "searchPlaceholder": "[FROM IT] Inserisci nome o codice...",
+    "noProductSelected": "No product selected",
+    "updatedSuccess": "Product updated successfully"
   },
   "profile": {
     "accountStatus": "Account Status",
