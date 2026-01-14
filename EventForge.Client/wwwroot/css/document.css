@@ -99,3 +99,28 @@
         max-height: none !important;
     }
 }
+
+/* Inline Document Header Styles */
+.document-inline-header .mud-collapse-container {
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 960px) {
+    .document-inline-header .mud-stack-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    .document-inline-header .mud-select,
+    .document-inline-header .mud-autocomplete,
+    .document-inline-header .mud-date-picker {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
+
+/* Compact spacing */
+.document-inline-header .mud-input-control {
+    margin-bottom: 0 !important;
+}
