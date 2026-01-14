@@ -343,6 +343,8 @@
                                  Items="@_filteredRows"
                                  ComponentKey="GenericDocumentRows"
                                  InitialColumnConfigurations="@_documentRowColumns"
+                                 MultiSelection="true"
+                                 @bind-SelectedItems="_selectedRows"
                                  AllowDragDropGrouping="true"
                                  ShowColumnConfiguration="true"
                                  Dense="true"
@@ -424,6 +426,14 @@
                                             <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.Percent">
                                                 @row.VatRate.ToString("N0")%
                                             </MudChip>
+                                        </MudTd>
+                                    }
+                                    else if (column.PropertyName == "UnitPriceGross")
+                                    {
+                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                            <MudText Typo="Typo.body2" Color="Color.Primary">
+                                                @((row.UnitPrice * (1 + row.VatRate / 100)).ToString("C2"))
+                                            </MudText>
                                         </MudTd>
                                     }
                                     else if (column.PropertyName == "DiscountTotal")
@@ -596,7 +606,7 @@
     private string GetHeaderStyle(string propertyName)
     {
         // Allinea a destra le colonne numeriche
-        var numericColumns = new[] { "Quantity", "UnitPrice", "VatRate", "DiscountTotal", "LineTotal", "VatTotal", "GrossTotal", "LineDiscount", "LineDiscountValue" };
+        var numericColumns = new[] { "Quantity", "UnitPrice", "VatRate", "UnitPriceGross", "DiscountTotal", "LineTotal", "VatTotal", "GrossTotal", "LineDiscount", "LineDiscountValue" };
         
         if (numericColumns.Contains(propertyName))
             return "text-align: right; white-space: nowrap;";
@@ -618,6 +628,7 @@
             "UnitOfMeasure" => x => x.UnitOfMeasure ?? string.Empty,
             "UnitPrice" => x => x.UnitPrice,
             "VatRate" => x => x.VatRate,
+            "UnitPriceGross" => x => x.UnitPrice * (1 + x.VatRate / 100),
             "DiscountTotal" => x => x.DiscountTotal,
             "LineTotal" => x => x.LineTotal,
             "VatTotal" => x => x.VatTotal,
@@ -648,17 +659,18 @@
             new() { PropertyName = "Description", DisplayName = TranslationService.GetTranslation("documents.column.description", "Descrizione"), IsVisible = true, Order = 1 },
             new() { PropertyName = "Quantity", DisplayName = TranslationService.GetTranslation("documents.column.quantity", "Quantità"), IsVisible = true, Order = 2 },
             new() { PropertyName = "UnitOfMeasure", DisplayName = TranslationService.GetTranslation("documents.column.unitofmeasure", "UM"), IsVisible = true, Order = 3 },
-            new() { PropertyName = "UnitPrice", DisplayName = TranslationService.GetTranslation("documents.column.unitprice", "Prezzo Unit."), IsVisible = true, Order = 4 },
+            new() { PropertyName = "UnitPrice", DisplayName = TranslationService.GetTranslation("documents.column.unitprice", "Prezzo Unit. Netto"), IsVisible = true, Order = 4 },
             new() { PropertyName = "VatRate", DisplayName = TranslationService.GetTranslation("documents.column.vatrate", "IVA %"), IsVisible = true, Order = 5 },
-            new() { PropertyName = "DiscountTotal", DisplayName = TranslationService.GetTranslation("documents.column.discounttotal", "Sconto"), IsVisible = true, Order = 6 },
-            new() { PropertyName = "LineTotal", DisplayName = TranslationService.GetTranslation("documents.column.linetotal", "Imponibile"), IsVisible = true, Order = 7 },
-            new() { PropertyName = "VatTotal", DisplayName = TranslationService.GetTranslation("documents.column.vattotal", "Imposta"), IsVisible = true, Order = 8 },
-            new() { PropertyName = "GrossTotal", DisplayName = TranslationService.GetTranslation("documents.column.grosstotal", "Totale Lordo"), IsVisible = true, Order = 9 },
+            new() { PropertyName = "UnitPriceGross", DisplayName = TranslationService.GetTranslation("documents.column.unitpricegross", "Prezzo Unit. Lordo"), IsVisible = true, Order = 6 },
+            new() { PropertyName = "DiscountTotal", DisplayName = TranslationService.GetTranslation("documents.column.discounttotal", "Sconto"), IsVisible = true, Order = 7 },
+            new() { PropertyName = "LineTotal", DisplayName = TranslationService.GetTranslation("documents.column.linetotal", "Imponibile"), IsVisible = true, Order = 8 },
+            new() { PropertyName = "VatTotal", DisplayName = TranslationService.GetTranslation("documents.column.vattotal", "Imposta"), IsVisible = true, Order = 9 },
+            new() { PropertyName = "GrossTotal", DisplayName = TranslationService.GetTranslation("documents.column.grosstotal", "Totale Lordo"), IsVisible = true, Order = 10 },
             
             // Colonne opzionali (nascoste di default, utente può abilitarle)
-            new() { PropertyName = "VatDescription", DisplayName = TranslationService.GetTranslation("documents.column.vatdescription", "Desc. IVA"), IsVisible = false, Order = 10 },
-            new() { PropertyName = "LineDiscount", DisplayName = TranslationService.GetTranslation("documents.column.linediscount", "Sconto %"), IsVisible = false, Order = 11 },
-            new() { PropertyName = "LineDiscountValue", DisplayName = TranslationService.GetTranslation("documents.column.linediscountvalue", "Valore Sconto"), IsVisible = false, Order = 12 },
+            new() { PropertyName = "VatDescription", DisplayName = TranslationService.GetTranslation("documents.column.vatdescription", "Desc. IVA"), IsVisible = false, Order = 11 },
+            new() { PropertyName = "LineDiscount", DisplayName = TranslationService.GetTranslation("documents.column.linediscount", "Sconto %"), IsVisible = false, Order = 12 },
+            new() { PropertyName = "LineDiscountValue", DisplayName = TranslationService.GetTranslation("documents.column.linediscountvalue", "Valore Sconto"), IsVisible = false, Order = 13 },
         };
 
         // Build lookup dictionary for efficient column access
@@ -963,7 +975,7 @@
 
         var options = new DialogOptions 
         { 
-            MaxWidth = MaxWidth.Medium, 
+            MaxWidth = MaxWidth.Large, 
             FullWidth = true,
             CloseButton = true
         };
@@ -1003,7 +1015,7 @@
 
         var options = new DialogOptions 
         { 
-            MaxWidth = MaxWidth.Medium, 
+            MaxWidth = MaxWidth.Large, 
             FullWidth = true,
             CloseButton = true
         };
