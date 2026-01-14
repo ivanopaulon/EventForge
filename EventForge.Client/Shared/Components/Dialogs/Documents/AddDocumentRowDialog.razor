@@ -677,7 +677,7 @@
             if (result == null)
                 return Array.Empty<ProductDto>();
             
-            if (result.ExactMatch != null)
+            if (result.ExactMatch?.Product != null)
             {
                 // If exact match found, show it first
                 var exactMatchList = new List<ProductDto> { result.ExactMatch.Product };
