@@ -2556,7 +2556,12 @@
     "baseUnits": "unità base",
     "baseUnitsLabel": "Unità base",
     "conversionInfo": "1 {0} = {1} {2}",
-    "dualInputHelp": "Puoi inserire la quantità in entrambe le unità. Il sistema salverà sempre il valore in unità base."
+    "dualInputHelp": "Puoi inserire la quantità in entrambe le unità. Il sistema salverà sempre il valore in unità base.",
+    "searchArticles": "Cerca articolo",
+    "searchByCodeOrDescription": "Cerca per codice o descrizione...",
+    "searchHelp": "Digita per filtrare le righe",
+    "showingAllRows": "Visualizzate tutte le {0} righe",
+    "showingFilteredRows": "Visualizzate {0} di {1} righe"
   },
   "documentType": {
     "management": "Gestione Tipi Documento",

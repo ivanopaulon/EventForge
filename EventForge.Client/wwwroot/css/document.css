@@ -18,6 +18,48 @@
     padding: 8px 12px;
 }
 
+/* Document Procedure Page Enhancements */
+
+/* Smooth transitions for cards */
+.total-card-animate {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.total-card-animate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+/* Animated total value */
+.total-value-highlight {
+    animation: pulseGlow 2s ease-in-out infinite;
+    font-weight: 700;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { 
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.95;
+        transform: scale(1.02);
+    }
+}
+
+/* Search field focus effect */
+.document-search-field:focus-within {
+    box-shadow: 0 4px 12px rgba(var(--mud-palette-primary-rgb), 0.2);
+}
+
+/* Highlight search results */
+.search-match-highlight {
+    background-color: rgba(var(--mud-palette-warning-rgb), 0.3);
+    font-weight: 500;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .document-page-root {
@@ -31,5 +73,14 @@
     
     .eftable-wrapper {
         padding: 4px 8px;
+    }
+}
+
+/* Responsive adjustments for sticky sidebar */
+@media (max-width: 1280px) {
+    .document-sidebar-sticky {
+        position: relative !important;
+        top: 0 !important;
+        max-height: none !important;
     }
 }
