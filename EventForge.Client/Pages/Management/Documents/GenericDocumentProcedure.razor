@@ -479,6 +479,16 @@
                         Logger.LogWarning("Business party with ID {BusinessPartyId} not found for document {DocumentId}", _currentDocument.BusinessPartyId, documentId);
                     }
                 }
+                
+                // Recalculate totals if they are zero but rows exist
+                if (_currentDocument.Rows?.Any() == true &&
+                    _currentDocument.TotalNetAmount == 0 &&
+                    _currentDocument.VatAmount == 0 &&
+                    _currentDocument.TotalGrossAmount == 0)
+                {
+                    Logger.LogInformation("Document {DocumentId} has rows but totals are zero. Recalculating...", documentId);
+                    await RecalculateDocumentTotalsAsync();
+                }
             }
             else
             {
@@ -609,6 +619,9 @@
         // Always reload the document when the dialog closes, regardless of how it was closed
         // This ensures we show any rows that were added during the dialog session
         await LoadDocumentAsync(_currentDocument.Id);
+        
+        // Recalculate document totals after adding row
+        await RecalculateDocumentTotalsAsync();
     }
 
     private async Task ApproveDocumentAsync()
@@ -662,6 +675,9 @@
         var result = await dialog.Result;
         // Always reload the document when the dialog closes
         await LoadDocumentAsync(_currentDocument.Id);
+        
+        // Recalculate document totals after editing row
+        await RecalculateDocumentTotalsAsync();
     }
 
     private async Task DeleteRow(DocumentRowDto row)
@@ -682,6 +698,9 @@
                 {
                     Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
                     await LoadDocumentAsync(_currentDocument!.Id);
+                    
+                    // Recalculate document totals after deleting row
+                    await RecalculateDocumentTotalsAsync();
                 }
                 else
                 {
@@ -729,6 +748,9 @@
                     Snackbar.Add(TranslationService.GetTranslationFormatted("documents.deleteRowsSuccess", "{0} righe eliminate con successo", successCount), Severity.Success);
                     _selectedRows.Clear();
                     await LoadDocumentAsync(_currentDocument!.Id);
+                    
+                    // Recalculate document totals after deleting rows
+                    await RecalculateDocumentTotalsAsync();
                 }
                 else
                 {
@@ -839,6 +861,9 @@
                     Snackbar.Add(TranslationService.GetTranslation("documents.mergeRowsSuccess", "Righe unite con successo"), Severity.Success);
                     _selectedRows.Clear();
                     await LoadDocumentAsync(_currentDocument!.Id);
+                    
+                    // Recalculate document totals after merging rows
+                    await RecalculateDocumentTotalsAsync();
                 }
                 else
                 {
@@ -854,6 +879,51 @@
             {
                 _isLoading = false;
             }
+        }
+    }
+
+    /// <summary>
+    /// Recalculates document totals by calling the backend API.
+    /// Updates the current document with the latest calculated values.
+    /// </summary>
+    private async Task RecalculateDocumentTotalsAsync()
+    {
+        if (_currentDocument?.Id == null)
+        {
+            Logger.LogWarning("Cannot recalculate totals: document ID is null");
+            return;
+        }
+
+        try
+        {
+            var updated = await DocumentHeaderService.CalculateDocumentTotalsAsync(_currentDocument.Id);
+
+            if (updated != null)
+            {
+                // Update totals in current document
+                _currentDocument.TotalNetAmount = updated.TotalNetAmount;
+                _currentDocument.VatAmount = updated.VatAmount;
+                _currentDocument.TotalGrossAmount = updated.TotalGrossAmount;
+
+                Logger.LogInformation("Recalculated document totals: Net={Net}, VAT={VAT}, Gross={Gross}",
+                    updated.TotalNetAmount, updated.VatAmount, updated.TotalGrossAmount);
+
+                // Force UI refresh
+                StateHasChanged();
+            }
+            else
+            {
+                Logger.LogWarning("Calculate totals returned null for document {DocumentId}", _currentDocument.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error recalculating document totals for document {DocumentId}", _currentDocument.Id);
+            // Don't throw - allow the operation to complete even if totals calc fails
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.totalsCalculationError", "Errore nel calcolo dei totali"),
+                Severity.Warning
+            );
         }
     }
     
