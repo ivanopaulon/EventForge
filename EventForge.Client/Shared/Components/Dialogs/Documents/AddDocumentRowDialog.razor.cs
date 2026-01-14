@@ -748,7 +748,7 @@ public partial class AddDocumentRowDialog
     private bool IsProductVatIncluded => _selectedProduct?.IsVatIncluded ?? false;
     
     /// <summary>
-    /// Ottiene il prezzo lordo originale del prodotto
+    /// Gets the original gross price of the product
     /// </summary>
     private decimal GetOriginalGrossPrice()
     {
@@ -759,32 +759,32 @@ public partial class AddDocumentRowDialog
     }
 
     /// <summary>
-    /// Ottiene il subtotale per il markup
+    /// Gets the subtotal for markup display
     /// </summary>
     private decimal GetSubtotal() => GetCalculationResult().NetAmount;
     
     /// <summary>
-    /// Ottiene l'importo IVA per il markup
+    /// Gets the VAT amount for markup display
     /// </summary>
     private decimal GetVatAmount() => GetCalculationResult().VatAmount;
     
     /// <summary>
-    /// Ottiene il totale della riga per il markup
+    /// Gets the line total for markup display
     /// </summary>
     private decimal GetLineTotal() => GetCalculationResult().TotalAmount;
     
     /// <summary>
-    /// Ottiene lo sconto totale per il markup
+    /// Gets the total discount for markup display
     /// </summary>
     private decimal GetTotalDiscount() => GetCalculationResult().DiscountAmount;
     
     /// <summary>
-    /// Ottiene il prezzo unitario lordo per il markup
+    /// Gets the gross unit price for markup display
     /// </summary>
     private decimal GetUnitPriceGross() => GetCalculationResult().UnitPriceGross;
     
     /// <summary>
-    /// Ottiene il totale per il markup (alias di GetLineTotal)
+    /// Gets the total for markup display (alias of GetLineTotal)
     /// </summary>
     private decimal GetTotal() => GetCalculationResult().TotalAmount;
     
