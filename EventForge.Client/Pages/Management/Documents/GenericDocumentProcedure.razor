@@ -986,9 +986,15 @@
             options);
 
         var result = await dialog.Result;
-        // Always reload the document when the dialog closes, regardless of how it was closed
-        // This ensures we show any rows that were added during the dialog session
-        await LoadDocumentAsync(_currentDocument.Id);
+        
+        // ✅ OPTIMIZATION: Reload only if dialog was cancelled or no data returned
+        // When rows are added in the dialog, they're saved to the server but we need to refresh
+        // to see them since the dialog doesn't return each individual row (it allows multiple additions)
+        if (result.Canceled || result.Data == null)
+        {
+            // Reload to get any rows that were added during the session
+            await LoadDocumentAsync(_currentDocument.Id);
+        }
         
         // Recalculate document totals after adding row
         await RecalculateDocumentTotalsAsync();
@@ -1026,11 +1032,33 @@
             options);
 
         var result = await dialog.Result;
-        // Always reload the document when the dialog closes
-        await LoadDocumentAsync(_currentDocument.Id);
         
-        // Recalculate document totals after editing row
+        // ✅ OPTIMIZATION: Incremental update instead of full document reload
+        if (!result.Canceled && result.Data is DocumentRowDto updatedRow)
+        {
+            // Update only the modified row in the local collection
+            var rowIndex = _currentDocument!.Rows.FindIndex(r => r.Id == updatedRow.Id);
+            if (rowIndex >= 0)
+            {
+                _currentDocument.Rows[rowIndex] = updatedRow;
+                Logger.LogInformation("Updated row {RowId} incrementally (index: {Index})", updatedRow.Id, rowIndex);
+            }
+            else
+            {
+                Logger.LogWarning("Could not find row {RowId} for incremental update, reloading document", updatedRow.Id);
+                await LoadDocumentAsync(_currentDocument.Id);
+            }
+        }
+        else if (!result.Canceled)
+        {
+            // Fallback: reload if no data was returned but dialog wasn't cancelled
+            Logger.LogWarning("Edit dialog completed but no row data returned, reloading document");
+            await LoadDocumentAsync(_currentDocument.Id);
+        }
+        
+        // Recalculate ONLY totals (no fetch from server)
         await RecalculateDocumentTotalsAsync();
+        StateHasChanged();
     }
 
     private async Task DeleteRow(DocumentRowDto row)
@@ -1060,10 +1088,18 @@
                 if (success)
                 {
                     Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
-                    await LoadDocumentAsync(_currentDocument!.Id);
+                    
+                    // ✅ OPTIMIZATION: Remove row from local collection instead of full reload
+                    var rowToRemove = _currentDocument!.Rows.FirstOrDefault(r => r.Id == row.Id);
+                    if (rowToRemove != null)
+                    {
+                        _currentDocument.Rows.Remove(rowToRemove);
+                        Logger.LogInformation("Removed row {RowId} from local collection", row.Id);
+                    }
                     
                     // Recalculate document totals after deleting row
                     await RecalculateDocumentTotalsAsync();
+                    StateHasChanged();
                 }
                 else
                 {
@@ -1109,21 +1145,38 @@
             try
             {
                 int successCount = 0;
+                var deletedRowIds = new List<Guid>();
+                
                 foreach (var row in _selectedRows.ToList())
                 {
                     bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
                     if (success)
+                    {
                         successCount++;
+                        deletedRowIds.Add(row.Id);
+                    }
                 }
 
                 if (successCount > 0)
                 {
                     Snackbar.Add(TranslationService.GetTranslationFormatted("documents.deleteRowsSuccess", "{0} righe eliminate con successo", successCount), Severity.Success);
+                    
+                    // ✅ OPTIMIZATION: Remove rows from local collection instead of full reload
+                    foreach (var rowId in deletedRowIds)
+                    {
+                        var rowToRemove = _currentDocument!.Rows.FirstOrDefault(r => r.Id == rowId);
+                        if (rowToRemove != null)
+                        {
+                            _currentDocument.Rows.Remove(rowToRemove);
+                        }
+                    }
+                    Logger.LogInformation("Removed {Count} rows from local collection", deletedRowIds.Count);
+                    
                     _selectedRows.Clear();
-                    await LoadDocumentAsync(_currentDocument!.Id);
                     
                     // Recalculate document totals after deleting rows
                     await RecalculateDocumentTotalsAsync();
+                    StateHasChanged();
                 }
                 else
                 {
@@ -1234,19 +1287,45 @@
                 {
                     // Delete the other rows
                     int deletedCount = 0;
+                    var deletedRowIds = new List<Guid>();
+                    
                     foreach (var row in rowsToMerge.Skip(1))
                     {
                         bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
                         if (success)
+                        {
                             deletedCount++;
+                            deletedRowIds.Add(row.Id);
+                        }
                     }
 
                     Snackbar.Add(TranslationService.GetTranslation("documents.mergeRowsSuccess", "Righe unite con successo"), Severity.Success);
+                    
+                    // ✅ OPTIMIZATION: Update local collection instead of full reload
+                    // Update the main row
+                    var mainRowIndex = _currentDocument!.Rows.FindIndex(r => r.Id == updated.Id);
+                    if (mainRowIndex >= 0)
+                    {
+                        _currentDocument.Rows[mainRowIndex] = updated;
+                    }
+                    
+                    // Remove merged rows
+                    foreach (var rowId in deletedRowIds)
+                    {
+                        var rowToRemove = _currentDocument.Rows.FirstOrDefault(r => r.Id == rowId);
+                        if (rowToRemove != null)
+                        {
+                            _currentDocument.Rows.Remove(rowToRemove);
+                        }
+                    }
+                    Logger.LogInformation("Merged {MergedCount} rows into row {MainRowId}, removed {DeletedCount} rows locally", 
+                        rowsToMerge.Count, updated.Id, deletedRowIds.Count);
+                    
                     _selectedRows.Clear();
-                    await LoadDocumentAsync(_currentDocument!.Id);
                     
                     // Recalculate document totals after merging rows
                     await RecalculateDocumentTotalsAsync();
+                    StateHasChanged();
                 }
                 else
                 {
