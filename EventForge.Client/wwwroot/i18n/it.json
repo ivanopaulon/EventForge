@@ -317,7 +317,11 @@
     "yes": "Sì",
     "days": "giorni",
     "itemsFound": "elementi trovati",
-    "advancedOptions": "Opzioni Avanzate"
+    "advancedOptions": "Opzioni Avanzate",
+    "row": "Riga",
+    "data": "Dati",
+    "selectedFile": "File selezionato",
+    "fileTooLarge": "Il file è troppo grande. Dimensione massima {0}MB"
   },
   "dataRetention": {
     "indefinite": "Indefinito"
@@ -2659,7 +2663,11 @@
     "shortcutCtrlD": "Ctrl+D: Elimina Riga",
     "shortcutCtrlShiftF": "Ctrl+Maiusc+F: Cerca/Filtra",
     "shortcutEnter": "Invio: Salva/Aggiungi",
-    "shortcutEsc": "Esc: Chiudi Finestra"
+    "shortcutEsc": "Esc: Chiudi Finestra",
+    "csvFormatHelp": "Formato CSV: ProductCode, Description, Quantity, UnitPrice, VatRate, UnitOfMeasure",
+    "csvParsedSuccess": "CSV elaborato: {0} righe valide, {1} errori",
+    "noValidRows": "Nessuna riga valida trovata nel CSV",
+    "importPartialSuccess": "{0} righe importate, {1} fallite"
   },
   "documentType": {
     "management": "Gestione Tipi Documento",

@@ -314,7 +314,11 @@
     "yes": "Yes",
     "days": "[FROM IT] giorni",
     "itemsFound": "[FROM IT] elementi trovati",
-    "advancedOptions": "Advanced Options"
+    "advancedOptions": "Advanced Options",
+    "row": "Row",
+    "data": "Data",
+    "selectedFile": "Selected file",
+    "fileTooLarge": "File is too large. Maximum size is {0}MB"
   },
   "dataRetention": {
     "indefinite": "Indefinite"
@@ -2587,7 +2591,11 @@
     "shortcutCtrlD": "Ctrl+D: Delete Row",
     "shortcutCtrlShiftF": "Ctrl+Shift+F: Search/Filter",
     "shortcutEnter": "Enter: Save/Add",
-    "shortcutEsc": "Esc: Close Dialog"
+    "shortcutEsc": "Esc: Close Dialog",
+    "csvFormatHelp": "CSV Format: ProductCode, Description, Quantity, UnitPrice, VatRate, UnitOfMeasure",
+    "csvParsedSuccess": "CSV parsed: {0} valid rows, {1} errors",
+    "noValidRows": "No valid rows found in CSV",
+    "importPartialSuccess": "{0} rows imported, {1} failed"
   },
   "documentType": {
     "management": "Document Type Management",
