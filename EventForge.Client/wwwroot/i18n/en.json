@@ -2495,6 +2495,7 @@
     },
     "mergeDuplicates": "Sum quantity if item already present",
     "mergeDuplicatesHelp": "When enabled, if you add the same product multiple times, the quantity will be summed to the existing row instead of creating a new one",
+    "mergeDuplicatesDisabledHelp": "Select a product from autocomplete to enable merging",
     "addAndContinue": "Add and Continue",
     "alternativeUnitDetected": "Alternative Unit Detected",
     "quantityBase": "{0} (base unit)",

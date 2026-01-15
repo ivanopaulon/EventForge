@@ -251,6 +251,169 @@ public class DocumentRowMergeTests : IDisposable
         Assert.Equal(2, rowsInDb.Count);
     }
 
+    [Fact]
+    public async Task AddDocumentRowAsync_WithMerge_DifferentPrice_CreatesSeparateRow()
+    {
+        // Arrange - Create first row with price 10
+        var firstDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = _documentHeaderId,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 5,
+            UnitPrice = 10.00m,
+            VatRate = 22m,
+            MergeDuplicateProducts = false
+        };
+        await _documentHeaderService.AddDocumentRowAsync(firstDto, "test-user");
+
+        // Act - Add same product but different price with merge enabled
+        var secondDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = _documentHeaderId,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 3,
+            UnitPrice = 12.00m, // Different price
+            VatRate = 22m,
+            MergeDuplicateProducts = true
+        };
+        var result = await _documentHeaderService.AddDocumentRowAsync(secondDto, "test-user");
+
+        // Assert - Should create separate row due to different price
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Quantity);
+        Assert.Equal(12.00m, result.UnitPrice);
+
+        var rowsInDb = await _context.DocumentRows
+            .Where(r => r.DocumentHeaderId == _documentHeaderId && !r.IsDeleted)
+            .ToListAsync();
+        Assert.Equal(2, rowsInDb.Count); // Two separate rows
+    }
+
+    [Fact]
+    public async Task AddDocumentRowAsync_WithMerge_DifferentDiscount_CreatesSeparateRow()
+    {
+        // Arrange - Create first row with 5% discount
+        var firstDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = _documentHeaderId,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 5,
+            UnitPrice = 10.00m,
+            LineDiscount = 5m,
+            DiscountType = DiscountType.Percentage,
+            VatRate = 22m,
+            MergeDuplicateProducts = false
+        };
+        await _documentHeaderService.AddDocumentRowAsync(firstDto, "test-user");
+
+        // Act - Add same product but different discount
+        var secondDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = _documentHeaderId,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 3,
+            UnitPrice = 10.00m,
+            LineDiscount = 10m, // Different discount
+            DiscountType = DiscountType.Percentage,
+            VatRate = 22m,
+            MergeDuplicateProducts = true
+        };
+        var result = await _documentHeaderService.AddDocumentRowAsync(secondDto, "test-user");
+
+        // Assert - Should create separate row
+        var rowsInDb = await _context.DocumentRows
+            .Where(r => r.DocumentHeaderId == _documentHeaderId && !r.IsDeleted)
+            .ToListAsync();
+        Assert.Equal(2, rowsInDb.Count);
+    }
+
+    [Fact]
+    public async Task AddDocumentRowAsync_WithMerge_DifferentVatRate_CreatesSeparateRow()
+    {
+        // Arrange - Create first row with 22% VAT
+        var firstDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = _documentHeaderId,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 5,
+            UnitPrice = 10.00m,
+            VatRate = 22m,
+            MergeDuplicateProducts = false
+        };
+        await _documentHeaderService.AddDocumentRowAsync(firstDto, "test-user");
+
+        // Act - Add same product but different VAT
+        var secondDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = _documentHeaderId,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 3,
+            UnitPrice = 10.00m,
+            VatRate = 10m, // Different VAT rate
+            MergeDuplicateProducts = true
+        };
+        var result = await _documentHeaderService.AddDocumentRowAsync(secondDto, "test-user");
+
+        // Assert - Should create separate row
+        var rowsInDb = await _context.DocumentRows
+            .Where(r => r.DocumentHeaderId == _documentHeaderId && !r.IsDeleted)
+            .ToListAsync();
+        Assert.Equal(2, rowsInDb.Count);
+    }
+
+    [Fact]
+    public async Task AddDocumentRowAsync_WithMerge_IdenticalRows_MergesCorrectly()
+    {
+        // Arrange - Create first row
+        var firstDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = _documentHeaderId,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 5,
+            UnitPrice = 10.00m,
+            LineDiscount = 5m,
+            DiscountType = DiscountType.Percentage,
+            VatRate = 22m,
+            MergeDuplicateProducts = false
+        };
+        var firstRow = await _documentHeaderService.AddDocumentRowAsync(firstDto, "test-user");
+
+        // Act - Add IDENTICAL row with merge enabled
+        var secondDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = _documentHeaderId,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 3,
+            UnitPrice = 10.00m, // Same
+            LineDiscount = 5m, // Same
+            DiscountType = DiscountType.Percentage, // Same
+            VatRate = 22m, // Same
+            MergeDuplicateProducts = true
+        };
+        var result = await _documentHeaderService.AddDocumentRowAsync(secondDto, "test-user");
+
+        // Assert - Should merge
+        Assert.NotNull(result);
+        Assert.Equal(8, result.Quantity); // 5 + 3
+        Assert.Equal(firstRow.Id, result.Id); // Same row ID
+        Assert.Equal(10.00m, result.UnitPrice);
+        Assert.Equal(5m, result.LineDiscount);
+        Assert.Equal(22m, result.VatRate);
+
+        var rowsInDb = await _context.DocumentRows
+            .Where(r => r.DocumentHeaderId == _documentHeaderId && !r.IsDeleted)
+            .ToListAsync();
+        Assert.Single(rowsInDb); // Only one row
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();
