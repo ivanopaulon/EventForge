@@ -607,41 +607,56 @@ public partial class AddDocumentRowDialog
     }
 
     /// <summary>
-    /// Cerca prodotti per autocomplete
+    /// Cerca prodotti per autocomplete con supporto cancellazione
     /// </summary>
     private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
         string searchTerm, 
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
+        if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
             return Array.Empty<ProductDto>();
 
         try
         {
             var result = await ProductService.SearchProductsAsync(searchTerm, 50);
             
+            // Check if cancelled before processing results
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Logger.LogDebug("Product search cancelled for term: {SearchTerm}", searchTerm);
+                return Array.Empty<ProductDto>();
+            }
+            
             if (result == null)
                 return Array.Empty<ProductDto>();
             
-            var exactMatchProduct = result.ExactMatch?.Product;
-            if (exactMatchProduct != null)
+            var products = new List<ProductDto>();
+            
+            // Aggiungi exact match in cima
+            if (result.ExactMatch?.Product != null)
             {
-                var exactMatchList = new List<ProductDto> { exactMatchProduct };
-                
-                var searchResults = result.SearchResults ?? Enumerable.Empty<ProductDto>();
-                if (searchResults.Any())
-                {
-                    exactMatchList.AddRange(searchResults.Where(p => p.Id != exactMatchProduct.Id));
-                }
-                
-                return exactMatchList;
+                products.Add(result.ExactMatch.Product);
             }
             
-            return result.SearchResults ?? Enumerable.Empty<ProductDto>();
+            // Aggiungi altri risultati (escludendo duplicati)
+            if (result.SearchResults?.Any() == true)
+            {
+                var exactMatchId = result.ExactMatch?.Product?.Id;
+                products.AddRange(
+                    result.SearchResults.Where(p => p.Id != exactMatchId)
+                );
+            }
+            
+            return products;
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogDebug("Product search cancelled for term: {SearchTerm}", searchTerm);
+            return Array.Empty<ProductDto>();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error searching products");
+            Logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
             return Array.Empty<ProductDto>();
         }
     }
