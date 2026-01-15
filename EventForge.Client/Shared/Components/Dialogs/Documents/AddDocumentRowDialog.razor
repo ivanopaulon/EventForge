@@ -7,7 +7,7 @@
 @using EventForge.Client.Services.Documents
 @using MudBlazor
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" @onkeydown="@OnDialogKeyDown" tabindex="-1">
     <TitleContent>
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h6">
@@ -316,23 +316,33 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
-            @TranslationService.GetTranslation("common.close", "Chiudi")
-        </MudButton>
-        <MudButton Color="Color.Primary" 
-                   OnClick="SaveAndContinue" 
-                   Disabled="@(!IsValid() || _isProcessing)"
-                   Variant="Variant.Filled">
-            @if (_isProcessing)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-            }
-            else
-            {
-                <MudIcon Icon="@(_isEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)" Class="mr-1" />
-            }
-            @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
-        </MudButton>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+            <MudText Typo="Typo.caption" Class="ml-2" Style="color: var(--mud-palette-text-secondary);">
+                <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" />
+                @TranslationService.GetTranslation("documents.shortcutEnter", "Enter: Salva") · 
+                @TranslationService.GetTranslation("documents.shortcutCtrlE", "Ctrl+E: Modifica Prodotto") · 
+                @TranslationService.GetTranslation("documents.shortcutEsc", "Esc: Chiudi")
+            </MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
+                    @TranslationService.GetTranslation("common.close", "Chiudi")
+                </MudButton>
+                <MudButton Color="Color.Primary" 
+                           OnClick="SaveAndContinue" 
+                           Disabled="@(!IsValid() || _isProcessing)"
+                           Variant="Variant.Filled">
+                    @if (_isProcessing)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@(_isEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)" Class="mr-1" />
+                    }
+                    @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
+                </MudButton>
+            </MudStack>
+        </MudStack>
     </DialogActions>
 </MudDialog>
 

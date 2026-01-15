@@ -392,6 +392,36 @@ public partial class AddDocumentRowDialog
     #region Barcode Handling
     
     /// <summary>
+    /// Handles keyboard shortcuts for the dialog
+    /// </summary>
+    private async Task OnDialogKeyDown(KeyboardEventArgs e)
+    {
+        // Ctrl+E: Edit Product
+        if (e.CtrlKey && e.Key == "e")
+        {
+            await OpenEditProductDialog();
+            return;
+        }
+        
+        // Ctrl+S: Save (alternative to Enter)
+        if (e.CtrlKey && e.Key == "s")
+        {
+            if (IsValid() && !_isProcessing)
+            {
+                await SaveAndContinue();
+            }
+            return;
+        }
+        
+        // Escape: Close dialog
+        if (e.Key == "Escape")
+        {
+            Cancel();
+            return;
+        }
+    }
+    
+    /// <summary>
     /// Gestisce la pressione di tasti nel campo barcode
     /// </summary>
     private async Task OnBarcodeKeyDown(KeyboardEventArgs e)
