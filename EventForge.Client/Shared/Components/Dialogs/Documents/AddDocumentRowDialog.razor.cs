@@ -719,7 +719,9 @@ public partial class AddDocumentRowDialog
     #region Calculation Methods
     
     /// <summary>
-    /// Generates a unique key for caching based on current values
+    /// Generates a unique key for caching based on current values.
+    /// ✅ OPTIMIZATION: Key-based caching automatically detects value changes
+    /// without needing explicit invalidation handlers for each field.
     /// </summary>
     private string GetCalculationCacheKey()
     {
@@ -727,7 +729,9 @@ public partial class AddDocumentRowDialog
     }
     
     /// <summary>
-    /// Gets calculation results from centralized service with caching
+    /// Gets calculation results from centralized service with caching.
+    /// ✅ OPTIMIZATION: Caches calculation results to avoid redundant calculations
+    /// during UI rendering. Cache is automatically invalidated when any input value changes.
     /// </summary>
     private Client.Models.Documents.DocumentRowCalculationResult GetCalculationResult()
     {
