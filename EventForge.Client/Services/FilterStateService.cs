@@ -1,5 +1,6 @@
 using Microsoft.JSInterop;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace EventForge.Client.Services;
 
@@ -108,6 +109,12 @@ public class FilterStateService : IFilterStateService
     private readonly ILogger<FilterStateService> _logger;
     private const string FilterKeyPrefix = "eventforge-filter-";
     private const string PanelKeyPrefix = "eventforge-panel-";
+    
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = false
+    };
 
     public FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService> logger)
     {
@@ -120,7 +127,7 @@ public class FilterStateService : IFilterStateService
         try
         {
             state.Touch();
-            var json = System.Text.Json.JsonSerializer.Serialize(state);
+            var json = JsonSerializer.Serialize(state, JsonOptions);
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"{FilterKeyPrefix}{pageKey}", json);
         }
         catch (Exception ex)
@@ -139,7 +146,7 @@ public class FilterStateService : IFilterStateService
                 return null;
             }
 
-            return System.Text.Json.JsonSerializer.Deserialize<PageFilterState>(json);
+            return JsonSerializer.Deserialize<PageFilterState>(json, JsonOptions);
         }
         catch (Exception ex)
         {
@@ -165,7 +172,7 @@ public class FilterStateService : IFilterStateService
         try
         {
             state.Touch();
-            var json = System.Text.Json.JsonSerializer.Serialize(state);
+            var json = JsonSerializer.Serialize(state, JsonOptions);
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"{PanelKeyPrefix}{pageKey}", json);
         }
         catch (Exception ex)
@@ -184,7 +191,7 @@ public class FilterStateService : IFilterStateService
                 return null;
             }
 
-            return System.Text.Json.JsonSerializer.Deserialize<PagePanelState>(json);
+            return JsonSerializer.Deserialize<PagePanelState>(json, JsonOptions);
         }
         catch (Exception ex)
         {
