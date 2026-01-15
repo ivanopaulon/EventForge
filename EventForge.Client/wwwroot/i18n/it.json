@@ -317,7 +317,11 @@
     "yes": "Sì",
     "days": "giorni",
     "itemsFound": "elementi trovati",
-    "advancedOptions": "Opzioni Avanzate"
+    "advancedOptions": "Opzioni Avanzate",
+    "row": "Riga",
+    "data": "Dati",
+    "selectedFile": "File selezionato",
+    "fileTooLarge": "Il file è troppo grande. Dimensione massima {0}MB"
   },
   "dataRetention": {
     "indefinite": "Indefinito"
@@ -2635,7 +2639,35 @@
       "vatdescription": "Desc. IVA",
       "linediscount": "Sconto %",
       "linediscountvalue": "Valore Sconto"
-    }
+    },
+    "quickAddMode": "Aggiunta Rapida",
+    "quickAddModeActive": "Modalità Aggiunta Rapida Attiva",
+    "recentEntries": "Inserimenti Recenti",
+    "batchImport": "Importazione Massiva",
+    "importFromFile": "Importa da File",
+    "importCsv": "Importa CSV",
+    "importExcel": "Importa Excel",
+    "uploadFile": "Carica File",
+    "previewImport": "Anteprima Importazione",
+    "importRows": "Importa Righe",
+    "invalidData": "Dati Non Validi",
+    "rowsToImport": "Righe da Importare",
+    "validRows": "Righe Valide",
+    "invalidRows": "Righe Non Valide",
+    "fixErrors": "Correggi gli Errori Prima dell'Importazione",
+    "importSuccess": "{0} righe importate con successo",
+    "importError": "Errore durante l'importazione delle righe",
+    "keyboardShortcuts": "Scorciatoie da Tastiera",
+    "shortcutCtrlN": "Ctrl+N: Focus su Aggiungi Riga",
+    "shortcutCtrlE": "Ctrl+E: Modifica Prodotto",
+    "shortcutCtrlD": "Ctrl+D: Elimina Riga",
+    "shortcutCtrlShiftF": "Ctrl+Maiusc+F: Cerca/Filtra",
+    "shortcutEnter": "Invio: Salva/Aggiungi",
+    "shortcutEsc": "Esc: Chiudi Finestra",
+    "csvFormatHelp": "Formato CSV: ProductCode, Description, Quantity, UnitPrice, VatRate, UnitOfMeasure",
+    "csvParsedSuccess": "CSV elaborato: {0} righe valide, {1} errori",
+    "noValidRows": "Nessuna riga valida trovata nel CSV",
+    "importPartialSuccess": "{0} righe importate, {1} fallite"
   },
   "documentType": {
     "management": "Gestione Tipi Documento",

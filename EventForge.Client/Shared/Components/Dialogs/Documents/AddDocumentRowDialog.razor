@@ -7,12 +7,21 @@
 @using EventForge.Client.Services.Documents
 @using MudBlazor
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" @onkeydown="@OnDialogKeyDown" tabindex="-1">
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@(_isEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)" Class="mr-2" />
-            @TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")
-        </MudText>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@(_isEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)" Class="mr-2" />
+                @TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")
+            </MudText>
+            @if (!_isEditMode)
+            {
+                <MudSwitch @bind-Value="_quickAddMode" 
+                           Color="Color.Primary" 
+                           Label="@TranslationService.GetTranslation("documents.quickAddMode", "Quick Add")"
+                           ThumbIcon="@(_quickAddMode ? Icons.Material.Filled.FlashOn : Icons.Material.Filled.FlashOff)" />
+            }
+        </MudStack>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
@@ -35,43 +44,26 @@
                 </MudStack>
             </MudPaper>
             
-            <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
-            <MudPaper Elevation="2" Class="pa-3">
-                <MudStack Spacing="3">
-                    
-                    <!-- Prodotto -->
-                    <MudAutocomplete T="ProductDto"
-                                    Variant="Variant.Outlined"
-                                    Label="@TranslationService.GetTranslation("documents.product", "Prodotto *")"
-                                    Value="_selectedProduct"
-                                    ValueChanged="@OnProductSelected"
-                                    SearchFunc="@SearchProductsAsync"
-                                    DebounceInterval="300"
-                                    MinCharacters="2"
-                                    ToStringFunc="@(p => p?.Name ?? string.Empty)"
-                                    ShowProgressIndicator="true"
-                                    Adornment="Adornment.Start"
-                                    AdornmentIcon="@Icons.Material.Outlined.Inventory"
-                                    Required="true">
-                        <ItemTemplate Context="product">
-                            <MudText>@product.Name</MudText>
-                            <MudText Typo="Typo.caption">@product.Code</MudText>
-                        </ItemTemplate>
-                    </MudAutocomplete>
-                    
-                    <!-- Descrizione -->
-                    <MudTextField T="string"
-                                 Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
-                                 @bind-Value="_model.Description"
-                                 Variant="Variant.Outlined"
-                                 Lines="2"
-                                 Required="true"
-                                 Adornment="Adornment.Start"
-                                 AdornmentIcon="@Icons.Material.Outlined.Description" />
-                    
-                    <!-- Quantità e Prezzo in Grid compatto -->
+            @if (_quickAddMode)
+            {
+                <!-- QUICK ADD MODE: Minimalist interface -->
+                <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-success-lighten);">
+                    <MudText Typo="Typo.subtitle2" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Class="mr-2" Size="Size.Small" />
+                        @TranslationService.GetTranslation("documents.quickAddModeActive", "Quick Add Mode Active")
+                    </MudText>
                     <MudGrid Spacing="2">
-                        <MudItem xs="12" sm="6">
+                        <MudItem xs="12" sm="8">
+                            <MudTextField T="string"
+                                         Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
+                                         @bind-Value="_model.Description"
+                                         Variant="Variant.Outlined"
+                                         Required="true"
+                                         ReadOnly="true"
+                                         Adornment="Adornment.Start"
+                                         AdornmentIcon="@Icons.Material.Outlined.Description" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
                             <MudNumericField T="decimal"
                                             Label="@TranslationService.GetTranslation("documents.quantity", "Quantità *")"
                                             @bind-Value="_model.Quantity"
@@ -80,42 +72,113 @@
                                             @ref="_quantityField"
                                             Adornment="Adornment.Start"
                                             AdornmentIcon="@Icons.Material.Outlined.Numbers" />
-                            
-                            <MudSelect T="Guid?"
-                                      Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura")"
-                                      Value="_selectedUnitOfMeasureId"
-                                      ValueChanged="@OnUnitOfMeasureChanged"
-                                      Variant="Variant.Outlined"
-                                      Dense="true"
-                                      Disabled="@(_availableUnits.Count == 0)"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Outlined.Scale">
-                                @foreach (var unit in _availableUnits)
-                                {
-                                    var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
-                                    if (uom != null)
-                                    {
-                                        <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
-                                    }
-                                }
-                            </MudSelect>
                         </MudItem>
                     </MudGrid>
-                </MudStack>
-            </MudPaper>
+                    
+                    <!-- Recent Quick Entries -->
+                    @if (_recentQuickEntries.Any())
+                    {
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.caption" Class="mb-2">
+                            @TranslationService.GetTranslation("documents.recentEntries", "Recent Entries")
+                        </MudText>
+                        <MudStack Spacing="1">
+                            @foreach (var entry in _recentQuickEntries.Take(5))
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
+                                    @entry.Description - Qty: @entry.Quantity (@entry.Timestamp.ToString("HH:mm:ss"))
+                                </MudChip>
+                            }
+                        </MudStack>
+                    }
+                </MudPaper>
+            }
+            else
+            {
+                <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
+                <MudPaper Elevation="2" Class="pa-3">
+                    <MudStack Spacing="3">
+                        
+                        <!-- Prodotto -->
+                        <MudAutocomplete T="ProductDto"
+                                        Variant="Variant.Outlined"
+                                        Label="@TranslationService.GetTranslation("documents.product", "Prodotto *")"
+                                        Value="_selectedProduct"
+                                        ValueChanged="@OnProductSelected"
+                                        SearchFunc="@SearchProductsAsync"
+                                        DebounceInterval="300"
+                                        MinCharacters="2"
+                                        ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                                        ShowProgressIndicator="true"
+                                        Adornment="Adornment.Start"
+                                        AdornmentIcon="@Icons.Material.Outlined.Inventory"
+                                        Required="true">
+                            <ItemTemplate Context="product">
+                                <MudText>@product.Name</MudText>
+                                <MudText Typo="Typo.caption">@product.Code</MudText>
+                            </ItemTemplate>
+                        </MudAutocomplete>
+                        
+                        <!-- Descrizione -->
+                        <MudTextField T="string"
+                                     Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
+                                     @bind-Value="_model.Description"
+                                     Variant="Variant.Outlined"
+                                     Lines="2"
+                                     Required="true"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.Description" />
+                        
+                        <!-- Quantità e Prezzo in Grid compatto -->
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="decimal"
+                                                Label="@TranslationService.GetTranslation("documents.quantity", "Quantità *")"
+                                                @bind-Value="_model.Quantity"
+                                                Min="0.0001m"
+                                                Variant="Variant.Outlined"
+                                                @ref="_quantityField"
+                                                Adornment="Adornment.Start"
+                                                AdornmentIcon="@Icons.Material.Outlined.Numbers" />
+                                
+                                <MudSelect T="Guid?"
+                                          Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura")"
+                                          Value="_selectedUnitOfMeasureId"
+                                          ValueChanged="@OnUnitOfMeasureChanged"
+                                          Variant="Variant.Outlined"
+                                          Dense="true"
+                                          Disabled="@(_availableUnits.Count == 0)"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Outlined.Scale">
+                                    @foreach (var unit in _availableUnits)
+                                    {
+                                        var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
+                                        if (uom != null)
+                                        {
+                                            <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
+                                        }
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
+                    </MudStack>
+                </MudPaper>
+            }
             
-            <!-- 3. PREZZO UNITARIO NETTO (visible by default) -->
-            <MudNumericField T="decimal"
-                            Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto")"
-                            @bind-Value="_model.UnitPrice"
-                            Min="0"
-                            Format="N2"
-                            Variant="Variant.Outlined"
-                            Adornment="Adornment.Start"
-                            AdornmentIcon="@Icons.Material.Outlined.Euro" />
+            @if (!_quickAddMode)
+            {
+                <!-- 3. PREZZO UNITARIO NETTO (visible by default) -->
+                <MudNumericField T="decimal"
+                                Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto")"
+                                @bind-Value="_model.UnitPrice"
+                                Min="0"
+                                Format="N2"
+                                Variant="Variant.Outlined"
+                                Adornment="Adornment.Start"
+                                AdornmentIcon="@Icons.Material.Outlined.Euro" />
             
-            <!-- 4. EXPANSION PANELS FOR ADVANCED SECTIONS -->
-            <MudExpansionPanels MultiExpansion="true" Elevation="1">
+                <!-- 4. EXPANSION PANELS FOR ADVANCED SECTIONS -->
+                <MudExpansionPanels MultiExpansion="true" Elevation="1">
                 
                 <!-- IVA e Prezzi Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.vatAndPricesSection", "IVA e Prezzi")" 
@@ -202,10 +265,13 @@
                 </MudExpansionPanel>
                 
             </MudExpansionPanels>
+            }
             
-            <!-- 5. RIEPILOGO RIGA (Full Width, evidenziato) -->
-            <MudPaper Elevation="3" Class="pa-4" 
-                     Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            @if (!_quickAddMode)
+            {
+                <!-- 5. RIEPILOGO RIGA (Full Width, evidenziato) -->
+                <MudPaper Elevation="3" Class="pa-4" 
+                         Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                 <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">
                     <MudIcon Icon="@Icons.Material.Outlined.Summarize" Class="mr-2" Size="Size.Small" />
                     @TranslationService.GetTranslation("documents.rowSummary", "Riepilogo Riga")
@@ -245,27 +311,38 @@
                     </MudItem>
                 </MudGrid>
             </MudPaper>
+            }
             
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
-            @TranslationService.GetTranslation("common.close", "Chiudi")
-        </MudButton>
-        <MudButton Color="Color.Primary" 
-                   OnClick="SaveAndContinue" 
-                   Disabled="@(!IsValid() || _isProcessing)"
-                   Variant="Variant.Filled">
-            @if (_isProcessing)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-            }
-            else
-            {
-                <MudIcon Icon="@(_isEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)" Class="mr-1" />
-            }
-            @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
-        </MudButton>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+            <MudText Typo="Typo.caption" Class="ml-2" Style="color: var(--mud-palette-text-secondary);">
+                <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" />
+                @TranslationService.GetTranslation("documents.shortcutEnter", "Enter: Salva") · 
+                @TranslationService.GetTranslation("documents.shortcutCtrlE", "Ctrl+E: Modifica Prodotto") · 
+                @TranslationService.GetTranslation("documents.shortcutEsc", "Esc: Chiudi")
+            </MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
+                    @TranslationService.GetTranslation("common.close", "Chiudi")
+                </MudButton>
+                <MudButton Color="Color.Primary" 
+                           OnClick="SaveAndContinue" 
+                           Disabled="@(!IsValid() || _isProcessing)"
+                           Variant="Variant.Filled">
+                    @if (_isProcessing)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@(_isEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)" Class="mr-1" />
+                    }
+                    @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
+                </MudButton>
+            </MudStack>
+        </MudStack>
     </DialogActions>
 </MudDialog>
 

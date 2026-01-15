@@ -57,6 +57,7 @@ public partial class AddDocumentRowDialog
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;
     private bool _isEditMode => RowId.HasValue;
+    private bool _quickAddMode = false;
     
     private List<ProductUnitDto> _availableUnits = new();
     private List<UMDto> _allUnitsOfMeasure = new();
@@ -73,6 +74,9 @@ public partial class AddDocumentRowDialog
     private List<RecentProductTransactionDto> _recentTransactions = new();
     private bool _loadingTransactions = false;
     
+    // Quick Add Mode entries tracking
+    private List<QuickAddEntry> _recentQuickEntries = new();
+    
     // Expansion panel states for accessibility
     private bool _vatPanelExpanded = false;
     private bool _discountsPanelExpanded = false;
@@ -81,6 +85,20 @@ public partial class AddDocumentRowDialog
     // Cached calculation result to avoid redundant calculations
     private Client.Models.Documents.DocumentRowCalculationResult? _cachedCalculationResult = null;
     private string _cachedCalculationKey = string.Empty;
+    
+    #endregion
+    
+    #region Quick Add Entry Model
+    
+    /// <summary>
+    /// Model for tracking recent Quick Add entries
+    /// </summary>
+    private class QuickAddEntry
+    {
+        public string Description { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
     
     #endregion
 
@@ -374,6 +392,36 @@ public partial class AddDocumentRowDialog
     #region Barcode Handling
     
     /// <summary>
+    /// Handles keyboard shortcuts for the dialog
+    /// </summary>
+    private async Task OnDialogKeyDown(KeyboardEventArgs e)
+    {
+        // Ctrl+E: Edit Product
+        if (e.CtrlKey && e.Key == "e")
+        {
+            await OpenEditProductDialog();
+            return;
+        }
+        
+        // Ctrl+S: Save (alternative to Enter)
+        if (e.CtrlKey && e.Key == "s")
+        {
+            if (IsValid() && !_isProcessing)
+            {
+                await SaveAndContinue();
+            }
+            return;
+        }
+        
+        // Escape: Close dialog
+        if (e.Key == "Escape")
+        {
+            Cancel();
+            return;
+        }
+    }
+    
+    /// <summary>
     /// Gestisce la pressione di tasti nel campo barcode
     /// </summary>
     private async Task OnBarcodeKeyDown(KeyboardEventArgs e)
@@ -385,6 +433,10 @@ public partial class AddDocumentRowDialog
             {
                 await SearchByBarcode(currentValue);
             }
+        }
+        else if (e.Key == "Escape")
+        {
+            Cancel();
         }
     }
 
@@ -986,6 +1038,23 @@ public partial class AddDocumentRowDialog
                 TranslationService.GetTranslation("documents.rowAddedSuccess", 
                     "Riga aggiunta con successo"), 
                 Severity.Success);
+            
+            // Track entry in Quick Add mode
+            if (_quickAddMode)
+            {
+                _recentQuickEntries.Insert(0, new QuickAddEntry
+                {
+                    Description = _model.Description ?? string.Empty,
+                    Quantity = _model.Quantity,
+                    Timestamp = DateTime.Now
+                });
+                
+                // Keep only last 10 entries
+                if (_recentQuickEntries.Count > 10)
+                {
+                    _recentQuickEntries = _recentQuickEntries.Take(10).ToList();
+                }
+            }
             
             ResetForm();
             

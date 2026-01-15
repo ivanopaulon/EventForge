@@ -1,0 +1,139 @@
+@using EventForge.DTOs.Documents
+@using EventForge.Client.Services.Documents
+@using MudBlazor
+
+<MudDialog MaxWidth="MaxWidth.ExtraLarge" FullWidth="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Upload" Class="mr-2" />
+            @TranslationService.GetTranslation("documents.batchImport", "Batch Import")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            
+            @if (_importResult == null)
+            {
+                <!-- File Upload Section -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        @TranslationService.GetTranslation("documents.uploadFile", "Upload File")
+                    </MudText>
+                    
+                    <MudFileUpload T="IBrowserFile" Accept=".csv" FilesChanged="@OnFileSelected" MaximumFileCount="1">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                      Color="Color.Primary"
+                                      StartIcon="@Icons.Material.Filled.CloudUpload"
+                                      Disabled="@_isProcessing">
+                                @TranslationService.GetTranslation("documents.importCsv", "Import CSV")
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    
+                    @if (_selectedFile != null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">
+                            @TranslationService.GetTranslation("common.selectedFile", "Selected file"): @_selectedFile.Name
+                        </MudText>
+                    }
+                    
+                    <MudText Typo="Typo.caption" Class="mt-3" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("documents.csvFormatHelp", "CSV Format: ProductCode, Description, Quantity, UnitPrice, VatRate, UnitOfMeasure")
+                    </MudText>
+                </MudPaper>
+            }
+            else
+            {
+                <!-- Preview Import Results -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.h6">
+                            @TranslationService.GetTranslation("documents.previewImport", "Preview Import")
+                        </MudText>
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">
+                            @TranslationService.GetTranslation("documents.validRows", "Valid Rows"): @_importResult.ValidRows.Count
+                        </MudChip>
+                        @if (_importResult.InvalidRows.Any())
+                        {
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small">
+                                @TranslationService.GetTranslation("documents.invalidRows", "Invalid Rows"): @_importResult.InvalidRows.Count
+                            </MudChip>
+                        }
+                    </MudStack>
+                    
+                    <!-- Valid Rows Table -->
+                    @if (_importResult.ValidRows.Any())
+                    {
+                        <MudTable Items="@_importResult.ValidRows" Dense="true" Hover="true" Striped="true" FixedHeader="true" Height="300px">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("documents.productCode", "Code")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("documents.description", "Description")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("documents.quantity", "Quantity")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("documents.unitPrice", "Price")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("documents.vat", "VAT %")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("documents.unitOfMeasure", "UoM")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Code">@context.ProductCode</MudTd>
+                                <MudTd DataLabel="Description">@context.Description</MudTd>
+                                <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+                                <MudTd DataLabel="Price">@context.UnitPrice.ToString("N2")</MudTd>
+                                <MudTd DataLabel="VAT">@context.VatRate%</MudTd>
+                                <MudTd DataLabel="UoM">@context.UnitOfMeasure</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    
+                    <!-- Invalid Rows Table -->
+                    @if (_importResult.InvalidRows.Any())
+                    {
+                        <MudText Typo="Typo.h6" Class="mt-4 mb-2" Color="Color.Error">
+                            @TranslationService.GetTranslation("documents.invalidData", "Invalid Data")
+                        </MudText>
+                        <MudTable Items="@_importResult.InvalidRows" Dense="true" Hover="true" Striped="true" FixedHeader="true" Height="200px">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("common.row", "Row")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("common.error", "Error")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("common.data", "Data")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Row">@context.RowNumber</MudTd>
+                                <MudTd DataLabel="Error"><MudText Color="Color.Error">@context.ErrorMessage</MudText></MudTd>
+                                <MudTd DataLabel="Data"><MudText Typo="Typo.caption">@context.RawData</MudText></MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                        
+                        <MudAlert Severity="Severity.Warning" Class="mt-2">
+                            @TranslationService.GetTranslation("documents.fixErrors", "Fix Errors Before Importing")
+                        </MudAlert>
+                    }
+                </MudPaper>
+            }
+            
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
+            @TranslationService.GetTranslation("common.cancel", "Cancel")
+        </MudButton>
+        
+        @if (_importResult != null && _importResult.ValidRows.Any())
+        {
+            <MudButton Color="Color.Primary" 
+                       OnClick="ImportRows" 
+                       Disabled="@(_isProcessing || _importResult.InvalidRows.Any())"
+                       Variant="Variant.Filled">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Upload" Class="mr-1" />
+                }
+                @TranslationService.GetTranslation("documents.importRows", "Import {0} Rows", _importResult.ValidRows.Count)
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
