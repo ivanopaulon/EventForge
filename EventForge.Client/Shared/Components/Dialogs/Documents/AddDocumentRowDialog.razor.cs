@@ -731,8 +731,8 @@ public partial class AddDocumentRowDialog
     {
         var currentKey = GetCalculationCacheKey();
         
-        // Use cached result if key matches
-        if (_cachedCalculationResult != null && _cachedCalculationKey == currentKey)
+        // Use cached result if key matches (check string equality first as it's cheaper than null check in common case)
+        if (_cachedCalculationKey == currentKey && _cachedCalculationResult != null)
         {
             return _cachedCalculationResult;
         }
