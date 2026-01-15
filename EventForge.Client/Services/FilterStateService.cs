@@ -1,4 +1,5 @@
 using Microsoft.JSInterop;
+using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.Services;
 
@@ -104,12 +105,14 @@ public interface IFilterStateService
 public class FilterStateService : IFilterStateService
 {
     private readonly IJSRuntime _jsRuntime;
+    private readonly ILogger<FilterStateService> _logger;
     private const string FilterKeyPrefix = "eventforge-filter-";
     private const string PanelKeyPrefix = "eventforge-panel-";
 
-    public FilterStateService(IJSRuntime jsRuntime)
+    public FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService> logger)
     {
         _jsRuntime = jsRuntime;
+        _logger = logger;
     }
 
     public async Task SaveFilterStateAsync(string pageKey, PageFilterState state)
@@ -122,7 +125,7 @@ public class FilterStateService : IFilterStateService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving filter state for {pageKey}: {ex.Message}");
+            _logger.LogWarning(ex, "Error saving filter state for {PageKey}", pageKey);
         }
     }
 
@@ -140,7 +143,7 @@ public class FilterStateService : IFilterStateService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading filter state for {pageKey}: {ex.Message}");
+            _logger.LogWarning(ex, "Error loading filter state for {PageKey}", pageKey);
             return null;
         }
     }
@@ -153,7 +156,7 @@ public class FilterStateService : IFilterStateService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error clearing filter state for {pageKey}: {ex.Message}");
+            _logger.LogWarning(ex, "Error clearing filter state for {PageKey}", pageKey);
         }
     }
 
@@ -167,7 +170,7 @@ public class FilterStateService : IFilterStateService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving panel state for {pageKey}: {ex.Message}");
+            _logger.LogWarning(ex, "Error saving panel state for {PageKey}", pageKey);
         }
     }
 
@@ -185,7 +188,7 @@ public class FilterStateService : IFilterStateService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading panel state for {pageKey}: {ex.Message}");
+            _logger.LogWarning(ex, "Error loading panel state for {PageKey}", pageKey);
             return null;
         }
     }
@@ -198,7 +201,7 @@ public class FilterStateService : IFilterStateService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error clearing panel state for {pageKey}: {ex.Message}");
+            _logger.LogWarning(ex, "Error clearing panel state for {PageKey}", pageKey);
         }
     }
 }

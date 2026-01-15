@@ -428,7 +428,10 @@
         }
     }
 
+    // Filter state persistence
     private const string FilterStateKey = "DocumentTypeManagement";
+    private const string ToggleKeyShowOnlyFiscal = "showOnlyFiscal";
+    private const string ToggleKeyShowOnlyStockIncrease = "showOnlyStockIncrease";
 
     private async Task LoadFilterStateAsync()
     {
@@ -438,8 +441,8 @@
             if (state != null)
             {
                 _searchTerm = state.SearchTerm;
-                state.Toggles.TryGetValue("showOnlyFiscal", out _showOnlyFiscal);
-                state.Toggles.TryGetValue("showOnlyStockIncrease", out _showOnlyStockIncrease);
+                state.Toggles.TryGetValue(ToggleKeyShowOnlyFiscal, out _showOnlyFiscal);
+                state.Toggles.TryGetValue(ToggleKeyShowOnlyStockIncrease, out _showOnlyStockIncrease);
             }
         }
         catch (Exception ex)
@@ -457,8 +460,8 @@
                 SearchTerm = _searchTerm,
                 Toggles = new Dictionary<string, bool>
                 {
-                    { "showOnlyFiscal", _showOnlyFiscal },
-                    { "showOnlyStockIncrease", _showOnlyStockIncrease }
+                    { ToggleKeyShowOnlyFiscal, _showOnlyFiscal },
+                    { ToggleKeyShowOnlyStockIncrease, _showOnlyStockIncrease }
                 }
             };
             await FilterStateService.SaveFilterStateAsync(FilterStateKey, state);

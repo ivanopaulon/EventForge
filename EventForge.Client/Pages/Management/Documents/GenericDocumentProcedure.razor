@@ -1488,6 +1488,7 @@
 
     // Panel state management
     private const string PanelStateKey = "GenericDocumentProcedure";
+    private const string PanelKeyDetailsExpanded = "detailsExpanded";
     private bool _panelStateLoaded = false;
 
     private async Task LoadPanelStateAsync()
@@ -1495,7 +1496,7 @@
         try
         {
             var state = await FilterStateService.LoadPanelStateAsync(PanelStateKey);
-            if (state != null && state.PanelStates.TryGetValue("detailsExpanded", out var expanded))
+            if (state != null && state.PanelStates.TryGetValue(PanelKeyDetailsExpanded, out var expanded))
             {
                 _detailsExpanded = expanded;
                 _panelStateLoaded = true;
@@ -1515,7 +1516,7 @@
             {
                 PanelStates = new Dictionary<string, bool>
                 {
-                    { "detailsExpanded", _detailsExpanded }
+                    { PanelKeyDetailsExpanded, _detailsExpanded }
                 }
             };
             await FilterStateService.SavePanelStateAsync(PanelStateKey, state);
