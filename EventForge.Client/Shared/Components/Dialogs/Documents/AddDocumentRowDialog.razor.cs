@@ -542,6 +542,10 @@ public partial class AddDocumentRowDialog
         }
         
         _model.UnitPrice = productPrice;
+        
+        // Invalidate cached calculation result
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
 
         await LoadProductUnits(product);
     }
@@ -679,6 +683,11 @@ public partial class AddDocumentRowDialog
             _model.VatRate = 0;
             _model.VatDescription = null;
         }
+        
+        // Invalidate cached calculation result
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
+        
         StateHasChanged();
     }
 
@@ -938,6 +947,11 @@ public partial class AddDocumentRowDialog
         };
         _selectedProduct = null;
         _barcodeInput = string.Empty;
+        
+        // Invalidate cached calculation result
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
+        
         StateHasChanged();
     }
 
@@ -966,6 +980,10 @@ public partial class AddDocumentRowDialog
             _model.LineDiscount = 0;
             _model.LineDiscountValue = 0;
             _model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
+            
+            // Invalidate cached calculation result
+            _cachedCalculationResult = null;
+            _cachedCalculationKey = string.Empty;
             
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.priceApplied", "Prezzo applicato: {0:C2}", suggestion.EffectiveUnitPrice),
@@ -1035,6 +1053,10 @@ public partial class AddDocumentRowDialog
                     _model.VatDescription = vatRate.Name;
                 }
             }
+            
+            // Invalidate cached calculation result
+            _cachedCalculationResult = null;
+            _cachedCalculationKey = string.Empty;
             
             Snackbar.Add(
                 TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
