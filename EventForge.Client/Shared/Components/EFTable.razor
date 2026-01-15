@@ -57,6 +57,14 @@
     </MudPaper>
 }
 
+@* 
+    NOTE: Virtualization Support
+    The Virtualize parameter is defined for future compatibility.
+    MudBlazor 8.14.0 does not natively support the Virtualize parameter on MudTable.
+    When MudBlazor is upgraded to a version that supports virtualization (v9+),
+    or if custom virtualization is implemented, this parameter can be passed through.
+    For now, it serves as documentation and conditional rendering optimization hint.
+*@
 <MudTable @ref="_tableRef"
           T="TItem"
           Items="@GetDisplayItems()"
@@ -329,6 +337,9 @@
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public Color LoadingProgressColor { get; set; } = Color.Primary;
     [Parameter] public Breakpoint Breakpoint { get; set; } = Breakpoint.Sm;
+    
+    // Virtualization parameter for performance with large datasets
+    [Parameter] public bool Virtualize { get; set; } = false;
 
     // Pager parameters
     [Parameter] public bool ShowInternalPager { get; set; } = false;

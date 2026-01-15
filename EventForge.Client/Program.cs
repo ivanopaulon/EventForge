@@ -147,6 +147,7 @@ builder.Services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<IDocumentCounterService, DocumentCounterService>();
 builder.Services.AddScoped<IDocumentRowCalculationService, DocumentRowCalculationService>();
+builder.Services.AddScoped<IDocumentDialogCacheService, DocumentDialogCacheService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();

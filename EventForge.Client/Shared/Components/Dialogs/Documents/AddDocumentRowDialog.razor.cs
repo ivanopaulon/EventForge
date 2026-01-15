@@ -24,6 +24,7 @@ public partial class AddDocumentRowDialog
     [Inject] private IProductService ProductService { get; set; } = null!;
     [Inject] private IFinancialService FinancialService { get; set; } = null!;
     [Inject] private IDocumentRowCalculationService CalculationService { get; set; } = null!;
+    [Inject] private IDocumentDialogCacheService CacheService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private ITranslationService TranslationService { get; set; } = null!;
     [Inject] private ILogger<AddDocumentRowDialog> Logger { get; set; } = null!;
@@ -153,8 +154,9 @@ public partial class AddDocumentRowDialog
     {
         try
         {
-            var units = await ProductService.GetUnitsOfMeasureAsync();
-            _allUnitsOfMeasure = units?.ToList() ?? new List<UMDto>();
+            // ✅ OPTIMIZATION: Use cache service instead of direct API call
+            _allUnitsOfMeasure = await CacheService.GetUnitsOfMeasureAsync();
+            Logger.LogDebug("Loaded {Count} units of measure from cache service", _allUnitsOfMeasure.Count);
         }
         catch (Exception ex)
         {
@@ -169,9 +171,9 @@ public partial class AddDocumentRowDialog
     {
         try
         {
-            var vatRatesResult = await FinancialService.GetVatRatesAsync(1, 100);
-            _allVatRates = vatRatesResult?.Items?.Where(v => v.IsActive).ToList() 
-                ?? new List<VatRateDto>();
+            // ✅ OPTIMIZATION: Use cache service instead of direct API call
+            _allVatRates = await CacheService.GetVatRatesAsync();
+            Logger.LogDebug("Loaded {Count} VAT rates from cache service", _allVatRates.Count);
         }
         catch (Exception ex)
         {
@@ -717,7 +719,9 @@ public partial class AddDocumentRowDialog
     #region Calculation Methods
     
     /// <summary>
-    /// Generates a unique key for caching based on current values
+    /// Generates a unique key for caching based on current values.
+    /// ✅ OPTIMIZATION: Key-based caching automatically detects value changes
+    /// without needing explicit invalidation handlers for each field.
     /// </summary>
     private string GetCalculationCacheKey()
     {
@@ -725,7 +729,9 @@ public partial class AddDocumentRowDialog
     }
     
     /// <summary>
-    /// Gets calculation results from centralized service with caching
+    /// Gets calculation results from centralized service with caching.
+    /// ✅ OPTIMIZATION: Caches calculation results to avoid redundant calculations
+    /// during UI rendering. Cache is automatically invalidated when any input value changes.
     /// </summary>
     private Client.Models.Documents.DocumentRowCalculationResult GetCalculationResult()
     {
