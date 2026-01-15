@@ -44,143 +44,175 @@
     <PageLoadingOverlay Visible="_isLoading"
                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    <!-- Ultra-Compact Inline Document Header -->
-    <MudPaper Elevation="2" Class="pa-2 mb-3 document-inline-header">
-        <!-- Primary Action Bar (Always Visible) -->
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+    <!-- Improved 2-Row Document Header - Responsive and Clear -->
+    <MudPaper Elevation="2" Class="pa-3 mb-3 document-inline-header">
+        <!-- Row 1: Document Identification and Primary Fields -->
+        <MudGrid Spacing="2" Class="mb-2">
             <!-- Document Type -->
-            <MudSelect T="Guid" 
-                      @bind-Value="_model.DocumentTypeId" 
-                      Variant="Variant.Outlined"
-                      Dense="true"
-                      Margin="Margin.Dense"
-                      Disabled="@_isEditMode"
-                      Style="min-width: 180px; max-width: 200px;"
-                      aria-label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")">
-                @foreach (var type in _documentTypes ?? Enumerable.Empty<DocumentTypeDto>())
-                {
-                    <MudSelectItem Value="@type.Id">@type.Name</MudSelectItem>
-                }
-            </MudSelect>
-
-            <!-- Document Number (Read-only chip) -->
-            <MudChip T="string" 
-                     Color="Color.Default" 
-                     Size="Size.Medium"
-                     Icon="@Icons.Material.Outlined.Tag"
-                     Style="font-family: monospace; font-weight: 600;">
-                @(!string.IsNullOrWhiteSpace(_model.Series) ? $"{_model.Series}/" : "")@(_model.Number ?? "---")
-            </MudChip>
-
-            <!-- Separator -->
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-disabled);">•</MudText>
-
-            <!-- Document Date (Compact inline date picker) -->
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Size="Size.Small" />
-                <MudDatePicker @bind-Date="_documentDate"
-                              Variant="Variant.Text"
+            <MudItem xs="12" sm="6" md="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                        <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("documents.documentType", "Tipo Documento")
+                    </MudText>
+                    <MudSelect T="Guid" 
+                              @bind-Value="_model.DocumentTypeId" 
+                              Variant="Variant.Outlined"
                               Dense="true"
                               Margin="Margin.Dense"
-                              DateFormat="dd/MM/yyyy"
-                              Editable="true"
-                              Style="width: 110px;"
-                              aria-label="@TranslationService.GetTranslation("documents.date", "Data Documento")" />
-            </MudStack>
-
-            <!-- Separator -->
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-disabled);">•</MudText>
-
-            <!-- Business Party (Compact autocomplete) -->
-            <MudAutocomplete T="BusinessPartyDto"
-                            @bind-Value="_selectedBusinessParty"
-                            SearchFunc="@SearchBusinessPartiesAsync"
-                            ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
-                            Variant="Variant.Outlined"
-                            Dense="true"
-                            Margin="Margin.Dense"
-                            ShowProgressIndicator="true"
-                            Clearable="false"
-                            Style="min-width: 220px; max-width: 300px;"
-                            Placeholder="@TranslationService.GetTranslation("documents.selectBusinessParty", "Seleziona controparte")"
-                            aria-label="@TranslationService.GetTranslation("documents.businessParty", "Controparte")"
-                            AdornmentIcon="@Icons.Material.Outlined.Business">
-                <ItemTemplate>
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.body2">@context.Name</MudText>
-                        @if (!string.IsNullOrEmpty(context.TaxCode))
+                              Disabled="@_isEditMode"
+                              aria-label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")">
+                        @foreach (var type in _documentTypes ?? Enumerable.Empty<DocumentTypeDto>())
                         {
-                            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                                @context.TaxCode
-                            </MudText>
+                            <MudSelectItem Value="@type.Id">@type.Name</MudSelectItem>
                         }
-                    </MudStack>
-                </ItemTemplate>
-            </MudAutocomplete>
+                    </MudSelect>
+                </MudStack>
+            </MudItem>
 
-            <!-- Separator -->
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-disabled);">•</MudText>
+            <!-- Document Number -->
+            <MudItem xs="12" sm="6" md="2">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                        <MudIcon Icon="@Icons.Material.Outlined.Tag" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("documents.number", "Numero")
+                    </MudText>
+                    <MudChip T="string" 
+                             Color="Color.Primary" 
+                             Size="Size.Medium"
+                             Variant="Variant.Outlined"
+                             Icon="@Icons.Material.Outlined.Tag"
+                             Style="font-family: monospace; font-weight: 600; width: 100%; justify-content: center;">
+                        @(!string.IsNullOrWhiteSpace(_model.Series) ? $"{_model.Series}/" : "")@(_model.Number ?? "---")
+                    </MudChip>
+                </MudStack>
+            </MudItem>
 
-            <!-- Document Status Selector -->
-            <MudSelect T="DocumentStatus" 
-                      Value="_documentStatus"
-                      ValueChanged="@OnStatusChanged"
-                      Variant="Variant.Outlined"
-                      Dense="true"
-                      Margin="Margin.Dense"
-                      Style="min-width: 140px;"
-                      Disabled="@(!_isEditMode || _currentDocument == null || !IsDocumentEditable())"
-                      aria-label="@TranslationService.GetTranslation("documents.status", "Stato Documento")">
-                <MudSelectItem Value="@DocumentStatus.Draft">
-                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" Color="Color.Default" />
-                        <MudText>@TranslationService.GetTranslation("status.draft", "Bozza")</MudText>
-                    </MudStack>
-                </MudSelectItem>
-                <MudSelectItem Value="@DocumentStatus.Open">
-                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="Size.Small" Color="Color.Success" />
-                        <MudText>@TranslationService.GetTranslation("status.open", "Aperto")</MudText>
-                    </MudStack>
-                </MudSelectItem>
-                <MudSelectItem Value="@DocumentStatus.Closed">
-                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" />
-                        <MudText>@TranslationService.GetTranslation("status.closed", "Chiuso")</MudText>
-                    </MudStack>
-                </MudSelectItem>
-                <MudSelectItem Value="@DocumentStatus.Cancelled">
-                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@Icons.Material.Outlined.Cancel" Size="Size.Small" Color="Color.Error" />
-                        <MudText>@TranslationService.GetTranslation("status.cancelled", "Annullato")</MudText>
-                    </MudStack>
-                </MudSelectItem>
-            </MudSelect>
+            <!-- Document Date -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                        <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("documents.date", "Data")
+                    </MudText>
+                    <MudDatePicker @bind-Date="_documentDate"
+                                  Variant="Variant.Outlined"
+                                  Dense="true"
+                                  Margin="Margin.Dense"
+                                  DateFormat="dd/MM/yyyy"
+                                  Editable="true"
+                                  aria-label="@TranslationService.GetTranslation("documents.date", "Data Documento")" />
+                </MudStack>
+            </MudItem>
 
-            <MudSpacer />
+            <!-- Document Status -->
+            <MudItem xs="12" sm="6" md="2">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("documents.status", "Stato")
+                    </MudText>
+                    <MudSelect T="DocumentStatus" 
+                              Value="_documentStatus"
+                              ValueChanged="@OnStatusChanged"
+                              Variant="Variant.Outlined"
+                              Dense="true"
+                              Margin="Margin.Dense"
+                              Disabled="@(!_isEditMode || _currentDocument == null || !IsDocumentEditable())"
+                              aria-label="@TranslationService.GetTranslation("documents.status", "Stato Documento")">
+                        <MudSelectItem Value="@DocumentStatus.Draft">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" Color="Color.Default" />
+                                <MudText>@TranslationService.GetTranslation("status.draft", "Bozza")</MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem Value="@DocumentStatus.Open">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="Size.Small" Color="Color.Success" />
+                                <MudText>@TranslationService.GetTranslation("status.open", "Aperto")</MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem Value="@DocumentStatus.Closed">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" />
+                                <MudText>@TranslationService.GetTranslation("status.closed", "Chiuso")</MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem Value="@DocumentStatus.Cancelled">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Outlined.Cancel" Size="Size.Small" Color="Color.Error" />
+                                <MudText>@TranslationService.GetTranslation("status.cancelled", "Annullato")</MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                    </MudSelect>
+                </MudStack>
+            </MudItem>
 
-            <!-- Save Button -->
-            <MudTooltip Text="@TranslationService.GetTranslation("common.save", "Salva")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Save"
-                              Color="Color.Primary"
-                              Variant="Variant.Filled"
-                              Size="Size.Medium"
-                              OnClick="@SaveDocumentHeaderAsync"
-                              Disabled="@(!CanSaveHeader())"
-                              aria-label="@TranslationService.GetTranslation("common.save", "Salva documento")" />
-            </MudTooltip>
+            <!-- Action Buttons -->
+            <MudItem xs="12" md="2" Class="d-flex align-center justify-end gap-2">
+                <MudTooltip Text="@TranslationService.GetTranslation("common.save", "Salva")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Save"
+                                  Color="Color.Primary"
+                                  Variant="Variant.Filled"
+                                  Size="Size.Medium"
+                                  OnClick="@SaveDocumentHeaderAsync"
+                                  Disabled="@(!CanSaveHeader() || _isSavingHeader)"
+                                  aria-label="@TranslationService.GetTranslation("common.save", "Salva documento")">
+                        @if (_isSavingHeader)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        }
+                    </MudIconButton>
+                </MudTooltip>
 
-            <!-- Expand/Collapse Details Button -->
-            <MudTooltip Text="@(_detailsExpanded ? TranslationService.GetTranslation("documents.hideDetails", "Nascondi dettagli") : TranslationService.GetTranslation("documents.showDetails", "Mostra dettagli"))">
-                <MudButton StartIcon="@(_detailsExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                          Variant="Variant.Text"
-                          Size="Size.Small"
-                          OnClick="@(() => _detailsExpanded = !_detailsExpanded)"
-                          Style="text-transform: none;">
-                    @(_detailsExpanded ? TranslationService.GetTranslation("common.hide", "Nascondi") : TranslationService.GetTranslation("documents.details", "Dettagli"))
-                </MudButton>
-            </MudTooltip>
-        </MudStack>
+                <MudTooltip Text="@(_detailsExpanded ? TranslationService.GetTranslation("documents.hideDetails", "Nascondi dettagli") : TranslationService.GetTranslation("documents.showDetails", "Mostra dettagli"))">
+                    <MudIconButton Icon="@(_detailsExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
+                                  Variant="Variant.Outlined"
+                                  Size="Size.Medium"
+                                  OnClick="@(() => _detailsExpanded = !_detailsExpanded)"
+                                  aria-label="@(_detailsExpanded ? TranslationService.GetTranslation("documents.hideDetails", "Nascondi dettagli") : TranslationService.GetTranslation("documents.showDetails", "Mostra dettagli"))" />
+                </MudTooltip>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Row 2: Business Party (Full Width for Better Visibility) -->
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                        <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("documents.businessParty", "Cliente/Fornitore")
+                    </MudText>
+                    <MudAutocomplete T="BusinessPartyDto"
+                                    @bind-Value="_selectedBusinessParty"
+                                    SearchFunc="@SearchBusinessPartiesAsync"
+                                    ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
+                                    Variant="Variant.Outlined"
+                                    Dense="true"
+                                    Margin="Margin.Dense"
+                                    MinCharacters="2"
+                                    DebounceInterval="300"
+                                    ShowProgressIndicator="true"
+                                    Clearable="false"
+                                    Placeholder="@TranslationService.GetTranslation("documents.searchBusinessParty", "Cerca cliente o fornitore (min 2 caratteri)...")"
+                                    aria-label="@TranslationService.GetTranslation("documents.businessParty", "Controparte")"
+                                    AdornmentIcon="@Icons.Material.Outlined.Business">
+                        <ItemTemplate>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
+                                @if (!string.IsNullOrEmpty(context.TaxCode))
+                                {
+                                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Badge" Size="Size.Small" Class="mr-1" />
+                                        @context.TaxCode
+                                    </MudText>
+                                }
+                            </MudStack>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
 
         <!-- Expanded Details Section (Collapsible) -->
         <MudCollapse Expanded="@_detailsExpanded">
@@ -570,6 +602,7 @@
     [Parameter] public Guid? DocumentId { get; set; }
 
     private bool _isLoading = false;
+    private bool _isSavingHeader = false;
     private bool _isEditMode => DocumentId.HasValue;
     private string _pageTitle = "";
     private CreateDocumentHeaderDto _model = new();
@@ -848,7 +881,7 @@
             return;
         }
         
-        _isLoading = true;
+        _isSavingHeader = true;
         try
         {
             _model.BusinessPartyId = _selectedBusinessParty!.Id;
@@ -890,7 +923,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _isSavingHeader = false;
         }
     }
 

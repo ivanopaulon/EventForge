@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using MudBlazor;
+using Blazored.LocalStorage;
 
 namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 
@@ -30,6 +31,7 @@ public partial class AddDocumentRowDialog
     [Inject] private ILogger<AddDocumentRowDialog> Logger { get; set; } = null!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ILocalStorageService LocalStorage { get; set; } = null!;
     
     #endregion
 
@@ -98,6 +100,9 @@ public partial class AddDocumentRowDialog
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
+        // Load panel states from LocalStorage
+        await LoadPanelStatesAsync();
+        
         await LoadDocumentHeaderAsync();
         await LoadUnitsOfMeasureAsync();
         await LoadVatRatesAsync();
@@ -126,6 +131,67 @@ public partial class AddDocumentRowDialog
             await _barcodeField.FocusAsync();
         }
     }
+    
+    #endregion
+    
+    #region Panel State Persistence
+    
+    private const string PANEL_STATE_KEY = "AddDocumentRowDialog_PanelStates";
+    
+    /// <summary>
+    /// Loads panel states from LocalStorage
+    /// </summary>
+    private async Task LoadPanelStatesAsync()
+    {
+        try
+        {
+            var states = await LocalStorage.GetItemAsync<PanelStates>(PANEL_STATE_KEY);
+            if (states != null)
+            {
+                _vatPanelExpanded = states.VatPanelExpanded;
+                _discountsPanelExpanded = states.DiscountsPanelExpanded;
+                _notesPanelExpanded = states.NotesPanelExpanded;
+                Logger.LogDebug("Loaded panel states from LocalStorage");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error loading panel states from LocalStorage");
+        }
+    }
+    
+    /// <summary>
+    /// Saves panel states to LocalStorage
+    /// </summary>
+    private async Task SavePanelStatesAsync()
+    {
+        try
+        {
+            var states = new PanelStates
+            {
+                VatPanelExpanded = _vatPanelExpanded,
+                DiscountsPanelExpanded = _discountsPanelExpanded,
+                NotesPanelExpanded = _notesPanelExpanded
+            };
+            await LocalStorage.SetItemAsync(PANEL_STATE_KEY, states);
+            Logger.LogDebug("Saved panel states to LocalStorage");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error saving panel states to LocalStorage");
+        }
+    }
+    
+    /// <summary>
+    /// Panel states DTO for LocalStorage persistence
+    /// </summary>
+    private class PanelStates
+    {
+        public bool VatPanelExpanded { get; set; }
+        public bool DiscountsPanelExpanded { get; set; }
+        public bool NotesPanelExpanded { get; set; }
+    }
+    
     
     #endregion
 
