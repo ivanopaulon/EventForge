@@ -1,3 +1,4 @@
+using EventForge.Client.Services;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.VatRates;
 using Microsoft.Extensions.Logging;
