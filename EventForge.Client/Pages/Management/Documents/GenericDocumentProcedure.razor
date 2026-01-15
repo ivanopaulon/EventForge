@@ -151,7 +151,7 @@
             <!-- Action Buttons -->
             <MudItem xs="12" md="2" Class="d-flex align-center justify-end gap-2">
                 <MudTooltip Text="@TranslationService.GetTranslation("common.save", "Salva")">
-                    <MudIconButton Icon="@Icons.Material.Outlined.Save"
+                    <MudIconButton Icon="@(_isSavingHeader ? null : Icons.Material.Outlined.Save)"
                                   Color="Color.Primary"
                                   Variant="Variant.Filled"
                                   Size="Size.Medium"
@@ -160,7 +160,7 @@
                                   aria-label="@TranslationService.GetTranslation("common.save", "Salva documento")">
                         @if (_isSavingHeader)
                         {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
                         }
                     </MudIconButton>
                 </MudTooltip>

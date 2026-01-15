@@ -136,7 +136,7 @@ public partial class AddDocumentRowDialog
     
     #region Panel State Persistence
     
-    private const string PANEL_STATE_KEY = "AddDocumentRowDialog_PanelStates";
+    private const string PANEL_STATE_KEY = "EventForge.Documents.AddDocumentRowDialog.PanelStates";
     
     /// <summary>
     /// Loads panel states from LocalStorage
