@@ -214,22 +214,8 @@
                             <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
                                 <MudText Typo="Typo.caption">
                                     <MudIcon Icon="@Icons.Material.Outlined.MergeType" Size="Size.Small" Class="mr-1" />
-                                    <strong>Modalità Merge attiva:</strong> Se esiste già una riga identica 
-                                    (stesso prodotto, prezzo <strong>@_model.UnitPrice.ToString("C2")</strong>, 
-                                    IVA <strong>@_model.VatRate%</strong>
-                                    @if (_model.LineDiscount > 0 || _model.LineDiscountValue > 0)
-                                    {
-                                        <text>, sconto </text>
-                                        if (_model.DiscountType == DiscountType.Percentage)
-                                        {
-                                            <strong>@_model.LineDiscount%</strong>
-                                        }
-                                        else
-                                        {
-                                            <strong>@_model.LineDiscountValue.ToString("C2")</strong>
-                                        }
-                                    }
-                                    ), la quantità verrà sommata.
+                                    @TranslationService.GetTranslation("documents.mergeDuplicatesActivePrefix", "Modalità Merge attiva:")
+                                    @TranslationService.GetTranslation("documents.mergeDuplicatesActiveInfo", "Se esiste già una riga identica (stesso prodotto, prezzo, IVA e sconti), la quantità verrà sommata.")
                                 </MudText>
                             </MudAlert>
                         }

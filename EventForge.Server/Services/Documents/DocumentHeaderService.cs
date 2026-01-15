@@ -743,7 +743,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         r.LineDiscountValue == createDto.LineDiscountValue &&
                         r.DiscountType == createDto.DiscountType &&
                         // Notes match (or both empty)
-                        (string.IsNullOrEmpty(r.Notes) && string.IsNullOrEmpty(createDto.Notes) || 
+                        ((string.IsNullOrEmpty(r.Notes) && string.IsNullOrEmpty(createDto.Notes)) || 
                          r.Notes == createDto.Notes) &&
                         !r.IsDeleted,
                         cancellationToken);
