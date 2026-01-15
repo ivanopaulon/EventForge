@@ -54,6 +54,7 @@ public partial class AddDocumentRowDialog
     
     private CreateDocumentRowDto _model = new() { Quantity = 1m };
     private ProductDto? _selectedProduct = null;
+    private ProductDto? _previousSelectedProduct = null;
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;
     private bool _isEditMode => RowId.HasValue;
@@ -137,6 +138,19 @@ public partial class AddDocumentRowDialog
     protected override void OnParametersSet()
     {
         _model.DocumentHeaderId = DocumentHeaderId;
+        
+        // Rileva quando _selectedProduct cambia (utente seleziona dalla lista)
+        if (_selectedProduct != null && 
+            _selectedProduct != _previousSelectedProduct)
+        {
+            // Use InvokeAsync to handle async operation properly
+            _ = InvokeAsync(async () =>
+            {
+                await OnProductSelected(_selectedProduct);
+                _previousSelectedProduct = _selectedProduct;
+                StateHasChanged();
+            });
+        }
     }
 
     /// <summary>
@@ -1087,6 +1101,7 @@ public partial class AddDocumentRowDialog
             MergeDuplicateProducts = preserveMergeDuplicates
         };
         _selectedProduct = null;
+        _previousSelectedProduct = null;
         _barcodeInput = string.Empty;
         
         // Invalidate cached calculation result
