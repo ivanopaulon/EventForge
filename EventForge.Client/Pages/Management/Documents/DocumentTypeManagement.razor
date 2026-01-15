@@ -13,6 +13,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentTypeManagement> Logger
+@inject IFilterStateService FilterStateService
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingDocumentTypes"
                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -340,6 +341,9 @@
                 return;
             }
 
+            // Load saved filter state
+            await LoadFilterStateAsync();
+
             await LoadDocumentTypesAsync();
         }
         catch (Exception ex)
@@ -372,8 +376,9 @@
         }
     }
 
-    private void OnFilterChanged()
+    private async void OnFilterChanged()
     {
+        await SaveFilterStateAsync();
         StateHasChanged();
     }
 
@@ -382,6 +387,7 @@
         _searchTerm = string.Empty;
         _showOnlyFiscal = false;
         _showOnlyStockIncrease = false;
+        _ = SaveFilterStateAsync();
         StateHasChanged();
     }
 
@@ -397,12 +403,54 @@
             await Task.Delay(300, token);
             if (!token.IsCancellationRequested)
             {
+                await SaveFilterStateAsync();
                 StateHasChanged();
             }
         }
         catch (OperationCanceledException)
         {
             // Swallow cancellation
+        }
+    }
+
+    private const string FilterStateKey = "DocumentTypeManagement";
+
+    private async Task LoadFilterStateAsync()
+    {
+        try
+        {
+            var state = await FilterStateService.LoadFilterStateAsync(FilterStateKey);
+            if (state != null)
+            {
+                _searchTerm = state.SearchTerm;
+                state.Toggles.TryGetValue("showOnlyFiscal", out _showOnlyFiscal);
+                state.Toggles.TryGetValue("showOnlyStockIncrease", out _showOnlyStockIncrease);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load filter state");
+        }
+    }
+
+    private async Task SaveFilterStateAsync()
+    {
+        try
+        {
+            var state = new PageFilterState
+            {
+                SearchTerm = _searchTerm,
+                Toggles = new Dictionary<string, bool>
+                {
+                    { "showOnlyFiscal", _showOnlyFiscal },
+                    { "showOnlyStockIncrease", _showOnlyStockIncrease }
+                }
+            };
+            await FilterStateService.SaveFilterStateAsync(FilterStateKey, state);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to save filter state");
         }
     }
 

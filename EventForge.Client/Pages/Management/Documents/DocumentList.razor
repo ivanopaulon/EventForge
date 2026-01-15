@@ -441,11 +441,25 @@
 
     private void ViewDocument(Guid documentId)
     {
+        if (documentId == Guid.Empty)
+        {
+            Logger.LogWarning("Attempted to view document with empty GUID");
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.invalidDocument", "Documento non valido"),
+                Severity.Warning
+            );
+            return;
+        }
         EditDocument(documentId);
     }
 
     private void EditDocument(Guid documentId)
     {
+        if (documentId == Guid.Empty)
+        {
+            Logger.LogWarning("Attempted to edit document with empty GUID");
+            return;
+        }
         NavigationManager.NavigateTo($"/documents/edit/{documentId}");
     }
 
