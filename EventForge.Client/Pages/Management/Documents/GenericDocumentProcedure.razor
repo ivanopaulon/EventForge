@@ -18,6 +18,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<GenericDocumentProcedure> Logger
 @inject NavigationManager NavigationManager
+@inject IFilterStateService FilterStateService
 
 <PageTitle>@_pageTitle</PageTitle>
 
@@ -169,7 +170,7 @@
                     <MudIconButton Icon="@(_detailsExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
                                   Variant="Variant.Outlined"
                                   Size="Size.Medium"
-                                  OnClick="@(() => _detailsExpanded = !_detailsExpanded)"
+                                  OnClick="@ToggleDetailsPanel"
                                   aria-label="@(_detailsExpanded ? TranslationService.GetTranslation("documents.hideDetails", "Nascondi dettagli") : TranslationService.GetTranslation("documents.showDetails", "Mostra dettagli"))" />
                 </MudTooltip>
             </MudItem>
@@ -730,14 +731,18 @@
 
         await LoadDocumentTypesAsync();
 
+        // Load saved panel state
+        await LoadPanelStateAsync();
+
         if (_isEditMode && DocumentId.HasValue)
         {
             await LoadDocumentAsync(DocumentId.Value);
             
-            // Auto-expand details if in edit mode or has notes
-            if (!string.IsNullOrWhiteSpace(_model.Notes))
+            // Auto-expand details if not overridden by saved state and has notes
+            if (!_panelStateLoaded && !string.IsNullOrWhiteSpace(_model.Notes))
             {
                 _detailsExpanded = true;
+                await SavePanelStateAsync();
             }
         }
         else
@@ -1479,5 +1484,52 @@
         return count == total 
             ? TranslationService.GetTranslationFormatted("documents.showingAllRows", "Visualizzate tutte le {0} righe", total)
             : TranslationService.GetTranslationFormatted("documents.showingFilteredRows", "Visualizzate {0} di {1} righe", count, total);
+    }
+
+    // Panel state management
+    private const string PanelStateKey = "GenericDocumentProcedure";
+    private const string PanelKeyDetailsExpanded = "detailsExpanded";
+    private bool _panelStateLoaded = false;
+
+    private async Task LoadPanelStateAsync()
+    {
+        try
+        {
+            var state = await FilterStateService.LoadPanelStateAsync(PanelStateKey);
+            if (state != null && state.PanelStates.TryGetValue(PanelKeyDetailsExpanded, out var expanded))
+            {
+                _detailsExpanded = expanded;
+                _panelStateLoaded = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load panel state");
+        }
+    }
+
+    private async Task SavePanelStateAsync()
+    {
+        try
+        {
+            var state = new PagePanelState
+            {
+                PanelStates = new Dictionary<string, bool>
+                {
+                    { PanelKeyDetailsExpanded, _detailsExpanded }
+                }
+            };
+            await FilterStateService.SavePanelStateAsync(PanelStateKey, state);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to save panel state");
+        }
+    }
+
+    private async Task ToggleDetailsPanel()
+    {
+        _detailsExpanded = !_detailsExpanded;
+        await SavePanelStateAsync();
     }
 }
