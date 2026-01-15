@@ -329,6 +329,9 @@
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public Color LoadingProgressColor { get; set; } = Color.Primary;
     [Parameter] public Breakpoint Breakpoint { get; set; } = Breakpoint.Sm;
+    
+    // Virtualization parameter for performance with large datasets
+    [Parameter] public bool Virtualize { get; set; } = false;
 
     // Pager parameters
     [Parameter] public bool ShowInternalPager { get; set; } = false;

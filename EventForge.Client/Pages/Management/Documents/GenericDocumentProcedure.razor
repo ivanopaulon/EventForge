@@ -351,7 +351,8 @@
                                  Hover="true"
                                  Striped="true"
                                  FixedHeader="true"
-                                 Height="calc(100vh - 450px)">
+                                 Height="calc(100vh - 450px)"
+                                 Virtualize="@(_currentDocument?.Rows?.Count > 100)">
                             <HeaderContent Context="columnConfigurations">
                                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                                 {
@@ -527,6 +528,20 @@
                                 </MudTd>
                             </RowTemplate>
                         </EFTable>
+                        
+                        @* Info badge when virtualization is active *@
+                        @if (_currentDocument?.Rows?.Count > 100)
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2" Variant="Variant.Outlined">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Speed" Size="Size.Small" />
+                                    <MudText Typo="Typo.caption">
+                                        <strong>@TranslationService.GetTranslation("documents.virtualizedMode", "Modalità Virtualizzata")</strong>: 
+                                        @TranslationService.GetTranslationFormatted("documents.virtualizedModeDesc", "Rendering ottimizzato per {0} righe", _currentDocument.Rows.Count)
+                                    </MudText>
+                                </MudStack>
+                            </MudAlert>
+                        }
                     }
                     else
                     {
