@@ -139,16 +139,24 @@ public partial class AddDocumentRowDialog
     {
         _model.DocumentHeaderId = DocumentHeaderId;
         
-        // Rileva quando _selectedProduct cambia (utente seleziona dalla lista)
+        // Detect when _selectedProduct changes (user selects from the list)
         if (_selectedProduct != null && 
-            _selectedProduct != _previousSelectedProduct)
+            _selectedProduct.Id != _previousSelectedProduct?.Id)
         {
             // Use InvokeAsync to handle async operation properly
-            _ = InvokeAsync(async () =>
+            // Store the task to ensure exception handling
+            var task = InvokeAsync(async () =>
             {
-                await OnProductSelected(_selectedProduct);
-                _previousSelectedProduct = _selectedProduct;
-                StateHasChanged();
+                try
+                {
+                    await OnProductSelected(_selectedProduct);
+                    _previousSelectedProduct = _selectedProduct;
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling product selection in OnParametersSet");
+                }
             });
         }
     }
@@ -607,7 +615,7 @@ public partial class AddDocumentRowDialog
     }
 
     /// <summary>
-    /// Cerca prodotti per autocomplete con supporto cancellazione
+    /// Search products for autocomplete with cancellation support
     /// </summary>
     private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
         string searchTerm, 
@@ -632,13 +640,13 @@ public partial class AddDocumentRowDialog
             
             var products = new List<ProductDto>();
             
-            // Aggiungi exact match in cima
+            // Add exact match at the top
             if (result.ExactMatch?.Product != null)
             {
                 products.Add(result.ExactMatch.Product);
             }
             
-            // Aggiungi altri risultati (escludendo duplicati)
+            // Add other results (excluding duplicates)
             if (result.SearchResults?.Any() == true)
             {
                 var exactMatchId = result.ExactMatch?.Product?.Id;
