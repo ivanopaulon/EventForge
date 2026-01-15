@@ -805,7 +805,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         existingRow,
                         "MergeUpdate",
                         currentUser,
-                        new { MergedQuantity = createDto.Quantity, MergeReason = "IdenticalRow" },
+                        null,
                         cancellationToken);
 
                     _logger.LogInformation(
