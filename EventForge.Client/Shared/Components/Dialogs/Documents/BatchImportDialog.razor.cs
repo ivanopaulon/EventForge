@@ -42,11 +42,12 @@ public partial class BatchImportDialog
         {
             // Limit file size to 5MB
             const long maxFileSize = 5 * 1024 * 1024;
+            const int maxFileSizeMB = 5;
             
             if (file.Size > maxFileSize)
             {
                 Snackbar.Add(
-                    TranslationService.GetTranslation("common.fileTooLarge", "File is too large. Maximum size is 5MB"),
+                    TranslationService.GetTranslation("common.fileTooLarge", "File is too large. Maximum size is {0}MB", maxFileSizeMB),
                     Severity.Error);
                 return;
             }
