@@ -54,6 +54,7 @@ public partial class AddDocumentRowDialog
     
     private CreateDocumentRowDto _model = new() { Quantity = 1m };
     private ProductDto? _selectedProduct = null;
+    private ProductDto? _previousSelectedProduct = null;
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;
     private bool _isEditMode => RowId.HasValue;
@@ -137,6 +138,27 @@ public partial class AddDocumentRowDialog
     protected override void OnParametersSet()
     {
         _model.DocumentHeaderId = DocumentHeaderId;
+        
+        // Detect when _selectedProduct changes (user selects from the list)
+        if (_selectedProduct != null && 
+            _selectedProduct.Id != _previousSelectedProduct?.Id)
+        {
+            // Use InvokeAsync to handle async operation properly
+            // Store the task to ensure exception handling
+            var task = InvokeAsync(async () =>
+            {
+                try
+                {
+                    await OnProductSelected(_selectedProduct);
+                    _previousSelectedProduct = _selectedProduct;
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling product selection in OnParametersSet");
+                }
+            });
+        }
     }
 
     /// <summary>
@@ -593,41 +615,56 @@ public partial class AddDocumentRowDialog
     }
 
     /// <summary>
-    /// Cerca prodotti per autocomplete
+    /// Search products for autocomplete with cancellation support
     /// </summary>
     private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
         string searchTerm, 
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
+        if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
             return Array.Empty<ProductDto>();
 
         try
         {
             var result = await ProductService.SearchProductsAsync(searchTerm, 50);
             
+            // Check if cancelled before processing results
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Logger.LogDebug("Product search cancelled for term: {SearchTerm}", searchTerm);
+                return Array.Empty<ProductDto>();
+            }
+            
             if (result == null)
                 return Array.Empty<ProductDto>();
             
-            var exactMatchProduct = result.ExactMatch?.Product;
-            if (exactMatchProduct != null)
+            var products = new List<ProductDto>();
+            
+            // Add exact match at the top
+            if (result.ExactMatch?.Product != null)
             {
-                var exactMatchList = new List<ProductDto> { exactMatchProduct };
-                
-                var searchResults = result.SearchResults ?? Enumerable.Empty<ProductDto>();
-                if (searchResults.Any())
-                {
-                    exactMatchList.AddRange(searchResults.Where(p => p.Id != exactMatchProduct.Id));
-                }
-                
-                return exactMatchList;
+                products.Add(result.ExactMatch.Product);
             }
             
-            return result.SearchResults ?? Enumerable.Empty<ProductDto>();
+            // Add other results (excluding duplicates)
+            if (result.SearchResults?.Any() == true)
+            {
+                var exactMatchId = result.ExactMatch?.Product?.Id;
+                products.AddRange(
+                    result.SearchResults.Where(p => p.Id != exactMatchId)
+                );
+            }
+            
+            return products;
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogDebug("Product search cancelled for term: {SearchTerm}", searchTerm);
+            return Array.Empty<ProductDto>();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error searching products");
+            Logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
             return Array.Empty<ProductDto>();
         }
     }
@@ -1087,6 +1124,7 @@ public partial class AddDocumentRowDialog
             MergeDuplicateProducts = preserveMergeDuplicates
         };
         _selectedProduct = null;
+        _previousSelectedProduct = null;
         _barcodeInput = string.Empty;
         
         // Invalidate cached calculation result

@@ -103,19 +103,27 @@
                         <MudAutocomplete T="ProductDto"
                                         Variant="Variant.Outlined"
                                         Label="@TranslationService.GetTranslation("documents.product", "Prodotto *")"
-                                        Value="_selectedProduct"
-                                        ValueChanged="@OnProductSelected"
+                                        @bind-Value="_selectedProduct"
                                         SearchFunc="@SearchProductsAsync"
                                         DebounceInterval="300"
                                         MinCharacters="2"
+                                        ResetValueOnEmptyText="false"
+                                        CoerceText="false"
+                                        CoerceValue="false"
                                         ToStringFunc="@(p => p?.Name ?? string.Empty)"
                                         ShowProgressIndicator="true"
                                         Adornment="Adornment.Start"
                                         AdornmentIcon="@Icons.Material.Outlined.Inventory"
                                         Required="true">
                             <ItemTemplate Context="product">
-                                <MudText>@product.Name</MudText>
-                                <MudText Typo="Typo.caption">@product.Code</MudText>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2">
+                                        <b>@product.Name</b>
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                                        @product.Code · @(product.DefaultPrice?.ToString("C2") ?? "N/A")
+                                    </MudText>
+                                </MudStack>
                             </ItemTemplate>
                         </MudAutocomplete>
                         
