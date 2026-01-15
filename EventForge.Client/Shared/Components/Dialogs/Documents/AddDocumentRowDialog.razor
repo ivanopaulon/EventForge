@@ -119,7 +119,8 @@
                 
                 <!-- IVA e Prezzi Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.vatAndPricesSection", "IVA e Prezzi")" 
-                                   @bind-Expanded="@_vatPanelExpanded"
+                                   Expanded="@_vatPanelExpanded"
+                                   ExpandedChanged="@(async (expanded) => { _vatPanelExpanded = expanded; await SavePanelStatesAsync(); })"
                                    id="vat-prices-panel">
                     <MudStack Spacing="2">
                         <MudSelect T="Guid?"
@@ -159,7 +160,8 @@
                 
                 <!-- Sconti Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.discountsSection", "Sconti")"
-                                   @bind-Expanded="@_discountsPanelExpanded"
+                                   Expanded="@_discountsPanelExpanded"
+                                   ExpandedChanged="@(async (expanded) => { _discountsPanelExpanded = expanded; await SavePanelStatesAsync(); })"
                                    id="discounts-panel">
                     <MudStack Spacing="2">
                         <MudNumericField T="decimal"
@@ -187,7 +189,8 @@
                 
                 <!-- Note e Dettagli Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.notesAndDetailsSection", "Note e Dettagli")"
-                                   @bind-Expanded="@_notesPanelExpanded"
+                                   Expanded="@_notesPanelExpanded"
+                                   ExpandedChanged="@(async (expanded) => { _notesPanelExpanded = expanded; await SavePanelStatesAsync(); })"
                                    id="notes-details-panel">
                     <MudTextField T="string"
                                  Label="@TranslationService.GetTranslation("documents.notes", "Note (opzionali)")"
@@ -246,14 +249,21 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined">
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
             @TranslationService.GetTranslation("common.close", "Chiudi")
         </MudButton>
         <MudButton Color="Color.Primary" 
                    OnClick="SaveAndContinue" 
-                   Disabled="@(!IsValid())"
-                   Variant="Variant.Filled"
-                   StartIcon="@(_isEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)">
+                   Disabled="@(!IsValid() || _isProcessing)"
+                   Variant="Variant.Filled">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            else
+            {
+                <MudIcon Icon="@(_isEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)" Class="mr-1" />
+            }
             @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
         </MudButton>
     </DialogActions>
