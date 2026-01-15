@@ -376,18 +376,33 @@
         }
     }
 
-    private async void OnFilterChanged()
+    private async Task OnFilterChanged()
     {
-        await SaveFilterStateAsync();
-        StateHasChanged();
+        try
+        {
+            await SaveFilterStateAsync();
+        }
+        finally
+        {
+            StateHasChanged();
+        }
     }
 
-    private void ClearFilters()
+    private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
         _showOnlyFiscal = false;
         _showOnlyStockIncrease = false;
-        _ = SaveFilterStateAsync();
+        
+        try
+        {
+            await SaveFilterStateAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to save filter state after clearing");
+        }
+        
         StateHasChanged();
     }
 
