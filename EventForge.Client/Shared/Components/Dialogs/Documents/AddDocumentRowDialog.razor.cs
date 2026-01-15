@@ -75,6 +75,10 @@ public partial class AddDocumentRowDialog
     private bool _discountsPanelExpanded = false;
     private bool _notesPanelExpanded = false;
     
+    // Cached calculation result to avoid redundant calculations
+    private Client.Models.Documents.DocumentRowCalculationResult? _cachedCalculationResult = null;
+    private string _cachedCalculationKey = string.Empty;
+    
     #endregion
 
     #region Constants
@@ -538,6 +542,10 @@ public partial class AddDocumentRowDialog
         }
         
         _model.UnitPrice = productPrice;
+        
+        // Invalidate cached calculation result
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
 
         await LoadProductUnits(product);
     }
@@ -675,6 +683,11 @@ public partial class AddDocumentRowDialog
             _model.VatRate = 0;
             _model.VatDescription = null;
         }
+        
+        // Invalidate cached calculation result
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
+        
         StateHasChanged();
     }
 
@@ -704,54 +717,47 @@ public partial class AddDocumentRowDialog
     #region Calculation Methods
     
     /// <summary>
-    /// Calcola l'importo dello sconto
+    /// Generates a unique key for caching based on current values
     /// </summary>
-    private decimal GetDiscountAmount()
+    private string GetCalculationCacheKey()
     {
-        var baseAmount = _model.Quantity * _model.UnitPrice;
-        var discount = _model.DiscountType == DiscountType.Percentage
-            ? baseAmount * (_model.LineDiscount / 100m)
-            : _model.LineDiscountValue;
+        return $"{_model.Quantity}|{_model.UnitPrice}|{_model.VatRate}|{_model.LineDiscount}|{_model.LineDiscountValue}|{_model.DiscountType}";
+    }
+    
+    /// <summary>
+    /// Gets calculation results from centralized service with caching
+    /// </summary>
+    private Client.Models.Documents.DocumentRowCalculationResult GetCalculationResult()
+    {
+        var currentKey = GetCalculationCacheKey();
         
-        return Math.Min(discount, baseAmount);
+        // Use cached result if key matches (check string equality first as it's cheaper than null check in common case)
+        if (_cachedCalculationKey == currentKey && _cachedCalculationResult != null)
+        {
+            return _cachedCalculationResult;
+        }
+        
+        // Calculate and cache the result
+        var input = new Client.Models.Documents.DocumentRowCalculationInput
+        {
+            Quantity = _model.Quantity,
+            UnitPrice = _model.UnitPrice,
+            VatRate = _model.VatRate,
+            DiscountPercentage = _model.LineDiscount,
+            DiscountValue = _model.LineDiscountValue,
+            DiscountType = _model.DiscountType
+        };
+        
+        _cachedCalculationResult = CalculationService.CalculateRowTotals(input);
+        _cachedCalculationKey = currentKey;
+        
+        return _cachedCalculationResult;
     }
-
-    /// <summary>
-    /// Calcola il subtotale (base - sconto)
-    /// </summary>
-    private decimal CalculateSubtotal()
-    {
-        var baseAmount = _model.Quantity * _model.UnitPrice;
-        return baseAmount - GetDiscountAmount();
-    }
-
-    /// <summary>
-    /// Calcola l'importo IVA
-    /// </summary>
-    private decimal CalculateVatAmount()
-    {
-        var subtotal = CalculateSubtotal();
-        return subtotal * (_model.VatRate / 100m);
-    }
-
-    /// <summary>
-    /// Calcola il totale della riga (subtotale + IVA)
-    /// </summary>
-    private decimal CalculateLineTotal()
-    {
-        var subtotal = CalculateSubtotal();
-        var vatAmount = subtotal * (_model.VatRate / 100m);
-        return subtotal + vatAmount;
-    }
-    
-    private decimal CalculateNetTotal() => CalculateSubtotal();
-    
-    private decimal CalculateGrossTotal() => CalculateLineTotal();
     
     private bool IsProductVatIncluded => _selectedProduct?.IsVatIncluded ?? false;
     
     /// <summary>
-    /// Ottiene il prezzo lordo originale del prodotto
+    /// Gets the original gross price of the product
     /// </summary>
     private decimal GetOriginalGrossPrice()
     {
@@ -762,34 +768,34 @@ public partial class AddDocumentRowDialog
     }
 
     /// <summary>
-    /// Ottiene il subtotale per il markup
+    /// Gets the subtotal for markup display
     /// </summary>
-    private decimal GetSubtotal() => CalculateSubtotal();
+    private decimal GetSubtotal() => GetCalculationResult().NetAmount;
     
     /// <summary>
-    /// Ottiene l'importo IVA per il markup
+    /// Gets the VAT amount for markup display
     /// </summary>
-    private decimal GetVatAmount() => CalculateVatAmount();
+    private decimal GetVatAmount() => GetCalculationResult().VatAmount;
     
     /// <summary>
-    /// Ottiene il totale della riga per il markup
+    /// Gets the line total for markup display
     /// </summary>
-    private decimal GetLineTotal() => CalculateLineTotal();
+    private decimal GetLineTotal() => GetCalculationResult().TotalAmount;
     
     /// <summary>
-    /// Ottiene lo sconto totale per il markup
+    /// Gets the total discount for markup display
     /// </summary>
-    private decimal GetTotalDiscount() => GetDiscountAmount();
+    private decimal GetTotalDiscount() => GetCalculationResult().DiscountAmount;
     
     /// <summary>
-    /// Ottiene il prezzo unitario lordo per il markup
+    /// Gets the gross unit price for markup display
     /// </summary>
-    private decimal GetUnitPriceGross() => _model.UnitPrice * (1 + _model.VatRate / 100m);
+    private decimal GetUnitPriceGross() => GetCalculationResult().UnitPriceGross;
     
     /// <summary>
-    /// Ottiene il totale per il markup (alias di GetLineTotal)
+    /// Gets the total for markup display (alias of GetLineTotal)
     /// </summary>
-    private decimal GetTotal() => CalculateLineTotal();
+    private decimal GetTotal() => GetCalculationResult().TotalAmount;
     
     #endregion
 
@@ -941,6 +947,11 @@ public partial class AddDocumentRowDialog
         };
         _selectedProduct = null;
         _barcodeInput = string.Empty;
+        
+        // Invalidate cached calculation result
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
+        
         StateHasChanged();
     }
 
@@ -969,6 +980,10 @@ public partial class AddDocumentRowDialog
             _model.LineDiscount = 0;
             _model.LineDiscountValue = 0;
             _model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
+            
+            // Invalidate cached calculation result
+            _cachedCalculationResult = null;
+            _cachedCalculationKey = string.Empty;
             
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.priceApplied", "Prezzo applicato: {0:C2}", suggestion.EffectiveUnitPrice),
@@ -1038,6 +1053,10 @@ public partial class AddDocumentRowDialog
                     _model.VatDescription = vatRate.Name;
                 }
             }
+            
+            // Invalidate cached calculation result
+            _cachedCalculationResult = null;
+            _cachedCalculationKey = string.Empty;
             
             Snackbar.Add(
                 TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
