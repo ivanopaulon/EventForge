@@ -728,18 +728,36 @@ public class DocumentHeaderService : IDocumentHeaderService
                 }
             }
 
-            // Check if we should merge with an existing row
+            // Check if we should merge with an existing IDENTICAL row
             if (createDto.MergeDuplicateProducts && createDto.ProductId.HasValue)
             {
+                // Compare ALL conditions for "identical" rows
                 var existingRow = await _context.DocumentRows
                     .FirstOrDefaultAsync(r =>
                         r.DocumentHeaderId == createDto.DocumentHeaderId &&
                         r.ProductId == createDto.ProductId &&
+                        // Check price, VAT, and discounts match
+                        r.UnitPrice == createDto.UnitPrice &&
+                        r.VatRate == createDto.VatRate &&
+                        r.LineDiscount == createDto.LineDiscount &&
+                        r.LineDiscountValue == createDto.LineDiscountValue &&
+                        r.DiscountType == createDto.DiscountType &&
+                        // Notes match (or both empty)
+                        ((string.IsNullOrEmpty(r.Notes) && string.IsNullOrEmpty(createDto.Notes)) || 
+                         r.Notes == createDto.Notes) &&
                         !r.IsDeleted,
                         cancellationToken);
 
                 if (existingRow != null)
                 {
+                    _logger.LogInformation(
+                        "Merging identical row: ProductId={ProductId}, Price={Price}, VatRate={VatRate}, ExistingQty={ExistingQty}, AddQty={AddQty}",
+                        createDto.ProductId.Value,
+                        createDto.UnitPrice,
+                        createDto.VatRate,
+                        existingRow.BaseQuantity,
+                        baseQuantity);
+
                     // Merge: sum base quantities and recalculate display quantity if units differ
                     if (baseQuantity.HasValue && existingRow.BaseQuantity.HasValue)
                     {
@@ -783,12 +801,28 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     _ = await _context.SaveChangesAsync(cancellationToken);
 
-                    _ = await _auditLogService.TrackEntityChangesAsync(existingRow, "Update", currentUser, null, cancellationToken);
+                    _ = await _auditLogService.TrackEntityChangesAsync(
+                        existingRow,
+                        "MergeUpdate",
+                        currentUser,
+                        null,
+                        cancellationToken);
 
-                    _logger.LogInformation("Document row {RowId} quantity updated (merged) in document {DocumentHeaderId} by {User}.",
-                        existingRow.Id, createDto.DocumentHeaderId, currentUser);
+                    _logger.LogInformation(
+                        "Row merged successfully: RowId={RowId}, NewQty={NewQty}, NewBaseQty={NewBaseQty}",
+                        existingRow.Id,
+                        existingRow.Quantity,
+                        existingRow.BaseQuantity);
 
                     return existingRow.ToDto();
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "No identical row found for merge. Creating new row for ProductId={ProductId}, Price={Price}, VatRate={VatRate}",
+                        createDto.ProductId.Value,
+                        createDto.UnitPrice,
+                        createDto.VatRate);
                 }
             }
 

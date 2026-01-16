@@ -184,6 +184,44 @@
                                 Variant="Variant.Outlined"
                                 Adornment="Adornment.Start"
                                 AdornmentIcon="@Icons.Material.Outlined.Euro" />
+                
+                <!-- 3.5 MERGE DUPLICATES CHECKBOX (Only in Add Mode) -->
+                @if (!_isEditMode)
+                {
+                    <MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                        <MudCheckBox T="bool"
+                                     @bind-Checked="_model.MergeDuplicateProducts"
+                                     Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se l'articolo è già presente")"
+                                     Color="Color.Primary"
+                                     Disabled="@(_selectedProduct == null)">
+                            @if (_selectedProduct == null)
+                            {
+                                <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesDisabledHelp", "Seleziona un prodotto dall'autocomplete per abilitare la fusione")">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Warning" Class="ml-1" />
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "When enabled, if you add the same product with the same price, VAT and discounts, the quantity will be summed to the existing row instead of creating a new one")">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
+                                </MudTooltip>
+                            }
+                        </MudCheckBox>
+                        
+                        @* Alert informativo quando merge è attivo *@
+                        @if (_model.MergeDuplicateProducts && _selectedProduct != null)
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                                <MudText Typo="Typo.caption">
+                                    <MudIcon Icon="@Icons.Material.Outlined.MergeType" Size="Size.Small" Class="mr-1" />
+                                    <strong>@TranslationService.GetTranslation("documents.mergeDuplicatesActivePrefix", "Merge Mode Active:")</strong>
+                                    @(" ")
+                                    @TranslationService.GetTranslation("documents.mergeDuplicatesActiveInfo", "If an identical row exists (same product, price, VAT and discounts), the quantity will be summed.")
+                                </MudText>
+                            </MudAlert>
+                        }
+                    </MudPaper>
+                }
             
                 <!-- 4. EXPANSION PANELS FOR ADVANCED SECTIONS -->
                 <MudExpansionPanels MultiExpansion="true" Elevation="1">
