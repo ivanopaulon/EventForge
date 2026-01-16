@@ -163,7 +163,9 @@ public partial class AddDocumentRowDialog : IDisposable
             _previousSelectedProduct = _selectedProduct;
             if (_selectedProduct != null)
             {
-                _ = PopulateFromProductAsync(_selectedProduct);
+                // Fire-and-forget is intentional here as OnParametersSet cannot be async
+                // StateHasChanged will be called by PopulateFromProductAsync
+                Task.Run(async () => await PopulateFromProductAsync(_selectedProduct));
             }
             else
             {
@@ -490,10 +492,8 @@ public partial class AddDocumentRowDialog : IDisposable
             {
                 _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
                 
-                // Set product - the watcher in OnParametersSet will handle population
-                _selectedProduct = productWithCode.Product;
-                _previousSelectedProduct = _selectedProduct;
-                await PopulateFromProductAsync(_selectedProduct);
+                // Set product and populate fields
+                await SetSelectedProductAsync(productWithCode.Product);
                 
                 _barcodeInput = string.Empty;
                 _scannedBarcode = string.Empty;
@@ -561,10 +561,8 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         if (data is ProductDto createdProduct)
         {
-            // Set product - the watcher in OnParametersSet will handle population
-            _selectedProduct = createdProduct;
-            _previousSelectedProduct = _selectedProduct;
-            await PopulateFromProductAsync(_selectedProduct);
+            // Set product and populate fields
+            await SetSelectedProductAsync(createdProduct);
             
             _barcodeInput = string.Empty;
             _scannedBarcode = string.Empty;
@@ -588,10 +586,8 @@ public partial class AddDocumentRowDialog : IDisposable
                 {
                     ProductDto assignedProduct = assignResult.Product;
                     
-                    // Set product - the watcher in OnParametersSet will handle population
-                    _selectedProduct = assignedProduct;
-                    _previousSelectedProduct = _selectedProduct;
-                    await PopulateFromProductAsync(_selectedProduct);
+                    // Set product and populate fields
+                    await SetSelectedProductAsync(assignedProduct);
                     
                     _barcodeInput = string.Empty;
                     _scannedBarcode = string.Empty;
@@ -724,7 +720,19 @@ public partial class AddDocumentRowDialog : IDisposable
     }
 
     /// <summary>
-    /// Search products for autocomplete - follows BusinessParty autocomplete pattern
+    /// Helper method to set a product and populate fields
+    /// Consolidates the pattern used throughout the component
+    /// </summary>
+    private async Task SetSelectedProductAsync(ProductDto product)
+    {
+        _selectedProduct = product;
+        _previousSelectedProduct = _selectedProduct;
+        await PopulateFromProductAsync(_selectedProduct);
+    }
+
+    /// <summary>
+    /// Search products for autocomplete
+    /// Uses simplified error handling pattern similar to BusinessParty autocomplete
     /// </summary>
     private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
         string searchTerm, 
