@@ -1053,7 +1053,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                         {
                             _context.Attach(document);
                         }
-                        document.Status = EventForge.Server.Data.Entities.Documents.DocumentStatus.Cancelled;
+                        document.Status = EventForge.DTOs.Common.DocumentStatus.Cancelled;
                         document.ModifiedBy = currentUser;
                         document.ModifiedAt = DateTime.UtcNow;
                         await _context.SaveChangesAsync(cancellationToken);

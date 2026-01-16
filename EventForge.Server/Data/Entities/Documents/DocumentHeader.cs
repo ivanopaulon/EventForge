@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Documents;
 
@@ -212,7 +213,7 @@ public class DocumentHeader : AuditableEntity
     public DateTime? ClosedAt { get; set; }
 
     [Display(Name = "Status", Description = "Document status.")]
-    public DocumentStatus Status { get; set; } = DocumentStatus.Open;
+    public DocumentStatus Status { get; set; } = DocumentStatus.Draft;
 
     // --- Document links ---
     [Display(Name = "Reference Document", Description = "Reference to another document (for links, corrections, etc.).")]
@@ -327,6 +328,27 @@ public class DocumentHeader : AuditableEntity
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;
 
+    // --- Collaboration and Lock Management ---
+    /// <summary>
+    /// User currently editing this document (email/username).
+    /// </summary>
+    [StringLength(256)]
+    [Display(Name = "Locked By", Description = "User currently editing this document.")]
+    public string? LockedBy { get; set; }
+
+    /// <summary>
+    /// Timestamp when lock was acquired.
+    /// </summary>
+    [Display(Name = "Locked At", Description = "Timestamp when lock was acquired.")]
+    public DateTime? LockedAt { get; set; }
+
+    /// <summary>
+    /// SignalR connection ID of user holding the lock.
+    /// </summary>
+    [StringLength(100)]
+    [Display(Name = "Lock Connection ID", Description = "SignalR connection ID holding the lock.")]
+    public string? LockConnectionId { get; set; }
+
     // --- Calculated properties ---
     [NotMapped]
     [Display(Name = "Total Before Discounts", Description = "Total before discounts.")]
@@ -345,16 +367,6 @@ public class DocumentHeader : AuditableEntity
             return total < 0 ? 0 : total;
         }
     }
-}
-
-/// <summary>
-/// Document status enumeration.
-/// </summary>
-public enum DocumentStatus
-{
-    Open,
-    Closed,
-    Cancelled
 }
 
 /// <summary>

@@ -186,4 +186,35 @@ public interface IDocumentHeaderService
     Task<bool> DeleteDocumentRowAsync(
         Guid rowId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Acquires an exclusive edit lock for a document.
+    /// </summary>
+    /// <param name="documentId">Document ID</param>
+    /// <param name="userName">User acquiring the lock</param>
+    /// <param name="connectionId">SignalR connection ID</param>
+    /// <returns>True if lock acquired, false if already locked by another user</returns>
+    Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId);
+
+    /// <summary>
+    /// Releases an edit lock for a document.
+    /// </summary>
+    /// <param name="documentId">Document ID</param>
+    /// <param name="userName">User releasing the lock</param>
+    /// <returns>True if lock released, false if user doesn't hold the lock</returns>
+    Task<bool> ReleaseLockAsync(Guid documentId, string userName);
+
+    /// <summary>
+    /// Releases all locks held by a specific SignalR connection.
+    /// Called when a user disconnects.
+    /// </summary>
+    /// <param name="connectionId">SignalR connection ID</param>
+    Task ReleaseAllLocksForConnectionAsync(string connectionId);
+
+    /// <summary>
+    /// Gets lock information for a document.
+    /// </summary>
+    /// <param name="documentId">Document ID</param>
+    /// <returns>Lock information or null if document not found</returns>
+    Task<DocumentLockInfo?> GetLockInfoAsync(Guid documentId);
 }

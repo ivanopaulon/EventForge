@@ -1,6 +1,7 @@
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
+using EventForge.DTOs.Common;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Products;
@@ -8,7 +9,6 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using EntityDocumentStatus = EventForge.Server.Data.Entities.Documents.DocumentStatus;
 
 namespace EventForge.Server.Controllers;
 
@@ -1519,7 +1519,7 @@ public class WarehouseManagementController : BaseApiController
             };
 
             // Apply optional filters
-            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<EntityDocumentStatus>(status, true, out var parsedStatus))
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<DocumentStatus>(status, true, out var parsedStatus))
             {
                 queryParams.Status = (EventForge.DTOs.Common.DocumentStatus)(int)parsedStatus;
             }
@@ -2017,7 +2017,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Only allow updating Draft documents (status is Open in entity)
-            if (documentHeader.Status != EntityDocumentStatus.Open)
+            if (documentHeader.Status != DocumentStatus.Open)
             {
                 return BadRequest(new ProblemDetails
                 {
@@ -2113,7 +2113,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Check if document is still open
-            if ((int)documentHeader.Status != (int)EntityDocumentStatus.Open)
+            if ((int)documentHeader.Status != (int)DocumentStatus.Open)
             {
                 return BadRequest(new ProblemDetails
                 {
@@ -2232,7 +2232,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Check if document is still open
-            if ((int)documentHeader.Status != (int)EntityDocumentStatus.Open)
+            if ((int)documentHeader.Status != (int)DocumentStatus.Open)
             {
                 return BadRequest(new ProblemDetails
                 {
@@ -2765,7 +2765,7 @@ public class WarehouseManagementController : BaseApiController
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
+                Status = (EventForge.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = true
@@ -2847,7 +2847,7 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            documentEntity.Status = EntityDocumentStatus.Cancelled;
+            documentEntity.Status = DocumentStatus.Cancelled;
             documentEntity.ModifiedAt = DateTime.UtcNow;
             documentEntity.ModifiedBy = GetCurrentUser();
 
@@ -2892,7 +2892,7 @@ public class WarehouseManagementController : BaseApiController
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
+                Status = (EventForge.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = false
@@ -3147,7 +3147,7 @@ public class WarehouseManagementController : BaseApiController
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (EventForge.DTOs.Common.DocumentStatus)(int)EntityDocumentStatus.Open,
+                Status = (EventForge.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = false
@@ -3173,7 +3173,7 @@ public class WarehouseManagementController : BaseApiController
 
                 foreach (var documentEntity in documentEntities)
                 {
-                    documentEntity.Status = EntityDocumentStatus.Cancelled;
+                    documentEntity.Status = DocumentStatus.Cancelled;
                     documentEntity.ModifiedAt = now;
                     documentEntity.ModifiedBy = currentUser;
                     cancelledCount++;
@@ -3388,7 +3388,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // 4. Verify all documents are in Open status
-            if (documents.Any(d => d.Status != EntityDocumentStatus.Open))
+            if (documents.Any(d => d.Status != DocumentStatus.Open))
             {
                 return BadRequest(new ProblemDetails
                 {
@@ -3475,7 +3475,7 @@ public class WarehouseManagementController : BaseApiController
             // 8. Cancel the source documents
             foreach (var doc in documents)
             {
-                doc.Status = EntityDocumentStatus.Cancelled;
+                doc.Status = DocumentStatus.Cancelled;
                 doc.Notes = $"{doc.Notes ?? ""} [Merged into {mergedDocNumber}]";
                 doc.ModifiedAt = DateTime.UtcNow;
                 doc.ModifiedBy = GetCurrentUser();
