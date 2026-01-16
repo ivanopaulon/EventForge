@@ -157,15 +157,14 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         _model.DocumentHeaderId = DocumentHeaderId;
         
-        // Watch for product selection changes
-        if (_selectedProduct != _previousSelectedProduct)
+        // Watch for product selection changes - compare by ID for proper equality check
+        if (_selectedProduct?.Id != _previousSelectedProduct?.Id)
         {
             _previousSelectedProduct = _selectedProduct;
             if (_selectedProduct != null)
             {
-                // Fire-and-forget is intentional here as OnParametersSet cannot be async
-                // StateHasChanged will be called by PopulateFromProductAsync
-                Task.Run(async () => await PopulateFromProductAsync(_selectedProduct));
+                // Use InvokeAsync to safely execute async operation within component lifecycle
+                _ = InvokeAsync(async () => await PopulateFromProductAsync(_selectedProduct));
             }
             else
             {
