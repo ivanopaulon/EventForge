@@ -105,6 +105,8 @@ public partial class AddDocumentRowDialog
 
     #region Constants
     
+    private const int RENDER_DELAY_MS = 100;
+    
     private static readonly string[] PurchaseKeywords = 
         { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
     private static readonly string[] SaleKeywords = 
@@ -468,7 +470,7 @@ public partial class AddDocumentRowDialog
                 
                 if (_quantityField != null)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(RENDER_DELAY_MS);
                     await _quantityField.FocusAsync();
                 }
             }
@@ -606,7 +608,7 @@ public partial class AddDocumentRowDialog
             // Auto-focus campo quantità per UX fluida
             if (_quantityField != null)
             {
-                await Task.Delay(100); // Delay per permettere rendering
+                await Task.Delay(RENDER_DELAY_MS); // Delay per permettere rendering
                 await _quantityField.FocusAsync();
             }
         }
@@ -1110,7 +1112,7 @@ public partial class AddDocumentRowDialog
             
             if (_barcodeField != null)
             {
-                await Task.Delay(100);
+                await Task.Delay(RENDER_DELAY_MS);
                 await _barcodeField.FocusAsync();
             }
         }
