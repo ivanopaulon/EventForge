@@ -771,27 +771,16 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private async Task OnProductSelectedChanged()
     {
+        // ✅ ONLY populate when there's a valid selection
+        // ❌ DO NOT clear fields when null (user might be typing!)
         if (_selectedProduct != null)
         {
             Logger.LogInformation("Product selected: {ProductId} - {ProductName}", _selectedProduct.Id, _selectedProduct.Name);
             await PopulateFromProductAsync(_selectedProduct);
+            StateHasChanged();
         }
-        else
-        {
-            // Clear fields when deselected
-            Logger.LogDebug("Product selection cleared");
-            _model.ProductId = null;
-            _model.ProductCode = string.Empty;
-            _model.Description = string.Empty;
-            _model.UnitPrice = 0m;
-            _selectedUnitOfMeasureId = null;
-            _model.UnitOfMeasureId = null;
-            _model.UnitOfMeasure = string.Empty;
-            _availableUnits.Clear();
-            _recentTransactions.Clear();
-        }
-        
-        StateHasChanged();
+        // ✅ REMOVED else block that cleared fields
+        // Manual clear will be handled explicitly when needed (e.g. in ResetForm())
     }
 
     /// <summary>
