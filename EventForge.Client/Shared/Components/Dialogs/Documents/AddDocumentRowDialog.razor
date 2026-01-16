@@ -9,23 +9,164 @@
 
 <MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" @onkeydown="@OnDialogKeyDown" tabindex="-1">
     <TitleContent>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
             <MudText Typo="Typo.h6">
                 <MudIcon Icon="@(_isEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)" Class="mr-2" />
                 @TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")
             </MudText>
+            
             @if (!_isEditMode)
             {
-                <MudSwitch @bind-Value="_quickAddMode" 
-                           Color="Color.Primary" 
-                           Label="@TranslationService.GetTranslation("documents.quickAddMode", "Quick Add")"
-                           ThumbIcon="@(_quickAddMode ? Icons.Material.Filled.FlashOn : Icons.Material.Filled.FlashOff)" />
+                <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
+                    <MudTooltip Text="Modalità completa con tutti i campi">
+                        <MudButton StartIcon="@Icons.Material.Outlined.Edit"
+                                  Color="@(_dialogMode == DialogMode.Standard ? Color.Primary : Color.Default)"
+                                  Variant="@(_dialogMode == DialogMode.Standard ? Variant.Filled : Variant.Outlined)"
+                                  OnClick="@(() => SetDialogMode(DialogMode.Standard))">
+                            Standard
+                        </MudButton>
+                    </MudTooltip>
+                    
+                    <MudTooltip Text="Inserimento rapido con campi essenziali">
+                        <MudButton StartIcon="@Icons.Material.Filled.FlashOn"
+                                  Color="@(_dialogMode == DialogMode.QuickAdd ? Color.Primary : Color.Default)"
+                                  Variant="@(_dialogMode == DialogMode.QuickAdd ? Variant.Filled : Variant.Outlined)"
+                                  OnClick="@(() => SetDialogMode(DialogMode.QuickAdd))">
+                            Quick
+                        </MudButton>
+                    </MudTooltip>
+                    
+                    <MudTooltip Text="Scansione continua con barcode scanner">
+                        <MudButton StartIcon="@Icons.Material.Outlined.QrCodeScanner"
+                                  Color="@(_dialogMode == DialogMode.ContinuousScan ? Color.Primary : Color.Default)"
+                                  Variant="@(_dialogMode == DialogMode.ContinuousScan ? Variant.Filled : Variant.Outlined)"
+                                  OnClick="@(() => SetDialogMode(DialogMode.ContinuousScan))">
+                            Scan
+                            @if (_continuousScanCount > 0)
+                            {
+                                <MudBadge Content="@_continuousScanCount" Color="Color.Success" Overlap="true" Class="ml-2" />
+                            }
+                        </MudButton>
+                    </MudTooltip>
+                </MudButtonGroup>
             }
         </MudStack>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
             
+            @if (_dialogMode == DialogMode.ContinuousScan)
+            {
+                <!-- CONTINUOUS SCAN MODE INTERFACE -->
+                <MudPaper Elevation="3" Class="pa-4" Style="background: linear-gradient(135deg, #e3f2fd 0%, #90caf9 50%, #2196f3 100%);">
+                    <MudStack Spacing="3">
+                        
+                        <!-- Header -->
+                        <MudText Typo="Typo.h5" Color="Color.Surface" Align="Align.Center" Style="text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                            <MudIcon Icon="@Icons.Material.Filled.QrCodeScanner" Size="Size.Large" Class="mr-2" />
+                            Modalità Lettura Continua
+                        </MudText>
+                        
+                        <!-- Info Alert -->
+                        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Filled" Elevation="2">
+                            🔍 <strong>Scansiona i codici a barre</strong> - ogni scansione aggiunge automaticamente 1 unità<br/>
+                            💡 Prodotti già presenti vengono aggiornati automaticamente<br/>
+                            ⚡ Premi <kbd>ESC</kbd> per tornare alla modalità standard
+                        </MudAlert>
+                        
+                        <!-- Scanner Input -->
+                        <MudPaper Elevation="4" Class="pa-3" Style="background-color: white; border-left: 4px solid #2196f3;">
+                            <MudTextField @bind-Value="_continuousScanInput"
+                                         @ref="_continuousScanField"
+                                         Label="Scansiona Codice a Barre"
+                                         Variant="Variant.Outlined"
+                                         @onkeydown="@OnContinuousScanKeyDown"
+                                         Adornment="Adornment.Start"
+                                         AdornmentIcon="@Icons.Material.Filled.QrCodeScanner"
+                                         AdornmentColor="Color.Primary"
+                                         Immediate="true"
+                                         Disabled="_isProcessingContinuousScan"
+                                         Style="font-size: 1.3rem; font-weight: 500;" />
+                            
+                            @if (_isProcessingContinuousScan)
+                            {
+                                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Size="Size.Small" Class="mt-2" />
+                            }
+                        </MudPaper>
+                        
+                        <!-- Stats Cards -->
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Elevation="2" Class="pa-3" Style="text-align: center; background: white;">
+                                    <MudIcon Icon="@Icons.Material.Filled.QrCodeScanner" Color="Color.Primary" Size="Size.Medium" />
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Scansioni Totali</MudText>
+                                    <MudText Typo="Typo.h3" Color="Color.Primary">@_continuousScanCount</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Elevation="2" Class="pa-3" Style="text-align: center; background: white;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Medium" />
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Prodotti Unici</MudText>
+                                    <MudText Typo="Typo.h3" Color="Color.Success">@_uniqueProductsCount</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Elevation="2" Class="pa-3" Style="text-align: center; background: white;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Info" Size="Size.Medium" />
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Velocità</MudText>
+                                    <MudText Typo="Typo.h3" Color="Color.Info">@_scansPerMinute<MudText Typo="Typo.caption" Inline="true">/min</MudText></MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                        
+                        <!-- Recent Scans List -->
+                        @if (_recentContinuousScans.Any())
+                        {
+                            <MudPaper Elevation="2" Class="pa-3" Style="background-color: white; max-height: 300px; overflow-y: auto;">
+                                <MudText Typo="Typo.subtitle1">
+                                    <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" Class="mr-2" />
+                                    Ultimi Prodotti Scansionati
+                                </MudText>
+                                
+                                <MudList Dense="true">
+                                    @foreach (var scan in _recentContinuousScans.Take(5))
+                                    {
+                                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.body2"><strong>@scan.ProductName</strong></MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @scan.Barcode · Qty: @scan.Quantity · €@scan.UnitPrice.ToString("F2")
+                                                    </MudText>
+                                                </MudStack>
+                                                <MudChip Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.AccessTime">
+                                                    @GetTimeAgo(scan.Timestamp)
+                                                </MudChip>
+                                            </MudStack>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            </MudPaper>
+                        }
+                        
+                        <!-- Finalize Button -->
+                        <MudButton StartIcon="@Icons.Material.Filled.Check"
+                                  Variant="Variant.Filled"
+                                  Color="Color.Success"
+                                  OnClick="@(() => MudDialog.Close())"
+                                  Disabled="@(_continuousScanCount == 0)"
+                                  FullWidth="true">
+                            Finalizza e Chiudi (@_continuousScanCount scansioni)
+                        </MudButton>
+                        
+                    </MudStack>
+                </MudPaper>
+            }
+            
+            @if (_dialogMode != DialogMode.ContinuousScan)
+            {
             <!-- 1. BARCODE SCANNER (Full Width) -->
             <MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
                 <MudStack Spacing="2">
@@ -44,7 +185,7 @@
                 </MudStack>
             </MudPaper>
             
-            @if (_quickAddMode)
+            @if (_dialogMode == DialogMode.QuickAdd)
             {
                 <!-- QUICK ADD MODE: Minimalist interface -->
                 <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-success-lighten);">
@@ -93,7 +234,8 @@
                     }
                 </MudPaper>
             }
-            else
+            
+            @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
                 <MudPaper Elevation="2" Class="pa-3">
@@ -181,7 +323,7 @@
                 </MudPaper>
             }
             
-            @if (!_quickAddMode)
+            @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 3. PREZZO UNITARIO NETTO (visible by default) -->
                 <MudNumericField T="decimal"
@@ -366,6 +508,8 @@
                 </MudGrid>
             </MudPaper>
             }
+            
+            } @* End of DialogMode != ContinuousScan check *@
             
         </MudStack>
     </DialogContent>

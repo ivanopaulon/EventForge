@@ -58,7 +58,7 @@ public partial class AddDocumentRowDialog
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;
     private bool _isEditMode => RowId.HasValue;
-    private bool _quickAddMode = false;
+    private DialogMode _dialogMode = DialogMode.Standard;
     
     private List<ProductUnitDto> _availableUnits = new();
     private List<UMDto> _allUnitsOfMeasure = new();
@@ -77,6 +77,18 @@ public partial class AddDocumentRowDialog
     
     // Quick Add Mode entries tracking
     private List<QuickAddEntry> _recentQuickEntries = new();
+    
+    // Continuous scan mode state
+    private List<ContinuousScanEntry> _recentContinuousScans = new();
+    private int _continuousScanCount = 0;
+    private int _uniqueProductsCount = 0;
+    private int _scansPerMinute = 0;
+    private string _lastScannedProduct = string.Empty;
+    private bool _isProcessingContinuousScan = false;
+    private DateTime _firstScanTime = DateTime.UtcNow;
+    private System.Timers.Timer? _statsTimer;
+    private MudTextField<string>? _continuousScanField;
+    private string _continuousScanInput = string.Empty;
     
     // Expansion panel states for accessibility
     private bool _vatPanelExpanded = false;
@@ -1092,7 +1104,7 @@ public partial class AddDocumentRowDialog
                 Severity.Success);
             
             // Track entry in Quick Add mode
-            if (_quickAddMode)
+            if (_dialogMode == DialogMode.QuickAdd)
             {
                 _recentQuickEntries.Insert(0, new QuickAddEntry
                 {
@@ -1258,6 +1270,277 @@ public partial class AddDocumentRowDialog
             
             StateHasChanged();
         }
+    }
+    
+    #endregion
+    
+    #region Continuous Scan Mode Methods
+    
+    /// <summary>
+    /// Sets the dialog mode and initializes mode-specific state
+    /// </summary>
+    private void SetDialogMode(DialogMode mode)
+    {
+        if (_dialogMode == mode) return;
+        
+        _dialogMode = mode;
+        
+        if (mode == DialogMode.ContinuousScan)
+        {
+            // Initialize continuous scan mode
+            _continuousScanCount = 0;
+            _uniqueProductsCount = 0;
+            _scansPerMinute = 0;
+            _recentContinuousScans.Clear();
+            _firstScanTime = DateTime.UtcNow;
+            StartStatsTimer();
+            
+            Logger.LogInformation("Switched to Continuous Scan Mode");
+        }
+        else
+        {
+            StopStatsTimer();
+        }
+        
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Processes a scanned barcode in continuous scan mode
+    /// </summary>
+    private async Task ProcessContinuousScan(string barcode)
+    {
+        if (string.IsNullOrWhiteSpace(barcode) || _isProcessingContinuousScan)
+            return;
+
+        _isProcessingContinuousScan = true;
+        StateHasChanged();
+
+        try
+        {
+            // 1. Search product by barcode
+            var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(barcode);
+            
+            if (productWithCode?.Product == null)
+            {
+                Logger.LogWarning("Product not found for barcode: {Barcode}", barcode);
+                Snackbar.Add($"⚠️ Prodotto non trovato: {barcode}", Severity.Warning);
+                await PlayErrorBeep();
+                return;
+            }
+            
+            var product = productWithCode.Product;
+            
+            // 2. Create DTO with MergeDuplicateProducts = true
+            var rowDto = new CreateDocumentRowDto
+            {
+                DocumentHeaderId = DocumentHeaderId,
+                ProductId = product.Id,
+                ProductCode = product.Code,
+                Description = product.Name,
+                Quantity = 1,
+                UnitPrice = product.DefaultPrice ?? 0m,
+                UnitOfMeasureId = productWithCode.Code?.ProductUnitId ?? product.UnitOfMeasureId,
+                VatRate = product.VatRate ?? 0m,
+                VatDescription = product.VatRateDescription,
+                MergeDuplicateProducts = true, // Enable auto-merge
+                Notes = $"Scansione continua: {DateTime.UtcNow:HH:mm:ss}"
+            };
+            
+            // 3. API call
+            var result = await DocumentHeaderService.AddDocumentRowAsync(rowDto);
+            
+            if (result == null)
+            {
+                throw new Exception("AddDocumentRowAsync returned null");
+            }
+            
+            // 4. Update stats
+            _continuousScanCount++;
+            _lastScannedProduct = product.Name;
+            
+            // 5. Update tracking list
+            UpdateRecentScans(product, barcode, result);
+            
+            // 6. Update unique products count
+            _uniqueProductsCount = _recentContinuousScans
+                .Select(s => s.ProductId)
+                .Distinct()
+                .Count();
+            
+            // 7. Audio feedback
+            await PlaySuccessBeep();
+            
+            Logger.LogInformation(
+                "Continuous scan successful: Barcode={Barcode}, Product={ProductName}, NewQty={Quantity}",
+                barcode,
+                product.Name,
+                result.Quantity);
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in continuous scan for barcode: {Barcode}", barcode);
+            Snackbar.Add($"❌ Errore: {ex.Message}", Severity.Error);
+            await PlayErrorBeep();
+        }
+        finally
+        {
+            _isProcessingContinuousScan = false;
+            _continuousScanInput = string.Empty;
+            StateHasChanged();
+            
+            // Auto-refocus scanner field
+            await Task.Delay(100);
+            if (_continuousScanField != null)
+            {
+                await _continuousScanField.FocusAsync();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Updates recent scans list with merge logic
+    /// </summary>
+    private void UpdateRecentScans(ProductDto product, string barcode, DocumentRowDto result)
+    {
+        var existingEntry = _recentContinuousScans.FirstOrDefault(s => 
+            s.ProductId == product.Id && s.Barcode == barcode);
+        
+        if (existingEntry != null)
+        {
+            // Update existing entry
+            existingEntry.Quantity = (int)result.Quantity;
+            existingEntry.Timestamp = DateTime.UtcNow;
+            
+            // Move to top
+            _recentContinuousScans.Remove(existingEntry);
+            _recentContinuousScans.Insert(0, existingEntry);
+        }
+        else
+        {
+            // Create new entry
+            _recentContinuousScans.Insert(0, new ContinuousScanEntry
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                Barcode = barcode,
+                Quantity = (int)result.Quantity,
+                Timestamp = DateTime.UtcNow,
+                UnitPrice = product.DefaultPrice ?? 0m
+            });
+        }
+        
+        // Keep only last 20
+        if (_recentContinuousScans.Count > 20)
+        {
+            _recentContinuousScans = _recentContinuousScans.Take(20).ToList();
+        }
+    }
+    
+    /// <summary>
+    /// Starts timer for real-time stats updates
+    /// </summary>
+    private void StartStatsTimer()
+    {
+        StopStatsTimer();
+        
+        _statsTimer = new System.Timers.Timer(1000); // Update every second
+        _statsTimer.Elapsed += (sender, e) =>
+        {
+            var elapsed = (DateTime.UtcNow - _firstScanTime).TotalMinutes;
+            _scansPerMinute = elapsed > 0 ? (int)(_continuousScanCount / elapsed) : 0;
+            InvokeAsync(StateHasChanged);
+        };
+        _statsTimer.AutoReset = true;
+        _statsTimer.Start();
+    }
+    
+    /// <summary>
+    /// Stops and disposes stats timer
+    /// </summary>
+    private void StopStatsTimer()
+    {
+        if (_statsTimer != null)
+        {
+            _statsTimer.Stop();
+            _statsTimer.Dispose();
+            _statsTimer = null;
+        }
+    }
+    
+    /// <summary>
+    /// Plays success beep using JavaScript
+    /// </summary>
+    private async Task PlaySuccessBeep()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("playBeep", "success");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to play success beep");
+        }
+    }
+    
+    /// <summary>
+    /// Plays error beep using JavaScript
+    /// </summary>
+    private async Task PlayErrorBeep()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("playBeep", "error");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to play error beep");
+        }
+    }
+    
+    /// <summary>
+    /// Handles key down events in continuous scan input
+    /// </summary>
+    private async Task OnContinuousScanKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_continuousScanInput))
+        {
+            await ProcessContinuousScan(_continuousScanInput.Trim());
+        }
+        else if (e.Key == "Escape")
+        {
+            SetDialogMode(DialogMode.Standard);
+        }
+    }
+    
+    /// <summary>
+    /// Returns relative time string (e.g., "2 sec fa", "5 min fa")
+    /// </summary>
+    private string GetTimeAgo(DateTime timestamp)
+    {
+        var elapsed = DateTime.UtcNow - timestamp;
+        
+        if (elapsed.TotalSeconds < 60)
+            return $"{(int)elapsed.TotalSeconds} sec fa";
+        
+        if (elapsed.TotalMinutes < 60)
+            return $"{(int)elapsed.TotalMinutes} min fa";
+        
+        if (elapsed.TotalHours < 24)
+            return $"{(int)elapsed.TotalHours} h fa";
+        
+        return timestamp.ToString("HH:mm");
+    }
+    
+    /// <summary>
+    /// Disposes resources including stats timer
+    /// </summary>
+    public override void Dispose()
+    {
+        StopStatsTimer();
+        base.Dispose();
     }
     
     #endregion
