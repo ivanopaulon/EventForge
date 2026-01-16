@@ -105,6 +105,8 @@ public partial class AddDocumentRowDialog
 
     #region Constants
     
+    private const int RENDER_DELAY_MS = 100;
+    
     private static readonly string[] PurchaseKeywords = 
         { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
     private static readonly string[] SaleKeywords = 
@@ -138,27 +140,6 @@ public partial class AddDocumentRowDialog
     protected override void OnParametersSet()
     {
         _model.DocumentHeaderId = DocumentHeaderId;
-        
-        // Detect when _selectedProduct changes (user selects from the list)
-        if (_selectedProduct != null && 
-            _selectedProduct.Id != _previousSelectedProduct?.Id)
-        {
-            // Use InvokeAsync to handle async operation properly
-            // Store the task to ensure exception handling
-            var task = InvokeAsync(async () =>
-            {
-                try
-                {
-                    await OnProductSelected(_selectedProduct);
-                    _previousSelectedProduct = _selectedProduct;
-                    StateHasChanged();
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error handling product selection in OnParametersSet");
-                }
-            });
-        }
     }
 
     /// <summary>
@@ -489,7 +470,7 @@ public partial class AddDocumentRowDialog
                 
                 if (_quantityField != null)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(RENDER_DELAY_MS);
                     await _quantityField.FocusAsync();
                 }
             }
@@ -601,17 +582,51 @@ public partial class AddDocumentRowDialog
     #region Product Selection & Search
     
     /// <summary>
-    /// Gestisce la selezione di un prodotto
+    /// Gestisce la selezione di un prodotto dall'autocomplete.
+    /// Previene loop infiniti e gestisce correttamente sia selezione che deselection.
     /// </summary>
     private async Task OnProductSelected(ProductDto? product)
     {
+        // Previeni loop infiniti se il prodotto non è cambiato
+        if (_previousSelectedProduct?.Id == product?.Id)
+        {
+            Logger.LogDebug("Product selection unchanged, skipping");
+            return;
+        }
+
+        _previousSelectedProduct = _selectedProduct;
         _selectedProduct = product;
+        
         if (product != null)
         {
+            Logger.LogDebug("Product selected: {ProductId} - {ProductName}", product.Id, product.Name);
+            
+            // Popola campi del form
             await PopulateFromProduct(product);
             await LoadRecentTransactions(product.Id);
-            StateHasChanged();
+            
+            // Auto-focus campo quantità per UX fluida
+            if (_quantityField != null)
+            {
+                await Task.Delay(RENDER_DELAY_MS); // Delay per permettere rendering
+                await _quantityField.FocusAsync();
+            }
         }
+        else
+        {
+            // Prodotto deselezionato (click su X o cancellazione)
+            Logger.LogDebug("Product selection cleared");
+            
+            // Reset tutti i campi dipendenti
+            _model.ProductId = null;
+            _model.ProductCode = string.Empty;
+            _model.Description = string.Empty;
+            _model.UnitPrice = 0m;
+            _availableUnits.Clear();
+            _recentTransactions.Clear();
+        }
+        
+        StateHasChanged();
     }
 
     /// <summary>
@@ -1097,7 +1112,7 @@ public partial class AddDocumentRowDialog
             
             if (_barcodeField != null)
             {
-                await Task.Delay(100);
+                await Task.Delay(RENDER_DELAY_MS);
                 await _barcodeField.FocusAsync();
             }
         }
