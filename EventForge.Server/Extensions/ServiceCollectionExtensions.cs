@@ -300,6 +300,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
         _ = services.AddScoped<IDocumentWorkflowService, DocumentWorkflowService>();
         _ = services.AddScoped<IDocumentRecurrenceService, DocumentRecurrenceService>();
+        _ = services.AddScoped<IDocumentStatusService, DocumentStatusService>();
 
         // Register document analytics and supporting services
         _ = services.AddScoped<IDocumentAnalyticsService, DocumentAnalyticsService>();
