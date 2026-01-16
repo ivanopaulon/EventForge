@@ -55,6 +55,7 @@ public partial class AddDocumentRowDialog : IDisposable
     
     private CreateDocumentRowDto _model = new() { Quantity = 1m };
     private ProductDto? _selectedProduct = null;
+    private ProductDto? _previousSelectedProduct = null;
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;
     private bool _isEditMode => RowId.HasValue;
@@ -155,6 +156,35 @@ public partial class AddDocumentRowDialog : IDisposable
     protected override void OnParametersSet()
     {
         _model.DocumentHeaderId = DocumentHeaderId;
+        
+        // Watch for product selection changes - compare by ID for proper equality check
+        if (_selectedProduct?.Id != _previousSelectedProduct?.Id)
+        {
+            // Capture the current product to avoid race conditions
+            var currentProduct = _selectedProduct;
+            _previousSelectedProduct = currentProduct;
+            
+            if (currentProduct != null)
+            {
+                // Use InvokeAsync to safely execute async operation within component lifecycle
+                // Fire-and-forget is safe here as PopulateFromProductAsync handles its own errors
+                _ = InvokeAsync(async () => 
+                {
+                    try
+                    {
+                        await PopulateFromProductAsync(currentProduct);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error populating product fields in OnParametersSet");
+                    }
+                });
+            }
+            else
+            {
+                ClearProductFields();
+            }
+        }
     }
 
     /// <summary>
@@ -475,9 +505,8 @@ public partial class AddDocumentRowDialog : IDisposable
             {
                 _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
                 
-                // Set product and explicitly call populate
-                _selectedProduct = productWithCode.Product;
-                await OnProductSelectedChanged();
+                // Set product and populate fields
+                await SelectProductAndPopulateAsync(productWithCode.Product);
                 
                 _barcodeInput = string.Empty;
                 _scannedBarcode = string.Empty;
@@ -545,9 +574,8 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         if (data is ProductDto createdProduct)
         {
-            // Set product and explicitly call populate
-            _selectedProduct = createdProduct;
-            await OnProductSelectedChanged();
+            // Set product and populate fields
+            await SelectProductAndPopulateAsync(createdProduct);
             
             _barcodeInput = string.Empty;
             _scannedBarcode = string.Empty;
@@ -571,9 +599,8 @@ public partial class AddDocumentRowDialog : IDisposable
                 {
                     ProductDto assignedProduct = assignResult.Product;
                     
-                    // Set product and explicitly call populate
-                    _selectedProduct = assignedProduct;
-                    await OnProductSelectedChanged();
+                    // Set product and populate fields
+                    await SelectProductAndPopulateAsync(assignedProduct);
                     
                     _barcodeInput = string.Empty;
                     _scannedBarcode = string.Empty;
@@ -706,7 +733,19 @@ public partial class AddDocumentRowDialog : IDisposable
     }
 
     /// <summary>
-    /// Search products for autocomplete with cancellation support
+    /// Helper method to set a product and populate all related fields
+    /// Consolidates the pattern used throughout the component
+    /// </summary>
+    private async Task SelectProductAndPopulateAsync(ProductDto product)
+    {
+        _selectedProduct = product;
+        _previousSelectedProduct = _selectedProduct;
+        await PopulateFromProductAsync(_selectedProduct);
+    }
+
+    /// <summary>
+    /// Search products for autocomplete
+    /// Uses simplified error handling pattern similar to BusinessParty autocomplete
     /// </summary>
     private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
         string searchTerm, 
@@ -718,15 +757,8 @@ public partial class AddDocumentRowDialog : IDisposable
         try
         {
             Logger.LogDebug("Searching products with term: {SearchTerm}", searchTerm);
-
-            var result = await ProductService.SearchProductsAsync(searchTerm, 50);
             
-            // Check if cancelled before processing results
-            if (cancellationToken.IsCancellationRequested)
-            {
-                Logger.LogDebug("Product search cancelled for term: {SearchTerm}", searchTerm);
-                return Array.Empty<ProductDto>();
-            }
+            var result = await ProductService.SearchProductsAsync(searchTerm, 50);
             
             if (result == null)
             {
@@ -751,36 +783,14 @@ public partial class AddDocumentRowDialog : IDisposable
                 );
             }
             
-            Logger.LogInformation("Found {Count} products for term '{SearchTerm}'", products.Count, searchTerm);
+            Logger.LogDebug("Found {Count} products for term '{SearchTerm}'", products.Count, searchTerm);
             return products;
-        }
-        catch (OperationCanceledException)
-        {
-            Logger.LogDebug("Product search cancelled for term: {SearchTerm}", searchTerm);
-            return Array.Empty<ProductDto>();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
             return Array.Empty<ProductDto>();
         }
-    }
-
-    /// <summary>
-    /// Handles product selection changes - called when autocomplete value changes
-    /// </summary>
-    private async Task OnProductSelectedChanged()
-    {
-        // ✅ ONLY populate when there's a valid selection
-        // ❌ DO NOT clear fields when null (user might be typing!)
-        if (_selectedProduct != null)
-        {
-            Logger.LogInformation("Product selected: {ProductId} - {ProductName}", _selectedProduct.Id, _selectedProduct.Name);
-            await PopulateFromProductAsync(_selectedProduct);
-            StateHasChanged();
-        }
-        // ✅ REMOVED else block that cleared fields
-        // Manual clear will be handled explicitly when needed (e.g. in ResetForm())
     }
 
     /// <summary>
@@ -1200,6 +1210,7 @@ public partial class AddDocumentRowDialog : IDisposable
             MergeDuplicateProducts = preserveMergeDuplicates
         };
         _selectedProduct = null;
+        _previousSelectedProduct = null;
         _barcodeInput = string.Empty;
         
         // Invalidate cached calculation result

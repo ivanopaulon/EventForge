@@ -249,7 +249,6 @@
                             </MudText>
                             <MudAutocomplete T="ProductDto"
                                             @bind-Value="_selectedProduct"
-                                            @bind-Value:after="OnProductSelectedChanged"
                                             SearchFunc="@SearchProductsAsync"
                                             ToStringFunc="@(p => p?.Name ?? string.Empty)"
                                             Variant="Variant.Outlined"
@@ -259,25 +258,20 @@
                                             DebounceInterval="300"
                                             ShowProgressIndicator="true"
                                             Clearable="true"
-                                            ResetValueOnEmptyText="false"
-                                            CoerceText="false"
-                                            CoerceValue="false"
                                             Placeholder="@TranslationService.GetTranslation("documents.searchProductHelp", "Cerca prodotto (min 2 caratteri)...")"
                                             Adornment="Adornment.Start"
                                             AdornmentIcon="@Icons.Material.Outlined.Inventory"
                                             aria-label="@TranslationService.GetTranslation("documents.product", "Prodotto")">
                                 <ItemTemplate Context="product">
                                     <MudStack Spacing="0">
-                                        <MudText Typo="Typo.body2">
-                                            <b>@product.Name</b>
-                                        </MudText>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">@product.Name</MudText>
                                         <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
                                             @product.Code · @(product.DefaultPrice?.ToString("C2") ?? "N/A")
                                         </MudText>
                                     </MudStack>
                                 </ItemTemplate>
                                 <NoItemsTemplate>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    <MudText Typo="Typo.body2" Align="Align.Center" Class="py-2">
                                         @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
                                     </MudText>
                                 </NoItemsTemplate>
