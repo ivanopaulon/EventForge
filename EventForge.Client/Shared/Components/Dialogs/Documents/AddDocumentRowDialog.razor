@@ -202,7 +202,7 @@
                             }
                             else
                             {
-                                <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "Quando abilitato, se aggiungi lo stesso prodotto con lo stesso prezzo, IVA e sconti, la quantità verrà sommata alla riga esistente invece di crearne una nuova")">
+                                <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "When enabled, if you add the same product with the same price, VAT and discounts, the quantity will be summed to the existing row instead of creating a new one")">
                                     <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
                                 </MudTooltip>
                             }
@@ -214,8 +214,9 @@
                             <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
                                 <MudText Typo="Typo.caption">
                                     <MudIcon Icon="@Icons.Material.Outlined.MergeType" Size="Size.Small" Class="mr-1" />
-                                    @TranslationService.GetTranslation("documents.mergeDuplicatesActivePrefix", "Modalità Merge attiva:")
-                                    @TranslationService.GetTranslation("documents.mergeDuplicatesActiveInfo", "Se esiste già una riga identica (stesso prodotto, prezzo, IVA e sconti), la quantità verrà sommata.")
+                                    <strong>@TranslationService.GetTranslation("documents.mergeDuplicatesActivePrefix", "Merge Mode Active:")</strong>
+                                    @(" ")
+                                    @TranslationService.GetTranslation("documents.mergeDuplicatesActiveInfo", "If an identical row exists (same product, price, VAT and discounts), the quantity will be summed.")
                                 </MudText>
                             </MudAlert>
                         }
