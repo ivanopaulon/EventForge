@@ -103,18 +103,21 @@
                         <MudAutocomplete T="ProductDto"
                                         Variant="Variant.Outlined"
                                         Label="@TranslationService.GetTranslation("documents.product", "Prodotto *")"
-                                        @bind-Value="_selectedProduct"
+                                        Value="_selectedProduct"
+                                        ValueChanged="@OnProductSelected"
                                         SearchFunc="@SearchProductsAsync"
                                         DebounceInterval="300"
                                         MinCharacters="2"
-                                        ResetValueOnEmptyText="false"
-                                        CoerceText="false"
-                                        CoerceValue="false"
+                                        ResetValueOnEmptyText="true"
+                                        CoerceText="true"
+                                        CoerceValue="true"
                                         ToStringFunc="@(p => p?.Name ?? string.Empty)"
                                         ShowProgressIndicator="true"
                                         Adornment="Adornment.Start"
                                         AdornmentIcon="@Icons.Material.Outlined.Inventory"
-                                        Required="true">
+                                        Required="true"
+                                        Clearable="true"
+                                        HelperText="@TranslationService.GetTranslation("documents.searchProductHelp", "Digita almeno 2 caratteri per cercare")">
                             <ItemTemplate Context="product">
                                 <MudStack Spacing="0">
                                     <MudText Typo="Typo.body2">
@@ -125,6 +128,11 @@
                                     </MudText>
                                 </MudStack>
                             </ItemTemplate>
+                            <NoItemsTemplate>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
+                                </MudText>
+                            </NoItemsTemplate>
                         </MudAutocomplete>
                         
                         <!-- Descrizione -->
