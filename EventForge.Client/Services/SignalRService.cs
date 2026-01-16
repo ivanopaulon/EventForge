@@ -72,6 +72,10 @@ public class SignalRService : IAsyncDisposable
     public event Action<object>? UserJoinedDocument;
     public event Action<object>? UserLeftDocument;
     public event Action<object>? DocumentTypingIndicator;
+    
+    // Document lock events
+    public event Action<object>? DocumentLocked;
+    public event Action<object>? DocumentUnlocked;
     #endregion
 
     public SignalRService(IHttpClientFactory httpClientFactory, IAuthService authService, ILogger<SignalRService> logger)
@@ -1006,6 +1010,57 @@ public class SignalRService : IAsyncDisposable
     }
 
     /// <summary>
+    /// Requests an exclusive edit lock for a document.
+    /// </summary>
+    /// <param name="documentId">ID of the document to lock</param>
+    /// <returns>True if lock was acquired successfully, false otherwise</returns>
+    public async Task<bool> RequestDocumentEditLockAsync(Guid documentId)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                var lockAcquired = await _documentCollaborationHubConnection
+                    .InvokeAsync<bool>("RequestEditLock", documentId);
+                
+                _logger.LogInformation(
+                    "Lock request for document {DocumentId}: {Result}",
+                    documentId,
+                    lockAcquired ? "Acquired" : "Failed");
+                
+                return lockAcquired;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to acquire lock for document {DocumentId}", documentId);
+                throw;
+            }
+        }
+        
+        return false;
+    }
+
+    /// <summary>
+    /// Releases the edit lock for a document.
+    /// </summary>
+    /// <param name="documentId">ID of the document to unlock</param>
+    public async Task ReleaseDocumentEditLockAsync(Guid documentId)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("ReleaseEditLock", documentId);
+                _logger.LogInformation("Released lock on document {DocumentId}", documentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to release lock for document {DocumentId}", documentId);
+            }
+        }
+    }
+
+    /// <summary>
     /// Creates a comment on a document.
     /// </summary>
     /// <param name="createDto">Comment creation data</param>
@@ -1184,6 +1239,18 @@ public class SignalRService : IAsyncDisposable
         _ = _documentCollaborationHubConnection.On<object>("TypingIndicator", (data) =>
         {
             DocumentTypingIndicator?.Invoke(data);
+        });
+
+        _ = _documentCollaborationHubConnection.On<object>("DocumentLocked", (data) =>
+        {
+            _logger.LogInformation("Document locked");
+            DocumentLocked?.Invoke(data);
+        });
+
+        _ = _documentCollaborationHubConnection.On<object>("DocumentUnlocked", (data) =>
+        {
+            _logger.LogInformation("Document unlocked");
+            DocumentUnlocked?.Invoke(data);
         });
     }
 

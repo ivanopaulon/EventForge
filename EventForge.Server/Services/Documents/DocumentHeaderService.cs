@@ -435,7 +435,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return null;
             }
 
-            documentHeader.Status = EventForge.Server.Data.Entities.Documents.DocumentStatus.Closed;
+            documentHeader.Status = EventForge.DTOs.Common.DocumentStatus.Closed;
             documentHeader.ClosedAt = DateTime.UtcNow;
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
@@ -497,7 +497,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             query = query.Where(dh => dh.CustomerName != null && dh.CustomerName.Contains(parameters.CustomerName));
 
         if (parameters.Status.HasValue)
-            query = query.Where(dh => dh.Status == (EventForge.Server.Data.Entities.Documents.DocumentStatus)parameters.Status.Value);
+            query = query.Where(dh => dh.Status == (EventForge.DTOs.Common.DocumentStatus)parameters.Status.Value);
 
         if (parameters.PaymentStatus.HasValue)
             query = query.Where(dh => dh.PaymentStatus == (EventForge.Server.Data.Entities.Documents.PaymentStatus)parameters.PaymentStatus.Value);
@@ -1523,4 +1523,240 @@ public class DocumentHeaderService : IDocumentHeaderService
             // Don't throw - this is a non-critical operation
         }
     }
+
+    #region Lock Management
+
+    /// <summary>
+    /// Acquires an exclusive edit lock for a document.
+    /// Lock expires after 30 minutes of inactivity.
+    /// Uses optimistic concurrency control via RowVersion to prevent race conditions.
+    /// </summary>
+    public async Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId)
+    {
+        try
+        {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot acquire lock without a tenant context.");
+                return false;
+            }
+
+            // Use a retry pattern for optimistic concurrency
+            const int maxRetries = 3;
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    var document = await _context.DocumentHeaders
+                        .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted);
+
+                    if (document == null)
+                    {
+                        _logger.LogWarning("Document {DocumentId} not found for lock acquisition.", documentId);
+                        return false;
+                    }
+
+                    // Check existing lock
+                    if (!string.IsNullOrEmpty(document.LockedBy) && document.LockedBy != userName)
+                    {
+                        // Check if lock is still valid (less than 30 minutes old)
+                        if (document.LockedAt.HasValue)
+                        {
+                            var lockAge = DateTime.UtcNow - document.LockedAt.Value;
+
+                            if (lockAge < TimeSpan.FromMinutes(30))
+                            {
+                                _logger.LogInformation(
+                                    "Document {DocumentId} is locked by {LockedBy} (lock age: {LockAge})",
+                                    documentId, document.LockedBy, lockAge);
+                                return false; // Lock is still valid
+                            }
+
+                            // Lock expired - can be acquired
+                            _logger.LogInformation(
+                                "Lock on document {DocumentId} expired (lock age: {LockAge}). Acquiring for {UserName}.",
+                                documentId, lockAge, userName);
+                        }
+                    }
+
+                    // Acquire or refresh lock
+                    document.LockedBy = userName;
+                    document.LockedAt = DateTime.UtcNow;
+                    document.LockConnectionId = connectionId;
+
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation(
+                        "Lock acquired on document {DocumentId} by {UserName} (connection: {ConnectionId})",
+                        documentId, userName, connectionId);
+
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException) when (attempt < maxRetries - 1)
+                {
+                    // Concurrency conflict - retry
+                    _logger.LogWarning(
+                        "Concurrency conflict acquiring lock for document {DocumentId}, attempt {Attempt}",
+                        documentId, attempt + 1);
+                    
+                    // Detach the entity to allow retry
+                    var entries = _context.ChangeTracker.Entries()
+                        .Where(e => e.Entity is DocumentHeader && ((DocumentHeader)e.Entity).Id == documentId);
+                    foreach (var entry in entries)
+                    {
+                        entry.State = EntityState.Detached;
+                    }
+                    
+                    // Small delay before retry
+                    await Task.Delay(50 * (attempt + 1));
+                }
+            }
+            
+            // All retries failed
+            _logger.LogWarning("Failed to acquire lock for document {DocumentId} after {MaxRetries} attempts", 
+                documentId, maxRetries);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error acquiring lock for document {DocumentId}", documentId);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Releases an edit lock for a document.
+    /// Only the user who holds the lock can release it.
+    /// </summary>
+    public async Task<bool> ReleaseLockAsync(Guid documentId, string userName)
+    {
+        try
+        {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot release lock without a tenant context.");
+                return false;
+            }
+
+            var document = await _context.DocumentHeaders
+                .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted);
+
+            if (document == null)
+            {
+                _logger.LogWarning("Document {DocumentId} not found for lock release.", documentId);
+                return false;
+            }
+
+            // Only the user who holds the lock can release it
+            if (document.LockedBy == userName)
+            {
+                document.LockedBy = null;
+                document.LockedAt = null;
+                document.LockConnectionId = null;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Lock released on document {DocumentId} by {UserName}",
+                    documentId, userName);
+
+                return true;
+            }
+
+            _logger.LogWarning(
+                "User {UserName} attempted to release lock on document {DocumentId} but doesn't hold it (locked by: {LockedBy})",
+                userName, documentId, document.LockedBy);
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error releasing lock for document {DocumentId}", documentId);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Releases all locks held by a specific SignalR connection.
+    /// Called when a user disconnects.
+    /// </summary>
+    public async Task ReleaseAllLocksForConnectionAsync(string connectionId)
+    {
+        try
+        {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot release locks without a tenant context.");
+                return;
+            }
+
+            var documents = await _context.DocumentHeaders
+                .Where(d => d.LockConnectionId == connectionId && d.TenantId == tenantId.Value && !d.IsDeleted)
+                .ToListAsync();
+
+            if (documents.Any())
+            {
+                foreach (var doc in documents)
+                {
+                    _logger.LogInformation(
+                        "Releasing lock on document {DocumentId} (locked by {LockedBy}) due to connection disconnect",
+                        doc.Id, doc.LockedBy);
+
+                    doc.LockedBy = null;
+                    doc.LockedAt = null;
+                    doc.LockConnectionId = null;
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Released {Count} locks for disconnected connection {ConnectionId}",
+                    documents.Count, connectionId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error releasing locks for connection {ConnectionId}", connectionId);
+        }
+    }
+
+    /// <summary>
+    /// Gets lock information for a document.
+    /// </summary>
+    public async Task<DocumentLockInfo?> GetLockInfoAsync(Guid documentId)
+    {
+        try
+        {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot get lock info without a tenant context.");
+                return null;
+            }
+
+            var lockInfo = await _context.DocumentHeaders
+                .Where(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted)
+                .Select(d => new DocumentLockInfo
+                {
+                    DocumentId = d.Id,
+                    IsLocked = !string.IsNullOrEmpty(d.LockedBy),
+                    LockedBy = d.LockedBy,
+                    LockedAt = d.LockedAt,
+                    ConnectionId = d.LockConnectionId
+                })
+                .FirstOrDefaultAsync();
+
+            return lockInfo;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting lock info for document {DocumentId}", documentId);
+            return null;
+        }
+    }
+
+    #endregion
 }

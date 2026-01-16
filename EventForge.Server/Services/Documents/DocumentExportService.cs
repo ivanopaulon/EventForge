@@ -1,6 +1,9 @@
 using ClosedXML.Excel;
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
+using EventForge.Server.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -96,7 +99,7 @@ public class DocumentExportService : IDocumentExportService
 
             if (!string.IsNullOrWhiteSpace(request.Status))
             {
-                if (Enum.TryParse<Data.Entities.Documents.DocumentStatus>(request.Status, true, out var status))
+                if (Enum.TryParse<DocumentStatus>(request.Status, true, out var status))
                 {
                     query = query.Where(d => d.Status == status);
                 }
@@ -568,10 +571,11 @@ public class DocumentExportService : IDocumentExportService
         // Map entity DocumentStatus to DTO DocumentStatus
         var dtoStatus = doc.Status switch
         {
-            Data.Entities.Documents.DocumentStatus.Open => DTOs.Common.DocumentStatus.Open,
-            Data.Entities.Documents.DocumentStatus.Closed => DTOs.Common.DocumentStatus.Closed,
-            Data.Entities.Documents.DocumentStatus.Cancelled => DTOs.Common.DocumentStatus.Cancelled,
-            _ => DTOs.Common.DocumentStatus.Draft
+            DocumentStatus.Open => DocumentStatus.Open,
+            DocumentStatus.Closed => DocumentStatus.Closed,
+            DocumentStatus.Cancelled => DocumentStatus.Cancelled,
+            DocumentStatus.Draft => DocumentStatus.Draft,
+            _ => DocumentStatus.Draft
         };
 
         // Map entity PaymentStatus to DTO PaymentStatus
