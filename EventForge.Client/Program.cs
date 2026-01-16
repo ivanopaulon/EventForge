@@ -1,3 +1,4 @@
+using Blazored.LocalStorage;
 using EventForge.Client;
 using EventForge.Client.Services;
 using EventForge.Client.Services.Documents;
@@ -5,7 +6,6 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
-using Blazored.LocalStorage;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 

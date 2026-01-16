@@ -32,9 +32,9 @@ public interface IDocumentRowCalculationService
     /// <param name="discountType">Tipo di sconto</param>
     /// <returns>Importo sconto (non può eccedere baseAmount)</returns>
     decimal CalculateDiscountAmount(
-        decimal baseAmount, 
-        decimal discountPercentage, 
-        decimal discountValue, 
+        decimal baseAmount,
+        decimal discountPercentage,
+        decimal discountValue,
         DiscountType discountType);
 
     /// <summary>

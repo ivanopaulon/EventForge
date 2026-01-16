@@ -1,7 +1,4 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 

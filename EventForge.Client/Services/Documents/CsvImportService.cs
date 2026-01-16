@@ -1,5 +1,4 @@
 using EventForge.DTOs.Documents;
-using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
 
@@ -29,7 +28,7 @@ public class CsvImportService : ICsvImportService
         try
         {
             using var reader = new StreamReader(csvStream, Encoding.UTF8);
-            
+
             // Skip header row
             var headerLine = await reader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(headerLine))
@@ -41,17 +40,17 @@ public class CsvImportService : ICsvImportService
             var columnMapping = MapHeaders(headers, options);
 
             int rowNumber = 1; // Start from 1 (header is row 0)
-            
+
             while (!reader.EndOfStream)
             {
                 rowNumber++;
                 var line = await reader.ReadLineAsync();
-                
+
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 
                 var values = ParseCsvLine(line);
-                
+
                 try
                 {
                     var row = ParseRow(values, columnMapping, options);
@@ -125,7 +124,7 @@ public class CsvImportService : ICsvImportService
         for (int i = 0; i < headers.Count; i++)
         {
             var header = headers[i].Trim();
-            
+
             // Map common header names
             if (IsProductCodeHeader(header))
                 mapping["ProductCode"] = i;

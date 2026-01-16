@@ -1,9 +1,6 @@
 using ClosedXML.Excel;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;

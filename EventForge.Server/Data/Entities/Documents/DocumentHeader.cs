@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Documents;
 

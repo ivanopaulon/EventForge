@@ -2,7 +2,6 @@ using EventForge.Client.Services;
 using EventForge.Client.Services.Documents;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.Extensions.Logging;
 using MudBlazor;
 
 namespace EventForge.Client.Shared.Components.Dialogs.Documents;
@@ -19,7 +18,7 @@ public partial class BatchImportDialog
     [Inject] private ILogger<BatchImportDialog> Logger { get; set; } = null!;
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
-    
+
     [Parameter] public Guid DocumentHeaderId { get; set; }
 
     private IBrowserFile? _selectedFile;
@@ -43,7 +42,7 @@ public partial class BatchImportDialog
             // Limit file size to 5MB
             const long maxFileSize = 5 * 1024 * 1024;
             const int maxFileSizeMB = 5;
-            
+
             if (file.Size > maxFileSize)
             {
                 Snackbar.Add(
@@ -53,7 +52,7 @@ public partial class BatchImportDialog
             }
 
             using var stream = file.OpenReadStream(maxFileSize);
-            
+
             var options = new CsvImportOptions
             {
                 DocumentHeaderId = DocumentHeaderId,
@@ -65,9 +64,9 @@ public partial class BatchImportDialog
             if (_importResult.ValidRows.Any())
             {
                 Snackbar.Add(
-                    TranslationService.GetTranslation("documents.csvParsedSuccess", 
-                        "CSV parsed: {0} valid rows, {1} errors", 
-                        _importResult.ValidRows.Count, 
+                    TranslationService.GetTranslation("documents.csvParsedSuccess",
+                        "CSV parsed: {0} valid rows, {1} errors",
+                        _importResult.ValidRows.Count,
                         _importResult.InvalidRows.Count),
                     _importResult.InvalidRows.Any() ? Severity.Warning : Severity.Success);
             }
@@ -133,7 +132,7 @@ public partial class BatchImportDialog
             if (failureCount == 0)
             {
                 Snackbar.Add(
-                    TranslationService.GetTranslation("documents.importSuccess", 
+                    TranslationService.GetTranslation("documents.importSuccess",
                         "{0} rows imported successfully", successCount),
                     Severity.Success);
                 MudDialog.Close(DialogResult.Ok(successCount));
@@ -141,7 +140,7 @@ public partial class BatchImportDialog
             else
             {
                 Snackbar.Add(
-                    TranslationService.GetTranslation("documents.importPartialSuccess", 
+                    TranslationService.GetTranslation("documents.importPartialSuccess",
                         "{0} rows imported, {1} failed", successCount, failureCount),
                     Severity.Warning);
                 MudDialog.Close(DialogResult.Ok(successCount));

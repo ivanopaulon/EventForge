@@ -1,6 +1,5 @@
 using EventForge.Client.Models.Documents;
 using EventForge.DTOs.Common;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.Services.Documents;
 
@@ -133,8 +132,8 @@ public class DocumentRowCalculationService : IDocumentRowCalculationService
             throw new ArgumentException("VatRate must be between 0 and 100", nameof(vatRate));
 
         // Formula scorporo IVA: Netto = Lordo / (1 + IVA%)
-        return vatRate == 0 
-            ? grossPrice 
+        return vatRate == 0
+            ? grossPrice
             : grossPrice / (1 + vatRate / 100m);
     }
 

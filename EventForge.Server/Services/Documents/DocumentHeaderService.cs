@@ -743,7 +743,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         r.LineDiscountValue == createDto.LineDiscountValue &&
                         r.DiscountType == createDto.DiscountType &&
                         // Notes match (or both empty)
-                        ((string.IsNullOrEmpty(r.Notes) && string.IsNullOrEmpty(createDto.Notes)) || 
+                        ((string.IsNullOrEmpty(r.Notes) && string.IsNullOrEmpty(createDto.Notes)) ||
                          r.Notes == createDto.Notes) &&
                         !r.IsDeleted,
                         cancellationToken);
@@ -1599,7 +1599,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                     _logger.LogWarning(
                         "Concurrency conflict acquiring lock for document {DocumentId}, attempt {Attempt}",
                         documentId, attempt + 1);
-                    
+
                     // Detach the entity to allow retry
                     var entries = _context.ChangeTracker.Entries()
                         .Where(e => e.Entity is DocumentHeader && ((DocumentHeader)e.Entity).Id == documentId);
@@ -1607,14 +1607,14 @@ public class DocumentHeaderService : IDocumentHeaderService
                     {
                         entry.State = EntityState.Detached;
                     }
-                    
+
                     // Small delay before retry
                     await Task.Delay(50 * (attempt + 1));
                 }
             }
-            
+
             // All retries failed
-            _logger.LogWarning("Failed to acquire lock for document {DocumentId} after {MaxRetries} attempts", 
+            _logger.LogWarning("Failed to acquire lock for document {DocumentId} after {MaxRetries} attempts",
                 documentId, maxRetries);
             return false;
         }

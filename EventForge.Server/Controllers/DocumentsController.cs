@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
@@ -2505,8 +2504,8 @@ public class DocumentsController : BaseApiController
         try
         {
             var result = await _documentStatusService.ChangeStatusAsync(
-                id, 
-                dto.NewStatus, 
+                id,
+                dto.NewStatus,
                 dto.Reason,
                 cancellationToken);
 

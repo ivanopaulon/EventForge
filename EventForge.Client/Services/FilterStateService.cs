@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace EventForge.Client.Services;
@@ -109,7 +108,7 @@ public class FilterStateService : IFilterStateService
     private readonly ILogger<FilterStateService> _logger;
     private const string FilterKeyPrefix = "eventforge-filter-";
     private const string PanelKeyPrefix = "eventforge-panel-";
-    
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,

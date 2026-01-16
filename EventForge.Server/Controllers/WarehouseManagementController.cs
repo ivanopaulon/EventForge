@@ -1,7 +1,6 @@
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
-using EventForge.DTOs.Common;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Products;

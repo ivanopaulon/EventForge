@@ -1,17 +1,15 @@
+using Blazored.LocalStorage;
+using EventForge.Client.Models.Documents;
 using EventForge.Client.Services;
 using EventForge.Client.Services.Documents;
-using EventForge.Client.Models.Documents;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.VatRates;
-using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using MudBlazor;
-using Blazored.LocalStorage;
 
 namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 
@@ -21,7 +19,7 @@ namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 public partial class AddDocumentRowDialog : IDisposable
 {
     #region Injected Dependencies
-    
+
     [Inject] private IDocumentHeaderService DocumentHeaderService { get; set; } = null!;
     [Inject] private IProductService ProductService { get; set; } = null!;
     [Inject] private IFinancialService FinancialService { get; set; } = null!;
@@ -33,26 +31,26 @@ public partial class AddDocumentRowDialog : IDisposable
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ILocalStorageService LocalStorage { get; set; } = null!;
-    
+
     #endregion
 
     #region Parameters
-    
+
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid DocumentHeaderId { get; set; }
     [Parameter] public Guid? RowId { get; set; }
-    
+
     #endregion
 
     #region Component References
-    
+
     private MudTextField<string>? _barcodeField;
     private MudNumericField<decimal>? _quantityField;
-    
+
     #endregion
 
     #region State Variables
-    
+
     private CreateDocumentRowDto _model = new() { Quantity = 1m };
     private ProductDto? _selectedProduct = null;
     private ProductDto? _previousSelectedProduct = null;
@@ -60,25 +58,25 @@ public partial class AddDocumentRowDialog : IDisposable
     private bool _isProcessing = false;
     private bool _isEditMode => RowId.HasValue;
     private DialogMode _dialogMode = DialogMode.Standard;
-    
+
     private List<ProductUnitDto> _availableUnits = new();
     private List<UMDto> _allUnitsOfMeasure = new();
     private List<VatRateDto> _allVatRates = new();
-    
+
     private Guid? _selectedUnitOfMeasureId = null;
     private Guid? _selectedVatRateId = null;
     private Guid? _barcodeProductUnitId = null;
-    
+
     private string _scannedBarcode = string.Empty;
     private bool _isProcessingBarcode = false;
-    
+
     private DocumentHeaderDto? _documentHeader = null;
     private List<RecentProductTransactionDto> _recentTransactions = new();
     private bool _loadingTransactions = false;
-    
+
     // Quick Add Mode entries tracking
     private List<QuickAddEntry> _recentQuickEntries = new();
-    
+
     // Continuous scan mode state
     private List<ContinuousScanEntry> _recentContinuousScans = new();
     private HashSet<Guid> _scannedProductIds = new();
@@ -91,20 +89,20 @@ public partial class AddDocumentRowDialog : IDisposable
     private System.Timers.Timer? _statsTimer;
     private MudTextField<string>? _continuousScanField;
     private string _continuousScanInput = string.Empty;
-    
+
     // Expansion panel states for accessibility
     private bool _vatPanelExpanded = false;
     private bool _discountsPanelExpanded = false;
     private bool _notesPanelExpanded = false;
-    
+
     // Cached calculation result to avoid redundant calculations
     private Client.Models.Documents.DocumentRowCalculationResult? _cachedCalculationResult = null;
     private string _cachedCalculationKey = string.Empty;
-    
+
     #endregion
-    
+
     #region Quick Add Entry Model
-    
+
     /// <summary>
     /// Model for tracking recent Quick Add entries
     /// </summary>
@@ -114,24 +112,24 @@ public partial class AddDocumentRowDialog : IDisposable
         public decimal Quantity { get; set; }
         public DateTime Timestamp { get; set; }
     }
-    
+
     #endregion
 
     #region Constants
-    
+
     private const int RENDER_DELAY_MS = 100;
     private const int UI_REFOCUS_DELAY_MS = 100;
     private const int MAX_RECENT_SCANS = 20;
-    
-    private static readonly string[] PurchaseKeywords = 
+
+    private static readonly string[] PurchaseKeywords =
         { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
-    private static readonly string[] SaleKeywords = 
+    private static readonly string[] SaleKeywords =
         { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
-    
+
     #endregion
 
     #region Lifecycle Methods
-    
+
     /// <summary>
     /// Inizializza il componente caricando i dati necessari
     /// </summary>
@@ -139,7 +137,7 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         // Load panel states from LocalStorage
         await LoadPanelStatesAsync();
-        
+
         await LoadDocumentHeaderAsync();
         await LoadUnitsOfMeasureAsync();
         await LoadVatRatesAsync();
@@ -156,19 +154,19 @@ public partial class AddDocumentRowDialog : IDisposable
     protected override void OnParametersSet()
     {
         _model.DocumentHeaderId = DocumentHeaderId;
-        
+
         // Watch for product selection changes - compare by ID for proper equality check
         if (_selectedProduct?.Id != _previousSelectedProduct?.Id)
         {
             // Capture the current product to avoid race conditions
             var currentProduct = _selectedProduct;
             _previousSelectedProduct = currentProduct;
-            
+
             if (currentProduct != null)
             {
                 // Use InvokeAsync to safely execute async operation within component lifecycle
                 // Fire-and-forget is safe here as PopulateFromProductAsync handles its own errors
-                _ = InvokeAsync(async () => 
+                _ = InvokeAsync(async () =>
                 {
                     try
                     {
@@ -197,13 +195,13 @@ public partial class AddDocumentRowDialog : IDisposable
             await _barcodeField.FocusAsync();
         }
     }
-    
+
     #endregion
-    
+
     #region Panel State Persistence
-    
+
     private const string PANEL_STATE_KEY = "EventForge.Documents.AddDocumentRowDialog.PanelStates";
-    
+
     /// <summary>
     /// Loads panel states from LocalStorage
     /// </summary>
@@ -225,7 +223,7 @@ public partial class AddDocumentRowDialog : IDisposable
             Logger.LogWarning(ex, "Error loading panel states from LocalStorage");
         }
     }
-    
+
     /// <summary>
     /// Saves panel states to LocalStorage
     /// </summary>
@@ -247,7 +245,7 @@ public partial class AddDocumentRowDialog : IDisposable
             Logger.LogWarning(ex, "Error saving panel states to LocalStorage");
         }
     }
-    
+
     /// <summary>
     /// Panel states DTO for LocalStorage persistence
     /// </summary>
@@ -257,12 +255,12 @@ public partial class AddDocumentRowDialog : IDisposable
         public bool DiscountsPanelExpanded { get; set; }
         public bool NotesPanelExpanded { get; set; }
     }
-    
-    
+
+
     #endregion
 
     #region Data Loading Methods
-    
+
     /// <summary>
     /// Carica l'intestazione del documento
     /// </summary>
@@ -325,15 +323,15 @@ public partial class AddDocumentRowDialog : IDisposable
 
         _loadingTransactions = true;
         _recentTransactions.Clear();
-        
+
         try
         {
             string transactionType = "purchase";
-            
+
             if (!string.IsNullOrEmpty(_documentHeader.DocumentTypeName))
             {
                 var lowerName = _documentHeader.DocumentTypeName.ToLower();
-                
+
                 if (SaleKeywords.Any(k => lowerName.Contains(k)))
                 {
                     transactionType = "sale";
@@ -343,16 +341,16 @@ public partial class AddDocumentRowDialog : IDisposable
                     transactionType = "purchase";
                 }
             }
-            
+
             Guid? partyId = _documentHeader.BusinessPartyId != Guid.Empty ? _documentHeader.BusinessPartyId : null;
-            
+
             var transactions = await ProductService.GetRecentProductTransactionsAsync(
                 productId,
                 transactionType,
                 partyId,
                 top: 3
             );
-            
+
             if (transactions != null)
             {
                 _recentTransactions = transactions.ToList();
@@ -388,8 +386,8 @@ public partial class AddDocumentRowDialog : IDisposable
         {
             Logger.LogError(ex, "Error loading row {RowId} for edit", rowId);
             Snackbar.Add(
-                TranslationService.GetTranslation("documents.errorLoadingRow", 
-                    "Errore nel caricamento della riga"), 
+                TranslationService.GetTranslation("documents.errorLoadingRow",
+                    "Errore nel caricamento della riga"),
                 Severity.Error);
         }
     }
@@ -412,8 +410,8 @@ public partial class AddDocumentRowDialog : IDisposable
 
         if (_model.VatRate > 0 || !string.IsNullOrEmpty(_model.VatDescription))
         {
-            var vatRate = _allVatRates.FirstOrDefault(v => 
-                v.Percentage == _model.VatRate && 
+            var vatRate = _allVatRates.FirstOrDefault(v =>
+                v.Percentage == _model.VatRate &&
                 (string.IsNullOrEmpty(_model.VatDescription) || v.Name == _model.VatDescription));
             if (vatRate != null)
             {
@@ -434,11 +432,11 @@ public partial class AddDocumentRowDialog : IDisposable
 
         StateHasChanged();
     }
-    
+
     #endregion
 
     #region Barcode Handling
-    
+
     /// <summary>
     /// Handles keyboard shortcuts for the dialog
     /// </summary>
@@ -450,7 +448,7 @@ public partial class AddDocumentRowDialog : IDisposable
             await OpenEditProductDialog();
             return;
         }
-        
+
         // Ctrl+S: Save (alternative to Enter)
         if (e.CtrlKey && e.Key == "s")
         {
@@ -460,7 +458,7 @@ public partial class AddDocumentRowDialog : IDisposable
             }
             return;
         }
-        
+
         // Escape: Close dialog
         if (e.Key == "Escape")
         {
@@ -468,7 +466,7 @@ public partial class AddDocumentRowDialog : IDisposable
             return;
         }
     }
-    
+
     /// <summary>
     /// Gestisce la pressione di tasti nel campo barcode
     /// </summary>
@@ -494,23 +492,23 @@ public partial class AddDocumentRowDialog : IDisposable
     private async Task SearchByBarcode(string barcode)
     {
         if (_isProcessingBarcode) return;
-        
+
         try
         {
             _isProcessingBarcode = true;
             _scannedBarcode = barcode;
-            
+
             var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(barcode);
             if (productWithCode?.Product != null)
             {
                 _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
-                
+
                 // Set product and populate fields
                 await SelectProductAndPopulateAsync(productWithCode.Product);
-                
+
                 _barcodeInput = string.Empty;
                 _scannedBarcode = string.Empty;
-                
+
                 Snackbar.Add(
                     TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
                     Severity.Success);
@@ -576,12 +574,12 @@ public partial class AddDocumentRowDialog : IDisposable
         {
             // Set product and populate fields
             await SelectProductAndPopulateAsync(createdProduct);
-            
+
             _barcodeInput = string.Empty;
             _scannedBarcode = string.Empty;
-            
+
             Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.productCreatedAndSelected", 
+                TranslationService.GetTranslation("warehouse.productCreatedAndSelected",
                     "Prodotto creato e selezionato"),
                 Severity.Success);
         }
@@ -598,15 +596,15 @@ public partial class AddDocumentRowDialog : IDisposable
                 if (assignResult.Action == "assigned" && assignResult.Product != null)
                 {
                     ProductDto assignedProduct = assignResult.Product;
-                    
+
                     // Set product and populate fields
                     await SelectProductAndPopulateAsync(assignedProduct);
-                    
+
                     _barcodeInput = string.Empty;
                     _scannedBarcode = string.Empty;
-                    
+
                     Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.codeAssignedAndProductSelected", 
+                        TranslationService.GetTranslation("warehouse.codeAssignedAndProductSelected",
                             "Codice assegnato e prodotto selezionato"),
                         Severity.Success);
                 }
@@ -619,11 +617,11 @@ public partial class AddDocumentRowDialog : IDisposable
             }
         }
     }
-    
+
     #endregion
 
     #region Product Selection & Search
-    
+
     /// <summary>
     /// Popola i campi del form dai dati del prodotto selezionato
     /// </summary>
@@ -634,12 +632,12 @@ public partial class AddDocumentRowDialog : IDisposable
             // ✅ CRITICAL: Force immediate UI update on render thread BEFORE async operations
             // This ensures MudAutocomplete sees the committed value
             await InvokeAsync(StateHasChanged);
-            
+
             // 1. Popola campi base
             _model.ProductId = product.Id;
             _model.ProductCode = product.Code;
             _model.Description = product.Name;
-            
+
             // 2. Popola prezzo e IVA
             decimal productPrice = product.DefaultPrice ?? 0m;
             decimal vatRate = 0m;
@@ -655,7 +653,7 @@ public partial class AddDocumentRowDialog : IDisposable
                     _model.VatDescription = vatRateDto.Name;
                 }
             }
-            
+
             // 3. Gestisci IVA inclusa
             if (product.IsVatIncluded && vatRate > 0)
             {
@@ -672,9 +670,9 @@ public partial class AddDocumentRowDialog : IDisposable
             if (_availableUnits.Any())
             {
                 // Seleziona unità di misura base o prima disponibile
-                var defaultUnit = _availableUnits.FirstOrDefault(u => u.UnitType == "Base") 
+                var defaultUnit = _availableUnits.FirstOrDefault(u => u.UnitType == "Base")
                                ?? _availableUnits.FirstOrDefault();
-                
+
                 if (defaultUnit != null)
                 {
                     _selectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
@@ -687,7 +685,7 @@ public partial class AddDocumentRowDialog : IDisposable
                 // Fallback all'unità di misura del prodotto
                 _selectedUnitOfMeasureId = product.UnitOfMeasureId;
                 _model.UnitOfMeasureId = product.UnitOfMeasureId;
-                
+
                 var um = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == product.UnitOfMeasureId.Value);
                 if (um != null)
                 {
@@ -697,7 +695,7 @@ public partial class AddDocumentRowDialog : IDisposable
 
             // 5. Imposta prezzo finale
             _model.UnitPrice = productPrice;
-            
+
             // 6. Invalidate cached calculation result
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
@@ -721,7 +719,7 @@ public partial class AddDocumentRowDialog : IDisposable
             Snackbar.Add(
                 TranslationService.GetTranslation("error.loadProductData", "Errore caricamento dati prodotto"),
                 Severity.Error);
-            
+
             // ✅ Ensure UI update even on error
             await InvokeAsync(StateHasChanged);
         }
@@ -759,7 +757,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// Uses proper cancellation token handling pattern matching working implementations
     /// </summary>
     private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
-        string searchTerm, 
+        string searchTerm,
         CancellationToken cancellationToken)
     {
         // Early return for empty/short search terms
@@ -771,27 +769,27 @@ public partial class AddDocumentRowDialog : IDisposable
             // Add delay to avoid excessive renders (matches working autocompletes)
             // The delay itself can be cancelled via the cancellationToken
             await Task.Delay(50, cancellationToken);
-            
+
             Logger.LogDebug("Searching products with term: {SearchTerm}", searchTerm);
-            
+
             // Service call - Note: ProductService.SearchProductsAsync doesn't accept CancellationToken,
             // so the actual search cannot be cancelled, only the delay above
             var result = await ProductService.SearchProductsAsync(searchTerm, 50);
-            
+
             if (result == null)
             {
                 Logger.LogWarning("Product search returned null for term: {SearchTerm}", searchTerm);
                 return Array.Empty<ProductDto>();
             }
-            
+
             var products = new List<ProductDto>();
-            
+
             // Add exact match at the top
             if (result.ExactMatch?.Product != null)
             {
                 products.Add(result.ExactMatch.Product);
             }
-            
+
             // Add other results (excluding duplicates)
             if (result.SearchResults?.Any() == true)
             {
@@ -800,7 +798,7 @@ public partial class AddDocumentRowDialog : IDisposable
                     result.SearchResults.Where(p => p.Id != exactMatchId)
                 );
             }
-            
+
             Logger.LogDebug("Found {Count} products for term '{SearchTerm}'", products.Count, searchTerm);
             return products;
         }
@@ -850,14 +848,14 @@ public partial class AddDocumentRowDialog : IDisposable
         {
             _selectedProduct = product;
             _previousSelectedProduct = product;
-            
+
             // ✅ Update UI IMMEDIATELY - this prevents autocomplete reset
             StateHasChanged();
-            
-            Logger.LogInformation("Product selected via autocomplete: {ProductId} - {ProductName}", 
+
+            Logger.LogInformation("Product selected via autocomplete: {ProductId} - {ProductName}",
                 product.Id, product.Name);
         });
-        
+
         // Now perform async operations (UI is already updated)
         await PopulateFromProductAsync(product);
     }
@@ -904,8 +902,8 @@ public partial class AddDocumentRowDialog : IDisposable
         {
             Logger.LogError(ex, "Error loading product units for product {ProductId}", product.Id);
             Snackbar.Add(
-                TranslationService.GetTranslation("documents.errorLoadingUnits", 
-                    "Errore nel caricamento delle unità di misura"), 
+                TranslationService.GetTranslation("documents.errorLoadingUnits",
+                    "Errore nel caricamento delle unità di misura"),
                 Severity.Error);
         }
     }
@@ -933,14 +931,14 @@ public partial class AddDocumentRowDialog : IDisposable
         else
         {
             Snackbar.Add(
-                TranslationService.GetTranslation("documents.noUnitsConfigured", 
-                    "Nessuna unità di misura configurata per questo prodotto"), 
+                TranslationService.GetTranslation("documents.noUnitsConfigured",
+                    "Nessuna unità di misura configurata per questo prodotto"),
                 Severity.Warning);
             _selectedUnitOfMeasureId = null;
             _model.UnitOfMeasure = null;
             _model.UnitOfMeasureId = null;
         }
-        
+
         await Task.CompletedTask;
     }
 
@@ -961,11 +959,11 @@ public partial class AddDocumentRowDialog : IDisposable
 
         UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
     }
-    
+
     #endregion
 
     #region Unit & VAT Selection
-    
+
     /// <summary>
     /// Gestisce il cambio dell'unità di misura
     /// </summary>
@@ -995,11 +993,11 @@ public partial class AddDocumentRowDialog : IDisposable
             _model.VatRate = 0;
             _model.VatDescription = null;
         }
-        
+
         // Invalidate cached calculation result
         _cachedCalculationResult = null;
         _cachedCalculationKey = string.Empty;
-        
+
         StateHasChanged();
     }
 
@@ -1023,11 +1021,11 @@ public partial class AddDocumentRowDialog : IDisposable
             _model.UnitOfMeasureId = null;
         }
     }
-    
+
     #endregion
 
     #region Calculation Methods
-    
+
     /// <summary>
     /// Generates a unique key for caching based on current values.
     /// ✅ OPTIMIZATION: Key-based caching automatically detects value changes
@@ -1037,7 +1035,7 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         return $"{_model.Quantity}|{_model.UnitPrice}|{_model.VatRate}|{_model.LineDiscount}|{_model.LineDiscountValue}|{_model.DiscountType}";
     }
-    
+
     /// <summary>
     /// Gets calculation results from centralized service with caching.
     /// ✅ OPTIMIZATION: Caches calculation results to avoid redundant calculations
@@ -1046,13 +1044,13 @@ public partial class AddDocumentRowDialog : IDisposable
     private Client.Models.Documents.DocumentRowCalculationResult GetCalculationResult()
     {
         var currentKey = GetCalculationCacheKey();
-        
+
         // Use cached result if key matches (check string equality first as it's cheaper than null check in common case)
         if (_cachedCalculationKey == currentKey && _cachedCalculationResult != null)
         {
             return _cachedCalculationResult;
         }
-        
+
         // Calculate and cache the result
         var input = new Client.Models.Documents.DocumentRowCalculationInput
         {
@@ -1063,15 +1061,15 @@ public partial class AddDocumentRowDialog : IDisposable
             DiscountValue = _model.LineDiscountValue,
             DiscountType = _model.DiscountType
         };
-        
+
         _cachedCalculationResult = CalculationService.CalculateRowTotals(input);
         _cachedCalculationKey = currentKey;
-        
+
         return _cachedCalculationResult;
     }
-    
+
     private bool IsProductVatIncluded => _selectedProduct?.IsVatIncluded ?? false;
-    
+
     /// <summary>
     /// Gets the original gross price of the product
     /// </summary>
@@ -1079,7 +1077,7 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         if (!IsProductVatIncluded)
             return _model.Quantity * _model.UnitPrice;
-            
+
         return _model.Quantity * _model.UnitPrice * (1 + _model.VatRate / 100m);
     }
 
@@ -1087,36 +1085,36 @@ public partial class AddDocumentRowDialog : IDisposable
     /// Gets the subtotal for markup display
     /// </summary>
     private decimal GetSubtotal() => GetCalculationResult().NetAmount;
-    
+
     /// <summary>
     /// Gets the VAT amount for markup display
     /// </summary>
     private decimal GetVatAmount() => GetCalculationResult().VatAmount;
-    
+
     /// <summary>
     /// Gets the line total for markup display
     /// </summary>
     private decimal GetLineTotal() => GetCalculationResult().TotalAmount;
-    
+
     /// <summary>
     /// Gets the total discount for markup display
     /// </summary>
     private decimal GetTotalDiscount() => GetCalculationResult().DiscountAmount;
-    
+
     /// <summary>
     /// Gets the gross unit price for markup display
     /// </summary>
     private decimal GetUnitPriceGross() => GetCalculationResult().UnitPriceGross;
-    
+
     /// <summary>
     /// Gets the total for markup display (alias of GetLineTotal)
     /// </summary>
     private decimal GetTotal() => GetCalculationResult().TotalAmount;
-    
+
     #endregion
 
     #region Save & Validation
-    
+
     /// <summary>
     /// Valida il form
     /// </summary>
@@ -1154,8 +1152,8 @@ public partial class AddDocumentRowDialog : IDisposable
         {
             Logger.LogError(ex, "Error saving document row");
             var errorKey = _isEditMode ? "documents.rowUpdatedError" : "documents.rowAddedError";
-            var errorMessage = _isEditMode 
-                ? "Errore durante l'aggiornamento della riga" 
+            var errorMessage = _isEditMode
+                ? "Errore durante l'aggiornamento della riga"
                 : "Errore durante l'aggiunta della riga";
             Snackbar.Add(TranslationService.GetTranslation(errorKey, errorMessage), Severity.Error);
         }
@@ -1198,16 +1196,16 @@ public partial class AddDocumentRowDialog : IDisposable
         if (result != null)
         {
             Snackbar.Add(
-                TranslationService.GetTranslation("documents.rowUpdatedSuccess", 
-                    "Riga aggiornata con successo"), 
+                TranslationService.GetTranslation("documents.rowUpdatedSuccess",
+                    "Riga aggiornata con successo"),
                 Severity.Success);
             MudDialog.Close(DialogResult.Ok(result));
         }
         else
         {
             Snackbar.Add(
-                TranslationService.GetTranslation("documents.rowUpdatedError", 
-                    "Errore durante l'aggiornamento della riga"), 
+                TranslationService.GetTranslation("documents.rowUpdatedError",
+                    "Errore durante l'aggiornamento della riga"),
                 Severity.Error);
         }
     }
@@ -1222,15 +1220,15 @@ public partial class AddDocumentRowDialog : IDisposable
             _model.ProductId,
             _model.Quantity,
             _model.MergeDuplicateProducts);
-        
+
         var result = await DocumentHeaderService.AddDocumentRowAsync(_model);
         if (result != null)
         {
             Snackbar.Add(
-                TranslationService.GetTranslation("documents.rowAddedSuccess", 
-                    "Riga aggiunta con successo"), 
+                TranslationService.GetTranslation("documents.rowAddedSuccess",
+                    "Riga aggiunta con successo"),
                 Severity.Success);
-            
+
             // Track entry in Quick Add mode
             if (_dialogMode == DialogMode.QuickAdd)
             {
@@ -1240,16 +1238,16 @@ public partial class AddDocumentRowDialog : IDisposable
                     Quantity = _model.Quantity,
                     Timestamp = DateTime.Now
                 });
-                
+
                 // Keep only last 10 entries
                 if (_recentQuickEntries.Count > 10)
                 {
                     _recentQuickEntries = _recentQuickEntries.Take(10).ToList();
                 }
             }
-            
+
             ResetForm();
-            
+
             if (_barcodeField != null)
             {
                 await Task.Delay(RENDER_DELAY_MS);
@@ -1259,8 +1257,8 @@ public partial class AddDocumentRowDialog : IDisposable
         else
         {
             Snackbar.Add(
-                TranslationService.GetTranslation("documents.rowAddedError", 
-                    "Errore durante l'aggiunta della riga"), 
+                TranslationService.GetTranslation("documents.rowAddedError",
+                    "Errore durante l'aggiunta della riga"),
                 Severity.Error);
         }
     }
@@ -1271,9 +1269,9 @@ public partial class AddDocumentRowDialog : IDisposable
     private void ResetForm()
     {
         var preserveMergeDuplicates = _model.MergeDuplicateProducts;
-        
-        _model = new CreateDocumentRowDto 
-        { 
+
+        _model = new CreateDocumentRowDto
+        {
             DocumentHeaderId = DocumentHeaderId,
             Quantity = 1,
             MergeDuplicateProducts = preserveMergeDuplicates
@@ -1281,11 +1279,11 @@ public partial class AddDocumentRowDialog : IDisposable
         _selectedProduct = null;
         _previousSelectedProduct = null;
         _barcodeInput = string.Empty;
-        
+
         // Invalidate cached calculation result
         _cachedCalculationResult = null;
         _cachedCalculationKey = string.Empty;
-        
+
         StateHasChanged();
     }
 
@@ -1305,24 +1303,24 @@ public partial class AddDocumentRowDialog : IDisposable
         try
         {
             _model.UnitPrice = suggestion.EffectiveUnitPrice;
-            
+
             if (suggestion.BaseUnitPrice.HasValue)
             {
                 _model.BaseUnitPrice = suggestion.BaseUnitPrice.Value;
             }
-            
+
             _model.LineDiscount = 0;
             _model.LineDiscountValue = 0;
             _model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
-            
+
             // Invalidate cached calculation result
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
-            
+
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.priceApplied", "Prezzo applicato: {0:C2}", suggestion.EffectiveUnitPrice),
                 Severity.Success);
-            
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -1372,11 +1370,11 @@ public partial class AddDocumentRowDialog : IDisposable
         if (!result.Canceled && result.Data is ProductDto updatedProduct)
         {
             _selectedProduct = updatedProduct;
-            
+
             _model.Description = updatedProduct.Description;
             _model.ProductCode = updatedProduct.Code;
             _model.UnitPrice = updatedProduct.DefaultPrice ?? _model.UnitPrice;
-            
+
             if (updatedProduct.VatRateId.HasValue)
             {
                 _selectedVatRateId = updatedProduct.VatRateId.Value;
@@ -1387,32 +1385,32 @@ public partial class AddDocumentRowDialog : IDisposable
                     _model.VatDescription = vatRate.Name;
                 }
             }
-            
+
             // Invalidate cached calculation result
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
-            
+
             Snackbar.Add(
                 TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
                 Severity.Success);
-            
+
             StateHasChanged();
         }
     }
-    
+
     #endregion
-    
+
     #region Continuous Scan Mode Methods
-    
+
     /// <summary>
     /// Sets the dialog mode and initializes mode-specific state
     /// </summary>
     private void SetDialogMode(DialogMode mode)
     {
         if (_dialogMode == mode) return;
-        
+
         _dialogMode = mode;
-        
+
         if (mode == DialogMode.ContinuousScan)
         {
             // Initialize continuous scan mode
@@ -1423,17 +1421,17 @@ public partial class AddDocumentRowDialog : IDisposable
             _scannedProductIds.Clear();
             _firstScanTime = DateTime.UtcNow;
             StartStatsTimer();
-            
+
             Logger.LogInformation("Switched to Continuous Scan Mode");
         }
         else
         {
             StopStatsTimer();
         }
-        
+
         StateHasChanged();
     }
-    
+
     /// <summary>
     /// Processes a scanned barcode in continuous scan mode
     /// </summary>
@@ -1449,7 +1447,7 @@ public partial class AddDocumentRowDialog : IDisposable
         {
             // 1. Search product by barcode
             var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(barcode);
-            
+
             if (productWithCode?.Product == null)
             {
                 Logger.LogWarning("Product not found for barcode: {Barcode}", barcode);
@@ -1457,9 +1455,9 @@ public partial class AddDocumentRowDialog : IDisposable
                 await PlayErrorBeep();
                 return;
             }
-            
+
             var product = productWithCode.Product;
-            
+
             // 2. Create DTO with MergeDuplicateProducts = true
             var rowDto = new CreateDocumentRowDto
             {
@@ -1475,37 +1473,37 @@ public partial class AddDocumentRowDialog : IDisposable
                 MergeDuplicateProducts = true, // Enable auto-merge
                 Notes = $"Scansione continua: {DateTime.UtcNow:HH:mm:ss}"
             };
-            
+
             // 3. API call
             var result = await DocumentHeaderService.AddDocumentRowAsync(rowDto);
-            
+
             if (result == null)
             {
                 throw new Exception("AddDocumentRowAsync returned null");
             }
-            
+
             // 4. Update stats
             _continuousScanCount++;
             _lastScannedProduct = product.Name;
-            
+
             // 5. Update tracking list and unique products count
             UpdateRecentScans(product, barcode, result);
-            
+
             // Track unique product (using HashSet for O(1) lookup and insert)
             if (_scannedProductIds.Add(product.Id))
             {
                 _uniqueProductsCount = _scannedProductIds.Count;
             }
-            
+
             // 6. Audio feedback
             await PlaySuccessBeep();
-            
+
             Logger.LogInformation(
                 "Continuous scan successful: Barcode={Barcode}, Product={ProductName}, NewQty={Quantity}",
                 barcode,
                 product.Name,
                 result.Quantity);
-            
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -1519,7 +1517,7 @@ public partial class AddDocumentRowDialog : IDisposable
             _isProcessingContinuousScan = false;
             _continuousScanInput = string.Empty;
             StateHasChanged();
-            
+
             // Auto-refocus scanner field
             await Task.Delay(UI_REFOCUS_DELAY_MS);
             if (_continuousScanField != null)
@@ -1528,21 +1526,21 @@ public partial class AddDocumentRowDialog : IDisposable
             }
         }
     }
-    
+
     /// <summary>
     /// Updates recent scans list with merge logic
     /// </summary>
     private void UpdateRecentScans(ProductDto product, string barcode, DocumentRowDto result)
     {
-        var existingEntry = _recentContinuousScans.FirstOrDefault(s => 
+        var existingEntry = _recentContinuousScans.FirstOrDefault(s =>
             s.ProductId == product.Id && s.Barcode == barcode);
-        
+
         if (existingEntry != null)
         {
             // Update existing entry
             existingEntry.Quantity = (int)result.Quantity;
             existingEntry.Timestamp = DateTime.UtcNow;
-            
+
             // Move to top
             _recentContinuousScans.Remove(existingEntry);
             _recentContinuousScans.Insert(0, existingEntry);
@@ -1560,21 +1558,21 @@ public partial class AddDocumentRowDialog : IDisposable
                 UnitPrice = product.DefaultPrice ?? 0m
             });
         }
-        
+
         // Keep only last MAX_RECENT_SCANS entries
         if (_recentContinuousScans.Count > MAX_RECENT_SCANS)
         {
             _recentContinuousScans = _recentContinuousScans.Take(MAX_RECENT_SCANS).ToList();
         }
     }
-    
+
     /// <summary>
     /// Starts timer for real-time stats updates
     /// </summary>
     private void StartStatsTimer()
     {
         StopStatsTimer();
-        
+
         _statsTimer = new System.Timers.Timer(1000); // Update every second
         _statsTimer.Elapsed += (sender, e) =>
         {
@@ -1585,7 +1583,7 @@ public partial class AddDocumentRowDialog : IDisposable
         _statsTimer.AutoReset = true;
         _statsTimer.Start();
     }
-    
+
     /// <summary>
     /// Stops and disposes stats timer
     /// </summary>
@@ -1598,7 +1596,7 @@ public partial class AddDocumentRowDialog : IDisposable
             _statsTimer = null;
         }
     }
-    
+
     /// <summary>
     /// Plays success beep using JavaScript
     /// </summary>
@@ -1613,7 +1611,7 @@ public partial class AddDocumentRowDialog : IDisposable
             Logger.LogWarning(ex, "Failed to play success beep");
         }
     }
-    
+
     /// <summary>
     /// Plays error beep using JavaScript
     /// </summary>
@@ -1628,7 +1626,7 @@ public partial class AddDocumentRowDialog : IDisposable
             Logger.LogWarning(ex, "Failed to play error beep");
         }
     }
-    
+
     /// <summary>
     /// Handles key down events in continuous scan input
     /// </summary>
@@ -1643,26 +1641,26 @@ public partial class AddDocumentRowDialog : IDisposable
             SetDialogMode(DialogMode.Standard);
         }
     }
-    
+
     /// <summary>
     /// Returns relative time string (e.g., "2 sec fa", "5 min fa")
     /// </summary>
     private string GetTimeAgo(DateTime timestamp)
     {
         var elapsed = DateTime.UtcNow - timestamp;
-        
+
         if (elapsed.TotalSeconds < 60)
             return $"{(int)elapsed.TotalSeconds} sec fa";
-        
+
         if (elapsed.TotalMinutes < 60)
             return $"{(int)elapsed.TotalMinutes} min fa";
-        
+
         if (elapsed.TotalHours < 24)
             return $"{(int)elapsed.TotalHours} h fa";
-        
+
         return timestamp.ToString("HH:mm");
     }
-    
+
     /// <summary>
     /// Disposes resources including stats timer
     /// </summary>
@@ -1670,6 +1668,6 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         StopStatsTimer();
     }
-    
+
     #endregion
 }

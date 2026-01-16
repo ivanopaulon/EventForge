@@ -9,12 +9,12 @@ public enum DialogMode
     /// Standard mode with all fields and full functionality
     /// </summary>
     Standard = 0,
-    
+
     /// <summary>
     /// Quick add mode with essential fields only
     /// </summary>
     QuickAdd = 1,
-    
+
     /// <summary>
     /// Continuous scan mode for rapid barcode scanning
     /// </summary>

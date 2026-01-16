@@ -72,7 +72,7 @@ public class SignalRService : IAsyncDisposable
     public event Action<object>? UserJoinedDocument;
     public event Action<object>? UserLeftDocument;
     public event Action<object>? DocumentTypingIndicator;
-    
+
     // Document lock events
     public event Action<object>? DocumentLocked;
     public event Action<object>? DocumentUnlocked;
@@ -1022,12 +1022,12 @@ public class SignalRService : IAsyncDisposable
             {
                 var lockAcquired = await _documentCollaborationHubConnection
                     .InvokeAsync<bool>("RequestEditLock", documentId);
-                
+
                 _logger.LogInformation(
                     "Lock request for document {DocumentId}: {Result}",
                     documentId,
                     lockAcquired ? "Acquired" : "Failed");
-                
+
                 return lockAcquired;
             }
             catch (Exception ex)
@@ -1036,7 +1036,7 @@ public class SignalRService : IAsyncDisposable
                 throw;
             }
         }
-        
+
         return false;
     }
 

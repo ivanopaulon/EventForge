@@ -1,7 +1,5 @@
-using EventForge.Client.Services;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.VatRates;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.Services.Documents;
 
@@ -19,7 +17,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
     private List<UMDto>? _cachedUnits;
     private List<VatRateDto>? _cachedVatRates;
     private DateTime? _cacheTime;
-    
+
     // Cache configuration
     private const int CacheMinutes = 5;
 
@@ -45,29 +43,29 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
 
         // Load from service
         _logger.LogInformation("Loading units of measure from service (cache expired or empty)");
-        
+
         try
         {
             var units = await _productService.GetUnitsOfMeasureAsync();
             _cachedUnits = units?.ToList() ?? new List<UMDto>();
-            
+
             // Update cache timestamp
             _cacheTime = DateTime.UtcNow;
-            
+
             _logger.LogInformation("Cached {Count} units of measure", _cachedUnits.Count);
             return _cachedUnits;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading units of measure");
-            
+
             // Return cached data if available, even if expired, as fallback
             if (_cachedUnits != null)
             {
                 _logger.LogWarning("Returning stale cached units of measure as fallback");
                 return _cachedUnits;
             }
-            
+
             throw;
         }
     }
@@ -84,30 +82,30 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
 
         // Load from service
         _logger.LogInformation("Loading VAT rates from service (cache expired or empty)");
-        
+
         try
         {
             var vatRatesResult = await _financialService.GetVatRatesAsync(1, 100);
-            _cachedVatRates = vatRatesResult?.Items?.Where(v => v.IsActive).ToList() 
+            _cachedVatRates = vatRatesResult?.Items?.Where(v => v.IsActive).ToList()
                 ?? new List<VatRateDto>();
-            
+
             // Update cache timestamp
             _cacheTime = DateTime.UtcNow;
-            
+
             _logger.LogInformation("Cached {Count} active VAT rates", _cachedVatRates.Count);
             return _cachedVatRates;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading VAT rates");
-            
+
             // Return cached data if available, even if expired, as fallback
             if (_cachedVatRates != null)
             {
                 _logger.LogWarning("Returning stale cached VAT rates as fallback");
                 return _cachedVatRates;
             }
-            
+
             throw;
         }
     }
@@ -116,7 +114,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
     public void InvalidateCache()
     {
         _logger.LogInformation("Invalidating document dialog cache");
-        
+
         _cachedUnits = null;
         _cachedVatRates = null;
         _cacheTime = null;
@@ -135,13 +133,13 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
 
         var cacheAge = DateTime.UtcNow - _cacheTime.Value;
         var isValid = cacheAge.TotalMinutes < CacheMinutes;
-        
+
         if (!isValid)
         {
-            _logger.LogDebug("Cache expired (age: {Age:F1} minutes, TTL: {TTL} minutes)", 
+            _logger.LogDebug("Cache expired (age: {Age:F1} minutes, TTL: {TTL} minutes)",
                 cacheAge.TotalMinutes, CacheMinutes);
         }
-        
+
         return isValid;
     }
 }
