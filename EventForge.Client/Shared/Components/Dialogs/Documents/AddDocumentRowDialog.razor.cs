@@ -54,8 +54,39 @@ public partial class AddDocumentRowDialog : IDisposable
     #region State Variables
     
     private CreateDocumentRowDto _model = new() { Quantity = 1m };
-    private ProductDto? _selectedProduct = null;
-    private ProductDto? _previousSelectedProduct = null;
+    private ProductDto? _selectedProductBacking = null;
+    private ProductDto? _selectedProduct
+    {
+        get => _selectedProductBacking;
+        set
+        {
+            // Prevent infinite loops
+            if (_selectedProductBacking?.Id == value?.Id)
+            {
+                Logger.LogDebug("Product selection unchanged, skipping");
+                return;
+            }
+
+            var previousProduct = _selectedProductBacking;
+            _selectedProductBacking = value;
+
+            if (value != null)
+            {
+                Logger.LogInformation("Product selected: {ProductId} - {ProductName}", value.Id, value.Name);
+                
+                // Populate fields automatically
+                _ = PopulateFromProductAsync(value);
+            }
+            else if (previousProduct != null)
+            {
+                // Product deselected
+                Logger.LogDebug("Product selection cleared");
+                ClearProductFields();
+            }
+
+            StateHasChanged();
+        }
+    }
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;
     private bool _isEditMode => RowId.HasValue;
@@ -476,19 +507,15 @@ public partial class AddDocumentRowDialog : IDisposable
             {
                 _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
                 
-                await OnProductSelected(productWithCode.Product);
+                // ✅ NEW: Use simple assignment (triggers automatic setter)
+                _selectedProduct = productWithCode.Product;
+                
                 _barcodeInput = string.Empty;
                 _scannedBarcode = string.Empty;
                 
                 Snackbar.Add(
                     TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
                     Severity.Success);
-                
-                if (_quantityField != null)
-                {
-                    await Task.Delay(RENDER_DELAY_MS);
-                    await _quantityField.FocusAsync();
-                }
             }
             else
             {
@@ -549,8 +576,9 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         if (data is ProductDto createdProduct)
         {
+            // ✅ NEW: Use simple assignment
             _selectedProduct = createdProduct;
-            await OnProductSelected(createdProduct);
+            
             _barcodeInput = string.Empty;
             _scannedBarcode = string.Empty;
             
@@ -573,8 +601,9 @@ public partial class AddDocumentRowDialog : IDisposable
                 {
                     ProductDto assignedProduct = assignResult.Product;
                     
+                    // ✅ NEW: Use simple assignment
                     _selectedProduct = assignedProduct;
-                    await OnProductSelected(assignedProduct);
+                    
                     _barcodeInput = string.Empty;
                     _scannedBarcode = string.Empty;
                     
@@ -598,51 +627,111 @@ public partial class AddDocumentRowDialog : IDisposable
     #region Product Selection & Search
     
     /// <summary>
-    /// Gestisce la selezione di un prodotto dall'autocomplete.
-    /// Previene loop infiniti e gestisce correttamente sia selezione che deselection.
+    /// Popola i campi del form dai dati del prodotto selezionato
     /// </summary>
-    private async Task OnProductSelected(ProductDto? product)
+    private async Task PopulateFromProductAsync(ProductDto product)
     {
-        // Previeni loop infiniti se il prodotto non è cambiato
-        if (_previousSelectedProduct?.Id == product?.Id)
+        try
         {
-            Logger.LogDebug("Product selection unchanged, skipping");
-            return;
-        }
+            // 1. Popola campi base
+            _model.ProductId = product.Id;
+            _model.ProductCode = product.Code;
+            _model.Description = product.Name;
+            
+            // 2. Popola prezzo e IVA
+            decimal productPrice = product.DefaultPrice ?? 0m;
+            decimal vatRate = 0m;
 
-        _previousSelectedProduct = _selectedProduct;
-        _selectedProduct = product;
-        
-        if (product != null)
-        {
-            Logger.LogDebug("Product selected: {ProductId} - {ProductName}", product.Id, product.Name);
+            if (product.VatRateId.HasValue)
+            {
+                _selectedVatRateId = product.VatRateId;
+                var vatRateDto = _allVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
+                if (vatRateDto != null)
+                {
+                    vatRate = vatRateDto.Percentage;
+                    _model.VatRate = vatRate;
+                    _model.VatDescription = vatRateDto.Name;
+                }
+            }
             
-            // Popola campi del form
-            await PopulateFromProduct(product);
+            // 3. Gestisci IVA inclusa
+            if (product.IsVatIncluded && vatRate > 0)
+            {
+                productPrice = productPrice / (1 + vatRate / 100m);
+            }
+
+            // 4. Carica unità di misura del prodotto
+            var units = await ProductService.GetProductUnitsAsync(product.Id);
+            _availableUnits = units?.ToList() ?? new List<ProductUnitDto>();
+
+            if (_availableUnits.Any())
+            {
+                // Seleziona unità di misura base o prima disponibile
+                var defaultUnit = _availableUnits.FirstOrDefault(u => u.IsBase) 
+                               ?? _availableUnits.FirstOrDefault();
+                
+                if (defaultUnit != null)
+                {
+                    _selectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+                    _model.UnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+                    UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
+                }
+            }
+            else if (product.UnitOfMeasureId.HasValue)
+            {
+                // Fallback all'unità di misura del prodotto
+                _selectedUnitOfMeasureId = product.UnitOfMeasureId;
+                _model.UnitOfMeasureId = product.UnitOfMeasureId;
+                
+                var um = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == product.UnitOfMeasureId.Value);
+                if (um != null)
+                {
+                    _model.UnitOfMeasure = um.Symbol;
+                }
+            }
+
+            // 5. Imposta prezzo finale
+            _model.UnitPrice = productPrice;
+            
+            // 6. Invalidate cached calculation result
+            _cachedCalculationResult = null;
+            _cachedCalculationKey = string.Empty;
+
+            // 7. Carica transazioni recenti
             await LoadRecentTransactions(product.Id);
-            
-            // Auto-focus campo quantità per UX fluida
+
+            // 8. Auto-focus su campo quantità
             if (_quantityField != null)
             {
-                await Task.Delay(RENDER_DELAY_MS); // Delay per permettere rendering
+                await Task.Delay(RENDER_DELAY_MS); // Delay per rendering
                 await _quantityField.FocusAsync();
             }
+
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            // Prodotto deselezionato (click su X o cancellazione)
-            Logger.LogDebug("Product selection cleared");
-            
-            // Reset tutti i campi dipendenti
-            _model.ProductId = null;
-            _model.ProductCode = string.Empty;
-            _model.Description = string.Empty;
-            _model.UnitPrice = 0m;
-            _availableUnits.Clear();
-            _recentTransactions.Clear();
+            Logger.LogError(ex, "Error populating from product {ProductId}", product.Id);
+            Snackbar.Add(
+                TranslationService.GetTranslation("error.loadProductData", "Errore caricamento dati prodotto"),
+                Severity.Error);
         }
-        
-        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Pulisce i campi dipendenti dal prodotto
+    /// </summary>
+    private void ClearProductFields()
+    {
+        _model.ProductId = null;
+        _model.ProductCode = string.Empty;
+        _model.Description = string.Empty;
+        _model.UnitPrice = 0m;
+        _selectedUnitOfMeasureId = null;
+        _model.UnitOfMeasureId = null;
+        _model.UnitOfMeasure = string.Empty;
+        _availableUnits.Clear();
+        _recentTransactions.Clear();
     }
 
     /// <summary>
@@ -657,6 +746,8 @@ public partial class AddDocumentRowDialog : IDisposable
 
         try
         {
+            Logger.LogDebug("Searching products with term: {SearchTerm}", searchTerm);
+
             var result = await ProductService.SearchProductsAsync(searchTerm, 50);
             
             // Check if cancelled before processing results
@@ -667,7 +758,10 @@ public partial class AddDocumentRowDialog : IDisposable
             }
             
             if (result == null)
+            {
+                Logger.LogWarning("Product search returned null for term: {SearchTerm}", searchTerm);
                 return Array.Empty<ProductDto>();
+            }
             
             var products = new List<ProductDto>();
             
@@ -686,6 +780,7 @@ public partial class AddDocumentRowDialog : IDisposable
                 );
             }
             
+            Logger.LogInformation("Found {Count} products for term '{SearchTerm}'", products.Count, searchTerm);
             return products;
         }
         catch (OperationCanceledException)
@@ -698,44 +793,6 @@ public partial class AddDocumentRowDialog : IDisposable
             Logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
             return Array.Empty<ProductDto>();
         }
-    }
-
-    /// <summary>
-    /// Popola il model dai dati del prodotto selezionato
-    /// </summary>
-    private async Task PopulateFromProduct(ProductDto product)
-    {
-        _model.ProductId = product.Id;
-        _model.ProductCode = product.Code;
-        _model.Description = product.Name;
-        
-        decimal productPrice = product.DefaultPrice ?? 0m;
-        decimal vatRate = 0m;
-
-        if (product.VatRateId.HasValue)
-        {
-            _selectedVatRateId = product.VatRateId;
-            var vatRateDto = _allVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
-            if (vatRateDto != null)
-            {
-                vatRate = vatRateDto.Percentage;
-                _model.VatRate = vatRate;
-                _model.VatDescription = vatRateDto.Name;
-            }
-        }
-        
-        if (product.IsVatIncluded && vatRate > 0)
-        {
-            productPrice = productPrice / (1 + vatRate / 100m);
-        }
-        
-        _model.UnitPrice = productPrice;
-        
-        // Invalidate cached calculation result
-        _cachedCalculationResult = null;
-        _cachedCalculationKey = string.Empty;
-
-        await LoadProductUnits(product);
     }
 
     /// <summary>
@@ -1154,8 +1211,7 @@ public partial class AddDocumentRowDialog : IDisposable
             Quantity = 1,
             MergeDuplicateProducts = preserveMergeDuplicates
         };
-        _selectedProduct = null;
-        _previousSelectedProduct = null;
+        _selectedProductBacking = null;
         _barcodeInput = string.Empty;
         
         // Invalidate cached calculation result
