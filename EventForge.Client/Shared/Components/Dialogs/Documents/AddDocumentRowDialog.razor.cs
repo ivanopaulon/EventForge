@@ -54,39 +54,7 @@ public partial class AddDocumentRowDialog : IDisposable
     #region State Variables
     
     private CreateDocumentRowDto _model = new() { Quantity = 1m };
-    private ProductDto? _selectedProductBacking = null;
-    private ProductDto? _selectedProduct
-    {
-        get => _selectedProductBacking;
-        set
-        {
-            // Prevent infinite loops
-            if (_selectedProductBacking?.Id == value?.Id)
-            {
-                Logger.LogDebug("Product selection unchanged, skipping");
-                return;
-            }
-
-            var previousProduct = _selectedProductBacking;
-            _selectedProductBacking = value;
-
-            if (value != null)
-            {
-                Logger.LogInformation("Product selected: {ProductId} - {ProductName}", value.Id, value.Name);
-                
-                // Populate fields automatically
-                _ = PopulateFromProductAsync(value);
-            }
-            else if (previousProduct != null)
-            {
-                // Product deselected
-                Logger.LogDebug("Product selection cleared");
-                ClearProductFields();
-            }
-
-            StateHasChanged();
-        }
-    }
+    private ProductDto? _selectedProduct = null;
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;
     private bool _isEditMode => RowId.HasValue;
@@ -507,8 +475,9 @@ public partial class AddDocumentRowDialog : IDisposable
             {
                 _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
                 
-                // ✅ NEW: Use simple assignment (triggers automatic setter)
+                // Set product and explicitly call populate
                 _selectedProduct = productWithCode.Product;
+                await OnProductSelectedChanged();
                 
                 _barcodeInput = string.Empty;
                 _scannedBarcode = string.Empty;
@@ -576,8 +545,9 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         if (data is ProductDto createdProduct)
         {
-            // ✅ NEW: Use simple assignment
+            // Set product and explicitly call populate
             _selectedProduct = createdProduct;
+            await OnProductSelectedChanged();
             
             _barcodeInput = string.Empty;
             _scannedBarcode = string.Empty;
@@ -601,8 +571,9 @@ public partial class AddDocumentRowDialog : IDisposable
                 {
                     ProductDto assignedProduct = assignResult.Product;
                     
-                    // ✅ NEW: Use simple assignment
+                    // Set product and explicitly call populate
                     _selectedProduct = assignedProduct;
+                    await OnProductSelectedChanged();
                     
                     _barcodeInput = string.Empty;
                     _scannedBarcode = string.Empty;
@@ -793,6 +764,34 @@ public partial class AddDocumentRowDialog : IDisposable
             Logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
             return Array.Empty<ProductDto>();
         }
+    }
+
+    /// <summary>
+    /// Handles product selection changes - called when autocomplete value changes
+    /// </summary>
+    private async Task OnProductSelectedChanged()
+    {
+        if (_selectedProduct != null)
+        {
+            Logger.LogInformation("Product selected: {ProductId} - {ProductName}", _selectedProduct.Id, _selectedProduct.Name);
+            await PopulateFromProductAsync(_selectedProduct);
+        }
+        else
+        {
+            // Clear fields when deselected
+            Logger.LogDebug("Product selection cleared");
+            _model.ProductId = null;
+            _model.ProductCode = string.Empty;
+            _model.Description = string.Empty;
+            _model.UnitPrice = 0m;
+            _selectedUnitOfMeasureId = null;
+            _model.UnitOfMeasureId = null;
+            _model.UnitOfMeasure = string.Empty;
+            _availableUnits.Clear();
+            _recentTransactions.Clear();
+        }
+        
+        StateHasChanged();
     }
 
     /// <summary>
@@ -1211,7 +1210,7 @@ public partial class AddDocumentRowDialog : IDisposable
             Quantity = 1,
             MergeDuplicateProducts = preserveMergeDuplicates
         };
-        _selectedProductBacking = null;
+        _selectedProduct = null;
         _barcodeInput = string.Empty;
         
         // Invalidate cached calculation result

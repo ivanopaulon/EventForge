@@ -249,6 +249,7 @@
                             </MudText>
                             <MudAutocomplete T="ProductDto"
                                             @bind-Value="_selectedProduct"
+                                            @bind-Value:after="OnProductSelectedChanged"
                                             SearchFunc="@SearchProductsAsync"
                                             ToStringFunc="@(p => p?.Name ?? string.Empty)"
                                             Variant="Variant.Outlined"
