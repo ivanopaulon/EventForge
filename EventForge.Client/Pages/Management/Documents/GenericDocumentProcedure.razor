@@ -1608,13 +1608,12 @@
         {
             try
             {
-                // Parse lock data (expecting an anonymous object with LockedBy property)
-                var lockData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
-                    System.Text.Json.JsonSerializer.Serialize(data));
-                
-                if (lockData.TryGetProperty("LockedBy", out var lockedByElement))
+                // Try to extract LockedBy from the data object dynamically
+                var dataType = data.GetType();
+                var lockedByProperty = dataType.GetProperty("LockedBy");
+                if (lockedByProperty != null)
                 {
-                    _lockHolderName = lockedByElement.GetString();
+                    _lockHolderName = lockedByProperty.GetValue(data)?.ToString();
                 }
                 
                 _isReadOnly = true;
