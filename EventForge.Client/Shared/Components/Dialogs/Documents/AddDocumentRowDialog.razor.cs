@@ -846,7 +846,7 @@ public partial class AddDocumentRowDialog : IDisposable
 
         // ✅ CRITICAL FIX: Use InvokeAsync to ensure UI updates synchronously
         // This commits the selection to MudAutocomplete BEFORE async operations
-        await InvokeAsync(async () =>
+        await InvokeAsync(() =>
         {
             _selectedProduct = product;
             _previousSelectedProduct = product;
@@ -856,10 +856,10 @@ public partial class AddDocumentRowDialog : IDisposable
             
             Logger.LogInformation("Product selected via autocomplete: {ProductId} - {ProductName}", 
                 product.Id, product.Name);
-            
-            // Now perform async operations (UI is already updated)
-            await PopulateFromProductAsync(product);
         });
+        
+        // Now perform async operations (UI is already updated)
+        await PopulateFromProductAsync(product);
     }
 
     /// <summary>
