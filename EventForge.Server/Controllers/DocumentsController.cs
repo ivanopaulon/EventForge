@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
@@ -25,6 +26,7 @@ public class DocumentsController : BaseApiController
     private readonly IDocumentAttachmentService _attachmentService;
     private readonly IDocumentHeaderService _documentHeaderService;
     private readonly IDocumentTypeService _documentTypeService;
+    private readonly IDocumentStatusService _documentStatusService;
     private readonly ILogger<DocumentsController> _logger;
 
     public DocumentsController(
@@ -37,6 +39,7 @@ public class DocumentsController : BaseApiController
         IDocumentAttachmentService attachmentService,
         IDocumentHeaderService documentHeaderService,
         IDocumentTypeService documentTypeService,
+        IDocumentStatusService documentStatusService,
         ILogger<DocumentsController> logger)
     {
         _documentFacade = documentFacade ?? throw new ArgumentNullException(nameof(documentFacade));
@@ -48,6 +51,7 @@ public class DocumentsController : BaseApiController
         _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
         _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
         _documentTypeService = documentTypeService ?? throw new ArgumentNullException(nameof(documentTypeService));
+        _documentStatusService = documentStatusService ?? throw new ArgumentNullException(nameof(documentStatusService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -2476,6 +2480,109 @@ public class DocumentsController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while retrieving export status for {ExportId}", exportId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving export status.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Document Status Management
+
+    /// <summary>
+    /// Change document status with validation
+    /// </summary>
+    [HttpPut("{id:guid}/status")]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangeDocumentStatusAsync(
+        Guid id,
+        [FromBody] ChangeDocumentStatusDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _documentStatusService.ChangeStatusAsync(
+                id, 
+                dto.NewStatus, 
+                dto.Reason,
+                cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Document not found",
+                    Detail = $"Document with ID {id} was not found."
+                });
+            }
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Invalid status transition",
+                Detail = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while changing document status for {DocumentId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while changing document status.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Get document status history
+    /// </summary>
+    [HttpGet("{id:guid}/status/history")]
+    [ProducesResponseType(typeof(List<DocumentStatusHistoryDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDocumentStatusHistoryAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var history = await _documentStatusService.GetStatusHistoryAsync(id, cancellationToken);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving document status history for {DocumentId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving document status history.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Get available status transitions
+    /// </summary>
+    [HttpGet("{id:guid}/status/available-transitions")]
+    [ProducesResponseType(typeof(List<DocumentStatus>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailableTransitionsAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var transitions = await _documentStatusService.GetAvailableTransitionsAsync(id, cancellationToken);
+            return Ok(transitions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving available transitions for {DocumentId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving available transitions.", ex);
         }
     }
 

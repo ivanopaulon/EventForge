@@ -70,6 +70,7 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<DocumentRetentionPolicy> DocumentRetentionPolicies { get; set; }
     public DbSet<DocumentAccessLog> DocumentAccessLogs { get; set; }
     public DbSet<DocumentReference> DocumentReferences { get; set; }
+    public DbSet<DocumentStatusHistory> DocumentStatusHistories { get; set; }
 
     // Event & Team Entities
     public DbSet<Event> Events { get; set; }
