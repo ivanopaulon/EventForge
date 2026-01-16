@@ -15,13 +15,16 @@ public class DocumentCollaborationHub : Hub
 {
     private readonly ILogger<DocumentCollaborationHub> _logger;
     private readonly IDocumentCommentService _commentService;
+    private readonly IDocumentHeaderService _documentHeaderService;
 
     public DocumentCollaborationHub(
         ILogger<DocumentCollaborationHub> logger,
-        IDocumentCommentService commentService)
+        IDocumentCommentService commentService,
+        IDocumentHeaderService documentHeaderService)
     {
         _logger = logger;
         _commentService = commentService;
+        _documentHeaderService = documentHeaderService;
     }
 
     #region Connection Management
@@ -52,6 +55,7 @@ public class DocumentCollaborationHub : Hub
 
     /// <summary>
     /// Called when a client disconnects from the hub.
+    /// Auto-releases any locks held by this connection.
     /// </summary>
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
@@ -59,10 +63,106 @@ public class DocumentCollaborationHub : Hub
 
         if (userId.HasValue)
         {
-            _logger.LogInformation("User {UserId} disconnected from document collaboration hub", userId.Value);
+            // Release all locks for this connection
+            await _documentHeaderService.ReleaseAllLocksForConnectionAsync(Context.ConnectionId);
+
+            _logger.LogInformation(
+                "User {UserId} disconnected from document collaboration hub. Locks released for connection {ConnectionId}.",
+                userId.Value, Context.ConnectionId);
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    #endregion
+
+    #region Document Lock Management
+
+    /// <summary>
+    /// Request exclusive edit lock for a document.
+    /// </summary>
+    /// <param name="documentId">ID of document to lock</param>
+    /// <returns>True if lock acquired successfully</returns>
+    public async Task<bool> RequestEditLock(Guid documentId)
+    {
+        var userName = Context.User?.Identity?.Name ?? "Unknown";
+        var userId = GetCurrentUserId();
+
+        if (!userId.HasValue)
+            throw new HubException("User not authenticated");
+
+        try
+        {
+            var lockAcquired = await _documentHeaderService.AcquireLockAsync(
+                documentId,
+                userName,
+                Context.ConnectionId);
+
+            if (lockAcquired)
+            {
+                _logger.LogInformation(
+                    "User {UserName} acquired lock on document {DocumentId}",
+                    userName,
+                    documentId);
+
+                // Notify other users in the document group
+                await Clients.GroupExcept($"document_{documentId}", Context.ConnectionId)
+                    .SendAsync("DocumentLocked", new
+                    {
+                        DocumentId = documentId,
+                        LockedBy = userName,
+                        LockedAt = DateTime.UtcNow
+                    });
+
+                return true;
+            }
+            else
+            {
+                var lockInfo = await _documentHeaderService.GetLockInfoAsync(documentId);
+                throw new HubException(
+                    $"Documento in modifica da {lockInfo?.LockedBy} dal {lockInfo?.LockedAt:HH:mm}");
+            }
+        }
+        catch (HubException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to acquire lock for document {DocumentId}", documentId);
+            throw new HubException("Errore acquisizione lock documento");
+        }
+    }
+
+    /// <summary>
+    /// Release edit lock for a document.
+    /// </summary>
+    /// <param name="documentId">ID of document to unlock</param>
+    public async Task ReleaseEditLock(Guid documentId)
+    {
+        var userName = Context.User?.Identity?.Name ?? "Unknown";
+
+        try
+        {
+            var released = await _documentHeaderService.ReleaseLockAsync(documentId, userName);
+
+            if (released)
+            {
+                _logger.LogInformation(
+                    "User {UserName} released lock on document {DocumentId}",
+                    userName,
+                    documentId);
+
+                // Notify all users in the document group
+                await Clients.Group($"document_{documentId}")
+                    .SendAsync("DocumentUnlocked", new { DocumentId = documentId });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to release lock for document {DocumentId}", documentId);
+            throw new HubException("Errore rilascio lock documento");
+        }
     }
 
     #endregion
