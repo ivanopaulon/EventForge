@@ -631,6 +631,10 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         try
         {
+            // ✅ CRITICAL: Force immediate UI update on render thread BEFORE async operations
+            // This ensures MudAutocomplete sees the committed value
+            await InvokeAsync(StateHasChanged);
+            
             // 1. Popola campi base
             _model.ProductId = product.Id;
             _model.ProductCode = product.Code;
@@ -658,7 +662,10 @@ public partial class AddDocumentRowDialog : IDisposable
                 productPrice = productPrice / (1 + vatRate / 100m);
             }
 
-            // 4. Carica unità di misura del prodotto
+            // ✅ Update UI after basic fields are set
+            await InvokeAsync(StateHasChanged);
+
+            // 4. Carica unità di misura del prodotto (ASYNC operation)
             var units = await ProductService.GetProductUnitsAsync(product.Id);
             _availableUnits = units?.ToList() ?? new List<ProductUnitDto>();
 
@@ -695,8 +702,11 @@ public partial class AddDocumentRowDialog : IDisposable
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
 
-            // 7. Carica transazioni recenti
+            // 7. Carica transazioni recenti (ASYNC operation)
             await LoadRecentTransactions(product.Id);
+
+            // ✅ Final UI update after all data is loaded
+            await InvokeAsync(StateHasChanged);
 
             // 8. Auto-focus su campo quantità
             if (_quantityField != null)
@@ -704,8 +714,6 @@ public partial class AddDocumentRowDialog : IDisposable
                 await Task.Delay(RENDER_DELAY_MS); // Delay per rendering
                 await _quantityField.FocusAsync();
             }
-
-            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -713,6 +721,9 @@ public partial class AddDocumentRowDialog : IDisposable
             Snackbar.Add(
                 TranslationService.GetTranslation("error.loadProductData", "Errore caricamento dati prodotto"),
                 Severity.Error);
+            
+            // ✅ Ensure UI update even on error
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -808,15 +819,21 @@ public partial class AddDocumentRowDialog : IDisposable
 
     /// <summary>
     /// Handles product selection from autocomplete
-    /// Uses Value + ValueChanged pattern that works reliably with MudBlazor
+    /// CRITICAL: Uses InvokeAsync to ensure UI updates happen synchronously on render thread
+    /// This prevents MudAutocomplete from resetting during async PopulateFromProductAsync
     /// </summary>
     private async Task OnProductSelected(ProductDto? product)
     {
         if (product == null)
         {
-            _selectedProduct = null;
-            _previousSelectedProduct = null;
-            ClearProductFields();
+            // Clear selection - use InvokeAsync to ensure immediate UI update
+            await InvokeAsync(() =>
+            {
+                _selectedProduct = null;
+                _previousSelectedProduct = null;
+                ClearProductFields();
+                StateHasChanged();
+            });
             return;
         }
 
@@ -827,9 +844,21 @@ public partial class AddDocumentRowDialog : IDisposable
             return;
         }
 
-        _selectedProduct = product;
-        _previousSelectedProduct = product;
+        // ✅ CRITICAL FIX: Use InvokeAsync to ensure UI updates synchronously
+        // This commits the selection to MudAutocomplete BEFORE async operations
+        await InvokeAsync(() =>
+        {
+            _selectedProduct = product;
+            _previousSelectedProduct = product;
+            
+            // ✅ Update UI IMMEDIATELY - this prevents autocomplete reset
+            StateHasChanged();
+            
+            Logger.LogInformation("Product selected via autocomplete: {ProductId} - {ProductName}", 
+                product.Id, product.Name);
+        });
         
+        // Now perform async operations (UI is already updated)
         await PopulateFromProductAsync(product);
     }
 
