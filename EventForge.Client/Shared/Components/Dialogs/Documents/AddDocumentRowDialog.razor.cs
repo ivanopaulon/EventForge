@@ -1,5 +1,6 @@
 using EventForge.Client.Services;
 using EventForge.Client.Services.Documents;
+using EventForge.Client.Models.Documents;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.UnitOfMeasures;
@@ -17,7 +18,7 @@ namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 /// <summary>
 /// Code-behind per AddDocumentRowDialog - Gestisce inserimento/modifica righe documento
 /// </summary>
-public partial class AddDocumentRowDialog
+public partial class AddDocumentRowDialog : IDisposable
 {
     #region Injected Dependencies
     
@@ -1341,8 +1342,8 @@ public partial class AddDocumentRowDialog
                 Quantity = 1,
                 UnitPrice = product.DefaultPrice ?? 0m,
                 UnitOfMeasureId = productWithCode.Code?.ProductUnitId ?? product.UnitOfMeasureId,
-                VatRate = product.VatRate ?? 0m,
-                VatDescription = product.VatRateDescription,
+                VatRate = product.VatRatePercentage ?? 0m,
+                VatDescription = product.VatRateName,
                 MergeDuplicateProducts = true, // Enable auto-merge
                 Notes = $"Scansione continua: {DateTime.UtcNow:HH:mm:ss}"
             };
@@ -1537,10 +1538,9 @@ public partial class AddDocumentRowDialog
     /// <summary>
     /// Disposes resources including stats timer
     /// </summary>
-    public override void Dispose()
+    public void Dispose()
     {
         StopStatsTimer();
-        base.Dispose();
     }
     
     #endregion

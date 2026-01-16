@@ -130,10 +130,10 @@
                                     Ultimi Prodotti Scansionati
                                 </MudText>
                                 
-                                <MudList Dense="true">
+                                <MudList T="string" Dense="true">
                                     @foreach (var scan in _recentContinuousScans.Take(5))
                                     {
-                                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
                                             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
                                                 <MudStack Spacing="0">
                                                     <MudText Typo="Typo.body2"><strong>@scan.ProductName</strong></MudText>
@@ -141,7 +141,7 @@
                                                         @scan.Barcode · Qty: @scan.Quantity · €@scan.UnitPrice.ToString("F2")
                                                     </MudText>
                                                 </MudStack>
-                                                <MudChip Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.AccessTime">
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.AccessTime">
                                                     @GetTimeAgo(scan.Timestamp)
                                                 </MudChip>
                                             </MudStack>
@@ -463,7 +463,7 @@
             </MudExpansionPanels>
             }
             
-            @if (!_quickAddMode)
+            @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 5. RIEPILOGO RIGA (Full Width, evidenziato) -->
                 <MudPaper Elevation="3" Class="pa-4" 
