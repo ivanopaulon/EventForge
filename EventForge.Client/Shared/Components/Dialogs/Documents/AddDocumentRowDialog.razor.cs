@@ -667,7 +667,7 @@ public partial class AddDocumentRowDialog : IDisposable
             if (_availableUnits.Any())
             {
                 // Seleziona unità di misura base o prima disponibile
-                var defaultUnit = _availableUnits.FirstOrDefault(u => u.IsBase) 
+                var defaultUnit = _availableUnits.FirstOrDefault(u => u.UnitType == "Base") 
                                ?? _availableUnits.FirstOrDefault();
                 
                 if (defaultUnit != null)
