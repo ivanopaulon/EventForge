@@ -81,6 +81,7 @@ public partial class AddDocumentRowDialog : IDisposable
     
     // Continuous scan mode state
     private List<ContinuousScanEntry> _recentContinuousScans = new();
+    private HashSet<Guid> _scannedProductIds = new();
     private int _continuousScanCount = 0;
     private int _uniqueProductsCount = 0;
     private int _scansPerMinute = 0;
@@ -119,6 +120,8 @@ public partial class AddDocumentRowDialog : IDisposable
     #region Constants
     
     private const int RENDER_DELAY_MS = 100;
+    private const int UI_REFOCUS_DELAY_MS = 100;
+    private const int MAX_RECENT_SCANS = 20;
     
     private static readonly string[] PurchaseKeywords = 
         { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
@@ -1293,6 +1296,7 @@ public partial class AddDocumentRowDialog : IDisposable
             _uniqueProductsCount = 0;
             _scansPerMinute = 0;
             _recentContinuousScans.Clear();
+            _scannedProductIds.Clear();
             _firstScanTime = DateTime.UtcNow;
             StartStatsTimer();
             
@@ -1360,16 +1364,16 @@ public partial class AddDocumentRowDialog : IDisposable
             _continuousScanCount++;
             _lastScannedProduct = product.Name;
             
-            // 5. Update tracking list
+            // 5. Update tracking list and unique products count
             UpdateRecentScans(product, barcode, result);
             
-            // 6. Update unique products count
-            _uniqueProductsCount = _recentContinuousScans
-                .Select(s => s.ProductId)
-                .Distinct()
-                .Count();
+            // Track unique product (using HashSet for O(1) lookup and insert)
+            if (_scannedProductIds.Add(product.Id))
+            {
+                _uniqueProductsCount = _scannedProductIds.Count;
+            }
             
-            // 7. Audio feedback
+            // 6. Audio feedback
             await PlaySuccessBeep();
             
             Logger.LogInformation(
@@ -1393,7 +1397,7 @@ public partial class AddDocumentRowDialog : IDisposable
             StateHasChanged();
             
             // Auto-refocus scanner field
-            await Task.Delay(100);
+            await Task.Delay(UI_REFOCUS_DELAY_MS);
             if (_continuousScanField != null)
             {
                 await _continuousScanField.FocusAsync();
@@ -1433,10 +1437,10 @@ public partial class AddDocumentRowDialog : IDisposable
             });
         }
         
-        // Keep only last 20
-        if (_recentContinuousScans.Count > 20)
+        // Keep only last MAX_RECENT_SCANS entries
+        if (_recentContinuousScans.Count > MAX_RECENT_SCANS)
         {
-            _recentContinuousScans = _recentContinuousScans.Take(20).ToList();
+            _recentContinuousScans = _recentContinuousScans.Take(MAX_RECENT_SCANS).ToList();
         }
     }
     
