@@ -160,11 +160,25 @@ public partial class AddDocumentRowDialog : IDisposable
         // Watch for product selection changes - compare by ID for proper equality check
         if (_selectedProduct?.Id != _previousSelectedProduct?.Id)
         {
-            _previousSelectedProduct = _selectedProduct;
-            if (_selectedProduct != null)
+            // Capture the current product to avoid race conditions
+            var currentProduct = _selectedProduct;
+            _previousSelectedProduct = currentProduct;
+            
+            if (currentProduct != null)
             {
                 // Use InvokeAsync to safely execute async operation within component lifecycle
-                _ = InvokeAsync(async () => await PopulateFromProductAsync(_selectedProduct));
+                // Fire-and-forget is safe here as PopulateFromProductAsync handles its own errors
+                _ = InvokeAsync(async () => 
+                {
+                    try
+                    {
+                        await PopulateFromProductAsync(currentProduct);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error populating product fields in OnParametersSet");
+                    }
+                });
             }
             else
             {
@@ -492,7 +506,7 @@ public partial class AddDocumentRowDialog : IDisposable
                 _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
                 
                 // Set product and populate fields
-                await SetSelectedProductAsync(productWithCode.Product);
+                await SelectProductAndPopulateAsync(productWithCode.Product);
                 
                 _barcodeInput = string.Empty;
                 _scannedBarcode = string.Empty;
@@ -561,7 +575,7 @@ public partial class AddDocumentRowDialog : IDisposable
         if (data is ProductDto createdProduct)
         {
             // Set product and populate fields
-            await SetSelectedProductAsync(createdProduct);
+            await SelectProductAndPopulateAsync(createdProduct);
             
             _barcodeInput = string.Empty;
             _scannedBarcode = string.Empty;
@@ -586,7 +600,7 @@ public partial class AddDocumentRowDialog : IDisposable
                     ProductDto assignedProduct = assignResult.Product;
                     
                     // Set product and populate fields
-                    await SetSelectedProductAsync(assignedProduct);
+                    await SelectProductAndPopulateAsync(assignedProduct);
                     
                     _barcodeInput = string.Empty;
                     _scannedBarcode = string.Empty;
@@ -719,10 +733,10 @@ public partial class AddDocumentRowDialog : IDisposable
     }
 
     /// <summary>
-    /// Helper method to set a product and populate fields
+    /// Helper method to set a product and populate all related fields
     /// Consolidates the pattern used throughout the component
     /// </summary>
-    private async Task SetSelectedProductAsync(ProductDto product)
+    private async Task SelectProductAndPopulateAsync(ProductDto product)
     {
         _selectedProduct = product;
         _previousSelectedProduct = _selectedProduct;
