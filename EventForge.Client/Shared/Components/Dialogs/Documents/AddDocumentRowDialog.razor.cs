@@ -758,12 +758,13 @@ public partial class AddDocumentRowDialog : IDisposable
         try
         {
             // Add delay to avoid excessive renders (matches working autocompletes)
+            // The delay itself can be cancelled via the cancellationToken
             await Task.Delay(50, cancellationToken);
             
             Logger.LogDebug("Searching products with term: {SearchTerm}", searchTerm);
             
-            // Note: ProductService.SearchProductsAsync doesn't accept CancellationToken yet,
-            // but we've handled cancellation above with Task.Delay
+            // Service call - Note: ProductService.SearchProductsAsync doesn't accept CancellationToken,
+            // so the actual search cannot be cancelled, only the delay above
             var result = await ProductService.SearchProductsAsync(searchTerm, 50);
             
             if (result == null)
@@ -819,8 +820,8 @@ public partial class AddDocumentRowDialog : IDisposable
             return;
         }
 
-        // Prevent re-processing same product
-        if (_selectedProduct?.Id == product.Id)
+        // Prevent re-processing same product - check against previously selected product
+        if (_previousSelectedProduct?.Id == product.Id)
         {
             Logger.LogDebug("Product selection unchanged, skipping");
             return;
