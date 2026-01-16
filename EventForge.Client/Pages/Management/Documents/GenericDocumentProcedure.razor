@@ -9,6 +9,7 @@
 @using EventForge.Client.Shared.Documents
 @using EventForge.Client.Shared.Components
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@implements IAsyncDisposable
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IDocumentTypeService DocumentTypeService
 @inject IBusinessPartyService BusinessPartyService
@@ -19,6 +20,7 @@
 @inject ILogger<GenericDocumentProcedure> Logger
 @inject NavigationManager NavigationManager
 @inject IFilterStateService FilterStateService
+@inject SignalRService? SignalRService
 
 <PageTitle>@_pageTitle</PageTitle>
 
@@ -44,6 +46,17 @@
 
     <PageLoadingOverlay Visible="_isLoading"
                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+    @if (_isReadOnly && !string.IsNullOrEmpty(_lockHolderName))
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-3" Icon="@Icons.Material.Filled.Lock">
+            <MudText Typo="Typo.body2">
+                @TranslationService.GetTranslation("documents.lockedByUser", "Documento in modifica da")
+                <strong>@_lockHolderName</strong>.
+                @TranslationService.GetTranslation("documents.readOnlyMode", "Modalità sola lettura")
+            </MudText>
+        </MudAlert>
+    }
 
     <!-- Improved 2-Row Document Header - Responsive and Clear -->
     <MudPaper Elevation="2" Class="pa-3 mb-3 document-inline-header">
@@ -157,7 +170,7 @@
                                   Variant="Variant.Filled"
                                   Size="Size.Medium"
                                   OnClick="@SaveDocumentHeaderAsync"
-                                  Disabled="@(!CanSaveHeader() || _isSavingHeader)"
+                                  Disabled="@(_isReadOnly || !CanSaveHeader() || _isSavingHeader)"
                                   aria-label="@TranslationService.GetTranslation("common.save", "Salva documento")">
                         @if (_isSavingHeader)
                         {
@@ -615,6 +628,11 @@
     // Document status binding
     private DocumentStatus _documentStatus = DocumentStatus.Draft;
     
+    // Lock management state
+    private bool _hasEditLock = false;
+    private bool _isReadOnly = false;
+    private string? _lockHolderName = null;
+    
     // Selection management for rows
     private HashSet<DocumentRowDto> _selectedRows = new();
     
@@ -743,6 +761,55 @@
             {
                 _detailsExpanded = true;
                 await SavePanelStateAsync();
+            }
+
+            // Setup SignalR for document collaboration
+            if (SignalRService != null)
+            {
+                SignalRService.DocumentLocked += OnDocumentLocked;
+                SignalRService.DocumentUnlocked += OnDocumentUnlocked;
+                
+                await SignalRService.StartDocumentCollaborationConnectionAsync();
+                
+                await SignalRService.JoinDocumentAsync(DocumentId.Value);
+                
+                // Try to acquire lock if in edit mode
+                try
+                {
+                    _hasEditLock = await SignalRService.RequestDocumentEditLockAsync(DocumentId.Value);
+                    
+                    if (!_hasEditLock)
+                    {
+                        _isReadOnly = true;
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("documents.documentLockedWarning", 
+                                "⚠️ Documento aperto in sola lettura: già in modifica da altro utente"),
+                            Severity.Warning);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _isReadOnly = true;
+                    // Extract the error message if it's about lock being held
+                    var errorMessage = ex.Message;
+                    if (errorMessage.Contains("Documento in modifica da"))
+                    {
+                        Snackbar.Add($"⚠️ {errorMessage}", Severity.Warning);
+                        // Try to parse the locked by name from the error message
+                        var match = System.Text.RegularExpressions.Regex.Match(errorMessage, @"da\s+(.+?)\s+dal");
+                        if (match.Success)
+                        {
+                            _lockHolderName = match.Groups[1].Value;
+                        }
+                    }
+                    else
+                    {
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("documents.lockAcquisitionError", 
+                                "⚠️ Errore acquisizione lock documento"),
+                            Severity.Warning);
+                    }
+                }
             }
         }
         else
@@ -1532,4 +1599,69 @@
         _detailsExpanded = !_detailsExpanded;
         await SavePanelStateAsync();
     }
+
+    #region SignalR Lock Management
+
+    private void OnDocumentLocked(object data)
+    {
+        InvokeAsync(() =>
+        {
+            try
+            {
+                // Parse lock data (expecting an anonymous object with LockedBy property)
+                var lockData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
+                    System.Text.Json.JsonSerializer.Serialize(data));
+                
+                if (lockData.TryGetProperty("LockedBy", out var lockedByElement))
+                {
+                    _lockHolderName = lockedByElement.GetString();
+                }
+                
+                _isReadOnly = true;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error processing DocumentLocked event");
+            }
+        });
+    }
+
+    private void OnDocumentUnlocked(object data)
+    {
+        InvokeAsync(() =>
+        {
+            _lockHolderName = null;
+            // Don't automatically acquire lock - user needs to refresh or re-enter edit mode
+            StateHasChanged();
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_hasEditLock && DocumentId.HasValue && SignalRService != null)
+            {
+                await SignalRService.ReleaseDocumentEditLockAsync(DocumentId.Value);
+            }
+
+            if (SignalRService != null)
+            {
+                SignalRService.DocumentLocked -= OnDocumentLocked;
+                SignalRService.DocumentUnlocked -= OnDocumentUnlocked;
+                
+                if (DocumentId.HasValue)
+                {
+                    await SignalRService.LeaveDocumentAsync(DocumentId.Value);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during component disposal");
+        }
+    }
+
+    #endregion
 }
