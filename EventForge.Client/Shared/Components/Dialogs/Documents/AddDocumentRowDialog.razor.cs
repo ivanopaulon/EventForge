@@ -745,19 +745,26 @@ public partial class AddDocumentRowDialog : IDisposable
 
     /// <summary>
     /// Search products for autocomplete
-    /// Uses simplified error handling pattern similar to BusinessParty autocomplete
+    /// Uses proper cancellation token handling pattern matching working implementations
     /// </summary>
     private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
         string searchTerm, 
         CancellationToken cancellationToken)
     {
+        // Early return for empty/short search terms
         if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
             return Array.Empty<ProductDto>();
 
         try
         {
+            // Add delay to avoid excessive renders (matches working autocompletes)
+            // The delay itself can be cancelled via the cancellationToken
+            await Task.Delay(50, cancellationToken);
+            
             Logger.LogDebug("Searching products with term: {SearchTerm}", searchTerm);
             
+            // Service call - Note: ProductService.SearchProductsAsync doesn't accept CancellationToken,
+            // so the actual search cannot be cancelled, only the delay above
             var result = await ProductService.SearchProductsAsync(searchTerm, 50);
             
             if (result == null)
@@ -786,11 +793,44 @@ public partial class AddDocumentRowDialog : IDisposable
             Logger.LogDebug("Found {Count} products for term '{SearchTerm}'", products.Count, searchTerm);
             return products;
         }
+        catch (OperationCanceledException)
+        {
+            // Handle cancellation gracefully
+            Logger.LogDebug("Product search cancelled for term: {SearchTerm}", searchTerm);
+            return Array.Empty<ProductDto>();
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
             return Array.Empty<ProductDto>();
         }
+    }
+
+    /// <summary>
+    /// Handles product selection from autocomplete
+    /// Uses Value + ValueChanged pattern that works reliably with MudBlazor
+    /// </summary>
+    private async Task OnProductSelected(ProductDto? product)
+    {
+        if (product == null)
+        {
+            _selectedProduct = null;
+            _previousSelectedProduct = null;
+            ClearProductFields();
+            return;
+        }
+
+        // Prevent re-processing same product - check against previously selected product
+        if (_previousSelectedProduct?.Id == product.Id)
+        {
+            Logger.LogDebug("Product selection unchanged, skipping");
+            return;
+        }
+
+        _selectedProduct = product;
+        _previousSelectedProduct = product;
+        
+        await PopulateFromProductAsync(product);
     }
 
     /// <summary>
