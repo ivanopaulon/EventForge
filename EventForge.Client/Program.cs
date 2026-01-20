@@ -153,6 +153,7 @@ builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<IDocumentCounterService, DocumentCounterService>();
 builder.Services.AddScoped<IDocumentRowCalculationService, DocumentRowCalculationService>();
 builder.Services.AddScoped<IDocumentDialogCacheService, DocumentDialogCacheService>();
+builder.Services.AddScoped<IDocumentRowValidator, DocumentRowValidator>();
 builder.Services.AddScoped<IDocumentStatusService, DocumentStatusService>();
 builder.Services.AddScoped<ICsvImportService, CsvImportService>();
 
