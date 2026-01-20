@@ -3,13 +3,16 @@
 @inject ITranslationService TranslationService
 
 <MudStack Spacing="1">
+    <!-- Label -->
     <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
         <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
         @TranslationService.GetTranslation("documents.product", "Prodotto")
     </MudText>
+    
+    <!-- Autocomplete - EXACT PATTERN from GenericDocumentProcedure -->
     <MudAutocomplete T="ProductDto"
-                     @bind-Value="@SelectedProduct"
-                     SearchFunc="@SearchFunc"
+                     @bind-Value="SelectedProduct"
+                     SearchFunc="@SearchProductsAsync"
                      ToStringFunc="@(p => p?.Name ?? string.Empty)"
                      Variant="Variant.Outlined"
                      Dense="true"
@@ -17,78 +20,80 @@
                      MinCharacters="2"
                      DebounceInterval="300"
                      ShowProgressIndicator="true"
-                     Clearable="true"
-                     ResetValueOnEmptyText="false"
+                     Clearable="@AllowClear"
+                     Placeholder="@TranslationService.GetTranslation("documents.searchProduct", "Cerca prodotto (min 2 caratteri)...")"
+                     ResetValueOnEmptyText="true"
                      CoerceText="false"
                      CoerceValue="false"
-                     Disabled="@(!IsEnabled)"
-                     Placeholder="@TranslationService.GetTranslation("documents.searchProductHelp", "Cerca prodotto (min 2 caratteri)...")"
+                     Disabled="@Disabled"
                      Adornment="Adornment.Start"
-                     AdornmentIcon="@Icons.Material.Outlined.Inventory"
-                     aria-label="@TranslationService.GetTranslation("documents.product", "Prodotto")">
+                     AdornmentIcon="@Icons.Material.Outlined.Search"
+                     AdornmentColor="Color.Primary">
+        <!-- ItemTemplate -->
         <ItemTemplate Context="product">
-            <MudStack Spacing="0">
-                <MudText Typo="Typo.body2" Style="font-weight: 500;">@product.Name</MudText>
-                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                    @product.Code · @(product.DefaultPrice?.ToString("C2") ?? "N/A")
-                </MudText>
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
+                    @if (!string.IsNullOrEmpty(product.Code))
+                    {
+                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                            @product.Code
+                        </MudText>
+                    }
+                </div>
+                @if (product.DefaultPrice.HasValue)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                        @product.DefaultPrice.Value.ToString("C2")
+                    </MudChip>
+                }
             </MudStack>
         </ItemTemplate>
+        
+        <!-- NoItemsTemplate -->
         <NoItemsTemplate>
-            <MudText Typo="Typo.body2" Align="Align.Center" Class="py-2">
+            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">
                 @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
             </MudText>
         </NoItemsTemplate>
     </MudAutocomplete>
     
-    @if (SelectedProduct != null && ShowQuickEdit)
+    <!-- ProductQuickInfo Card -->
+    @if (SelectedProduct != null && ShowQuickInfo)
     {
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-1">
-            <MudText Typo="Typo.caption" Color="Color.Success">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-1" />
-                @TranslationService.GetTranslation("documents.productSelected", "Prodotto selezionato")
-            </MudText>
-            <MudButton Size="Size.Small" 
-                       Variant="Variant.Text" 
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Outlined.Edit"
-                       OnClick="@(() => OnQuickEdit.InvokeAsync())">
-                @TranslationService.GetTranslation("common.quickEdit", "Modifica Rapida")
-            </MudButton>
-        </MudStack>
+        <MudPaper Elevation="1" Class="pa-2 mt-2">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Color="Color.Success" Class="mr-1" />
+                        @TranslationService.GetTranslation("documents.productSelected", "Prodotto Selezionato")
+                    </MudText>
+                    <MudText Typo="Typo.body2"><strong>@SelectedProduct.Name</strong></MudText>
+                    @if (!string.IsNullOrEmpty(SelectedProduct.Code))
+                    {
+                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                            @TranslationService.GetTranslation("documents.code", "Codice"): @SelectedProduct.Code
+                        </MudText>
+                    }
+                    @if (SelectedProduct.DefaultPrice.HasValue)
+                    {
+                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-primary);">
+                            @TranslationService.GetTranslation("documents.defaultPrice", "Prezzo"): @SelectedProduct.DefaultPrice.Value.ToString("C2")
+                        </MudText>
+                    }
+                </MudStack>
+                
+                @if (AllowQuickEdit)
+                {
+                    <MudButton Size="Size.Small"
+                               Variant="Variant.Text"
+                               Color="Color.Primary"
+                               StartIcon="@DialogStyleConstants.Icons.Edit"
+                               OnClick="@HandleQuickEdit">
+                        @TranslationService.GetTranslation("common.quickEdit", "Modifica")
+                    </MudButton>
+                }
+            </MudStack>
+        </MudPaper>
     }
 </MudStack>
-
-@code {
-    [Parameter] public ProductDto? SelectedProduct { get; set; }
-    [Parameter] public EventCallback<ProductDto?> SelectedProductChanged { get; set; }
-    [Parameter] public bool IsEnabled { get; set; } = true;
-    [Parameter] public bool ShowQuickEdit { get; set; } = true;
-    [Parameter] public EventCallback<ProductDto?> OnProductChanged { get; set; }
-    [Parameter] public EventCallback OnQuickEdit { get; set; }
-    [Parameter] public Func<string, CancellationToken, Task<IEnumerable<ProductDto>>>? SearchFunc { get; set; }
-
-    private Guid? _previousProductId;
-
-    /// <summary>
-    /// Monitors SelectedProduct changes and triggers callbacks
-    /// Uses product ID comparison to avoid reference equality issues
-    /// </summary>
-    protected override async Task OnParametersSetAsync()
-    {
-        await base.OnParametersSetAsync();
-        
-        // Check if SelectedProduct changed by comparing IDs
-        var currentProductId = SelectedProduct?.Id;
-        if (_previousProductId != currentProductId)
-        {
-            _previousProductId = currentProductId;
-            
-            // Invoke the custom event callback if set
-            if (OnProductChanged.HasDelegate)
-            {
-                await OnProductChanged.InvokeAsync(SelectedProduct);
-            }
-        }
-    }
-}

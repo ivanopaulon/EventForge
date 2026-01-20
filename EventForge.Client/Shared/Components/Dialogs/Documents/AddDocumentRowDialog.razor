@@ -198,12 +198,14 @@
             @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
-                <DocumentRowProductSelector @bind-SelectedProduct="@_state.SelectedProduct"
-                                           OnProductChanged="@OnProductSelected"
+                <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
+                                           SelectedProductChanged="@OnProductSelected"
                                            SearchFunc="@SearchProductsAsync"
-                                           IsEnabled="true"
-                                           ShowQuickEdit="true"
-                                           OnQuickEdit="@OpenEditProductDialog" />
+                                           Disabled="false"
+                                           ShowQuickInfo="true"
+                                           AllowQuickEdit="true"
+                                           OnQuickEdit="@OpenEditProductDialog"
+                                           AllowClear="true" />
                 
                 <DocumentRowQuantityPrice @ref="_quantityPriceRef"
                                          Description="@_model.Description"
