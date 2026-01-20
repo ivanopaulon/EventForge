@@ -19,7 +19,8 @@ public class DocumentRowCalculationCache
     public TValue GetOrCalculate<TKey, TValue>(TKey key, Func<TValue> calculator) 
         where TKey : notnull
     {
-        var cacheKey = $"{typeof(TValue).Name}_{key.GetHashCode()}";
+        // Use string representation for more reliable cache keys
+        var cacheKey = $"{typeof(TValue).Name}_{key.ToString()}";
 
         if (_cache.TryGetValue(cacheKey, out var cachedValue))
         {
@@ -27,7 +28,10 @@ public class DocumentRowCalculationCache
         }
 
         var value = calculator();
-        _cache[cacheKey] = value!;
+        if (value != null)
+        {
+            _cache[cacheKey] = value;
+        }
         return value;
     }
 
