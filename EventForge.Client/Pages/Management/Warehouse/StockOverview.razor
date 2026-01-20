@@ -697,7 +697,7 @@
             );
 
             // Add null safety
-            _stockItems = result?.Items?.ToList() ?? new();
+            _stockItems = result?.Items?.ToList() ?? new List<StockLocationDetail>();
             
             // Add diagnostic logging
             Logger.LogInformation("Loaded {Count} stock items", _stockItems.Count);
@@ -706,7 +706,7 @@
         {
             Snackbar.Add(TranslationService.GetTranslation("stock.loadingError", "Errore nel caricamento delle giacenze: {0}", ex.Message), Severity.Error);
             Logger.LogError(ex, "Error loading stock overview");
-            _stockItems = new(); // Ensure empty list on error
+            _stockItems = new List<StockLocationDetail>(); // Ensure empty list on error
         }
         finally
         {
