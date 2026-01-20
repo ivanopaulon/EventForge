@@ -65,7 +65,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: var(--mud-palette-surface-lighten, rgba(255, 255, 255, 0.9));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -125,8 +125,5 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Form Field Focus States */
-.ef-dialog-form .mud-input-control:focus-within {
-    box-shadow: 0 0 0 2px var(--mud-palette-primary-lighten);
-    border-radius: 4px;
-}
+/* Form Field Focus States - Removed to avoid conflicts with MudBlazor's built-in focus styles */
+/* MudBlazor already handles focus states with proper accessibility features */
