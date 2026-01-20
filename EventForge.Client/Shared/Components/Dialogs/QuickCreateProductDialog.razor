@@ -9,32 +9,37 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@(IsEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)" Class="mr-2" />
-            @(IsEditMode 
-                ? TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto")
-                : TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto"))
-        </MudText>
+        <div class="ef-dialog-title">
+            <MudIcon Icon="@(IsEditMode ? DialogStyleConstants.Icons.Edit : DialogStyleConstants.Icons.Add)" 
+                     Color="Color.Primary" 
+                     Size="Size.Medium" />
+            <MudText Typo="Typo.h6">
+                @(IsEditMode 
+                    ? TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto")
+                    : TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto"))
+            </MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-<PageLoadingOverlay Visible="_isLoading"
-                    Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+        <div class="ef-dialog-content">
+            <PageLoadingOverlay Visible="_isLoading"
+                                Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-        @if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
-        {
-            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
-                <MudText Typo="Typo.body2">
-                    <MudIcon Icon="@Icons.Material.Outlined.QrCode" Size="Size.Small" Class="mr-1" />
-                    Il codice <strong>@PrefilledCode</strong> sarà assegnato automaticamente al prodotto
-                </MudText>
+            @if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                    <MudText Typo="Typo.body2">
+                        <MudIcon Icon="@Icons.Material.Outlined.QrCode" Size="Size.Small" Class="mr-1" />
+                        Il codice <strong>@PrefilledCode</strong> sarà assegnato automaticamente al prodotto
+                    </MudText>
+                </MudAlert>
+            }
+            
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                @TranslationService.GetTranslation("warehouse.quickCreateHint", "Compila i campi essenziali per creare velocemente un nuovo prodotto durante l'inventario.")
             </MudAlert>
-        }
-        
-        <MudAlert Severity="Severity.Info" Class="mb-4">
-            @TranslationService.GetTranslation("warehouse.quickCreateHint", "Compila i campi essenziali per creare velocemente un nuovo prodotto durante l'inventario.")
-        </MudAlert>
 
-        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid" Class="ef-dialog-form">
             <MudGrid Spacing="3">
                 <!-- Code Field -->
                 <MudItem xs="12">
@@ -110,22 +115,27 @@
                     </MudAlert>
                 </MudItem>
             </MudGrid>
-        </MudForm>
+            </MudForm>
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" 
-                   Color="Color.Default" 
-                   Variant="Variant.Outlined">
-            @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        
-        <MudButton StartIcon="@Icons.Material.Outlined.Save"
-                   Color="Color.Primary"
-                   Variant="Variant.Filled"
-                   OnClick="CreateProduct"
-                   Disabled="@(!_isFormValid || _isLoading)">
-            @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        <div class="ef-dialog-actions">
+            <MudButton OnClick="Cancel" 
+                       Color="Color.Default" 
+                       Variant="Variant.Outlined">
+                @TranslationService.GetTranslation("common.cancel", "Annulla")
+            </MudButton>
+            
+            <MudSpacer />
+            
+            <MudButton StartIcon="@DialogStyleConstants.Icons.Save"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="CreateProduct"
+                       Disabled="@(!_isFormValid || _isLoading)">
+                @TranslationService.GetTranslation("common.save", "Salva")
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>
 
