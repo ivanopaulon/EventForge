@@ -619,7 +619,7 @@ public class StockService : IStockService
                             WarehouseId = s != null && s.StorageLocation != null && s.StorageLocation.Warehouse != null ? s.StorageLocation.Warehouse.Id : Guid.Empty,
                             WarehouseName = s != null && s.StorageLocation != null && s.StorageLocation.Warehouse != null ? s.StorageLocation.Warehouse.Name : "N/A",
                             WarehouseCode = s != null && s.StorageLocation != null && s.StorageLocation.Warehouse != null ? s.StorageLocation.Warehouse.Code : string.Empty,
-                            LocationId = s != null && s.StorageLocation != null ? s.StorageLocationId : Guid.Empty,
+                            LocationId = s != null && s.StorageLocation != null ? s.StorageLocation.Id : Guid.Empty,
                             LocationCode = s != null && s.StorageLocation != null ? s.StorageLocation.Code : "N/A",
                             LocationDescription = s != null && s.StorageLocation != null ? s.StorageLocation.Description : null,
                             LotId = s != null ? s.LotId : null,
