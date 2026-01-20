@@ -100,7 +100,6 @@ public partial class AddDocumentRowDialog : IDisposable
         get => _state.Barcode.Input;
         set => _state.Barcode.Input = value;
     }
-    private List<QuickAddEntry> _recentQuickEntries => _state.QuickAdd.RecentEntries;
     private Guid? _selectedUnitOfMeasureId => _state.SelectedUnitOfMeasureId;
     private List<ProductUnitDto> _availableUnits => _state.Cache.AvailableUnits;
     private List<UMDto> _allUnitsOfMeasure => _state.Cache.AllUnitsOfMeasure;
@@ -1431,23 +1430,6 @@ public partial class AddDocumentRowDialog : IDisposable
 
         if (result != null)
         {
-            // Track entry in Quick Add mode
-            if (_state.Mode == DialogMode.QuickAdd)
-            {
-                _state.QuickAdd.RecentEntries.Insert(0, new QuickAddEntry
-                {
-                    Description = _state.Model.Description ?? string.Empty,
-                    Quantity = _state.Model.Quantity,
-                    Timestamp = DateTime.Now
-                });
-
-                // Keep only last 10 entries
-                if (_state.QuickAdd.RecentEntries.Count > Limits.MaxRecentQuickEntries)
-                {
-                    _state.QuickAdd.RecentEntries = _state.QuickAdd.RecentEntries.Take(Limits.MaxRecentQuickEntries).ToList();
-                }
-            }
-
             ResetForm();
 
             await FocusBarcodeField();
@@ -1641,6 +1623,7 @@ public partial class AddDocumentRowDialog : IDisposable
 
     /// <summary>
     /// Processes a scanned barcode in continuous scan mode
+    /// Uses the same population logic as standard mode to ensure data completeness
     /// </summary>
     private async Task ProcessContinuousScan(string barcode)
     {
@@ -1665,24 +1648,68 @@ public partial class AddDocumentRowDialog : IDisposable
 
             var product = productWithCode.Product;
 
-            // 2. Create DTO with MergeDuplicateProducts = true
-            var rowDto = new CreateDocumentRowDto
+            // ✅ FIX: Use the same population logic as standard mode
+            // This ensures ALL data is populated correctly:
+            // - VatRateId and VatRate
+            // - UnitOfMeasureId and unit alternatives
+            // - Prices with VAT conversion
+            // - Recent transactions
+            await SelectProductAndPopulateAsync(product);
+
+            // Continuous scan specific: Force quantity = 1 and enable merge
+            _state.Model.Quantity = 1;
+            _state.Model.MergeDuplicateProducts = true;
+            
+            // If the barcode was associated with a specific unit, use that
+            if (productWithCode.Code?.ProductUnitId != null)
             {
-                DocumentHeaderId = DocumentHeaderId,
-                ProductId = product.Id,
-                ProductCode = product.Code,
-                Description = product.Name,
-                Quantity = 1,
-                UnitPrice = product.DefaultPrice ?? 0m,
-                UnitOfMeasureId = productWithCode.Code?.ProductUnitId ?? product.UnitOfMeasureId,
-                VatRate = product.VatRatePercentage ?? 0m,
-                VatDescription = product.VatRateName,
-                MergeDuplicateProducts = true, // Enable auto-merge
-                Notes = $"Scansione continua: {DateTime.UtcNow:HH:mm:ss}"
-            };
+                _state.Barcode.ProductUnitId = productWithCode.Code.ProductUnitId;
+                
+                // Find and select the specific unit
+                var specificUnit = _state.Cache.AvailableUnits
+                    .FirstOrDefault(u => u.Id == productWithCode.Code.ProductUnitId);
+                
+                if (specificUnit != null)
+                {
+                    _state.SelectedUnitOfMeasureId = specificUnit.UnitOfMeasureId;
+                    _state.Model.UnitOfMeasureId = specificUnit.UnitOfMeasureId;
+                    UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
+                    
+                    Logger.LogInformation(
+                        "Using specific unit from barcode: {UnitId} - {UnitName}",
+                        specificUnit.Id,
+                        specificUnit.UnitType);
+                }
+            }
+
+            // ✅ Validation pre-save
+            var validationResult = _validator.Validate(_state.Model);
+            
+            if (!validationResult.IsValid)
+            {
+                var errors = string.Join(", ", validationResult.GetErrorMessages(TranslationService));
+                Logger.LogWarning(
+                    "Validation failed for continuous scan: {Errors}",
+                    errors);
+                Snackbar.Add($"❌ Dati incompleti: {errors}", Severity.Error);
+                await PlayErrorBeep();
+                return;
+            }
+
+            // ✅ Log detailed info before save
+            Logger.LogInformation(
+                "Continuous scan - Saving row: Product={ProductName}, Qty={Qty}, " +
+                "UnitOfMeasureId={UnitId}, VatRate={VatRate}%, VatRateId={VatRateId}, " +
+                "Merge={Merge}",
+                product.Name,
+                _state.Model.Quantity,
+                _state.Model.UnitOfMeasureId,
+                _state.Model.VatRate,
+                _state.SelectedVatRateId,
+                _state.Model.MergeDuplicateProducts);
 
             // 3. API call
-            var result = await DocumentHeaderService.AddDocumentRowAsync(rowDto);
+            var result = await DocumentHeaderService.AddDocumentRowAsync(_state.Model);
 
             if (result == null)
             {
@@ -1706,10 +1733,13 @@ public partial class AddDocumentRowDialog : IDisposable
             await PlaySuccessBeep();
 
             Logger.LogInformation(
-                "Continuous scan successful: Barcode={Barcode}, Product={ProductName}, NewQty={Quantity}",
+                "Continuous scan successful: Barcode={Barcode}, Product={ProductName}, " +
+                "NewQty={Quantity}, UnitOfMeasure={Unit}, VatRate={Vat}%",
                 barcode,
                 product.Name,
-                result.Quantity);
+                result.Quantity,
+                result.UnitOfMeasure ?? "N/A",
+                result.VatRate);
 
             StateHasChanged();
         }

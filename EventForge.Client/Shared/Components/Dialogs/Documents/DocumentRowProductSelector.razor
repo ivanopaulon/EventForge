@@ -62,9 +62,28 @@
 
 @code {
     [Parameter] public ProductDto? SelectedProduct { get; set; }
+    [Parameter] public EventCallback<ProductDto?> SelectedProductChanged { get; set; }
     [Parameter] public bool IsEnabled { get; set; } = true;
     [Parameter] public bool ShowQuickEdit { get; set; } = true;
     [Parameter] public EventCallback<ProductDto?> OnProductChanged { get; set; }
     [Parameter] public EventCallback OnQuickEdit { get; set; }
     [Parameter] public Func<string, CancellationToken, Task<IEnumerable<ProductDto>>>? SearchFunc { get; set; }
+
+    /// <summary>
+    /// Handles product value changes from autocomplete
+    /// Invokes both the two-way binding callback and the custom event callback
+    /// </summary>
+    private async Task OnProductChangedHandler(ProductDto? product)
+    {
+        SelectedProduct = product;
+        
+        // Invoke two-way binding callback
+        await SelectedProductChanged.InvokeAsync(product);
+        
+        // Invoke custom event callback if still being used
+        if (OnProductChanged.HasDelegate)
+        {
+            await OnProductChanged.InvokeAsync(product);
+        }
+    }
 }

@@ -18,30 +18,21 @@
             @if (!_isEditMode)
             {
                 <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
-                    <MudTooltip Text="Modalità completa con tutti i campi">
+                    <MudTooltip Text="@TranslationService.GetTranslation("documents.standardModeTooltip", "Modalità completa con tutti i campi")">
                         <MudButton StartIcon="@Icons.Material.Outlined.Edit"
                                   Color="@(_dialogMode == DialogMode.Standard ? Color.Primary : Color.Default)"
                                   Variant="@(_dialogMode == DialogMode.Standard ? Variant.Filled : Variant.Outlined)"
                                   OnClick="@(() => SetDialogMode(DialogMode.Standard))">
-                            Standard
+                            @TranslationService.GetTranslation("documents.standardMode", "Standard")
                         </MudButton>
                     </MudTooltip>
                     
-                    <MudTooltip Text="Inserimento rapido con campi essenziali">
-                        <MudButton StartIcon="@Icons.Material.Filled.FlashOn"
-                                  Color="@(_dialogMode == DialogMode.QuickAdd ? Color.Primary : Color.Default)"
-                                  Variant="@(_dialogMode == DialogMode.QuickAdd ? Variant.Filled : Variant.Outlined)"
-                                  OnClick="@(() => SetDialogMode(DialogMode.QuickAdd))">
-                            Quick
-                        </MudButton>
-                    </MudTooltip>
-                    
-                    <MudTooltip Text="Scansione continua con barcode scanner">
+                    <MudTooltip Text="@TranslationService.GetTranslation("documents.continuousScanTooltip", "Scansione continua con barcode scanner")">
                         <MudButton StartIcon="@Icons.Material.Outlined.QrCodeScanner"
                                   Color="@(_dialogMode == DialogMode.ContinuousScan ? Color.Primary : Color.Default)"
                                   Variant="@(_dialogMode == DialogMode.ContinuousScan ? Variant.Filled : Variant.Outlined)"
                                   OnClick="@(() => SetDialogMode(DialogMode.ContinuousScan))">
-                            Scan
+                            @TranslationService.GetTranslation("documents.continuousScanMode", "Scan")
                             @if (_continuousScanCount > 0)
                             {
                                 <MudBadge Content="@_continuousScanCount" Color="Color.Success" Overlap="true" Class="ml-2" />
@@ -204,60 +195,10 @@
                                       OnScanStart="@(() => Task.CompletedTask)"
                                       OnScanEnd="@(() => Task.CompletedTask)" />
             
-            @if (_dialogMode == DialogMode.QuickAdd)
-            {
-                <!-- QUICK ADD MODE: Minimalist interface -->
-                <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-success-lighten);">
-                    <MudText Typo="Typo.subtitle2" Class="mb-3">
-                        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Class="mr-2" Size="Size.Small" />
-                        @TranslationService.GetTranslation("documents.quickAddModeActive", "Quick Add Mode Active")
-                    </MudText>
-                    <MudGrid Spacing="2">
-                        <MudItem xs="12" sm="8">
-                            <MudTextField T="string"
-                                         Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
-                                         @bind-Value="_model.Description"
-                                         Variant="Variant.Outlined"
-                                         Required="true"
-                                         ReadOnly="true"
-                                         Adornment="Adornment.Start"
-                                         AdornmentIcon="@Icons.Material.Outlined.Description" />
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudNumericField T="decimal"
-                                            Label="@TranslationService.GetTranslation("documents.quantity", "Quantità *")"
-                                            @bind-Value="_model.Quantity"
-                                            Min="0.0001m"
-                                            Variant="Variant.Outlined"
-                                            @ref="_quantityField"
-                                            Adornment="Adornment.Start"
-                                            AdornmentIcon="@Icons.Material.Outlined.Numbers" />
-                        </MudItem>
-                    </MudGrid>
-                    
-                    <!-- Recent Quick Entries -->
-                    @if (_recentQuickEntries.Any())
-                    {
-                        <MudDivider Class="my-3" />
-                        <MudText Typo="Typo.caption" Class="mb-2">
-                            @TranslationService.GetTranslation("documents.recentEntries", "Recent Entries")
-                        </MudText>
-                        <MudStack Spacing="1">
-                            @foreach (var entry in _recentQuickEntries.Take(5))
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
-                                    @entry.Description - Qty: @entry.Quantity (@entry.Timestamp.ToString("HH:mm:ss"))
-                                </MudChip>
-                            }
-                        </MudStack>
-                    }
-                </MudPaper>
-            }
-            
             @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
-                <DocumentRowProductSelector SelectedProduct="@_selectedProduct"
+                <DocumentRowProductSelector @bind-SelectedProduct="@_state.SelectedProduct"
                                            OnProductChanged="@OnProductSelected"
                                            SearchFunc="@SearchProductsAsync"
                                            IsEnabled="true"
