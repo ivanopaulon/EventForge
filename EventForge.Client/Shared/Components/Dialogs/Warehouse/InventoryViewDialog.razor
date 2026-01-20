@@ -203,7 +203,6 @@
     private string _errorMessage = string.Empty;
     private int _positiveAdjustments = 0;
     private int _negativeAdjustments = 0;
-    private int _noAdjustments = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -229,7 +228,6 @@
                 // Calculate statistics
                 _positiveAdjustments = _document.Rows.Count(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity.Value > 0);
                 _negativeAdjustments = _document.Rows.Count(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity.Value < 0);
-                _noAdjustments = _document.Rows.Count(r => !r.AdjustmentQuantity.HasValue || r.AdjustmentQuantity.Value == 0);
             }
         }
         catch (Exception ex)
@@ -304,7 +302,7 @@
             Logger.LogError(ex, "Error finalizing inventory {DocumentId}", _document.Id);
             Snackbar.Add(
                 TranslationService.GetTranslation("warehouse.inventoryFinalizeError",
-                    "Errore durante la finalizzazione: {0}", ex.Message),
+                    "Errore durante la finalizzazione"),
                 Severity.Error
             );
         }
