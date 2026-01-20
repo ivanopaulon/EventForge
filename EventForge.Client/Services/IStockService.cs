@@ -43,6 +43,7 @@ public interface IStockService
         bool? criticalStock = null,
         bool? outOfStock = null,
         bool? inStockOnly = null,
+        bool? showAllProducts = null,
         bool detailedView = false);
 
     /// <summary>
