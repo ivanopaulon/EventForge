@@ -1,5 +1,9 @@
 @using EventForge.DTOs.Warehouse
+@using EventForge.Client.Shared.Components.Dialogs.Warehouse
 @inject ITranslationService TranslationService
+@inject IInventoryService InventoryService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <DialogContent>
@@ -20,9 +24,12 @@
                          Items="@AllOpenInventories"
                          Dense="true"
                          Hover="true"
+                         MultiSelection="true"
+                         @bind-SelectedItems="_selectedInventories"
                          ReadOnly="true"
                          Class="mb-4">
                 <Columns>
+                    <SelectColumn T="InventoryDocumentDto" />
                     <PropertyColumn Property="x => x.Number" Title="@TranslationService.GetTranslation("warehouse.documentNumber", "Numero")" />
                     <PropertyColumn Property="x => x.WarehouseName" Title="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")" />
                     <TemplateColumn Title="@TranslationService.GetTranslation("warehouse.items", "Articoli")">
@@ -38,6 +45,12 @@
                     <TemplateColumn Title="@TranslationService.GetTranslation("common.actions", "Azioni")" Sortable="false">
                         <CellTemplate>
                             <MudStack Row="true" Spacing="1">
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.viewInventory", "Visualizza")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                                   Color="Color.Info"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => ViewInventory(context.Item))" />
+                                </MudTooltip>
                                 <MudTooltip Text="@TranslationService.GetTranslation("warehouse.resumeInventory", "Riprendi")">
                                     <MudIconButton Icon="@Icons.Material.Outlined.PlayArrow"
                                                    Color="Color.Primary"
@@ -175,6 +188,12 @@
                         <TemplateColumn Title="@TranslationService.GetTranslation("common.actions", "Azioni")" Sortable="false">
                             <CellTemplate>
                                 <MudStack Row="true" Spacing="1">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("warehouse.viewInventory", "Visualizza")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                                       Color="Color.Info"
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => ViewInventory(context.Item))" />
+                                    </MudTooltip>
                                     <MudTooltip Text="@TranslationService.GetTranslation("warehouse.switchTo", "Passa a Questo")">
                                         <MudIconButton Icon="@Icons.Material.Outlined.SwapHoriz"
                                                        Color="Color.Primary"
@@ -211,6 +230,15 @@
     <DialogActions>
         @if (Mode == InventoryDialogMode.InitialCheck)
         {
+            @if (_selectedInventories.Count >= 2)
+            {
+                <MudButton StartIcon="@Icons.Material.Outlined.MergeType"
+                           Color="Color.Warning"
+                           Variant="Variant.Outlined"
+                           OnClick="OpenMergeDialog">
+                    @TranslationService.GetTranslation("warehouse.mergeSelected", "Accorpa {0} Inventari", _selectedInventories.Count)
+                </MudButton>
+            }
             <MudButton StartIcon="@Icons.Material.Outlined.Add"
                        Color="Color.Primary"
                        Variant="Variant.Filled"
@@ -283,6 +311,9 @@
     // Cache for other inventories to avoid recreating list on every access
     private List<InventoryDocumentDto>? _cachedOtherInventories;
     
+    // Multi-selection support for merge functionality
+    private HashSet<InventoryDocumentDto> _selectedInventories = new();
+    
     /// <summary>
     /// Lista inventari escluso quello corrente (cached for performance)
     /// </summary>
@@ -331,6 +362,37 @@
 
     // ========== Azioni per InitialCheck Mode ==========
     
+    private async Task ViewInventory(InventoryDocumentDto inventory)
+    {
+        var parameters = new DialogParameters
+        {
+            { "DocumentId", inventory.Id }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<InventoryViewDialog>(
+            TranslationService.GetTranslation("warehouse.inventoryDetails", "Dettagli Inventario"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+        
+        // Se l'inventario è stato finalizzato dal dialog di visualizzazione
+        if (result?.Data is bool finalized && finalized)
+        {
+            await OnInventoryFinalized.InvokeAsync(inventory);
+            StateHasChanged();
+        }
+    }
+    
     private async Task ResumeInventory(InventoryDocumentDto inventory)
     {
         await OnInventoryResumed.InvokeAsync(inventory);
@@ -340,13 +402,37 @@
     private async Task FinalizeInventory(InventoryDocumentDto inventory)
     {
         await OnInventoryFinalized.InvokeAsync(inventory);
-        // Dialog rimane aperto per permettere altre azioni
+        
+        // Rimuovi dalla lista locale
+        if (Mode == InventoryDialogMode.InitialCheck)
+        {
+            AllOpenInventories.Remove(inventory);
+        }
+        else if (Mode == InventoryDialogMode.SwitchInventory)
+        {
+            OtherInventories.Remove(inventory);
+            _cachedOtherInventories = null; // Invalida cache
+        }
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task CancelInventory(InventoryDocumentDto inventory)
     {
         await OnInventoryCancelled.InvokeAsync(inventory);
-        // Dialog rimane aperto per permettere altre azioni
+        
+        // Rimuovi dalla lista locale
+        if (Mode == InventoryDialogMode.InitialCheck)
+        {
+            AllOpenInventories.Remove(inventory);
+        }
+        else if (Mode == InventoryDialogMode.SwitchInventory)
+        {
+            OtherInventories.Remove(inventory);
+            _cachedOtherInventories = null; // Invalida cache
+        }
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task FinalizeAll()
@@ -365,6 +451,60 @@
     {
         // Chiude il dialog senza azione, permettendo all'utente di avviare nuovo inventario
         MudDialog.Close(DialogResult.Ok(false));
+    }
+    
+    private async Task OpenMergeDialog()
+    {
+        if (_selectedInventories.Count < 2)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.mergeMinimumError", 
+                    "Seleziona almeno 2 inventari da accorpare"),
+                Severity.Warning
+            );
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            { "SelectedInventories", _selectedInventories.ToList() }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<MergeInventoriesDialog>(
+            TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            // Rimuovi inventari accorpati dalla lista
+            foreach (var inv in _selectedInventories.ToList())
+            {
+                AllOpenInventories.Remove(inv);
+            }
+            
+            _selectedInventories.Clear();
+            StateHasChanged();
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.mergeSuccess", 
+                    "Inventari accorpati con successo"),
+                Severity.Success
+            );
+            
+            // Notifica parent per ricaricare dati
+            await OnFinalizeAllRequested.InvokeAsync();
+        }
     }
 
     // ========== Azioni Rapide per SwitchInventory Mode ==========

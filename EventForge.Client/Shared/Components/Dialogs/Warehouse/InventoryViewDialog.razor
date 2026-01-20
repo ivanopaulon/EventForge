@@ -1,0 +1,320 @@
+@using EventForge.DTOs.Warehouse
+@using MudBlazor
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+@inject ILogger<InventoryViewDialog> Logger
+@inject IDialogService DialogService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Visibility" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.inventoryDetails", "Dettagli Inventario")
+            @if (_document != null)
+            {
+                <span class="ml-2">- #@_document.Number</span>
+            }
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-4" />
+            <MudText Align="Align.Center" Typo="Typo.body1">
+                @TranslationService.GetTranslation("common.loading", "Caricamento...")
+            </MudText>
+        }
+        else if (_hasError)
+        {
+            <MudAlert Severity="Severity.Error">
+                @TranslationService.GetTranslation("common.error", "Errore") - @_errorMessage
+            </MudAlert>
+        }
+        else if (_document != null)
+        {
+            <!-- Document Header Information -->
+            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.documentInfo", "Informazioni Documento")
+                </MudText>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.documentNumber", "Numero"):</MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">#@_document.Number</MudText>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino"):</MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">@(_document.WarehouseName ?? "-")</MudText>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.status", "Stato"):</MudText>
+                        @if (_document.Status == "Draft" || _document.Status == "Open")
+                        {
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudChip>
+                        }
+                        else if (_document.Status == "Closed" || _document.Status == "Finalized")
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small">@_document.Status</MudChip>
+                        }
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.date", "Data"):</MudText>
+                        <MudText Typo="Typo.body1">@_document.InventoryDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                    </MudItem>
+                    @if (!string.IsNullOrWhiteSpace(_document.Notes))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("common.notes", "Note"):</MudText>
+                            <MudText Typo="Typo.body1">@_document.Notes</MudText>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Statistics Section -->
+            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Analytics" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.inventoryStats", "Statistiche Inventario")
+                </MudText>
+                <MudGrid>
+                    <MudItem xs="12" md="4">
+                        <MudPaper Elevation="2" Class="pa-3" Style="text-align: center;">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.items", "Articoli")</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Info">@_document.TotalItems</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudPaper Elevation="2" Class="pa-3" Style="text-align: center;">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.positiveAdjustments", "Eccedenze (+)")</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Success">@_positiveAdjustments</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudPaper Elevation="2" Class="pa-3" Style="text-align: center;">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.negativeAdjustments", "Mancanze (-)")</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Error">@_negativeAdjustments</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Inventory Rows Table -->
+            <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Outlined.FormatListBulleted" Class="mr-2" />
+                @TranslationService.GetTranslation("warehouse.inventoryRows", "Righe Inventario")
+            </MudText>
+            
+            @if (_document.Rows.Count > 0)
+            {
+                <MudDataGrid T="InventoryDocumentRowDto"
+                             Items="@_document.Rows"
+                             Dense="true"
+                             Hover="true"
+                             ReadOnly="true"
+                             Elevation="2"
+                             Class="mb-4">
+                    <Columns>
+                        <PropertyColumn Property="x => x.ProductCode" 
+                                      Title="@TranslationService.GetTranslation("product.code", "Codice")" />
+                        <PropertyColumn Property="x => x.ProductName" 
+                                      Title="@TranslationService.GetTranslation("product.name", "Prodotto")" />
+                        <PropertyColumn Property="x => x.LocationName" 
+                                      Title="@TranslationService.GetTranslation("warehouse.location", "Ubicazione")" />
+                        <PropertyColumn Property="x => x.Quantity" 
+                                      Title="@TranslationService.GetTranslation("warehouse.countedQuantity", "Qtà Contata")" />
+                        <TemplateColumn Title="@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")">
+                            <CellTemplate>
+                                @if (context.Item.AdjustmentQuantity.HasValue)
+                                {
+                                    var adjustment = context.Item.AdjustmentQuantity.Value;
+                                    var color = adjustment > 0 ? Color.Success : (adjustment < 0 ? Color.Error : Color.Default);
+                                    var icon = adjustment > 0 ? Icons.Material.Outlined.Add : (adjustment < 0 ? Icons.Material.Outlined.Remove : Icons.Material.Outlined.DragHandle);
+                                    
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@icon" Color="@color" Size="Size.Small" />
+                                        <MudText Color="@color">@adjustment.ToString("+0.##;-0.##;0")</MudText>
+                                    </MudStack>
+                                }
+                                else
+                                {
+                                    <MudText>-</MudText>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="@TranslationService.GetTranslation("common.notes", "Note")">
+                            <CellTemplate>
+                                @if (!string.IsNullOrWhiteSpace(context.Item.Notes))
+                                {
+                                    <MudTooltip Text="@context.Item.Notes">
+                                        <MudIcon Icon="@Icons.Material.Outlined.StickyNote2" Size="Size.Small" />
+                                    </MudTooltip>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+                    @TranslationService.GetTranslation("warehouse.noRows", "Nessuna riga presente")
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_document != null && (_document.Status == "Open" || _document.Status == "Draft") && _document.TotalItems > 0)
+        {
+            <MudButton StartIcon="@Icons.Material.Outlined.Check"
+                       Color="Color.Success"
+                       Variant="Variant.Filled"
+                       OnClick="FinalizeInventory"
+                       Disabled="_isLoading">
+                @TranslationService.GetTranslation("warehouse.finalizeInventory", "Finalizza")
+            </MudButton>
+        }
+        <MudSpacer />
+        <MudButton OnClick="Close" 
+                   Variant="Variant.Text"
+                   Disabled="_isLoading">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    public IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] 
+    public Guid DocumentId { get; set; }
+
+    private InventoryDocumentDto? _document;
+    private bool _isLoading = true;
+    private bool _hasError = false;
+    private string _errorMessage = string.Empty;
+    private int _positiveAdjustments = 0;
+    private int _negativeAdjustments = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocument();
+    }
+
+    private async Task LoadDocument()
+    {
+        try
+        {
+            _isLoading = true;
+            _hasError = false;
+            
+            _document = await InventoryService.GetInventoryDocumentAsync(DocumentId);
+            
+            if (_document == null)
+            {
+                _hasError = true;
+                _errorMessage = TranslationService.GetTranslation("warehouse.documentNotFound", "Documento non trovato");
+            }
+            else
+            {
+                // Calculate statistics
+                _positiveAdjustments = _document.Rows.Count(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity.Value > 0);
+                _negativeAdjustments = _document.Rows.Count(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity.Value < 0);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading inventory document {DocumentId}", DocumentId);
+            _hasError = true;
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task FinalizeInventory()
+    {
+        if (_document == null)
+            return;
+
+        // Check if inventory has items
+        if (_document.TotalItems == 0)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.cannotFinalizeEmptyInventory", 
+                    "Impossibile finalizzare un inventario senza articoli"),
+                Severity.Warning
+            );
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("warehouse.confirmFinalizeTitle", "Conferma Finalizzazione"),
+            TranslationService.GetTranslation("warehouse.confirmFinalizeMessage", 
+                "Sei sicuro di voler finalizzare l'inventario {0}? Questa operazione applicherà tutti gli aggiustamenti di stock.", 
+                _document.Number),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            var result = await InventoryService.FinalizeInventoryDocumentAsync(_document.Id);
+
+            if (result != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.inventoryFinalizedSuccess",
+                        "Inventario {0} finalizzato con successo", result.Number),
+                    Severity.Success
+                );
+
+                // Close dialog and return true to indicate finalization
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.inventoryFinalizeError",
+                        "Errore durante la finalizzazione dell'inventario"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing inventory {DocumentId}", _document.Id);
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.inventoryFinalizeError",
+                    "Errore durante la finalizzazione"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Close()
+    {
+        MudDialog.Close(DialogResult.Ok(false));
+    }
+}

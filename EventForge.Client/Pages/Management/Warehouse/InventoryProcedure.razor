@@ -998,6 +998,14 @@
                 
                 // Reload open inventories to update the list
                 await LoadOpenInventoriesAsync();
+                
+                // Se è l'inventario corrente, resetta la sessione
+                if (_currentDocument?.Id == inventory.Id)
+                {
+                    await InventorySessionService.ClearSessionAsync();
+                    _currentDocument = null;
+                    StateHasChanged();
+                }
             }
             else
             {
