@@ -25,7 +25,7 @@
     <div class="stock-overview-page-root">
         <div class="stock-overview-top">
             <ManagementDashboard TItem="StockLocationDetail"
-                                 Items="_filteredStockItems"
+                                 Items="_stockItems"
                                  Metrics="_dashboardMetrics"
                                  EntityType="Stock"
                                  AllowConfiguration="true"
@@ -35,7 +35,7 @@
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
                  TItem="StockLocationDetail"
-                 Items="_filteredStockItems"
+                 Items="_stockItems"
                  MultiSelection="true"
                  SelectedItems="_selectedStockItems"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
@@ -346,16 +346,17 @@
                 <div class="text-center pa-2 pa-sm-3 pa-md-4">
                     <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
                     <MudText Typo="Typo.h6" Class="mb-2">
-                        @(_stockItems.Any() ?
-                            TranslationService.GetTranslation("stock.noItemsMatchFilters", "Nessuna giacenza corrisponde ai filtri applicati") :
-                            TranslationService.GetTranslation("stock.noItemsFound", "Nessuna giacenza trovata"))
+                        @TranslationService.GetTranslation("stock.noItemsFound", "Nessuna giacenza trovata")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                        @TranslationService.GetTranslation("stock.diagnosticInfo", "Elementi caricati: {0}", _stockItems.Count)
                     </MudText>
                     @if (_stockItems.Any())
                     {
                         <MudButton Variant="Variant.Text"
                                    Color="Color.Primary"
                                    StartIcon="@Icons.Material.Outlined.Clear"
-                                   OnClick="@ClearFilters">
+                                   OnClick="@ClearFiltersAndReload">
                             @TranslationService.GetTranslation("stock.clearFilters", "Cancella filtri")
                         </MudButton>
                     }
@@ -528,28 +529,6 @@
     private EventCallback<HashSet<StockLocationDetail>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StockLocationDetail>>(this, OnSelectedItemsChanged);
 
     /// <summary>
-    /// Computed property for filtered stock items based on search and filter criteria.
-    /// </summary>
-    private IEnumerable<StockLocationDetail> _filteredStockItems => 
-        _stockItems.Where(item => 
-            // Search filter: check product name and code
-            (string.IsNullOrEmpty(_searchTerm) || 
-             item.ProductName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             item.ProductCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
-            // Warehouse filter
-            (!_selectedWarehouseId.HasValue || item.WarehouseId == _selectedWarehouseId.Value) &&
-            // Location filter
-            (!_selectedLocationId.HasValue || item.LocationId == _selectedLocationId.Value) &&
-            // Low stock filter
-            (!_showOnlyLowStock || GetStockStatus(item) == StockStatus.LowStock) &&
-            // Critical filter
-            (!_showOnlyCritical || GetStockStatus(item) == StockStatus.Critical) &&
-            // Out of stock filter
-            (!_showOnlyOutOfStock || GetStockStatus(item) == StockStatus.OutOfStock) &&
-            // In stock only filter
-            (!_showOnlyInStock || item.Quantity > 0));
-
-    /// <summary>
     /// Handles selection changes from EFTable
     /// </summary>
     private void OnSelectedItemsChanged(HashSet<StockLocationDetail> items)
@@ -567,6 +546,13 @@
         {
             // Initialize dashboard metrics
             InitializeDashboardMetrics();
+
+            // Clear filters before initial load to show all data
+            _showOnlyLowStock = false;
+            _showOnlyCritical = false;
+            _showOnlyOutOfStock = false;
+            _showOnlyInStock = false;
+            _detailedView = true; // Default to detailed view
 
             // Check authentication
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
@@ -710,15 +696,17 @@
                 detailedView: _detailedView
             );
 
-            if (result != null)
-            {
-                _stockItems = result.Items.ToList();
-            }
+            // Add null safety
+            _stockItems = result?.Items?.ToList() ?? new List<StockLocationDetail>();
+            
+            // Add diagnostic logging
+            Logger.LogInformation("Loaded {Count} stock items", _stockItems.Count);
         }
         catch (Exception ex)
         {
             Snackbar.Add(TranslationService.GetTranslation("stock.loadingError", "Errore nel caricamento delle giacenze: {0}", ex.Message), Severity.Error);
             Logger.LogError(ex, "Error loading stock overview");
+            _stockItems = new List<StockLocationDetail>(); // Ensure empty list on error
         }
         finally
         {
@@ -727,9 +715,9 @@
     }
 
     /// <summary>
-    /// Clears all active filters.
+    /// Clears all active filters and reloads data.
     /// </summary>
-    private void ClearFilters()
+    private async Task ClearFiltersAndReload()
     {
         _searchTerm = string.Empty;
         _selectedWarehouseId = null;
@@ -738,7 +726,7 @@
         _showOnlyCritical = false;
         _showOnlyOutOfStock = false;
         _showOnlyInStock = false;
-        StateHasChanged();
+        await LoadStockOverviewAsync();
     }
 
     private async Task OnSearchChanged()
@@ -753,7 +741,7 @@
             await Task.Delay(300, token); // Debounce with cancellation
             if (!token.IsCancellationRequested)
             {
-                StateHasChanged();
+                await LoadStockOverviewAsync();
             }
         }
         catch (OperationCanceledException)
@@ -789,12 +777,13 @@
             _locations.Clear();
         }
         
-        StateHasChanged();
+        // Reload stock data with new warehouse filter
+        await LoadStockOverviewAsync();
     }
 
-    private void OnFilterChanged()
+    private async Task OnFilterChanged()
     {
-        StateHasChanged();
+        await LoadStockOverviewAsync();
     }
 
     private async Task OnViewChanged()
