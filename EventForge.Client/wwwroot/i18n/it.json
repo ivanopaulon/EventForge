@@ -2850,6 +2850,12 @@
     "ship": "Spedisci",
     "receive": "Ricevi"
   },
+  "stock": {
+    "showAllProducts": "Mostra tutti i prodotti",
+    "showAllProductsTooltip": "Include prodotti senza giacenza registrata",
+    "noStockEntry": "Nessuna giacenza",
+    "neverStocked": "Mai movimentato"
+  },
   "stockStatus": {
     "ok": "OK",
     "lowStock": "Sotto Riordino",

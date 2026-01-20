@@ -1137,6 +1137,7 @@ public class WarehouseManagementController : BaseApiController
     /// <param name="criticalStock">Filter for critical stock items</param>
     /// <param name="outOfStock">Filter for out of stock items</param>
     /// <param name="inStockOnly">Show only items with stock &gt; 0</param>
+    /// <param name="showAllProducts">Include all products even without stock entries</param>
     /// <param name="detailedView">Show detailed view with location breakdown</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of stock location details</returns>
@@ -1158,6 +1159,7 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool? criticalStock = null,
         [FromQuery] bool? outOfStock = null,
         [FromQuery] bool? inStockOnly = null,
+        [FromQuery] bool? showAllProducts = null,
         [FromQuery] bool detailedView = false,
         CancellationToken cancellationToken = default)
     {
@@ -1171,7 +1173,7 @@ public class WarehouseManagementController : BaseApiController
         {
             var result = await _stockService.GetStockOverviewAsync(
                 page, pageSize, search, warehouseId, locationId, lotId,
-                lowStock, criticalStock, outOfStock, inStockOnly, detailedView,
+                lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView,
                 cancellationToken);
             return Ok(result);
         }

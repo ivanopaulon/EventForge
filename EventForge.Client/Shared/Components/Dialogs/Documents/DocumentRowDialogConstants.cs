@@ -70,4 +70,51 @@ public static class DocumentRowDialogConstants
         public static readonly string[] Sale = 
             { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
     }
+
+    /// <summary>
+    /// Validation limit constants
+    /// </summary>
+    public static class ValidationLimits
+    {
+        /// <summary>
+        /// Maximum allowed quantity value
+        /// </summary>
+        public const decimal MaxQuantity = 999999m;
+
+        /// <summary>
+        /// Maximum allowed unit price
+        /// </summary>
+        public const decimal MaxUnitPrice = 9999999.99m;
+
+        /// <summary>
+        /// Maximum description length
+        /// </summary>
+        public const int MaxDescriptionLength = 500;
+
+        /// <summary>
+        /// Maximum notes length
+        /// </summary>
+        public const int MaxNotesLength = 1000;
+    }
+
+    /// <summary>
+    /// Calculation precision constants
+    /// </summary>
+    public static class CalculationPrecision
+    {
+        /// <summary>
+        /// Number of decimal places for currency values
+        /// </summary>
+        public const int CurrencyDecimals = 2;
+
+        /// <summary>
+        /// Number of decimal places for percentage values
+        /// </summary>
+        public const int PercentageDecimals = 2;
+
+        /// <summary>
+        /// Number of decimal places for quantity values
+        /// </summary>
+        public const int QuantityDecimals = 3;
+    }
 }
