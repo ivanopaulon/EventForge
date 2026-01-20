@@ -71,10 +71,10 @@
                 <MudText Typo="Typo.subtitle2" Class="mb-2">
                     <b>@TranslationService.GetTranslation("validation.errors", "Errori di validazione"):</b>
                 </MudText>
-                <MudList Dense="true">
+                <MudList T="string" Dense="true">
                     @foreach (var error in _validationErrors)
                     {
-                        <MudListItem Icon="@Icons.Material.Filled.Error" IconColor="Color.Error">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Error" IconColor="Color.Error">
                             @error
                         </MudListItem>
                     }
