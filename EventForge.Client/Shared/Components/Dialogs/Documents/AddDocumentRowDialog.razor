@@ -197,22 +197,12 @@
             @if (_dialogMode != DialogMode.ContinuousScan)
             {
             <!-- 1. BARCODE SCANNER (Full Width) -->
-            <MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
-                <MudStack Spacing="2">
-                    <MudText Typo="Typo.subtitle2">
-                        <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="mr-2" Size="Size.Small" />
-                        @TranslationService.GetTranslation("warehouse.scanBarcode", "Scansiona Codice a Barre")
-                    </MudText>
-                    <MudTextField @bind-Value="_barcodeInput"
-                                  Label="@TranslationService.GetTranslation("warehouse.barcodeInput", "Codice a Barre")"
-                                  Variant="Variant.Outlined"
-                                  @onkeydown="@OnBarcodeKeyDown"
-                                  @ref="_barcodeField"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Outlined.QrCode"
-                                  HelperText="@TranslationService.GetTranslation("warehouse.scanOrTypeBarcode", "Scansiona o digita il codice a barre e premi Invio")" />
-                </MudStack>
-            </MudPaper>
+            <DocumentRowBarcodeScanner @ref="_barcodeScannerRef"
+                                      IsEnabled="true"
+                                      AutoFocus="!_isEditMode"
+                                      OnBarcodeScanned="@HandleBarcodeScanned"
+                                      OnScanStart="@(() => Task.CompletedTask)"
+                                      OnScanEnd="@(() => Task.CompletedTask)" />
             
             @if (_dialogMode == DialogMode.QuickAdd)
             {
@@ -267,107 +257,26 @@
             @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
-                <MudPaper Elevation="2" Class="pa-3">
-                    <MudStack Spacing="3">
-                        
-                        <!-- Prodotto -->
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                                <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
-                                @TranslationService.GetTranslation("documents.product", "Prodotto")
-                            </MudText>
-                            <MudAutocomplete T="ProductDto"
-                                            Value="_selectedProduct"
-                                            ValueChanged="@OnProductSelected"
-                                            SearchFunc="@SearchProductsAsync"
-                                            ToStringFunc="@(p => p?.Name ?? string.Empty)"
-                                            Variant="Variant.Outlined"
-                                            Dense="true"
-                                            Margin="Margin.Dense"
-                                            MinCharacters="2"
-                                            DebounceInterval="300"
-                                            ShowProgressIndicator="true"
-                                            Clearable="true"
-                                            ResetValueOnEmptyText="false"
-                                            CoerceText="false"
-                                            CoerceValue="false"
-                                            Placeholder="@TranslationService.GetTranslation("documents.searchProductHelp", "Cerca prodotto (min 2 caratteri)...")"
-                                            Adornment="Adornment.Start"
-                                            AdornmentIcon="@Icons.Material.Outlined.Inventory"
-                                            aria-label="@TranslationService.GetTranslation("documents.product", "Prodotto")">
-                                <ItemTemplate Context="product">
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">@product.Name</MudText>
-                                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                                            @product.Code · @(product.DefaultPrice?.ToString("C2") ?? "N/A")
-                                        </MudText>
-                                    </MudStack>
-                                </ItemTemplate>
-                                <NoItemsTemplate>
-                                    <MudText Typo="Typo.body2" Align="Align.Center" Class="py-2">
-                                        @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
-                                    </MudText>
-                                </NoItemsTemplate>
-                            </MudAutocomplete>
-                        </MudStack>
-                        
-                        <!-- Descrizione -->
-                        <MudTextField T="string"
-                                     Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
-                                     @bind-Value="_model.Description"
-                                     Variant="Variant.Outlined"
-                                     Lines="2"
-                                     Required="true"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Outlined.Description" />
-                        
-                        <!-- Quantità e Prezzo in Grid compatto -->
-                        <MudGrid Spacing="2">
-                            <MudItem xs="12" sm="6">
-                                <MudNumericField T="decimal"
-                                                Label="@TranslationService.GetTranslation("documents.quantity", "Quantità *")"
-                                                @bind-Value="_model.Quantity"
-                                                Min="0.0001m"
-                                                Variant="Variant.Outlined"
-                                                @ref="_quantityField"
-                                                Adornment="Adornment.Start"
-                                                AdornmentIcon="@Icons.Material.Outlined.Numbers" />
-                                
-                                <MudSelect T="Guid?"
-                                          Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura")"
-                                          Value="_selectedUnitOfMeasureId"
-                                          ValueChanged="@OnUnitOfMeasureChanged"
-                                          Variant="Variant.Outlined"
-                                          Dense="true"
-                                          Disabled="@(_availableUnits.Count == 0)"
-                                          Adornment="Adornment.Start"
-                                          AdornmentIcon="@Icons.Material.Outlined.Scale">
-                                    @foreach (var unit in _availableUnits)
-                                    {
-                                        var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
-                                        if (uom != null)
-                                        {
-                                            <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
-                                        }
-                                    }
-                                </MudSelect>
-                            </MudItem>
-                        </MudGrid>
-                    </MudStack>
-                </MudPaper>
+                <DocumentRowProductSelector SelectedProduct="@_selectedProduct"
+                                           OnProductChanged="@OnProductSelected"
+                                           SearchFunc="@SearchProductsAsync"
+                                           IsEnabled="true"
+                                           ShowQuickEdit="true"
+                                           OnQuickEdit="@OpenEditProductDialog" />
+                
+                <DocumentRowQuantityPrice @ref="_quantityPriceRef"
+                                         Description="@_model.Description"
+                                         DescriptionChanged="@((val) => _model.Description = val)"
+                                         ReadOnlyDescription="false"
+                                         Quantity="@_model.Quantity"
+                                         QuantityChanged="@((val) => _model.Quantity = val)"
+                                         UnitPrice="@_model.UnitPrice"
+                                         UnitPriceChanged="@((val) => _model.UnitPrice = val)"
+                                         SelectedUnitOfMeasureId="@_selectedUnitOfMeasureId"
+                                         OnUnitOfMeasureChanged="@OnUnitOfMeasureChanged"
+                                         AvailableUnits="@_availableUnits"
+                                         AllUnitsOfMeasure="@_allUnitsOfMeasure" />
             }
-            
-            @if (_dialogMode == DialogMode.Standard)
-            {
-                <!-- 3. PREZZO UNITARIO NETTO (visible by default) -->
-                <MudNumericField T="decimal"
-                                Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto")"
-                                @bind-Value="_model.UnitPrice"
-                                Min="0"
-                                Format="N2"
-                                Variant="Variant.Outlined"
-                                Adornment="Adornment.Start"
-                                AdornmentIcon="@Icons.Material.Outlined.Euro" />
                 
                 <!-- 3.5 MERGE DUPLICATES CHECKBOX (Only in Add Mode) -->
                 @if (!_isEditMode)
@@ -411,74 +320,21 @@
                 <MudExpansionPanels MultiExpansion="true" Elevation="1">
                 
                 <!-- IVA e Prezzi Panel -->
-                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.vatAndPricesSection", "IVA e Prezzi")" 
-                                   Expanded="@_vatPanelExpanded"
-                                   ExpandedChanged="@((expanded) => { _vatPanelExpanded = expanded; DebouncePanelStateSave(); })"
-                                   id="vat-prices-panel">
-                    <MudStack Spacing="2">
-                        <MudSelect T="Guid?"
-                                  Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
-                                  Value="_selectedVatRateId"
-                                  ValueChanged="@OnVatRateChanged"
-                                  Variant="Variant.Outlined"
-                                  Dense="true"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Outlined.Percent">
-                            @foreach (var vatRate in _allVatRates)
-                            {
-                                <MudSelectItem T="Guid?" Value="@vatRate.Id">@vatRate.Name (@vatRate.Percentage%)</MudSelectItem>
-                            }
-                        </MudSelect>
-                        
-                        <MudTextField T="string"
-                                     Label="@TranslationService.GetTranslation("documents.vatAmount", "Importo IVA")"
-                                     Value="@GetVatAmount().ToString("C2")"
-                                     ReadOnly="true"
-                                     Variant="Variant.Filled"
-                                     Dense="true"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Outlined.Calculate" />
-                        
-                        <MudTextField T="string"
-                                     Label="@TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo Unit. Lordo")"
-                                     Value="@GetUnitPriceGross().ToString("C2")"
-                                     ReadOnly="true"
-                                     Variant="Variant.Filled"
-                                     Dense="true"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Outlined.Calculate"
-                                     HelperText="@TranslationService.GetTranslation("documents.autoCalculated", "Calcolato automaticamente")" />
-                    </MudStack>
-                </MudExpansionPanel>
+                <DocumentRowVatPanel Expanded="@_vatPanelExpanded"
+                                    OnExpandedChanged="@((expanded) => { _vatPanelExpanded = expanded; DebouncePanelStateSave(); })"
+                                    SelectedVatRateId="@_selectedVatRateId"
+                                    OnVatRateChanged="@OnVatRateChanged"
+                                    AllVatRates="@_allVatRates"
+                                    VatAmount="@GetVatAmount()"
+                                    UnitPriceGross="@GetUnitPriceGross()" />
                 
                 <!-- Sconti Panel -->
-                <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.discountsSection", "Sconti")"
-                                   Expanded="@_discountsPanelExpanded"
-                                   ExpandedChanged="@((expanded) => { _discountsPanelExpanded = expanded; DebouncePanelStateSave(); })"
-                                   id="discounts-panel">
-                    <MudStack Spacing="2">
-                        <MudNumericField T="decimal"
-                                        Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
-                                        @bind-Value="_model.LineDiscount"
-                                        Min="0"
-                                        Max="100"
-                                        Format="N2"
-                                        Variant="Variant.Outlined"
-                                        Dense="true"
-                                        Adornment="Adornment.End"
-                                        AdornmentIcon="@Icons.Material.Outlined.Percent" />
-                        
-                        <MudNumericField T="decimal"
-                                        Label="@TranslationService.GetTranslation("documents.lineDiscountValue", "Sconto €")"
-                                        @bind-Value="_model.LineDiscountValue"
-                                        Min="0"
-                                        Format="N2"
-                                        Variant="Variant.Outlined"
-                                        Dense="true"
-                                        Adornment="Adornment.Start"
-                                        AdornmentIcon="@Icons.Material.Outlined.Euro" />
-                    </MudStack>
-                </MudExpansionPanel>
+                <DocumentRowDiscountsPanel Expanded="@_discountsPanelExpanded"
+                                          OnExpandedChanged="@((expanded) => { _discountsPanelExpanded = expanded; DebouncePanelStateSave(); })"
+                                          LineDiscount="@_model.LineDiscount"
+                                          LineDiscountChanged="@((val) => _model.LineDiscount = val)"
+                                          LineDiscountValue="@_model.LineDiscountValue"
+                                          LineDiscountValueChanged="@((val) => _model.LineDiscountValue = val)" />
                 
                 <!-- Note e Dettagli Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.notesAndDetailsSection", "Note e Dettagli")"
@@ -500,47 +356,10 @@
             @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 5. RIEPILOGO RIGA (Full Width, evidenziato) -->
-                <MudPaper Elevation="3" Class="pa-4" 
-                         Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">
-                    <MudIcon Icon="@Icons.Material.Outlined.Summarize" Class="mr-2" Size="Size.Small" />
-                    @TranslationService.GetTranslation("documents.rowSummary", "Riepilogo Riga")
-                </MudText>
-                <MudGrid Spacing="2">
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption">
-                            @TranslationService.GetTranslation("documents.netSubtotal", "Subtotale Netto")
-                        </MudText>
-                        <MudText Typo="Typo.h6" Style="font-weight: 600;">
-                            @GetSubtotal().ToString("C2")
-                        </MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption">
-                            @TranslationService.GetTranslation("documents.vatTax", "Imposta IVA")
-                        </MudText>
-                        <MudText Typo="Typo.h6" Style="font-weight: 600;">
-                            @GetVatAmount().ToString("C2")
-                        </MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption">
-                            @TranslationService.GetTranslation("documents.totalDiscount", "Sconto Totale")
-                        </MudText>
-                        <MudText Typo="Typo.h6" Style="font-weight: 600; color: #90EE90;">
-                            -@GetTotalDiscount().ToString("C2")
-                        </MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption">
-                            💎 @TranslationService.GetTranslation("documents.lineTotal", "TOTALE RIGA")
-                        </MudText>
-                        <MudText Typo="Typo.h5" Style="font-weight: 700;">
-                            @GetLineTotal().ToString("C2")
-                        </MudText>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
+                <DocumentRowSummary NetSubtotal="@GetSubtotal()"
+                                   VatAmount="@GetVatAmount()"
+                                   TotalDiscount="@GetTotalDiscount()"
+                                   LineTotal="@GetLineTotal()" />
             }
             
             } @* End of DialogMode != ContinuousScan check *@

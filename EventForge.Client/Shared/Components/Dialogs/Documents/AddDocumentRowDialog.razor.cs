@@ -49,6 +49,8 @@ public partial class AddDocumentRowDialog : IDisposable
 
     private MudTextField<string>? _barcodeField;
     private MudNumericField<decimal>? _quantityField;
+    private DocumentRowBarcodeScanner? _barcodeScannerRef;
+    private DocumentRowQuantityPrice? _quantityPriceRef;
 
     #endregion
 
@@ -115,6 +117,21 @@ public partial class AddDocumentRowDialog : IDisposable
     // Timer for continuous scan mode
     private System.Timers.Timer? _statsTimer;
     private MudTextField<string>? _continuousScanField;
+
+    #endregion
+
+    #region Component Event Handlers
+
+    /// <summary>
+    /// Handles barcode scanned event from DocumentRowBarcodeScanner component
+    /// </summary>
+    private async Task HandleBarcodeScanned(string barcode)
+    {
+        if (!string.IsNullOrWhiteSpace(barcode))
+        {
+            await SearchByBarcode(barcode);
+        }
+    }
 
     #endregion
 
@@ -210,9 +227,18 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_isEditMode && _barcodeField != null)
+        if (firstRender && !_isEditMode)
         {
-            await _barcodeField.FocusAsync();
+            // Try new component reference first
+            if (_barcodeScannerRef != null)
+            {
+                await _barcodeScannerRef.FocusAsync();
+            }
+            // Fallback to old field reference for backward compatibility
+            else if (_barcodeField != null)
+            {
+                await _barcodeField.FocusAsync();
+            }
         }
     }
 
@@ -894,7 +920,14 @@ public partial class AddDocumentRowDialog : IDisposable
 
     private async Task FocusQuantityField()
     {
-        if (_quantityField != null)
+        // Try new component reference first
+        if (_quantityPriceRef != null)
+        {
+            await Task.Delay(Delays.RenderDelayMs);
+            await _quantityPriceRef.FocusQuantityAsync();
+        }
+        // Fallback to old field reference for backward compatibility
+        else if (_quantityField != null)
         {
             await Task.Delay(Delays.RenderDelayMs);
             await _quantityField.FocusAsync();
@@ -1417,11 +1450,7 @@ public partial class AddDocumentRowDialog : IDisposable
 
             ResetForm();
 
-            if (_barcodeField != null)
-            {
-                await Task.Delay(Delays.RenderDelayMs);
-                await _barcodeField.FocusAsync();
-            }
+            await FocusBarcodeField();
         }
     }
 
@@ -1446,6 +1475,25 @@ public partial class AddDocumentRowDialog : IDisposable
         InvalidateCalculationCache();
 
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Focuses the barcode scanner after reset
+    /// </summary>
+    private async Task FocusBarcodeField()
+    {
+        // Try new component reference first
+        if (_barcodeScannerRef != null)
+        {
+            await Task.Delay(Delays.RenderDelayMs);
+            await _barcodeScannerRef.FocusAsync();
+        }
+        // Fallback to old field reference for backward compatibility
+        else if (_barcodeField != null)
+        {
+            await Task.Delay(Delays.RenderDelayMs);
+            await _barcodeField.FocusAsync();
+        }
     }
 
     /// <summary>
