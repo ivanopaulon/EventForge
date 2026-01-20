@@ -68,19 +68,21 @@
     [Parameter] public EventCallback OnQuickEdit { get; set; }
     [Parameter] public Func<string, CancellationToken, Task<IEnumerable<ProductDto>>>? SearchFunc { get; set; }
 
-    private ProductDto? _previousProduct;
+    private Guid? _previousProductId;
 
     /// <summary>
     /// Monitors SelectedProduct changes and triggers callbacks
+    /// Uses product ID comparison to avoid reference equality issues
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
         
-        // Check if SelectedProduct changed
-        if (_previousProduct != SelectedProduct)
+        // Check if SelectedProduct changed by comparing IDs
+        var currentProductId = SelectedProduct?.Id;
+        if (_previousProductId != currentProductId)
         {
-            _previousProduct = SelectedProduct;
+            _previousProductId = currentProductId;
             
             // Invoke the custom event callback if set
             if (OnProductChanged.HasDelegate)
