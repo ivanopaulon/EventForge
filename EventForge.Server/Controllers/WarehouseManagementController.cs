@@ -1124,6 +1124,101 @@ public class WarehouseManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Gets stock overview with advanced filtering and aggregation options.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="search">Search term for product name or code</param>
+    /// <param name="warehouseId">Optional warehouse ID filter</param>
+    /// <param name="locationId">Optional location ID filter</param>
+    /// <param name="lotId">Optional lot ID filter</param>
+    /// <param name="lowStock">Filter for low stock items</param>
+    /// <param name="criticalStock">Filter for critical stock items</param>
+    /// <param name="outOfStock">Filter for out of stock items</param>
+    /// <param name="inStockOnly">Show only items with stock &gt; 0</param>
+    /// <param name="detailedView">Show detailed view with location breakdown</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of stock location details</returns>
+    /// <response code="200">Returns the paginated list of stock overview</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("stock/overview")]
+    [ProducesResponseType(typeof(PagedResult<StockLocationDetail>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetStockOverview(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] Guid? warehouseId = null,
+        [FromQuery] Guid? locationId = null,
+        [FromQuery] Guid? lotId = null,
+        [FromQuery] bool? lowStock = null,
+        [FromQuery] bool? criticalStock = null,
+        [FromQuery] bool? outOfStock = null,
+        [FromQuery] bool? inStockOnly = null,
+        [FromQuery] bool detailedView = false,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _stockService.GetStockOverviewAsync(
+                page, pageSize, search, warehouseId, locationId, lotId,
+                lowStock, criticalStock, outOfStock, inStockOnly, detailedView,
+                cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving stock overview.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving stock overview.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Adjusts stock quantity for a specific stock entry.
+    /// </summary>
+    /// <param name="dto">Stock adjustment data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated stock entry</returns>
+    /// <response code="200">Returns the updated stock entry</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="404">If the stock entry is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("stock/adjust")]
+    [ProducesResponseType(typeof(StockDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AdjustStock([FromBody] AdjustStockDto dto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _stockService.AdjustStockAsync(dto, GetCurrentUser(), cancellationToken);
+            return result != null ? Ok(result) : NotFound("Stock entry not found.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while adjusting stock.");
+            return CreateInternalServerErrorProblem("An error occurred while adjusting stock.", ex);
+        }
+    }
+
     #endregion
 
     #region Serial Management

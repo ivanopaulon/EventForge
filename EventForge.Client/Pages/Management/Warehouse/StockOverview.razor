@@ -1,0 +1,992 @@
+@page "/warehouse/stock-overview"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IStockService StockService
+@inject IWarehouseService WarehouseService
+@inject IStorageLocationService StorageLocationService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<StockOverview> Logger
+
+<PageLoadingOverlay Visible="_isLoading || _isLoadingStock"
+                    Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="stock-overview-page-root">
+        <div class="stock-overview-top">
+            <ManagementDashboard TItem="StockLocationDetail"
+                                 Items="_filteredStockItems"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="Stock"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
+
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="StockLocationDetail"
+                 Items="_filteredStockItems"
+                 MultiSelection="true"
+                 SelectedItems="_selectedStockItems"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingStock"
+                 ComponentKey="StockOverview"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("stock.search", "Cerca prodotti")"
+                              Placeholder="@TranslationService.GetTranslation("stock.searchPlaceholder", "Inserisci nome o codice prodotto...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <MudSelect @bind-Value="_selectedWarehouseId"
+                           @bind-Value:after="OnWarehouseChanged"
+                           Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           Class="ef-input ml-2"
+                           Style="min-width:200px;">
+                    @foreach (var warehouse in _warehouses)
+                    {
+                        <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect @bind-Value="_selectedLocationId"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("stock.location", "Ubicazione")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           Disabled="@(!_selectedWarehouseId.HasValue)"
+                           Class="ef-input ml-2"
+                           Style="min-width:200px;">
+                    @foreach (var location in _locations)
+                    {
+                        <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSwitch @bind-Value="_showOnlyLowStock"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("stock.onlyLowStock", "Solo sotto riordino")"
+                           Color="Color.Warning"
+                           Class="ml-2" />
+                <MudSwitch @bind-Value="_showOnlyCritical"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("stock.onlyCritical", "Solo critici")"
+                           Color="Color.Error"
+                           Class="ml-2" />
+                <MudSwitch @bind-Value="_showOnlyOutOfStock"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("stock.onlyOutOfStock", "Solo esauriti")"
+                           Color="Color.Dark"
+                           Class="ml-2" />
+                <MudSwitch @bind-Value="_showOnlyInStock"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("stock.onlyInStock", "Solo con giacenza")"
+                           Color="Color.Success"
+                           Class="ml-2" />
+                <MudSwitch @bind-Value="_detailedView"
+                           @bind-Value:after="OnViewChanged"
+                           Label="@(_detailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
+                           Color="Color.Info"
+                           Class="ml-2" />
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedStockItems.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="false"
+                                        ShowDelete="false"
+                                        IsDisabled="_isLoadingStock"
+                                        OnRefresh="@LoadStockOverviewAsync" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "ProductCode")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="ProductCode" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.ProductCode))">@TranslationService.GetTranslation("field.productCode", "Codice")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "ProductName")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="ProductName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.ProductName))">@TranslationService.GetTranslation("field.productName", "Nome Prodotto")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "WarehouseName")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="WarehouseName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.WarehouseName))">@TranslationService.GetTranslation("field.warehouse", "Magazzino")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "LocationCode")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="LocationCode" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.LocationCode))">@TranslationService.GetTranslation("field.location", "Ubicazione")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "LotCode")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="LotCode" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.LotCode ?? string.Empty))">@TranslationService.GetTranslation("field.lotCode", "Lotto")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Quantity")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="Quantity" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.Quantity))">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Reserved")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="Reserved" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.Reserved))">@TranslationService.GetTranslation("field.reserved", "Riservato")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Available")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="Available" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.Available))">@TranslationService.GetTranslation("field.available", "Disponibile")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "ReorderPoint")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="ReorderPoint" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.ReorderPoint ?? 0))">@TranslationService.GetTranslation("field.reorderPoint", "Punto Riordino")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "SafetyStock")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="SafetyStock" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<StockLocationDetail, object>(x => x.SafetyStock ?? 0))">@TranslationService.GetTranslation("field.safetyStock", "Scorta Sicurezza")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Status")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
+
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                    var stockStatus = GetStockStatus(item);
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "ProductCode")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.productCode", "Codice")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@item.ProductCode</MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ProductName")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.productName", "Nome Prodotto")">
+                            <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:300px;">@item.ProductName</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "WarehouseName")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.warehouse", "Magazzino")">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Size="Size.Small" Class="mr-1" />
+                                <MudText Typo="Typo.body2">@item.WarehouseName</MudText>
+                            </div>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "LocationCode")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.location", "Ubicazione")">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small" Class="mr-1" />
+                                <div>
+                                    <MudText Typo="Typo.body2">@item.LocationCode</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(item.LocationDescription))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.LocationDescription</MudText>
+                                    }
+                                </div>
+                            </div>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "LotCode")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.lotCode", "Lotto")">
+                            @if (!string.IsNullOrWhiteSpace(item.LotCode))
+                            {
+                                <div>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@item.LotCode</MudChip>
+                                    @if (item.LotExpiry.HasValue)
+                                    {
+                                        var isExpiringSoon = item.LotExpiry.Value <= DateTime.Now.AddDays(30);
+                                        var isExpired = item.LotExpiry.Value <= DateTime.Now;
+                                        <MudText Typo="Typo.caption" Color="@(isExpired ? Color.Error : isExpiringSoon ? Color.Warning : Color.Default)">
+                                            Scad: @item.LotExpiry.Value.ToString("dd/MM/yyyy")
+                                        </MudText>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">-</MudText>
+                            }
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Quantity")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">
+                            @if (_editingStockId == item.StockId && _editingField == "Quantity")
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudNumericField @bind-Value="_editingNewQuantity"
+                                                     T="decimal"
+                                                     Variant="Variant.Outlined"
+                                                     Margin="Margin.Dense"
+                                                     Min="0"
+                                                     HideSpinButtons="true"
+                                                     Style="width:100px;" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Check"
+                                                   Color="Color.Success"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => SaveQuickEdit(item))" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   OnClick="@CancelQuickEdit" />
+                                </div>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" 
+                                         Style="font-weight:600; cursor:pointer;"
+                                         @ondblclick="@(() => StartQuickEdit(item, "Quantity"))">
+                                    @item.Quantity.ToString("N2")
+                                </MudText>
+                            }
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Reserved")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reserved", "Riservato")" Style="text-align:right;">
+                            <MudText Typo="Typo.body2">@item.Reserved.ToString("N2")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Available")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.available", "Disponibile")" Style="text-align:right;">
+                            <MudText Typo="Typo.body2" Style="font-weight:600;" Color="@(item.Available > 0 ? Color.Success : Color.Error)">
+                                @item.Available.ToString("N2")
+                            </MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ReorderPoint")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reorderPoint", "Punto Riordino")" Style="text-align:right;">
+                            <MudText Typo="Typo.body2">@(item.ReorderPoint?.ToString("N2") ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "SafetyStock")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.safetyStock", "Scorta Sicurezza")" Style="text-align:right;">
+                            <MudText Typo="Typo.body2">@(item.SafetyStock?.ToString("N2") ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Status")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(stockStatus)">
+                                @TranslationService.GetTranslation($"stock.status.{stockStatus}", stockStatus.ToString())
+                            </MudChip>
+                        </MudTd>
+                    }
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <div class="d-flex align-center justify-center gap-1">
+                        <MudTooltip Text="@TranslationService.GetTranslation("stock.editQuantity", "Modifica Quantità")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="@((e) => OpenFullEditPopover(item, e))" />
+                        </MudTooltip>
+                        <ActionButtonGroup EntityName="@item.ProductName"
+                                           ItemDisplayName="@item.ProductName"
+                                           ShowView="false"
+                                           ShowEdit="false"
+                                           ShowAuditLog="true"
+                                           ShowToggleStatus="false"
+                                           ShowDelete="false"
+                                           OnAuditLog="@(() => ViewStockAuditLog(item))" />
+                    </div>
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_stockItems.Any() ?
+                            TranslationService.GetTranslation("stock.noItemsMatchFilters", "Nessuna giacenza corrisponde ai filtri applicati") :
+                            TranslationService.GetTranslation("stock.noItemsFound", "Nessuna giacenza trovata"))
+                    </MudText>
+                    @if (_stockItems.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("stock.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+
+    @* Full Edit Popover *@
+    <MudPopover Open="@_isPopoverOpen" 
+                Fixed="true" 
+                AnchorOrigin="Origin.CenterCenter" 
+                TransformOrigin="Origin.CenterCenter"
+                Style="width:400px;">
+        <div class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-4">
+                @TranslationService.GetTranslation("stock.editQuantity", "Modifica Quantità")
+            </MudText>
+            
+            @if (_editingItem != null)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        <strong>@TranslationService.GetTranslation("field.product", "Prodotto"):</strong> @_editingItem.ProductName
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        <strong>@TranslationService.GetTranslation("field.currentQuantity", "Quantità Attuale"):</strong> @_editingItem.Quantity.ToString("N2")
+                    </MudText>
+                </div>
+
+                <MudNumericField @bind-Value="_editingNewQuantity"
+                                 Label="@TranslationService.GetTranslation("field.newQuantity", "Nuova Quantità")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Class="mb-3" />
+
+                @if (_editingNewQuantity != _editingItem.Quantity)
+                {
+                    var diff = _editingNewQuantity - _editingItem.Quantity;
+                    <MudChip T="string" 
+                             Color="@(diff > 0 ? Color.Success : Color.Error)" 
+                             Class="mb-3">
+                        @(diff > 0 ? "+" : "")@diff.ToString("N2")
+                    </MudChip>
+                }
+
+                <MudSelect @bind-Value="_editingReason"
+                           Label="@TranslationService.GetTranslation("field.reason", "Motivo")"
+                           Variant="Variant.Outlined"
+                           Class="mb-3">
+                    <MudSelectItem T="StockAdjustmentReason" Value="@StockAdjustmentReason.ManualCorrection">
+                        @TranslationService.GetTranslation("stock.reason.manualCorrection", "Correzione Manuale")
+                    </MudSelectItem>
+                    <MudSelectItem T="StockAdjustmentReason" Value="@StockAdjustmentReason.Inventory">
+                        @TranslationService.GetTranslation("stock.reason.inventory", "Inventario Fisico")
+                    </MudSelectItem>
+                    <MudSelectItem T="StockAdjustmentReason" Value="@StockAdjustmentReason.Damage">
+                        @TranslationService.GetTranslation("stock.reason.damage", "Prodotto Danneggiato")
+                    </MudSelectItem>
+                    <MudSelectItem T="StockAdjustmentReason" Value="@StockAdjustmentReason.Loss">
+                        @TranslationService.GetTranslation("stock.reason.loss", "Prodotto Smarrito")
+                    </MudSelectItem>
+                    <MudSelectItem T="StockAdjustmentReason" Value="@StockAdjustmentReason.Found">
+                        @TranslationService.GetTranslation("stock.reason.found", "Prodotto Ritrovato")
+                    </MudSelectItem>
+                    <MudSelectItem T="StockAdjustmentReason" Value="@StockAdjustmentReason.Expiry">
+                        @TranslationService.GetTranslation("stock.reason.expiry", "Prodotto Scaduto")
+                    </MudSelectItem>
+                    <MudSelectItem T="StockAdjustmentReason" Value="@StockAdjustmentReason.Quality">
+                        @TranslationService.GetTranslation("stock.reason.quality", "Controllo Qualità")
+                    </MudSelectItem>
+                    <MudSelectItem T="StockAdjustmentReason" Value="@StockAdjustmentReason.Other">
+                        @TranslationService.GetTranslation("stock.reason.other", "Altro")
+                    </MudSelectItem>
+                </MudSelect>
+
+                <MudTextField @bind-Value="_editingNotes"
+                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              Required="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > 10)"
+                              HelperText="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > 10 ? TranslationService.GetTranslation("stock.notesRequired", "Note obbligatorie per differenze > 10 unità") : "")"
+                              Class="mb-3" />
+
+                <div class="d-flex justify-end gap-2">
+                    <MudButton Variant="Variant.Text"
+                               OnClick="@CloseFullEditPopover">
+                        @TranslationService.GetTranslation("common.cancel", "Annulla")
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="@SaveFullEdit"
+                               Disabled="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > 10 && string.IsNullOrWhiteSpace(_editingNotes))">
+                        @TranslationService.GetTranslation("common.save", "Salva")
+                    </MudButton>
+                </div>
+            }
+        </div>
+    </MudPopover>
+}
+
+@code {
+    // Configuration constants
+    private const decimal QuickEditMaxDifference = 50m;
+    private const decimal FullEditNotesRequiredDifference = 10m;
+    
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingStock = false;
+
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private Guid? _selectedWarehouseId = null;
+    private Guid? _selectedLocationId = null;
+    private bool _showOnlyLowStock = false;
+    private bool _showOnlyCritical = false;
+    private bool _showOnlyOutOfStock = false;
+    private bool _showOnlyInStock = false;
+    private bool _detailedView = true;
+    private CancellationTokenSource? _searchDebounceCts;
+
+    // Quick edit state
+    private Guid? _editingStockId = null;
+    private string? _editingField = null;
+    private decimal _editingNewQuantity = 0;
+
+    // Full edit popover state
+    private bool _isPopoverOpen = false;
+    private StockLocationDetail? _editingItem = null;
+    private StockAdjustmentReason _editingReason = StockAdjustmentReason.ManualCorrection;
+    private string _editingNotes = string.Empty;
+
+    // Data collections
+    private List<StockLocationDetail> _stockItems = new();
+    private List<StorageFacilityDto> _warehouses = new();
+    private List<StorageLocationDto> _locations = new();
+    private HashSet<StockLocationDetail> _selectedStockItems = new();
+
+    // EFTable reference
+    private EFTable<StockLocationDetail> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0 },
+        new() { PropertyName = "ProductName", DisplayName = "Nome Prodotto", IsVisible = true, Order = 1 },
+        new() { PropertyName = "WarehouseName", DisplayName = "Magazzino", IsVisible = true, Order = 2 },
+        new() { PropertyName = "LocationCode", DisplayName = "Ubicazione", IsVisible = true, Order = 3 },
+        new() { PropertyName = "LotCode", DisplayName = "Lotto", IsVisible = true, Order = 4 },
+        new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 5 },
+        new() { PropertyName = "Reserved", DisplayName = "Riservato", IsVisible = true, Order = 6 },
+        new() { PropertyName = "Available", DisplayName = "Disponibile", IsVisible = true, Order = 7 },
+        new() { PropertyName = "ReorderPoint", DisplayName = "Punto Riordino", IsVisible = true, Order = 8 },
+        new() { PropertyName = "SafetyStock", DisplayName = "Scorta Sicurezza", IsVisible = true, Order = 9 },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 10 }
+    };
+
+    // Dashboard configuration - initialized in OnInitializedAsync to access instance methods
+    private List<DashboardMetric<StockLocationDetail>> _dashboardMetrics = new();
+
+    private EventCallback<HashSet<StockLocationDetail>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StockLocationDetail>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered stock items based on search and filter criteria.
+    /// </summary>
+    private IEnumerable<StockLocationDetail> _filteredStockItems => 
+        _stockItems.Where(item => 
+            // Search filter: check product name and code
+            (string.IsNullOrEmpty(_searchTerm) || 
+             item.ProductName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             item.ProductCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            // Warehouse filter
+            (!_selectedWarehouseId.HasValue || item.WarehouseId == _selectedWarehouseId.Value) &&
+            // Location filter
+            (!_selectedLocationId.HasValue || item.LocationId == _selectedLocationId.Value) &&
+            // Low stock filter
+            (!_showOnlyLowStock || GetStockStatus(item) == StockStatus.LowStock) &&
+            // Critical filter
+            (!_showOnlyCritical || GetStockStatus(item) == StockStatus.Critical) &&
+            // Out of stock filter
+            (!_showOnlyOutOfStock || GetStockStatus(item) == StockStatus.OutOfStock) &&
+            // In stock only filter
+            (!_showOnlyInStock || item.Quantity > 0));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<StockLocationDetail> items)
+    {
+        _selectedStockItems = items;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Initialize dashboard metrics
+            InitializeDashboardMetrics();
+
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // Load initial data
+            await Task.WhenAll(
+                LoadWarehousesAsync(),
+                LoadStockOverviewAsync()
+            );
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("stock.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading stock overview page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Initializes dashboard metrics.
+    /// </summary>
+    private void InitializeDashboardMetrics()
+    {
+        _dashboardMetrics = new List<DashboardMetric<StockLocationDetail>>
+        {
+            new()
+            {
+                Title = "Totale Prodotti Monitorati",
+                Type = MetricType.Count,
+                Icon = Icons.Material.Outlined.Inventory,
+                Color = "primary",
+                Description = "Numero totale di prodotti unici in giacenza",
+                Format = "N0"
+            },
+            new()
+            {
+                Title = "Sotto Riordino",
+                Type = MetricType.Count,
+                Filter = x => x.ReorderPoint.HasValue && x.Quantity > 0 && x.Quantity <= x.ReorderPoint.Value && (!x.SafetyStock.HasValue || x.Quantity > x.SafetyStock.Value),
+                Icon = Icons.Material.Outlined.Warning,
+                Color = "warning",
+                Description = "Prodotti sotto il punto di riordino",
+                Format = "N0"
+            },
+            new()
+            {
+                Title = "Critici",
+                Type = MetricType.Count,
+                Filter = x => x.SafetyStock.HasValue && x.Quantity > 0 && x.Quantity <= x.SafetyStock.Value,
+                Icon = Icons.Material.Outlined.Error,
+                Color = "error",
+                Description = "Prodotti sotto la scorta di sicurezza",
+                Format = "N0"
+            },
+            new()
+            {
+                Title = "Esauriti",
+                Type = MetricType.Count,
+                Filter = x => x.Quantity == 0,
+                Icon = Icons.Material.Outlined.RemoveCircleOutline,
+                Color = "dark",
+                Description = "Prodotti senza giacenza",
+                Format = "N0"
+            }
+        };
+    }
+
+    /// <summary>
+    /// Shows the login dialog.
+    /// </summary>
+    private async Task ShowLoginDialogAsync()
+    {
+        try
+        {
+            await AuthenticationDialogService.ShowLoginDialogAsync();
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            
+            if (isAuthenticated)
+            {
+                await LoadStockOverviewAsync();
+                _isLoading = false;
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error showing login dialog");
+            Snackbar.Add(TranslationService.GetTranslation("auth.loginError", "Errore durante il login"), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Loads warehouse data for the dropdown filter.
+    /// </summary>
+    private async Task LoadWarehousesAsync()
+    {
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync();
+            if (result != null)
+            {
+                _warehouses = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading warehouses");
+            Snackbar.Add(TranslationService.GetTranslation("stock.loadingWarehousesError", "Errore nel caricamento dei magazzini"), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Loads stock overview data.
+    /// </summary>
+    private async Task LoadStockOverviewAsync()
+    {
+        try
+        {
+            _isLoadingStock = true;
+            var result = await StockService.GetStockOverviewAsync(
+                page: 1,
+                pageSize: 500, // Reasonable page size for initial load
+                searchTerm: string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
+                warehouseId: _selectedWarehouseId,
+                locationId: _selectedLocationId,
+                lowStock: _showOnlyLowStock ? true : null,
+                criticalStock: _showOnlyCritical ? true : null,
+                outOfStock: _showOnlyOutOfStock ? true : null,
+                inStockOnly: _showOnlyInStock ? true : null,
+                detailedView: _detailedView
+            );
+
+            if (result != null)
+            {
+                _stockItems = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("stock.loadingError", "Errore nel caricamento delle giacenze: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading stock overview");
+        }
+        finally
+        {
+            _isLoadingStock = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _selectedWarehouseId = null;
+        _selectedLocationId = null;
+        _showOnlyLowStock = false;
+        _showOnlyCritical = false;
+        _showOnlyOutOfStock = false;
+        _showOnlyInStock = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
+    }
+
+    private async Task OnWarehouseChanged()
+    {
+        // Reset location when warehouse changes
+        _selectedLocationId = null;
+        
+        // Load locations for selected warehouse
+        if (_selectedWarehouseId.HasValue)
+        {
+            try
+            {
+                var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_selectedWarehouseId.Value);
+                if (result != null)
+                {
+                    _locations = result.Items.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _selectedWarehouseId);
+                Snackbar.Add(TranslationService.GetTranslation("stock.loadingLocationsError", "Errore nel caricamento delle ubicazioni"), Severity.Error);
+            }
+        }
+        else
+        {
+            _locations.Clear();
+        }
+        
+        StateHasChanged();
+    }
+
+    private void OnFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async Task OnViewChanged()
+    {
+        await LoadStockOverviewAsync();
+    }
+
+    /// <summary>
+    /// Starts quick edit mode for a stock item.
+    /// </summary>
+    private void StartQuickEdit(StockLocationDetail item, string field)
+    {
+        _editingStockId = item.StockId;
+        _editingField = field;
+        _editingNewQuantity = item.Quantity;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Cancels quick edit mode.
+    /// </summary>
+    private void CancelQuickEdit()
+    {
+        _editingStockId = null;
+        _editingField = null;
+        _editingNewQuantity = 0;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Saves quick edit changes.
+    /// </summary>
+    private async Task SaveQuickEdit(StockLocationDetail item)
+    {
+        try
+        {
+            var difference = Math.Abs(_editingNewQuantity - item.Quantity);
+            
+            // Block if difference exceeds quick edit limit
+            if (difference > QuickEditMaxDifference)
+            {
+                var message = TranslationService.GetTranslationFormatted(
+                    "stock.quickEditLimitExceeded", 
+                    "Differenza troppo grande (> {0} unità). Usa la modalità di modifica completa.", 
+                    QuickEditMaxDifference);
+                Snackbar.Add(message, Severity.Warning);
+                return;
+            }
+
+            var adjustDto = new AdjustStockDto
+            {
+                StockId = item.StockId,
+                ProductId = item.ProductId,
+                StorageLocationId = item.LocationId,
+                NewQuantity = _editingNewQuantity,
+                PreviousQuantity = item.Quantity,
+                Reason = StockAdjustmentReason.QuickCorrection,
+                Notes = $"Correzione rapida: {item.Quantity} → {_editingNewQuantity}",
+                RequiresAudit = false
+            };
+
+            var result = await StockService.AdjustStockAsync(adjustDto);
+            
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("stock.quantityUpdated", "Quantità aggiornata con successo!"), Severity.Success);
+                await LoadStockOverviewAsync();
+                CancelQuickEdit();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento della quantità"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving quick edit for stock {StockId}", item.StockId);
+            Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Opens the full edit popover.
+    /// </summary>
+    private void OpenFullEditPopover(StockLocationDetail item, MouseEventArgs e)
+    {
+        _editingItem = item;
+        _editingNewQuantity = item.Quantity;
+        _editingReason = StockAdjustmentReason.ManualCorrection;
+        _editingNotes = string.Empty;
+        _isPopoverOpen = true;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Closes the full edit popover.
+    /// </summary>
+    private void CloseFullEditPopover()
+    {
+        _isPopoverOpen = false;
+        _editingItem = null;
+        _editingNewQuantity = 0;
+        _editingReason = StockAdjustmentReason.ManualCorrection;
+        _editingNotes = string.Empty;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Saves full edit changes.
+    /// </summary>
+    private async Task SaveFullEdit()
+    {
+        if (_editingItem == null) return;
+
+        try
+        {
+            var adjustDto = new AdjustStockDto
+            {
+                StockId = _editingItem.StockId,
+                ProductId = _editingItem.ProductId,
+                StorageLocationId = _editingItem.LocationId,
+                NewQuantity = _editingNewQuantity,
+                PreviousQuantity = _editingItem.Quantity,
+                Reason = _editingReason,
+                Notes = _editingNotes,
+                RequiresAudit = true
+            };
+
+            var result = await StockService.AdjustStockAsync(adjustDto);
+            
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("stock.quantityUpdated", "Quantità aggiornata con successo!"), Severity.Success);
+                await LoadStockOverviewAsync();
+                CloseFullEditPopover();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento della quantità"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving full edit for stock {StockId}", _editingItem.StockId);
+            Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Opens the audit log dialog for a stock item using IDialogService.
+    /// </summary>
+    private async Task ViewStockAuditLog(StockLocationDetail item)
+    {
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "Stock" },
+            { x => x.EntityId, item.StockId },
+            { x => x.EntityName, $"{item.ProductName} - {item.LocationCode}" }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
+    }
+
+    /// <summary>
+    /// Determines the stock status based on quantity, reorder point, and safety stock.
+    /// </summary>
+    private StockStatus GetStockStatus(StockLocationDetail item)
+    {
+        if (item.Quantity == 0)
+            return StockStatus.OutOfStock;
+
+        if (item.SafetyStock.HasValue && item.Quantity <= item.SafetyStock.Value)
+            return StockStatus.Critical;
+
+        if (item.ReorderPoint.HasValue && item.Quantity <= item.ReorderPoint.Value)
+            return StockStatus.LowStock;
+
+        return StockStatus.OK;
+    }
+
+    /// <summary>
+    /// Gets the color for a stock status.
+    /// </summary>
+    private Color GetStatusColor(StockStatus status) => status switch
+    {
+        StockStatus.OK => Color.Success,
+        StockStatus.LowStock => Color.Warning,
+        StockStatus.Critical => Color.Error,
+        StockStatus.OutOfStock => Color.Dark,
+        _ => Color.Default
+    };
+}

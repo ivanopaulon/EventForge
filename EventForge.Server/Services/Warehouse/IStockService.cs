@@ -83,4 +83,27 @@ public interface IStockService
     /// Deletes a stock entry.
     /// </summary>
     Task<bool> DeleteStockAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets stock overview with optional pagination and filtering.
+    /// Provides detailed view of stock across locations or aggregated view by product.
+    /// </summary>
+    Task<PagedResult<StockLocationDetail>> GetStockOverviewAsync(
+        int page = 1,
+        int pageSize = 20,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        Guid? lotId = null,
+        bool? lowStock = null,
+        bool? criticalStock = null,
+        bool? outOfStock = null,
+        bool? inStockOnly = null,
+        bool detailedView = false,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adjusts stock quantity and creates appropriate stock movement.
+    /// </summary>
+    Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, string currentUser, CancellationToken cancellationToken = default);
 }

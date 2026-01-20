@@ -80,4 +80,66 @@ public class StockService : IStockService
             return Enumerable.Empty<StockDto>();
         }
     }
+
+    public async Task<PagedResult<StockLocationDetail>?> GetStockOverviewAsync(
+        int page = 1,
+        int pageSize = 20,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        Guid? lotId = null,
+        bool? lowStock = null,
+        bool? criticalStock = null,
+        bool? outOfStock = null,
+        bool? inStockOnly = null,
+        bool detailedView = false)
+    {
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"page={page}",
+                $"pageSize={pageSize}",
+                $"detailedView={detailedView.ToString().ToLower()}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                queryParams.Add($"search={Uri.EscapeDataString(searchTerm)}");
+            if (warehouseId.HasValue)
+                queryParams.Add($"warehouseId={warehouseId.Value}");
+            if (locationId.HasValue)
+                queryParams.Add($"locationId={locationId.Value}");
+            if (lotId.HasValue)
+                queryParams.Add($"lotId={lotId.Value}");
+            if (lowStock.HasValue)
+                queryParams.Add($"lowStock={lowStock.Value}");
+            if (criticalStock.HasValue)
+                queryParams.Add($"criticalStock={criticalStock.Value}");
+            if (outOfStock.HasValue)
+                queryParams.Add($"outOfStock={outOfStock.Value}");
+            if (inStockOnly.HasValue)
+                queryParams.Add($"inStockOnly={inStockOnly.Value}");
+
+            var query = string.Join("&", queryParams);
+            return await _httpClientService.GetAsync<PagedResult<StockLocationDetail>>($"{BaseUrl}/overview?{query}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving stock overview");
+            return null;
+        }
+    }
+
+    public async Task<StockDto?> AdjustStockAsync(AdjustStockDto dto)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<AdjustStockDto, StockDto>($"{BaseUrl}/adjust", dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adjusting stock for StockId: {StockId}", dto.StockId);
+            return null;
+        }
+    }
 }

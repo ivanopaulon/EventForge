@@ -2363,7 +2363,42 @@
     "assignCodeToProduct": "Assegna Codice a Prodotto",
     "selectProductForCode": "Seleziona il prodotto a cui assegnare il codice",
     "codeWillBeAssigned": "Il codice {0} sarà assegnato al prodotto selezionato",
-    "codeAssignedSuccess": "Codice assegnato con successo"
+    "codeAssignedSuccess": "Codice assegnato con successo",
+    "stockOverview": "Situazione Giacenze",
+    "totalStock": "Giacenza Totale",
+    "reserved": "Riservata",
+    "available": "Disponibile",
+    "reorderPoint": "Punto Riordino",
+    "safetyStock": "Scorta Sicurezza",
+    "quickEdit": "Modifica Rapida",
+    "fullEdit": "Modifica Dettagliata",
+    "adjustStock": "Modifica Giacenza",
+    "currentQuantity": "Giacenza Attuale",
+    "newQuantity": "Nuova Giacenza",
+    "difference": "Differenza",
+    "reason": "Motivo",
+    "reasonRequired": "Il motivo è obbligatorio",
+    "notesRequired": "Le note sono obbligatorie per differenze > 10 unità",
+    "stockAdjusted": "Giacenza aggiornata con successo",
+    "aggregatedView": "Vista Aggregata",
+    "detailedView": "Vista Dettagliata",
+    "warehouseCount": "Magazzini",
+    "locationCount": "Ubicazioni",
+    "lotCount": "Lotti",
+    "selectWarehouse": "Seleziona Magazzino",
+    "selectLocation": "Seleziona Ubicazione",
+    "selectLot": "Seleziona Lotto",
+    "allWarehouses": "Tutti i Magazzini",
+    "allLocations": "Tutte le Ubicazioni",
+    "allLots": "Tutti i Lotti",
+    "onlyReorder": "Solo prodotti sotto riordino",
+    "onlyCritical": "Solo prodotti critici",
+    "onlyOutOfStock": "Solo prodotti esauriti",
+    "onlyInStock": "Solo prodotti con giacenza",
+    "totalProductsMonitored": "Prodotti Monitorati",
+    "lowStockItems": "Sotto Riordino",
+    "criticalItems": "Critici",
+    "outOfStockItems": "Esauriti"
   },
   "nav": {
     "activityFeed": "Feed Attività",
@@ -2428,7 +2463,8 @@
     "operatorGroupManagement": "Gruppi Operatori",
     "storeSettings": "Configurazione Store",
     "inventoryManagement": "Inventari",
-    "inventoryDiagnostics": "Diagnostica e Correggi"
+    "inventoryDiagnostics": "Diagnostica e Correggi",
+    "stockOverview": "Situazione Giacenze"
   },
   "tour": {
     "chat": "Tour Chat",
@@ -2781,5 +2817,22 @@
     "shipmentDateLabel": "Data Spedizione",
     "ship": "Spedisci",
     "receive": "Ricevi"
+  },
+  "stockStatus": {
+    "ok": "OK",
+    "lowStock": "Sotto Riordino",
+    "critical": "Critico",
+    "outOfStock": "Esaurito"
+  },
+  "stockReason": {
+    "quickCorrection": "Correzione Rapida",
+    "manualCorrection": "Correzione Manuale",
+    "inventory": "Inventario",
+    "damage": "Danneggiamento",
+    "loss": "Smarrimento",
+    "found": "Ritrovamento",
+    "expiry": "Scadenza",
+    "quality": "Controllo Qualità",
+    "other": "Altro"
   }
 }

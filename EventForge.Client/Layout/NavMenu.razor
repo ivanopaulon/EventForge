@@ -99,6 +99,12 @@
                         @TranslationService.GetTranslation("nav.facilities", "Magazzini")
                     </MudNavLink>
                     
+                    <MudNavLink Href="/warehouse/stock-overview" 
+                                Icon="@Icons.Material.Outlined.Inventory" 
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.stockOverview", "Situazione Giacenze")
+                    </MudNavLink>
+                    
                     <MudNavGroup title="@TranslationService.GetTranslation("nav.inventoryManagement", "Inventari")" 
                                  Icon="@Icons.Material.Outlined.Inventory" 
                                  Expanded="false">
