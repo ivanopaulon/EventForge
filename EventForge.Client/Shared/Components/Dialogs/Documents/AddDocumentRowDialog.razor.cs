@@ -54,49 +54,56 @@ public partial class AddDocumentRowDialog : IDisposable
 
     #region State Variables
 
-    private CreateDocumentRowDto _model = new() { Quantity = 1m };
-    private ProductDto? _selectedProduct = null;
-    private ProductDto? _previousSelectedProduct = null;
-    private string _barcodeInput = string.Empty;
-    private bool _isProcessing = false;
+    private DocumentRowDialogState _state = new();
+    private DocumentRowCalculationCache _calculationCache = new();
+
     private bool _isEditMode => RowId.HasValue;
-    private DialogMode _dialogMode = DialogMode.Standard;
+    private CreateDocumentRowDto _model => _state.Model;
 
-    private List<ProductUnitDto> _availableUnits = new();
-    private List<UMDto> _allUnitsOfMeasure = new();
-    private List<VatRateDto> _allVatRates = new();
-
-    private Guid? _selectedUnitOfMeasureId = null;
-    private Guid? _selectedVatRateId = null;
-    private Guid? _barcodeProductUnitId = null;
-
-    private string _scannedBarcode = string.Empty;
-    private bool _isProcessingBarcode = false;
-
-    private DocumentHeaderDto? _documentHeader = null;
-    private List<RecentProductTransactionDto> _recentTransactions = new();
-    private bool _loadingTransactions = false;
-
-    // Quick Add Mode entries tracking
-    private List<QuickAddEntry> _recentQuickEntries = new();
-
-    // Continuous scan mode state
-    private List<ContinuousScanEntry> _recentContinuousScans = new();
-    private HashSet<Guid> _scannedProductIds = new();
-    private int _continuousScanCount = 0;
-    private int _uniqueProductsCount = 0;
-    private int _scansPerMinute = 0;
-    private string _lastScannedProduct = string.Empty;
-    private bool _isProcessingContinuousScan = false;
-    private DateTime _firstScanTime = DateTime.UtcNow;
-    private System.Timers.Timer? _statsTimer;
-    private MudTextField<string>? _continuousScanField;
-    private string _continuousScanInput = string.Empty;
-
-    // Expansion panel states for accessibility
-    private bool _vatPanelExpanded = false;
-    private bool _discountsPanelExpanded = false;
-    private bool _notesPanelExpanded = false;
+    // Backward compatibility properties for .razor file
+    private DialogMode _dialogMode => _state.Mode;
+    private int _continuousScanCount => _state.ContinuousScan.ScanCount;
+    private bool _isLoadingData => _state.Processing.IsLoadingData;
+    private List<string> _validationErrors => _state.Validation.Errors;
+    private bool _isProcessingContinuousScan => _state.ContinuousScan.IsProcessing;
+    private string _continuousScanInput 
+    { 
+        get => _state.ContinuousScan.Input;
+        set => _state.ContinuousScan.Input = value;
+    }
+    private bool _isProcessing => _state.Processing.IsSaving;
+    private Guid? _selectedVatRateId => _state.SelectedVatRateId;
+    private List<VatRateDto> _allVatRates => _state.Cache.AllVatRates;
+    private ProductDto? _selectedProduct => _state.SelectedProduct;
+    private bool _vatPanelExpanded 
+    { 
+        get => _state.Ui.VatPanelExpanded;
+        set => _state.Ui.VatPanelExpanded = value;
+    }
+    private bool _discountsPanelExpanded 
+    { 
+        get => _state.Ui.DiscountsPanelExpanded;
+        set => _state.Ui.DiscountsPanelExpanded = value;
+    }
+    private bool _notesPanelExpanded 
+    { 
+        get => _state.Ui.NotesPanelExpanded;
+        set => _state.Ui.NotesPanelExpanded = value;
+    }
+    private int _uniqueProductsCount => _state.ContinuousScan.UniqueProductsCount;
+    private int _scansPerMinute => _state.ContinuousScan.ScansPerMinute;
+    private List<ContinuousScanEntry> _recentContinuousScans => _state.ContinuousScan.RecentScans;
+    private string _barcodeInput 
+    { 
+        get => _state.Barcode.Input;
+        set => _state.Barcode.Input = value;
+    }
+    private List<QuickAddEntry> _recentQuickEntries => _state.QuickAdd.RecentEntries;
+    private Guid? _selectedUnitOfMeasureId => _state.SelectedUnitOfMeasureId;
+    private List<ProductUnitDto> _availableUnits => _state.Cache.AvailableUnits;
+    private List<UMDto> _allUnitsOfMeasure => _state.Cache.AllUnitsOfMeasure;
+    private List<RecentProductTransactionDto> _recentTransactions => _state.Cache.RecentTransactions;
+    private bool _loadingTransactions => _state.Processing.IsLoadingTransactions;
 
     // Cached calculation result to avoid redundant calculations
     private Client.Models.Documents.DocumentRowCalculationResult? _cachedCalculationResult = null;
@@ -105,23 +112,9 @@ public partial class AddDocumentRowDialog : IDisposable
     // Debouncer for LocalStorage writes
     private DebouncedAction? _panelStateSaveDebouncer;
 
-    // Loading and error state
-    private bool _isLoadingData = false;
-    private List<string> _validationErrors = new();
-
-    #endregion
-
-    #region Quick Add Entry Model
-
-    /// <summary>
-    /// Model for tracking recent Quick Add entries
-    /// </summary>
-    private class QuickAddEntry
-    {
-        public string Description { get; set; } = string.Empty;
-        public decimal Quantity { get; set; }
-        public DateTime Timestamp { get; set; }
-    }
+    // Timer for continuous scan mode
+    private System.Timers.Timer? _statsTimer;
+    private MudTextField<string>? _continuousScanField;
 
     #endregion
 
@@ -137,7 +130,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     protected override async Task OnInitializedAsync()
     {
-        _isLoadingData = true;
+        _state.Processing.IsLoadingData = true;
         StateHasChanged();
 
         try
@@ -163,7 +156,7 @@ public partial class AddDocumentRowDialog : IDisposable
         }
         finally
         {
-            _isLoadingData = false;
+            _state.Processing.IsLoadingData = false;
             StateHasChanged();
         }
     }
@@ -177,14 +170,14 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     protected override void OnParametersSet()
     {
-        _model.DocumentHeaderId = DocumentHeaderId;
+        _state.Model.DocumentHeaderId = DocumentHeaderId;
 
         // Watch for product selection changes - compare by ID for proper equality check
-        if (_selectedProduct?.Id != _previousSelectedProduct?.Id)
+        if (_state.SelectedProduct?.Id != _state.PreviousSelectedProduct?.Id)
         {
             // Capture the current product to avoid race conditions
-            var currentProduct = _selectedProduct;
-            _previousSelectedProduct = currentProduct;
+            var currentProduct = _state.SelectedProduct;
+            _state.PreviousSelectedProduct = currentProduct;
 
             if (currentProduct != null)
             {
@@ -237,9 +230,9 @@ public partial class AddDocumentRowDialog : IDisposable
             var states = await LocalStorage.GetItemAsync<PanelStates>(LocalStorageKeys.PanelStates);
             if (states != null)
             {
-                _vatPanelExpanded = states.VatPanelExpanded;
-                _discountsPanelExpanded = states.DiscountsPanelExpanded;
-                _notesPanelExpanded = states.NotesPanelExpanded;
+                _state.Ui.VatPanelExpanded = states.VatPanelExpanded;
+                _state.Ui.DiscountsPanelExpanded = states.DiscountsPanelExpanded;
+                _state.Ui.NotesPanelExpanded = states.NotesPanelExpanded;
                 Logger.LogDebug("Loaded panel states from LocalStorage");
             }
         }
@@ -258,9 +251,9 @@ public partial class AddDocumentRowDialog : IDisposable
         {
             var states = new PanelStates
             {
-                VatPanelExpanded = _vatPanelExpanded,
-                DiscountsPanelExpanded = _discountsPanelExpanded,
-                NotesPanelExpanded = _notesPanelExpanded
+                VatPanelExpanded = _state.Ui.VatPanelExpanded,
+                DiscountsPanelExpanded = _state.Ui.DiscountsPanelExpanded,
+                NotesPanelExpanded = _state.Ui.NotesPanelExpanded
             };
             await LocalStorage.SetItemAsync(LocalStorageKeys.PanelStates, states);
             Logger.LogDebug("Saved panel states to LocalStorage");
@@ -377,7 +370,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private async Task LoadDocumentHeaderAsync()
     {
-        _documentHeader = await ExecuteWithErrorHandlingAsync(
+        _state.DocumentHeader = await ExecuteWithErrorHandlingAsync(
             () => DocumentHeaderService.GetDocumentHeaderByIdAsync(DocumentHeaderId, includeRows: false),
             operationName: "loadDocumentHeader",
             showErrorToUser: true);
@@ -391,7 +384,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private async Task LoadUnitsOfMeasureAsync()
     {
-        _allUnitsOfMeasure = await ExecuteWithErrorHandlingAsync(
+        _state.Cache.AllUnitsOfMeasure = await ExecuteWithErrorHandlingAsync(
             () => CacheService.GetUnitsOfMeasureAsync(),
             operationName: "loadUnitsOfMeasure",
             showErrorToUser: true) ?? new List<UMDto>();
@@ -405,7 +398,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private async Task LoadVatRatesAsync()
     {
-        _allVatRates = await ExecuteWithErrorHandlingAsync(
+        _state.Cache.AllVatRates = await ExecuteWithErrorHandlingAsync(
             () => CacheService.GetVatRatesAsync(),
             operationName: "loadVatRates",
             showErrorToUser: true) ?? new List<VatRateDto>();
@@ -421,33 +414,18 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private async Task LoadRecentTransactions(Guid productId)
     {
-        if (_documentHeader == null)
+        if (_state.DocumentHeader == null)
         {
             return;
         }
 
-        _loadingTransactions = true;
-        _recentTransactions.Clear();
+        _state.Processing.IsLoadingTransactions = true;
+        _state.Cache.RecentTransactions.Clear();
 
         try
         {
-            string transactionType = "purchase";
-
-            if (!string.IsNullOrEmpty(_documentHeader.DocumentTypeName))
-            {
-                var lowerName = _documentHeader.DocumentTypeName.ToLower();
-
-                if (DocumentTypeKeywords.Sale.Any(k => lowerName.Contains(k)))
-                {
-                    transactionType = "sale";
-                }
-                else if (DocumentTypeKeywords.Purchase.Any(k => lowerName.Contains(k)))
-                {
-                    transactionType = "purchase";
-                }
-            }
-
-            Guid? partyId = _documentHeader.BusinessPartyId != Guid.Empty ? _documentHeader.BusinessPartyId : null;
+            string transactionType = DetermineTransactionType();
+            Guid? partyId = GetBusinessPartyId();
 
             var transactions = await ProductService.GetRecentProductTransactionsAsync(
                 productId,
@@ -458,7 +436,7 @@ public partial class AddDocumentRowDialog : IDisposable
 
             if (transactions != null)
             {
-                _recentTransactions = transactions.ToList();
+                _state.Cache.RecentTransactions = transactions.ToList();
             }
         }
         catch (Exception ex)
@@ -467,8 +445,36 @@ public partial class AddDocumentRowDialog : IDisposable
         }
         finally
         {
-            _loadingTransactions = false;
+            _state.Processing.IsLoadingTransactions = false;
         }
+    }
+
+    private string DetermineTransactionType()
+    {
+        string transactionType = "purchase";
+
+        if (!string.IsNullOrEmpty(_state.DocumentHeader!.DocumentTypeName))
+        {
+            var lowerName = _state.DocumentHeader.DocumentTypeName.ToLower();
+
+            if (DocumentTypeKeywords.Sale.Any(k => lowerName.Contains(k)))
+            {
+                transactionType = "sale";
+            }
+            else if (DocumentTypeKeywords.Purchase.Any(k => lowerName.Contains(k)))
+            {
+                transactionType = "purchase";
+            }
+        }
+
+        return transactionType;
+    }
+
+    private Guid? GetBusinessPartyId()
+    {
+        return _state.DocumentHeader!.BusinessPartyId != Guid.Empty 
+            ? _state.DocumentHeader.BusinessPartyId 
+            : null;
     }
 
     /// <summary>
@@ -510,25 +516,25 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private async Task PopulateModelFromRow(DocumentRowDto row)
     {
-        _model.ProductCode = row.ProductCode;
-        _model.Description = row.Description;
-        _model.Quantity = row.Quantity;
-        _model.UnitPrice = row.UnitPrice;
-        _model.UnitOfMeasure = row.UnitOfMeasure;
-        _model.UnitOfMeasureId = row.UnitOfMeasureId;
-        _model.Notes = row.Notes;
-        _model.VatRate = row.VatRate;
-        _model.VatDescription = row.VatDescription;
-        _selectedUnitOfMeasureId = row.UnitOfMeasureId;
+        _state.Model.ProductCode = row.ProductCode;
+        _state.Model.Description = row.Description;
+        _state.Model.Quantity = row.Quantity;
+        _state.Model.UnitPrice = row.UnitPrice;
+        _state.Model.UnitOfMeasure = row.UnitOfMeasure;
+        _state.Model.UnitOfMeasureId = row.UnitOfMeasureId;
+        _state.Model.Notes = row.Notes;
+        _state.Model.VatRate = row.VatRate;
+        _state.Model.VatDescription = row.VatDescription;
+        _state.SelectedUnitOfMeasureId = row.UnitOfMeasureId;
 
-        if (_model.VatRate > 0 || !string.IsNullOrEmpty(_model.VatDescription))
+        if (_state.Model.VatRate > 0 || !string.IsNullOrEmpty(_state.Model.VatDescription))
         {
-            var vatRate = _allVatRates.FirstOrDefault(v =>
-                v.Percentage == _model.VatRate &&
-                (string.IsNullOrEmpty(_model.VatDescription) || v.Name == _model.VatDescription));
+            var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v =>
+                v.Percentage == _state.Model.VatRate &&
+                (string.IsNullOrEmpty(_state.Model.VatDescription) || v.Name == _state.Model.VatDescription));
             if (vatRate != null)
             {
-                _selectedVatRateId = vatRate.Id;
+                _state.SelectedVatRateId = vatRate.Id;
             }
         }
 
@@ -537,9 +543,9 @@ public partial class AddDocumentRowDialog : IDisposable
             var product = await ProductService.GetProductByIdAsync(row.ProductId.Value);
             if (product != null)
             {
-                _selectedProduct = product;
+                _state.SelectedProduct = product;
                 var units = await ProductService.GetProductUnitsAsync(product.Id);
-                _availableUnits = units?.ToList() ?? new List<ProductUnitDto>();
+                _state.Cache.AvailableUnits = units?.ToList() ?? new List<ProductUnitDto>();
             }
         }
 
@@ -565,7 +571,7 @@ public partial class AddDocumentRowDialog : IDisposable
         // Ctrl+S: Save (alternative to Enter)
         if (e.CtrlKey && e.Key == "s")
         {
-            if (IsValid() && !_isProcessing)
+            if (IsValid() && !_state.Processing.IsSaving)
             {
                 await SaveAndContinue();
             }
@@ -604,23 +610,23 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private async Task SearchByBarcode(string barcode)
     {
-        if (_isProcessingBarcode) return;
+        if (_state.Processing.IsProcessingBarcode) return;
 
         try
         {
-            _isProcessingBarcode = true;
-            _scannedBarcode = barcode;
+            _state.Processing.IsProcessingBarcode = true;
+            _state.Barcode.ScannedBarcode = barcode;
 
             var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(barcode);
             if (productWithCode?.Product != null)
             {
-                _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
+                _state.Barcode.ProductUnitId = productWithCode.Code?.ProductUnitId;
 
                 // Set product and populate fields
                 await SelectProductAndPopulateAsync(productWithCode.Product);
 
-                _barcodeInput = string.Empty;
-                _scannedBarcode = string.Empty;
+                _state.Barcode.Input = string.Empty;
+                _state.Barcode.ScannedBarcode = string.Empty;
 
                 Snackbar.Add(
                     TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
@@ -638,7 +644,7 @@ public partial class AddDocumentRowDialog : IDisposable
         }
         finally
         {
-            _isProcessingBarcode = false;
+            _state.Processing.IsProcessingBarcode = false;
         }
     }
 
@@ -673,8 +679,8 @@ public partial class AddDocumentRowDialog : IDisposable
         }
         else
         {
-            _barcodeInput = string.Empty;
-            _scannedBarcode = string.Empty;
+            _state.Barcode.Input = string.Empty;
+            _state.Barcode.ScannedBarcode = string.Empty;
         }
     }
 
@@ -688,8 +694,8 @@ public partial class AddDocumentRowDialog : IDisposable
             // Set product and populate fields
             await SelectProductAndPopulateAsync(createdProduct);
 
-            _barcodeInput = string.Empty;
-            _scannedBarcode = string.Empty;
+            _state.Barcode.Input = string.Empty;
+            _state.Barcode.ScannedBarcode = string.Empty;
 
             Snackbar.Add(
                 TranslationService.GetTranslation("warehouse.productCreatedAndSelected",
@@ -698,8 +704,8 @@ public partial class AddDocumentRowDialog : IDisposable
         }
         else if (data is string action && action == "skip")
         {
-            _barcodeInput = string.Empty;
-            _scannedBarcode = string.Empty;
+            _state.Barcode.Input = string.Empty;
+            _state.Barcode.ScannedBarcode = string.Empty;
         }
         else
         {
@@ -713,8 +719,8 @@ public partial class AddDocumentRowDialog : IDisposable
                     // Set product and populate fields
                     await SelectProductAndPopulateAsync(assignedProduct);
 
-                    _barcodeInput = string.Empty;
-                    _scannedBarcode = string.Empty;
+                    _state.Barcode.Input = string.Empty;
+                    _state.Barcode.ScannedBarcode = string.Empty;
 
                     Snackbar.Add(
                         TranslationService.GetTranslation("warehouse.codeAssignedAndProductSelected",
@@ -725,8 +731,8 @@ public partial class AddDocumentRowDialog : IDisposable
             catch (Exception ex)
             {
                 Logger.LogWarning(ex, "Could not extract assignment info from dialog result");
-                _barcodeInput = string.Empty;
-                _scannedBarcode = string.Empty;
+                _state.Barcode.Input = string.Empty;
+                _state.Barcode.ScannedBarcode = string.Empty;
             }
         }
     }
@@ -759,96 +765,158 @@ public partial class AddDocumentRowDialog : IDisposable
             // This ensures MudAutocomplete sees the committed value
             await InvokeAsync(StateHasChanged);
 
-            // 1. Popola campi base
-            _model.ProductId = product.Id;
-            _model.ProductCode = product.Code;
-            _model.Description = product.Name;
+            // 1. Populate basic product info
+            PopulateBasicProductInfo(product);
 
-            // 2. Popola prezzo e IVA
-            decimal productPrice = product.DefaultPrice ?? 0m;
+            // 2. Calculate and set price with VAT
             decimal vatRate = 0m;
-
-            if (product.VatRateId.HasValue)
-            {
-                _selectedVatRateId = product.VatRateId;
-                var vatRateDto = _allVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
-                if (vatRateDto != null)
-                {
-                    vatRate = vatRateDto.Percentage;
-                    _model.VatRate = vatRate;
-                    _model.VatDescription = vatRateDto.Name;
-                }
-            }
-
-            // 3. Gestisci IVA inclusa
-            if (product.IsVatIncluded && vatRate > 0)
-            {
-                productPrice = productPrice / (1 + vatRate / 100m);
-            }
+            decimal productPrice = CalculateProductPrice(product, out vatRate);
 
             // ✅ Update UI after basic fields are set
             await InvokeAsync(StateHasChanged);
 
-            // 4. Carica unità di misura del prodotto (ASYNC operation)
-            var units = await ProductService.GetProductUnitsAsync(product.Id);
-            _availableUnits = units?.ToList() ?? new List<ProductUnitDto>();
+            // 3. Load product units asynchronously
+            await PopulateProductUnitsAsync(product);
 
-            if (_availableUnits.Any())
-            {
-                // Seleziona unità di misura base o prima disponibile
-                var defaultUnit = _availableUnits.FirstOrDefault(u => u.UnitType == "Base")
-                               ?? _availableUnits.FirstOrDefault();
+            // 4. Set final price
+            _state.Model.UnitPrice = productPrice;
 
-                if (defaultUnit != null)
-                {
-                    _selectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
-                    _model.UnitOfMeasureId = defaultUnit.UnitOfMeasureId;
-                    UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
-                }
-            }
-            else if (product.UnitOfMeasureId.HasValue)
-            {
-                // Fallback all'unità di misura del prodotto
-                _selectedUnitOfMeasureId = product.UnitOfMeasureId;
-                _model.UnitOfMeasureId = product.UnitOfMeasureId;
+            // 5. Invalidate cached calculation result
+            InvalidateCalculationCache();
 
-                var um = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == product.UnitOfMeasureId.Value);
-                if (um != null)
-                {
-                    _model.UnitOfMeasure = um.Symbol;
-                }
-            }
-
-            // 5. Imposta prezzo finale
-            _model.UnitPrice = productPrice;
-
-            // 6. Invalidate cached calculation result
-            _cachedCalculationResult = null;
-            _cachedCalculationKey = string.Empty;
-
-            // 7. Carica transazioni recenti (ASYNC operation)
+            // 6. Load recent transactions
             await LoadRecentTransactions(product.Id);
 
             // ✅ Final UI update after all data is loaded
             await InvokeAsync(StateHasChanged);
 
-            // 8. Auto-focus su campo quantità
-            if (_quantityField != null)
-            {
-                await Task.Delay(Delays.RenderDelayMs); // Delay per rendering
-                await _quantityField.FocusAsync();
-            }
+            // 7. Auto-focus quantity field
+            await FocusQuantityField();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error populating from product {ProductId}", product.Id);
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.loadProductData", "Errore caricamento dati prodotto"),
-                Severity.Error);
-
-            // ✅ Ensure UI update even on error
-            await InvokeAsync(StateHasChanged);
+            await HandleProductPopulationError(ex, product);
         }
+    }
+
+    private void PopulateBasicProductInfo(ProductDto product)
+    {
+        _state.Model.ProductId = product.Id;
+        _state.Model.ProductCode = product.Code;
+        _state.Model.Description = product.Name;
+    }
+
+    private decimal CalculateProductPrice(ProductDto product, out decimal vatRate)
+    {
+        decimal productPrice = product.DefaultPrice ?? 0m;
+        vatRate = 0m;
+
+        if (product.VatRateId.HasValue)
+        {
+            _state.SelectedVatRateId = product.VatRateId;
+            var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
+            if (vatRateDto != null)
+            {
+                vatRate = vatRateDto.Percentage;
+                _state.Model.VatRate = vatRate;
+                _state.Model.VatDescription = vatRateDto.Name;
+            }
+        }
+
+        // Handle VAT-included pricing
+        if (product.IsVatIncluded && vatRate > 0)
+        {
+            productPrice = productPrice / (1 + vatRate / 100m);
+        }
+
+        return productPrice;
+    }
+
+    private async Task PopulateProductUnitsAsync(ProductDto product)
+    {
+        var units = await ProductService.GetProductUnitsAsync(product.Id);
+        _state.Cache.AvailableUnits = units?.ToList() ?? new List<ProductUnitDto>();
+
+        if (_state.Cache.AvailableUnits.Any())
+        {
+            SelectDefaultUnit();
+        }
+        else if (product.UnitOfMeasureId.HasValue)
+        {
+            await HandleNoUnitsConfigured(product);
+        }
+    }
+
+    private void SelectDefaultUnit()
+    {
+        var defaultUnit = _state.Cache.AvailableUnits.FirstOrDefault(u => u.UnitType == "Base")
+                       ?? _state.Cache.AvailableUnits.FirstOrDefault();
+
+        if (defaultUnit != null)
+        {
+            _state.SelectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+            _state.Model.UnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+            UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
+        }
+    }
+
+    private async Task HandleNoUnitsConfigured(ProductDto product)
+    {
+        if (product.UnitOfMeasureId.HasValue)
+        {
+            _state.Cache.AvailableUnits.Add(new ProductUnitDto
+            {
+                Id = Guid.NewGuid(),
+                ProductId = product.Id,
+                UnitOfMeasureId = product.UnitOfMeasureId.Value,
+                ConversionFactor = 1,
+                UnitType = "Base",
+                Status = EventForge.DTOs.Common.ProductUnitStatus.Active
+            });
+
+            _state.SelectedUnitOfMeasureId = product.UnitOfMeasureId;
+            _state.Model.UnitOfMeasureId = product.UnitOfMeasureId;
+            UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
+        }
+        else
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.noUnitsConfigured",
+                    "Nessuna unità di misura configurata per questo prodotto"),
+                Severity.Warning);
+            _state.SelectedUnitOfMeasureId = null;
+            _state.Model.UnitOfMeasure = null;
+            _state.Model.UnitOfMeasureId = null;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task FocusQuantityField()
+    {
+        if (_quantityField != null)
+        {
+            await Task.Delay(Delays.RenderDelayMs);
+            await _quantityField.FocusAsync();
+        }
+    }
+
+    private async Task HandleProductPopulationError(Exception ex, ProductDto product)
+    {
+        Logger.LogError(ex, "Error populating from product {ProductId}", product.Id);
+        Snackbar.Add(
+            TranslationService.GetTranslation("error.loadProductData", "Errore caricamento dati prodotto"),
+            Severity.Error);
+
+        // ✅ Ensure UI update even on error
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void InvalidateCalculationCache()
+    {
+        _calculationCache.Invalidate();
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
     }
 
     /// <summary>
@@ -860,15 +928,15 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private void ClearProductFields()
     {
-        _model.ProductId = null;
-        _model.ProductCode = string.Empty;
-        _model.Description = string.Empty;
-        _model.UnitPrice = 0m;
-        _selectedUnitOfMeasureId = null;
-        _model.UnitOfMeasureId = null;
-        _model.UnitOfMeasure = string.Empty;
-        _availableUnits.Clear();
-        _recentTransactions.Clear();
+        _state.Model.ProductId = null;
+        _state.Model.ProductCode = string.Empty;
+        _state.Model.Description = string.Empty;
+        _state.Model.UnitPrice = 0m;
+        _state.SelectedUnitOfMeasureId = null;
+        _state.Model.UnitOfMeasureId = null;
+        _state.Model.UnitOfMeasure = string.Empty;
+        _state.Cache.AvailableUnits.Clear();
+        _state.Cache.RecentTransactions.Clear();
     }
 
     /// <summary>
@@ -877,9 +945,9 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private async Task SelectProductAndPopulateAsync(ProductDto product)
     {
-        _selectedProduct = product;
-        _previousSelectedProduct = _selectedProduct;
-        await PopulateFromProductAsync(_selectedProduct);
+        _state.SelectedProduct = product;
+        _state.PreviousSelectedProduct = _state.SelectedProduct;
+        await PopulateFromProductAsync(_state.SelectedProduct);
     }
 
     /// <summary>
@@ -969,8 +1037,8 @@ public partial class AddDocumentRowDialog : IDisposable
             // Clear selection - use InvokeAsync to ensure immediate UI update
             await InvokeAsync(() =>
             {
-                _selectedProduct = null;
-                _previousSelectedProduct = null;
+                _state.SelectedProduct = null;
+                _state.PreviousSelectedProduct = null;
                 ClearProductFields();
                 StateHasChanged();
             });
@@ -978,7 +1046,7 @@ public partial class AddDocumentRowDialog : IDisposable
         }
 
         // Prevent re-processing same product - check against previously selected product
-        if (_previousSelectedProduct?.Id == product.Id)
+        if (_state.PreviousSelectedProduct?.Id == product.Id)
         {
             Logger.LogDebug("Product selection unchanged, skipping");
             return;
@@ -988,8 +1056,8 @@ public partial class AddDocumentRowDialog : IDisposable
         // This commits the selection to MudAutocomplete BEFORE async operations
         await InvokeAsync(() =>
         {
-            _selectedProduct = product;
-            _previousSelectedProduct = product;
+            _state.SelectedProduct = product;
+            _state.PreviousSelectedProduct = product;
 
             // ✅ Update UI IMMEDIATELY - this prevents autocomplete reset
             StateHasChanged();
@@ -1010,18 +1078,18 @@ public partial class AddDocumentRowDialog : IDisposable
         try
         {
             var units = await ProductService.GetProductUnitsAsync(product.Id);
-            _availableUnits = units?.ToList() ?? new List<ProductUnitDto>();
+            _state.Cache.AvailableUnits = units?.ToList() ?? new List<ProductUnitDto>();
 
-            if (_availableUnits.Any())
+            if (_state.Cache.AvailableUnits.Any())
             {
-                if (_barcodeProductUnitId.HasValue)
+                if (_state.Barcode.ProductUnitId.HasValue)
                 {
-                    var barcodeUnit = _availableUnits.FirstOrDefault(u => u.Id == _barcodeProductUnitId.Value);
+                    var barcodeUnit = _state.Cache.AvailableUnits.FirstOrDefault(u => u.Id == _state.Barcode.ProductUnitId.Value);
                     if (barcodeUnit != null)
                     {
-                        _selectedUnitOfMeasureId = barcodeUnit.UnitOfMeasureId;
-                        UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
-                        _barcodeProductUnitId = null;
+                        _state.SelectedUnitOfMeasureId = barcodeUnit.UnitOfMeasureId;
+                        UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
+                        _state.Barcode.ProductUnitId = null;
                     }
                     else
                     {
@@ -1050,58 +1118,6 @@ public partial class AddDocumentRowDialog : IDisposable
         }
     }
 
-    /// <summary>
-    /// Gestisce il caso in cui non ci siano unità configurate
-    /// </summary>
-    private async Task HandleNoUnitsConfigured(ProductDto product)
-    {
-        if (product.UnitOfMeasureId.HasValue)
-        {
-            _availableUnits.Add(new ProductUnitDto
-            {
-                Id = Guid.NewGuid(),
-                ProductId = product.Id,
-                UnitOfMeasureId = product.UnitOfMeasureId.Value,
-                ConversionFactor = 1,
-                UnitType = "Base",
-                Status = EventForge.DTOs.Common.ProductUnitStatus.Active
-            });
-
-            _selectedUnitOfMeasureId = product.UnitOfMeasureId;
-            UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
-        }
-        else
-        {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.noUnitsConfigured",
-                    "Nessuna unità di misura configurata per questo prodotto"),
-                Severity.Warning);
-            _selectedUnitOfMeasureId = null;
-            _model.UnitOfMeasure = null;
-            _model.UnitOfMeasureId = null;
-        }
-
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Seleziona l'unità di misura predefinita
-    /// </summary>
-    private void SelectDefaultUnit()
-    {
-        var defaultUnit = _availableUnits.FirstOrDefault(u => u.UnitType == "Base");
-        if (defaultUnit != null)
-        {
-            _selectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
-        }
-        else
-        {
-            _selectedUnitOfMeasureId = _availableUnits.First().UnitOfMeasureId;
-        }
-
-        UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
-    }
-
     #endregion
 
     #region Unit & VAT Selection
@@ -1111,7 +1127,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private void OnUnitOfMeasureChanged(Guid? unitOfMeasureId)
     {
-        _selectedUnitOfMeasureId = unitOfMeasureId;
+        _state.SelectedUnitOfMeasureId = unitOfMeasureId;
         UpdateModelUnitOfMeasure(unitOfMeasureId);
     }
 
@@ -1120,25 +1136,24 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private void OnVatRateChanged(Guid? vatRateId)
     {
-        _selectedVatRateId = vatRateId;
+        _state.SelectedVatRateId = vatRateId;
         if (vatRateId.HasValue)
         {
-            var vatRate = _allVatRates.FirstOrDefault(v => v.Id == vatRateId.Value);
+            var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == vatRateId.Value);
             if (vatRate != null)
             {
-                _model.VatRate = vatRate.Percentage;
-                _model.VatDescription = vatRate.Name;
+                _state.Model.VatRate = vatRate.Percentage;
+                _state.Model.VatDescription = vatRate.Name;
             }
         }
         else
         {
-            _model.VatRate = 0;
-            _model.VatDescription = null;
+            _state.Model.VatRate = 0;
+            _state.Model.VatDescription = null;
         }
 
         // Invalidate cached calculation result
-        _cachedCalculationResult = null;
-        _cachedCalculationKey = string.Empty;
+        InvalidateCalculationCache();
 
         StateHasChanged();
     }
@@ -1150,17 +1165,17 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         if (unitOfMeasureId.HasValue)
         {
-            var selectedUom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unitOfMeasureId);
+            var selectedUom = _state.Cache.AllUnitsOfMeasure.FirstOrDefault(u => u.Id == unitOfMeasureId);
             if (selectedUom != null)
             {
-                _model.UnitOfMeasure = selectedUom.Symbol;
-                _model.UnitOfMeasureId = selectedUom.Id;
+                _state.Model.UnitOfMeasure = selectedUom.Symbol;
+                _state.Model.UnitOfMeasureId = selectedUom.Id;
             }
         }
         else
         {
-            _model.UnitOfMeasure = null;
-            _model.UnitOfMeasureId = null;
+            _state.Model.UnitOfMeasure = null;
+            _state.Model.UnitOfMeasureId = null;
         }
     }
 
@@ -1175,7 +1190,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private string GetCalculationCacheKey()
     {
-        return $"{_model.Quantity}|{_model.UnitPrice}|{_model.VatRate}|{_model.LineDiscount}|{_model.LineDiscountValue}|{_model.DiscountType}";
+        return $"{_state.Model.Quantity}|{_state.Model.UnitPrice}|{_state.Model.VatRate}|{_state.Model.LineDiscount}|{_state.Model.LineDiscountValue}|{_state.Model.DiscountType}";
     }
 
     /// <summary>
@@ -1196,12 +1211,12 @@ public partial class AddDocumentRowDialog : IDisposable
         // Calculate and cache the result
         var input = new Client.Models.Documents.DocumentRowCalculationInput
         {
-            Quantity = _model.Quantity,
-            UnitPrice = _model.UnitPrice,
-            VatRate = _model.VatRate,
-            DiscountPercentage = _model.LineDiscount,
-            DiscountValue = _model.LineDiscountValue,
-            DiscountType = _model.DiscountType
+            Quantity = _state.Model.Quantity,
+            UnitPrice = _state.Model.UnitPrice,
+            VatRate = _state.Model.VatRate,
+            DiscountPercentage = _state.Model.LineDiscount,
+            DiscountValue = _state.Model.LineDiscountValue,
+            DiscountType = _state.Model.DiscountType
         };
 
         _cachedCalculationResult = CalculationService.CalculateRowTotals(input);
@@ -1210,7 +1225,7 @@ public partial class AddDocumentRowDialog : IDisposable
         return _cachedCalculationResult;
     }
 
-    private bool IsProductVatIncluded => _selectedProduct?.IsVatIncluded ?? false;
+    private bool IsProductVatIncluded => _state.SelectedProduct?.IsVatIncluded ?? false;
 
     /// <summary>
     /// Gets the original gross price of the product
@@ -1218,9 +1233,9 @@ public partial class AddDocumentRowDialog : IDisposable
     private decimal GetOriginalGrossPrice()
     {
         if (!IsProductVatIncluded)
-            return _model.Quantity * _model.UnitPrice;
+            return _state.Model.Quantity * _state.Model.UnitPrice;
 
-        return _model.Quantity * _model.UnitPrice * (1 + _model.VatRate / 100m);
+        return _state.Model.Quantity * _state.Model.UnitPrice * (1 + _state.Model.VatRate / 100m);
     }
 
     /// <summary>
@@ -1262,7 +1277,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private bool IsValid()
     {
-        return !string.IsNullOrWhiteSpace(_model.Description) && _model.Quantity > 0;
+        return !string.IsNullOrWhiteSpace(_state.Model.Description) && _state.Model.Quantity > 0;
     }
 
     /// <summary>
@@ -1270,15 +1285,15 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private async Task SaveAndContinue()
     {
-        if (_isProcessing)
+        if (_state.Processing.IsSaving)
             return;
 
-        _isProcessing = true;
+        _state.Processing.IsSaving = true;
         try
         {
-            if (_selectedUnitOfMeasureId.HasValue && _model.UnitOfMeasureId != _selectedUnitOfMeasureId)
+            if (_state.SelectedUnitOfMeasureId.HasValue && _state.Model.UnitOfMeasureId != _state.SelectedUnitOfMeasureId)
             {
-                UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
+                UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
             }
 
             if (_isEditMode && RowId.HasValue)
@@ -1301,7 +1316,7 @@ public partial class AddDocumentRowDialog : IDisposable
         }
         finally
         {
-            _isProcessing = false;
+            _state.Processing.IsSaving = false;
         }
     }
 
@@ -1312,26 +1327,26 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         var updateDto = new UpdateDocumentRowDto
         {
-            ProductCode = _model.ProductCode,
-            Description = _model.Description,
-            UnitOfMeasure = _model.UnitOfMeasure,
-            UnitOfMeasureId = _model.UnitOfMeasureId,
-            UnitPrice = _model.UnitPrice,
-            Quantity = _model.Quantity,
-            Notes = _model.Notes,
-            RowType = _model.RowType,
-            LineDiscount = _model.LineDiscount,
-            LineDiscountValue = _model.LineDiscountValue,
-            DiscountType = _model.DiscountType,
-            VatRate = _model.VatRate,
-            VatDescription = _model.VatDescription,
-            IsGift = _model.IsGift,
-            IsManual = _model.IsManual,
-            SourceWarehouseId = _model.SourceWarehouseId,
-            DestinationWarehouseId = _model.DestinationWarehouseId,
-            SortOrder = _model.SortOrder,
-            StationId = _model.StationId,
-            ParentRowId = _model.ParentRowId
+            ProductCode = _state.Model.ProductCode,
+            Description = _state.Model.Description,
+            UnitOfMeasure = _state.Model.UnitOfMeasure,
+            UnitOfMeasureId = _state.Model.UnitOfMeasureId,
+            UnitPrice = _state.Model.UnitPrice,
+            Quantity = _state.Model.Quantity,
+            Notes = _state.Model.Notes,
+            RowType = _state.Model.RowType,
+            LineDiscount = _state.Model.LineDiscount,
+            LineDiscountValue = _state.Model.LineDiscountValue,
+            DiscountType = _state.Model.DiscountType,
+            VatRate = _state.Model.VatRate,
+            VatDescription = _state.Model.VatDescription,
+            IsGift = _state.Model.IsGift,
+            IsManual = _state.Model.IsManual,
+            SourceWarehouseId = _state.Model.SourceWarehouseId,
+            DestinationWarehouseId = _state.Model.DestinationWarehouseId,
+            SortOrder = _state.Model.SortOrder,
+            StationId = _state.Model.StationId,
+            ParentRowId = _state.Model.ParentRowId
         };
 
         // Validate before submitting
@@ -1339,7 +1354,7 @@ public partial class AddDocumentRowDialog : IDisposable
         
         if (!validationResult.IsValid)
         {
-            _validationErrors = validationResult.GetErrorMessages(TranslationService);
+            _state.Validation.Errors = validationResult.GetErrorMessages(TranslationService);
             StateHasChanged();
             return;
         }
@@ -1361,42 +1376,42 @@ public partial class AddDocumentRowDialog : IDisposable
     private async Task CreateNewRow()
     {
         // Validate before submitting
-        var validationResult = _validator.Validate(_model);
+        var validationResult = _validator.Validate(_state.Model);
         
         if (!validationResult.IsValid)
         {
-            _validationErrors = validationResult.GetErrorMessages(TranslationService);
+            _state.Validation.Errors = validationResult.GetErrorMessages(TranslationService);
             StateHasChanged();
             return;
         }
 
         Logger.LogInformation(
             "Adding document row: ProductId={ProductId}, Qty={Qty}, MergeDuplicates={Merge}",
-            _model.ProductId,
-            _model.Quantity,
-            _model.MergeDuplicateProducts);
+            _state.Model.ProductId,
+            _state.Model.Quantity,
+            _state.Model.MergeDuplicateProducts);
 
         var result = await ExecuteWithErrorHandlingAsync(
-            () => DocumentHeaderService.AddDocumentRowAsync(_model),
+            () => DocumentHeaderService.AddDocumentRowAsync(_state.Model),
             operationName: "createDocumentRow",
             successMessageKey: "documents.rowAddedSuccess");
 
         if (result != null)
         {
             // Track entry in Quick Add mode
-            if (_dialogMode == DialogMode.QuickAdd)
+            if (_state.Mode == DialogMode.QuickAdd)
             {
-                _recentQuickEntries.Insert(0, new QuickAddEntry
+                _state.QuickAdd.RecentEntries.Insert(0, new QuickAddEntry
                 {
-                    Description = _model.Description ?? string.Empty,
-                    Quantity = _model.Quantity,
+                    Description = _state.Model.Description ?? string.Empty,
+                    Quantity = _state.Model.Quantity,
                     Timestamp = DateTime.Now
                 });
 
                 // Keep only last 10 entries
-                if (_recentQuickEntries.Count > Limits.MaxRecentQuickEntries)
+                if (_state.QuickAdd.RecentEntries.Count > Limits.MaxRecentQuickEntries)
                 {
-                    _recentQuickEntries = _recentQuickEntries.Take(Limits.MaxRecentQuickEntries).ToList();
+                    _state.QuickAdd.RecentEntries = _state.QuickAdd.RecentEntries.Take(Limits.MaxRecentQuickEntries).ToList();
                 }
             }
 
@@ -1415,21 +1430,20 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private void ResetForm()
     {
-        var preserveMergeDuplicates = _model.MergeDuplicateProducts;
+        var preserveMergeDuplicates = _state.Model.MergeDuplicateProducts;
 
-        _model = new CreateDocumentRowDto
+        _state.Model = new CreateDocumentRowDto
         {
             DocumentHeaderId = DocumentHeaderId,
             Quantity = 1,
             MergeDuplicateProducts = preserveMergeDuplicates
         };
-        _selectedProduct = null;
-        _previousSelectedProduct = null;
-        _barcodeInput = string.Empty;
+        _state.SelectedProduct = null;
+        _state.PreviousSelectedProduct = null;
+        _state.Barcode.Input = string.Empty;
 
         // Invalidate cached calculation result
-        _cachedCalculationResult = null;
-        _cachedCalculationKey = string.Empty;
+        InvalidateCalculationCache();
 
         StateHasChanged();
     }
@@ -1449,20 +1463,19 @@ public partial class AddDocumentRowDialog : IDisposable
     {
         try
         {
-            _model.UnitPrice = suggestion.EffectiveUnitPrice;
+            _state.Model.UnitPrice = suggestion.EffectiveUnitPrice;
 
             if (suggestion.BaseUnitPrice.HasValue)
             {
-                _model.BaseUnitPrice = suggestion.BaseUnitPrice.Value;
+                _state.Model.BaseUnitPrice = suggestion.BaseUnitPrice.Value;
             }
 
-            _model.LineDiscount = 0;
-            _model.LineDiscountValue = 0;
-            _model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
+            _state.Model.LineDiscount = 0;
+            _state.Model.LineDiscountValue = 0;
+            _state.Model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
 
             // Invalidate cached calculation result
-            _cachedCalculationResult = null;
-            _cachedCalculationKey = string.Empty;
+            InvalidateCalculationCache();
 
             Snackbar.Add(
                 TranslationService.GetTranslation("documents.priceApplied", "Prezzo applicato: {0:C2}", suggestion.EffectiveUnitPrice),
@@ -1484,7 +1497,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private async Task OpenEditProductDialog()
     {
-        if (_selectedProduct == null || _selectedProduct.Id == Guid.Empty)
+        if (_state.SelectedProduct == null || _state.SelectedProduct.Id == Guid.Empty)
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"),
@@ -1495,8 +1508,8 @@ public partial class AddDocumentRowDialog : IDisposable
         var parameters = new DialogParameters
         {
             { "IsEditMode", true },
-            { "ProductId", _selectedProduct.Id },
-            { "ExistingProduct", _selectedProduct }
+            { "ProductId", _state.SelectedProduct.Id },
+            { "ExistingProduct", _state.SelectedProduct }
         };
 
         var options = new DialogOptions
@@ -1516,26 +1529,25 @@ public partial class AddDocumentRowDialog : IDisposable
 
         if (!result.Canceled && result.Data is ProductDto updatedProduct)
         {
-            _selectedProduct = updatedProduct;
+            _state.SelectedProduct = updatedProduct;
 
-            _model.Description = updatedProduct.Description;
-            _model.ProductCode = updatedProduct.Code;
-            _model.UnitPrice = updatedProduct.DefaultPrice ?? _model.UnitPrice;
+            _state.Model.Description = updatedProduct.Description;
+            _state.Model.ProductCode = updatedProduct.Code;
+            _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
 
             if (updatedProduct.VatRateId.HasValue)
             {
-                _selectedVatRateId = updatedProduct.VatRateId.Value;
-                var vatRate = _allVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
+                _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
+                var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
                 if (vatRate != null)
                 {
-                    _model.VatRate = vatRate.Percentage;
-                    _model.VatDescription = vatRate.Name;
+                    _state.Model.VatRate = vatRate.Percentage;
+                    _state.Model.VatDescription = vatRate.Name;
                 }
             }
 
             // Invalidate cached calculation result
-            _cachedCalculationResult = null;
-            _cachedCalculationKey = string.Empty;
+            InvalidateCalculationCache();
 
             Snackbar.Add(
                 TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
@@ -1554,19 +1566,19 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private void SetDialogMode(DialogMode mode)
     {
-        if (_dialogMode == mode) return;
+        if (_state.Mode == mode) return;
 
-        _dialogMode = mode;
+        _state.Mode = mode;
 
         if (mode == DialogMode.ContinuousScan)
         {
             // Initialize continuous scan mode
-            _continuousScanCount = 0;
-            _uniqueProductsCount = 0;
-            _scansPerMinute = 0;
-            _recentContinuousScans.Clear();
-            _scannedProductIds.Clear();
-            _firstScanTime = DateTime.UtcNow;
+            _state.ContinuousScan.ScanCount = 0;
+            _state.ContinuousScan.UniqueProductsCount = 0;
+            _state.ContinuousScan.ScansPerMinute = 0;
+            _state.ContinuousScan.RecentScans.Clear();
+            _state.ContinuousScan.ScannedProductIds.Clear();
+            _state.ContinuousScan.FirstScanTime = DateTime.UtcNow;
             StartStatsTimer();
 
             Logger.LogInformation("Switched to Continuous Scan Mode");
@@ -1584,10 +1596,10 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private async Task ProcessContinuousScan(string barcode)
     {
-        if (string.IsNullOrWhiteSpace(barcode) || _isProcessingContinuousScan)
+        if (string.IsNullOrWhiteSpace(barcode) || _state.ContinuousScan.IsProcessing)
             return;
 
-        _isProcessingContinuousScan = true;
+        _state.ContinuousScan.IsProcessing = true;
         StateHasChanged();
 
         try
@@ -1630,16 +1642,16 @@ public partial class AddDocumentRowDialog : IDisposable
             }
 
             // 4. Update stats
-            _continuousScanCount++;
-            _lastScannedProduct = product.Name;
+            _state.ContinuousScan.ScanCount++;
+            _state.ContinuousScan.LastScannedProduct = product.Name;
 
             // 5. Update tracking list and unique products count
             UpdateRecentScans(product, barcode, result);
 
             // Track unique product (using HashSet for O(1) lookup and insert)
-            if (_scannedProductIds.Add(product.Id))
+            if (_state.ContinuousScan.ScannedProductIds.Add(product.Id))
             {
-                _uniqueProductsCount = _scannedProductIds.Count;
+                _state.ContinuousScan.UniqueProductsCount = _state.ContinuousScan.ScannedProductIds.Count;
             }
 
             // 6. Audio feedback
@@ -1661,8 +1673,8 @@ public partial class AddDocumentRowDialog : IDisposable
         }
         finally
         {
-            _isProcessingContinuousScan = false;
-            _continuousScanInput = string.Empty;
+            _state.ContinuousScan.IsProcessing = false;
+            _state.ContinuousScan.Input = string.Empty;
             StateHasChanged();
 
             // Auto-refocus scanner field
@@ -1679,7 +1691,7 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private void UpdateRecentScans(ProductDto product, string barcode, DocumentRowDto result)
     {
-        var existingEntry = _recentContinuousScans.FirstOrDefault(s =>
+        var existingEntry = _state.ContinuousScan.RecentScans.FirstOrDefault(s =>
             s.ProductId == product.Id && s.Barcode == barcode);
 
         if (existingEntry != null)
@@ -1689,13 +1701,13 @@ public partial class AddDocumentRowDialog : IDisposable
             existingEntry.Timestamp = DateTime.UtcNow;
 
             // Move to top
-            _recentContinuousScans.Remove(existingEntry);
-            _recentContinuousScans.Insert(0, existingEntry);
+            _state.ContinuousScan.RecentScans.Remove(existingEntry);
+            _state.ContinuousScan.RecentScans.Insert(0, existingEntry);
         }
         else
         {
             // Create new entry
-            _recentContinuousScans.Insert(0, new ContinuousScanEntry
+            _state.ContinuousScan.RecentScans.Insert(0, new ContinuousScanEntry
             {
                 ProductId = product.Id,
                 ProductName = product.Name,
@@ -1707,9 +1719,9 @@ public partial class AddDocumentRowDialog : IDisposable
         }
 
         // Keep only last MAX_RECENT_SCANS entries
-        if (_recentContinuousScans.Count > Limits.MaxRecentScans)
+        if (_state.ContinuousScan.RecentScans.Count > Limits.MaxRecentScans)
         {
-            _recentContinuousScans = _recentContinuousScans.Take(Limits.MaxRecentScans).ToList();
+            _state.ContinuousScan.RecentScans = _state.ContinuousScan.RecentScans.Take(Limits.MaxRecentScans).ToList();
         }
     }
 
@@ -1723,8 +1735,8 @@ public partial class AddDocumentRowDialog : IDisposable
         _statsTimer = new System.Timers.Timer(1000); // Update every second
         _statsTimer.Elapsed += (sender, e) =>
         {
-            var elapsed = (DateTime.UtcNow - _firstScanTime).TotalMinutes;
-            _scansPerMinute = elapsed > 0 ? (int)(_continuousScanCount / elapsed) : 0;
+            var elapsed = (DateTime.UtcNow - _state.ContinuousScan.FirstScanTime).TotalMinutes;
+            _state.ContinuousScan.ScansPerMinute = elapsed > 0 ? (int)(_state.ContinuousScan.ScanCount / elapsed) : 0;
             InvokeAsync(StateHasChanged);
         };
         _statsTimer.AutoReset = true;
@@ -1779,9 +1791,9 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private async Task OnContinuousScanKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_continuousScanInput))
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_state.ContinuousScan.Input))
         {
-            await ProcessContinuousScan(_continuousScanInput.Trim());
+            await ProcessContinuousScan(_state.ContinuousScan.Input.Trim());
         }
         else if (e.Key == "Escape")
         {
