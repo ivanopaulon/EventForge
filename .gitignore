@@ -398,3 +398,5 @@ screenshots/
 *.mp4
 *.webm
 /EventForge.Server/Data/Migrations
+/EventForge.Server/appsettings.json
+/EventForge.Server/appsettings.Development.json
