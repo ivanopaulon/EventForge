@@ -41,8 +41,7 @@
                           AdornmentIcon="@Icons.Material.Outlined.Scale">
                     @foreach (var unit in AvailableUnits)
                     {
-                        var uom = AllUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
-                        if (uom != null)
+                        if (_unitsLookup.TryGetValue(unit.UnitOfMeasureId, out var uom))
                         {
                             <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
                         }
@@ -83,6 +82,16 @@
     [Parameter] public List<UMDto> AllUnitsOfMeasure { get; set; } = new();
 
     private MudNumericField<decimal>? _quantityField;
+    private Dictionary<Guid, UMDto> _unitsLookup = new();
+
+    protected override void OnParametersSet()
+    {
+        // Create efficient lookup dictionary when AllUnitsOfMeasure changes
+        if (AllUnitsOfMeasure?.Count > 0)
+        {
+            _unitsLookup = AllUnitsOfMeasure.ToDictionary(u => u.Id, u => u);
+        }
+    }
 
     /// <summary>
     /// Public method to allow parent component to focus the quantity field
