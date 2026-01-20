@@ -1158,6 +1158,7 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool? criticalStock = null,
         [FromQuery] bool? outOfStock = null,
         [FromQuery] bool? inStockOnly = null,
+        [FromQuery] bool? showAllProducts = null,
         [FromQuery] bool detailedView = false,
         CancellationToken cancellationToken = default)
     {
@@ -1171,7 +1172,7 @@ public class WarehouseManagementController : BaseApiController
         {
             var result = await _stockService.GetStockOverviewAsync(
                 page, pageSize, search, warehouseId, locationId, lotId,
-                lowStock, criticalStock, outOfStock, inStockOnly, detailedView,
+                lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView,
                 cancellationToken);
             return Ok(result);
         }

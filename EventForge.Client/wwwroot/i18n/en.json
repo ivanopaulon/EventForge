@@ -2850,6 +2850,12 @@
     "ship": "Ship",
     "receive": "Receive"
   },
+  "stock": {
+    "showAllProducts": "Show all products",
+    "showAllProductsTooltip": "Include products without registered stock",
+    "noStockEntry": "No stock entry",
+    "neverStocked": "Never stocked"
+  },
   "stockStatus": {
     "ok": "OK",
     "lowStock": "Low Stock",

@@ -102,6 +102,13 @@
                            Label="@TranslationService.GetTranslation("stock.onlyInStock", "Solo con giacenza")"
                            Color="Color.Success"
                            Class="ml-2" />
+                <MudTooltip Text="@TranslationService.GetTranslation("stock.showAllProductsTooltip", "Include prodotti senza giacenza registrata")">
+                    <MudSwitch @bind-Value="_showAllProducts"
+                               @bind-Value:after="OnFilterChanged"
+                               Label="@TranslationService.GetTranslation("stock.showAllProducts", "Mostra tutti i prodotti")"
+                               Color="Color.Info"
+                               Class="ml-2" />
+                </MudTooltip>
                 <MudSwitch @bind-Value="_detailedView"
                            @bind-Value:after="OnViewChanged"
                            Label="@(_detailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
@@ -484,6 +491,7 @@
     private bool _showOnlyCritical = false;
     private bool _showOnlyOutOfStock = false;
     private bool _showOnlyInStock = false;
+    private bool _showAllProducts = false;
     private bool _detailedView = true;
     private CancellationTokenSource? _searchDebounceCts;
 
@@ -693,6 +701,7 @@
                 criticalStock: _showOnlyCritical ? true : null,
                 outOfStock: _showOnlyOutOfStock ? true : null,
                 inStockOnly: _showOnlyInStock ? true : null,
+                showAllProducts: _showAllProducts ? true : null,
                 detailedView: _detailedView
             );
 
@@ -700,7 +709,7 @@
             _stockItems = result?.Items?.ToList() ?? new List<StockLocationDetail>();
             
             // Add diagnostic logging
-            Logger.LogInformation("Loaded {Count} stock items", _stockItems.Count);
+            Logger.LogInformation("Loaded {Count} stock items (showAllProducts={ShowAll})", _stockItems.Count, _showAllProducts);
         }
         catch (Exception ex)
         {
@@ -726,6 +735,7 @@
         _showOnlyCritical = false;
         _showOnlyOutOfStock = false;
         _showOnlyInStock = false;
+        _showAllProducts = false;
         await LoadStockOverviewAsync();
     }
 

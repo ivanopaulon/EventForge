@@ -92,6 +92,7 @@ public class StockService : IStockService
         bool? criticalStock = null,
         bool? outOfStock = null,
         bool? inStockOnly = null,
+        bool? showAllProducts = null,
         bool detailedView = false)
     {
         try
@@ -119,6 +120,8 @@ public class StockService : IStockService
                 queryParams.Add($"outOfStock={outOfStock.Value}");
             if (inStockOnly.HasValue)
                 queryParams.Add($"inStockOnly={inStockOnly.Value}");
+            if (showAllProducts.HasValue)
+                queryParams.Add($"showAllProducts={showAllProducts.Value}");
 
             var query = string.Join("&", queryParams);
             return await _httpClientService.GetAsync<PagedResult<StockLocationDetail>>($"{BaseUrl}/overview?{query}");

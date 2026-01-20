@@ -584,6 +584,7 @@ public class StockService : IStockService
         bool? criticalStock = null,
         bool? outOfStock = null,
         bool? inStockOnly = null,
+        bool? showAllProducts = null,
         bool detailedView = false,
         CancellationToken cancellationToken = default)
     {
@@ -595,32 +596,97 @@ public class StockService : IStockService
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Stocks
-                .Include(s => s.Product)
-                .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl!.Warehouse)
-                .Include(s => s.Lot)
-                .Where(s => s.TenantId == currentTenantId.Value && s.IsActive);
+            IQueryable<StockLocationDetail> query;
+
+            if (showAllProducts.HasValue && showAllProducts.Value)
+            {
+                // LEFT JOIN: Show all products + stock (if present)
+                query = from p in _context.Products
+                            .Where(p => p.TenantId == currentTenantId.Value && p.IsActive)
+                        join s in _context.Stocks on p.Id equals s.ProductId into stockGroup
+                        from stock in stockGroup.DefaultIfEmpty()
+                        join sl in _context.StorageLocations on stock.StorageLocationId equals sl.Id into locationGroup
+                        from location in locationGroup.DefaultIfEmpty()
+                        join w in _context.StorageFacilities on location.WarehouseId equals w.Id into warehouseGroup
+                        from warehouse in warehouseGroup.DefaultIfEmpty()
+                        join lot in _context.Lots on stock.LotId equals lot.Id into lotGroup
+                        from stockLot in lotGroup.DefaultIfEmpty()
+                        where stock == null || (stock.TenantId == currentTenantId.Value && stock.IsActive)
+                        select new StockLocationDetail
+                        {
+                            StockId = stock != null ? stock.Id : Guid.Empty,
+                            ProductId = p.Id,
+                            ProductCode = p.Code,
+                            ProductName = p.Name,
+                            WarehouseId = warehouse != null ? warehouse.Id : Guid.Empty,
+                            WarehouseName = warehouse != null ? warehouse.Name : "N/A",
+                            WarehouseCode = warehouse != null ? warehouse.Code : string.Empty,
+                            LocationId = location != null ? location.Id : Guid.Empty,
+                            LocationCode = location != null ? location.Code : "N/A",
+                            LocationDescription = location != null ? location.Description : null,
+                            LotId = stockLot != null ? stockLot.Id : null,
+                            LotCode = stockLot != null ? stockLot.Code : null,
+                            LotExpiry = stockLot != null ? stockLot.ExpiryDate : null,
+                            Quantity = stock != null ? stock.Quantity : 0,
+                            Reserved = stock != null ? stock.ReservedQuantity : 0,
+                            LastMovementDate = stock != null ? stock.LastMovementDate : null,
+                            ReorderPoint = stock != null ? stock.ReorderPoint : p.ReorderPoint,
+                            SafetyStock = stock != null ? stock.MinimumLevel : p.SafetyStock
+                        };
+            }
+            else
+            {
+                // EXISTING QUERY: Only products with stock
+                var stockQuery = _context.Stocks
+                    .Include(s => s.Product)
+                    .Include(s => s.StorageLocation)
+                        .ThenInclude(sl => sl!.Warehouse)
+                    .Include(s => s.Lot)
+                    .Where(s => s.TenantId == currentTenantId.Value && s.IsActive);
+
+                query = stockQuery.Select(s => new StockLocationDetail
+                {
+                    StockId = s.Id,
+                    ProductId = s.ProductId,
+                    ProductCode = s.Product!.Code,
+                    ProductName = s.Product.Name,
+                    WarehouseId = s.StorageLocation!.WarehouseId,
+                    WarehouseName = s.StorageLocation.Warehouse!.Name,
+                    WarehouseCode = s.StorageLocation.Warehouse.Code,
+                    LocationId = s.StorageLocationId,
+                    LocationCode = s.StorageLocation.Code,
+                    LocationDescription = s.StorageLocation.Description,
+                    LotId = s.LotId,
+                    LotCode = s.Lot != null ? s.Lot.Code : null,
+                    LotExpiry = s.Lot != null ? s.Lot.ExpiryDate : null,
+                    Quantity = s.Quantity,
+                    Reserved = s.ReservedQuantity,
+                    LastMovementDate = s.LastMovementDate,
+                    ReorderPoint = s.ReorderPoint,
+                    SafetyStock = s.MinimumLevel
+                });
+            }
+
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var searchLower = searchTerm.ToLower();
                 query = query.Where(s =>
-                    s.Product!.Name.ToLower().Contains(searchLower) ||
-                    s.Product.Code.ToLower().Contains(searchLower));
+                    s.ProductName.ToLower().Contains(searchLower) ||
+                    s.ProductCode.ToLower().Contains(searchLower));
             }
 
             // Apply warehouse filter
             if (warehouseId.HasValue)
             {
-                query = query.Where(s => s.StorageLocation!.WarehouseId == warehouseId.Value);
+                query = query.Where(s => s.WarehouseId == warehouseId.Value);
             }
 
             // Apply location filter
             if (locationId.HasValue)
             {
-                query = query.Where(s => s.StorageLocationId == locationId.Value);
+                query = query.Where(s => s.LocationId == locationId.Value);
             }
 
             // Apply lot filter
@@ -637,7 +703,7 @@ public class StockService : IStockService
 
             if (criticalStock.HasValue && criticalStock.Value)
             {
-                query = query.Where(s => s.MinimumLevel.HasValue && s.Quantity <= s.MinimumLevel.Value);
+                query = query.Where(s => s.SafetyStock.HasValue && s.Quantity <= s.SafetyStock.Value);
             }
 
             if (outOfStock.HasValue && outOfStock.Value)
@@ -652,38 +718,16 @@ public class StockService : IStockService
 
             var totalCount = await query.CountAsync(cancellationToken);
 
-            var stocks = await query
-                .OrderBy(s => s.Product!.Code)
-                .ThenBy(s => s.StorageLocation!.Code)
+            var items = await query
+                .OrderBy(s => s.ProductCode)
+                .ThenBy(s => s.LocationCode)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            var details = stocks.Select(s => new StockLocationDetail
-            {
-                StockId = s.Id,
-                ProductId = s.ProductId,
-                ProductCode = s.Product?.Code ?? string.Empty,
-                ProductName = s.Product?.Name ?? string.Empty,
-                WarehouseId = s.StorageLocation?.WarehouseId ?? Guid.Empty,
-                WarehouseName = s.StorageLocation?.Warehouse?.Name ?? string.Empty,
-                WarehouseCode = s.StorageLocation?.Warehouse?.Code ?? string.Empty,
-                LocationId = s.StorageLocationId,
-                LocationCode = s.StorageLocation?.Code ?? string.Empty,
-                LocationDescription = s.StorageLocation?.Description,
-                LotId = s.LotId,
-                LotCode = s.Lot?.Code,
-                LotExpiry = s.Lot?.ExpiryDate,
-                Quantity = s.Quantity,
-                Reserved = s.ReservedQuantity,
-                LastMovementDate = s.LastMovementDate,
-                ReorderPoint = s.ReorderPoint,
-                SafetyStock = s.MinimumLevel
-            }).ToList();
-
             return new PagedResult<StockLocationDetail>
             {
-                Items = details,
+                Items = items,
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
