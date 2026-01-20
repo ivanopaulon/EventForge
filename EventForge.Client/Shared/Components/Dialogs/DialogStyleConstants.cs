@@ -23,7 +23,7 @@ public static class DialogStyleConstants
             FullWidth = true,
             CloseButton = true,
             CloseOnEscapeKey = true,
-            DisableBackdropClick = false,
+            BackdropClick = false,
             Position = DialogPosition.Center
         };
 
@@ -37,7 +37,7 @@ public static class DialogStyleConstants
             FullWidth = true,
             CloseButton = true,
             CloseOnEscapeKey = true,
-            DisableBackdropClick = false,
+            BackdropClick = false,
             Position = DialogPosition.Center
         };
 
@@ -53,7 +53,7 @@ public static class DialogStyleConstants
             FullWidth = true,
             CloseButton = true,
             CloseOnEscapeKey = true,
-            DisableBackdropClick = false,
+            BackdropClick = false,
             Position = DialogPosition.Center
         };
     }
@@ -73,7 +73,7 @@ public static class DialogStyleConstants
             FullWidth = true,
             CloseButton = true,
             CloseOnEscapeKey = true,
-            DisableBackdropClick = false,
+            BackdropClick = false,
             Position = DialogPosition.Center
         };
 
@@ -88,7 +88,7 @@ public static class DialogStyleConstants
             FullWidth = true,
             CloseButton = true,
             CloseOnEscapeKey = true,
-            DisableBackdropClick = false,
+            BackdropClick = false,
             Position = DialogPosition.Center
         };
     }
