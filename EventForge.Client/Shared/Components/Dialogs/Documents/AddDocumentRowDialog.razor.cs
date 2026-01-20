@@ -33,6 +33,7 @@ public partial class AddDocumentRowDialog : IDisposable
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ILocalStorageService LocalStorage { get; set; } = null!;
+    [Inject] private IDocumentRowValidator _validator { get; set; } = null!;
 
     #endregion
 
@@ -104,6 +105,10 @@ public partial class AddDocumentRowDialog : IDisposable
     // Debouncer for LocalStorage writes
     private DebouncedAction? _panelStateSaveDebouncer;
 
+    // Loading and error state
+    private bool _isLoadingData = false;
+    private List<string> _validationErrors = new();
+
     #endregion
 
     #region Quick Add Entry Model
@@ -132,28 +137,35 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     protected override async Task OnInitializedAsync()
     {
-        // Initialize debouncer for panel state saves
-        _panelStateSaveDebouncer = new DebouncedAction(Delays.DebounceSaveMs);
+        _isLoadingData = true;
+        StateHasChanged();
 
-        // Load panel states first (needed for UI)
-        await LoadPanelStatesAsync();
-
-        // Load data in parallel for faster initialization
-        var loadTasks = new List<Task>
+        try
         {
-            LoadDocumentHeaderAsync(),
-            LoadUnitsOfMeasureAsync(),
-            LoadVatRatesAsync()
-        };
+            // Initialize debouncer for panel state saves
+            _panelStateSaveDebouncer = new DebouncedAction(Delays.DebounceSaveMs);
 
-        // Add edit mode task if applicable
-        if (_isEditMode && RowId.HasValue)
-        {
-            loadTasks.Add(LoadRowForEdit(RowId.Value));
+            // Load panel states first (needed for UI)
+            await LoadPanelStatesAsync();
+
+            // Load data in parallel for faster initialization
+            await Task.WhenAll(
+                LoadDocumentHeaderAsync(),
+                LoadUnitsOfMeasureAsync(),
+                LoadVatRatesAsync()
+            );
+
+            // Add edit mode task if applicable
+            if (_isEditMode && RowId.HasValue)
+            {
+                await LoadRowForEdit(RowId.Value);
+            }
         }
-
-        // Execute all tasks in parallel
-        await Task.WhenAll(loadTasks);
+        finally
+        {
+            _isLoadingData = false;
+            StateHasChanged();
+        }
     }
 
     /// <summary>
@@ -280,6 +292,81 @@ public partial class AddDocumentRowDialog : IDisposable
 
     #endregion
 
+    #region Error Handling Utility
+
+    /// <summary>
+    /// Executes an async operation with standardized error handling
+    /// </summary>
+    /// <typeparam name="T">Return type of the operation</typeparam>
+    /// <param name="operation">The async operation to execute</param>
+    /// <param name="operationName">Name of the operation for logging</param>
+    /// <param name="successMessageKey">Translation key for success message (optional)</param>
+    /// <param name="showErrorToUser">Whether to show error to user via Snackbar</param>
+    /// <returns>Result of the operation or default(T) on error</returns>
+    private async Task<T?> ExecuteWithErrorHandlingAsync<T>(
+        Func<Task<T>> operation,
+        string operationName,
+        string? successMessageKey = null,
+        bool showErrorToUser = true)
+    {
+        try
+        {
+            var result = await operation();
+
+            if (successMessageKey != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation(successMessageKey, "Operazione completata"),
+                    Severity.Success);
+            }
+
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "HTTP error during {Operation}", operationName);
+            
+            if (showErrorToUser)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation(
+                        "error.networkError",
+                        "Errore di connessione. Verifica la connessione di rete."),
+                    Severity.Error);
+            }
+        }
+        catch (TaskCanceledException ex)
+        {
+            Logger.LogWarning(ex, "Operation {Operation} was cancelled", operationName);
+            
+            if (showErrorToUser)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation(
+                        "error.operationCancelled",
+                        "Operazione annullata"),
+                    Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during {Operation}", operationName);
+            
+            if (showErrorToUser)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation(
+                        $"error.{operationName}",
+                        $"Errore durante {operationName}"),
+                    Severity.Error);
+            }
+        }
+
+        return default;
+    }
+
+    #endregion
+
     #region Data Loading Methods
 
     /// <summary>
@@ -290,15 +377,10 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private async Task LoadDocumentHeaderAsync()
     {
-        try
-        {
-            _documentHeader = await DocumentHeaderService.GetDocumentHeaderByIdAsync(
-                DocumentHeaderId, includeRows: false);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading document header");
-        }
+        _documentHeader = await ExecuteWithErrorHandlingAsync(
+            () => DocumentHeaderService.GetDocumentHeaderByIdAsync(DocumentHeaderId, includeRows: false),
+            operationName: "loadDocumentHeader",
+            showErrorToUser: true);
     }
 
     /// <summary>
@@ -309,16 +391,10 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private async Task LoadUnitsOfMeasureAsync()
     {
-        try
-        {
-            // ✅ OPTIMIZATION: Use cache service instead of direct API call
-            _allUnitsOfMeasure = await CacheService.GetUnitsOfMeasureAsync();
-            Logger.LogDebug("Loaded {Count} units of measure from cache service", _allUnitsOfMeasure.Count);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading units of measure");
-        }
+        _allUnitsOfMeasure = await ExecuteWithErrorHandlingAsync(
+            () => CacheService.GetUnitsOfMeasureAsync(),
+            operationName: "loadUnitsOfMeasure",
+            showErrorToUser: true) ?? new List<UMDto>();
     }
 
     /// <summary>
@@ -329,16 +405,10 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </remarks>
     private async Task LoadVatRatesAsync()
     {
-        try
-        {
-            // ✅ OPTIMIZATION: Use cache service instead of direct API call
-            _allVatRates = await CacheService.GetVatRatesAsync();
-            Logger.LogDebug("Loaded {Count} VAT rates from cache service", _allVatRates.Count);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading VAT rates");
-        }
+        _allVatRates = await ExecuteWithErrorHandlingAsync(
+            () => CacheService.GetVatRatesAsync(),
+            operationName: "loadVatRates",
+            showErrorToUser: true) ?? new List<VatRateDto>();
     }
 
     /// <summary>
@@ -1264,21 +1334,24 @@ public partial class AddDocumentRowDialog : IDisposable
             ParentRowId = _model.ParentRowId
         };
 
-        var result = await DocumentHeaderService.UpdateDocumentRowAsync(RowId!.Value, updateDto);
+        // Validate before submitting
+        var validationResult = _validator.Validate(updateDto);
+        
+        if (!validationResult.IsValid)
+        {
+            _validationErrors = validationResult.GetErrorMessages(TranslationService);
+            StateHasChanged();
+            return;
+        }
+
+        var result = await ExecuteWithErrorHandlingAsync(
+            () => DocumentHeaderService.UpdateDocumentRowAsync(RowId!.Value, updateDto),
+            operationName: "updateDocumentRow",
+            successMessageKey: "documents.rowUpdatedSuccess");
+
         if (result != null)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.rowUpdatedSuccess",
-                    "Riga aggiornata con successo"),
-                Severity.Success);
             MudDialog.Close(DialogResult.Ok(result));
-        }
-        else
-        {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.rowUpdatedError",
-                    "Errore durante l'aggiornamento della riga"),
-                Severity.Error);
         }
     }
 
@@ -1287,20 +1360,29 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     private async Task CreateNewRow()
     {
+        // Validate before submitting
+        var validationResult = _validator.Validate(_model);
+        
+        if (!validationResult.IsValid)
+        {
+            _validationErrors = validationResult.GetErrorMessages(TranslationService);
+            StateHasChanged();
+            return;
+        }
+
         Logger.LogInformation(
             "Adding document row: ProductId={ProductId}, Qty={Qty}, MergeDuplicates={Merge}",
             _model.ProductId,
             _model.Quantity,
             _model.MergeDuplicateProducts);
 
-        var result = await DocumentHeaderService.AddDocumentRowAsync(_model);
+        var result = await ExecuteWithErrorHandlingAsync(
+            () => DocumentHeaderService.AddDocumentRowAsync(_model),
+            operationName: "createDocumentRow",
+            successMessageKey: "documents.rowAddedSuccess");
+
         if (result != null)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.rowAddedSuccess",
-                    "Riga aggiunta con successo"),
-                Severity.Success);
-
             // Track entry in Quick Add mode
             if (_dialogMode == DialogMode.QuickAdd)
             {
@@ -1325,13 +1407,6 @@ public partial class AddDocumentRowDialog : IDisposable
                 await Task.Delay(Delays.RenderDelayMs);
                 await _barcodeField.FocusAsync();
             }
-        }
-        else
-        {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.rowAddedError",
-                    "Errore durante l'aggiunta della riga"),
-                Severity.Error);
         }
     }
 

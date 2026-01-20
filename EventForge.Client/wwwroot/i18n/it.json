@@ -642,7 +642,14 @@
     "closeSaleError": "Errore durante la chiusura della vendita",
     "parkSessionError": "Errore durante il parcheggio della sessione",
     "cancelSessionError": "Errore durante l'annullamento della sessione",
-    "printError": "Errore durante la stampa"
+    "printError": "Errore durante la stampa",
+    "networkError": "Errore di connessione. Verifica la connessione di rete.",
+    "operationCancelled": "Operazione annullata",
+    "loadDocumentHeader": "Errore nel caricamento dell'intestazione documento",
+    "loadUnitsOfMeasure": "Errore nel caricamento delle unità di misura",
+    "loadVatRates": "Errore nel caricamento delle aliquote IVA",
+    "createDocumentRow": "Errore nella creazione della riga",
+    "updateDocumentRow": "Errore nell'aggiornamento della riga"
   },
   "eventStatus": {
     "cancelled": "Annullato",
@@ -2120,7 +2127,18 @@
     "required": "Questo campo è obbligatorio",
     "shortDescriptionRequired": "La descrizione breve è obbligatoria",
     "codeRequired": "Il codice è obbligatorio",
-    "supplierRequired": "Il fornitore è obbligatorio"
+    "supplierRequired": "Il fornitore è obbligatorio",
+    "errors": "Errori di validazione",
+    "descriptionRequired": "La descrizione è obbligatoria",
+    "quantityMustBePositive": "La quantità deve essere maggiore di zero",
+    "quantityTooLarge": "La quantità è troppo elevata (massimo 999.999)",
+    "unitPriceCannotBeNegative": "Il prezzo unitario non può essere negativo",
+    "unitPriceTooLarge": "Il prezzo unitario è troppo elevato (massimo 9.999.999,99)",
+    "discountPercentageInvalid": "Lo sconto percentuale deve essere tra 0 e 100",
+    "discountValueCannotBeNegative": "Il valore dello sconto non può essere negativo",
+    "discountValueExceedsTotal": "Il valore dello sconto supera il totale della riga",
+    "vatRateInvalid": "L'aliquota IVA deve essere tra 0 e 100",
+    "unitOfMeasureRequired": "L'unità di misura è obbligatoria"
   },
   "walkthrough": {
     "chat": {

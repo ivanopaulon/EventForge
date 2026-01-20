@@ -639,7 +639,14 @@
     "closeSaleError": "Error closing sale",
     "parkSessionError": "Error parking session",
     "cancelSessionError": "Error cancelling session",
-    "printError": "Error printing"
+    "printError": "Error printing",
+    "networkError": "Network error. Please check your connection.",
+    "operationCancelled": "Operation cancelled",
+    "loadDocumentHeader": "Error loading document header",
+    "loadUnitsOfMeasure": "Error loading units of measure",
+    "loadVatRates": "Error loading VAT rates",
+    "createDocumentRow": "Error creating document row",
+    "updateDocumentRow": "Error updating document row"
   },
   "eventStatus": {
     "cancelled": "Cancelled",
@@ -2117,7 +2124,18 @@
     "required": "This field is required",
     "shortDescriptionRequired": "Short description is required",
     "codeRequired": "[FROM IT] Il codice è obbligatorio",
-    "supplierRequired": "[FROM IT] Il fornitore è obbligatorio"
+    "supplierRequired": "[FROM IT] Il fornitore è obbligatorio",
+    "errors": "Validation errors",
+    "descriptionRequired": "Description is required",
+    "quantityMustBePositive": "Quantity must be greater than zero",
+    "quantityTooLarge": "Quantity is too large (max 999,999)",
+    "unitPriceCannotBeNegative": "Unit price cannot be negative",
+    "unitPriceTooLarge": "Unit price is too large (max 9,999,999.99)",
+    "discountPercentageInvalid": "Discount percentage must be between 0 and 100",
+    "discountValueCannotBeNegative": "Discount value cannot be negative",
+    "discountValueExceedsTotal": "Discount value exceeds line total",
+    "vatRateInvalid": "VAT rate must be between 0 and 100",
+    "unitOfMeasureRequired": "Unit of measure is required"
   },
   "walkthrough": {
     "chat": {

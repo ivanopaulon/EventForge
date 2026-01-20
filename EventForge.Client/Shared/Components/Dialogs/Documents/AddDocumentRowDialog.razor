@@ -53,6 +53,35 @@
         </MudStack>
     </TitleContent>
     <DialogContent>
+        @if (_isLoadingData)
+        {
+            <MudStack Spacing="2" Class="mb-4">
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+                <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Primary">
+                    @TranslationService.GetTranslation("common.loading", "Caricamento in corso...")
+                </MudText>
+            </MudStack>
+        }
+
+        @if (_validationErrors.Any())
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled" 
+                      CloseIcon="@Icons.Material.Filled.Close" 
+                      CloseIconClicked="@(() => _validationErrors.Clear())">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                    <b>@TranslationService.GetTranslation("validation.errors", "Errori di validazione"):</b>
+                </MudText>
+                <MudList Dense="true">
+                    @foreach (var error in _validationErrors)
+                    {
+                        <MudListItem Icon="@Icons.Material.Filled.Error" IconColor="Color.Error">
+                            @error
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudAlert>
+        }
+
         <MudStack Spacing="3">
             
             @if (_dialogMode == DialogMode.ContinuousScan)
