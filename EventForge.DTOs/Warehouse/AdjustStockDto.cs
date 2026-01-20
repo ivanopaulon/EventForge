@@ -18,11 +18,11 @@ namespace EventForge.DTOs.Warehouse
         public Guid StorageLocationId { get; set; }
 
         [Required]
-        [Range(0, double.MaxValue)]
+        [Range(0, 999999999)]
         public decimal NewQuantity { get; set; }
 
         [Required]
-        [Range(0, double.MaxValue)]
+        [Range(0, 999999999)]
         public decimal PreviousQuantity { get; set; }
 
         [Required]

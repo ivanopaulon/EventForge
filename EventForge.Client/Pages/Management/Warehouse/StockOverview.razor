@@ -459,6 +459,10 @@
 }
 
 @code {
+    // Configuration constants
+    private const decimal QuickEditMaxDifference = 50m;
+    private const decimal FullEditNotesRequiredDifference = 10m;
+    
     // Dialog options for fullscreen audit dialog
     private readonly DialogOptions _auditDialogOptions = new() 
     { 
@@ -829,10 +833,14 @@
         {
             var difference = Math.Abs(_editingNewQuantity - item.Quantity);
             
-            // Block if difference > 50 units
-            if (difference > 50)
+            // Block if difference exceeds quick edit limit
+            if (difference > QuickEditMaxDifference)
             {
-                Snackbar.Add(TranslationService.GetTranslation("stock.quickEditLimitExceeded", "Differenza troppo grande (> 50 unità). Usa la modalità di modifica completa."), Severity.Warning);
+                var message = TranslationService.GetTranslationFormatted(
+                    "stock.quickEditLimitExceeded", 
+                    "Differenza troppo grande (> {0} unità). Usa la modalità di modifica completa.", 
+                    QuickEditMaxDifference);
+                Snackbar.Add(message, Severity.Warning);
                 return;
             }
 

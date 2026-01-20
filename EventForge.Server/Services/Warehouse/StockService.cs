@@ -732,8 +732,9 @@ public class StockService : IStockService
                 Id = Guid.NewGuid(),
                 TenantId = currentTenantId.Value,
                 ProductId = stock.ProductId,
+                // For adjustments, use ToLocation for increases, FromLocation for decreases
                 FromLocationId = difference < 0 ? stock.StorageLocationId : null,
-                ToLocationId = difference > 0 ? stock.StorageLocationId : null,
+                ToLocationId = difference >= 0 ? stock.StorageLocationId : null,
                 LotId = stock.LotId,
                 Quantity = Math.Abs(difference),
                 MovementType = StockMovementType.Adjustment,
