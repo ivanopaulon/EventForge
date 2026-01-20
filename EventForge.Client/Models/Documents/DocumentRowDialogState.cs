@@ -62,11 +62,6 @@ public class DocumentRowDialogState
     public BarcodeState Barcode { get; set; } = new();
 
     /// <summary>
-    /// Quick Add mode tracking
-    /// </summary>
-    public QuickAddState QuickAdd { get; set; } = new();
-
-    /// <summary>
     /// Continuous Scan mode tracking
     /// </summary>
     public ContinuousScanState ContinuousScan { get; set; } = new();
@@ -134,14 +129,6 @@ public class BarcodeState
 }
 
 /// <summary>
-/// Quick Add mode state
-/// </summary>
-public class QuickAddState
-{
-    public List<QuickAddEntry> RecentEntries { get; set; } = new();
-}
-
-/// <summary>
 /// Continuous Scan mode state
 /// </summary>
 public class ContinuousScanState
@@ -155,14 +142,4 @@ public class ContinuousScanState
     public bool IsProcessing { get; set; }
     public DateTime FirstScanTime { get; set; } = DateTime.UtcNow;
     public string Input { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Quick Add entry tracking
-/// </summary>
-public class QuickAddEntry
-{
-    public string Description { get; set; } = string.Empty;
-    public decimal Quantity { get; set; }
-    public DateTime Timestamp { get; set; }
 }

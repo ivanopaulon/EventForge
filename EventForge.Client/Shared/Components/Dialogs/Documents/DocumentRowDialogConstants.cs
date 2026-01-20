@@ -35,11 +35,6 @@ public static class DocumentRowDialogConstants
         /// Maximum number of recent scans to keep in continuous scan mode
         /// </summary>
         public const int MaxRecentScans = 20;
-
-        /// <summary>
-        /// Maximum number of recent quick entries to track
-        /// </summary>
-        public const int MaxRecentQuickEntries = 10;
     }
 
     /// <summary>

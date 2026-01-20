@@ -2135,6 +2135,7 @@
     "discountValueCannotBeNegative": "Discount value cannot be negative",
     "discountValueExceedsTotal": "Discount value exceeds line total",
     "vatRateInvalid": "VAT rate must be between 0 and 100",
+    "incompleteData": "Incomplete data",
     "unitOfMeasureRequired": "Unit of measure is required"
   },
   "walkthrough": {
@@ -2566,6 +2567,14 @@
     "mergeDuplicatesDisabledHelp": "Select a product from autocomplete to enable merging",
     "mergeDuplicatesActivePrefix": "Merge Mode Active:",
     "mergeDuplicatesActiveInfo": "If an identical row exists (same product, price, VAT and discounts), the quantity will be summed.",
+    "searchProductHelp": "Search product (min 2 chars)...",
+    "searchProduct": "Search product (min 2 chars)...",
+    "noProductsFound": "No products found",
+    "productSelected": "Product selected",
+    "standardMode": "Standard",
+    "standardModeTooltip": "Full mode with all fields",
+    "continuousScanMode": "Scan",
+    "continuousScanTooltip": "Continuous scanning with barcode scanner",
     "addAndContinue": "Add and Continue",
     "alternativeUnitDetected": "Alternative Unit Detected",
     "quantityBase": "{0} (base unit)",

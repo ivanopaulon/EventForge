@@ -8,8 +8,7 @@
         @TranslationService.GetTranslation("documents.product", "Prodotto")
     </MudText>
     <MudAutocomplete T="ProductDto"
-                     Value="@SelectedProduct"
-                     ValueChanged="@OnProductChanged"
+                     @bind-Value="@SelectedProduct"
                      SearchFunc="@SearchFunc"
                      ToStringFunc="@(p => p?.Name ?? string.Empty)"
                      Variant="Variant.Outlined"
@@ -62,9 +61,34 @@
 
 @code {
     [Parameter] public ProductDto? SelectedProduct { get; set; }
+    [Parameter] public EventCallback<ProductDto?> SelectedProductChanged { get; set; }
     [Parameter] public bool IsEnabled { get; set; } = true;
     [Parameter] public bool ShowQuickEdit { get; set; } = true;
     [Parameter] public EventCallback<ProductDto?> OnProductChanged { get; set; }
     [Parameter] public EventCallback OnQuickEdit { get; set; }
     [Parameter] public Func<string, CancellationToken, Task<IEnumerable<ProductDto>>>? SearchFunc { get; set; }
+
+    private Guid? _previousProductId;
+
+    /// <summary>
+    /// Monitors SelectedProduct changes and triggers callbacks
+    /// Uses product ID comparison to avoid reference equality issues
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        
+        // Check if SelectedProduct changed by comparing IDs
+        var currentProductId = SelectedProduct?.Id;
+        if (_previousProductId != currentProductId)
+        {
+            _previousProductId = currentProductId;
+            
+            // Invoke the custom event callback if set
+            if (OnProductChanged.HasDelegate)
+            {
+                await OnProductChanged.InvokeAsync(SelectedProduct);
+            }
+        }
+    }
 }
