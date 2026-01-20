@@ -1,3 +1,4 @@
+using EventForge.Client.Services;
 using EventForge.DTOs.Documents;
 
 namespace EventForge.Client.Services.Documents;
