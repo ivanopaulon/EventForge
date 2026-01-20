@@ -1,0 +1,132 @@
+/* ========================================
+   DIALOG STYLES - CONSISTENT ACROSS APP
+   ======================================== */
+
+/* Dialog Title Standardization */
+.ef-dialog-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ef-dialog-title .mud-icon-root {
+    color: var(--mud-palette-primary);
+}
+
+.ef-dialog-title .mud-typography {
+    font-weight: 500;
+    color: var(--mud-palette-text-primary);
+}
+
+/* Dialog Content Spacing */
+.ef-dialog-content {
+    padding: 24px;
+}
+
+.ef-dialog-content > .mud-stack,
+.ef-dialog-content > .mud-grid {
+    gap: 16px;
+}
+
+/* Dialog Actions Alignment */
+.ef-dialog-actions {
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--mud-palette-divider);
+}
+
+.ef-dialog-actions .mud-spacer {
+    flex-grow: 1;
+}
+
+/* Responsive Dialog Padding */
+@media (max-width: 600px) {
+    .ef-dialog-content {
+        padding: 16px;
+    }
+    
+    .ef-dialog-actions {
+        padding: 12px 16px;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .ef-dialog-actions .mud-button {
+        width: 100%;
+    }
+}
+
+/* Dialog Loading Overlay */
+.ef-dialog-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Dialog Form Field Spacing */
+.ef-dialog-form .mud-input-control,
+.ef-dialog-form .mud-select {
+    margin-bottom: 16px;
+}
+
+/* Dialog Section Headers */
+.ef-dialog-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--mud-palette-divider);
+}
+
+.ef-dialog-section-header .mud-icon-root {
+    color: var(--mud-palette-text-secondary);
+}
+
+.ef-dialog-section-header .mud-typography {
+    color: var(--mud-palette-text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+}
+
+/* Dialog Animations */
+.mud-dialog-container {
+    animation: dialogFadeIn 0.2s ease-out;
+}
+
+@keyframes dialogFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Button Hover Effects */
+.ef-dialog-actions .mud-button {
+    transition: all 0.2s ease-in-out;
+}
+
+.ef-dialog-actions .mud-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Form Field Focus States */
+.ef-dialog-form .mud-input-control:focus-within {
+    box-shadow: 0 0 0 2px var(--mud-palette-primary-lighten);
+    border-radius: 4px;
+}
