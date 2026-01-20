@@ -678,42 +678,89 @@ public class StockService : IStockService
             }
 
             // Apply warehouse filter
+            // When showAllProducts is enabled, only filter products with stock to avoid excluding products without stock entries
             if (warehouseId.HasValue)
             {
-                query = query.Where(s => s.WarehouseId == warehouseId.Value);
+                if (showAllProducts.HasValue && showAllProducts.Value)
+                {
+                    query = query.Where(s => s.StockId == Guid.Empty || s.WarehouseId == warehouseId.Value);
+                }
+                else
+                {
+                    query = query.Where(s => s.WarehouseId == warehouseId.Value);
+                }
             }
 
             // Apply location filter
+            // When showAllProducts is enabled, only filter products with stock to avoid excluding products without stock entries
             if (locationId.HasValue)
             {
-                query = query.Where(s => s.LocationId == locationId.Value);
+                if (showAllProducts.HasValue && showAllProducts.Value)
+                {
+                    query = query.Where(s => s.StockId == Guid.Empty || s.LocationId == locationId.Value);
+                }
+                else
+                {
+                    query = query.Where(s => s.LocationId == locationId.Value);
+                }
             }
 
             // Apply lot filter
+            // When showAllProducts is enabled, only filter products with stock to avoid excluding products without stock entries
             if (lotId.HasValue)
             {
-                query = query.Where(s => s.LotId == lotId.Value);
+                if (showAllProducts.HasValue && showAllProducts.Value)
+                {
+                    query = query.Where(s => s.StockId == Guid.Empty || s.LotId == lotId.Value);
+                }
+                else
+                {
+                    query = query.Where(s => s.LotId == lotId.Value);
+                }
             }
 
             // Apply stock status filters
+            // When showAllProducts is enabled, only apply filters to products with stock
             if (lowStock.HasValue && lowStock.Value)
             {
-                query = query.Where(s => s.ReorderPoint.HasValue && s.Quantity <= s.ReorderPoint.Value);
+                if (showAllProducts.HasValue && showAllProducts.Value)
+                {
+                    query = query.Where(s => s.StockId == Guid.Empty || (s.ReorderPoint.HasValue && s.Quantity <= s.ReorderPoint.Value));
+                }
+                else
+                {
+                    query = query.Where(s => s.ReorderPoint.HasValue && s.Quantity <= s.ReorderPoint.Value);
+                }
             }
 
             if (criticalStock.HasValue && criticalStock.Value)
             {
-                query = query.Where(s => s.SafetyStock.HasValue && s.Quantity <= s.SafetyStock.Value);
+                if (showAllProducts.HasValue && showAllProducts.Value)
+                {
+                    query = query.Where(s => s.StockId == Guid.Empty || (s.SafetyStock.HasValue && s.Quantity <= s.SafetyStock.Value));
+                }
+                else
+                {
+                    query = query.Where(s => s.SafetyStock.HasValue && s.Quantity <= s.SafetyStock.Value);
+                }
             }
 
             if (outOfStock.HasValue && outOfStock.Value)
             {
-                query = query.Where(s => s.Quantity == 0);
+                if (showAllProducts.HasValue && showAllProducts.Value)
+                {
+                    query = query.Where(s => s.StockId == Guid.Empty || s.Quantity == 0);
+                }
+                else
+                {
+                    query = query.Where(s => s.Quantity == 0);
+                }
             }
 
             if (inStockOnly.HasValue && inStockOnly.Value)
             {
-                query = query.Where(s => s.Quantity > 0);
+                // When showAllProducts is enabled and inStockOnly is true, exclude products without stock entries
+                query = query.Where(s => s.StockId != Guid.Empty && s.Quantity > 0);
             }
 
             var totalCount = await query.CountAsync(cancellationToken);
