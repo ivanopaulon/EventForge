@@ -685,7 +685,7 @@
             _isLoadingStock = true;
             var result = await StockService.GetStockOverviewAsync(
                 page: 1,
-                pageSize: 500, // Reasonable page size for initial load
+                pageSize: 100, // Reasonable page size for initial load
                 searchTerm: string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
                 warehouseId: _selectedWarehouseId,
                 locationId: _selectedLocationId,
