@@ -601,37 +601,35 @@ public class StockService : IStockService
             if (showAllProducts.HasValue && showAllProducts.Value)
             {
                 // LEFT JOIN: Show all products + stock (if present)
+                // We use a different approach: query products and optionally include their stock data
                 query = from p in _context.Products
                             .Where(p => p.TenantId == currentTenantId.Value && p.IsActive)
-                        join s in _context.Stocks on p.Id equals s.ProductId into stockGroup
-                        from stock in stockGroup.DefaultIfEmpty()
-                        join sl in _context.StorageLocations on stock.StorageLocationId equals sl.Id into locationGroup
-                        from location in locationGroup.DefaultIfEmpty()
-                        join w in _context.StorageFacilities on location.WarehouseId equals w.Id into warehouseGroup
-                        from warehouse in warehouseGroup.DefaultIfEmpty()
-                        join lot in _context.Lots on stock.LotId equals lot.Id into lotGroup
-                        from stockLot in lotGroup.DefaultIfEmpty()
-                        where stock == null || (stock.TenantId == currentTenantId.Value && stock.IsActive)
+                        from s in _context.Stocks
+                            .Include(s => s.StorageLocation)
+                                .ThenInclude(sl => sl!.Warehouse)
+                            .Include(s => s.Lot)
+                            .Where(s => s.ProductId == p.Id && s.TenantId == currentTenantId.Value && s.IsActive)
+                            .DefaultIfEmpty()
                         select new StockLocationDetail
                         {
-                            StockId = stock != null ? stock.Id : Guid.Empty,
+                            StockId = s != null ? s.Id : Guid.Empty,
                             ProductId = p.Id,
                             ProductCode = p.Code,
                             ProductName = p.Name,
-                            WarehouseId = warehouse != null ? warehouse.Id : Guid.Empty,
-                            WarehouseName = warehouse != null ? warehouse.Name : "N/A",
-                            WarehouseCode = warehouse != null ? warehouse.Code : string.Empty,
-                            LocationId = location != null ? location.Id : Guid.Empty,
-                            LocationCode = location != null ? location.Code : "N/A",
-                            LocationDescription = location != null ? location.Description : null,
-                            LotId = stockLot != null ? stockLot.Id : null,
-                            LotCode = stockLot != null ? stockLot.Code : null,
-                            LotExpiry = stockLot != null ? stockLot.ExpiryDate : null,
-                            Quantity = stock != null ? stock.Quantity : 0,
-                            Reserved = stock != null ? stock.ReservedQuantity : 0,
-                            LastMovementDate = stock != null ? stock.LastMovementDate : null,
-                            ReorderPoint = stock != null ? stock.ReorderPoint : p.ReorderPoint,
-                            SafetyStock = stock != null ? stock.MinimumLevel : p.SafetyStock
+                            WarehouseId = s != null && s.StorageLocation != null && s.StorageLocation.Warehouse != null ? s.StorageLocation.Warehouse.Id : Guid.Empty,
+                            WarehouseName = s != null && s.StorageLocation != null && s.StorageLocation.Warehouse != null ? s.StorageLocation.Warehouse.Name : "N/A",
+                            WarehouseCode = s != null && s.StorageLocation != null && s.StorageLocation.Warehouse != null ? s.StorageLocation.Warehouse.Code : string.Empty,
+                            LocationId = s != null && s.StorageLocation != null ? s.StorageLocationId : Guid.Empty,
+                            LocationCode = s != null && s.StorageLocation != null ? s.StorageLocation.Code : "N/A",
+                            LocationDescription = s != null && s.StorageLocation != null ? s.StorageLocation.Description : null,
+                            LotId = s != null ? s.LotId : null,
+                            LotCode = s != null && s.Lot != null ? s.Lot.Code : null,
+                            LotExpiry = s != null && s.Lot != null ? s.Lot.ExpiryDate : null,
+                            Quantity = s != null ? s.Quantity : 0,
+                            Reserved = s != null ? s.ReservedQuantity : 0,
+                            LastMovementDate = s != null ? s.LastMovementDate : null,
+                            ReorderPoint = s != null && s.ReorderPoint.HasValue ? s.ReorderPoint : p.ReorderPoint,
+                            SafetyStock = s != null && s.MinimumLevel.HasValue ? s.MinimumLevel : p.SafetyStock
                         };
             }
             else
