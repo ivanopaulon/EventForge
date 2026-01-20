@@ -1691,7 +1691,9 @@ public partial class AddDocumentRowDialog : IDisposable
                 Logger.LogWarning(
                     "Validation failed for continuous scan: {Errors}",
                     errors);
-                Snackbar.Add($"❌ Dati incompleti: {errors}", Severity.Error);
+                Snackbar.Add(
+                    $"❌ {TranslationService.GetTranslation("validation.incompleteData", "Dati incompleti")}: {errors}",
+                    Severity.Error);
                 await PlayErrorBeep();
                 return;
             }

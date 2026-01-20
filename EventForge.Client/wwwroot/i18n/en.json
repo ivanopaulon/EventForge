@@ -2135,6 +2135,7 @@
     "discountValueCannotBeNegative": "Discount value cannot be negative",
     "discountValueExceedsTotal": "Discount value exceeds line total",
     "vatRateInvalid": "VAT rate must be between 0 and 100",
+    "incompleteData": "Incomplete data",
     "unitOfMeasureRequired": "Unit of measure is required"
   },
   "walkthrough": {

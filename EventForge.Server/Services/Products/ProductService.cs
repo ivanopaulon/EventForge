@@ -705,6 +705,8 @@ public class ProductService : IProductService
                     .ThenInclude(p => p.UnitOfMeasure) // ✅ Include UnitOfMeasure for continuous scan
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p.Brand)         // Existing include
+                .Include(pc => pc.Product)
+                    .ThenInclude(p => p.ImageDocument) // Include image document for thumbnails
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (productCode?.Product == null || productCode.Product.IsDeleted)

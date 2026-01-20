@@ -2138,6 +2138,7 @@
     "discountValueCannotBeNegative": "Il valore dello sconto non può essere negativo",
     "discountValueExceedsTotal": "Il valore dello sconto supera il totale della riga",
     "vatRateInvalid": "L'aliquota IVA deve essere tra 0 e 100",
+    "incompleteData": "Dati incompleti",
     "unitOfMeasureRequired": "L'unità di misura è obbligatoria"
   },
   "walkthrough": {
