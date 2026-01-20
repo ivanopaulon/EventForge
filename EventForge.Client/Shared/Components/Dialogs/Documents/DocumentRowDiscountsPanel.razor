@@ -8,7 +8,8 @@
     <MudStack Spacing="2">
         <MudNumericField T="decimal"
                         Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
-                        @bind-Value="@LineDiscount"
+                        Value="@LineDiscount"
+                        ValueChanged="@LineDiscountChanged"
                         Min="0"
                         Max="100"
                         Format="N2"
@@ -19,7 +20,8 @@
         
         <MudNumericField T="decimal"
                         Label="@TranslationService.GetTranslation("documents.lineDiscountValue", "Sconto €")"
-                        @bind-Value="@LineDiscountValue"
+                        Value="@LineDiscountValue"
+                        ValueChanged="@LineDiscountValueChanged"
                         Min="0"
                         Format="N2"
                         Variant="Variant.Outlined"

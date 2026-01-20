@@ -8,7 +8,8 @@
         <!-- Descrizione -->
         <MudTextField T="string"
                      Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
-                     @bind-Value="@Description"
+                     Value="@Description"
+                     ValueChanged="@DescriptionChanged"
                      Variant="Variant.Outlined"
                      Lines="2"
                      Required="true"
@@ -21,7 +22,8 @@
             <MudItem xs="12" sm="6">
                 <MudNumericField T="decimal"
                                 Label="@TranslationService.GetTranslation("documents.quantity", "Quantità *")"
-                                @bind-Value="@Quantity"
+                                Value="@Quantity"
+                                ValueChanged="@QuantityChanged"
                                 @ref="_quantityField"
                                 Min="0.0001m"
                                 Variant="Variant.Outlined"
@@ -51,7 +53,8 @@
             <MudItem xs="12" sm="6">
                 <MudNumericField T="decimal"
                                 Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto")"
-                                @bind-Value="@UnitPrice"
+                                Value="@UnitPrice"
+                                ValueChanged="@UnitPriceChanged"
                                 Min="0"
                                 Format="N2"
                                 Variant="Variant.Outlined"
