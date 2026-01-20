@@ -264,7 +264,13 @@
                     else if (column.PropertyName == "Quantity")
                     {
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">
-                            @if (_editingStockId == item.StockId && _editingField == "Quantity")
+                            @if (item.StockId == Guid.Empty)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                    @TranslationService.GetTranslation("stock.noStockEntry", "Nessuna giacenza")
+                                </MudChip>
+                            }
+                            else if (_editingStockId == item.StockId && _editingField == "Quantity")
                             {
                                 <div class="d-flex align-center gap-2">
                                     <MudNumericField @bind-Value="_editingNewQuantity"
