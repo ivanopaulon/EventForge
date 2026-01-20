@@ -1,0 +1,107 @@
+@using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.Products
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="2" Class="pa-3">
+    <MudStack Spacing="3">
+        <!-- Descrizione -->
+        <MudTextField T="string"
+                     Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
+                     Value="@Description"
+                     ValueChanged="@DescriptionChanged"
+                     Variant="Variant.Outlined"
+                     Lines="2"
+                     Required="true"
+                     ReadOnly="@ReadOnlyDescription"
+                     Adornment="Adornment.Start"
+                     AdornmentIcon="@Icons.Material.Outlined.Description" />
+        
+        <!-- Quantità e Prezzo in Grid compatto -->
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal"
+                                Label="@TranslationService.GetTranslation("documents.quantity", "Quantità *")"
+                                Value="@Quantity"
+                                ValueChanged="@QuantityChanged"
+                                @ref="_quantityField"
+                                Min="0.0001m"
+                                Variant="Variant.Outlined"
+                                Adornment="Adornment.Start"
+                                AdornmentIcon="@Icons.Material.Outlined.Numbers" />
+                
+                <MudSelect T="Guid?"
+                          Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura")"
+                          Value="@SelectedUnitOfMeasureId"
+                          ValueChanged="@OnUnitOfMeasureChanged"
+                          Variant="Variant.Outlined"
+                          Dense="true"
+                          Disabled="@(AvailableUnits.Count == 0)"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Outlined.Scale">
+                    @foreach (var unit in AvailableUnits)
+                    {
+                        if (_unitsLookup.TryGetValue(unit.UnitOfMeasureId, out var uom))
+                        {
+                            <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal"
+                                Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto")"
+                                Value="@UnitPrice"
+                                ValueChanged="@UnitPriceChanged"
+                                Min="0"
+                                Format="N2"
+                                Variant="Variant.Outlined"
+                                Adornment="Adornment.Start"
+                                AdornmentIcon="@Icons.Material.Outlined.Euro" />
+            </MudItem>
+        </MudGrid>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> DescriptionChanged { get; set; }
+    [Parameter] public bool ReadOnlyDescription { get; set; } = false;
+    
+    [Parameter] public decimal Quantity { get; set; } = 1m;
+    [Parameter] public EventCallback<decimal> QuantityChanged { get; set; }
+    
+    [Parameter] public decimal UnitPrice { get; set; } = 0m;
+    [Parameter] public EventCallback<decimal> UnitPriceChanged { get; set; }
+    
+    [Parameter] public Guid? SelectedUnitOfMeasureId { get; set; }
+    [Parameter] public EventCallback<Guid?> OnUnitOfMeasureChanged { get; set; }
+    
+    [Parameter] public List<ProductUnitDto> AvailableUnits { get; set; } = new();
+    [Parameter] public List<UMDto> AllUnitsOfMeasure { get; set; } = new();
+
+    private MudNumericField<decimal>? _quantityField;
+    private Dictionary<Guid, UMDto> _unitsLookup = new();
+
+    protected override void OnParametersSet()
+    {
+        // Create efficient lookup dictionary when AllUnitsOfMeasure changes
+        if (AllUnitsOfMeasure?.Count > 0)
+        {
+            _unitsLookup = AllUnitsOfMeasure.ToDictionary(u => u.Id, u => u);
+        }
+    }
+
+    /// <summary>
+    /// Public method to allow parent component to focus the quantity field
+    /// </summary>
+    public async Task FocusQuantityAsync()
+    {
+        if (_quantityField != null)
+        {
+            await Task.Delay(50);
+            await _quantityField.FocusAsync();
+        }
+    }
+}

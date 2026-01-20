@@ -1,0 +1,56 @@
+@using EventForge.DTOs.VatRates
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudExpansionPanel Text="@TranslationService.GetTranslation("documents.vatAndPricesSection", "IVA e Prezzi")" 
+                   Expanded="@Expanded"
+                   ExpandedChanged="@OnExpandedChanged"
+                   id="vat-prices-panel">
+    <MudStack Spacing="2">
+        <MudSelect T="Guid?"
+                  Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
+                  Value="@SelectedVatRateId"
+                  ValueChanged="@OnVatRateChanged"
+                  Variant="Variant.Outlined"
+                  Dense="true"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Outlined.Percent">
+            @foreach (var vatRate in AllVatRates)
+            {
+                <MudSelectItem T="Guid?" Value="@vatRate.Id">@vatRate.Name (@vatRate.Percentage%)</MudSelectItem>
+            }
+        </MudSelect>
+        
+        <MudTextField T="string"
+                     Label="@TranslationService.GetTranslation("documents.vatAmount", "Importo IVA")"
+                     Value="@VatAmount.ToString("C2")"
+                     ReadOnly="true"
+                     Variant="Variant.Filled"
+                     Dense="true"
+                     Adornment="Adornment.Start"
+                     AdornmentIcon="@Icons.Material.Outlined.Calculate" />
+        
+        <MudTextField T="string"
+                     Label="@TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo Unit. Lordo")"
+                     Value="@UnitPriceGross.ToString("C2")"
+                     ReadOnly="true"
+                     Variant="Variant.Filled"
+                     Dense="true"
+                     Adornment="Adornment.Start"
+                     AdornmentIcon="@Icons.Material.Outlined.Calculate"
+                     HelperText="@TranslationService.GetTranslation("documents.autoCalculated", "Calcolato automaticamente")" />
+    </MudStack>
+</MudExpansionPanel>
+
+@code {
+    [Parameter] public bool Expanded { get; set; } = false;
+    [Parameter] public EventCallback<bool> OnExpandedChanged { get; set; }
+    
+    [Parameter] public Guid? SelectedVatRateId { get; set; }
+    [Parameter] public EventCallback<Guid?> OnVatRateChanged { get; set; }
+    
+    [Parameter] public List<VatRateDto> AllVatRates { get; set; } = new();
+    
+    [Parameter] public decimal VatAmount { get; set; } = 0m;
+    [Parameter] public decimal UnitPriceGross { get; set; } = 0m;
+}
