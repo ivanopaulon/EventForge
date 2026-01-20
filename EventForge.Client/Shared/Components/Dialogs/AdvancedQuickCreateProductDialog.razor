@@ -11,20 +11,25 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Add" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.advancedQuickCreateProduct", "Creazione Rapida Prodotto con UoM")
-        </MudText>
+        <div class="ef-dialog-title">
+            <MudIcon Icon="@DialogStyleConstants.Icons.Add" 
+                     Color="Color.Primary" 
+                     Size="Size.Medium" />
+            <MudText Typo="Typo.h6">
+                @TranslationService.GetTranslation("warehouse.advancedQuickCreateProduct", "Creazione Rapida Prodotto con UoM")
+            </MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-        <PageLoadingOverlay Visible="_isLoading"
-                            Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+        <div class="ef-dialog-content">
+            <PageLoadingOverlay Visible="_isLoading"
+                                Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-        <MudAlert Severity="Severity.Info" Class="mb-4">
-            @TranslationService.GetTranslation("warehouse.advancedQuickCreateHint", "Crea un prodotto con codici a barre e unità di misura alternative in un'unica operazione.")
-        </MudAlert>
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                @TranslationService.GetTranslation("warehouse.advancedQuickCreateHint", "Crea un prodotto con codici a barre e unità di misura alternative in un'unica operazione.")
+            </MudAlert>
 
-        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid" Class="ef-dialog-form">
             <MudGrid Spacing="3">
                 <!-- Code Field (Readonly if prefilled) -->
                 <MudItem xs="12">
@@ -313,21 +318,26 @@
                 </MudButton>
             </MudExpansionPanel>
         </MudExpansionPanels>
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" 
-                   Color="Color.Default" 
-                   Variant="Variant.Outlined">
-            @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        
-        <MudButton StartIcon="@Icons.Material.Outlined.Save"
-                   Color="Color.Primary"
-                   Variant="Variant.Filled"
-                   OnClick="CreateProduct"
-                   Disabled="@(!_isFormValid || _isLoading)">
-            @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        <div class="ef-dialog-actions">
+            <MudButton OnClick="Cancel" 
+                       Color="Color.Default" 
+                       Variant="Variant.Outlined">
+                @TranslationService.GetTranslation("common.cancel", "Annulla")
+            </MudButton>
+            
+            <MudSpacer />
+            
+            <MudButton StartIcon="@DialogStyleConstants.Icons.Save"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="CreateProduct"
+                       Disabled="@(!_isFormValid || _isLoading)">
+                @TranslationService.GetTranslation("common.save", "Salva")
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>
 
