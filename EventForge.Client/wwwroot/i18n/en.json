@@ -2360,7 +2360,42 @@
     "assignCodeToProduct": "Assign Code to Product",
     "selectProductForCode": "Select the product to assign the code to",
     "codeWillBeAssigned": "The code {0} will be assigned to the selected product",
-    "codeAssignedSuccess": "Code assigned successfully"
+    "codeAssignedSuccess": "Code assigned successfully",
+    "stockOverview": "Stock Overview",
+    "totalStock": "Total Stock",
+    "reserved": "Reserved",
+    "available": "Available",
+    "reorderPoint": "Reorder Point",
+    "safetyStock": "Safety Stock",
+    "quickEdit": "Quick Edit",
+    "fullEdit": "Full Edit",
+    "adjustStock": "Adjust Stock",
+    "currentQuantity": "Current Quantity",
+    "newQuantity": "New Quantity",
+    "difference": "Difference",
+    "reason": "Reason",
+    "reasonRequired": "Reason is required",
+    "notesRequired": "Notes are required for differences > 10 units",
+    "stockAdjusted": "Stock adjusted successfully",
+    "aggregatedView": "Aggregated View",
+    "detailedView": "Detailed View",
+    "warehouseCount": "Warehouses",
+    "locationCount": "Locations",
+    "lotCount": "Lots",
+    "selectWarehouse": "Select Warehouse",
+    "selectLocation": "Select Location",
+    "selectLot": "Select Lot",
+    "allWarehouses": "All Warehouses",
+    "allLocations": "All Locations",
+    "allLots": "All Lots",
+    "onlyReorder": "Only products below reorder",
+    "onlyCritical": "Only critical products",
+    "onlyOutOfStock": "Only out of stock products",
+    "onlyInStock": "Only products in stock",
+    "totalProductsMonitored": "Products Monitored",
+    "lowStockItems": "Low Stock",
+    "criticalItems": "Critical",
+    "outOfStockItems": "Out of Stock"
   },
   "nav": {
     "activityFeed": "Activity Feed",
@@ -2425,7 +2460,8 @@
     "operatorGroupManagement": "Operator Groups",
     "storeSettings": "Store Settings",
     "inventoryManagement": "Inventories",
-    "inventoryDiagnostics": "Diagnose & Repair"
+    "inventoryDiagnostics": "Diagnose & Repair",
+    "stockOverview": "Stock Overview"
   },
   "tour": {
     "chat": "Chat Tour",
@@ -2781,5 +2817,22 @@
     "shipmentDateLabel": "Shipment Date",
     "ship": "Ship",
     "receive": "Receive"
+  },
+  "stockStatus": {
+    "ok": "OK",
+    "lowStock": "Low Stock",
+    "critical": "Critical",
+    "outOfStock": "Out of Stock"
+  },
+  "stockReason": {
+    "quickCorrection": "Quick Correction",
+    "manualCorrection": "Manual Correction",
+    "inventory": "Inventory",
+    "damage": "Damage",
+    "loss": "Loss",
+    "found": "Found",
+    "expiry": "Expiry",
+    "quality": "Quality Control",
+    "other": "Other"
   }
 }
