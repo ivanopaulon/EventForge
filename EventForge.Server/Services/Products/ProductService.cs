@@ -700,6 +700,11 @@ public class ProductService : IProductService
             var productCode = await _context.ProductCodes
                 .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
                 .Include(pc => pc.Product)
+                    .ThenInclude(p => p.VatRate)       // ✅ Include VatRate for continuous scan
+                .Include(pc => pc.Product)
+                    .ThenInclude(p => p.UnitOfMeasure) // ✅ Include UnitOfMeasure for continuous scan
+                .Include(pc => pc.Product)
+                    .ThenInclude(p => p.Brand)         // Existing include
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (productCode?.Product == null || productCode.Product.IsDeleted)
