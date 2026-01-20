@@ -25,7 +25,6 @@
                      Placeholder="@TranslationService.GetTranslation("documents.searchProductHelp", "Cerca prodotto (min 2 caratteri)...")"
                      Adornment="Adornment.Start"
                      AdornmentIcon="@Icons.Material.Outlined.Inventory"
-                     ValueChanged="@OnProductChangedHandler"
                      aria-label="@TranslationService.GetTranslation("documents.product", "Prodotto")">
         <ItemTemplate Context="product">
             <MudStack Spacing="0">
@@ -69,21 +68,25 @@
     [Parameter] public EventCallback OnQuickEdit { get; set; }
     [Parameter] public Func<string, CancellationToken, Task<IEnumerable<ProductDto>>>? SearchFunc { get; set; }
 
+    private ProductDto? _previousProduct;
+
     /// <summary>
-    /// Handles product value changes from autocomplete
-    /// Invokes both the two-way binding callback and the custom event callback
+    /// Monitors SelectedProduct changes and triggers callbacks
     /// </summary>
-    private async Task OnProductChangedHandler(ProductDto? product)
+    protected override async Task OnParametersSetAsync()
     {
-        SelectedProduct = product;
+        await base.OnParametersSetAsync();
         
-        // Invoke two-way binding callback
-        await SelectedProductChanged.InvokeAsync(product);
-        
-        // Invoke custom event callback if still being used
-        if (OnProductChanged.HasDelegate)
+        // Check if SelectedProduct changed
+        if (_previousProduct != SelectedProduct)
         {
-            await OnProductChanged.InvokeAsync(product);
+            _previousProduct = SelectedProduct;
+            
+            // Invoke the custom event callback if set
+            if (OnProductChanged.HasDelegate)
+            {
+                await OnProductChanged.InvokeAsync(SelectedProduct);
+            }
         }
     }
 }
