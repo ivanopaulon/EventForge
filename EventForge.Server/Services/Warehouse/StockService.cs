@@ -572,4 +572,207 @@ public class StockService : IStockService
             throw;
         }
     }
+
+    public async Task<PagedResult<StockLocationDetail>> GetStockOverviewAsync(
+        int page = 1,
+        int pageSize = 20,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        Guid? lotId = null,
+        bool? lowStock = null,
+        bool? criticalStock = null,
+        bool? outOfStock = null,
+        bool? inStockOnly = null,
+        bool detailedView = false,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            var query = _context.Stocks
+                .Include(s => s.Product)
+                .Include(s => s.StorageLocation)
+                    .ThenInclude(sl => sl!.Warehouse)
+                .Include(s => s.Lot)
+                .Where(s => s.TenantId == currentTenantId.Value && s.IsActive);
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var searchLower = searchTerm.ToLower();
+                query = query.Where(s =>
+                    s.Product!.Name.ToLower().Contains(searchLower) ||
+                    s.Product.Code.ToLower().Contains(searchLower));
+            }
+
+            // Apply warehouse filter
+            if (warehouseId.HasValue)
+            {
+                query = query.Where(s => s.StorageLocation!.WarehouseId == warehouseId.Value);
+            }
+
+            // Apply location filter
+            if (locationId.HasValue)
+            {
+                query = query.Where(s => s.StorageLocationId == locationId.Value);
+            }
+
+            // Apply lot filter
+            if (lotId.HasValue)
+            {
+                query = query.Where(s => s.LotId == lotId.Value);
+            }
+
+            // Apply stock status filters
+            if (lowStock.HasValue && lowStock.Value)
+            {
+                query = query.Where(s => s.ReorderPoint.HasValue && s.Quantity <= s.ReorderPoint.Value);
+            }
+
+            if (criticalStock.HasValue && criticalStock.Value)
+            {
+                query = query.Where(s => s.MinimumLevel.HasValue && s.Quantity <= s.MinimumLevel.Value);
+            }
+
+            if (outOfStock.HasValue && outOfStock.Value)
+            {
+                query = query.Where(s => s.Quantity == 0);
+            }
+
+            if (inStockOnly.HasValue && inStockOnly.Value)
+            {
+                query = query.Where(s => s.Quantity > 0);
+            }
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var stocks = await query
+                .OrderBy(s => s.Product!.Code)
+                .ThenBy(s => s.StorageLocation!.Code)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var details = stocks.Select(s => new StockLocationDetail
+            {
+                StockId = s.Id,
+                ProductId = s.ProductId,
+                ProductCode = s.Product?.Code ?? string.Empty,
+                ProductName = s.Product?.Name ?? string.Empty,
+                WarehouseId = s.StorageLocation?.WarehouseId ?? Guid.Empty,
+                WarehouseName = s.StorageLocation?.Warehouse?.Name ?? string.Empty,
+                WarehouseCode = s.StorageLocation?.Warehouse?.Code ?? string.Empty,
+                LocationId = s.StorageLocationId,
+                LocationCode = s.StorageLocation?.Code ?? string.Empty,
+                LocationDescription = s.StorageLocation?.Description,
+                LotId = s.LotId,
+                LotCode = s.Lot?.Code,
+                LotExpiry = s.Lot?.ExpiryDate,
+                Quantity = s.Quantity,
+                Reserved = s.ReservedQuantity,
+                LastMovementDate = s.LastMovementDate,
+                ReorderPoint = s.ReorderPoint,
+                SafetyStock = s.MinimumLevel
+            }).ToList();
+
+            return new PagedResult<StockLocationDetail>
+            {
+                Items = details,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stock overview");
+            throw;
+        }
+    }
+
+    public async Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            var stock = await _context.Stocks
+                .Include(s => s.Product)
+                .Include(s => s.StorageLocation)
+                    .ThenInclude(sl => sl!.Warehouse)
+                .FirstOrDefaultAsync(s => s.Id == dto.StockId && s.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (stock == null)
+            {
+                _logger.LogWarning("Stock entry not found: {StockId}", dto.StockId);
+                return null;
+            }
+
+            var previousQuantity = stock.Quantity;
+            var difference = dto.NewQuantity - previousQuantity;
+
+            // Update stock quantity
+            stock.Quantity = dto.NewQuantity;
+            stock.ModifiedAt = DateTime.UtcNow;
+            stock.ModifiedBy = currentUser;
+
+            // Create stock movement record
+            var movement = new StockMovement
+            {
+                Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
+                ProductId = stock.ProductId,
+                FromLocationId = difference < 0 ? stock.StorageLocationId : null,
+                ToLocationId = difference > 0 ? stock.StorageLocationId : null,
+                LotId = stock.LotId,
+                Quantity = Math.Abs(difference),
+                MovementType = StockMovementType.Adjustment,
+                Reason = StockMovementReason.Adjustment,
+                MovementDate = DateTime.UtcNow,
+                Notes = dto.Notes ?? $"Stock adjustment: {dto.Reason}. Previous: {previousQuantity}, New: {dto.NewQuantity}",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUser,
+                IsActive = true
+            };
+
+            _context.StockMovements.Add(movement);
+
+            // Create audit log entry if required
+            if (dto.RequiresAudit)
+            {
+                await _auditLogService.LogEntityChangeAsync(
+                    "Stock",
+                    stock.Id,
+                    "Quantity",
+                    "Adjust",
+                    previousQuantity.ToString(),
+                    dto.NewQuantity.ToString(),
+                    currentUser,
+                    dto.Notes);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Stock adjusted: Product {ProductId}, Location {LocationId}, {PreviousQty} → {NewQty}, Reason: {Reason}",
+                stock.ProductId, stock.StorageLocationId, previousQuantity, dto.NewQuantity, dto.Reason);
+
+            return stock.ToStockDto();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adjusting stock: {StockId}", dto.StockId);
+            throw;
+        }
+    }
 }
