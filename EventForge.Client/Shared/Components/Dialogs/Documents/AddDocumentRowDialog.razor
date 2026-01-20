@@ -384,7 +384,7 @@
                 <!-- IVA e Prezzi Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.vatAndPricesSection", "IVA e Prezzi")" 
                                    Expanded="@_vatPanelExpanded"
-                                   ExpandedChanged="@(async (expanded) => { _vatPanelExpanded = expanded; await SavePanelStatesAsync(); })"
+                                   ExpandedChanged="@((expanded) => { _vatPanelExpanded = expanded; DebouncePanelStateSave(); })"
                                    id="vat-prices-panel">
                     <MudStack Spacing="2">
                         <MudSelect T="Guid?"
@@ -425,7 +425,7 @@
                 <!-- Sconti Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.discountsSection", "Sconti")"
                                    Expanded="@_discountsPanelExpanded"
-                                   ExpandedChanged="@(async (expanded) => { _discountsPanelExpanded = expanded; await SavePanelStatesAsync(); })"
+                                   ExpandedChanged="@((expanded) => { _discountsPanelExpanded = expanded; DebouncePanelStateSave(); })"
                                    id="discounts-panel">
                     <MudStack Spacing="2">
                         <MudNumericField T="decimal"
@@ -454,7 +454,7 @@
                 <!-- Note e Dettagli Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.notesAndDetailsSection", "Note e Dettagli")"
                                    Expanded="@_notesPanelExpanded"
-                                   ExpandedChanged="@(async (expanded) => { _notesPanelExpanded = expanded; await SavePanelStatesAsync(); })"
+                                   ExpandedChanged="@((expanded) => { _notesPanelExpanded = expanded; DebouncePanelStateSave(); })"
                                    id="notes-details-panel">
                     <MudTextField T="string"
                                  Label="@TranslationService.GetTranslation("documents.notes", "Note (opzionali)")"
