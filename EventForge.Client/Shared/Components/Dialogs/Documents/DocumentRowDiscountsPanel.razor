@@ -1,0 +1,41 @@
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudExpansionPanel Text="@TranslationService.GetTranslation("documents.discountsSection", "Sconti")"
+                   Expanded="@Expanded"
+                   ExpandedChanged="@OnExpandedChanged"
+                   id="discounts-panel">
+    <MudStack Spacing="2">
+        <MudNumericField T="decimal"
+                        Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
+                        @bind-Value="@LineDiscount"
+                        Min="0"
+                        Max="100"
+                        Format="N2"
+                        Variant="Variant.Outlined"
+                        Dense="true"
+                        Adornment="Adornment.End"
+                        AdornmentIcon="@Icons.Material.Outlined.Percent" />
+        
+        <MudNumericField T="decimal"
+                        Label="@TranslationService.GetTranslation("documents.lineDiscountValue", "Sconto €")"
+                        @bind-Value="@LineDiscountValue"
+                        Min="0"
+                        Format="N2"
+                        Variant="Variant.Outlined"
+                        Dense="true"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Outlined.Euro" />
+    </MudStack>
+</MudExpansionPanel>
+
+@code {
+    [Parameter] public bool Expanded { get; set; } = false;
+    [Parameter] public EventCallback<bool> OnExpandedChanged { get; set; }
+    
+    [Parameter] public decimal LineDiscount { get; set; } = 0m;
+    [Parameter] public EventCallback<decimal> LineDiscountChanged { get; set; }
+    
+    [Parameter] public decimal LineDiscountValue { get; set; } = 0m;
+    [Parameter] public EventCallback<decimal> LineDiscountValueChanged { get; set; }
+}

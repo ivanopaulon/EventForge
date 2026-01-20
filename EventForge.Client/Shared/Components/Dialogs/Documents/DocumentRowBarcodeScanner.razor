@@ -1,0 +1,87 @@
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+    <MudStack Spacing="2">
+        <MudText Typo="Typo.subtitle2">
+            <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="mr-2" Size="Size.Small" />
+            @TranslationService.GetTranslation("warehouse.scanBarcode", "Scansiona Codice a Barre")
+        </MudText>
+        <MudTextField @bind-Value="@_internalValue"
+                      @ref="_barcodeField"
+                      Label="@TranslationService.GetTranslation("warehouse.barcodeInput", "Codice a Barre")"
+                      Variant="Variant.Outlined"
+                      @onkeydown="@HandleKeyDown"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                      Disabled="@(!IsEnabled)"
+                      Placeholder="@Placeholder"
+                      HelperText="@TranslationService.GetTranslation("warehouse.scanOrTypeBarcode", "Scansiona o digita il codice a barre e premi Invio")" />
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public bool IsEnabled { get; set; } = true;
+    [Parameter] public bool AutoFocus { get; set; } = true;
+    [Parameter] public string Placeholder { get; set; } = "Scansiona o digita codice...";
+    [Parameter] public EventCallback<string> OnBarcodeScanned { get; set; }
+    [Parameter] public EventCallback OnScanStart { get; set; }
+    [Parameter] public EventCallback OnScanEnd { get; set; }
+
+    private MudTextField<string>? _barcodeField;
+    private string _internalValue = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AutoFocus && _barcodeField != null)
+        {
+            await Task.Delay(100); // Small delay to ensure rendering is complete
+            await _barcodeField.FocusAsync();
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_internalValue))
+        {
+            // Notify scan start
+            if (OnScanStart.HasDelegate)
+            {
+                await OnScanStart.InvokeAsync();
+            }
+
+            // Trigger barcode scanned event
+            if (OnBarcodeScanned.HasDelegate)
+            {
+                await OnBarcodeScanned.InvokeAsync(_internalValue);
+            }
+
+            // Clear the value after scanning
+            _internalValue = string.Empty;
+
+            // Notify scan end
+            if (OnScanEnd.HasDelegate)
+            {
+                await OnScanEnd.InvokeAsync();
+            }
+
+            // Refocus for next scan
+            if (_barcodeField != null)
+            {
+                await Task.Delay(50);
+                await _barcodeField.FocusAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Public method to allow parent component to focus this field
+    /// </summary>
+    public async Task FocusAsync()
+    {
+        if (_barcodeField != null)
+        {
+            await _barcodeField.FocusAsync();
+        }
+    }
+}
