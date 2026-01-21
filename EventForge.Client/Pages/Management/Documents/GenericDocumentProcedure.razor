@@ -131,7 +131,7 @@
                 <MudItem xs="12" sm="2">
                     <MudSelect T="DocumentStatus"
                               Value="_documentStatus"
-                              ValueChanged="@((DocumentStatus val) => OnStatusChanged(val))"
+                              ValueChanged="@OnStatusChanged"
                               Label="@TranslationService.GetTranslation("documents.status", "Stato")"
                               Variant="Variant.Outlined"
                               Disabled="@(!_isEditMode || _currentDocument == null || !IsDocumentEditable())"
@@ -220,10 +220,16 @@
                         <ItemTemplate>
                             <MudStack Spacing="0">
                                 <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
+                                @if (!string.IsNullOrEmpty(context.VatNumber))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        P.IVA: @context.VatNumber
+                                    </MudText>
+                                }
                                 @if (!string.IsNullOrEmpty(context.TaxCode))
                                 {
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        P.IVA/C.F.: @context.TaxCode
+                                        C.F.: @context.TaxCode
                                     </MudText>
                                 }
                             </MudStack>
