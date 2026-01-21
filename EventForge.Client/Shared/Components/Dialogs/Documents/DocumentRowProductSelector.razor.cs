@@ -69,40 +69,6 @@ public partial class DocumentRowProductSelector : ComponentBase
 
     #endregion
 
-    #region Private Fields
-
-    private ProductDto? _previousProduct;
-
-    #endregion
-
-    #region Lifecycle Methods
-
-    /// <summary>
-    /// Detects product changes and triggers SelectedProductChanged event.
-    /// Uses ID comparison to avoid reference equality issues.
-    /// </summary>
-    protected override async Task OnParametersSetAsync()
-    {
-        await base.OnParametersSetAsync();
-
-        // Check if SelectedProduct changed by comparing IDs (not references)
-        var currentProductId = SelectedProduct?.Id;
-        var previousProductId = _previousProduct?.Id;
-
-        if (currentProductId != previousProductId)
-        {
-            _previousProduct = SelectedProduct;
-
-            // Notify parent of change
-            if (SelectedProductChanged.HasDelegate)
-            {
-                await SelectedProductChanged.InvokeAsync(SelectedProduct);
-            }
-        }
-    }
-
-    #endregion
-
     #region Methods
 
     /// <summary>
