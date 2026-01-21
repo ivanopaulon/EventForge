@@ -183,3 +183,202 @@
 .success-checkmark {
     animation: checkmark 0.6s ease-out;
 }
+
+/* ===================================
+   REAL-TIME VALIDATION STYLES
+   PR #2c-Part2 - Commit 1
+   =================================== */
+
+/* Validation error state */
+.validation-error .mud-input,
+.validation-error .mud-select,
+.validation-error .mud-input-control {
+    border-color: var(--mud-palette-error) !important;
+    box-shadow: 0 0 0 1px var(--mud-palette-error) !important;
+}
+
+.validation-error .mud-input:focus,
+.validation-error .mud-select:focus {
+    box-shadow: 0 0 0 2px var(--mud-palette-error) !important;
+}
+
+/* Validation success state */
+.validation-success .mud-input,
+.validation-success .mud-select,
+.validation-success .mud-input-control {
+    border-color: var(--mud-palette-success) !important;
+}
+
+.validation-success::after {
+    content: '✓';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--mud-palette-success);
+    font-weight: bold;
+    font-size: 1.2em;
+    animation: checkmark-appear 0.3s ease-out;
+}
+
+@keyframes checkmark-appear {
+    0% {
+        opacity: 0;
+        transform: translateY(-50%) scale(0);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+    }
+}
+
+/* Validation message */
+.validation-message {
+    color: var(--mud-palette-error);
+    font-size: 0.75rem;
+    margin-top: 4px;
+    animation: shake 0.3s ease-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Validating state (spinner) */
+.validating-spinner {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+}
+
+/* ===================================
+   ENHANCED TOOLTIPS
+   PR #2c-Part2 - Commit 2
+   =================================== */
+
+/* Tooltip with keyboard hint */
+.tooltip-with-hint {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tooltip-keyboard-hint {
+    font-size: 0.7em;
+    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+/* Info icon with pulse animation on first render */
+.info-icon-pulse {
+    animation: info-pulse 2s ease-out;
+}
+
+@keyframes info-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ===================================
+   LOADING STATES & MICRO-INTERACTIONS
+   PR #2c-Part2 - Commit 3
+   =================================== */
+
+/* Loading overlay for fields */
+.field-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.field-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: var(--mud-palette-primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    transform: translateY(-50%);
+}
+
+@keyframes spin {
+    to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Button loading state */
+.button-loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.button-loading .mud-button-label {
+    opacity: 0;
+}
+
+.button-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid white;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* Smooth transitions for all interactive elements */
+.mud-input,
+.mud-select,
+.mud-button {
+    transition: all 0.2s ease-out;
+}
+
+.mud-input:focus,
+.mud-select:focus {
+    transform: scale(1.01);
+}
+
+.mud-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.mud-button:active {
+    transform: translateY(0);
+}
+
+/* Progress indicator */
+.save-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        var(--mud-palette-primary) 0%, 
+        var(--mud-palette-primary) 50%, 
+        transparent 50%, 
+        transparent 100%);
+    background-size: 200% 100%;
+    animation: progress 1s linear infinite;
+    z-index: 9999;
+}
+
+@keyframes progress {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
