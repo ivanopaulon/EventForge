@@ -130,7 +130,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private const int PriceFieldAnimationDurationMs = 400;
 
     // Real-time validation state - PR #2c-Part2 Commit 1
-    private Dictionary<string, string> _validationErrors = new();
     private Dictionary<string, bool> _validationSuccess = new();
     private bool _isValidating = false;
 
@@ -1871,7 +1870,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private async Task<bool> ValidateForm()
     {
         _isValidating = true;
-        _validationErrors.Clear();
+        _state.Validation.Errors.Clear();
         _validationSuccess.Clear();
         await InvokeAsync(StateHasChanged);
         
@@ -1880,7 +1879,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         // Product validation
         if (_state.SelectedProduct == null)
         {
-            _validationErrors["product"] = "Seleziona un prodotto";
+            _state.Validation.Errors.Add("Seleziona un prodotto");
             isValid = false;
         }
         else
@@ -1889,9 +1888,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
         
         // Quantity validation
-        if (!_model.Quantity.HasValue || _model.Quantity.Value <= 0)
+        if (_model.Quantity <= 0)
         {
-            _validationErrors["quantity"] = "La quantità deve essere maggiore di 0";
+            _state.Validation.Errors.Add("La quantità deve essere maggiore di 0");
             isValid = false;
         }
         else
@@ -1900,9 +1899,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
         
         // Price validation
-        if (!_model.UnitPrice.HasValue || _model.UnitPrice.Value < 0)
+        if (_model.UnitPrice < 0)
         {
-            _validationErrors["price"] = "Il prezzo deve essere maggiore o uguale a 0";
+            _state.Validation.Errors.Add("Il prezzo deve essere maggiore o uguale a 0");
             isValid = false;
         }
         else
@@ -1913,7 +1912,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         // VAT validation
         if (_model.VatRate < 0 || _model.VatRate > 100)
         {
-            _validationErrors["vat"] = "L'IVA deve essere tra 0% e 100%";
+            _state.Validation.Errors.Add("L'IVA deve essere tra 0% e 100%");
             isValid = false;
         }
         else
@@ -1932,19 +1931,14 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task ValidateField(string fieldName, object? value)
     {
-        // Remove previous error
-        _validationErrors.Remove(fieldName);
+        // Remove previous success state
         _validationSuccess.Remove(fieldName);
         
         switch (fieldName)
         {
             case "quantity":
                 var qty = value as decimal?;
-                if (!qty.HasValue || qty.Value <= 0)
-                {
-                    _validationErrors[fieldName] = "Quantità non valida";
-                }
-                else
+                if (qty.HasValue && qty.Value > 0)
                 {
                     _validationSuccess[fieldName] = true;
                 }
@@ -1952,11 +1946,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 
             case "price":
                 var price = value as decimal?;
-                if (!price.HasValue || price.Value < 0)
-                {
-                    _validationErrors[fieldName] = "Prezzo non valido";
-                }
-                else
+                if (price.HasValue && price.Value >= 0)
                 {
                     _validationSuccess[fieldName] = true;
                 }
@@ -1964,11 +1954,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 
             case "vat":
                 var vat = value as decimal?;
-                if (!vat.HasValue || vat.Value < 0 || vat.Value > 100)
-                {
-                    _validationErrors[fieldName] = "IVA non valida (0-100%)";
-                }
-                else
+                if (vat.HasValue && vat.Value >= 0 && vat.Value <= 100)
                 {
                     _validationSuccess[fieldName] = true;
                 }
@@ -1983,19 +1969,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private string GetValidationClass(string fieldName)
     {
-        if (_validationErrors.ContainsKey(fieldName))
-            return "validation-error";
         if (_validationSuccess.ContainsKey(fieldName))
             return "validation-success";
         return "";
-    }
-
-    /// <summary>
-    /// Shows validation error message
-    /// </summary>
-    private string? GetValidationError(string fieldName)
-    {
-        return _validationErrors.TryGetValue(fieldName, out var error) ? error : null;
     }
 
     #endregion
