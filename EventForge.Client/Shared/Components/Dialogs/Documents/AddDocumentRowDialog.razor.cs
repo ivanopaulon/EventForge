@@ -82,83 +82,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// Selected product with setter that handles autocomplete binding
     /// CRITICAL FIX: Converted from readonly property to prevent autocomplete resets
     /// </summary>
-    private ProductDto? _selectedProduct
-    {
-        get => _state.SelectedProduct;
-        set
-        {
-            // Guard: Prevent infinite loops and unnecessary rerenders
-            if (_state.SelectedProduct?.Id == value?.Id)
-            {
-                Logger.LogDebug("Product selection unchanged (ID: {Id}), skipping update", value?.Id);
-                return;
-            }
-
-            Logger.LogDebug("Product autocomplete value changing from {OldId} to {NewId}", 
-                _state.SelectedProduct?.Id, value?.Id);
-
-            _state.SelectedProduct = value;
-            _state.PreviousSelectedProduct = value;
-
-            // ONLY when a product is ACTUALLY SELECTED (not during typing)
-            if (value != null)
-            {
-                // Use Task.Run to avoid blocking the render thread
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        // Set loading INSIDE async operation, not before
-                        await InvokeAsync(() => _isLoadingProductData = true);
-                        
-                        await PopulateFromProductAsync(value);
-                        
-                        // Animation feedback AFTER population completes
-                        await InvokeAsync(() => 
-                        {
-                            _productJustSelected = true;
-                            _isLoadingProductData = false;
-                            
-                            // Show success snackbar
-                            Snackbar.Add(
-                                $"{value.Name} selezionato",
-                                Severity.Success,
-                                config => config.VisibleStateDuration = 1000
-                            );
-                            
-                            StateHasChanged();
-                        });
-                        
-                        // Reset animation flag after delay
-                        await Task.Delay(ProductSelectionAnimationDurationMs);
-                        await InvokeAsync(() => 
-                        {
-                            _productJustSelected = false;
-                            StateHasChanged();
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, "Error populating from product {ProductId}", value.Id);
-                        await InvokeAsync(() =>
-                        {
-                            _isLoadingProductData = false;
-                            Snackbar.Add(
-                                TranslationService.GetTranslation("error.loadProductData", 
-                                    "Errore caricamento dati prodotto"),
-                                Severity.Error);
-                            StateHasChanged();
-                        });
-                    }
-                });
-            }
-            else
-            {
-                ClearProductFields();
-                // DON'T call StateHasChanged here - let Blazor handle it
-            }
-        }
-    }
+    /// <summary>
+    /// Simple variable for product autocomplete binding.
+    /// ✅ PATTERN: Same as GenericDocumentProcedure BusinessParty autocomplete (line 687).
+    /// ✅ CRITICAL: Simple variable, NOT a property with getter/setter.
+    /// This allows Blazor's @bind-Value to work correctly without interference.
+    /// </summary>
+    private ProductDto? _selectedProduct = null;
     private bool _vatPanelExpanded 
     { 
         get => _state.Ui.VatPanelExpanded;
@@ -298,6 +228,34 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _state.Model.DocumentHeaderId = DocumentHeaderId;
         }
         // DO NOT touch _selectedProduct or other state during OnParametersSet
+    }
+
+    /// <summary>
+    /// Called AFTER _selectedProduct is bound by Blazor.
+    /// Pattern: Same as GenericDocumentProcedure but with product-specific field population.
+    /// CRITICAL: This runs AFTER the binding is complete, so it doesn't interfere with typing.
+    /// </summary>
+    private async Task OnProductSelectedAsync()
+    {
+        Logger.LogDebug("OnProductSelectedAsync called. Selected product: {ProductId}", 
+            _selectedProduct?.Id);
+
+        if (_selectedProduct != null)
+        {
+            // Sync to state for other components that need it
+            _state.SelectedProduct = _selectedProduct;
+            _state.PreviousSelectedProduct = _selectedProduct;
+
+            // Populate all related fields from the selected product
+            await PopulateFromProductAsync(_selectedProduct);
+        }
+        else
+        {
+            // Product was cleared
+            _state.SelectedProduct = null;
+            _state.PreviousSelectedProduct = null;
+            ClearProductFields();
+        }
     }
 
     /// <summary>
@@ -923,56 +881,114 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     /// <param name="product">The product to populate from</param>
     /// <remarks>
-    /// <para>Performs the following operations in sequence:</para>
+    /// ✅ PATTERN: Simplified version based on problem statement requirements.
+    /// CRITICAL CHANGES:
+    /// <list type="bullet">
+    /// <item>Does NOT modify _selectedProduct (that's handled by Blazor binding)</item>
+    /// <item>Calls StateHasChanged() ONLY at the end</item>
+    /// <item>No recursive calls or complex async patterns</item>
+    /// </list>
+    /// <para>Key operations:</para>
     /// <list type="number">
-    /// <item>Populates basic product fields (code, description)</item>
-    /// <item>Sets pricing and VAT information</item>
-    /// <item>Handles VAT-included price conversion</item>
-    /// <item>Loads product units asynchronously</item>
+    /// <item>Populates base product fields (ID, code, description)</item>
+    /// <item>Handles price calculation with VAT</item>
+    /// <item>Loads and configures product units</item>
+    /// <item>Invalidates cached calculations</item>
     /// <item>Loads recent transaction history</item>
     /// <item>Auto-focuses quantity field for quick data entry</item>
     /// </list>
-    /// <para>Performance: Uses strategic StateHasChanged() calls to provide responsive UI updates.</para>
     /// </remarks>
     private async Task PopulateFromProductAsync(ProductDto product)
     {
         try
         {
-            // ✅ CRITICAL: Force immediate UI update on render thread BEFORE async operations
-            // This ensures MudAutocomplete sees the committed value
-            await InvokeAsync(StateHasChanged);
+            Logger.LogInformation("Populating fields from product: {ProductId} - {ProductName}", 
+                product.Id, product.Name);
 
-            // 1. Populate basic product info
-            PopulateBasicProductInfo(product);
-
-            // 2. Calculate and set price with VAT
+            // 1. Populate base fields
+            _state.Model.ProductId = product.Id;
+            _state.Model.ProductCode = product.Code;
+            _state.Model.Description = product.Name;
+            
+            // 2. Populate price and VAT
+            decimal productPrice = product.DefaultPrice ?? 0m;
             decimal vatRate = 0m;
-            decimal productPrice = CalculateProductPrice(product, out vatRate);
 
-            // ✅ Update UI after basic fields are set
-            await InvokeAsync(StateHasChanged);
+            if (product.VatRateId.HasValue)
+            {
+                _state.SelectedVatRateId = product.VatRateId;
+                var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
+                if (vatRateDto != null)
+                {
+                    vatRate = vatRateDto.Percentage;
+                    _state.Model.VatRate = vatRate;
+                    _state.Model.VatDescription = vatRateDto.Name;
+                }
+            }
+            
+            // 3. Handle VAT-included price
+            if (product.IsVatIncluded && vatRate > 0)
+            {
+                productPrice = productPrice / (1 + vatRate / 100m);
+            }
 
-            // 3. Load product units asynchronously
-            await PopulateProductUnitsAsync(product);
+            // 4. Load product units
+            var units = await ProductService.GetProductUnitsAsync(product.Id);
+            _state.Cache.AvailableUnits = units?.ToList() ?? new List<ProductUnitDto>();
 
-            // 4. Set final price
+            if (_state.Cache.AvailableUnits.Any())
+            {
+                var defaultUnit = _state.Cache.AvailableUnits.FirstOrDefault(u => u.UnitType == "Base") 
+                               ?? _state.Cache.AvailableUnits.FirstOrDefault();
+                
+                if (defaultUnit != null)
+                {
+                    _state.SelectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+                    _state.Model.UnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+                    UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
+                }
+            }
+            else if (product.UnitOfMeasureId.HasValue)
+            {
+                _state.SelectedUnitOfMeasureId = product.UnitOfMeasureId;
+                _state.Model.UnitOfMeasureId = product.UnitOfMeasureId;
+                
+                var um = _state.Cache.AllUnitsOfMeasure.FirstOrDefault(u => u.Id == product.UnitOfMeasureId.Value);
+                if (um != null)
+                {
+                    _state.Model.UnitOfMeasure = um.Symbol;
+                }
+            }
+
+            // 5. Set final price
             _state.Model.UnitPrice = productPrice;
+            
+            // 6. Invalidate cached calculation
+            _cachedCalculationResult = null;
+            _cachedCalculationKey = string.Empty;
 
-            // 5. Invalidate cached calculation result
-            InvalidateCalculationCache();
-
-            // 6. Load recent transactions
+            // 7. Load recent transactions
             await LoadRecentTransactions(product.Id);
 
-            // ✅ Final UI update after all data is loaded
-            await InvokeAsync(StateHasChanged);
+            // 8. Auto-focus quantity field
+            if (_quantityField != null)
+            {
+                await Task.Delay(100);
+                await _quantityField.FocusAsync();
+            }
 
-            // 7. Auto-focus quantity field
-            await FocusQuantityField();
+            // ✅ StateHasChanged ONLY at the end
+            StateHasChanged();
+            
+            Logger.LogInformation("Product fields populated successfully for {ProductId}", product.Id);
         }
         catch (Exception ex)
         {
-            await HandleProductPopulationError(ex, product);
+            Logger.LogError(ex, "Error populating from product {ProductId}", product.Id);
+            Snackbar.Add(
+                TranslationService.GetTranslation("error.loadProductData", 
+                    "Errore caricamento dati prodotto"),
+                Severity.Error);
         }
     }
 
@@ -1129,10 +1145,14 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task SelectProductAndPopulateAsync(ProductDto product)
     {
-        // Directly update state for programmatic selections
-        // This bypasses the autocomplete binding to avoid conflicts
+        // Update the simple autocomplete variable
+        _selectedProduct = product;
+        
+        // Sync to state for other components that need it
         _state.SelectedProduct = product;
         _state.PreviousSelectedProduct = product;
+        
+        // Populate fields
         await PopulateFromProductAsync(product);
     }
 
