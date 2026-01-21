@@ -16,8 +16,9 @@ namespace EventForge.Client.Shared.Components
 {
     /// <summary>
     /// Unified component that combines product search (barcode + description) 
-    /// with inline product info display and editing.
+    /// with product info display.
     /// Replaces the separate DocumentRowBarcodeScanner, MudAutocomplete, and ProductQuickInfo components.
+    /// Product editing is done via the QuickCreateProductDialog.
     /// </summary>
     public partial class UnifiedProductScanner : ComponentBase
     {
@@ -26,6 +27,7 @@ namespace EventForge.Client.Shared.Components
         [Inject] private ITranslationService TranslationService { get; set; } = null!;
         [Inject] private ISnackbar Snackbar { get; set; } = null!;
         [Inject] private ILogger<UnifiedProductScanner> Logger { get; set; } = null!;
+        [Inject] private IDialogService DialogService { get; set; } = null!;
 
         #region Parameters - Appearance
 
@@ -77,19 +79,9 @@ namespace EventForge.Client.Shared.Components
         #region Private Fields
 
         private MudAutocomplete<ProductDto>? _autocomplete;
-        private MudForm? _form;
-        private bool _isEditMode = false;
-        private bool _isFormValid = false;
-        private bool _isSaving = false;
         private string _searchText = string.Empty;
 
-        // Edit fields
-        private string _editName = string.Empty;
-        private string _editDescription = string.Empty;
-        private Guid? _editUnitOfMeasureId;
-        private Guid? _editVatRateId;
-
-        // Available options for dropdowns
+        // Available options for display
         private IEnumerable<UMDto>? _availableUnits;
         private IEnumerable<VatRateDto>? _availableVatRates;
 
@@ -198,7 +190,7 @@ namespace EventForge.Client.Shared.Components
                 }
                 else
                 {
-                    // Product not found
+                    // Product not found - notify parent to show ProductNotFoundDialog
                     Logger.LogWarning("Product not found for barcode: {Barcode}", barcode);
 
                     if (OnProductNotFound.HasDelegate)
@@ -282,109 +274,54 @@ namespace EventForge.Client.Shared.Components
 
         #endregion
 
-        #region Edit Mode Methods
+        #region Edit Methods
 
-        private void EnterEditMode()
+        /// <summary>
+        /// Opens the QuickCreateProductDialog in edit mode
+        /// </summary>
+        private async Task OpenEditProductDialog()
         {
             if (SelectedProduct == null) return;
 
-            _isEditMode = true;
-            _editName = SelectedProduct.Name;
-            _editDescription = SelectedProduct.Description ?? string.Empty;
-            _editUnitOfMeasureId = SelectedProduct.UnitOfMeasureId;
-            _editVatRateId = SelectedProduct.VatRateId;
-        }
-
-        private void CancelEdit()
-        {
-            _isEditMode = false;
-            _editName = string.Empty;
-            _editDescription = string.Empty;
-            _editUnitOfMeasureId = null;
-            _editVatRateId = null;
-        }
-
-        private async Task SaveChanges()
-        {
-            if (SelectedProduct == null || !_isFormValid || _isSaving)
-                return;
-
-            _isSaving = true;
-
-            try
+            var parameters = new DialogParameters
             {
-                var updateDto = new UpdateProductDto
-                {
-                    Name = _editName,
-                    Description = _editDescription,
-                    ShortDescription = SelectedProduct.ShortDescription ?? string.Empty,
-                    Status = SelectedProduct.Status,
-                    IsVatIncluded = SelectedProduct.IsVatIncluded,
-                    DefaultPrice = SelectedProduct.DefaultPrice,
-                    VatRateId = _editVatRateId,
-                    UnitOfMeasureId = _editUnitOfMeasureId,
-                    CategoryNodeId = SelectedProduct.CategoryNodeId,
-                    FamilyNodeId = SelectedProduct.FamilyNodeId,
-                    GroupNodeId = SelectedProduct.GroupNodeId,
-                    StationId = SelectedProduct.StationId,
-                    BrandId = SelectedProduct.BrandId,
-                    ModelId = SelectedProduct.ModelId,
-                    PreferredSupplierId = SelectedProduct.PreferredSupplierId,
-                    ReorderPoint = SelectedProduct.ReorderPoint,
-                    SafetyStock = SelectedProduct.SafetyStock,
-                    TargetStockLevel = SelectedProduct.TargetStockLevel,
-                    AverageDailyDemand = SelectedProduct.AverageDailyDemand,
-                    ImageUrl = SelectedProduct.ImageUrl ?? string.Empty,
-                    ImageDocumentId = SelectedProduct.ImageDocumentId
-                };
+                { "ProductId", SelectedProduct.Id },
+                { "IsEditMode", true }
+            };
 
-                var updatedProduct = await ProductService.UpdateProductAsync(SelectedProduct.Id, updateDto);
-
-                if (updatedProduct != null)
-                {
-                    // Update local product data
-                    SelectedProduct.Name = updatedProduct.Name;
-                    SelectedProduct.Description = updatedProduct.Description;
-                    SelectedProduct.UnitOfMeasureId = updatedProduct.UnitOfMeasureId;
-                    SelectedProduct.VatRateId = updatedProduct.VatRateId;
-
-                    // Update display values
-                    UpdateDisplayValues();
-
-                    // Exit edit mode
-                    _isEditMode = false;
-
-                    // Show success message
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"),
-                        Severity.Success
-                    );
-
-                    // Notify parent component
-                    if (OnProductUpdated.HasDelegate)
-                    {
-                        await OnProductUpdated.InvokeAsync();
-                    }
-                }
-                else
-                {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("products.updateFailed", "Errore nell'aggiornamento del prodotto"),
-                        Severity.Error
-                    );
-                }
-            }
-            catch (Exception ex)
+            var options = new DialogOptions
             {
-                Logger.LogError(ex, "Error updating product {ProductId}", SelectedProduct.Id);
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<Dialogs.QuickCreateProductDialog>(
+                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            {
+                // Update the selected product with the edited data
+                SelectedProduct = updatedProduct;
+                await SelectedProductChanged.InvokeAsync(SelectedProduct);
+                
+                // Update display values
+                UpdateDisplayValues();
+
+                // Notify parent that product was updated
+                if (OnProductUpdated.HasDelegate)
+                {
+                    await OnProductUpdated.InvokeAsync();
+                }
+
                 Snackbar.Add(
-                    TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto"),
-                    Severity.Error
+                    TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"),
+                    Severity.Success
                 );
-            }
-            finally
-            {
-                _isSaving = false;
             }
         }
 
@@ -402,32 +339,6 @@ namespace EventForge.Client.Shared.Components
             {
                 await _autocomplete.FocusAsync();
             }
-        }
-
-        #endregion
-
-        #region Keyboard Shortcuts
-
-        public async Task HandleKeyboardShortcut(string key, bool ctrlKey)
-        {
-            if (ctrlKey && key.ToLower() == "e" && AllowEdit && !_isEditMode && SelectedProduct != null)
-            {
-                EnterEditMode();
-                StateHasChanged();
-            }
-            else if (key.ToLower() == "escape")
-            {
-                if (_isEditMode)
-                {
-                    CancelEdit();
-                    StateHasChanged();
-                }
-                else if (SelectedProduct != null)
-                {
-                    await ClearSelection();
-                }
-            }
-            await Task.CompletedTask;
         }
 
         #endregion

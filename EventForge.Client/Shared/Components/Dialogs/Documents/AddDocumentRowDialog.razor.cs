@@ -235,10 +235,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// Pattern: Same as GenericDocumentProcedure but with product-specific field population.
     /// CRITICAL: This runs AFTER the binding is complete, so it doesn't interfere with typing.
     /// </summary>
-    private async Task OnProductSelectedAsync()
+    private async Task OnProductSelectedAsync(ProductDto? product)
     {
         Logger.LogDebug("OnProductSelectedAsync called. Selected product: {ProductId}", 
-            _selectedProduct?.Id);
+            product?.Id);
+
+        // Update local variable to match the parameter
+        _selectedProduct = product;
 
         if (_selectedProduct != null)
         {
@@ -1912,6 +1915,94 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             Snackbar.Add(
                 TranslationService.GetTranslation("products.reloadError", "Errore nel ricaricamento del prodotto"),
                 Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Handles product with code found from UnifiedProductScanner
+    /// </summary>
+    private async Task HandleProductWithCodeFound(ProductWithCodeDto productWithCode)
+    {
+        try
+        {
+            Logger.LogInformation("Product found by barcode: {ProductCode} - {ProductName}", 
+                productWithCode.Product.Code, productWithCode.Product.Name);
+
+            // Handle the unit of measure specific from the barcode if present
+            if (productWithCode.Code?.ProductUnitId != null)
+            {
+                _state.Barcode.ProductUnitId = productWithCode.Code.ProductUnitId;
+                Logger.LogInformation("Barcode has specific unit: {ProductUnitId}", 
+                    productWithCode.Code.ProductUnitId);
+            }
+            
+            // Update the selected product (this will trigger OnProductSelectedAsync through binding)
+            _selectedProduct = productWithCode.Product;
+            _state.SelectedProduct = productWithCode.Product;
+            _state.PreviousSelectedProduct = productWithCode.Product;
+            
+            // Populate fields from the product
+            await PopulateFromProductAsync(productWithCode.Product);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling product with code found");
+            Snackbar.Add(
+                TranslationService.GetTranslation("errors.productLoad", "Errore nel caricamento del prodotto"),
+                Severity.Error
+            );
+        }
+    }
+
+    /// <summary>
+    /// Handles product updated from UnifiedProductScanner inline editing
+    /// </summary>
+    private async Task HandleProductUpdated()
+    {
+        // The product has been updated inline, refresh our local copy and update fields
+        if (_selectedProduct != null)
+        {
+            try
+            {
+                // Reload from server to get latest data
+                var updatedProduct = await ProductService.GetProductByIdAsync(_selectedProduct.Id);
+                if (updatedProduct != null)
+                {
+                    _selectedProduct = updatedProduct;
+                    _state.SelectedProduct = updatedProduct;
+                    
+                    // Update the description and code fields
+                    _state.Model.Description = updatedProduct.Name;
+                    _state.Model.ProductCode = updatedProduct.Code;
+                    
+                    // Update VAT if changed
+                    if (updatedProduct.VatRateId.HasValue)
+                    {
+                        _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
+                        var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
+                        if (vatRate != null)
+                        {
+                            _state.Model.VatRate = vatRate.Percentage;
+                            _state.Model.VatDescription = vatRate.Name;
+                        }
+                    }
+                    
+                    // Update Unit of Measure if changed
+                    if (updatedProduct.UnitOfMeasureId.HasValue)
+                    {
+                        _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+                    }
+                    
+                    // Invalidate cached calculation result
+                    InvalidateCalculationCache();
+                    
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error reloading product after update");
+            }
         }
     }
 

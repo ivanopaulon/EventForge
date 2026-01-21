@@ -2,7 +2,7 @@
 @using EventForge.DTOs.UnitOfMeasures
 @using EventForge.DTOs.VatRates
 
-@* UnifiedProductScanner Component - Unified product search with barcode scanning and inline editing *@
+@* UnifiedProductScanner Component - Unified product search with barcode scanning and product info display *@
 <MudPaper Elevation="@Elevation" Class="@GetCssClass()" Style="@Style">
     <MudStack Spacing="2">
         @if (ShowTitle)
@@ -13,16 +13,16 @@
                     <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
                     @Title
                 </MudText>
-                @if (SelectedProduct != null && !_isEditMode)
+                @if (SelectedProduct != null)
                 {
                     <MudStack Row="true" Spacing="1">
                         @if (AllowEdit)
                         {
-                            <MudTooltip Text="@TranslationService.GetTranslation("products.editProductInfo", "Modifica info prodotto (Ctrl+E)")">
+                            <MudTooltip Text="@TranslationService.GetTranslation("products.editProduct", "Modifica prodotto")">
                                 <MudIconButton Icon="@Icons.Material.Outlined.Edit"
                                                Size="Size.Small"
                                                Color="Color.Primary"
-                                               OnClick="EnterEditMode" />
+                                               OnClick="OpenEditProductDialog" />
                             </MudTooltip>
                         }
                         @if (AllowClear)
@@ -36,30 +36,12 @@
                         }
                     </MudStack>
                 }
-                else if (_isEditMode)
-                {
-                    <MudStack Row="true" Spacing="1">
-                        <MudTooltip Text="@TranslationService.GetTranslation("common.cancel", "Annulla")">
-                            <MudIconButton Icon="@Icons.Material.Outlined.Close"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="CancelEdit" />
-                        </MudTooltip>
-                        <MudTooltip Text="@TranslationService.GetTranslation("common.save", "Salva modifiche")">
-                            <MudIconButton Icon="@Icons.Material.Outlined.Save"
-                                           Size="Size.Small"
-                                           Color="Color.Success"
-                                           OnClick="SaveChanges"
-                                           Disabled="@(!_isFormValid || _isSaving)" />
-                        </MudTooltip>
-                    </MudStack>
-                }
             </MudStack>
 
             <MudDivider />
         }
 
-        @if (SelectedProduct == null || _isEditMode)
+        @if (SelectedProduct == null)
         {
             <!-- SEARCH MODE: Autocomplete for product search with barcode support -->
             <MudAutocomplete T="ProductDto"
@@ -75,7 +57,7 @@
                              DebounceInterval="@DebounceMs"
                              ShowProgressIndicator="true"
                              Clearable="@AllowClear"
-                             Disabled="@(Disabled || _isEditMode)"
+                             Disabled="@Disabled"
                              Placeholder="@Placeholder"
                              HelperText="@SearchHelperText"
                              Adornment="Adornment.Start"
@@ -112,7 +94,7 @@
             </MudAutocomplete>
         }
 
-        @if (SelectedProduct != null && !_isEditMode)
+        @if (SelectedProduct != null)
         {
             <!-- VIEW MODE: Display product information -->
             <MudGrid Spacing="2">
@@ -179,68 +161,6 @@
                     </MudItem>
                 }
             </MudGrid>
-        }
-
-        @if (_isEditMode && SelectedProduct != null)
-        {
-            <!-- EDIT MODE: Inline editing form -->
-            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
-                <MudStack Spacing="2">
-                    <MudTextField @bind-Value="_editName"
-                                  Label="@TranslationService.GetTranslation("products.name", "Nome")"
-                                  Variant="Variant.Outlined"
-                                  Required="true"
-                                  RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
-                                  MaxLength="100"
-                                  Immediate="true" />
-
-                    <MudTextField @bind-Value="_editDescription"
-                                  Label="@TranslationService.GetTranslation("products.description", "Descrizione")"
-                                  Variant="Variant.Outlined"
-                                  Lines="2"
-                                  MaxLength="500"
-                                  Immediate="true" />
-
-                    <MudSelect T="Guid?"
-                               @bind-Value="_editUnitOfMeasureId"
-                               Label="@TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")"
-                               Variant="Variant.Outlined"
-                               Clearable="true">
-                        @if (_availableUnits != null)
-                        {
-                            @foreach (var unit in _availableUnits)
-                            {
-                                <MudSelectItem Value="@((Guid?)unit.Id)">
-                                    @unit.Name (@unit.Symbol)
-                                </MudSelectItem>
-                            }
-                        }
-                    </MudSelect>
-
-                    <MudSelect T="Guid?"
-                               @bind-Value="_editVatRateId"
-                               Label="@TranslationService.GetTranslation("products.vatRate", "IVA")"
-                               Variant="Variant.Outlined"
-                               Clearable="true">
-                        @if (_availableVatRates != null)
-                        {
-                            @foreach (var vat in _availableVatRates)
-                            {
-                                <MudSelectItem Value="@((Guid?)vat.Id)">
-                                    @vat.Name (@vat.Percentage%)
-                                </MudSelectItem>
-                            }
-                        }
-                    </MudSelect>
-
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
-                        <MudText Typo="Typo.caption">
-                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-1" />
-                            @TranslationService.GetTranslation("products.quickEditNote", "Il codice prodotto non può essere modificato. Usa la gestione prodotti completa per modifiche avanzate.")
-                        </MudText>
-                    </MudAlert>
-                </MudStack>
-            </MudForm>
         }
     </MudStack>
 </MudPaper>
