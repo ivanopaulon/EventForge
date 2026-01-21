@@ -1,0 +1,31 @@
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudStack Spacing="1">
+    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+        <MudIcon Icon="@Icons.Material.Outlined.Comment" Size="Size.Small" Class="mr-1" />
+        @TranslationService.GetTranslation("documents.notes", "Note")
+    </MudText>
+    
+    <MudTextField T="string"
+                  Value="@Notes"
+                  ValueChanged="@OnNotesChanged"
+                  Label="@TranslationService.GetTranslation("documents.notesPlaceholder", "Note aggiuntive (opzionali)")"
+                  Variant="Variant.Outlined"
+                  Lines="3"
+                  MaxLength="@MaxLength"
+                  Counter="@MaxLength"
+                  Immediate="true"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Outlined.Comment"
+                  HelperText="@GetHelperText()"
+                  Disabled="@Disabled" />
+</MudStack>
+
+@code {
+    private string GetHelperText()
+    {
+        var currentLength = Notes?.Length ?? 0;
+        return $"{currentLength}/{MaxLength} {TranslationService.GetTranslation("common.characters", "caratteri")}";
+    }
+}
