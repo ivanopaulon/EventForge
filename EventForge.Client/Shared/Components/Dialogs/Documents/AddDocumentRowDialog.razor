@@ -207,6 +207,16 @@
                                            OnQuickEdit="@OpenEditProductDialog"
                                            AllowClear="true" />
                 
+                <!-- Recent Transactions -->
+                @if (_state.SelectedProduct != null)
+                {
+                    <DocumentRowRecentTransactions ProductId="@_state.SelectedProduct.Id"
+                                                  TransactionType="@DetermineTransactionType()"
+                                                  PartyId="@GetBusinessPartyId()"
+                                                  OnPriceApplied="@HandleRecentPriceApplied"
+                                                  MaxTransactions="3" />
+                }
+                
                 <DocumentRowQuantityPrice @ref="_quantityPriceRef"
                                          Description="@_model.Description"
                                          DescriptionChanged="@((val) => _model.Description = val)"
@@ -284,13 +294,9 @@
                                    Expanded="@_notesPanelExpanded"
                                    ExpandedChanged="@((expanded) => { _notesPanelExpanded = expanded; DebouncePanelStateSave(); })"
                                    id="notes-details-panel">
-                    <MudTextField T="string"
-                                 Label="@TranslationService.GetTranslation("documents.notes", "Note (opzionali)")"
-                                 @bind-Value="_model.Notes"
-                                 Lines="2"
-                                 Variant="Variant.Outlined"
-                                 Adornment="Adornment.Start"
-                                 AdornmentIcon="@Icons.Material.Outlined.Comment" />
+                    <DocumentRowNotesPanel Notes="@_model.Notes"
+                                          NotesChanged="@(notes => _model.Notes = notes)"
+                                          MaxLength="200" />
                 </MudExpansionPanel>
                 
             </MudExpansionPanels>
