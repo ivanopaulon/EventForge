@@ -6,6 +6,7 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Products
 @using EventForge.Client.Shared.Components.Dialogs.Documents
+@using EventForge.Client.Shared.Components.Dialogs.Business
 @using EventForge.Client.Shared.Documents
 @using EventForge.Client.Shared.Components
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
@@ -58,8 +59,23 @@
         </MudAlert>
     }
 
-    <!-- Improved 2-Row Document Header - Responsive and Clear -->
-    <MudPaper Elevation="2" Class="pa-3 mb-3 document-inline-header">
+    <!-- Header Documento (Gradiente Verde - ef-header-standard) -->
+    <MudPaper Elevation="3" Class="pa-4 mb-3 ef-header-standard">
+        <MudText Typo="Typo.h5" Class="ef-header-text" Align="Align.Center">
+            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Class="mr-2" />
+            @(_isEditMode ? "Modifica Documento" : "Nuovo Documento")
+        </MudText>
+    </MudPaper>
+
+    <!-- Sezione 1: Informazioni Generali (ef-section-scanner) -->
+    <MudPaper Elevation="3" Class="pa-3 mb-3 ef-section-scanner">
+        <MudText Typo="Typo.h6" Class="mb-3 ef-section-title-green">
+            <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+            Informazioni Generali
+        </MudText>
+
+        <!-- Improved 2-Row Document Header - Responsive and Clear -->
+        <MudPaper Elevation="2" Class="pa-3 mb-3 document-inline-header">
         <!-- Row 1: Document Identification and Primary Fields -->
         <MudGrid Spacing="2" Class="mb-2">
             <!-- Document Type -->
@@ -189,44 +205,78 @@
             </MudItem>
         </MudGrid>
 
-        <!-- Row 2: Business Party (Full Width for Better Visibility) -->
-        <MudGrid Spacing="2">
-            <MudItem xs="12">
-                <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                        <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Small" Class="mr-1" />
-                        @TranslationService.GetTranslation("documents.businessParty", "Cliente/Fornitore")
-                    </MudText>
-                    <MudAutocomplete T="BusinessPartyDto"
-                                    @bind-Value="_selectedBusinessParty"
-                                    SearchFunc="@SearchBusinessPartiesAsync"
-                                    ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
-                                    Variant="Variant.Outlined"
-                                    Dense="true"
-                                    Margin="Margin.Dense"
-                                    MinCharacters="2"
-                                    DebounceInterval="300"
-                                    ShowProgressIndicator="true"
-                                    Clearable="false"
-                                    Placeholder="@TranslationService.GetTranslation("documents.searchBusinessParty", "Cerca cliente o fornitore (min 2 caratteri)...")"
-                                    aria-label="@TranslationService.GetTranslation("documents.businessParty", "Controparte")"
-                                    AdornmentIcon="@Icons.Material.Outlined.Business">
-                        <ItemTemplate>
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
-                                @if (!string.IsNullOrEmpty(context.TaxCode))
+        <!-- Sezione 2: Controparte Commerciale (ef-section-product) -->
+        <MudPaper Elevation="2" Class="pa-3 mb-3 ef-section-product">
+            <MudText Typo="Typo.h6" Class="mb-3 ef-section-title-purple">
+                <MudIcon Icon="@Icons.Material.Filled.Business" Class="mr-2" />
+                Controparte Commerciale
+            </MudText>
+
+            <!-- Row 2: Business Party (Full Width for Better Visibility) -->
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="10">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                            <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("documents.businessParty", "Cliente/Fornitore")
+                        </MudText>
+                        <MudAutocomplete T="BusinessPartyDto"
+                                        @bind-Value="_selectedBusinessParty"
+                                        SearchFunc="@SearchBusinessPartiesAsync"
+                                        ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
+                                        Variant="Variant.Outlined"
+                                        Dense="true"
+                                        Margin="Margin.Dense"
+                                        MinCharacters="2"
+                                        DebounceInterval="300"
+                                        ShowProgressIndicator="true"
+                                        Clearable="false"
+                                        Placeholder="@TranslationService.GetTranslation("documents.searchBusinessParty", "Cerca cliente o fornitore (min 2 caratteri)...")"
+                                        aria-label="@TranslationService.GetTranslation("documents.businessParty", "Controparte")"
+                                        AdornmentIcon="@Icons.Material.Outlined.Business">
+                            <ItemTemplate>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
+                                    @if (!string.IsNullOrEmpty(context.TaxCode))
+                                    {
+                                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                                            <MudIcon Icon="@Icons.Material.Outlined.Badge" Size="Size.Small" Class="mr-1" />
+                                            @context.TaxCode
+                                        </MudText>
+                                    }
+                                </MudStack>
+                            </ItemTemplate>
+                        </MudAutocomplete>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="12" md="2" Class="d-flex align-center">
+                    <MudTooltip Text="@TranslationService.GetTranslation("business.quickCreate", "Creazione Rapida Partner")">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   FullWidth="true"
+                                   OnClick="@OpenQuickCreatePartnerDialog">
+                            @TranslationService.GetTranslation("common.new", "Nuovo")
+                        </MudButton>
+                    </MudTooltip>
+                </MudItem>
+                
+                @if (_selectedBusinessParty != null)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Outlined.Business">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body2"><strong>@_selectedBusinessParty.Name</strong></MudText>
+                                @if (!string.IsNullOrEmpty(_selectedBusinessParty.TaxCode))
                                 {
-                                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                                        <MudIcon Icon="@Icons.Material.Outlined.Badge" Size="Size.Small" Class="mr-1" />
-                                        @context.TaxCode
-                                    </MudText>
+                                    <MudText Typo="Typo.caption">P.IVA/C.F.: @_selectedBusinessParty.TaxCode</MudText>
                                 }
                             </MudStack>
-                        </ItemTemplate>
-                    </MudAutocomplete>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudPaper>
 
         <!-- Expanded Details Section (Collapsible) -->
         <MudCollapse Expanded="@_detailsExpanded">
@@ -309,15 +359,18 @@
             </MudGrid>
         </MudCollapse>
     </MudPaper>
+    </MudPaper>
+    <!-- End Sezione 1: Informazioni Generali -->
 
     <!-- Document Rows Section with VAT/Totals Panel -->
     <MudGrid Class="mt-4">
         <!-- Left column: Document Rows Table -->
         <MudItem xs="12" lg="8">
-            <MudPaper Elevation="2" Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-3">
-                    <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                    @TranslationService.GetTranslation("documents.rows", "Righe Documento")
+            <!-- Sezione 3: Righe Documento (ef-section-editable) -->
+            <MudPaper Elevation="3" Class="pa-4 mb-3 ef-section-editable">
+                <MudText Typo="Typo.h6" Class="mb-3 ef-section-title-blue">
+                    <MudIcon Icon="@Icons.Material.Filled.List" Class="mr-2" />
+                    Righe Documento
                 </MudText>
 
                 @if (_currentDocument == null)
@@ -604,10 +657,18 @@
 
         <!-- Right column: VAT Summary and Totals -->
         <MudItem xs="12" lg="4" Class="document-sidebar-sticky">
-            <MudStack Spacing="3">
-                <DocumentVatSummary Rows="@_currentDocument?.Rows" />
-                <DocumentTotalsCard Document="@_currentDocument" />
-            </MudStack>
+            <!-- Sezione 4: Totali e Riepilogo (ef-section-commercial) -->
+            <MudPaper Elevation="3" Class="pa-4 mb-3 ef-section-commercial">
+                <MudText Typo="Typo.h6" Class="mb-3 ef-section-title-blue">
+                    <MudIcon Icon="@Icons.Material.Filled.Calculate" Class="mr-2" />
+                    Riepilogo e Totali
+                </MudText>
+
+                <MudStack Spacing="3">
+                    <DocumentVatSummary Rows="@_currentDocument?.Rows" />
+                    <DocumentTotalsCard Document="@_currentDocument" />
+                </MudStack>
+            </MudPaper>
         </MudItem>
     </MudGrid>
 </MudContainer>
@@ -923,6 +984,47 @@
         {
             Logger.LogError(ex, "Error searching business parties");
             return Array.Empty<BusinessPartyDto>();
+        }
+    }
+
+    private async Task OpenQuickCreatePartnerDialog()
+    {
+        // Determina il tipo preferito in base al tipo documento
+        BusinessPartyType? preferredType = null;
+        var selectedDocType = _documentTypes.FirstOrDefault(dt => dt.Id == _model.DocumentTypeId);
+        if (selectedDocType != null)
+        {
+            preferredType = selectedDocType.RequiredPartyType;
+        }
+        
+        var parameters = new DialogParameters
+        {
+            ["PreferredPartyType"] = preferredType
+        };
+        
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<QuickCreateBusinessPartyDialog>(
+            TranslationService.GetTranslation("business.quickCreate", "Creazione Rapida Partner"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is BusinessPartyDto newPartner)
+        {
+            _selectedBusinessParty = newPartner;
+            Snackbar.Add(
+                $"Partner '{newPartner.Name}' creato e selezionato",
+                Severity.Success
+            );
+            StateHasChanged();
         }
     }
 
