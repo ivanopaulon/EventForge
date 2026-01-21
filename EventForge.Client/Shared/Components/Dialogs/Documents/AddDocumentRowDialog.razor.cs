@@ -977,8 +977,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 await _quantityField.FocusAsync();
             }
 
-            // ✅ StateHasChanged ONLY at the end
-            StateHasChanged();
+            // ✅ Blazor will automatically re-render after async method completes
+            // Removed StateHasChanged() to prevent interference with autocomplete typing
             
             Logger.LogInformation("Product fields populated successfully for {ProductId}", product.Id);
         }
