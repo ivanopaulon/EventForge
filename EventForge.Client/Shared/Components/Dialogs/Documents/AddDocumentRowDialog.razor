@@ -9,41 +9,44 @@
 
 <MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" @onkeydown="@OnDialogKeyDown" tabindex="-1">
     <TitleContent>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-            <MudText Typo="Typo.h6">
-                <MudIcon Icon="@(_isEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)" Class="mr-2" />
-                @TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")
-            </MudText>
-            
-            @if (!_isEditMode)
-            {
-                <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
-                    <MudTooltip Text="@TranslationService.GetTranslation("documents.standardModeTooltip", "Modalità completa con tutti i campi")">
-                        <MudButton StartIcon="@Icons.Material.Outlined.Edit"
-                                  Color="@(_dialogMode == DialogMode.Standard ? Color.Primary : Color.Default)"
-                                  Variant="@(_dialogMode == DialogMode.Standard ? Variant.Filled : Variant.Outlined)"
-                                  OnClick="@(() => SetDialogMode(DialogMode.Standard))">
-                            @TranslationService.GetTranslation("documents.standardMode", "Standard")
-                        </MudButton>
-                    </MudTooltip>
-                    
-                    <MudTooltip Text="@TranslationService.GetTranslation("documents.continuousScanTooltip", "Scansione continua con barcode scanner")">
-                        <MudButton StartIcon="@Icons.Material.Outlined.QrCodeScanner"
-                                  Color="@(_dialogMode == DialogMode.ContinuousScan ? Color.Primary : Color.Default)"
-                                  Variant="@(_dialogMode == DialogMode.ContinuousScan ? Variant.Filled : Variant.Outlined)"
-                                  OnClick="@(() => SetDialogMode(DialogMode.ContinuousScan))">
-                            @TranslationService.GetTranslation("documents.continuousScanMode", "Scan")
-                            @if (_continuousScanCount > 0)
-                            {
-                                <MudBadge Content="@_continuousScanCount" Color="Color.Success" Overlap="true" Class="ml-2" />
-                            }
-                        </MudButton>
-                    </MudTooltip>
-                </MudButtonGroup>
-            }
-        </MudStack>
+        <div class="@DialogStyleConstants.Classes.DialogTitle">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@(_isEditMode ? DialogStyleConstants.Icons.Edit : DialogStyleConstants.Icons.AddRow)" Class="mr-2" />
+                    @TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")
+                </MudText>
+                
+                @if (!_isEditMode)
+                {
+                    <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
+                        <MudTooltip Text="@TranslationService.GetTranslation("documents.standardModeTooltip", "Modalità completa con tutti i campi")">
+                            <MudButton StartIcon="@Icons.Material.Outlined.Edit"
+                                      Color="@(_dialogMode == DialogMode.Standard ? Color.Primary : Color.Default)"
+                                      Variant="@(_dialogMode == DialogMode.Standard ? Variant.Filled : Variant.Outlined)"
+                                      OnClick="@(() => SetDialogMode(DialogMode.Standard))">
+                                @TranslationService.GetTranslation("documents.standardMode", "Standard")
+                            </MudButton>
+                        </MudTooltip>
+                        
+                        <MudTooltip Text="@TranslationService.GetTranslation("documents.continuousScanTooltip", "Scansione continua con barcode scanner")">
+                            <MudButton StartIcon="@Icons.Material.Outlined.QrCodeScanner"
+                                      Color="@(_dialogMode == DialogMode.ContinuousScan ? Color.Primary : Color.Default)"
+                                      Variant="@(_dialogMode == DialogMode.ContinuousScan ? Variant.Filled : Variant.Outlined)"
+                                      OnClick="@(() => SetDialogMode(DialogMode.ContinuousScan))">
+                                @TranslationService.GetTranslation("documents.continuousScanMode", "Scan")
+                                @if (_continuousScanCount > 0)
+                                {
+                                    <MudBadge Content="@_continuousScanCount" Color="Color.Success" Overlap="true" Class="ml-2" />
+                                }
+                            </MudButton>
+                        </MudTooltip>
+                    </MudButtonGroup>
+                }
+            </MudStack>
+        </div>
     </TitleContent>
     <DialogContent>
+        <div class="@DialogStyleConstants.Classes.DialogContent">
         @if (_isLoadingData)
         {
             <MudStack Spacing="2" Class="mb-4">
@@ -198,12 +201,24 @@
             @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
-                <DocumentRowProductSelector @bind-SelectedProduct="@_state.SelectedProduct"
-                                           OnProductChanged="@OnProductSelected"
+                <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
+                                           SelectedProductChanged="@OnProductSelected"
                                            SearchFunc="@SearchProductsAsync"
-                                           IsEnabled="true"
-                                           ShowQuickEdit="true"
-                                           OnQuickEdit="@OpenEditProductDialog" />
+                                           Disabled="false"
+                                           ShowQuickInfo="true"
+                                           AllowQuickEdit="true"
+                                           OnQuickEdit="@OpenEditProductDialog"
+                                           AllowClear="true" />
+                
+                <!-- Recent Transactions -->
+                @if (_state.SelectedProduct != null)
+                {
+                    <DocumentRowRecentTransactions ProductId="@_state.SelectedProduct.Id"
+                                                  TransactionType="@DetermineTransactionType()"
+                                                  PartyId="@GetBusinessPartyId()"
+                                                  OnPriceApplied="@HandleRecentPriceApplied"
+                                                  MaxTransactions="3" />
+                }
                 
                 <DocumentRowQuantityPrice @ref="_quantityPriceRef"
                                          Description="@_model.Description"
@@ -282,13 +297,9 @@
                                    Expanded="@_notesPanelExpanded"
                                    ExpandedChanged="@((expanded) => { _notesPanelExpanded = expanded; DebouncePanelStateSave(); })"
                                    id="notes-details-panel">
-                    <MudTextField T="string"
-                                 Label="@TranslationService.GetTranslation("documents.notes", "Note (opzionali)")"
-                                 @bind-Value="_model.Notes"
-                                 Lines="2"
-                                 Variant="Variant.Outlined"
-                                 Adornment="Adornment.Start"
-                                 AdornmentIcon="@Icons.Material.Outlined.Comment" />
+                    <DocumentRowNotesPanel Notes="@_model.Notes"
+                                          NotesChanged="@(notes => _model.Notes = notes)"
+                                          MaxLength="200" />
                 </MudExpansionPanel>
                 
             </MudExpansionPanels>
@@ -306,35 +317,38 @@
             } @* End of DialogMode != ContinuousScan check *@
             
         </MudStack>
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-            <MudText Typo="Typo.caption" Class="ml-2" Style="color: var(--mud-palette-text-secondary);">
-                <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" />
-                @TranslationService.GetTranslation("documents.shortcutEnter", "Enter: Salva") · 
-                @TranslationService.GetTranslation("documents.shortcutCtrlE", "Ctrl+E: Modifica Prodotto") · 
-                @TranslationService.GetTranslation("documents.shortcutEsc", "Esc: Chiudi")
-            </MudText>
-            <MudStack Row="true" Spacing="2">
-                <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
-                    @TranslationService.GetTranslation("common.close", "Chiudi")
-                </MudButton>
-                <MudButton Color="Color.Primary" 
-                           OnClick="SaveAndContinue" 
-                           Disabled="@(!IsValid() || _isProcessing)"
-                           Variant="Variant.Filled">
-                    @if (_isProcessing)
-                    {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@(_isEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)" Class="mr-1" />
-                    }
-                    @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
-                </MudButton>
+        <div class="@DialogStyleConstants.Classes.DialogActions">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                <MudText Typo="Typo.caption" Class="ml-2" Style="color: var(--mud-palette-text-secondary);">
+                    <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" />
+                    @TranslationService.GetTranslation("documents.shortcutEnter", "Enter: Salva") · 
+                    @TranslationService.GetTranslation("documents.shortcutCtrlE", "Ctrl+E: Modifica Prodotto") · 
+                    @TranslationService.GetTranslation("documents.shortcutEsc", "Esc: Chiudi")
+                </MudText>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
+                        @TranslationService.GetTranslation("common.close", "Chiudi")
+                    </MudButton>
+                    <MudButton Color="Color.Primary" 
+                               OnClick="SaveAndContinue" 
+                               Disabled="@(!IsValid() || _isProcessing)"
+                               Variant="Variant.Filled">
+                        @if (_isProcessing)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@(_isEditMode ? DialogStyleConstants.Icons.Save : DialogStyleConstants.Icons.Add)" Class="mr-1" />
+                        }
+                        @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
+                    </MudButton>
+                </MudStack>
             </MudStack>
-        </MudStack>
+        </div>
     </DialogActions>
 </MudDialog>
 

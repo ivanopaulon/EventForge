@@ -1,0 +1,76 @@
+@using EventForge.DTOs.Products
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+@if (_isLoading)
+{
+    <!-- Loading Skeleton -->
+    <MudPaper Elevation="1" Class="pa-3 mt-2">
+        <MudStack Spacing="2">
+            <MudSkeleton SkeletonType="SkeletonType.Text" Width="60%" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="80px" />
+        </MudStack>
+    </MudPaper>
+}
+else if (RecentTransactions != null && RecentTransactions.Any())
+{
+    <!-- Recent Transactions Table -->
+    <MudPaper Elevation="1" Class="pa-3 mt-2">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" Class="mr-1" />
+                @TranslationService.GetTranslation("documents.recentTransactions", "Ultimi Prezzi")
+            </MudText>
+            
+            <MudTable T="RecentProductTransactionDto" Items="@RecentTransactions" Dense="true" Hover="true" Bordered="false" Striped="false">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("documents.date", "Data")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.price", "Prezzo")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.unitOfMeasure", "U.M.")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.document", "Documento")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("documents.party", "Controparte")</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.date", "Data")">
+                        <MudText Typo="Typo.body2">@context.DocumentDate.ToString("dd/MM/yyyy")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.price", "Prezzo")">
+                        <MudText Typo="Typo.body2" Style="font-weight: 500; color: var(--mud-palette-primary);">
+                            @context.EffectiveUnitPrice.ToString("C2")
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitOfMeasure", "U.M.")">
+                        <MudText Typo="Typo.body2">@(context.UnitOfMeasure ?? "-")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.document", "Documento")">
+                        <MudText Typo="Typo.caption">@context.DocumentNumber</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("documents.party", "Controparte")">
+                        <MudText Typo="Typo.caption">@context.PartyName</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudButton Size="Size.Small"
+                                   Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => ApplyPrice(context.EffectiveUnitPrice))">
+                            @TranslationService.GetTranslation("documents.apply", "Applica")
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudStack>
+    </MudPaper>
+}
+else if (!_isLoading && ProductId.HasValue)
+{
+    <!-- No Transactions Found -->
+    <MudPaper Elevation="1" Class="pa-3 mt-2" Style="background-color: var(--mud-palette-background-grey);">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Info" />
+            <MudText Typo="Typo.body2" Color="Color.Info">
+                @TranslationService.GetTranslation("documents.noRecentTransactions", "Nessuna transazione recente trovata")
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}

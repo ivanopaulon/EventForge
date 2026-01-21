@@ -503,6 +503,21 @@ public partial class AddDocumentRowDialog : IDisposable
     }
 
     /// <summary>
+    /// Handles applying a price from recent transactions
+    /// </summary>
+    private void HandleRecentPriceApplied(decimal price)
+    {
+        _model.UnitPrice = price;
+        Logger.LogInformation("Applied recent price {Price} to unit price", price);
+        
+        // Invalidate calculation cache
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
+        
+        StateHasChanged();
+    }
+
+    /// <summary>
     /// Loads an existing document row for editing
     /// </summary>
     /// <param name="rowId">The ID of the row to edit</param>

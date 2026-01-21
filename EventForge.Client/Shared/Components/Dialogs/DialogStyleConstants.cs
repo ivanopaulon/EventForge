@@ -99,6 +99,7 @@ public static class DialogStyleConstants
     public static class Icons
     {
         public const string Add = MudBlazor.Icons.Material.Outlined.Add;
+        public const string AddRow = MudBlazor.Icons.Material.Outlined.PlaylistAdd;
         public const string Edit = MudBlazor.Icons.Material.Outlined.Edit;
         public const string Search = MudBlazor.Icons.Material.Outlined.Search;
         public const string SearchOff = MudBlazor.Icons.Material.Outlined.SearchOff;
@@ -109,5 +110,18 @@ public static class DialogStyleConstants
         public const string Cancel = MudBlazor.Icons.Material.Outlined.Cancel;
         public const string Delete = MudBlazor.Icons.Material.Outlined.Delete;
         public const string Close = MudBlazor.Icons.Material.Outlined.Close;
+    }
+
+    /// <summary>
+    /// CSS classes for dialog styling - references dialogs.css
+    /// </summary>
+    public static class Classes
+    {
+        public const string DialogTitle = "ef-dialog-title";
+        public const string DialogContent = "ef-dialog-content";
+        public const string DialogActions = "ef-dialog-actions";
+        public const string DialogForm = "ef-dialog-form";
+        public const string DialogLoading = "ef-dialog-loading";
+        public const string DialogSectionHeader = "ef-dialog-section-header";
     }
 }
