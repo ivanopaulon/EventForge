@@ -105,37 +105,6 @@
                         </MudStack>
                     </MudPaper>
 
-                    <!-- SEZIONE 3: Contatti (Bordo Blu) -->
-                    <MudPaper Elevation="3" Class="pa-4 ef-section-commercial">
-                        <MudStack Spacing="2">
-                            <MudText Typo="Typo.subtitle2" Class="ef-section-title-blue">
-                                <MudIcon Icon="@Icons.Material.Outlined.ContactMail" Size="Size.Small" Class="mr-2" />
-                                @TranslationService.GetTranslation("business.contacts", "Contatti Primari (Opzionali)")
-                            </MudText>
-                            
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="6">
-                                    <MudTextField @bind-Value="_model.Email"
-                                                  Label="@TranslationService.GetTranslation("field.email", "Email")"
-                                                  Variant="Variant.Outlined"
-                                                  InputType="InputType.Email"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Outlined.Email"
-                                                  AdornmentColor="Color.Info" />
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudTextField @bind-Value="_model.Phone"
-                                                  Label="@TranslationService.GetTranslation("field.phone", "Telefono")"
-                                                  Variant="Variant.Outlined"
-                                                  InputType="InputType.Telephone"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Outlined.Phone"
-                                                  AdornmentColor="Color.Success" />
-                                </MudItem>
-                            </MudGrid>
-                        </MudStack>
-                    </MudPaper>
-
                 </MudStack>
             </MudForm>
         </div>
@@ -175,8 +144,6 @@
         public string? TaxCode { get; set; }
         public string? VatNumber { get; set; }
         public string? SdiCode { get; set; }
-        public string? Email { get; set; }
-        public string? Phone { get; set; }
     }
     
     private CreateModel _model = new();

@@ -1021,7 +1021,7 @@
         {
             _selectedBusinessParty = newPartner;
             Snackbar.Add(
-                $"Partner '{newPartner.Name}' creato e selezionato",
+                TranslationService.GetTranslation("business.partnerCreatedAndSelected", "Partner '{0}' creato e selezionato", newPartner.Name),
                 Severity.Success
             );
             StateHasChanged();
