@@ -125,6 +125,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private bool _showKeyboardHelp = false;
     private DotNetObjectReference<AddDocumentRowDialog>? _dotNetRef;
 
+    // Animation delay constants - PR #2c-Part1
+    private const int ProductSelectionAnimationDurationMs = 600;
+    private const int PriceFieldAnimationDurationMs = 400;
+
     #endregion
 
     #region Component Event Handlers
@@ -560,8 +564,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 config => config.VisibleStateDuration = 1000
             );
             
-            // Reset animation flag
-            await Task.Delay(600);
+            // Reset animation flag after animation completes
+            await Task.Delay(ProductSelectionAnimationDurationMs);
             _productJustSelected = false;
             await InvokeAsync(StateHasChanged);
         }
@@ -591,7 +595,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         _cachedCalculationKey = string.Empty;
         
         // Reset animation flag after animation completes
-        await Task.Delay(400);
+        await Task.Delay(PriceFieldAnimationDurationMs);
         _shouldAnimatePriceField = false;
         await InvokeAsync(StateHasChanged);
     }
@@ -1740,32 +1744,36 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
-    /// Handle save shortcut
+    /// Handle save shortcut (Ctrl+S) - saves and closes dialog
     /// </summary>
     private async Task HandleSave(bool continueAdding = false)
     {
-        // Call existing SaveAndContinue which handles both edit and create
+        // Call existing SaveAndContinue which handles validation and saving
         await SaveAndContinue();
-        
-        // Close dialog if not continuing
-        if (!continueAdding && !_isEditMode)
-        {
-            // Dialog will close automatically after SaveAndContinue succeeds
-        }
-        
-        return;
+        // Note: Dialog closes automatically on successful save in non-edit mode
     }
 
     /// <summary>
-    /// Handle save and continue shortcut
+    /// Handle save and continue shortcut (Ctrl+Enter) - saves and resets form for next entry
+    /// Note: This only works in create mode, not edit mode
     /// </summary>
     private async Task HandleSaveAndContinue()
     {
+        // Only works in create mode
+        if (_isEditMode)
+        {
+            await SaveAndContinue();
+            return;
+        }
+        
+        // Track if we had validation errors before save
+        var hadErrorsBefore = _state.Validation.Errors.Any();
+        
         // Save current row
         await SaveAndContinue();
         
-        // If save was successful and not in edit mode, reset form
-        if (!_isEditMode && !_state.Processing.IsSaving)
+        // If save succeeded (no new validation errors), reset form
+        if (!_state.Validation.Errors.Any())
         {
             // Reset form for next entry
             ResetForm();
@@ -2126,17 +2134,20 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         _panelStateSaveDebouncer?.Dispose();
         
         // Cleanup keyboard shortcuts - PR #2c-Part1 Commit 2
+        // Dispose .NET reference first to prevent further callbacks, then unregister JS handler
         if (_dotNetRef != null)
         {
+            _dotNetRef.Dispose();
+            _dotNetRef = null;
+            
             try
             {
                 await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.unregister");
             }
             catch
             {
-                // Ignore errors during cleanup
+                // Ignore errors during cleanup (e.g., if component already disposed)
             }
-            _dotNetRef.Dispose();
         }
     }
 

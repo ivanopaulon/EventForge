@@ -71,16 +71,15 @@ window.KeyboardShortcuts = {
 
     /**
      * Unregister and cleanup
+     * Note: DotNetObjectReference disposal is handled in .NET code
      */
     unregister: function () {
         if (this.handler) {
             document.removeEventListener('keydown', this.handler);
             this.handler = null;
         }
-        if (this.dotNetRef) {
-            this.dotNetRef.dispose();
-            this.dotNetRef = null;
-        }
+        // Clear reference but don't dispose - disposal is handled in .NET
+        this.dotNetRef = null;
     }
 };
 
