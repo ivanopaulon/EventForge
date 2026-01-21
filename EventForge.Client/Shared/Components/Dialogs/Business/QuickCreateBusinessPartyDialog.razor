@@ -1,0 +1,208 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@inject ITranslationService TranslationService
+@inject IBusinessPartyService BusinessPartyService
+@inject ISnackbar Snackbar
+@inject ILogger<QuickCreateBusinessPartyDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudPaper Elevation="3" Class="pa-3 ef-header-create">
+            <MudText Typo="Typo.h5" Class="ef-header-text" Align="Align.Center">
+                <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" Size="Size.Large" Class="mr-2" />
+                @TranslationService.GetTranslation("business.quickCreatePartner", "Creazione Rapida Partner")
+            </MudText>
+        </MudPaper>
+    </TitleContent>
+    <DialogContent>
+        <div class="ef-dialog-content">
+            <PageLoadingOverlay Visible="_isLoading" />
+
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+                <MudStack Spacing="3">
+                    
+                    <!-- SEZIONE 1: Dati Identificativi (Bordo Verde) -->
+                    <MudPaper Elevation="2" Class="pa-3 ef-section-scanner">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2" Class="ef-section-title-green">
+                                <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
+                                @TranslationService.GetTranslation("business.identification", "Dati Identificativi")
+                            </MudText>
+                            
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6">
+                                    <MudSelect @bind-Value="_model.PartyType"
+                                              Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo Partner")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Category"
+                                              AdornmentColor="Color.Primary">
+                                        <MudSelectItem Value="BusinessPartyType.Cliente">
+                                            @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
+                                        </MudSelectItem>
+                                        <MudSelectItem Value="BusinessPartyType.Supplier">
+                                            @TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore")
+                                        </MudSelectItem>
+                                        <MudSelectItem Value="BusinessPartyType.Both">
+                                            @TranslationService.GetTranslation("businessPartyType.both", "Entrambi")
+                                        </MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="_model.Name"
+                                                  Label="@($"{TranslationService.GetTranslation("field.name", "Nome/Ragione Sociale")} *")"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true"
+                                                  RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                                  MaxLength="200"
+                                                  Counter="200"
+                                                  Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Outlined.Business"
+                                                  AdornmentColor="Color.Success" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudStack>
+                    </MudPaper>
+
+                    <!-- SEZIONE 2: Dati Fiscali (Bordo Viola) -->
+                    <MudPaper Elevation="2" Class="pa-3 ef-section-description">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2" Class="ef-section-title-purple">
+                                <MudIcon Icon="@Icons.Material.Outlined.Receipt" Size="Size.Small" Class="mr-2" />
+                                @TranslationService.GetTranslation("business.fiscalData", "Dati Fiscali (Opzionali)")
+                            </MudText>
+                            
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="4">
+                                    <MudTextField @bind-Value="_model.TaxCode"
+                                                  Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                                                  Variant="Variant.Outlined"
+                                                  MaxLength="20"
+                                                  Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Outlined.Badge"
+                                                  AdornmentColor="Color.Info" />
+                                </MudItem>
+                                <MudItem xs="12" sm="4">
+                                    <MudTextField @bind-Value="_model.VatNumber"
+                                                  Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                                  Variant="Variant.Outlined"
+                                                  MaxLength="20"
+                                                  Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                                                  AdornmentColor="Color.Warning" />
+                                </MudItem>
+                                <MudItem xs="12" sm="4">
+                                    <MudTextField @bind-Value="_model.SdiCode"
+                                                  Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
+                                                  Variant="Variant.Outlined"
+                                                  MaxLength="10"
+                                                  Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                                                  AdornmentColor="Color.Secondary" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudStack>
+                    </MudPaper>
+
+                </MudStack>
+            </MudForm>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text" 
+                   Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="CreatePartner" 
+                   Variant="Variant.Filled" 
+                   Color="Color.Primary"
+                   Disabled="@(!_isFormValid || _isLoading)"
+                   StartIcon="@Icons.Material.Filled.Save">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] 
+    public BusinessPartyType? PreferredPartyType { get; set; }
+    
+    private MudForm? _form;
+    private bool _isFormValid;
+    private bool _isLoading;
+    
+    // Model class for simplified creation
+    private class CreateModel
+    {
+        public BusinessPartyType PartyType { get; set; } = BusinessPartyType.Cliente;
+        public string Name { get; set; } = string.Empty;
+        public string? TaxCode { get; set; }
+        public string? VatNumber { get; set; }
+        public string? SdiCode { get; set; }
+    }
+    
+    private CreateModel _model = new();
+    
+    protected override void OnInitialized()
+    {
+        if (PreferredPartyType.HasValue)
+        {
+            _model.PartyType = PreferredPartyType.Value;
+        }
+    }
+    
+    private async Task CreatePartner()
+    {
+        if (_form == null || !_isFormValid) return;
+        
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        
+        _isLoading = true;
+        try
+        {
+            var dto = new CreateBusinessPartyDto
+            {
+                PartyType = _model.PartyType,
+                Name = _model.Name,
+                TaxCode = _model.TaxCode,
+                VatNumber = _model.VatNumber,
+                SdiCode = _model.SdiCode
+            };
+            
+            var created = await BusinessPartyService.CreateBusinessPartyAsync(dto);
+            
+            if (created != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("business.createSuccess", "Partner creato con successo"),
+                    Severity.Success
+                );
+                
+                MudDialog.Close(DialogResult.Ok(created));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating business partner");
+            Snackbar.Add(
+                TranslationService.GetTranslation("business.createError", "Errore nella creazione del partner"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+    
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
