@@ -117,6 +117,10 @@ public partial class AddDocumentRowDialog : IDisposable
     private System.Timers.Timer? _statsTimer;
     private MudTextField<string>? _continuousScanField;
 
+    // Visual feedback flags - PR #2c-Part1 Commit 1
+    private bool _shouldAnimatePriceField = false;
+    private bool _productJustSelected = false;
+
     #endregion
 
     #region Component Event Handlers
@@ -515,6 +519,66 @@ public partial class AddDocumentRowDialog : IDisposable
         _cachedCalculationKey = string.Empty;
         
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles product selection with visual feedback
+    /// PR #2c-Part1 - Commit 1
+    /// </summary>
+    private async Task HandleProductSelectedWithFeedback(ProductDto? product)
+    {
+        var previousProduct = _state.SelectedProduct;
+        
+        // Call the existing OnProductSelected to maintain all existing logic
+        await OnProductSelected(product);
+        
+        if (product != null && previousProduct?.Id != product.Id)
+        {
+            // Trigger selection animation
+            _productJustSelected = true;
+            await InvokeAsync(StateHasChanged);
+            
+            // Show success snackbar
+            Snackbar.Add(
+                $"{product.Name} selezionato",
+                Severity.Success,
+                config => config.VisibleStateDuration = 1000
+            );
+            
+            // Reset animation flag
+            await Task.Delay(600);
+            _productJustSelected = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Handles recent price application with visual feedback
+    /// PR #2c-Part1 - Commit 1
+    /// </summary>
+    private async Task HandleRecentPriceAppliedWithFeedback(decimal price)
+    {
+        _model.UnitPrice = price;
+        
+        // Trigger animation
+        _shouldAnimatePriceField = true;
+        await InvokeAsync(StateHasChanged);
+        
+        // Show success message
+        Snackbar.Add(
+            "Prezzo applicato",
+            Severity.Success,
+            config => config.VisibleStateDuration = 1500
+        );
+        
+        // Invalidate calculation cache (same as original HandleRecentPriceApplied)
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
+        
+        // Reset animation flag after animation completes
+        await Task.Delay(400);
+        _shouldAnimatePriceField = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     /// <summary>

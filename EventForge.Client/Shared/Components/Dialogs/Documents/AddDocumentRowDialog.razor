@@ -201,14 +201,17 @@
             @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
-                <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
-                                           SelectedProductChanged="@OnProductSelected"
-                                           SearchFunc="@SearchProductsAsync"
-                                           Disabled="false"
-                                           ShowQuickInfo="true"
-                                           AllowQuickEdit="true"
-                                           OnQuickEdit="@OpenEditProductDialog"
-                                           AllowClear="true" />
+                <!-- Product Selector with animation wrapper - PR #2c-Part1 Commit 1 -->
+                <div class="@(_productJustSelected ? "product-selected" : "")">
+                    <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
+                                               SelectedProductChanged="@HandleProductSelectedWithFeedback"
+                                               SearchFunc="@SearchProductsAsync"
+                                               Disabled="false"
+                                               ShowQuickInfo="true"
+                                               AllowQuickEdit="true"
+                                               OnQuickEdit="@OpenEditProductDialog"
+                                               AllowClear="true" />
+                </div>
                 
                 <!-- Recent Transactions -->
                 @if (_state.SelectedProduct != null)
@@ -216,11 +219,13 @@
                     <DocumentRowRecentTransactions ProductId="@_state.SelectedProduct.Id"
                                                   TransactionType="@DetermineTransactionType()"
                                                   PartyId="@GetBusinessPartyId()"
-                                                  OnPriceApplied="@HandleRecentPriceApplied"
+                                                  OnPriceApplied="@HandleRecentPriceAppliedWithFeedback"
                                                   MaxTransactions="3" />
                 }
                 
-                <DocumentRowQuantityPrice @ref="_quantityPriceRef"
+                <!-- Price/Quantity fields with animation wrapper - PR #2c-Part1 Commit 1 -->
+                <div class="@(_shouldAnimatePriceField ? "field-updated" : "")">
+                    <DocumentRowQuantityPrice @ref="_quantityPriceRef"
                                          Description="@_model.Description"
                                          DescriptionChanged="@((val) => _model.Description = val)"
                                          ReadOnlyDescription="false"
@@ -232,6 +237,7 @@
                                          OnUnitOfMeasureChanged="@OnUnitOfMeasureChanged"
                                          AvailableUnits="@_availableUnits"
                                          AllUnitsOfMeasure="@_allUnitsOfMeasure" />
+                </div>
             }
                 
                 <!-- 3.5 MERGE DUPLICATES CHECKBOX (Only in Add Mode) -->
