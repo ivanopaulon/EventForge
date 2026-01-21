@@ -129,6 +129,15 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private const int ProductSelectionAnimationDurationMs = 600;
     private const int PriceFieldAnimationDurationMs = 400;
 
+    // Real-time validation state - PR #2c-Part2 Commit 1
+    private Dictionary<string, bool> _validationSuccess = new();
+    private bool _isValidating = false;
+
+    // Loading states - PR #2c-Part2 Commit 3
+    private bool _isSaving = false;
+    private bool _isLoadingProductData = false;
+    private bool _isApplyingPrice = false;
+
     #endregion
 
     #region Component Event Handlers
@@ -543,30 +552,43 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// <summary>
     /// Handles product selection with visual feedback
     /// PR #2c-Part1 - Commit 1
+    /// PR #2c-Part2 - Commit 3: Added loading state
     /// </summary>
     private async Task HandleProductSelectedWithFeedback(ProductDto? product)
     {
         var previousProduct = _state.SelectedProduct;
         
-        // Call the existing OnProductSelected to maintain all existing logic
-        await OnProductSelected(product);
-        
-        if (product != null && previousProduct?.Id != product.Id)
+        try
         {
-            // Trigger selection animation
-            _productJustSelected = true;
+            _isLoadingProductData = true;
             await InvokeAsync(StateHasChanged);
             
-            // Show success snackbar
-            Snackbar.Add(
-                $"{product.Name} selezionato",
-                Severity.Success,
-                config => config.VisibleStateDuration = 1000
-            );
+            // Call the existing OnProductSelected to maintain all existing logic
+            await OnProductSelected(product);
             
-            // Reset animation flag after animation completes
-            await Task.Delay(ProductSelectionAnimationDurationMs);
-            _productJustSelected = false;
+            if (product != null && previousProduct?.Id != product.Id)
+            {
+                // Trigger selection animation
+                _productJustSelected = true;
+                
+                // Show success snackbar
+                Snackbar.Add(
+                    $"{product.Name} selezionato",
+                    Severity.Success,
+                    config => config.VisibleStateDuration = 1000
+                );
+                
+                await InvokeAsync(StateHasChanged);
+                
+                // Reset animation flag after animation completes
+                await Task.Delay(ProductSelectionAnimationDurationMs);
+                _productJustSelected = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        finally
+        {
+            _isLoadingProductData = false;
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -574,30 +596,45 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// <summary>
     /// Handles recent price application with visual feedback
     /// PR #2c-Part1 - Commit 1
+    /// PR #2c-Part2 - Commit 3: Added loading state
     /// </summary>
     private async Task HandleRecentPriceAppliedWithFeedback(decimal price)
     {
-        _model.UnitPrice = price;
-        
-        // Trigger animation
-        _shouldAnimatePriceField = true;
-        await InvokeAsync(StateHasChanged);
-        
-        // Show success message
-        Snackbar.Add(
-            "Prezzo applicato",
-            Severity.Success,
-            config => config.VisibleStateDuration = 1500
-        );
-        
-        // Invalidate calculation cache (same as original HandleRecentPriceApplied)
-        _cachedCalculationResult = null;
-        _cachedCalculationKey = string.Empty;
-        
-        // Reset animation flag after animation completes
-        await Task.Delay(PriceFieldAnimationDurationMs);
-        _shouldAnimatePriceField = false;
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _isApplyingPrice = true; // PR #2c-Part2 Commit 3
+            await InvokeAsync(StateHasChanged);
+            
+            // Simulate processing delay
+            await Task.Delay(200);
+            
+            _model.UnitPrice = price;
+            
+            // Trigger animation
+            _shouldAnimatePriceField = true;
+            await InvokeAsync(StateHasChanged);
+            
+            // Show success message
+            Snackbar.Add(
+                "Prezzo applicato",
+                Severity.Success,
+                config => config.VisibleStateDuration = 1500
+            );
+            
+            // Invalidate calculation cache (same as original HandleRecentPriceApplied)
+            _cachedCalculationResult = null;
+            _cachedCalculationKey = string.Empty;
+            
+            // Reset animation flag after animation completes
+            await Task.Delay(PriceFieldAnimationDurationMs);
+            _shouldAnimatePriceField = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            _isApplyingPrice = false; // PR #2c-Part2 Commit 3
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     /// <summary>
@@ -1419,8 +1456,18 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             return;
 
         _state.Processing.IsSaving = true;
+        _isSaving = true; // PR #2c-Part2 Commit 3
         try
         {
+            // Validate form - PR #2c-Part2 Commit 1
+            var isValid = await ValidateForm();
+            
+            if (!isValid)
+            {
+                Snackbar.Add("Correggi gli errori prima di salvare", Severity.Error);
+                return;
+            }
+            
             if (_state.SelectedUnitOfMeasureId.HasValue && _state.Model.UnitOfMeasureId != _state.SelectedUnitOfMeasureId)
             {
                 UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
@@ -1447,6 +1494,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         finally
         {
             _state.Processing.IsSaving = false;
+            _isSaving = false; // PR #2c-Part2 Commit 3
+            await InvokeAsync(StateHasChanged); // PR #2c-Part2 Commit 3
         }
     }
 
@@ -1810,6 +1859,120 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             Logger.LogDebug(ex, "Could not focus product search");
         }
+    }
+
+    #endregion
+
+    #region Real-time Validation - PR #2c-Part2 Commit 1
+
+    /// <summary>
+    /// Validates the entire form
+    /// </summary>
+    private async Task<bool> ValidateForm()
+    {
+        _isValidating = true;
+        _state.Validation.Errors.Clear();
+        _validationSuccess.Clear();
+        await InvokeAsync(StateHasChanged);
+        
+        var isValid = true;
+        
+        // Product validation
+        if (_state.SelectedProduct == null)
+        {
+            _state.Validation.Errors.Add("Seleziona un prodotto");
+            isValid = false;
+        }
+        else
+        {
+            _validationSuccess["product"] = true;
+        }
+        
+        // Quantity validation
+        if (_model.Quantity <= 0)
+        {
+            _state.Validation.Errors.Add("La quantità deve essere maggiore di 0");
+            isValid = false;
+        }
+        else
+        {
+            _validationSuccess["quantity"] = true;
+        }
+        
+        // Price validation
+        if (_model.UnitPrice < 0)
+        {
+            _state.Validation.Errors.Add("Il prezzo deve essere maggiore o uguale a 0");
+            isValid = false;
+        }
+        else
+        {
+            _validationSuccess["price"] = true;
+        }
+        
+        // VAT validation
+        if (_model.VatRate < 0 || _model.VatRate > 100)
+        {
+            _state.Validation.Errors.Add("L'IVA deve essere tra 0% e 100%");
+            isValid = false;
+        }
+        else
+        {
+            _validationSuccess["vat"] = true;
+        }
+        
+        _isValidating = false;
+        await InvokeAsync(StateHasChanged);
+        
+        return isValid;
+    }
+
+    /// <summary>
+    /// Validates a single field in real-time
+    /// </summary>
+    private async Task ValidateField(string fieldName, object? value)
+    {
+        // Remove previous success state
+        _validationSuccess.Remove(fieldName);
+        
+        switch (fieldName)
+        {
+            case "quantity":
+                var qty = value as decimal?;
+                if (qty.HasValue && qty.Value > 0)
+                {
+                    _validationSuccess[fieldName] = true;
+                }
+                break;
+                
+            case "price":
+                var price = value as decimal?;
+                if (price.HasValue && price.Value >= 0)
+                {
+                    _validationSuccess[fieldName] = true;
+                }
+                break;
+                
+            case "vat":
+                var vat = value as decimal?;
+                if (vat.HasValue && vat.Value >= 0 && vat.Value <= 100)
+                {
+                    _validationSuccess[fieldName] = true;
+                }
+                break;
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Gets validation CSS class for a field
+    /// </summary>
+    private string GetValidationClass(string fieldName)
+    {
+        if (_validationSuccess.ContainsKey(fieldName))
+            return "validation-success";
+        return "";
     }
 
     #endregion

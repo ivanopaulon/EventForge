@@ -46,6 +46,12 @@
         </div>
     </TitleContent>
     <DialogContent>
+        <!-- Save progress bar - PR #2c-Part2 Commit 3 -->
+        @if (_isSaving)
+        {
+            <div class="save-progress"></div>
+        }
+        
         <div class="@DialogStyleConstants.Classes.DialogContent">
         @if (_isLoadingData)
         {
@@ -266,7 +272,8 @@
             {
                 <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
                 <!-- Product Selector with animation wrapper - PR #2c-Part1 Commit 1 -->
-                <div class="@(_productJustSelected ? "product-selected" : "")" id="product-search-input">
+                <!-- Loading state added - PR #2c-Part2 Commit 3 -->
+                <div class="@(_productJustSelected ? "product-selected" : "") @(_isLoadingProductData ? "field-loading" : "")" id="product-search-input">
                     <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
                                                SelectedProductChanged="@HandleProductSelectedWithFeedback"
                                                SearchFunc="@SearchProductsAsync"
@@ -288,7 +295,8 @@
                 }
                 
                 <!-- Price/Quantity fields with animation wrapper - PR #2c-Part1 Commit 1 -->
-                <div class="@(_shouldAnimatePriceField ? "field-updated" : "")">
+                <!-- Loading state added - PR #2c-Part2 Commit 3 -->
+                <div class="@(_shouldAnimatePriceField ? "field-updated" : "") @(_isApplyingPrice ? "field-loading" : "")">
                     <DocumentRowQuantityPrice @ref="_quantityPriceRef"
                                          Description="@_model.Description"
                                          DescriptionChanged="@((val) => _model.Description = val)"
@@ -399,23 +407,36 @@
                     @TranslationService.GetTranslation("documents.shortcutEsc", "Esc: Chiudi")
                 </MudText>
                 <MudStack Row="true" Spacing="2">
-                    <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
+                    <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isSaving">
                         @TranslationService.GetTranslation("common.close", "Chiudi")
                     </MudButton>
-                    <MudButton Color="Color.Primary" 
-                               OnClick="SaveAndContinue" 
-                               Disabled="@(!IsValid() || _isProcessing)"
-                               Variant="Variant.Filled">
-                        @if (_isProcessing)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@(_isEditMode ? DialogStyleConstants.Icons.Save : DialogStyleConstants.Icons.Add)" Class="mr-1" />
-                        }
-                        @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
-                    </MudButton>
+                    
+                    <!-- Save & Continue button with tooltip - PR #2c-Part2 Commit 2 & 3 -->
+                    <MudTooltip Arrow="true" Placement="Placement.Top">
+                        <ChildContent>
+                            <MudButton Color="Color.Primary" 
+                                       OnClick="SaveAndContinue" 
+                                       Disabled="@(!IsValid() || _isSaving)"
+                                       Class="@(_isSaving ? "button-loading" : "")"
+                                       Variant="Variant.Filled">
+                                @if (_isSaving)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@(_isEditMode ? DialogStyleConstants.Icons.Save : DialogStyleConstants.Icons.Add)" Class="mr-1" />
+                                }
+                                @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
+                            </MudButton>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="tooltip-with-hint">
+                                <span>@(_isEditMode ? "Salva e chiudi" : "Aggiungi e continua")</span>
+                                <kbd class="tooltip-keyboard-hint">@(_isEditMode ? "Ctrl+S" : "Ctrl+Enter")</kbd>
+                            </div>
+                        </TooltipContent>
+                    </MudTooltip>
                 </MudStack>
             </MudStack>
         </div>
