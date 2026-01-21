@@ -9,6 +9,7 @@
         </MudText>
         <MudTextField @bind-Value="@_internalValue"
                       @ref="_barcodeField"
+                      id="barcode-input"
                       Label="@TranslationService.GetTranslation("warehouse.barcodeInput", "Codice a Barre")"
                       Variant="Variant.Outlined"
                       @onkeydown="@HandleKeyDown"

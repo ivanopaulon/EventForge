@@ -76,6 +76,70 @@
             </MudAlert>
         }
 
+        <!-- Keyboard Shortcuts Help Panel - PR #2c-Part1 Commit 2 -->
+        @if (_dialogMode != DialogMode.ContinuousScan)
+        {
+            <MudExpansionPanel @bind-IsExpanded="_showKeyboardHelp"
+                               Class="mb-3"
+                               Dense="true">
+                <TitleContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" Class="mr-1" />
+                            Scorciatoie Tastiera
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">
+                            Premi <kbd>?</kbd>
+                        </MudChip>
+                    </MudStack>
+                </TitleContent>
+                <ChildContent>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                                <strong>Navigazione</strong>
+                            </MudText>
+                            <MudList T="string" Dense="true">
+                                <MudListItem T="string"><kbd>Tab</kbd> - Campo successivo</MudListItem>
+                                <MudListItem T="string"><kbd>Shift+Tab</kbd> - Campo precedente</MudListItem>
+                                <MudListItem T="string"><kbd>Esc</kbd> - Chiudi dialog</MudListItem>
+                            </MudList>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                                <strong>Azioni</strong>
+                            </MudText>
+                            <MudList T="string" Dense="true">
+                                <MudListItem T="string"><kbd>Ctrl+S</kbd> - Salva</MudListItem>
+                                <MudListItem T="string"><kbd>Ctrl+Enter</kbd> - Salva e continua</MudListItem>
+                                <MudListItem T="string"><kbd>Ctrl+E</kbd> - Modifica prodotto</MudListItem>
+                            </MudList>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                                <strong>Quantità</strong>
+                            </MudText>
+                            <MudList T="string" Dense="true">
+                                <MudListItem T="string"><kbd>+</kbd> - Incrementa (+1)</MudListItem>
+                                <MudListItem T="string"><kbd>-</kbd> - Decrementa (-1)</MudListItem>
+                                <MudListItem T="string"><kbd>*</kbd> - Focus quantità</MudListItem>
+                            </MudList>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                                <strong>Focus Rapido</strong>
+                            </MudText>
+                            <MudList T="string" Dense="true">
+                                <MudListItem T="string"><kbd>F2</kbd> - Focus barcode</MudListItem>
+                                <MudListItem T="string"><kbd>F3</kbd> - Focus prodotto</MudListItem>
+                                <MudListItem T="string"><kbd>?</kbd> - Mostra/nascondi aiuto</MudListItem>
+                            </MudList>
+                        </MudItem>
+                    </MudGrid>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+
         <MudStack Spacing="3">
             
             @if (_dialogMode == DialogMode.ContinuousScan)
@@ -201,14 +265,17 @@
             @if (_dialogMode == DialogMode.Standard)
             {
                 <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
-                <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
-                                           SelectedProductChanged="@OnProductSelected"
-                                           SearchFunc="@SearchProductsAsync"
-                                           Disabled="false"
-                                           ShowQuickInfo="true"
-                                           AllowQuickEdit="true"
-                                           OnQuickEdit="@OpenEditProductDialog"
-                                           AllowClear="true" />
+                <!-- Product Selector with animation wrapper - PR #2c-Part1 Commit 1 -->
+                <div class="@(_productJustSelected ? "product-selected" : "")" id="product-search-input">
+                    <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
+                                               SelectedProductChanged="@HandleProductSelectedWithFeedback"
+                                               SearchFunc="@SearchProductsAsync"
+                                               Disabled="false"
+                                               ShowQuickInfo="true"
+                                               AllowQuickEdit="true"
+                                               OnQuickEdit="@OpenEditProductDialog"
+                                               AllowClear="true" />
+                </div>
                 
                 <!-- Recent Transactions -->
                 @if (_state.SelectedProduct != null)
@@ -216,11 +283,13 @@
                     <DocumentRowRecentTransactions ProductId="@_state.SelectedProduct.Id"
                                                   TransactionType="@DetermineTransactionType()"
                                                   PartyId="@GetBusinessPartyId()"
-                                                  OnPriceApplied="@HandleRecentPriceApplied"
+                                                  OnPriceApplied="@HandleRecentPriceAppliedWithFeedback"
                                                   MaxTransactions="3" />
                 }
                 
-                <DocumentRowQuantityPrice @ref="_quantityPriceRef"
+                <!-- Price/Quantity fields with animation wrapper - PR #2c-Part1 Commit 1 -->
+                <div class="@(_shouldAnimatePriceField ? "field-updated" : "")">
+                    <DocumentRowQuantityPrice @ref="_quantityPriceRef"
                                          Description="@_model.Description"
                                          DescriptionChanged="@((val) => _model.Description = val)"
                                          ReadOnlyDescription="false"
@@ -232,6 +301,7 @@
                                          OnUnitOfMeasureChanged="@OnUnitOfMeasureChanged"
                                          AvailableUnits="@_availableUnits"
                                          AllUnitsOfMeasure="@_allUnitsOfMeasure" />
+                </div>
             }
                 
                 <!-- 3.5 MERGE DUPLICATES CHECKBOX (Only in Add Mode) -->
