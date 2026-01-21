@@ -190,44 +190,15 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
-    /// Updates the model when parameters change and handles product selection changes
+    /// Updates the model when parameters change
     /// </summary>
     /// <remarks>
-    /// This method detects product selection changes and triggers asynchronous field population.
-    /// Uses fire-and-forget pattern with proper error handling.
+    /// Align with Business Party autocomplete: do not react to product changes here.
+    /// Selection changes are handled by OnProductSelected and programmatic flows (barcode, dialogs).
     /// </remarks>
     protected override void OnParametersSet()
     {
         _state.Model.DocumentHeaderId = DocumentHeaderId;
-
-        // Watch for product selection changes - compare by ID for proper equality check
-        if (_state.SelectedProduct?.Id != _state.PreviousSelectedProduct?.Id)
-        {
-            // Capture the current product to avoid race conditions
-            var currentProduct = _state.SelectedProduct;
-            _state.PreviousSelectedProduct = currentProduct;
-
-            if (currentProduct != null)
-            {
-                // Use InvokeAsync to safely execute async operation within component lifecycle
-                // Fire-and-forget is safe here as PopulateFromProductAsync handles its own errors
-                _ = InvokeAsync(async () =>
-                {
-                    try
-                    {
-                        await PopulateFromProductAsync(currentProduct);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, "Error populating product fields in OnParametersSet");
-                    }
-                });
-            }
-            else
-            {
-                ClearProductFields();
-            }
-        }
     }
 
     /// <summary>
