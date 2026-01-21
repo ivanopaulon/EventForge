@@ -1454,6 +1454,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _model.LineDiscountValue = 0m;
             _model.DiscountType = DiscountType.Percentage;
         }
+        else
+        {
+            // Reset discount type when cleared
+            _model.DiscountType = DiscountType.Percentage;
+        }
         
         StateHasChanged();
     }
@@ -1471,6 +1476,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             _model.LineDiscount = 0m;
             _model.DiscountType = DiscountType.Value;
+        }
+        else
+        {
+            // Reset discount type when cleared
+            _model.DiscountType = DiscountType.Percentage;
         }
         
         StateHasChanged();
@@ -1507,10 +1517,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             return subtotal - discountValue;
         }
         
-        // Applica sconto in importo
+        // Applica sconto in importo (assicurandosi che non superi il subtotale)
         if (_model.LineDiscountValue > 0)
         {
-            return subtotal - _model.LineDiscountValue;
+            decimal discountToApply = Math.Min(_model.LineDiscountValue, subtotal);
+            return subtotal - discountToApply;
         }
         
         return subtotal;

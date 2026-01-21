@@ -121,7 +121,7 @@
                                         {
                                             @foreach (var vat in _vatRates)
                                             {
-                                                <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage%)</MudSelectItem>
+                                                <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage %)</MudSelectItem>
                                             }
                                         }
                                     </MudSelect>

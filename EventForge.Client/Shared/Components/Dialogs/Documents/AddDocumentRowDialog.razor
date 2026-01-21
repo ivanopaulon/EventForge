@@ -401,7 +401,7 @@
                                                AdornmentIcon="@Icons.Material.Outlined.Percent"
                                                AdornmentColor="Color.Warning"
                                                Disabled="@(_model.LineDiscountValue > 0)"
-                                               HelperText="@(_model.LineDiscountValue > 0 ? "⚠️ Disabilitato: sconto € attivo" : "")" />
+                                               HelperText="@(_model.LineDiscountValue > 0 ? TranslationService.GetTranslation("documents.discountPercentDisabled", "⚠️ Disabilitato: sconto € attivo") : "")" />
                             </MudItem>
                             
                             <MudItem xs="12" sm="4">
@@ -415,7 +415,7 @@
                                                AdornmentIcon="@Icons.Material.Outlined.EuroSymbol"
                                                AdornmentColor="Color.Warning"
                                                Disabled="@(_model.LineDiscount > 0)"
-                                               HelperText="@(_model.LineDiscount > 0 ? "⚠️ Disabilitato: sconto % attivo" : "")" />
+                                               HelperText="@(_model.LineDiscount > 0 ? TranslationService.GetTranslation("documents.discountAmountDisabled", "⚠️ Disabilitato: sconto % attivo") : "")" />
                             </MudItem>
                         </MudGrid>
                         
