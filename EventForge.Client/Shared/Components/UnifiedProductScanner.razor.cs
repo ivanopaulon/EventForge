@@ -123,6 +123,10 @@ namespace EventForge.Client.Shared.Components
         /// IMPORTANT: Uses the EXACT same pattern as SearchBusinessPartiesAsync in GenericDocumentProcedure.
         /// Simple, clean, NO StateHasChanged during search.
         /// </summary>
+        /// <remarks>
+        /// Note: CancellationToken is not passed to ProductService.SearchProductsAsync as the service
+        /// interface doesn't currently support cancellation. This is a known limitation.
+        /// </remarks>
         private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
             string searchTerm,
             CancellationToken cancellationToken)
@@ -133,6 +137,7 @@ namespace EventForge.Client.Shared.Components
 
             try
             {
+                // Note: ProductService.SearchProductsAsync doesn't accept CancellationToken
                 var result = await ProductService.SearchProductsAsync(searchTerm, MaxResults);
 
                 if (result == null)
