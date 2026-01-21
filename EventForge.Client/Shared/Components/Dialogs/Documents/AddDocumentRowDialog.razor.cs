@@ -1437,6 +1437,118 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     #endregion
 
+    #region Discount Mutual Exclusion Logic
+
+    /// <summary>
+    /// Gestisce il cambio del valore dello sconto percentuale.
+    /// Azzera lo sconto in importo quando viene valorizzato lo sconto percentuale.
+    /// </summary>
+    private void OnDiscountPercentChanged(decimal value)
+    {
+        _model.LineDiscount = value;
+        
+        // Se viene inserito uno sconto percentuale, azzera lo sconto in importo
+        if (value > 0)
+        {
+            _model.LineDiscountValue = 0m;
+            _model.DiscountType = DiscountType.Percentage;
+        }
+        
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Gestisce il cambio del valore dello sconto in importo.
+    /// Azzera lo sconto percentuale quando viene valorizzato lo sconto in importo.
+    /// </summary>
+    private void OnDiscountAmountChanged(decimal value)
+    {
+        _model.LineDiscountValue = value;
+        
+        // Se viene inserito uno sconto in importo, azzera lo sconto percentuale
+        if (value > 0)
+        {
+            _model.LineDiscount = 0m;
+            _model.DiscountType = DiscountType.Value;
+        }
+        
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Genera il testo helper per il campo prezzo mostrando l'aliquota IVA
+    /// </summary>
+    private string GetPriceHelperText()
+    {
+        if (_state.SelectedVatRate != null)
+        {
+            return $"IVA: {_state.SelectedVatRate.Rate}%";
+        }
+        
+        return TranslationService.GetTranslation("documents.priceHelperText", "Prezzo unitario");
+    }
+
+    /// <summary>
+    /// Calcola il totale della riga considerando quantità, prezzo e sconti
+    /// </summary>
+    private decimal GetCalculatedTotal()
+    {
+        decimal subtotal = _model.Quantity * _model.UnitPrice;
+        
+        // Applica sconto percentuale
+        if (_model.LineDiscount > 0)
+        {
+            decimal discountValue = subtotal * (_model.LineDiscount / 100);
+            return subtotal - discountValue;
+        }
+        
+        // Applica sconto in importo
+        if (_model.LineDiscountValue > 0)
+        {
+            return subtotal - _model.LineDiscountValue;
+        }
+        
+        return subtotal;
+    }
+
+    /// <summary>
+    /// Valida che gli sconti siano mutualmente esclusivi
+    /// </summary>
+    private bool ValidateDiscounts()
+    {
+        // Non possono essere valorizzati entrambi
+        if (_model.LineDiscount > 0 && _model.LineDiscountValue > 0)
+        {
+            _state.Validation.Errors.Add(
+                TranslationService.GetTranslation(
+                    "documents.exclusiveDiscountsError",
+                    "Non è possibile applicare contemporaneamente sconto percentuale e in importo"
+                )
+            );
+            return false;
+        }
+        
+        // Lo sconto in importo non può superare il subtotale
+        if (_model.LineDiscountValue > 0)
+        {
+            decimal subtotal = _model.Quantity * _model.UnitPrice;
+            if (_model.LineDiscountValue > subtotal)
+            {
+                _state.Validation.Errors.Add(
+                    TranslationService.GetTranslation(
+                        "documents.discountExceedsTotal",
+                        "Lo sconto in importo non può superare il totale della riga"
+                    )
+                );
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    #endregion
+
     #region Save & Validation
 
     /// <summary>
@@ -1444,7 +1556,12 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private bool IsValid()
     {
-        return !string.IsNullOrWhiteSpace(_state.Model.Description) && _state.Model.Quantity > 0;
+        _state.Validation.Errors.Clear();
+        
+        var basicValidation = !string.IsNullOrWhiteSpace(_state.Model.Description) && _state.Model.Quantity > 0;
+        var discountsValidation = ValidateDiscounts();
+        
+        return basicValidation && discountsValidation;
     }
 
     /// <summary>
@@ -1732,6 +1849,46 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             StateHasChanged();
         }
+    }
+
+    /// <summary>
+    /// Handles product updates from ProductQuickInfo component
+    /// </summary>
+    private async Task OnProductUpdatedAsync(ProductDto updatedProduct)
+    {
+        if (updatedProduct == null)
+            return;
+
+        _state.SelectedProduct = updatedProduct;
+
+        _state.Model.Description = updatedProduct.Description;
+        _state.Model.ProductCode = updatedProduct.Code;
+        _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
+
+        if (updatedProduct.VatRateId.HasValue)
+        {
+            _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
+            var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
+            if (vatRate != null)
+            {
+                _state.Model.VatRate = vatRate.Percentage;
+                _state.Model.VatDescription = vatRate.Name;
+            }
+        }
+
+        if (updatedProduct.UnitOfMeasureId.HasValue)
+        {
+            _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+        }
+
+        // Invalidate cached calculation result
+        InvalidateCalculationCache();
+
+        Snackbar.Add(
+            TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
+            Severity.Success);
+
+        await InvokeAsync(StateHasChanged);
     }
 
     #endregion

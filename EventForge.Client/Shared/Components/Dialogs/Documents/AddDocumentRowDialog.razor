@@ -260,29 +260,64 @@
             
             @if (_dialogMode != DialogMode.ContinuousScan)
             {
-            <!-- 1. BARCODE SCANNER (Full Width) -->
-            <DocumentRowBarcodeScanner @ref="_barcodeScannerRef"
-                                      IsEnabled="true"
-                                      AutoFocus="!_isEditMode"
-                                      OnBarcodeScanned="@HandleBarcodeScanned"
-                                      OnScanStart="@(() => Task.CompletedTask)"
-                                      OnScanEnd="@(() => Task.CompletedTask)" />
-            
             @if (_dialogMode == DialogMode.Standard)
             {
-                <!-- 2. PRODOTTO E CAMPI ESSENZIALI (Semplificato) -->
-                <!-- Product Selector with animation wrapper - PR #2c-Part1 Commit 1 -->
-                <!-- Loading state added - PR #2c-Part2 Commit 3 -->
-                <div class="@(_productJustSelected ? "product-selected" : "") @(_isLoadingProductData ? "field-loading" : "")" id="product-search-input">
-                    <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
-                                               SelectedProductChanged="@HandleProductSelectedWithFeedback"
-                                               SearchFunc="@SearchProductsAsync"
-                                               Disabled="false"
-                                               ShowQuickInfo="true"
-                                               AllowQuickEdit="true"
-                                               OnQuickEdit="@OpenEditProductDialog"
-                                               AllowClear="true" />
-                </div>
+                <!-- STANDARD MODE HEADER -->
+                <MudPaper Elevation="3" Class="pa-4 mb-3 ef-header-standard">
+                    <MudText Typo="Typo.h5" Class="ef-header-text" Align="Align.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Large" Class="mr-2" />
+                        @TranslationService.GetTranslation("documents.standardModeTitle", "Modalità Standard")
+                    </MudText>
+                </MudPaper>
+                
+                <!-- SEZIONE 1: BARCODE SCANNER (Bordo Verde) -->
+                <MudPaper Elevation="2" Class="pa-3 mb-3 ef-section-scanner">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.subtitle2" Class="ef-section-title-green">
+                            <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Size="Size.Small" Class="mr-2" />
+                            @TranslationService.GetTranslation("warehouse.scanBarcode", "Scansiona Codice a Barre")
+                        </MudText>
+                        
+                        <DocumentRowBarcodeScanner @ref="_barcodeScannerRef"
+                                                  IsEnabled="true"
+                                                  AutoFocus="!_isEditMode"
+                                                  OnBarcodeScanned="@HandleBarcodeScanned"
+                                                  OnScanStart="@(() => Task.CompletedTask)"
+                                                  OnScanEnd="@(() => Task.CompletedTask)" />
+                    </MudStack>
+                </MudPaper>
+                
+                <!-- SEZIONE 2: PRODOTTO (Bordo Viola) -->
+                @if (_selectedProduct != null)
+                {
+                    <MudPaper Elevation="2" Class="pa-3 mb-3 ef-section-product">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2" Class="ef-section-title-purple">
+                                <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-2" />
+                                @TranslationService.GetTranslation("documents.productInfo", "Informazioni Prodotto")
+                            </MudText>
+                            
+                            <ProductQuickInfo Product="@_selectedProduct"
+                                              AllowEdit="true"
+                                              ShowCurrentStock="false"
+                                              OnProductUpdated="@OnProductUpdatedAsync" />
+                        </MudStack>
+                    </MudPaper>
+                }
+                else
+                {
+                    <!-- Product Selector when no product is selected -->
+                    <div class="@(_productJustSelected ? "product-selected" : "") @(_isLoadingProductData ? "field-loading" : "")" id="product-search-input">
+                        <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
+                                                   SelectedProductChanged="@HandleProductSelectedWithFeedback"
+                                                   SearchFunc="@SearchProductsAsync"
+                                                   Disabled="false"
+                                                   ShowQuickInfo="false"
+                                                   AllowQuickEdit="true"
+                                                   OnQuickEdit="@OpenEditProductDialog"
+                                                   AllowClear="true" />
+                    </div>
+                }
                 
                 <!-- Recent Transactions -->
                 @if (_state.SelectedProduct != null)
@@ -294,26 +329,120 @@
                                                   MaxTransactions="3" />
                 }
                 
-                <!-- Price/Quantity fields with animation wrapper - PR #2c-Part1 Commit 1 -->
-                <!-- Loading state added - PR #2c-Part2 Commit 3 -->
-                <div class="@(_shouldAnimatePriceField ? "field-updated" : "") @(_isApplyingPrice ? "field-loading" : "")">
-                    <DocumentRowQuantityPrice @ref="_quantityPriceRef"
-                                         Description="@_model.Description"
-                                         DescriptionChanged="@((val) => _model.Description = val)"
-                                         ReadOnlyDescription="false"
-                                         Quantity="@_model.Quantity"
-                                         QuantityChanged="@((val) => _model.Quantity = val)"
-                                         UnitPrice="@_model.UnitPrice"
-                                         UnitPriceChanged="@((val) => _model.UnitPrice = val)"
-                                         SelectedUnitOfMeasureId="@_selectedUnitOfMeasureId"
-                                         OnUnitOfMeasureChanged="@OnUnitOfMeasureChanged"
-                                         AvailableUnits="@_availableUnits"
-                                         AllUnitsOfMeasure="@_allUnitsOfMeasure" />
-                </div>
+                <!-- SEZIONE 3: CAMPI MODIFICABILI UNIFICATI (Bordo Blu) -->
+                <MudPaper Elevation="3" Class="pa-4 mb-3 ef-section-editable">
+                    <MudStack Spacing="3">
+                        <MudText Typo="Typo.subtitle2" Class="ef-section-title-blue">
+                            <MudIcon Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" Class="mr-2" />
+                            @TranslationService.GetTranslation("documents.editableFields", "Campi Modificabili")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <!-- Prima riga: Quantità + Unità di Misura -->
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField @bind-Value="_model.Quantity"
+                                               Label="@TranslationService.GetTranslation("documents.quantity", "Quantità")"
+                                               Variant="Variant.Outlined"
+                                               Required="true"
+                                               Min="0.01m"
+                                               Step="1"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                                               AdornmentColor="Color.Primary" />
+                            </MudItem>
+                            
+                            <MudItem xs="12" sm="6">
+                                <MudSelect @bind-Value="_selectedUnitOfMeasureId"
+                                          T="Guid?"
+                                          ValueChanged="@OnUnitOfMeasureChanged"
+                                          Label="@TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Outlined.Straighten"
+                                          AdornmentColor="Color.Primary">
+                                    @foreach (var unit in _availableUnits)
+                                    {
+                                        <MudSelectItem T="Guid?" Value="@unit.UnitOfMeasureId">@unit.Symbol - @unit.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            
+                            <!-- Seconda riga: Prezzo + Sconto % + Sconto € -->
+                            <MudItem xs="12" sm="4">
+                                <MudNumericField @bind-Value="_model.UnitPrice"
+                                               Label="@TranslationService.GetTranslation("documents.price", "Prezzo")"
+                                               Variant="Variant.Outlined"
+                                               Required="true"
+                                               Min="0"
+                                               Format="F2"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.Euro"
+                                               AdornmentColor="Color.Success"
+                                               HelperText="@GetPriceHelperText()" />
+                            </MudItem>
+                            
+                            <MudItem xs="12" sm="4">
+                                <MudNumericField @bind-Value="_model.LineDiscount"
+                                               ValueChanged="@OnDiscountPercentChanged"
+                                               Label="@TranslationService.GetTranslation("documents.discountPercent", "Sconto %")"
+                                               Variant="Variant.Outlined"
+                                               Min="0"
+                                               Max="100"
+                                               Step="0.1m"
+                                               Format="F2"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.Percent"
+                                               AdornmentColor="Color.Warning"
+                                               Disabled="@(_model.LineDiscountValue > 0)"
+                                               HelperText="@(_model.LineDiscountValue > 0 ? "⚠️ Disabilitato: sconto € attivo" : "")" />
+                            </MudItem>
+                            
+                            <MudItem xs="12" sm="4">
+                                <MudNumericField @bind-Value="_model.LineDiscountValue"
+                                               ValueChanged="@OnDiscountAmountChanged"
+                                               Label="@TranslationService.GetTranslation("documents.discountAmount", "Sconto €")"
+                                               Variant="Variant.Outlined"
+                                               Min="0"
+                                               Format="F2"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.EuroSymbol"
+                                               AdornmentColor="Color.Warning"
+                                               Disabled="@(_model.LineDiscount > 0)"
+                                               HelperText="@(_model.LineDiscount > 0 ? "⚠️ Disabilitato: sconto % attivo" : "")" />
+                            </MudItem>
+                        </MudGrid>
+                        
+                        <!-- Totale Riga Calcolato -->
+                        @if (_model.Quantity > 0 && _model.UnitPrice > 0)
+                        {
+                            <MudAlert Severity="Severity.Success" Dense="true" Variant="Variant.Filled" Icon="@Icons.Material.Outlined.Calculate">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 500;">
+                                        @TranslationService.GetTranslation("documents.rowTotal", "Totale Riga")
+                                    </MudText>
+                                    <MudText Typo="Typo.h6" Style="font-weight: bold;">
+                                        @GetCalculatedTotal().ToString("C2")
+                                    </MudText>
+                                </MudStack>
+                            </MudAlert>
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+            else
+            {
+                <!-- NON-STANDARD MODE: Keep original barcode scanner -->
+                <DocumentRowBarcodeScanner @ref="_barcodeScannerRef"
+                                          IsEnabled="true"
+                                          AutoFocus="!_isEditMode"
+                                          OnBarcodeScanned="@HandleBarcodeScanned"
+                                          OnScanStart="@(() => Task.CompletedTask)"
+                                          OnScanEnd="@(() => Task.CompletedTask)" />
             }
                 
                 <!-- 3.5 MERGE DUPLICATES CHECKBOX (Only in Add Mode) -->
-                @if (!_isEditMode)
+                @if (!_isEditMode && _dialogMode == DialogMode.Standard)
                 {
                     <MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
                         <MudCheckBox T="bool"
@@ -350,7 +479,9 @@
                     </MudPaper>
                 }
             
-                <!-- 4. EXPANSION PANELS FOR ADVANCED SECTIONS -->
+                <!-- 4. EXPANSION PANELS FOR ADVANCED SECTIONS (Only in Standard Mode) -->
+                @if (_dialogMode == DialogMode.Standard)
+                {
                 <MudExpansionPanels MultiExpansion="true" Elevation="1">
                 
                 <!-- IVA e Prezzi Panel -->
@@ -361,14 +492,6 @@
                                     AllVatRates="@_allVatRates"
                                     VatAmount="@GetVatAmount()"
                                     UnitPriceGross="@GetUnitPriceGross()" />
-                
-                <!-- Sconti Panel -->
-                <DocumentRowDiscountsPanel Expanded="@_discountsPanelExpanded"
-                                          OnExpandedChanged="@((expanded) => { _discountsPanelExpanded = expanded; DebouncePanelStateSave(); })"
-                                          LineDiscount="@_model.LineDiscount"
-                                          LineDiscountChanged="@((val) => _model.LineDiscount = val)"
-                                          LineDiscountValue="@_model.LineDiscountValue"
-                                          LineDiscountValueChanged="@((val) => _model.LineDiscountValue = val)" />
                 
                 <!-- Note e Dettagli Panel -->
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("documents.notesAndDetailsSection", "Note e Dettagli")"
