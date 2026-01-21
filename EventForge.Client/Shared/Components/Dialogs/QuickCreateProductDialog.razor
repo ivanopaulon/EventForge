@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.VatRates
+@using EventForge.DTOs.UnitOfMeasures
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IFinancialService FinancialService
@@ -9,112 +10,127 @@
 
 <MudDialog>
     <TitleContent>
-        <div class="ef-dialog-title">
-            <MudIcon Icon="@(IsEditMode ? DialogStyleConstants.Icons.Edit : DialogStyleConstants.Icons.Add)" 
-                     Color="Color.Primary" 
-                     Size="Size.Medium" />
-            <MudText Typo="Typo.h6">
+        <MudPaper Elevation="3" Class="@($"pa-3 {(IsEditMode ? "ef-header-edit" : "ef-header-create")}")">
+            <MudText Typo="Typo.h5" Class="ef-header-text" Align="Align.Center">
+                <MudIcon Icon="@(IsEditMode ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" 
+                         Size="Size.Large" Class="mr-2" />
                 @(IsEditMode 
                     ? TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto")
                     : TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto"))
             </MudText>
-        </div>
+        </MudPaper>
     </TitleContent>
     <DialogContent>
         <div class="ef-dialog-content">
-            <PageLoadingOverlay Visible="_isLoading"
-                                Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+            <PageLoadingOverlay Visible="_isLoading" />
 
             @if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
             {
-                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3" Variant="Variant.Filled">
                     <MudText Typo="Typo.body2">
                         <MudIcon Icon="@Icons.Material.Outlined.QrCode" Size="Size.Small" Class="mr-1" />
-                        Il codice <strong>@PrefilledCode</strong> sarà assegnato automaticamente al prodotto
+                        Il codice <strong>@PrefilledCode</strong> sarà assegnato automaticamente
                     </MudText>
                 </MudAlert>
             }
-            
-            <MudAlert Severity="Severity.Info" Class="mb-4">
-                @TranslationService.GetTranslation("warehouse.quickCreateHint", "Compila i campi essenziali per creare velocemente un nuovo prodotto durante l'inventario.")
-            </MudAlert>
 
-            <MudForm @ref="_form" @bind-IsValid="@_isFormValid" Class="ef-dialog-form">
-            <MudGrid Spacing="3">
-                <!-- Code Field -->
-                <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.Code"
-                                  Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
-                                  Variant="Variant.Outlined"
-                                  Required="true"
-                                  RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
-                                  MaxLength="100"
-                                  Counter="100"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Outlined.QrCode"
-                                  HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice identificativo del prodotto")"
-                                  Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
-                </MudItem>
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+                <MudStack Spacing="3">
+                    
+                    <!-- SEZIONE 1: Codice (Bordo Verde) -->
+                    <MudPaper Elevation="2" Class="pa-3 ef-section-scanner">
+                        <MudTextField @bind-Value="_model.Code"
+                                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
+                                      MaxLength="100"
+                                      Counter="100"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                                      AdornmentColor="Color.Success"
+                                      Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
+                    </MudPaper>
 
-                <!-- Description Field -->
-                <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.Description"
-                                  Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
-                                  Variant="Variant.Outlined"
-                                  Required="true"
-                                  RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
-                                  Lines="3"
-                                  MaxLength="500"
-                                  Counter="500"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Outlined.Description"
-                                  HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione del prodotto")" />
-                </MudItem>
+                    <!-- SEZIONE 2: Descrizione (Bordo Viola) -->
+                    <MudPaper Elevation="2" Class="pa-3 ef-section-description">
+                        <MudTextField @bind-Value="_model.Description"
+                                      Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
+                                      Lines="3"
+                                      MaxLength="500"
+                                      Counter="500"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Outlined.Description"
+                                      AdornmentColor="Color.Secondary" />
+                    </MudPaper>
 
-                <!-- Sale Price Field -->
-                <MudItem xs="12" md="6">
-                    <MudNumericField @bind-Value="_model.DefaultPrice"
-                                     Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo di Vendita")} *")"
-                                     Variant="Variant.Outlined"
-                                     Required="true"
-                                     RequiredError="@TranslationService.GetTranslation("validation.priceRequired", "Il prezzo è obbligatorio")"
-                                     Min="0"
-                                     Format="N2"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Outlined.Euro"
-                                     HelperText="@TranslationService.GetTranslation("products.priceHelper", "Prezzo di vendita (IVA inclusa)")" />
-                </MudItem>
+                    <!-- SEZIONE 3: Dati Commerciali - UoM + Prezzo + IVA in LINEA (Bordo Blu) -->
+                    <MudPaper Elevation="3" Class="pa-4 ef-section-commercial">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2" Class="ef-section-title-blue">
+                                <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" Class="mr-2" />
+                                @TranslationService.GetTranslation("products.commercialData", "Dati Commerciali")
+                            </MudText>
+                            
+                            <MudGrid Spacing="2">
+                                <!-- Unità di Misura -->
+                                <MudItem xs="12" sm="4">
+                                    <MudSelect @bind-Value="_model.UnitOfMeasureId"
+                                              Label="@($"{TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Straighten"
+                                              AdornmentColor="Color.Primary">
+                                        @if (_availableUnits != null && _availableUnits.Any())
+                                        {
+                                            @foreach (var unit in _availableUnits)
+                                            {
+                                                <MudSelectItem Value="@((Guid?)unit.Id)">@unit.Symbol - @unit.Name</MudSelectItem>
+                                            }
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                
+                                <!-- Prezzo -->
+                                <MudItem xs="12" sm="4">
+                                    <MudNumericField @bind-Value="_model.DefaultPrice"
+                                                   Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo")} *")"
+                                                   Variant="Variant.Outlined"
+                                                   Required="true"
+                                                   Min="0"
+                                                   Format="F2"
+                                                   Adornment="Adornment.Start"
+                                                   AdornmentIcon="@Icons.Material.Outlined.Euro"
+                                                   AdornmentColor="Color.Success" />
+                                </MudItem>
+                                
+                                <!-- Aliquota IVA -->
+                                <MudItem xs="12" sm="4">
+                                    <MudSelect @bind-Value="_model.VatRateId"
+                                              Label="@($"{TranslationService.GetTranslation("products.vatRate", "Aliquota IVA")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Percent"
+                                              AdornmentColor="Color.Info">
+                                        @if (_vatRates != null && _vatRates.Any())
+                                        {
+                                            @foreach (var vat in _vatRates)
+                                            {
+                                                <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage %)</MudSelectItem>
+                                            }
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                            </MudGrid>
+                        </MudStack>
+                    </MudPaper>
 
-                <!-- VAT Rate Field -->
-                <MudItem xs="12" md="6">
-                    <MudSelect @bind-Value="_model.VatRateId"
-                               Label="@($"{TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")} *")"
-                               Variant="Variant.Outlined"
-                               Required="true"
-                               RequiredError="@TranslationService.GetTranslation("validation.vatRateRequired", "L'aliquota IVA è obbligatoria")"
-                               Adornment="Adornment.Start"
-                               AdornmentIcon="@Icons.Material.Outlined.Percent"
-                               HelperText="@TranslationService.GetTranslation("products.vatRateHelper", "Aliquota IVA applicabile")">
-                        @if (_vatRates != null && _vatRates.Any())
-                        {
-                            @foreach (var vat in _vatRates)
-                            {
-                                <MudSelectItem Value="@((Guid?)vat.Id)">@($"{vat.Name} ({vat.Percentage}%)")</MudSelectItem>
-                            }
-                        }
-                    </MudSelect>
-                </MudItem>
-
-                <!-- VAT Included Checkbox (Hidden but set to true) -->
-                <MudItem xs="12">
-                    <MudAlert Severity="Severity.Normal" Dense="true">
-                        <MudText Typo="Typo.body2">
-                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-1" />
-                            @TranslationService.GetTranslation("products.vatIncludedInfo", "Il prezzo inserito è considerato IVA inclusa")
-                        </MudText>
-                    </MudAlert>
-                </MudItem>
-            </MudGrid>
+                </MudStack>
             </MudForm>
         </div>
     </DialogContent>
@@ -163,11 +179,15 @@
     private MudForm? _form;
     private ProductDto _model = new();
     private IEnumerable<VatRateDto>? _vatRates;
+    private IEnumerable<UMDto>? _availableUnits;
     private ProductDto? _cachedExistingProduct = null; // Cache for complete product data
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadVatRates();
+        await Task.WhenAll(
+            LoadVatRates(),
+            LoadAvailableUnitsAsync()
+        );
         
         if (IsEditMode && ExistingProduct != null)
         {
@@ -201,6 +221,7 @@
                 Description = ExistingProduct.Description,
                 DefaultPrice = ExistingProduct.DefaultPrice,
                 VatRateId = ExistingProduct.VatRateId,
+                UnitOfMeasureId = ExistingProduct.UnitOfMeasureId,
                 IsVatIncluded = ExistingProduct.IsVatIncluded,
                 Status = ExistingProduct.Status
             };
@@ -239,6 +260,24 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task LoadAvailableUnitsAsync()
+    {
+        try
+        {
+            var units = await ProductService.GetUnitsOfMeasureAsync();
+            _availableUnits = units ?? Enumerable.Empty<UMDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading units of measure");
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.unitsLoadError", "Errore nel caricamento delle unità di misura"), 
+                Severity.Error
+            );
+            _availableUnits = Enumerable.Empty<UMDto>();
         }
     }
 
@@ -316,6 +355,7 @@
                 Description = _model.Description,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,
+                UnitOfMeasureId = _model.UnitOfMeasureId,
                 IsVatIncluded = true, // Always true as per requirements
                 Status = _model.Status,
                 
@@ -323,7 +363,6 @@
                 ShortDescription = existingProduct.ShortDescription,
                 ImageUrl = existingProduct.ImageUrl,
                 ImageDocumentId = existingProduct.ImageDocumentId,
-                UnitOfMeasureId = existingProduct.UnitOfMeasureId,
                 CategoryNodeId = existingProduct.CategoryNodeId,
                 FamilyNodeId = existingProduct.FamilyNodeId,
                 GroupNodeId = existingProduct.GroupNodeId,
@@ -414,6 +453,7 @@
                 Description = _model.Description,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,
+                UnitOfMeasureId = _model.UnitOfMeasureId,
                 IsVatIncluded = true, // Always true as per requirements
                 Status = ProductStatus.Active
             };
