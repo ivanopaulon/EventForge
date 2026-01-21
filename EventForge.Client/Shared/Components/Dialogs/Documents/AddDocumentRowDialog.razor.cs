@@ -77,7 +77,88 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private bool _isProcessing => _state.Processing.IsSaving;
     private Guid? _selectedVatRateId => _state.SelectedVatRateId;
     private List<VatRateDto> _allVatRates => _state.Cache.AllVatRates;
-    private ProductDto? _selectedProduct => _state.SelectedProduct;
+    
+    /// <summary>
+    /// Selected product with setter that handles autocomplete binding
+    /// CRITICAL FIX: Converted from readonly property to prevent autocomplete resets
+    /// </summary>
+    private ProductDto? _selectedProduct
+    {
+        get => _state.SelectedProduct;
+        set
+        {
+            // Guard: Prevent infinite loops and unnecessary rerenders
+            if (_state.SelectedProduct?.Id == value?.Id)
+            {
+                Logger.LogDebug("Product selection unchanged (ID: {Id}), skipping update", value?.Id);
+                return;
+            }
+
+            Logger.LogDebug("Product autocomplete value changing from {OldId} to {NewId}", 
+                _state.SelectedProduct?.Id, value?.Id);
+
+            _state.SelectedProduct = value;
+            _state.PreviousSelectedProduct = value;
+
+            // ONLY when a product is ACTUALLY SELECTED (not during typing)
+            if (value != null)
+            {
+                // Use Task.Run to avoid blocking the render thread
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        // Set loading INSIDE async operation, not before
+                        await InvokeAsync(() => _isLoadingProductData = true);
+                        
+                        await PopulateFromProductAsync(value);
+                        
+                        // Animation feedback AFTER population completes
+                        await InvokeAsync(() => 
+                        {
+                            _productJustSelected = true;
+                            _isLoadingProductData = false;
+                            
+                            // Show success snackbar
+                            Snackbar.Add(
+                                $"{value.Name} selezionato",
+                                Severity.Success,
+                                config => config.VisibleStateDuration = 1000
+                            );
+                            
+                            StateHasChanged();
+                        });
+                        
+                        // Reset animation flag after delay
+                        await Task.Delay(ProductSelectionAnimationDurationMs);
+                        await InvokeAsync(() => 
+                        {
+                            _productJustSelected = false;
+                            StateHasChanged();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error populating from product {ProductId}", value.Id);
+                        await InvokeAsync(() =>
+                        {
+                            _isLoadingProductData = false;
+                            Snackbar.Add(
+                                TranslationService.GetTranslation("error.loadProductData", 
+                                    "Errore caricamento dati prodotto"),
+                                Severity.Error);
+                            StateHasChanged();
+                        });
+                    }
+                });
+            }
+            else
+            {
+                ClearProductFields();
+                // DON'T call StateHasChanged here - let Blazor handle it
+            }
+        }
+    }
     private bool _vatPanelExpanded 
     { 
         get => _state.Ui.VatPanelExpanded;
@@ -208,7 +289,15 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </remarks>
     protected override void OnParametersSet()
     {
-        _state.Model.DocumentHeaderId = DocumentHeaderId;
+        // CRITICAL FIX: Only update if DocumentHeaderId actually changed
+        // This prevents unnecessary rerenders that reset MudAutocomplete while user is typing
+        if (_state.Model.DocumentHeaderId != DocumentHeaderId)
+        {
+            Logger.LogDebug("DocumentHeaderId changed from {Old} to {New}", 
+                _state.Model.DocumentHeaderId, DocumentHeaderId);
+            _state.Model.DocumentHeaderId = DocumentHeaderId;
+        }
+        // DO NOT touch _selectedProduct or other state during OnParametersSet
     }
 
     /// <summary>
@@ -519,50 +608,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         _cachedCalculationKey = string.Empty;
         
         StateHasChanged();
-    }
-
-    /// <summary>
-    /// Handles product selection with visual feedback
-    /// PR #2c-Part1 - Commit 1
-    /// PR #2c-Part2 - Commit 3: Added loading state
-    /// </summary>
-    private async Task HandleProductSelectedWithFeedback(ProductDto? product)
-    {
-        var previousProduct = _state.SelectedProduct;
-        
-        try
-        {
-            _isLoadingProductData = true;
-            await InvokeAsync(StateHasChanged);
-            
-            // Call the existing OnProductSelected to maintain all existing logic
-            await OnProductSelected(product);
-            
-            if (product != null && previousProduct?.Id != product.Id)
-            {
-                // Trigger selection animation
-                _productJustSelected = true;
-                
-                // Show success snackbar
-                Snackbar.Add(
-                    $"{product.Name} selezionato",
-                    Severity.Success,
-                    config => config.VisibleStateDuration = 1000
-                );
-                
-                await InvokeAsync(StateHasChanged);
-                
-                // Reset animation flag after animation completes
-                await Task.Delay(ProductSelectionAnimationDurationMs);
-                _productJustSelected = false;
-                await InvokeAsync(StateHasChanged);
-            }
-        }
-        finally
-        {
-            _isLoadingProductData = false;
-            await InvokeAsync(StateHasChanged);
-        }
     }
 
     /// <summary>
@@ -1080,13 +1125,15 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Helper method to set a product and populate all related fields
-    /// Consolidates the pattern used throughout the component
+    /// Used for programmatic selections (barcode, dialogs, edit mode)
     /// </summary>
     private async Task SelectProductAndPopulateAsync(ProductDto product)
     {
+        // Directly update state for programmatic selections
+        // This bypasses the autocomplete binding to avoid conflicts
         _state.SelectedProduct = product;
-        _state.PreviousSelectedProduct = _state.SelectedProduct;
-        await PopulateFromProductAsync(_state.SelectedProduct);
+        _state.PreviousSelectedProduct = product;
+        await PopulateFromProductAsync(product);
     }
 
     /// <summary>
@@ -1162,51 +1209,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             Logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
             return Array.Empty<ProductDto>();
         }
-    }
-
-    /// <summary>
-    /// Handles product selection from autocomplete
-    /// CRITICAL: Uses InvokeAsync to ensure UI updates happen synchronously on render thread
-    /// This prevents MudAutocomplete from resetting during async PopulateFromProductAsync
-    /// </summary>
-    private async Task OnProductSelected(ProductDto? product)
-    {
-        if (product == null)
-        {
-            // Clear selection - use InvokeAsync to ensure immediate UI update
-            await InvokeAsync(() =>
-            {
-                _state.SelectedProduct = null;
-                _state.PreviousSelectedProduct = null;
-                ClearProductFields();
-                StateHasChanged();
-            });
-            return;
-        }
-
-        // Prevent re-processing same product - check against previously selected product
-        if (_state.PreviousSelectedProduct?.Id == product.Id)
-        {
-            Logger.LogDebug("Product selection unchanged, skipping");
-            return;
-        }
-
-        // ✅ CRITICAL FIX: Use InvokeAsync to ensure UI updates synchronously
-        // This commits the selection to MudAutocomplete BEFORE async operations
-        await InvokeAsync(() =>
-        {
-            _state.SelectedProduct = product;
-            _state.PreviousSelectedProduct = product;
-
-            // ✅ Update UI IMMEDIATELY - this prevents autocomplete reset
-            StateHasChanged();
-
-            Logger.LogInformation("Product selected via autocomplete: {ProductId} - {ProductName}",
-                product.Id, product.Name);
-        });
-
-        // Now perform async operations (UI is already updated)
-        await PopulateFromProductAsync(product);
     }
 
     /// <summary>

@@ -309,8 +309,8 @@
                 {
                     <!-- Product Selector when no product is selected -->
                     <div class="@(_productJustSelected ? "product-selected" : "") @(_isLoadingProductData ? "field-loading" : "")" id="product-search-input">
-                        <DocumentRowProductSelector SelectedProduct="@_state.SelectedProduct"
-                                                   SelectedProductChanged="@HandleProductSelectedWithFeedback"
+                        <DocumentRowProductSelector SelectedProduct="@_selectedProduct"
+                                                   SelectedProductChanged="@((p) => _selectedProduct = p)"
                                                    SearchFunc="@SearchProductsAsync"
                                                    Disabled="false"
                                                    ShowQuickInfo="false"
