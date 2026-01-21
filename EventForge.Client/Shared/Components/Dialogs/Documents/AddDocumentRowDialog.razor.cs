@@ -18,7 +18,7 @@ namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 /// <summary>
 /// Code-behind per AddDocumentRowDialog - Gestisce inserimento/modifica righe documento
 /// </summary>
-public partial class AddDocumentRowDialog : IDisposable
+public partial class AddDocumentRowDialog : IAsyncDisposable
 {
     #region Injected Dependencies
 
@@ -120,6 +120,10 @@ public partial class AddDocumentRowDialog : IDisposable
     // Visual feedback flags - PR #2c-Part1 Commit 1
     private bool _shouldAnimatePriceField = false;
     private bool _productJustSelected = false;
+
+    // Keyboard shortcuts - PR #2c-Part1 Commit 2
+    private bool _showKeyboardHelp = false;
+    private DotNetObjectReference<AddDocumentRowDialog>? _dotNetRef;
 
     #endregion
 
@@ -227,20 +231,31 @@ public partial class AddDocumentRowDialog : IDisposable
     /// </summary>
     /// <remarks>
     /// Only executes on first render and when not in edit mode to improve UX.
+    /// Also registers keyboard shortcuts on first render.
     /// </remarks>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_isEditMode)
+        await base.OnAfterRenderAsync(firstRender);
+        
+        if (firstRender)
         {
-            // Try new component reference first
-            if (_barcodeScannerRef != null)
+            // Register keyboard shortcuts - PR #2c-Part1 Commit 2
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.register", _dotNetRef);
+            
+            // Focus barcode field in create mode
+            if (!_isEditMode)
             {
-                await _barcodeScannerRef.FocusAsync();
-            }
-            // Fallback to old field reference for backward compatibility
-            else if (_barcodeField != null)
-            {
-                await _barcodeField.FocusAsync();
+                // Try new component reference first
+                if (_barcodeScannerRef != null)
+                {
+                    await _barcodeScannerRef.FocusAsync();
+                }
+                // Fallback to old field reference for backward compatibility
+                else if (_barcodeField != null)
+                {
+                    await _barcodeField.FocusAsync();
+                }
             }
         }
     }
@@ -1668,6 +1683,129 @@ public partial class AddDocumentRowDialog : IDisposable
 
     #endregion
 
+    #region Keyboard Shortcuts - PR #2c-Part1 Commit 2
+
+    /// <summary>
+    /// Handles keyboard shortcuts from JavaScript
+    /// </summary>
+    [JSInvokable]
+    public async Task HandleKeyboardShortcut(string shortcut)
+    {
+        switch (shortcut)
+        {
+            case "ctrl+s":
+                await HandleSave();
+                break;
+                
+            case "ctrl+enter":
+                await HandleSaveAndContinue();
+                break;
+                
+            case "ctrl+e":
+                if (_state.SelectedProduct != null)
+                {
+                    await OpenEditProductDialog();
+                }
+                else
+                {
+                    Snackbar.Add("Seleziona prima un prodotto", Severity.Warning);
+                }
+                break;
+                
+            case "?":
+                _showKeyboardHelp = !_showKeyboardHelp;
+                await InvokeAsync(StateHasChanged);
+                break;
+                
+            case "f2":
+                await FocusBarcodeField();
+                break;
+                
+            case "f3":
+                await FocusProductSearch();
+                break;
+                
+            case "+":
+                IncrementQuantity();
+                break;
+                
+            case "-":
+                DecrementQuantity();
+                break;
+                
+            case "*":
+                await FocusQuantityField();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handle save shortcut
+    /// </summary>
+    private async Task HandleSave(bool continueAdding = false)
+    {
+        // Call existing SaveAndContinue which handles both edit and create
+        await SaveAndContinue();
+        
+        // Close dialog if not continuing
+        if (!continueAdding && !_isEditMode)
+        {
+            // Dialog will close automatically after SaveAndContinue succeeds
+        }
+        
+        return;
+    }
+
+    /// <summary>
+    /// Handle save and continue shortcut
+    /// </summary>
+    private async Task HandleSaveAndContinue()
+    {
+        // Save current row
+        await SaveAndContinue();
+        
+        // If save was successful and not in edit mode, reset form
+        if (!_isEditMode && !_state.Processing.IsSaving)
+        {
+            // Reset form for next entry
+            ResetForm();
+            await FocusBarcodeField();
+            
+            Snackbar.Add("Pronto per la prossima riga", Severity.Success, config => config.VisibleStateDuration = 1500);
+        }
+    }
+
+    private void IncrementQuantity()
+    {
+        _model.Quantity = _model.Quantity + 1m;
+        StateHasChanged();
+        Snackbar.Add("Quantità incrementata", Severity.Info, config => config.VisibleStateDuration = 500);
+    }
+
+    private void DecrementQuantity()
+    {
+        if (_model.Quantity > 0m)
+        {
+            _model.Quantity = _model.Quantity - 1m;
+            StateHasChanged();
+            Snackbar.Add("Quantità decrementata", Severity.Info, config => config.VisibleStateDuration = 500);
+        }
+    }
+
+    private async Task FocusProductSearch()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("focusElement", "product-search-input");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "Could not focus product search");
+        }
+    }
+
+    #endregion
+
     #region Continuous Scan Mode Methods
 
     /// <summary>
@@ -1980,12 +2118,26 @@ public partial class AddDocumentRowDialog : IDisposable
     }
 
     /// <summary>
-    /// Disposes resources including stats timer and debouncer
+    /// Disposes resources including stats timer, debouncer, and keyboard shortcuts
     /// </summary>
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         StopStatsTimer();
         _panelStateSaveDebouncer?.Dispose();
+        
+        // Cleanup keyboard shortcuts - PR #2c-Part1 Commit 2
+        if (_dotNetRef != null)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.unregister");
+            }
+            catch
+            {
+                // Ignore errors during cleanup
+            }
+            _dotNetRef.Dispose();
+        }
     }
 
     #endregion
