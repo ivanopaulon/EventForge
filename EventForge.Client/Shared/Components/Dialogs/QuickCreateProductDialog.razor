@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.VatRates
+@using EventForge.DTOs.UnitOfMeasures
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IFinancialService FinancialService
@@ -9,7 +10,7 @@
 
 <MudDialog>
     <TitleContent>
-        <MudPaper Elevation="3" Class="pa-3 @(IsEditMode ? "ef-header-edit" : "ef-header-create")">
+        <MudPaper Elevation="3" Class="@($"pa-3 {(IsEditMode ? "ef-header-edit" : "ef-header-create")}")">
             <MudText Typo="Typo.h5" Class="ef-header-text" Align="Align.Center">
                 <MudIcon Icon="@(IsEditMode ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" 
                          Size="Size.Large" Class="mr-2" />
@@ -120,7 +121,7 @@
                                         {
                                             @foreach (var vat in _vatRates)
                                             {
-                                                <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Rate%)</MudSelectItem>
+                                                <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage%)</MudSelectItem>
                                             }
                                         }
                                     </MudSelect>
@@ -362,7 +363,6 @@
                 ShortDescription = existingProduct.ShortDescription,
                 ImageUrl = existingProduct.ImageUrl,
                 ImageDocumentId = existingProduct.ImageDocumentId,
-                UnitOfMeasureId = existingProduct.UnitOfMeasureId,
                 CategoryNodeId = existingProduct.CategoryNodeId,
                 FamilyNodeId = existingProduct.FamilyNodeId,
                 GroupNodeId = existingProduct.GroupNodeId,

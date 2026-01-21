@@ -3,6 +3,7 @@ using EventForge.Client.Models.Documents;
 using EventForge.Client.Services;
 using EventForge.Client.Services.Common;
 using EventForge.Client.Services.Documents;
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.UnitOfMeasures;
@@ -1480,9 +1481,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private string GetPriceHelperText()
     {
-        if (_state.SelectedVatRate != null)
+        if (_state.SelectedVatRateId.HasValue)
         {
-            return $"IVA: {_state.SelectedVatRate.Rate}%";
+            var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == _state.SelectedVatRateId.Value);
+            if (vatRate != null)
+            {
+                return $"IVA: {vatRate.Percentage}%";
+            }
         }
         
         return TranslationService.GetTranslation("documents.priceHelperText", "Prezzo unitario");
@@ -1854,41 +1859,56 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// <summary>
     /// Handles product updates from ProductQuickInfo component
     /// </summary>
-    private async Task OnProductUpdatedAsync(ProductDto updatedProduct)
+    private async Task HandleProductQuickInfoUpdate()
     {
-        if (updatedProduct == null)
+        // Reload the product from the server to get the latest data
+        if (_state.SelectedProduct == null || _state.SelectedProduct.Id == Guid.Empty)
             return;
 
-        _state.SelectedProduct = updatedProduct;
-
-        _state.Model.Description = updatedProduct.Description;
-        _state.Model.ProductCode = updatedProduct.Code;
-        _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
-
-        if (updatedProduct.VatRateId.HasValue)
+        try
         {
-            _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
-            var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
-            if (vatRate != null)
+            var updatedProduct = await ProductService.GetProductByIdAsync(_state.SelectedProduct.Id);
+            if (updatedProduct == null)
+                return;
+
+            _state.SelectedProduct = updatedProduct;
+
+            _state.Model.Description = updatedProduct.Description;
+            _state.Model.ProductCode = updatedProduct.Code;
+            _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
+
+            if (updatedProduct.VatRateId.HasValue)
             {
-                _state.Model.VatRate = vatRate.Percentage;
-                _state.Model.VatDescription = vatRate.Name;
+                _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
+                var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
+                if (vatRate != null)
+                {
+                    _state.Model.VatRate = vatRate.Percentage;
+                    _state.Model.VatDescription = vatRate.Name;
+                }
             }
-        }
 
-        if (updatedProduct.UnitOfMeasureId.HasValue)
+            if (updatedProduct.UnitOfMeasureId.HasValue)
+            {
+                _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+            }
+
+            // Invalidate cached calculation result
+            InvalidateCalculationCache();
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
+                Severity.Success);
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
         {
-            _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+            Logger.LogError(ex, "Error reloading product after update");
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.reloadError", "Errore nel ricaricamento del prodotto"),
+                Severity.Error);
         }
-
-        // Invalidate cached calculation result
-        InvalidateCalculationCache();
-
-        Snackbar.Add(
-            TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
-            Severity.Success);
-
-        await InvokeAsync(StateHasChanged);
     }
 
     #endregion

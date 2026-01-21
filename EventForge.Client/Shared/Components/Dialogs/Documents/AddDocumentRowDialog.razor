@@ -5,6 +5,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Models.Documents
 @using EventForge.Client.Services.Documents
+@using EventForge.Client.Shared.Components.Products
 @using MudBlazor
 
 <MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" @onkeydown="@OnDialogKeyDown" tabindex="-1">
@@ -300,7 +301,7 @@
                             <ProductQuickInfo Product="@_selectedProduct"
                                               AllowEdit="true"
                                               ShowCurrentStock="false"
-                                              OnProductUpdated="@OnProductUpdatedAsync" />
+                                              OnProductUpdated="@HandleProductQuickInfoUpdate" />
                         </MudStack>
                     </MudPaper>
                 }
@@ -352,7 +353,7 @@
                             </MudItem>
                             
                             <MudItem xs="12" sm="6">
-                                <MudSelect @bind-Value="_selectedUnitOfMeasureId"
+                                <MudSelect Value="_selectedUnitOfMeasureId"
                                           T="Guid?"
                                           ValueChanged="@OnUnitOfMeasureChanged"
                                           Label="@TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")"
@@ -360,10 +361,15 @@
                                           Required="true"
                                           Adornment="Adornment.Start"
                                           AdornmentIcon="@Icons.Material.Outlined.Straighten"
-                                          AdornmentColor="Color.Primary">
+                                          AdornmentColor="Color.Primary"
+                                          Disabled="@(_availableUnits.Count == 0)">
                                     @foreach (var unit in _availableUnits)
                                     {
-                                        <MudSelectItem T="Guid?" Value="@unit.UnitOfMeasureId">@unit.Symbol - @unit.Name</MudSelectItem>
+                                        var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
+                                        if (uom != null)
+                                        {
+                                            <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Symbol - @uom.Name</MudSelectItem>
+                                        }
                                     }
                                 </MudSelect>
                             </MudItem>
@@ -383,8 +389,8 @@
                             </MudItem>
                             
                             <MudItem xs="12" sm="4">
-                                <MudNumericField @bind-Value="_model.LineDiscount"
-                                               ValueChanged="@OnDiscountPercentChanged"
+                                <MudNumericField Value="_model.LineDiscount"
+                                               ValueChanged="@((decimal val) => OnDiscountPercentChanged(val))"
                                                Label="@TranslationService.GetTranslation("documents.discountPercent", "Sconto %")"
                                                Variant="Variant.Outlined"
                                                Min="0"
@@ -399,8 +405,8 @@
                             </MudItem>
                             
                             <MudItem xs="12" sm="4">
-                                <MudNumericField @bind-Value="_model.LineDiscountValue"
-                                               ValueChanged="@OnDiscountAmountChanged"
+                                <MudNumericField Value="_model.LineDiscountValue"
+                                               ValueChanged="@((decimal val) => OnDiscountAmountChanged(val))"
                                                Label="@TranslationService.GetTranslation("documents.discountAmount", "Sconto €")"
                                                Variant="Variant.Outlined"
                                                Min="0"
