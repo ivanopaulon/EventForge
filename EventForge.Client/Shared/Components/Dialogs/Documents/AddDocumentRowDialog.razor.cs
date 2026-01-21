@@ -560,7 +560,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         
         try
         {
-            _isLoadingProductData = true; // PR #2c-Part2 Commit 3
+            _isLoadingProductData = true;
             await InvokeAsync(StateHasChanged);
             
             // Call the existing OnProductSelected to maintain all existing logic
@@ -570,7 +570,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             {
                 // Trigger selection animation
                 _productJustSelected = true;
-                await InvokeAsync(StateHasChanged);
                 
                 // Show success snackbar
                 Snackbar.Add(
@@ -578,6 +577,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                     Severity.Success,
                     config => config.VisibleStateDuration = 1000
                 );
+                
+                await InvokeAsync(StateHasChanged);
                 
                 // Reset animation flag after animation completes
                 await Task.Delay(ProductSelectionAnimationDurationMs);
@@ -587,7 +588,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
         finally
         {
-            _isLoadingProductData = false; // PR #2c-Part2 Commit 3
+            _isLoadingProductData = false;
             await InvokeAsync(StateHasChanged);
         }
     }
