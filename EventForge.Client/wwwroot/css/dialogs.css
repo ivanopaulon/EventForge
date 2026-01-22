@@ -384,108 +384,108 @@
 }
 
 /* ========================================
-   GRADIENT HEADERS
+   GRADIENT HEADERS - REMOVED (no longer used)
    ======================================== */
 
 /* Standard Mode - Green */
-.ef-header-standard {
+/* .ef-header-standard {
     background: linear-gradient(135deg, #e8f5e9 0%, #66bb6a 50%, #43a047 100%) !important;
-}
+} */
 
 /* Continuous Scan Mode - Blue */
-.ef-header-continuous {
+/* .ef-header-continuous {
     background: linear-gradient(135deg, #e3f2fd 0%, #90caf9 50%, #2196f3 100%) !important;
-}
+} */
 
 /* Edit Mode - Orange */
-.ef-header-edit {
+/* .ef-header-edit {
     background: linear-gradient(135deg, #fff3e0 0%, #ffb74d 50%, #ff9800 100%) !important;
-}
+} */
 
 /* Create Mode - Teal */
-.ef-header-create {
+/* .ef-header-create {
     background: linear-gradient(135deg, #e0f2f1 0%, #4db6ac 50%, #009688 100%) !important;
-}
+} */
 
 /* ========================================
-   SECTION BORDERS
+   SECTION BORDERS - REMOVED (no longer used)
    ======================================== */
 
 /* Scanner Section - Green */
-.ef-section-scanner {
+/* .ef-section-scanner {
     background-color: white;
     border-left: 5px solid #43a047 !important;
-}
+} */
 
 /* Product Section - Purple */
-.ef-section-product {
+/* .ef-section-product {
     background-color: white;
     border-left: 5px solid #9c27b0 !important;
-}
+} */
 
 /* Editable Fields Section - Blue */
-.ef-section-editable {
+/* .ef-section-editable {
     background-color: white;
     border-left: 5px solid #2196f3 !important;
-}
+} */
 
 /* Description Section - Purple */
-.ef-section-description {
+/* .ef-section-description {
     background-color: white;
     border-left: 5px solid #9c27b0 !important;
-}
+} */
 
 /* Commercial Data Section - Blue */
-.ef-section-commercial {
+/* .ef-section-commercial {
     background-color: white;
     border-left: 5px solid #2196f3 !important;
-}
+} */
 
 /* ========================================
-   HEADER TEXT STYLING
+   HEADER TEXT STYLING - REMOVED (no longer used)
    ======================================== */
 
-.ef-header-text {
+/* .ef-header-text {
     text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     color: white !important;
-}
+} */
 
 /* ========================================
-   SECTION TITLE STYLING
+   SECTION TITLE STYLING - REMOVED (no longer used)
    ======================================== */
 
-.ef-section-title-green {
+/* .ef-section-title-green {
     font-weight: 600;
     color: #43a047;
-}
+} */
 
-.ef-section-title-purple {
+/* .ef-section-title-purple {
     font-weight: 600;
     color: #9c27b0;
-}
+} */
 
-.ef-section-title-blue {
+/* .ef-section-title-blue {
     font-weight: 600;
     color: #2196f3;
-}
+} */
 
 /* ========================================
-   TRANSITIONS & ANIMATIONS
+   TRANSITIONS & ANIMATIONS - REMOVED (no longer used)
    ======================================== */
 
-.ef-section-scanner,
+/* .ef-section-scanner,
 .ef-section-product,
 .ef-section-editable,
 .ef-section-description,
 .ef-section-commercial {
     transition: all 0.3s ease-in-out;
-}
+} */
 
-.ef-section-scanner:hover,
+/* .ef-section-scanner:hover,
 .ef-section-product:hover,
 .ef-section-editable:hover,
 .ef-section-description:hover,
 .ef-section-commercial:hover {
     transform: translateX(3px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
+} */
