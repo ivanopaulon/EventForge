@@ -191,78 +191,19 @@
                 {
                     @if (_dialogMode == DialogMode.Standard)
                     {
-                        <!-- SEZIONE 1: BARCODE SCANNER (Bordo Verde) -->
-                        <DocumentRowBarcodeScanner @ref="_barcodeScannerRef"
-                                                   IsEnabled="true"
-                                                   AutoFocus="!_isEditMode"
-                                                   OnBarcodeScanned="@HandleBarcodeScanned"
-                                                   OnScanStart="@(() => Task.CompletedTask)"
-                                                   OnScanEnd="@(() => Task.CompletedTask)" />
-
-                        <!-- SEZIONE 2: PRODOTTO (Bordo Viola) -->
-                        @if (_selectedProduct != null)
-                        {
-                            <ProductQuickInfo Product="@_selectedProduct"
-                                              AllowEdit="true"
-                                              ShowCurrentStock="false"
-                                              OnProductUpdated="@HandleProductQuickInfoUpdate" />
-                        }
-                        else
-                        {
-                            <!-- Product Autocomplete - PATTERN: Same as GenericDocumentProcedure BusinessParty -->
-                            <MudStack Spacing="1">
-                                <!-- Label -->
-                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
-                                    @TranslationService.GetTranslation("documents.product", "Prodotto")
-                                </MudText>
-                                
-                                <MudAutocomplete T="ProductDto"
-                                                 @bind-Value="_selectedProduct"
-                                                 @bind-Value:after="OnProductSelectedAsync"
-                                                 SearchFunc="@SearchProductsAsync"
-                                                 ToStringFunc="@(p => p?.Name ?? string.Empty)"
-                                                 Variant="Variant.Outlined"
-                                                 Dense="true"
-                                                 Margin="Margin.Dense"
-                                                 MinCharacters="2"
-                                                 DebounceInterval="300"
-                                                 ShowProgressIndicator="true"
-                                                 Clearable="true"
-                                                 Placeholder="@TranslationService.GetTranslation("documents.searchProduct", "Cerca prodotto (min 2 caratteri)...")"
-                                                 Adornment="Adornment.Start"
-                                                 AdornmentIcon="@Icons.Material.Outlined.Search"
-                                                 AdornmentColor="Color.Primary">
-                                    <!-- ItemTemplate -->
-                                    <ItemTemplate Context="product">
-                                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                            <div>
-                                                <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
-                                                @if (!string.IsNullOrEmpty(product.Code))
-                                                {
-                                                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                                                        @product.Code
-                                                    </MudText>
-                                                }
-                                            </div>
-                                            @if (product.DefaultPrice.HasValue)
-                                            {
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
-                                                    @product.DefaultPrice.Value.ToString("C2")
-                                                </MudChip>
-                                            }
-                                        </MudStack>
-                                    </ItemTemplate>
-                                    
-                                    <!-- NoItemsTemplate -->
-                                    <NoItemsTemplate>
-                                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">
-                                            @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
-                                        </MudText>
-                                    </NoItemsTemplate>
-                                </MudAutocomplete>
-                            </MudStack>
-                        }
+                        <!-- UNIFIED PRODUCT SCANNER: Replaces DocumentRowBarcodeScanner, MudAutocomplete, and ProductQuickInfo -->
+                        <UnifiedProductScanner SelectedProduct="@_selectedProduct"
+                                               SelectedProductChanged="@OnProductSelectedAsync"
+                                               Title="@TranslationService.GetTranslation("documents.product", "Prodotto")"
+                                               Placeholder="@TranslationService.GetTranslation("documents.searchOrScanProduct", "Scansiona barcode o cerca per nome...")"
+                                               SearchHelperText="@TranslationService.GetTranslation("documents.searchProductHelper", "Premi Invio per cercare come barcode")"
+                                               AllowEdit="true"
+                                               AllowClear="true"
+                                               ShowCurrentStock="false"
+                                               AutoFocus="!_isEditMode"
+                                               OnProductWithCodeFound="@HandleProductWithCodeFound"
+                                               OnProductNotFound="@ShowProductNotFoundDialog"
+                                               OnProductUpdated="@HandleProductUpdated" />
 
                         <!-- Recent Transactions -->
                         @if (_state.SelectedProduct != null)
