@@ -1,9 +1,11 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
+using EventForge.DTOs.Common;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
+using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
@@ -578,78 +580,125 @@ public class PriceListService : IPriceListService
 
     // Enhanced price calculation methods (Issue #245)
 
-    public async Task<AppliedPriceDto?> GetAppliedPriceAsync(Guid productId, Guid eventId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default)
+    public async Task<AppliedPriceDto?> GetAppliedPriceAsync(
+        Guid productId,
+        Guid eventId,
+        Guid? businessPartyId = null,
+        DateTime? evaluationDate = null,
+        int quantity = 1,
+        CancellationToken cancellationToken = default)
     {
         try
         {
             var evalDate = evaluationDate ?? DateTime.UtcNow;
 
-            // Get all applicable price lists for the event with precedence ordering
-            var applicablePriceLists = await _context.PriceLists
-                .Where(pl => pl.EventId == eventId && !pl.IsDeleted && pl.Status == PriceListStatus.Active)
+            // Step 1: Trova listini vendita applicabili
+            var query = _context.PriceLists
+                .Where(pl => pl.Type == PriceListType.Sales &&
+                             pl.Direction == PriceListDirection.Output &&
+                             !pl.IsDeleted &&
+                             pl.Status == PriceListStatus.Active)
+                .Where(pl => pl.EventId == eventId)
                 .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) &&
-                           (pl.ValidTo == null || pl.ValidTo >= evalDate))
-                .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted &&
-                                                            ple.Status == PriceListEntryStatus.Active &&
-                                                            ple.MinQuantity <= quantity &&
-                                                            (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
-                .OrderBy(pl => pl.Priority) // Higher priority (lower number) first
-                .ThenBy(pl => pl.IsDefault ? 0 : 1) // Default price lists first within same priority
-                .ThenByDescending(pl => pl.CreatedAt) // Newer price lists first as tiebreaker
-                .ToListAsync(cancellationToken);
+                             (pl.ValidTo == null || pl.ValidTo >= evalDate))
+                .Include(pl => pl.BusinessParties.Where(bp =>
+                    !bp.IsDeleted &&
+                    bp.Status == PriceListBusinessPartyStatus.Active))
+                .ThenInclude(bp => bp.BusinessParty)
+                .Include(pl => pl.ProductPrices.Where(ple =>
+                    ple.ProductId == productId &&
+                    !ple.IsDeleted &&
+                    ple.Status == PriceListEntryStatus.Active &&
+                    ple.MinQuantity <= quantity &&
+                    (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)));
 
-            // Find the first price list with a matching entry (precedence logic)
-            var selectedEntry = applicablePriceLists
-                .SelectMany(pl => pl.ProductPrices)
-                .FirstOrDefault();
+            var applicablePriceLists = await query.ToListAsync(cancellationToken);
 
-            if (selectedEntry == null)
+            // Step 2: Filtra per BusinessParty se specificato
+            if (businessPartyId.HasValue)
             {
-                _logger.LogWarning("No applicable price found for product {ProductId} in event {EventId} at date {EvaluationDate}",
-                    productId, eventId, evalDate);
-                return null;
+                applicablePriceLists = applicablePriceLists
+                    .Where(pl =>
+                        // Listino generico (senza BusinessParty assegnati)
+                        !pl.BusinessParties.Any() ||
+                        // Oppure listino assegnato a questo BusinessParty
+                        pl.BusinessParties.Any(bp =>
+                            bp.BusinessPartyId == businessPartyId.Value &&
+                            (!bp.SpecificValidFrom.HasValue || bp.SpecificValidFrom.Value <= evalDate) &&
+                            (!bp.SpecificValidTo.HasValue || bp.SpecificValidTo.Value >= evalDate)))
+                    .ToList();
+            }
+            else
+            {
+                // Solo listini generici (senza BusinessParty)
+                applicablePriceLists = applicablePriceLists
+                    .Where(pl => !pl.BusinessParties.Any())
+                    .ToList();
             }
 
-            var selectedPriceList = applicablePriceLists.First(pl => pl.ProductPrices.Any(ple => ple.Id == selectedEntry.Id));
+            // Step 3: Ordina per precedenza
+            var orderedPriceList = applicablePriceLists
+                .SelectMany(pl => pl.ProductPrices.Select(ple => new
+                {
+                    PriceList = pl,
+                    Entry = ple,
+                    BusinessPartyRel = businessPartyId.HasValue
+                        ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
+                        : null,
+                    EffectivePriority = businessPartyId.HasValue
+                        ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
+                            ?.OverridePriority ?? pl.Priority
+                        : pl.Priority,
+                    GlobalDiscount = businessPartyId.HasValue
+                        ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
+                            ?.GlobalDiscountPercentage
+                        : null
+                }))
+                .OrderBy(x => x.EffectivePriority)  // Priorità più bassa = più importante
+                .ThenBy(x => x.PriceList.IsDefault ? 0 : 1)
+                .ThenByDescending(x => x.PriceList.CreatedAt)
+                .FirstOrDefault();
 
-            // Get unit information for the product's default unit
-            var productWithUnit = await _context.Products
-                .Include(p => p.Units.Where(pu => pu.UnitType == "Base" && !pu.IsDeleted))
-                .ThenInclude(pu => pu.UnitOfMeasure)
-                .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
+            if (orderedPriceList == null)
+                return null;
 
-            var defaultUnit = productWithUnit?.Units.FirstOrDefault();
-            var unitOfMeasure = defaultUnit?.UnitOfMeasure;
+            // Step 4: Calcola prezzo finale con sconto globale
+            var finalPrice = orderedPriceList.Entry.Price;
+            if (orderedPriceList.GlobalDiscount.HasValue)
+            {
+                finalPrice *= (1 - orderedPriceList.GlobalDiscount.Value / 100m);
+            }
 
-            var result = new AppliedPriceDto
+            return new AppliedPriceDto
             {
                 ProductId = productId,
                 EventId = eventId,
-                Price = selectedEntry.Price,
-                Currency = selectedEntry.Currency,
-                UnitOfMeasureId = unitOfMeasure?.Id ?? Guid.Empty,
-                UnitOfMeasureName = unitOfMeasure?.Name ?? "Unknown",
-                UnitSymbol = unitOfMeasure?.Symbol ?? "?",
-                PriceListId = selectedPriceList.Id,
-                PriceListName = selectedPriceList.Name,
-                PriceListPriority = selectedPriceList.Priority,
-                MinQuantity = selectedEntry.MinQuantity,
-                MaxQuantity = selectedEntry.MaxQuantity,
+                Price = finalPrice,
+                OriginalPrice = orderedPriceList.Entry.Price,
+                Currency = orderedPriceList.Entry.Currency,
+                PriceListId = orderedPriceList.PriceList.Id,
+                PriceListName = orderedPriceList.PriceList.Name,
+                PriceListPriority = orderedPriceList.EffectivePriority,
+                MinQuantity = orderedPriceList.Entry.MinQuantity,
+                MaxQuantity = orderedPriceList.Entry.MaxQuantity,
+                IsEditableInFrontend = orderedPriceList.Entry.IsEditableInFrontend,
+                IsDiscountable = orderedPriceList.Entry.IsDiscountable,
+                Score = orderedPriceList.Entry.Score,
                 CalculatedAt = DateTime.UtcNow,
-                IsEditableInFrontend = selectedEntry.IsEditableInFrontend,
-                IsDiscountable = selectedEntry.IsDiscountable,
-                Score = selectedEntry.Score,
-                CalculationNotes = $"Price from '{selectedPriceList.Name}' (Priority: {selectedPriceList.Priority})"
+                BusinessPartyId = orderedPriceList.BusinessPartyRel?.BusinessPartyId,
+                BusinessPartyName = orderedPriceList.BusinessPartyRel?.BusinessParty?.Name,
+                AppliedDiscountPercentage = orderedPriceList.GlobalDiscount,
+                UnitOfMeasureId = Guid.Empty, // TODO: Gestire UnitOfMeasure se necessario
+                UnitOfMeasureName = string.Empty,
+                UnitSymbol = string.Empty,
+                CalculationNotes = orderedPriceList.GlobalDiscount.HasValue
+                    ? $"Applied {orderedPriceList.GlobalDiscount.Value:F2}% global discount for {orderedPriceList.BusinessPartyRel?.BusinessParty?.Name}"
+                    : null
             };
-
-            _logger.LogInformation("Applied price {Price} {Currency} for product {ProductId} from price list '{PriceListName}' (Priority: {Priority})",
-                result.Price, result.Currency, productId, selectedPriceList.Name, selectedPriceList.Priority);
-
-            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating applied price for product {ProductId} in event {EventId}", productId, eventId);
+            _logger.LogError(ex, "Error calculating applied price for product {ProductId}", productId);
             throw;
         }
     }
@@ -659,7 +708,7 @@ public class PriceListService : IPriceListService
         try
         {
             // First get the base applied price
-            var basePrice = await GetAppliedPriceAsync(productId, eventId, evaluationDate, quantity, cancellationToken);
+            var basePrice = await GetAppliedPriceAsync(productId, eventId, null, evaluationDate, quantity, cancellationToken);
             if (basePrice == null)
             {
                 return null;
@@ -1246,242 +1295,89 @@ public class PriceListService : IPriceListService
         }
     }
 
-    #region BusinessParty Management
+    #region Purchase Price Comparison
 
-    public async Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(
-        Guid priceListId,
-        AssignBusinessPartyToPriceListDto dto,
-        string currentUser,
+    public async Task<List<PurchasePriceComparisonDto>> GetPurchasePriceComparisonAsync(
+        Guid productId,
+        int quantity = 1,
+        DateTime? evaluationDate = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            // Verifica che il listino esista
-            var priceList = await _context.PriceLists
-                .Include(pl => pl.BusinessParties)
-                .FirstOrDefaultAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+            var evalDate = evaluationDate ?? DateTime.UtcNow;
 
-            if (priceList == null)
-                throw new InvalidOperationException($"Price list {priceListId} not found.");
-
-            // Verifica che il BusinessParty esista
-            var businessParty = await _context.BusinessParties
-                .FirstOrDefaultAsync(bp => bp.Id == dto.BusinessPartyId && !bp.IsDeleted, cancellationToken);
-
-            if (businessParty == null)
-                throw new InvalidOperationException($"Business party {dto.BusinessPartyId} not found.");
-
-            // Verifica se già assegnato
-            var existing = priceList.BusinessParties
-                .FirstOrDefault(bp => bp.BusinessPartyId == dto.BusinessPartyId && !bp.IsDeleted);
-
-            if (existing != null)
-                throw new InvalidOperationException($"Business party {dto.BusinessPartyId} is already assigned to price list {priceListId}.");
-
-            // Crea relazione
-            var relation = new PriceListBusinessParty
-            {
-                PriceListId = priceListId,
-                BusinessPartyId = dto.BusinessPartyId,
-                IsPrimary = dto.IsPrimary,
-                OverridePriority = dto.OverridePriority,
-                SpecificValidFrom = dto.SpecificValidFrom,
-                SpecificValidTo = dto.SpecificValidTo,
-                GlobalDiscountPercentage = dto.GlobalDiscountPercentage,
-                Notes = dto.Notes,
-                Status = PriceListBusinessPartyStatus.Active,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-
-            _context.PriceListBusinessParties.Add(relation);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Business party {BusinessPartyId} assigned to price list {PriceListId} by {User}",
-                dto.BusinessPartyId, priceListId, currentUser);
-
-            // Audit log
-            await _auditLogService.LogEntityChangeAsync(
-                nameof(PriceListBusinessParty),
-                relation.Id,
-                "Assignment",
-                "Create",
-                null,
-                $"BusinessParty {businessParty.Name} assigned to PriceList {priceList.Name}",
-                currentUser,
-                cancellationToken: cancellationToken);
-
-            return new PriceListBusinessPartyDto
-            {
-                BusinessPartyId = relation.BusinessPartyId,
-                BusinessPartyName = businessParty.Name,
-                BusinessPartyType = businessParty.PartyType.ToString(),
-                IsPrimary = relation.IsPrimary,
-                OverridePriority = relation.OverridePriority,
-                SpecificValidFrom = relation.SpecificValidFrom,
-                SpecificValidTo = relation.SpecificValidTo,
-                GlobalDiscountPercentage = relation.GlobalDiscountPercentage,
-                Notes = relation.Notes,
-                Status = relation.Status.ToString()
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error assigning business party {BusinessPartyId} to price list {PriceListId}",
-                dto.BusinessPartyId, priceListId);
-            throw;
-        }
-    }
-
-    public async Task<bool> RemoveBusinessPartyAsync(
-        Guid priceListId,
-        Guid businessPartyId,
-        string currentUser,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var relation = await _context.PriceListBusinessParties
-                .Include(plbp => plbp.PriceList)
-                .Include(plbp => plbp.BusinessParty)
-                .FirstOrDefaultAsync(
-                    plbp => plbp.PriceListId == priceListId &&
-                            plbp.BusinessPartyId == businessPartyId &&
-                            !plbp.IsDeleted,
-                    cancellationToken);
-
-            if (relation == null)
-                return false;
-
-            // Soft delete
-            relation.IsDeleted = true;
-            relation.DeletedAt = DateTime.UtcNow;
-            relation.DeletedBy = currentUser;
-            relation.Status = PriceListBusinessPartyStatus.Deleted;
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Business party {BusinessPartyId} removed from price list {PriceListId} by {User}",
-                businessPartyId, priceListId, currentUser);
-
-            // Audit log
-            await _auditLogService.LogEntityChangeAsync(
-                nameof(PriceListBusinessParty),
-                relation.Id,
-                "Assignment",
-                "Delete",
-                $"BusinessParty {relation.BusinessParty?.Name} assigned",
-                "Removed",
-                currentUser,
-                cancellationToken: cancellationToken);
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error removing business party {BusinessPartyId} from price list {PriceListId}",
-                businessPartyId, priceListId);
-            throw;
-        }
-    }
-
-    public async Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(
-        Guid priceListId,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var relations = await _context.PriceListBusinessParties
-                .Where(plbp => plbp.PriceListId == priceListId &&
-                               !plbp.IsDeleted &&
-                               plbp.Status == PriceListBusinessPartyStatus.Active)
-                .Include(plbp => plbp.BusinessParty)
-                .ToListAsync(cancellationToken);
-
-            return relations
-                .OrderByDescending(plbp => plbp.IsPrimary)
-                .ThenBy(plbp => plbp.OverridePriority.HasValue ? plbp.OverridePriority.Value : int.MaxValue)
-                .Select(plbp => new PriceListBusinessPartyDto
-                {
-                    BusinessPartyId = plbp.BusinessPartyId,
-                    BusinessPartyName = plbp.BusinessParty?.Name ?? "Unknown",
-                    BusinessPartyType = plbp.BusinessParty?.PartyType.ToString() ?? "Unknown",
-                    IsPrimary = plbp.IsPrimary,
-                    OverridePriority = plbp.OverridePriority,
-                    SpecificValidFrom = plbp.SpecificValidFrom,
-                    SpecificValidTo = plbp.SpecificValidTo,
-                    GlobalDiscountPercentage = plbp.GlobalDiscountPercentage,
-                    Notes = plbp.Notes,
-                    Status = plbp.Status.ToString()
-                });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving business parties for price list {PriceListId}", priceListId);
-            throw;
-        }
-    }
-
-    #endregion
-
-    #region Advanced Queries
-
-    public async Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(
-        PriceListType type,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var priceLists = await _context.PriceLists
-                .Where(pl => !pl.IsDeleted && pl.Type == type)
-                .Include(pl => pl.BusinessParties.Where(bp => !bp.IsDeleted))
-                .ThenInclude(bp => bp.BusinessParty)
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .OrderBy(pl => pl.Priority)
-                .ThenBy(pl => pl.Name)
-                .ToListAsync(cancellationToken);
-
-            return priceLists.Select(MapToPriceListDto);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving price lists by type {Type}", type);
-            throw;
-        }
-    }
-
-    public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(
-        Guid businessPartyId,
-        PriceListType? type = null,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var query = _context.PriceLists
-                .Where(pl => !pl.IsDeleted)
-                .Where(pl => pl.BusinessParties.Any(bp =>
-                    bp.BusinessPartyId == businessPartyId &&
+            // Trova tutti i listini acquisto applicabili
+            var purchasePriceLists = await _context.PriceLists
+                .Where(pl => pl.Type == PriceListType.Purchase &&
+                             pl.Direction == PriceListDirection.Input &&
+                             !pl.IsDeleted &&
+                             pl.Status == PriceListStatus.Active)
+                .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) &&
+                             (pl.ValidTo == null || pl.ValidTo >= evalDate))
+                .Include(pl => pl.BusinessParties.Where(bp =>
                     !bp.IsDeleted &&
-                    bp.Status == PriceListBusinessPartyStatus.Active));
-
-            if (type.HasValue)
-                query = query.Where(pl => pl.Type == type.Value);
-
-            var priceLists = await query
-                .Include(pl => pl.BusinessParties.Where(bp => !bp.IsDeleted))
+                    bp.Status == PriceListBusinessPartyStatus.Active &&
+                    (bp.SpecificValidFrom == null || bp.SpecificValidFrom <= evalDate) &&
+                    (bp.SpecificValidTo == null || bp.SpecificValidTo >= evalDate)))
                 .ThenInclude(bp => bp.BusinessParty)
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .OrderBy(pl => pl.Priority)
-                .ThenBy(pl => pl.Name)
+                .Include(pl => pl.ProductPrices.Where(ple =>
+                    ple.ProductId == productId &&
+                    !ple.IsDeleted &&
+                    ple.Status == PriceListEntryStatus.Active &&
+                    ple.MinQuantity <= quantity &&
+                    (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
                 .ToListAsync(cancellationToken);
 
-            return priceLists.Select(MapToPriceListDto);
+            var comparisons = new List<PurchasePriceComparisonDto>();
+
+            foreach (var priceList in purchasePriceLists)
+            {
+                var entry = priceList.ProductPrices.FirstOrDefault();
+                if (entry == null) continue;
+
+                // Se non ci sono BusinessParty assegnati, salta questo listino
+                if (!priceList.BusinessParties.Any()) continue;
+
+                foreach (var businessPartyRel in priceList.BusinessParties)
+                {
+                    var effectivePrice = entry.Price;
+                    decimal? discountPercentage = null;
+
+                    // Applica sconto globale se presente
+                    if (businessPartyRel.GlobalDiscountPercentage.HasValue)
+                    {
+                        discountPercentage = businessPartyRel.GlobalDiscountPercentage.Value;
+                        effectivePrice *= (1 - discountPercentage.Value / 100m);
+                    }
+
+                    comparisons.Add(new PurchasePriceComparisonDto
+                    {
+                        ProductId = productId,
+                        SupplierId = businessPartyRel.BusinessPartyId,
+                        SupplierName = businessPartyRel.BusinessParty?.Name ?? "Unknown",
+                        PriceListId = priceList.Id,
+                        PriceListName = priceList.Name,
+                        Price = effectivePrice,
+                        OriginalPrice = entry.Price,
+                        Currency = entry.Currency,
+                        LeadTimeDays = entry.LeadTimeDays,
+                        MinimumOrderQuantity = entry.MinimumOrderQuantity,
+                        QuantityIncrement = entry.QuantityIncrement,
+                        SupplierProductCode = entry.SupplierProductCode,
+                        IsPrimarySupplier = businessPartyRel.IsPrimary,
+                        Priority = businessPartyRel.OverridePriority ?? priceList.Priority,
+                        AppliedDiscountPercentage = discountPercentage
+                    });
+                }
+            }
+
+            // Ordina per prezzo (migliore prima)
+            return comparisons.OrderBy(c => c.Price).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price lists for business party {BusinessPartyId}", businessPartyId);
+            _logger.LogError(ex, "Error comparing purchase prices for product {ProductId}", productId);
             throw;
         }
     }

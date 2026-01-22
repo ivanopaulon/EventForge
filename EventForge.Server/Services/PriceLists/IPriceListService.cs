@@ -32,15 +32,22 @@ public interface IPriceListService
     // Enhanced price calculation methods (Issue #245)
     /// <summary>
     /// Gets the effective price for a product considering all applicable price lists with precedence logic.
-    /// Includes priority, validity dates, and default price list handling.
+    /// Includes priority, validity dates, default price list handling, and BusinessParty-specific discounts.
     /// </summary>
     /// <param name="productId">Product identifier</param>
     /// <param name="eventId">Event identifier</param>
+    /// <param name="businessPartyId">BusinessParty identifier (optional, for partner-specific pricing)</param>
     /// <param name="evaluationDate">Date to evaluate price validity (default: current UTC)</param>
     /// <param name="quantity">Quantity for price tier evaluation (default: 1)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Applied price information or null if no price found</returns>
-    Task<AppliedPriceDto?> GetAppliedPriceAsync(Guid productId, Guid eventId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default);
+    Task<AppliedPriceDto?> GetAppliedPriceAsync(
+        Guid productId,
+        Guid eventId,
+        Guid? businessPartyId = null,
+        DateTime? evaluationDate = null,
+        int quantity = 1,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the effective price for a product in a specific unit of measure with automatic conversion.
@@ -93,67 +100,18 @@ public interface IPriceListService
     /// <returns>Validation result with any identified precedence issues</returns>
     Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default);
 
-    // ===== GESTIONE BUSINESSPARTY =====
-
     /// <summary>
-    /// Assegna un BusinessParty a un PriceList con configurazioni specifiche.
+    /// Confronta i prezzi di acquisto per un prodotto da tutti i fornitori nei listini attivi.
+    /// Ritorna lista ordinata per prezzo (migliore prima).
     /// </summary>
-    /// <param name="priceListId">ID del listino</param>
-    /// <param name="dto">Dati assegnazione</param>
-    /// <param name="currentUser">Utente corrente</param>
+    /// <param name="productId">ID prodotto</param>
+    /// <param name="quantity">Quantità per calcolo scaglioni</param>
+    /// <param name="evaluationDate">Data valutazione (default: oggi)</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Relazione creata</returns>
-    Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(
-        Guid priceListId,
-        AssignBusinessPartyToPriceListDto dto,
-        string currentUser,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Rimuove (soft delete) un BusinessParty da un PriceList.
-    /// </summary>
-    /// <param name="priceListId">ID del listino</param>
-    /// <param name="businessPartyId">ID del BusinessParty</param>
-    /// <param name="currentUser">Utente corrente</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True se rimosso con successo</returns>
-    Task<bool> RemoveBusinessPartyAsync(
-        Guid priceListId,
-        Guid businessPartyId,
-        string currentUser,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Ottiene tutti i BusinessParty assegnati a un PriceList.
-    /// </summary>
-    /// <param name="priceListId">ID del listino</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Lista BusinessParty assegnati</returns>
-    Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(
-        Guid priceListId,
-        CancellationToken cancellationToken = default);
-
-    // ===== QUERY AVANZATE =====
-
-    /// <summary>
-    /// Ottiene i listini filtrati per tipo (Sales/Purchase).
-    /// </summary>
-    /// <param name="type">Tipo listino</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Listini del tipo specificato</returns>
-    Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(
-        PriceListType type,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Ottiene tutti i listini assegnati a un BusinessParty.
-    /// </summary>
-    /// <param name="businessPartyId">ID del BusinessParty</param>
-    /// <param name="type">Tipo listino (opzionale, null = tutti)</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Listini assegnati al BusinessParty</returns>
-    Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(
-        Guid businessPartyId,
-        PriceListType? type = null,
+    /// <returns>Lista confronto prezzi ordinata per prezzo crescente</returns>
+    Task<List<PurchasePriceComparisonDto>> GetPurchasePriceComparisonAsync(
+        Guid productId,
+        int quantity = 1,
+        DateTime? evaluationDate = null,
         CancellationToken cancellationToken = default);
 }
