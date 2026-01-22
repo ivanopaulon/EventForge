@@ -50,4 +50,9 @@ public interface IStockService
     /// Adjusts stock quantity for a given stock entry.
     /// </summary>
     Task<StockDto?> AdjustStockAsync(AdjustStockDto dto);
+
+    /// <summary>
+    /// Creates or updates a stock entry.
+    /// </summary>
+    Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto);
 }

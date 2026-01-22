@@ -145,4 +145,17 @@ public class StockService : IStockService
             return null;
         }
     }
+
+    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<CreateStockDto, StockDto>($"{BaseUrl}", dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating/updating stock for ProductId: {ProductId}", dto.ProductId);
+            return null;
+        }
+    }
 }
