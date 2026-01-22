@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 using EventForge.DTOs.Common;
 using EventForge.Server.Services.UnitOfMeasures;
@@ -6,6 +7,8 @@ using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceList
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
+using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
+using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -498,17 +501,37 @@ public class PriceListService : IPriceListService
             Id = priceList.Id,
             Name = priceList.Name,
             Description = priceList.Description,
+            Type = priceList.Type,
+            Direction = priceList.Direction,
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
+            Status = (EventForge.DTOs.Common.PriceListStatus)priceList.Status,
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,
-            EntryCount = priceList.ProductPrices.Count(ple => !ple.IsDeleted),
+            EventName = priceList.Event?.Name,
+            EntryCount = priceList.ProductPrices?.Count(ple => !ple.IsDeleted) ?? 0,
             CreatedAt = priceList.CreatedAt,
             CreatedBy = priceList.CreatedBy,
             ModifiedAt = priceList.ModifiedAt,
-            ModifiedBy = priceList.ModifiedBy
+            ModifiedBy = priceList.ModifiedBy,
+            AssignedBusinessParties = priceList.BusinessParties
+                .Where(bp => !bp.IsDeleted && bp.Status == PriceListBusinessPartyStatus.Active)
+                .Select(bp => new PriceListBusinessPartyDto
+                {
+                    BusinessPartyId = bp.BusinessPartyId,
+                    BusinessPartyName = bp.BusinessParty?.Name ?? "Unknown",
+                    BusinessPartyType = bp.BusinessParty?.PartyType.ToString() ?? "Unknown",
+                    IsPrimary = bp.IsPrimary,
+                    OverridePriority = bp.OverridePriority,
+                    SpecificValidFrom = bp.SpecificValidFrom,
+                    SpecificValidTo = bp.SpecificValidTo,
+                    GlobalDiscountPercentage = bp.GlobalDiscountPercentage,
+                    Notes = bp.Notes,
+                    Status = bp.Status.ToString()
+                })
+                .ToList()
         };
     }
 

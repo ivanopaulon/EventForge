@@ -1250,6 +1250,115 @@ public class ProductManagementController : BaseApiController
 
     #endregion
 
+    #region Price List - BusinessParty Management
+
+    /// <summary>
+    /// Assegna un BusinessParty a un PriceList.
+    /// </summary>
+    /// <param name="id">ID del listino</param>
+    /// <param name="dto">Dati assegnazione</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Relazione creata</returns>
+    [HttpPost("price-lists/{id}/business-parties")]
+    [ProducesResponseType(typeof(PriceListBusinessPartyDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AssignBusinessPartyToPriceList(
+        Guid id,
+        [FromBody] AssignBusinessPartyToPriceListDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var result = await _priceListService.AssignBusinessPartyAsync(id, dto, currentUser, cancellationToken);
+            return CreatedAtAction(
+                nameof(GetBusinessPartiesForPriceList),
+                new { id },
+                result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Rimuove un BusinessParty da un PriceList.
+    /// </summary>
+    /// <param name="id">ID del listino</param>
+    /// <param name="businessPartyId">ID del BusinessParty</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpDelete("price-lists/{id}/business-parties/{businessPartyId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveBusinessPartyFromPriceList(
+        Guid id,
+        Guid businessPartyId,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        var result = await _priceListService.RemoveBusinessPartyAsync(id, businessPartyId, currentUser, cancellationToken);
+        
+        if (!result)
+            return NotFound(new { error = "Business party assignment not found" });
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Ottiene tutti i BusinessParty assegnati a un PriceList.
+    /// </summary>
+    /// <param name="id">ID del listino</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("price-lists/{id}/business-parties")]
+    [ProducesResponseType(typeof(IEnumerable<PriceListBusinessPartyDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetBusinessPartiesForPriceList(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _priceListService.GetBusinessPartiesForPriceListAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
+    #endregion
+
+    #region Price List - Advanced Queries
+
+    /// <summary>
+    /// Ottiene i listini filtrati per tipo (Sales/Purchase).
+    /// </summary>
+    /// <param name="type">Tipo listino (Sales o Purchase)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("price-lists/by-type/{type}")]
+    [ProducesResponseType(typeof(IEnumerable<PriceListDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPriceListsByType(
+        PriceListType type,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _priceListService.GetPriceListsByTypeAsync(type, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Ottiene tutti i listini assegnati a un BusinessParty.
+    /// </summary>
+    /// <param name="id">ID del BusinessParty</param>
+    /// <param name="type">Tipo listino (opzionale)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("business-parties/{id}/price-lists")]
+    [ProducesResponseType(typeof(IEnumerable<PriceListDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPriceListsByBusinessParty(
+        Guid id,
+        [FromQuery] PriceListType? type = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _priceListService.GetPriceListsByBusinessPartyAsync(id, type, cancellationToken);
+        return Ok(result);
+    }
+
+    #endregion
+
     #region Promotions Management
 
     /// <summary>
