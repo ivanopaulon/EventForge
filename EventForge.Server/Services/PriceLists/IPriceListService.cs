@@ -126,6 +126,6 @@ public interface IPriceListService
     Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, string currentUser, CancellationToken cancellationToken = default);
     Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default);
     Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(PriceListType type, PriceListDirection direction, CancellationToken cancellationToken = default);
-    Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(PriceListType type, CancellationToken cancellationToken = default);
+    Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, PriceListType? type, CancellationToken cancellationToken = default);
 }
