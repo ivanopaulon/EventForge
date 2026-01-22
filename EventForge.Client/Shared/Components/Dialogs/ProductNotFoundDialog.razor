@@ -36,60 +36,23 @@
         </MudAlert>
 
         <!-- Product Search -->
-        <MudAutocomplete T="ProductDto"
-                         @bind-Value="_selectedProduct"
-                         @ref="_autocomplete"
-                         Label="@TranslationService.GetTranslation("products.searchProduct", "Cerca Prodotto")"
-                         Variant="Variant.Outlined"
-                         SearchFunc="@SearchProducts"
-                         ToStringFunc="@(p => p?.Name ?? string.Empty)"
-                         Immediate="true"
-                         ResetValueOnEmptyText="true"
-                         CoerceText="true"
-                         CoerceValue="false"
-                         Adornment="Adornment.Start"
-                         AdornmentIcon="@Icons.Material.Outlined.Search"
-                         AdornmentColor="Color.Primary"
-                         HelperText="@TranslationService.GetTranslation("products.searchByCodeOrDescription", "Cerca per codice o descrizione")"
-                         Clearable="true"
-                         OnClearButtonClick="@ClearSearch"
-                         Class="mb-4">
-            <ItemTemplate Context="product">
-                <MudText Typo="Typo.body2">@product.Name</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">@product.Code @(!string.IsNullOrEmpty(product.ShortDescription) ? " - " + product.ShortDescription : "")</MudText>
-            </ItemTemplate>
-            <NoItemsTemplate>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    @TranslationService.GetTranslation("products.noProductsFound", "Nessun prodotto trovato")
-                </MudText>
-            </NoItemsTemplate>
-        </MudAutocomplete>
+        <UnifiedProductScanner 
+            SelectedProduct="@_selectedProduct"
+            SelectedProductChanged="@OnProductSelected"
+            Title="@null"
+            Placeholder="@TranslationService.GetTranslation("products.searchProduct", "Cerca Prodotto")"
+            SearchHelperText="@TranslationService.GetTranslation("products.searchByCodeOrDescription", "Cerca per codice o descrizione")"
+            ShowProductInfo="true"
+            SearchMode="ProductSearchMode.Description"
+            EditMode="ProductEditMode.None"
+            CreateMode="ProductCreateMode.None"
+            AllowClear="true"
+            AutoFocus="true"
+            Class="mb-4" />
 
-        <!-- Selected Product Details -->
+        <!-- Code Type Selection for Assignment -->
         @if (_selectedProduct != null)
         {
-            <MudPaper Elevation="1" Class="pa-3 mb-4">
-                <MudText Typo="Typo.subtitle2" Class="mb-3">
-                    @TranslationService.GetTranslation("products.selectedProduct", "Prodotto Selezionato")
-                </MudText>
-
-                <MudGrid Spacing="2">
-                    <MudItem xs="12" md="6">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("products.productName", "Nome Prodotto")</MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">@_selectedProduct.Name</MudText>
-                    </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("products.productCode", "Codice Prodotto")</MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">@_selectedProduct.Code</MudText>
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("products.description", "Descrizione")</MudText>
-                        <MudText Typo="Typo.body1">@_selectedProduct.Description</MudText>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
-
-            <!-- Code Type Selection for Assignment -->
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid" Class="ef-dialog-form">
                 <MudGrid Spacing="3">
                     <!-- Code Type and Code on the same row -->
@@ -209,12 +172,10 @@
     private bool _isLoading = false;
     private bool _isFormValid = false;
     private MudForm? _form;
-    private MudAutocomplete<ProductDto>? _autocomplete;
     private MudSelect<string>? _codeTypeSelect;
     private MudTextField<string>? _altDescriptionField;
     private ProductDto? _selectedProduct;
     private CreateProductCodeDto _createCodeDto = new();
-    private List<ProductDto> _allProducts = new();
     
     // Typed result class for assignment
     public class AssignResult
@@ -229,8 +190,6 @@
         _createCodeDto.Code = Barcode;
         _createCodeDto.CodeType = "Barcode";
         _createCodeDto.Status = ProductCodeStatus.Active;
-
-        await LoadProducts();
         
         // If a product was pre-selected (e.g., after creation), set it
         if (PreSelectedProduct != null)
@@ -239,52 +198,10 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task OnProductSelected(ProductDto? product)
     {
-        if (firstRender)
-        {
-            // Focus on autocomplete first for product search
-            if (_autocomplete != null)
-            {
-                await _autocomplete.FocusAsync();
-            }
-        }
-    }
-
-    private async Task LoadProducts()
-    {
-        _isLoading = true;
-        try
-        {
-            var result = await ProductService.GetProductsAsync(1, 100);
-            if (result != null)
-            {
-                _allProducts = result.Items.ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading products");
-            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento prodotti"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    private Task<IEnumerable<ProductDto>> SearchProducts(string value, CancellationToken token)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return Task.FromResult(_allProducts.Take(10));
-
-        return Task.FromResult(_allProducts
-            .Where(p => p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-                       p.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-                       (!string.IsNullOrEmpty(p.ShortDescription) && p.ShortDescription.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
-                       (!string.IsNullOrEmpty(p.Description) && p.Description.Contains(value, StringComparison.OrdinalIgnoreCase)))
-            .Take(20)
-            .ToList() as IEnumerable<ProductDto>);
+        _selectedProduct = product;
+        StateHasChanged();
     }
 
     private async Task AssignBarcodeToProduct()
@@ -339,16 +256,6 @@
     private void Cancel()
     {
         MudDialog.Cancel();
-    }
-
-    private async Task ClearSearch()
-    {
-        _selectedProduct = null;
-        if (_autocomplete != null)
-        {
-            await _autocomplete.FocusAsync();
-        }
-        StateHasChanged();
     }
 
     private async Task OnCodeTypeKeyDown(KeyboardEventArgs e)
