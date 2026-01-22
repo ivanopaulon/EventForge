@@ -92,6 +92,7 @@ public partial class EventForgeDbContext : DbContext
     // Price List & Promotion Entities
     public DbSet<PriceList> PriceLists { get; set; }
     public DbSet<PriceListEntry> PriceListEntries { get; set; }
+    public DbSet<PriceListBusinessParty> PriceListBusinessParties { get; set; }
     public DbSet<Promotion> Promotions { get; set; }
     public DbSet<PromotionRule> PromotionRules { get; set; }
     public DbSet<PromotionRuleProduct> PromotionRuleProducts { get; set; }
@@ -572,6 +573,54 @@ public partial class EventForgeDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         _ = modelBuilder.Entity<Product>().HasIndex(p => p.ImageDocumentId).HasDatabaseName("IX_Product_ImageDocumentId");
+
+        // PriceListBusinessParty → PriceList
+        _ = modelBuilder.Entity<PriceListBusinessParty>()
+            .HasKey(plbp => new { plbp.PriceListId, plbp.BusinessPartyId });
+
+        _ = modelBuilder.Entity<PriceListBusinessParty>()
+            .HasOne(plbp => plbp.PriceList)
+            .WithMany(pl => pl.BusinessParties)
+            .HasForeignKey(plbp => plbp.PriceListId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // PriceListBusinessParty → BusinessParty
+        _ = modelBuilder.Entity<PriceListBusinessParty>()
+            .HasOne(plbp => plbp.BusinessParty)
+            .WithMany()
+            .HasForeignKey(plbp => plbp.BusinessPartyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // PriceListBusinessParty indexes
+        _ = modelBuilder.Entity<PriceListBusinessParty>().HasIndex(plbp => plbp.Status)
+            .HasDatabaseName("IX_PriceListBusinessParties_Status");
+
+        _ = modelBuilder.Entity<PriceListBusinessParty>().HasIndex(plbp => plbp.IsPrimary)
+            .HasDatabaseName("IX_PriceListBusinessParties_IsPrimary");
+
+        _ = modelBuilder.Entity<PriceListBusinessParty>().HasIndex(plbp => new { plbp.BusinessPartyId, plbp.Status })
+            .HasDatabaseName("IX_PriceListBusinessParties_BusinessPartyId_Status");
+
+        // PriceListBusinessParty decimal precision
+        _ = modelBuilder.Entity<PriceListBusinessParty>().Property(plbp => plbp.GlobalDiscountPercentage)
+            .HasPrecision(5, 2);
+
+        // PriceList indexes
+        _ = modelBuilder.Entity<PriceList>().HasIndex(pl => new { pl.Type, pl.Direction })
+            .HasDatabaseName("IX_PriceLists_Type_Direction");
+
+        _ = modelBuilder.Entity<PriceList>().HasIndex(pl => pl.EventId)
+            .HasDatabaseName("IX_PriceLists_EventId");
+
+        // PriceListEntry → UnitOfMeasure
+        _ = modelBuilder.Entity<PriceListEntry>()
+            .HasOne(e => e.UnitOfMeasure)
+            .WithMany()
+            .HasForeignKey(e => e.UnitOfMeasureId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<PriceListEntry>().HasIndex(e => e.UnitOfMeasureId)
+            .HasDatabaseName("IX_PriceListEntries_UnitOfMeasureId");
     }
 
     private static void ConfigureAlertRelationships(ModelBuilder modelBuilder)

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.PriceList;
 
@@ -63,11 +64,24 @@ public class PriceList : AuditableEntity
     public int Priority { get; set; } = 0;
 
     /// <summary>
-    /// Event associated with the price list.
+    /// Tipo di listino (vendita o acquisto).
     /// </summary>
     [Required]
-    [Display(Name = "Event", Description = "Event associated with the price list.")]
-    public Guid EventId { get; set; }
+    [Display(Name = "Type", Description = "Tipo di listino (vendita o acquisto).")]
+    public PriceListType Type { get; set; } = PriceListType.Sales;
+
+    /// <summary>
+    /// Direzione del listino (output = vendita, input = acquisto).
+    /// </summary>
+    [Required]
+    [Display(Name = "Direction", Description = "Direzione del listino.")]
+    public PriceListDirection Direction { get; set; } = PriceListDirection.Output;
+
+    /// <summary>
+    /// Event associato al listino (opzionale, null per listini acquisto generici).
+    /// </summary>
+    [Display(Name = "Event", Description = "Event associato al listino.")]
+    public Guid? EventId { get; set; }
 
     /// <summary>
     /// Navigation property for the associated event.
@@ -79,6 +93,12 @@ public class PriceList : AuditableEntity
     /// </summary>
     [Display(Name = "Product Prices", Description = "Product prices associated with this price list.")]
     public ICollection<PriceListEntry> ProductPrices { get; set; } = new List<PriceListEntry>();
+
+    /// <summary>
+    /// Relazione many-to-many con BusinessParty.
+    /// </summary>
+    [Display(Name = "Business Parties", Description = "Partner commerciali assegnati a questo listino.")]
+    public ICollection<PriceListBusinessParty> BusinessParties { get; set; } = new List<PriceListBusinessParty>();
 }
 
 /// <summary>
@@ -86,8 +106,10 @@ public class PriceList : AuditableEntity
 /// </summary>
 public enum PriceListStatus
 {
-    Active,     // Price list is active and usable
-    Suspended,  // Temporarily suspended
-    Expired,    // Price list is expired (no longer valid)
-    Deleted     // Price list is deleted/disabled
+    Draft,      // Bozza (non applicato)
+    Active,     // Attivo
+    Suspended,  // Sospeso temporaneamente
+    Expired,    // Scaduto (ValidTo passato)
+    Archived,   // Archiviato
+    Deleted     // Eliminato (soft delete)
 }

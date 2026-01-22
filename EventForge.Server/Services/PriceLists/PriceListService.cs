@@ -122,7 +122,8 @@ public class PriceListService : IPriceListService
             ArgumentNullException.ThrowIfNull(createPriceListDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            if (!await EventExistsAsync(createPriceListDto.EventId, cancellationToken))
+            // Only validate EventId if it's provided
+            if (createPriceListDto.EventId.HasValue && !await EventExistsAsync(createPriceListDto.EventId.Value, cancellationToken))
             {
                 throw new ArgumentException($"Event with ID {createPriceListDto.EventId} does not exist.");
             }
@@ -566,7 +567,7 @@ public class PriceListService : IPriceListService
                 .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) &&
                            (pl.ValidTo == null || pl.ValidTo >= evalDate))
                 .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted &&
-                                                            ple.Status == PriceListEntryStatus.Attivo &&
+                                                            ple.Status == PriceListEntryStatus.Active &&
                                                             ple.MinQuantity <= quantity &&
                                                             (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
                 .OrderBy(pl => pl.Priority) // Higher priority (lower number) first
@@ -748,7 +749,7 @@ public class PriceListService : IPriceListService
                         continue;
 
                     var wasActive = priceList.Status == PriceListStatus.Active &&
-                                   entry.Status == PriceListEntryStatus.Attivo &&
+                                   entry.Status == PriceListEntryStatus.Active &&
                                    (!priceList.ValidFrom.HasValue || priceList.ValidFrom.Value <= to) &&
                                    (!priceList.ValidTo.HasValue || priceList.ValidTo.Value >= from);
 
@@ -906,7 +907,7 @@ public class PriceListService : IPriceListService
                             Score = entryDto.Score,
                             IsEditableInFrontend = entryDto.IsEditableInFrontend,
                             IsDiscountable = entryDto.IsDiscountable,
-                            Status = PriceListEntryStatus.Attivo,
+                            Status = PriceListEntryStatus.Active,
                             MinQuantity = entryDto.MinQuantity,
                             MaxQuantity = entryDto.MaxQuantity,
                             Notes = entryDto.Notes,
@@ -982,7 +983,7 @@ public class PriceListService : IPriceListService
 
             if (!includeInactiveEntries)
             {
-                query = query.Where(ple => ple.Status == PriceListEntryStatus.Attivo);
+                query = query.Where(ple => ple.Status == PriceListEntryStatus.Active);
             }
 
             var entries = await query.ToListAsync(cancellationToken);
@@ -1014,7 +1015,7 @@ public class PriceListService : IPriceListService
                     CreatedBy = entry.CreatedBy,
                     ModifiedAt = entry.ModifiedAt,
                     ModifiedBy = entry.ModifiedBy,
-                    IsActive = entry.Status == PriceListEntryStatus.Attivo,
+                    IsActive = entry.Status == PriceListEntryStatus.Active,
                     ProductCategory = product?.CategoryNode?.Name,
                     UnitOfMeasure = unitOfMeasure?.Symbol,
                     ProductDefaultPrice = product?.DefaultPrice

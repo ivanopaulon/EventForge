@@ -585,4 +585,22 @@ namespace EventForge.DTOs.Common
         Scan,                   // Scanned document
         DigitalSignature        // Digitally signed document
     }
+
+    /// <summary>
+    /// Tipo di listino.
+    /// </summary>
+    public enum PriceListType
+    {
+        Sales,      // Listino vendita
+        Purchase    // Listino acquisto
+    }
+
+    /// <summary>
+    /// Direzione del listino.
+    /// </summary>
+    public enum PriceListDirection
+    {
+        Output,     // In uscita (vendita a clienti)
+        Input       // In entrata (acquisto da fornitori)
+    }
 }
