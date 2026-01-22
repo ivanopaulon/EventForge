@@ -127,4 +127,112 @@ public class PriceListsController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while performing the bulk update.", ex);
         }
     }
+
+    /// <summary>
+    /// Genera un nuovo listino dai prezzi DefaultPrice dei prodotti.
+    /// </summary>
+    /// <param name="dto">Parametri per la generazione del listino</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>ID del listino creato</returns>
+    /// <response code="200">Restituisce l'ID del listino creato</response>
+    /// <response code="400">Se i parametri della richiesta non sono validi</response>
+    /// <response code="404">Se l'evento o le categorie specificate non sono state trovate</response>
+    /// <response code="500">Se si verifica un errore interno del server</response>
+    [HttpPost("generate-from-products")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Guid>> GenerateFromProductPrices(
+        [FromBody] GeneratePriceListFromProductsDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var priceListId = await _priceListService.GenerateFromProductPricesAsync(
+                dto,
+                currentUser,
+                cancellationToken);
+
+            _logger.LogInformation(
+                "Price list {PriceListId} generated from products by user {User}",
+                priceListId, currentUser);
+
+            return Ok(priceListId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Failed to generate price list from products: {Message}", ex.Message);
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating price list from products");
+            return CreateInternalServerErrorProblem("An error occurred while generating the price list from products.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Applica i prezzi di un listino ai Product.DefaultPrice.
+    /// </summary>
+    /// <param name="id">ID del listino da applicare</param>
+    /// <param name="dto">Parametri per l'applicazione del listino</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Risultato dell'applicazione con dettagli delle modifiche</returns>
+    /// <response code="200">Restituisce il risultato dell'applicazione</response>
+    /// <response code="400">Se i parametri della richiesta non sono validi o l'ID non corrisponde</response>
+    /// <response code="404">Se il listino non è stato trovato</response>
+    /// <response code="500">Se si verifica un errore interno del server</response>
+    [HttpPost("{id:guid}/apply-to-products")]
+    [ProducesResponseType(typeof(ApplyPriceListResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ApplyPriceListResultDto>> ApplyPriceListToProducts(
+        Guid id,
+        [FromBody] ApplyPriceListToProductsDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        // Validazione: id deve corrispondere a dto.PriceListId
+        if (id != dto.PriceListId)
+        {
+            return BadRequest("PriceListId mismatch");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var result = await _priceListService.ApplyPriceListToProductsAsync(
+                dto,
+                currentUser,
+                cancellationToken);
+
+            _logger.LogInformation(
+                "Price list {PriceListId} applied to products. Updated: {Updated}, Skipped: {Skipped}, Not Found: {NotFound}",
+                id, result.ProductsUpdated, result.ProductsSkipped, result.ProductsNotFound);
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Failed to apply price list {PriceListId}: {Message}", id, ex.Message);
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying price list {PriceListId} to products", id);
+            return CreateInternalServerErrorProblem("An error occurred while applying the price list to products.", ex);
+        }
+    }
 }
