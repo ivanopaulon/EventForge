@@ -15,6 +15,40 @@ using System.Threading.Tasks;
 namespace EventForge.Client.Shared.Components
 {
     /// <summary>
+    /// Defines how product search should behave
+    /// </summary>
+    [Flags]
+    public enum ProductSearchMode
+    {
+        None = 0,
+        Barcode = 1,          // ENTER searches as barcode
+        Description = 2,       // Autocomplete for description
+        Both = Barcode | Description
+    }
+
+    /// <summary>
+    /// Defines how product editing should be handled
+    /// </summary>
+    public enum ProductEditMode
+    {
+        None,       // No editing allowed, Edit button hidden
+        Dialog,     // Opens QuickCreateProductDialog
+        Inline,     // Inline form in component (to be implemented)
+        Delegate    // Notifies parent via OnEditRequested event
+    }
+
+    /// <summary>
+    /// Defines how product creation should be handled when not found
+    /// </summary>
+    public enum ProductCreateMode
+    {
+        None,       // Does not handle creation
+        Dialog,     // Opens QuickCreateProductDialog automatically
+        Prompt,     // Shows inline prompt "Do you want to create a new product?"
+        Delegate    // Notifies parent via OnProductNotFound (current behavior)
+    }
+
+    /// <summary>
     /// Unified component that combines product search (barcode + description) 
     /// with product info display.
     /// Replaces the separate DocumentRowBarcodeScanner, MudAutocomplete, and ProductQuickInfo components.
@@ -31,28 +65,39 @@ namespace EventForge.Client.Shared.Components
 
         #region Parameters - Appearance
 
-        [Parameter] public string Title { get; set; } = "Cerca Prodotto";
-        [Parameter] public bool ShowTitle { get; set; } = true;
-        [Parameter] public string Placeholder { get; set; } = "Scansiona barcode o cerca per nome...";
+        [Parameter] public string? Title { get; set; } = "Cerca Prodotto";
+        [Parameter] public string Placeholder { get; set; } = "Scansiona barcode o cerca...";
         [Parameter] public string? SearchHelperText { get; set; }
-        [Parameter] public int Elevation { get; set; } = 1;
         [Parameter] public bool Dense { get; set; } = true;
         [Parameter] public string? Class { get; set; }
         [Parameter] public string? Style { get; set; }
+
+        #endregion
+
+        #region Parameters - Sections
+
+        [Parameter] public bool ShowProductInfo { get; set; } = true;
+        [Parameter] public bool ShowCurrentStock { get; set; } = false;
+        [Parameter] public decimal? CurrentStockQuantity { get; set; }
+
+        #endregion
+
+        #region Parameters - Search
+
+        [Parameter] public ProductSearchMode SearchMode { get; set; } = ProductSearchMode.Both;
+        [Parameter] public int MinSearchCharacters { get; set; } = 2;
+        [Parameter] public int DebounceMs { get; set; } = 300;
+        [Parameter] public int MaxResults { get; set; } = 50;
+        [Parameter] public bool AutoFocus { get; set; } = true;
         [Parameter] public bool Disabled { get; set; } = false;
 
         #endregion
 
-        #region Parameters - Behavior
+        #region Parameters - Actions
 
-        [Parameter] public int MinSearchCharacters { get; set; } = 2;
-        [Parameter] public int DebounceMs { get; set; } = 300;
-        [Parameter] public int MaxResults { get; set; } = 50;
-        [Parameter] public bool AllowEdit { get; set; } = true;
         [Parameter] public bool AllowClear { get; set; } = true;
-        [Parameter] public bool AutoFocus { get; set; } = true;
-        [Parameter] public bool ShowCurrentStock { get; set; } = false;
-        [Parameter] public decimal? CurrentStockQuantity { get; set; }
+        [Parameter] public ProductEditMode EditMode { get; set; } = ProductEditMode.Dialog;
+        [Parameter] public ProductCreateMode CreateMode { get; set; } = ProductCreateMode.Delegate;
 
         #endregion
 
@@ -72,7 +117,9 @@ namespace EventForge.Client.Shared.Components
 
         [Parameter] public EventCallback<ProductWithCodeDto> OnProductWithCodeFound { get; set; }
         [Parameter] public EventCallback<string> OnProductNotFound { get; set; }
-        [Parameter] public EventCallback OnProductUpdated { get; set; }
+        [Parameter] public EventCallback<ProductDto> OnEditRequested { get; set; }
+        [Parameter] public EventCallback<ProductDto> OnProductUpdated { get; set; }
+        [Parameter] public EventCallback<ProductDto> OnProductCreated { get; set; }
 
         #endregion
 
@@ -89,6 +136,13 @@ namespace EventForge.Client.Shared.Components
         private string? _currentUnitName;
         private string? _currentUnitSymbol;
         private string? _currentVatName;
+
+        // Edit mode tracking
+        private bool _isEditMode = false;
+
+        // Prompt mode tracking
+        private bool _showNotFoundPrompt = false;
+        private string _notFoundBarcode = string.Empty;
 
         #endregion
 
@@ -156,11 +210,11 @@ namespace EventForge.Client.Shared.Components
         }
 
         /// <summary>
-        /// Handle ENTER key in search field - search by barcode.
+        /// Handle ENTER key in search field - search by barcode if enabled.
         /// </summary>
         private async Task HandleSearchKeyDown(KeyboardEventArgs e)
         {
-            if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_searchText))
+            if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_searchText) && SearchMode.HasFlag(ProductSearchMode.Barcode))
             {
                 await SearchByBarcode(_searchText);
             }
@@ -195,12 +249,30 @@ namespace EventForge.Client.Shared.Components
                 }
                 else
                 {
-                    // Product not found - notify parent to show ProductNotFoundDialog
+                    // Product NOT FOUND - handle based on CreateMode
                     Logger.LogWarning("Product not found for barcode: {Barcode}", barcode);
 
-                    if (OnProductNotFound.HasDelegate)
+                    switch (CreateMode)
                     {
-                        await OnProductNotFound.InvokeAsync(barcode);
+                        case ProductCreateMode.Dialog:
+                            await OpenQuickCreateDialog(barcode);
+                            break;
+
+                        case ProductCreateMode.Prompt:
+                            _showNotFoundPrompt = true;
+                            _notFoundBarcode = barcode;
+                            StateHasChanged();
+                            break;
+
+                        case ProductCreateMode.Delegate:
+                            if (OnProductNotFound.HasDelegate)
+                                await OnProductNotFound.InvokeAsync(barcode);
+                            break;
+
+                        case ProductCreateMode.None:
+                        default:
+                            // Do nothing
+                            break;
                     }
                 }
             }
@@ -282,6 +354,34 @@ namespace EventForge.Client.Shared.Components
         #region Edit Methods
 
         /// <summary>
+        /// Handles edit button click based on EditMode
+        /// </summary>
+        private async Task HandleEditClick()
+        {
+            if (SelectedProduct == null) return;
+
+            switch (EditMode)
+            {
+                case ProductEditMode.Dialog:
+                    await OpenEditProductDialog();
+                    break;
+
+                case ProductEditMode.Inline:
+                    _isEditMode = true;
+                    StateHasChanged();
+                    break;
+
+                case ProductEditMode.Delegate:
+                    await OnEditRequested.InvokeAsync(SelectedProduct);
+                    break;
+
+                case ProductEditMode.None:
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>
         /// Opens the QuickCreateProductDialog in edit mode
         /// </summary>
         private async Task OpenEditProductDialog()
@@ -320,11 +420,61 @@ namespace EventForge.Client.Shared.Components
                 // Notify parent that product was updated
                 if (OnProductUpdated.HasDelegate)
                 {
-                    await OnProductUpdated.InvokeAsync();
+                    await OnProductUpdated.InvokeAsync(updatedProduct);
                 }
 
                 Snackbar.Add(
                     TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"),
+                    Severity.Success
+                );
+            }
+        }
+
+        /// <summary>
+        /// Opens the QuickCreateProductDialog for creating a new product
+        /// </summary>
+        private async Task OpenQuickCreateDialog(string barcode)
+        {
+            var parameters = new DialogParameters
+            {
+                { "PrefilledCode", barcode },
+                { "AutoAssignCode", true }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<Dialogs.QuickCreateProductDialog>(
+                TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is ProductDto createdProduct)
+            {
+                // Set the created product as selected
+                SelectedProduct = createdProduct;
+                await SelectedProductChanged.InvokeAsync(SelectedProduct);
+                
+                // Update display values
+                UpdateDisplayValues();
+
+                // Notify parent that product was created
+                if (OnProductCreated.HasDelegate)
+                {
+                    await OnProductCreated.InvokeAsync(createdProduct);
+                }
+
+                // Hide prompt if it was showing
+                _showNotFoundPrompt = false;
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"),
                     Severity.Success
                 );
             }
@@ -344,16 +494,6 @@ namespace EventForge.Client.Shared.Components
             {
                 await _autocomplete.FocusAsync();
             }
-        }
-
-        #endregion
-
-        #region Helper Methods
-
-        private string GetCssClass()
-        {
-            var baseClass = "pa-3";
-            return string.IsNullOrEmpty(Class) ? baseClass : $"{baseClass} {Class}";
         }
 
         #endregion

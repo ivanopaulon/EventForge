@@ -1959,44 +1959,40 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Handles product updated from UnifiedProductScanner inline editing.
-    /// The UnifiedProductScanner returns the updated product from QuickCreateProductDialog,
-    /// so we just need to update our local references and fields.
+    /// The UnifiedProductScanner now passes the updated product as parameter.
     /// </summary>
-    private async Task HandleProductUpdated()
+    private async Task HandleProductUpdated(ProductDto updatedProduct)
     {
-        // The product has been updated and is already current in _selectedProduct
-        // Just update the description and code fields to reflect changes
-        if (_selectedProduct != null)
+        // Update our local reference with the updated product
+        _selectedProduct = updatedProduct;
+        _state.SelectedProduct = updatedProduct;
+        
+        // Update the description and code fields
+        _state.Model.Description = updatedProduct.Name;
+        _state.Model.ProductCode = updatedProduct.Code;
+        
+        // Update VAT if changed
+        if (updatedProduct.VatRateId.HasValue)
         {
-            _state.SelectedProduct = _selectedProduct;
-            
-            // Update the description and code fields
-            _state.Model.Description = _selectedProduct.Name;
-            _state.Model.ProductCode = _selectedProduct.Code;
-            
-            // Update VAT if changed
-            if (_selectedProduct.VatRateId.HasValue)
+            _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
+            var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
+            if (vatRate != null)
             {
-                _state.SelectedVatRateId = _selectedProduct.VatRateId.Value;
-                var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == _selectedProduct.VatRateId.Value);
-                if (vatRate != null)
-                {
-                    _state.Model.VatRate = vatRate.Percentage;
-                    _state.Model.VatDescription = vatRate.Name;
-                }
+                _state.Model.VatRate = vatRate.Percentage;
+                _state.Model.VatDescription = vatRate.Name;
             }
-            
-            // Update Unit of Measure if changed
-            if (_selectedProduct.UnitOfMeasureId.HasValue)
-            {
-                _state.SelectedUnitOfMeasureId = _selectedProduct.UnitOfMeasureId.Value;
-            }
-            
-            // Invalidate cached calculation result
-            InvalidateCalculationCache();
-            
-            await InvokeAsync(StateHasChanged);
         }
+        
+        // Update Unit of Measure if changed
+        if (updatedProduct.UnitOfMeasureId.HasValue)
+        {
+            _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+        }
+        
+        // Invalidate cached calculation result
+        InvalidateCalculationCache();
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     #endregion

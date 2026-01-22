@@ -3,164 +3,181 @@
 @using EventForge.DTOs.VatRates
 
 @* UnifiedProductScanner Component - Unified product search with barcode scanning and product info display *@
-<MudPaper Elevation="@Elevation" Class="@GetCssClass()" Style="@Style">
-    <MudStack Spacing="2">
-        @if (ShowTitle)
-        {
-            <!-- Header with Title and Action Buttons -->
+<MudStack Spacing="2" Class="@Class" Style="@Style">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <!-- Header with Title and Action Buttons -->
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
+                @Title
+            </MudText>
+            @if (SelectedProduct != null)
+            {
+                <MudStack Row="true" Spacing="1">
+                    @if (EditMode != ProductEditMode.None)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("products.editProduct", "Modifica prodotto")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="HandleEditClick" />
+                        </MudTooltip>
+                    }
+                    @if (AllowClear)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("common.clear", "Pulisci")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Clear"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="ClearSelection" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            }
+        </MudStack>
+
+        <MudDivider />
+    }
+
+    @if (_showNotFoundPrompt)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mt-2">
             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
-                    <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
-                    @Title
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("products.notFoundPrompt", 
+                        $"Prodotto '{_notFoundBarcode}' non trovato.")
                 </MudText>
-                @if (SelectedProduct != null)
-                {
-                    <MudStack Row="true" Spacing="1">
-                        @if (AllowEdit)
-                        {
-                            <MudTooltip Text="@TranslationService.GetTranslation("products.editProduct", "Modifica prodotto")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                               Size="Size.Small"
-                                               Color="Color.Primary"
-                                               OnClick="OpenEditProductDialog" />
-                            </MudTooltip>
-                        }
-                        @if (AllowClear)
-                        {
-                            <MudTooltip Text="@TranslationService.GetTranslation("common.clear", "Pulisci")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.Clear"
-                                               Size="Size.Small"
-                                               Color="Color.Default"
-                                               OnClick="ClearSelection" />
-                            </MudTooltip>
-                        }
-                    </MudStack>
-                }
+                <MudButton Size="Size.Small" 
+                           Color="Color.Primary" 
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Outlined.Add"
+                           OnClick="@(() => OpenQuickCreateDialog(_notFoundBarcode))">
+                    @TranslationService.GetTranslation("products.createNew", "Crea Nuovo")
+                </MudButton>
             </MudStack>
+        </MudAlert>
+    }
 
-            <MudDivider />
-        }
-
-        @if (SelectedProduct == null)
-        {
-            <!-- SEARCH MODE: Autocomplete for product search with barcode support -->
-            <MudAutocomplete T="ProductDto"
-                             @ref="_autocomplete"
-                             @bind-Value="SelectedProduct"
-                             @bind-Text="_searchText"
-                             SearchFunc="@SearchProductsAsync"
-                             ToStringFunc="@(p => p?.Name ?? string.Empty)"
-                             Variant="Variant.Outlined"
-                             Dense="@Dense"
-                             Margin="Margin.Dense"
-                             MinCharacters="@MinSearchCharacters"
-                             DebounceInterval="@DebounceMs"
-                             ShowProgressIndicator="true"
-                             Clearable="@AllowClear"
-                             Disabled="@Disabled"
-                             Placeholder="@Placeholder"
-                             HelperText="@SearchHelperText"
-                             Adornment="Adornment.Start"
-                             AdornmentIcon="@Icons.Material.Outlined.Search"
-                             AdornmentColor="Color.Primary"
-                             @onkeydown="@HandleSearchKeyDown">
-                <!-- ItemTemplate -->
-                <ItemTemplate Context="product">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <div>
-                            <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
-                            @if (!string.IsNullOrEmpty(product.Code))
-                            {
-                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                                    @product.Code
-                                </MudText>
-                            }
-                        </div>
-                        @if (product.DefaultPrice.HasValue)
+    @if (SelectedProduct == null && SearchMode != ProductSearchMode.None)
+    {
+        <!-- SEARCH MODE: Autocomplete for product search with barcode support -->
+        <MudAutocomplete T="ProductDto"
+                         @ref="_autocomplete"
+                         @bind-Value="SelectedProduct"
+                         @bind-Text="_searchText"
+                         SearchFunc="@SearchProductsAsync"
+                         ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                         Variant="Variant.Outlined"
+                         Dense="@Dense"
+                         Margin="Margin.Dense"
+                         MinCharacters="@MinSearchCharacters"
+                         DebounceInterval="@DebounceMs"
+                         ShowProgressIndicator="true"
+                         Clearable="@AllowClear"
+                         Disabled="@Disabled"
+                         Placeholder="@Placeholder"
+                         HelperText="@SearchHelperText"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Outlined.Search"
+                         AdornmentColor="Color.Primary"
+                         @onkeydown="@HandleSearchKeyDown">
+            <!-- ItemTemplate -->
+            <ItemTemplate Context="product">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
+                        @if (!string.IsNullOrEmpty(product.Code))
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
-                                @product.DefaultPrice.Value.ToString("C2")
-                            </MudChip>
+                            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                                @product.Code
+                            </MudText>
                         }
-                    </MudStack>
-                </ItemTemplate>
-                
-                <!-- NoItemsTemplate -->
-                <NoItemsTemplate>
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">
-                        @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
-                    </MudText>
-                </NoItemsTemplate>
-            </MudAutocomplete>
-        }
+                    </div>
+                    @if (product.DefaultPrice.HasValue)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                            @product.DefaultPrice.Value.ToString("C2")
+                        </MudChip>
+                    }
+                </MudStack>
+            </ItemTemplate>
+            
+            <!-- NoItemsTemplate -->
+            <NoItemsTemplate>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">
+                    @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
+                </MudText>
+            </NoItemsTemplate>
+        </MudAutocomplete>
+    }
 
-        @if (SelectedProduct != null)
-        {
-            <!-- VIEW MODE: Display product information -->
-            <MudGrid Spacing="2">
+    @if (SelectedProduct != null && ShowProductInfo)
+    {
+        <!-- VIEW MODE: Display product information -->
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("products.code", "Codice")
+                </MudText>
+                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                    @SelectedProduct.Code
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("products.name", "Nome")
+                </MudText>
+                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                    @SelectedProduct.Name
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("products.description", "Descrizione")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @(string.IsNullOrWhiteSpace(SelectedProduct.Description) ? "-" : SelectedProduct.Description)
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @(_currentUnitName ?? "-")
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("products.vatRate", "IVA")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @(_currentVatName ?? "-")
+                </MudText>
+            </MudItem>
+            @if (SelectedProduct.DefaultPrice.HasValue)
+            {
                 <MudItem xs="12" sm="6">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @TranslationService.GetTranslation("products.code", "Codice")
+                        @TranslationService.GetTranslation("products.price", "Prezzo")
                     </MudText>
                     <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                        @SelectedProduct.Code
+                        @SelectedProduct.DefaultPrice.Value.ToString("C2")
                     </MudText>
                 </MudItem>
+            }
+            @if (ShowCurrentStock && CurrentStockQuantity.HasValue)
+            {
                 <MudItem xs="12" sm="6">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @TranslationService.GetTranslation("products.name", "Nome")
+                        @TranslationService.GetTranslation("warehouse.currentStock", "Giacenza Attuale")
                     </MudText>
                     <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                        @SelectedProduct.Name
+                        @CurrentStockQuantity.Value.ToString("N2") @(_currentUnitSymbol ?? "")
                     </MudText>
                 </MudItem>
-                <MudItem xs="12">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @TranslationService.GetTranslation("products.description", "Descrizione")
-                    </MudText>
-                    <MudText Typo="Typo.body2">
-                        @(string.IsNullOrWhiteSpace(SelectedProduct.Description) ? "-" : SelectedProduct.Description)
-                    </MudText>
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")
-                    </MudText>
-                    <MudText Typo="Typo.body2">
-                        @(_currentUnitName ?? "-")
-                    </MudText>
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @TranslationService.GetTranslation("products.vatRate", "IVA")
-                    </MudText>
-                    <MudText Typo="Typo.body2">
-                        @(_currentVatName ?? "-")
-                    </MudText>
-                </MudItem>
-                @if (SelectedProduct.DefaultPrice.HasValue)
-                {
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("products.price", "Prezzo")
-                        </MudText>
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                            @SelectedProduct.DefaultPrice.Value.ToString("C2")
-                        </MudText>
-                    </MudItem>
-                }
-                @if (ShowCurrentStock && CurrentStockQuantity.HasValue)
-                {
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("warehouse.currentStock", "Giacenza Attuale")
-                        </MudText>
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                            @CurrentStockQuantity.Value.ToString("N2") @(_currentUnitSymbol ?? "")
-                        </MudText>
-                    </MudItem>
-                }
-            </MudGrid>
-        }
-    </MudStack>
-</MudPaper>
+            }
+        </MudGrid>
+    }
+</MudStack>
