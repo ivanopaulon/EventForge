@@ -226,6 +226,33 @@ namespace EventForge.Client.Shared.Components
         }
 
         /// <summary>
+        /// Called when a product is selected from the autocomplete dropdown.
+        /// CRITICAL: This is the missing piece that propagates selection to parent components.
+        /// Pattern: Same as OnBusinessPartySelectedAsync in GenericDocumentProcedure.
+        /// </summary>
+        private async Task OnProductSelectionChangedAsync(ProductDto? product)
+        {
+            Logger.LogInformation("OnProductSelectionChangedAsync called. Product: {ProductId} - {ProductName}", 
+                product?.Id, product?.Name ?? "NULL");
+
+            // Update local property
+            SelectedProduct = product;
+
+            // ✅ CRITICAL: Notify parent component (AddDocumentRowDialog, ProductNotFoundDialog, etc.)
+            // Without this, the parent never knows a product was selected!
+            if (SelectedProductChanged.HasDelegate)
+            {
+                await SelectedProductChanged.InvokeAsync(product);
+            }
+
+            // Update display values (unit of measure, VAT, etc.)
+            UpdateDisplayValues();
+
+            Logger.LogInformation("Product selection propagated to parent. SelectedProduct: {ProductId}, UnitOfMeasure: {Unit}, VAT: {Vat}", 
+                SelectedProduct?.Id, _currentUnitName, _currentVatName);
+        }
+
+        /// <summary>
         /// Search product by barcode/code.
         /// </summary>
         private async Task SearchByBarcode(string barcode)

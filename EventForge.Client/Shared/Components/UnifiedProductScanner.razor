@@ -64,7 +64,8 @@
         <!-- SEARCH MODE: Autocomplete for product search with barcode support -->
         <MudAutocomplete T="ProductDto"
                          @ref="_autocomplete"
-                         @bind-Value="SelectedProduct"
+                         Value="SelectedProduct"
+                         ValueChanged="@OnProductSelectionChangedAsync"
                          @bind-Text="_searchText"
                          SearchFunc="@SearchProductsAsync"
                          ToStringFunc="@(p => p?.Name ?? string.Empty)"
