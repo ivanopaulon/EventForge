@@ -1,14 +1,17 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.DTOs.Common;
+using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Business;
+using EventForge.Server.Data.Entities.PriceList;
+using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
-using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -1380,6 +1383,410 @@ public class PriceListService : IPriceListService
             _logger.LogError(ex, "Error comparing purchase prices for product {ProductId}", productId);
             throw;
         }
+    }
+
+    #endregion
+
+    #region Phase 2A/2B - BusinessParty Assignment Methods (Stub implementations)
+
+    public async Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        // Stub implementation - to be completed in Phase 2A/2B PR
+        throw new NotImplementedException("AssignBusinessPartyAsync will be implemented in Phase 2A/2B");
+    }
+
+    public async Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default)
+    {
+        // Stub implementation - to be completed in Phase 2A/2B PR
+        throw new NotImplementedException("RemoveBusinessPartyAsync will be implemented in Phase 2A/2B");
+    }
+
+    public async Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default)
+    {
+        // Stub implementation - to be completed in Phase 2A/2B PR
+        throw new NotImplementedException("GetBusinessPartiesForPriceListAsync will be implemented in Phase 2A/2B");
+    }
+
+    public async Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(PriceListType type, CancellationToken cancellationToken = default)
+    {
+        // Stub implementation - to be completed in Phase 2A/2B PR
+        throw new NotImplementedException("GetPriceListsByTypeAsync will be implemented in Phase 2A/2B");
+    }
+
+    public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, PriceListType? type, CancellationToken cancellationToken = default)
+    {
+        // Stub implementation - to be completed in Phase 2A/2B PR
+        throw new NotImplementedException("GetPriceListsByBusinessPartyAsync will be implemented in Phase 2A/2B");
+    }
+
+    #endregion
+
+    #region Phase 2C - Product Price Calculation with Application Modes
+
+    /// <summary>
+    /// Calcola il prezzo di un prodotto secondo la modalità specificata.
+    /// </summary>
+    public async Task<ProductPriceResultDto> GetProductPriceAsync(
+        GetProductPriceRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // 1. Recupera il prodotto
+            var product = await _context.Products
+                .Include(p => p.Codes)
+                .FirstOrDefaultAsync(p => p.Id == request.ProductId && !p.IsDeleted, cancellationToken);
+
+            if (product == null)
+            {
+                throw new InvalidOperationException($"Product with ID {request.ProductId} not found");
+            }
+
+            // 2. Determina la modalità di applicazione
+            var mode = await DeterminePriceApplicationModeAsync(request, cancellationToken);
+
+            // 3. Applica la strategia corretta
+            return mode switch
+            {
+                PriceApplicationMode.Manual => await ApplyManualPriceAsync(request, product, cancellationToken),
+                PriceApplicationMode.ForcedPriceList => await ApplyForcedPriceListAsync(request, product, cancellationToken),
+                PriceApplicationMode.HybridForcedWithOverrides => await ApplyHybridPriceAsync(request, product, cancellationToken),
+                PriceApplicationMode.Automatic => await ApplyAutomaticPriceAsync(request, product, cancellationToken),
+                _ => throw new InvalidOperationException($"Unknown price application mode: {mode}")
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating product price for ProductId {ProductId}", request.ProductId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Determina quale modalità usare per il calcolo del prezzo.
+    /// </summary>
+    private async Task<PriceApplicationMode> DeterminePriceApplicationModeAsync(
+        GetProductPriceRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        // 1. Override esplicito nella richiesta → priorità massima
+        if (request.PriceApplicationMode.HasValue)
+        {
+            _logger.LogDebug("Using explicit price application mode from request: {Mode}", request.PriceApplicationMode.Value);
+            return request.PriceApplicationMode.Value;
+        }
+
+        // 2. Nessun BusinessParty → Automatic
+        if (!request.BusinessPartyId.HasValue)
+        {
+            _logger.LogDebug("No BusinessParty specified, using Automatic mode");
+            return PriceApplicationMode.Automatic;
+        }
+
+        // 3. Configurazione del BusinessParty
+        var businessParty = await _context.BusinessParties
+            .FirstOrDefaultAsync(bp => bp.Id == request.BusinessPartyId.Value && !bp.IsDeleted, cancellationToken);
+
+        if (businessParty == null)
+        {
+            _logger.LogWarning("BusinessParty {BusinessPartyId} not found, using Automatic mode", request.BusinessPartyId.Value);
+            return PriceApplicationMode.Automatic;
+        }
+
+        _logger.LogDebug("Using BusinessParty default price application mode: {Mode}", businessParty.DefaultPriceApplicationMode);
+        return businessParty.DefaultPriceApplicationMode;
+    }
+
+    /// <summary>
+    /// Gestisce modalità Manual: usa il prezzo manuale fornito.
+    /// </summary>
+    private async Task<ProductPriceResultDto> ApplyManualPriceAsync(
+        GetProductPriceRequestDto request,
+        Product product,
+        CancellationToken cancellationToken)
+    {
+        if (!request.ManualPrice.HasValue || request.ManualPrice.Value <= 0)
+        {
+            throw new InvalidOperationException("ManualPrice is required and must be greater than 0 when using Manual mode");
+        }
+
+        _logger.LogInformation("Applying manual price {Price} for product {ProductId}", request.ManualPrice.Value, product.Id);
+
+        return new ProductPriceResultDto
+        {
+            ProductId = product.Id,
+            ProductName = product.Name,
+            ProductCode = product.Codes?.FirstOrDefault()?.Code,
+            FinalPrice = request.ManualPrice.Value,
+            Currency = "EUR",
+            AppliedMode = PriceApplicationMode.Manual,
+            IsManual = true,
+            IsPriceListForced = false,
+            SearchPath = new List<string> { "Manual price specified in request" }
+        };
+    }
+
+    /// <summary>
+    /// Gestisce modalità ForcedPriceList: cerca il prezzo nel listino forzato.
+    /// </summary>
+    private async Task<ProductPriceResultDto> ApplyForcedPriceListAsync(
+        GetProductPriceRequestDto request,
+        Product product,
+        CancellationToken cancellationToken)
+    {
+        // Determina quale listino forzare (da request o da BusinessParty)
+        Guid? forcedPriceListId = request.ForcedPriceListId;
+
+        if (!forcedPriceListId.HasValue && request.BusinessPartyId.HasValue)
+        {
+            var businessParty = await _context.BusinessParties
+                .FirstOrDefaultAsync(bp => bp.Id == request.BusinessPartyId.Value && !bp.IsDeleted, cancellationToken);
+
+            forcedPriceListId = businessParty?.ForcedPriceListId;
+        }
+
+        if (!forcedPriceListId.HasValue)
+        {
+            throw new InvalidOperationException("ForcedPriceListId is required when using ForcedPriceList mode");
+        }
+
+        var evaluationDate = request.ReferenceDate ?? DateTime.UtcNow;
+
+        // Cerca il prezzo nel listino forzato
+        var priceEntry = await _context.PriceListEntries
+            .Include(e => e.PriceList)
+            .Where(e => e.PriceListId == forcedPriceListId.Value
+                     && e.ProductId == product.Id
+                     && !e.IsDeleted
+                     && e.PriceList!.Status == PriceListStatus.Active
+                     && (!e.PriceList.ValidFrom.HasValue || e.PriceList.ValidFrom <= evaluationDate)
+                     && (!e.PriceList.ValidTo.HasValue || e.PriceList.ValidTo >= evaluationDate)
+                     && (e.MinQuantity == 0 || e.MinQuantity <= request.Quantity)
+                     && (e.MaxQuantity == 0 || e.MaxQuantity >= request.Quantity))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (priceEntry == null)
+        {
+            throw new InvalidOperationException($"Product {product.Id} not found in forced price list {forcedPriceListId.Value}");
+        }
+
+        var basePrice = priceEntry.Price;
+        var finalPrice = basePrice;
+        decimal? discountPercentage = null;
+
+        // Applica eventuale sconto BusinessParty
+        if (request.BusinessPartyId.HasValue)
+        {
+            var businessPartyRelation = await _context.PriceListBusinessParties
+                .FirstOrDefaultAsync(plbp => plbp.PriceListId == forcedPriceListId.Value
+                                          && plbp.BusinessPartyId == request.BusinessPartyId.Value
+                                          && !plbp.IsDeleted
+                                          && plbp.Status == PriceListBusinessPartyStatus.Active,
+                                          cancellationToken);
+
+            if (businessPartyRelation?.GlobalDiscountPercentage.HasValue == true)
+            {
+                discountPercentage = businessPartyRelation.GlobalDiscountPercentage.Value;
+                finalPrice = basePrice * (1 - discountPercentage.Value / 100m);
+            }
+        }
+
+        _logger.LogInformation("Applied forced price list {PriceListId} for product {ProductId}: {Price}", 
+            forcedPriceListId.Value, product.Id, finalPrice);
+
+        return new ProductPriceResultDto
+        {
+            ProductId = product.Id,
+            ProductName = product.Name,
+            ProductCode = product.Codes?.FirstOrDefault()?.Code,
+            FinalPrice = finalPrice,
+            Currency = priceEntry.Currency,
+            AppliedMode = PriceApplicationMode.ForcedPriceList,
+            AppliedPriceListId = priceEntry.PriceListId,
+            AppliedPriceListName = priceEntry.PriceList?.Name,
+            BasePriceFromPriceList = basePrice,
+            AppliedDiscountPercentage = discountPercentage,
+            PriceAfterDiscount = discountPercentage.HasValue ? finalPrice : null,
+            IsManual = false,
+            IsPriceListForced = true,
+            SearchPath = new List<string> { $"Forced price list: {priceEntry.PriceList?.Name}" }
+        };
+    }
+
+    /// <summary>
+    /// Gestisce modalità Automatic: cerca il listino migliore secondo precedenza.
+    /// </summary>
+    private async Task<ProductPriceResultDto> ApplyAutomaticPriceAsync(
+        GetProductPriceRequestDto request,
+        Product product,
+        CancellationToken cancellationToken)
+    {
+        var evaluationDate = request.ReferenceDate ?? DateTime.UtcNow;
+        var searchPath = new List<string>();
+
+        // Recupera tutti i listini applicabili (attivi, validi per data)
+        var applicablePriceEntries = await _context.PriceListEntries
+            .Include(e => e.PriceList)
+                .ThenInclude(pl => pl!.BusinessParties.Where(bp => !bp.IsDeleted))
+            .Where(e => e.ProductId == product.Id
+                     && !e.IsDeleted
+                     && e.PriceList!.Status == PriceListStatus.Active
+                     && (!e.PriceList.ValidFrom.HasValue || e.PriceList.ValidFrom <= evaluationDate)
+                     && (!e.PriceList.ValidTo.HasValue || e.PriceList.ValidTo >= evaluationDate)
+                     && (e.MinQuantity == 0 || e.MinQuantity <= request.Quantity)
+                     && (e.MaxQuantity == 0 || e.MaxQuantity >= request.Quantity))
+            .ToListAsync(cancellationToken);
+
+        if (!applicablePriceEntries.Any())
+        {
+            // Fallback a prezzo base prodotto
+            searchPath.Add("No price lists available, using product base price");
+            _logger.LogWarning("No price lists found for product {ProductId}, using base price {BasePrice}", 
+                product.Id, product.DefaultPrice ?? 0m);
+
+            return new ProductPriceResultDto
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                ProductCode = product.Codes?.FirstOrDefault()?.Code,
+                FinalPrice = product.DefaultPrice ?? 0m,
+                Currency = "EUR",
+                AppliedMode = PriceApplicationMode.Automatic,
+                IsManual = false,
+                IsPriceListForced = false,
+                SearchPath = searchPath
+            };
+        }
+
+        // Ordina per precedenza
+        IEnumerable<PriceListEntry> orderedEntries;
+
+        if (request.BusinessPartyId.HasValue)
+        {
+            // Con BusinessParty: priorità ai listini assegnati al BusinessParty
+            searchPath.Add($"BusinessParty {request.BusinessPartyId.Value} specified");
+            
+            orderedEntries = applicablePriceEntries
+                .OrderByDescending(e => e.PriceList!.BusinessParties.Any(bp => bp.BusinessPartyId == request.BusinessPartyId.Value))
+                .ThenByDescending(e => e.PriceList!.Priority)
+                .ThenByDescending(e => e.PriceList!.CreatedAt);
+        }
+        else
+        {
+            // Senza BusinessParty: solo listini generici (senza BusinessParty assegnati)
+            searchPath.Add("No BusinessParty specified, using generic price lists only");
+            
+            orderedEntries = applicablePriceEntries
+                .Where(e => !e.PriceList!.BusinessParties.Any())
+                .OrderByDescending(e => e.PriceList!.Priority)
+                .ThenByDescending(e => e.PriceList!.CreatedAt);
+        }
+
+        var selectedEntry = orderedEntries.FirstOrDefault();
+
+        if (selectedEntry == null)
+        {
+            // Fallback a prezzo base prodotto
+            searchPath.Add("No applicable price lists found, using product base price");
+            _logger.LogWarning("No applicable price lists found for product {ProductId}, using base price", product.Id);
+
+            return new ProductPriceResultDto
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                ProductCode = product.Codes?.FirstOrDefault()?.Code,
+                FinalPrice = product.DefaultPrice ?? 0m,
+                Currency = "EUR",
+                AppliedMode = PriceApplicationMode.Automatic,
+                IsManual = false,
+                IsPriceListForced = false,
+                SearchPath = searchPath
+            };
+        }
+
+        var basePrice = selectedEntry.Price;
+        var finalPrice = basePrice;
+        decimal? discountPercentage = null;
+
+        // Applica sconto BusinessParty se presente
+        if (request.BusinessPartyId.HasValue)
+        {
+            var businessPartyRelation = selectedEntry.PriceList!.BusinessParties
+                .FirstOrDefault(bp => bp.BusinessPartyId == request.BusinessPartyId.Value 
+                                   && !bp.IsDeleted 
+                                   && bp.Status == PriceListBusinessPartyStatus.Active);
+
+            if (businessPartyRelation?.GlobalDiscountPercentage.HasValue == true)
+            {
+                discountPercentage = businessPartyRelation.GlobalDiscountPercentage.Value;
+                finalPrice = basePrice * (1 - discountPercentage.Value / 100m);
+                searchPath.Add($"Applied BusinessParty discount: {discountPercentage.Value}%");
+            }
+        }
+
+        searchPath.Add($"Selected price list: {selectedEntry.PriceList?.Name} (Priority: {selectedEntry.PriceList?.Priority})");
+
+        // Costruisci lista listini disponibili per UI
+        var availablePriceLists = applicablePriceEntries
+            .Select(e => new AvailablePriceListDto
+            {
+                PriceListId = e.PriceListId,
+                Name = e.PriceList?.Name ?? string.Empty,
+                Priority = e.PriceList?.Priority ?? 0,
+                Price = e.Price,
+                IsAssignedToBusinessParty = request.BusinessPartyId.HasValue && 
+                    e.PriceList!.BusinessParties.Any(bp => bp.BusinessPartyId == request.BusinessPartyId.Value),
+                IsDefault = e.PriceList?.IsDefault ?? false
+            })
+            .OrderByDescending(pl => pl.Priority)
+            .ToList();
+
+        _logger.LogInformation("Applied automatic price from price list {PriceListId} for product {ProductId}: {Price}", 
+            selectedEntry.PriceListId, product.Id, finalPrice);
+
+        return new ProductPriceResultDto
+        {
+            ProductId = product.Id,
+            ProductName = product.Name,
+            ProductCode = product.Codes?.FirstOrDefault()?.Code,
+            FinalPrice = finalPrice,
+            Currency = selectedEntry.Currency,
+            AppliedMode = PriceApplicationMode.Automatic,
+            AppliedPriceListId = selectedEntry.PriceListId,
+            AppliedPriceListName = selectedEntry.PriceList?.Name,
+            BasePriceFromPriceList = basePrice,
+            AppliedDiscountPercentage = discountPercentage,
+            PriceAfterDiscount = discountPercentage.HasValue ? finalPrice : null,
+            IsManual = false,
+            IsPriceListForced = false,
+            AvailablePriceLists = availablePriceLists,
+            SearchPath = searchPath
+        };
+    }
+
+    /// <summary>
+    /// Gestisce modalità HybridForcedWithOverrides: usa manuale se presente, altrimenti listino forzato.
+    /// </summary>
+    private async Task<ProductPriceResultDto> ApplyHybridPriceAsync(
+        GetProductPriceRequestDto request,
+        Product product,
+        CancellationToken cancellationToken)
+    {
+        ProductPriceResultDto result;
+        
+        // Se ManualPrice presente → usa ApplyManualPriceAsync
+        if (request.ManualPrice.HasValue && request.ManualPrice.Value > 0)
+        {
+            result = await ApplyManualPriceAsync(request, product, cancellationToken);
+        }
+        else
+        {
+            // Altrimenti → usa ApplyForcedPriceListAsync
+            result = await ApplyForcedPriceListAsync(request, product, cancellationToken);
+        }
+
+        // Update mode to Hybrid
+        return result with { AppliedMode = PriceApplicationMode.HybridForcedWithOverrides };
     }
 
     #endregion

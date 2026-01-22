@@ -198,6 +198,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureStoreAndTeamRelationships(modelBuilder);
         ConfigureSalesAndOtherRelationships(modelBuilder);
         ConfigureDailySequence(modelBuilder);
+        ConfigurePriceApplicationMode(modelBuilder);
     }
 
     private static void ConfigureTenantEntity(ModelBuilder modelBuilder)
@@ -894,6 +895,63 @@ public partial class EventForgeDbContext : DbContext
             .HasIndex(p => p.Code)
             .IsUnique()
             .HasDatabaseName("UQ_Products_Code");
+    }
+
+    private static void ConfigurePriceApplicationMode(ModelBuilder modelBuilder)
+    {
+        // BusinessParty price application mode configuration
+        _ = modelBuilder.Entity<BusinessParty>()
+            .Property(bp => bp.DefaultPriceApplicationMode)
+            .HasConversion<int>()
+            .IsRequired();
+
+        _ = modelBuilder.Entity<BusinessParty>()
+            .HasOne(bp => bp.ForcedPriceList)
+            .WithMany()
+            .HasForeignKey(bp => bp.ForcedPriceListId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<BusinessParty>()
+            .HasIndex(bp => bp.ForcedPriceListId)
+            .HasDatabaseName("IX_BusinessParties_ForcedPriceListId");
+
+        // DocumentHeader price application mode override configuration
+        _ = modelBuilder.Entity<DocumentHeader>()
+            .Property(dh => dh.PriceApplicationModeOverride)
+            .HasConversion<int?>();
+
+        _ = modelBuilder.Entity<DocumentHeader>()
+            .HasOne(dh => dh.ForcedPriceListOverride)
+            .WithMany()
+            .HasForeignKey(dh => dh.ForcedPriceListIdOverride)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<DocumentHeader>()
+            .HasIndex(dh => dh.ForcedPriceListIdOverride)
+            .HasDatabaseName("IX_DocumentHeaders_ForcedPriceListIdOverride");
+
+        // DocumentRow price tracking configuration
+        _ = modelBuilder.Entity<DocumentRow>()
+            .Property(dr => dr.IsPriceManual)
+            .IsRequired();
+
+        _ = modelBuilder.Entity<DocumentRow>()
+            .Property(dr => dr.OriginalPriceFromPriceList)
+            .HasPrecision(18, 4);
+
+        _ = modelBuilder.Entity<DocumentRow>()
+            .Property(dr => dr.PriceNotes)
+            .HasMaxLength(500);
+
+        _ = modelBuilder.Entity<DocumentRow>()
+            .HasOne(dr => dr.AppliedPriceList)
+            .WithMany()
+            .HasForeignKey(dr => dr.AppliedPriceListId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<DocumentRow>()
+            .HasIndex(dr => dr.AppliedPriceListId)
+            .HasDatabaseName("IX_DocumentRows_AppliedPriceListId");
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Business;
 
@@ -75,6 +76,23 @@ public class BusinessParty : AuditableEntity
     /// </summary>
     [Display(Name = "References", Description = "Reference persons.")]
     public ICollection<Reference> References { get; set; } = new List<Reference>();
+
+    /// <summary>
+    /// Modalità di applicazione prezzo predefinita per questo business party
+    /// </summary>
+    [Display(Name = "Default Price Application Mode", Description = "Default price application mode for this business party.")]
+    public PriceApplicationMode DefaultPriceApplicationMode { get; set; } = PriceApplicationMode.Automatic;
+
+    /// <summary>
+    /// Listino forzato (se PriceApplicationMode = ForcedPriceList o Hybrid)
+    /// </summary>
+    [Display(Name = "Forced Price List", Description = "Forced price list (if PriceApplicationMode = ForcedPriceList or Hybrid).")]
+    public Guid? ForcedPriceListId { get; set; }
+
+    /// <summary>
+    /// Navigation property per il listino forzato
+    /// </summary>
+    public PriceList.PriceList? ForcedPriceList { get; set; }
 }
 
 /// <summary>
