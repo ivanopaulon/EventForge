@@ -145,30 +145,71 @@ public class PriceListService : IPriceListService
         }
     }
 
-    public async Task<GeneratePriceListPreviewDto> PreviewGenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct = default)
+    public async Task<PriceListEntryDto> AddEntryAsync(CreatePriceListEntryDto dto, CancellationToken ct = default)
     {
         try
         {
-            var result = await _httpClientService.PostAsync<GenerateFromDefaultPricesDto, GeneratePriceListPreviewDto>($"{BaseUrl}/generate-from-defaults/preview", dto, ct);
-            return result ?? throw new InvalidOperationException("Failed to preview price list generation from default prices");
+            var result = await _httpClientService.PostAsync<CreatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/{dto.PriceListId}/entries", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to add entry to price list");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error previewing price list generation from default prices");
+            _logger.LogError(ex, "Error adding entry to price list");
             throw;
         }
     }
 
-    public async Task<Guid> GenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct = default)
+    public async Task<PriceListEntryDto> UpdateEntryAsync(Guid id, UpdatePriceListEntryDto dto, CancellationToken ct = default)
     {
         try
         {
-            var result = await _httpClientService.PostAsync<GenerateFromDefaultPricesDto, Guid>($"{BaseUrl}/generate-from-defaults", dto, ct);
+            var result = await _httpClientService.PutAsync<UpdatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/entries/{id}", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to update price list entry");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating price list entry with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteEntryAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"{BaseUrl}/entries/{id}", ct);
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting price list entry with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<int> AddEntriesBulkAsync(List<CreatePriceListEntryDto> entries, CancellationToken ct = default)
+    {
+        try
+        {
+            if (entries == null || !entries.Any())
+                return 0;
+
+            // Safely get the first entry for priceListId
+            var firstEntry = entries.FirstOrDefault();
+            if (firstEntry == null)
+                return 0;
+
+            var priceListId = firstEntry.PriceListId;
+            var result = await _httpClientService.PostAsync<List<CreatePriceListEntryDto>, int>($"{BaseUrl}/{priceListId}/entries/bulk", entries, ct);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating price list from default prices");
+            _logger.LogError(ex, "Error bulk adding entries to price list");
             throw;
         }
     }

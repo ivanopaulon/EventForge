@@ -83,18 +83,22 @@ public interface IPriceListService
     Task<Guid> GenerateFromPurchasesAsync(GeneratePriceListFromPurchasesDto dto, CancellationToken ct);
 
     /// <summary>
-    /// Previews price list generation from product default prices without saving.
+    /// Adds a single entry to a price list.
     /// </summary>
-    /// <param name="dto">Generation parameters</param>
-    /// <param name="ct">Cancellation token</param>
-    /// <returns>Preview of the price list to be generated</returns>
-    Task<GeneratePriceListPreviewDto> PreviewGenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct);
+    Task<PriceListEntryDto> AddEntryAsync(CreatePriceListEntryDto dto, CancellationToken ct = default);
 
     /// <summary>
-    /// Generates and saves a price list from product default prices.
+    /// Updates an existing price list entry.
     /// </summary>
-    /// <param name="dto">Generation parameters</param>
-    /// <param name="ct">Cancellation token</param>
-    /// <returns>ID of the generated price list</returns>
-    Task<Guid> GenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct);
+    Task<PriceListEntryDto> UpdateEntryAsync(Guid id, UpdatePriceListEntryDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Deletes a price list entry.
+    /// </summary>
+    Task<bool> DeleteEntryAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Bulk add entries (for multi-select dialog - future PR).
+    /// </summary>
+    Task<int> AddEntriesBulkAsync(List<CreatePriceListEntryDto> entries, CancellationToken ct = default);
 }
