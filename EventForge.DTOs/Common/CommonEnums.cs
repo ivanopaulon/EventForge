@@ -639,4 +639,40 @@ namespace EventForge.DTOs.Common
         /// </summary>
         ToNearest99Cents = 5
     }
+
+    /// <summary>
+    /// Bulk price update operation type enumeration.
+    /// </summary>
+    public enum BulkUpdateOperation
+    {
+        /// <summary>
+        /// Increase price by percentage (es. +10%)
+        /// </summary>
+        IncreaseByPercentage = 1,
+        
+        /// <summary>
+        /// Decrease price by percentage (es. -10%)
+        /// </summary>
+        DecreaseByPercentage = 2,
+        
+        /// <summary>
+        /// Increase price by fixed amount (es. +5.00)
+        /// </summary>
+        IncreaseByAmount = 3,
+        
+        /// <summary>
+        /// Decrease price by fixed amount (es. -5.00)
+        /// </summary>
+        DecreaseByAmount = 4,
+        
+        /// <summary>
+        /// Set a fixed price for all items
+        /// </summary>
+        SetFixedPrice = 5,
+        
+        /// <summary>
+        /// Multiply price by a factor (es. *1.5)
+        /// </summary>
+        MultiplyBy = 6
+    }
 }
