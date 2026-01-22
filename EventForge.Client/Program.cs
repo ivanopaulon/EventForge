@@ -108,6 +108,7 @@ builder.Services.AddScoped<IUMService, UMService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IModelService, ModelService>();
 builder.Services.AddScoped<ILookupCacheService, LookupCacheService>();
+builder.Services.AddScoped<IPriceListService, PriceListService>();
 
 // Add DevTools services
 builder.Services.AddScoped<IDevToolsService, DevToolsService>();
