@@ -198,7 +198,12 @@ public class PriceListService : IPriceListService
             if (entries == null || !entries.Any())
                 return 0;
 
-            var priceListId = entries.First().PriceListId;
+            // Safely get the first entry for priceListId
+            var firstEntry = entries.FirstOrDefault();
+            if (firstEntry == null)
+                return 0;
+
+            var priceListId = firstEntry.PriceListId;
             var result = await _httpClientService.PostAsync<List<CreatePriceListEntryDto>, int>($"{BaseUrl}/{priceListId}/entries/bulk", entries, ct);
             return result;
         }

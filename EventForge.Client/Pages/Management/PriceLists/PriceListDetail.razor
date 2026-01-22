@@ -545,7 +545,7 @@
                     <MudTabPanel Text="@TranslationService.GetTranslation("pricelist.tab.businessParties", "Clienti/Fornitori")" Icon="@Icons.Material.Filled.People">
                         <MudAlert Severity="Severity.Info">
                             <MudText Typo="Typo.body2">
-                                Gestione assegnazioni BusinessParty in arrivo nella prossima PR
+                                @TranslationService.GetTranslation("pricelist.businessPartiesPlaceholder", "Gestione assegnazioni BusinessParty in arrivo nella prossima PR")
                             </MudText>
                         </MudAlert>
                     </MudTabPanel>
@@ -559,7 +559,7 @@
                                     @TranslationService.GetTranslation("pricelist.bulkUpdatePrices", "Aggiornamento Massivo Prezzi")
                                 </MudText>
                                 <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
-                                    Applica incrementi o decrementi percentuali a tutti i prezzi
+                                    @TranslationService.GetTranslation("pricelist.bulkUpdatePricesDescription", "Applica incrementi o decrementi percentuali a tutti i prezzi")
                                 </MudText>
                                 <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                                            StartIcon="@Icons.Material.Outlined.Update"
@@ -571,10 +571,10 @@
                             <!-- Import/Export Card -->
                             <MudPaper Elevation="1" Class="pa-4">
                                 <MudText Typo="Typo.h6" Class="mb-2">
-                                    Importazione/Esportazione
+                                    @TranslationService.GetTranslation("pricelist.importExportTitle", "Importazione/Esportazione")
                                 </MudText>
                                 <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
-                                    Importa o esporta listini in formato Excel
+                                    @TranslationService.GetTranslation("pricelist.importExportDescription", "Importa o esporta listini in formato Excel")
                                 </MudText>
                                 <MudStack Row="true" Spacing="2">
                                     <MudButton Variant="Variant.Outlined" Color="Color.Primary"
@@ -593,10 +593,10 @@
                             <!-- Duplicate Card -->
                             <MudPaper Elevation="1" Class="pa-4">
                                 <MudText Typo="Typo.h6" Class="mb-2">
-                                    Duplicazione
+                                    @TranslationService.GetTranslation("pricelist.duplicationTitle", "Duplicazione")
                                 </MudText>
                                 <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
-                                    Crea una copia di questo listino con tutte le voci
+                                    @TranslationService.GetTranslation("pricelist.duplicationDescription", "Crea una copia di questo listino con tutte le voci")
                                 </MudText>
                                 <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                                            StartIcon="@Icons.Material.Outlined.ContentCopy"
@@ -791,7 +791,7 @@
                     IsDiscountable = true
                 };
 
-            await PriceListService.AddEntryAsync(createDto);
+            await PriceListService.AddEntryAsync(createDto, default);
             await LoadEntriesAsync();
 
             // Reset form
@@ -847,7 +847,7 @@
                     Status = entry.Status
                 };
 
-            await PriceListService.UpdateEntryAsync(entry.Id, updateDto);
+            await PriceListService.UpdateEntryAsync(entry.Id, updateDto, default);
 
             // Update local state
             entry.Price = _editingPrice;
@@ -922,7 +922,7 @@
         {
             try
             {
-                await PriceListService.DeleteEntryAsync(entry.Id);
+                await PriceListService.DeleteEntryAsync(entry.Id, default);
                 await LoadEntriesAsync();
                 Snackbar.Add(TranslationService.GetTranslation("pricelist.entryRemoved", "Voce rimossa"), Severity.Success);
             }
@@ -947,7 +947,7 @@
         {
             try
             {
-                var tasks = _selectedEntries.Select(e => PriceListService.DeleteEntryAsync(e.Id));
+                var tasks = _selectedEntries.Select(e => PriceListService.DeleteEntryAsync(e.Id, default));
                 await Task.WhenAll(tasks);
 
                 await LoadEntriesAsync();
