@@ -671,7 +671,7 @@
         _isLoading = true;
         try
         {
-            _priceList = await PriceListService.GetByIdAsync(Id);
+            _priceList = await PriceListService.GetByIdAsync(Id, default);
 
             if (_priceList == null)
             {
@@ -725,7 +725,7 @@
         _isLoadingEntries = true;
         try
         {
-            var detail = await PriceListService.GetDetailAsync(Id);
+            var detail = await PriceListService.GetDetailAsync(Id, default);
             if (detail != null)
             {
                 _allEntries = detail.Entries.ToList();
@@ -760,7 +760,7 @@
         StateHasChanged();
     }
 
-    private async Task HandleProductWithCode(ProductWithCodeResultDto result)
+    private async Task HandleProductWithCode(ProductWithCodeDto result)
     {
         _selectedProductToAdd = result.Product;
         await OnProductSelectedForQuickAdd(result.Product);
@@ -970,7 +970,7 @@
             _updateModel.ValidFrom = _validFrom;
             _updateModel.ValidTo = _validTo;
 
-            var updated = await PriceListService.UpdateAsync(Id, _updateModel);
+            var updated = await PriceListService.UpdateAsync(Id, _updateModel, default);
 
             if (updated != null)
             {
@@ -1010,7 +1010,7 @@
         {
             try
             {
-                await PriceListService.DeleteAsync(Id);
+                await PriceListService.DeleteAsync(Id, default);
                 Snackbar.Add(TranslationService.GetTranslation("pricelist.deleted", "Listino eliminato"), Severity.Success);
                 NavigationManager.NavigateTo("/management/pricelists");
             }
