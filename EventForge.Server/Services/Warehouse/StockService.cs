@@ -367,6 +367,162 @@ public class StockService : IStockService
         }
     }
 
+    /// <summary>
+    /// Creates or updates stock entry with enhanced validation.
+    /// If dto.StockId is provided, updates existing stock (warehouse/location cannot be changed).
+    /// If dto.StockId is null/empty, creates new stock entry.
+    /// </summary>
+    public async Task<StockDto> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            // Case 1: New stock (insertion)
+            if (dto.StockId == null || dto.StockId == Guid.Empty)
+            {
+                // Validate required fields for new stock
+                if (!dto.WarehouseId.HasValue || dto.WarehouseId == Guid.Empty)
+                    throw new ArgumentException("Warehouse is required for new stock");
+                
+                if (dto.StorageLocationId == Guid.Empty)
+                    throw new ArgumentException("Storage location is required for new stock");
+                
+                // Verify warehouse exists
+                var warehouseExists = await _context.StorageFacilities
+                    .AnyAsync(w => w.Id == dto.WarehouseId.Value && 
+                                  w.TenantId == currentTenantId.Value && 
+                                  !w.IsDeleted, 
+                              cancellationToken);
+                if (!warehouseExists)
+                    throw new ArgumentException($"Warehouse {dto.WarehouseId.Value} not found");
+                
+                // Verify location exists and belongs to the warehouse
+                var location = await _context.StorageLocations
+                    .FirstOrDefaultAsync(l => l.Id == dto.StorageLocationId && 
+                                             l.TenantId == currentTenantId.Value && 
+                                             !l.IsDeleted, 
+                                        cancellationToken);
+                if (location == null)
+                    throw new ArgumentException($"Storage location {dto.StorageLocationId} not found");
+                
+                if (location.WarehouseId != dto.WarehouseId.Value)
+                    throw new ArgumentException("Storage location does not belong to the selected warehouse");
+                
+                // Verify product exists
+                var productExists = await _context.Products
+                    .AnyAsync(p => p.Id == dto.ProductId && 
+                                  p.TenantId == currentTenantId.Value && 
+                                  !p.IsDeleted, 
+                              cancellationToken);
+                if (!productExists)
+                    throw new ArgumentException($"Product {dto.ProductId} not found");
+                
+                // Create new stock
+                var newStock = new Stock
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = currentTenantId.Value,
+                    ProductId = dto.ProductId,
+                    StorageLocationId = dto.StorageLocationId,
+                    LotId = dto.LotId,
+                    Quantity = dto.NewQuantity,
+                    ReservedQuantity = dto.ReservedQuantity,
+                    MinimumLevel = dto.MinimumLevel,
+                    MaximumLevel = dto.MaximumLevel,
+                    ReorderPoint = dto.ReorderPoint,
+                    ReorderQuantity = dto.ReorderQuantity,
+                    UnitCost = dto.UnitCost,
+                    Notes = dto.Notes,
+                    CreatedBy = currentUser,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                _ = _context.Stocks.Add(newStock);
+                _ = await _context.SaveChangesAsync(cancellationToken);
+
+                _ = await _auditLogService.LogEntityChangeAsync("Stock", newStock.Id, "Created", "Create", null,
+                    $"Created stock for product {dto.ProductId} at location {dto.StorageLocationId}", currentUser);
+
+                // Reload with includes for DTO mapping
+                var stockForDto = await _context.Stocks
+                    .Include(s => s.Product)
+                    .Include(s => s.StorageLocation)
+                        .ThenInclude(sl => sl!.Warehouse)
+                    .Include(s => s.Lot)
+                    .FirstAsync(s => s.Id == newStock.Id, cancellationToken);
+
+                return stockForDto.ToStockDto();
+            }
+            
+            // Case 2: Update existing stock
+            else
+            {
+                var existingStock = await _context.Stocks
+                    .Include(s => s.StorageLocation)
+                        .ThenInclude(sl => sl!.Warehouse)
+                    .Include(s => s.Product)
+                    .Include(s => s.Lot)
+                    .FirstOrDefaultAsync(s => s.Id == dto.StockId && 
+                                             s.TenantId == currentTenantId.Value, 
+                                        cancellationToken);
+                
+                if (existingStock == null)
+                    throw new ArgumentException($"Stock {dto.StockId} not found");
+                
+                // ❌ BLOCK: Attempt to change warehouse
+                if (dto.WarehouseId.HasValue && 
+                    dto.WarehouseId != Guid.Empty && 
+                    existingStock.StorageLocation?.WarehouseId != null &&
+                    dto.WarehouseId.Value != existingStock.StorageLocation.WarehouseId)
+                {
+                    throw new InvalidOperationException(
+                        "Cannot change the warehouse of existing stock. " +
+                        "Delete this stock entry and create a new one in the desired warehouse.");
+                }
+                
+                // ❌ BLOCK: Attempt to change location
+                if (dto.StorageLocationId != Guid.Empty && 
+                    dto.StorageLocationId != existingStock.StorageLocationId)
+                {
+                    throw new InvalidOperationException(
+                        "Cannot change the storage location of existing stock. " +
+                        "Use a warehouse movement/transfer to move stock between locations.");
+                }
+                
+                // ✅ ALLOW: Update quantity and other fields
+                existingStock.Quantity = dto.NewQuantity;
+                existingStock.ReservedQuantity = dto.ReservedQuantity;
+                existingStock.MinimumLevel = dto.MinimumLevel;
+                existingStock.MaximumLevel = dto.MaximumLevel;
+                existingStock.ReorderPoint = dto.ReorderPoint;
+                existingStock.ReorderQuantity = dto.ReorderQuantity;
+                existingStock.UnitCost = dto.UnitCost;
+                existingStock.Notes = dto.Notes;
+                existingStock.ModifiedBy = currentUser;
+                existingStock.ModifiedAt = DateTime.UtcNow;
+                
+                _ = await _context.SaveChangesAsync(cancellationToken);
+
+                _ = await _auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,
+                    $"Updated stock quantity to {dto.NewQuantity}", currentUser);
+
+                return existingStock.ToStockDto();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating/updating stock - StockId: {StockId}, ProductId: {ProductId}, LocationId: {LocationId}",
+                dto.StockId, dto.ProductId, dto.StorageLocationId);
+            throw;
+        }
+    }
+
     public async Task<StockDto?> UpdateStockLevelsAsync(Guid id, UpdateStockDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
         try

@@ -76,4 +76,31 @@ public class InventoryDialogState
     /// Whether this is an edit mode (vs insert mode)
     /// </summary>
     public bool IsEditMode { get; set; }
+
+    /// <summary>
+    /// Indicates if the stock is already assigned to a warehouse/location.
+    /// If TRUE: Warehouse and Location are READ-ONLY.
+    /// If FALSE: Warehouse and Location are editable.
+    /// </summary>
+    public bool IsStockAlreadyAssigned { get; set; }
+
+    /// <summary>
+    /// ID of the existing stock (if in edit mode).
+    /// </summary>
+    public Guid? ExistingStockId { get; set; }
+
+    /// <summary>
+    /// Current warehouse for existing stock (READ-ONLY in edit mode).
+    /// </summary>
+    public Guid? ExistingWarehouseId { get; set; }
+
+    /// <summary>
+    /// Current location for existing stock (for READ-ONLY display in edit mode).
+    /// </summary>
+    public Guid? ExistingLocationId { get; set; }
+
+    /// <summary>
+    /// Warehouse selected for new stock (EDITABLE in insert mode).
+    /// </summary>
+    public Guid? DraftWarehouseId { get; set; }
 }

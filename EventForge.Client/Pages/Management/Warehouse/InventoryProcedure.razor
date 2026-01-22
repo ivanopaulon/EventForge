@@ -1400,13 +1400,24 @@
         if (_currentProduct == null)
             return;
 
+        // Convert StorageFacilityDto to WarehouseDto for the dialog
+        var warehouses = _storageFacilities.Select(f => new WarehouseDto
+        {
+            Id = f.Id,
+            Name = f.Name,
+            Code = f.Code,
+            IsActive = f.IsActive
+        }).ToList();
+
         var parameters = new DialogParameters
         {
             { "InitialProduct", _currentProduct },
             { "Locations", _locations },
+            { "Warehouses", warehouses },
             { "ConversionFactor", _currentConversionFactor },
             { "ProductUnit", _currentProductUnit },
             { "IsEditMode", false },
+            { "ExistingWarehouseId", _selectedStorageFacilityId },  // Pre-select current warehouse
             { "StartInEditMode", true }  // Go directly to quantity input for fast inventory
         };
 
@@ -2066,15 +2077,26 @@
 
     private async Task EditInventoryRowUnified(InventoryDocumentRowDto row, ProductDto product)
     {
+        // Convert StorageFacilityDto to WarehouseDto for the dialog
+        var warehouses = _storageFacilities.Select(f => new WarehouseDto
+        {
+            Id = f.Id,
+            Name = f.Name,
+            Code = f.Code,
+            IsActive = f.IsActive
+        }).ToList();
+
         var parameters = new DialogParameters
         {
             { "InitialProduct", product },
             { "Locations", _locations },
+            { "Warehouses", warehouses },
             { "ConversionFactor", 1m },
             { "IsEditMode", true },
             { "ExistingQuantity", row.Quantity },
             { "ExistingNotes", row.Notes ?? string.Empty },
             { "ExistingLocationId", row.LocationId },
+            { "ExistingWarehouseId", _selectedStorageFacilityId },  // Current warehouse
             { "StartInEditMode", true }  // Go directly to quantity editing
         };
 

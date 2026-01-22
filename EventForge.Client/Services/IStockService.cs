@@ -55,4 +55,11 @@ public interface IStockService
     /// Creates or updates a stock entry.
     /// </summary>
     Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto);
+
+    /// <summary>
+    /// Creates or updates a stock entry with enhanced validation.
+    /// If dto.StockId is provided, updates existing stock (warehouse/location cannot be changed).
+    /// If dto.StockId is null/empty, creates new stock entry.
+    /// </summary>
+    Task<StockDto?> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto);
 }

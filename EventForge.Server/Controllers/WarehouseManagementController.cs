@@ -1059,6 +1059,63 @@ public class WarehouseManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Creates or updates a stock entry with enhanced validation.
+    /// If stockId is provided, updates existing stock (warehouse/location cannot be changed).
+    /// If stockId is null/empty, creates new stock entry.
+    /// </summary>
+    /// <param name="dto">Create or update stock DTO</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created/updated stock entry</returns>
+    /// <response code="200">Returns the created/updated stock entry</response>
+    /// <response code="400">If the request data is invalid or attempting to change warehouse/location on existing stock</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("stock/create-or-update")]
+    [ProducesResponseType(typeof(StockDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateOrUpdateStockEnhanced([FromBody] CreateOrUpdateStockDto dto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _stockService.CreateOrUpdateStockAsync(dto, GetCurrentUser(), cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation when creating/updating stock - StockId: {StockId}", dto.StockId);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Invalid Operation",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument when creating/updating stock - StockId: {StockId}", dto.StockId);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Validation Error",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating/updating stock entry with enhanced validation.");
+            return CreateInternalServerErrorProblem("An error occurred while creating/updating the stock entry.", ex);
+        }
+    }
+
+    /// <summary>
     /// Reserves stock for a specific quantity.
     /// </summary>
     /// <param name="productId">Product ID</param>

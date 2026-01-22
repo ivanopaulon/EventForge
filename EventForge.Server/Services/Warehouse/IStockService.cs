@@ -50,6 +50,13 @@ public interface IStockService
     Task<StockDto> CreateOrUpdateStockAsync(CreateStockDto createDto, string currentUser, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Creates or updates stock entry with enhanced validation.
+    /// If dto.StockId is provided, updates existing stock (warehouse/location cannot be changed).
+    /// If dto.StockId is null/empty, creates new stock entry.
+    /// </summary>
+    Task<StockDto> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates stock levels (for inventory adjustments).
     /// </summary>
     Task<StockDto?> UpdateStockLevelsAsync(Guid id, UpdateStockDto updateDto, string currentUser, CancellationToken cancellationToken = default);

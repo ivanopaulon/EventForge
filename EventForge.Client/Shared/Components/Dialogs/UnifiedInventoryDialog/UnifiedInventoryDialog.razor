@@ -43,6 +43,7 @@
             {
                 <InventoryEditStep State="@State" 
                                    Locations="@Locations"
+                                   Warehouses="@Warehouses"
                                    OnDraftChanged="@HandleDraftChanged"
                                    OnCancel="@HandleCancelEdit"
                                    OnNext="@(() => NavigateToView(InventoryDialogView.Confirm))" />
@@ -163,6 +164,9 @@
     public List<StorageLocationDto>? Locations { get; set; }
 
     [Parameter]
+    public List<WarehouseDto>? Warehouses { get; set; }
+
+    [Parameter]
     public decimal ConversionFactor { get; set; } = 1m;
 
     [Parameter]
@@ -170,6 +174,12 @@
 
     [Parameter]
     public bool IsEditMode { get; set; } = false;
+
+    [Parameter]
+    public Guid? ExistingStockId { get; set; }  // If present, this is an edit operation
+
+    [Parameter]
+    public Guid? ExistingWarehouseId { get; set; }  // Current warehouse of the stock
 
     [Parameter]
     public Guid? ExistingLocationId { get; set; }
@@ -197,6 +207,12 @@
         State.ProductUnit = ProductUnit;
         State.IsEditMode = IsEditMode;
         
+        // Initialize stock assignment tracking
+        State.IsStockAlreadyAssigned = ExistingStockId.HasValue && ExistingStockId != Guid.Empty;
+        State.ExistingStockId = ExistingStockId;
+        State.ExistingWarehouseId = ExistingWarehouseId;
+        State.ExistingLocationId = ExistingLocationId;
+        
         // Start in Edit mode if requested (for fast inventory entry)
         State.CurrentView = StartInEditMode ? InventoryDialogView.Edit : InventoryDialogView.View;
 
@@ -211,6 +227,9 @@
         }
         else
         {
+            // New insertion: pre-select warehouse and location if provided
+            State.DraftWarehouseId = ExistingWarehouseId;
+            State.DraftLocationId = ExistingLocationId;
             State.DraftQuantity = ConversionFactor;
         }
 
