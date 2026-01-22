@@ -320,7 +320,9 @@
     "selectedFile": "Selected file",
     "fileTooLarge": "File is too large. Maximum size is {0}MB",
     "showingItems": "Showing {0}-{1} of {2}",
-    "itemsPerPage": "Items per page"
+    "itemsPerPage": "Items per page",
+    "page": "Page",
+    "of": "of"
   },
   "dataRetention": {
     "indefinite": "Indefinite"
@@ -2869,7 +2871,12 @@
     "stockCreated": "Stock created successfully!",
     "createError": "Error creating stock entry",
     "filtersActive": "Active filters: showing {0} of {1} total results",
-    "quickEditLimitExceeded": "Difference too large (> {0} units). Use full edit mode."
+    "quickEditLimitExceeded": "Difference too large (> {0} units). Use full edit mode.",
+    "includeProductsWithoutStock": "Include products without stock",
+    "includeProductsWithoutStockTooltip": "Include products that have no registered stock",
+    "doubleClickToEdit": "Double click for quick edit",
+    "useFullEditForNewStock": "Product without stock. Use the 'Edit' button to create the first record.",
+    "dashboardDisabledPagination": "Dashboard metrics disabled with server-side pagination. Showing {0} of {1} total items across {2} pages."
   },
   "stockStatus": {
     "ok": "OK",

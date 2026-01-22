@@ -323,7 +323,9 @@
     "selectedFile": "File selezionato",
     "fileTooLarge": "Il file è troppo grande. Dimensione massima {0}MB",
     "showingItems": "Visualizzati {0}-{1} di {2}",
-    "itemsPerPage": "Elementi per pagina"
+    "itemsPerPage": "Elementi per pagina",
+    "page": "Pagina",
+    "of": "di"
   },
   "dataRetention": {
     "indefinite": "Indefinito"
@@ -2869,7 +2871,12 @@
     "stockCreated": "Giacenza creata con successo!",
     "createError": "Errore nella creazione della giacenza",
     "filtersActive": "Filtri attivi: visualizzati {0} di {1} risultati totali",
-    "quickEditLimitExceeded": "Differenza troppo grande (> {0} unità). Usa la modalità di modifica completa."
+    "quickEditLimitExceeded": "Differenza troppo grande (> {0} unità). Usa la modalità di modifica completa.",
+    "includeProductsWithoutStock": "Includi prodotti senza giacenza",
+    "includeProductsWithoutStockTooltip": "Include prodotti che non hanno giacenza registrata",
+    "doubleClickToEdit": "Doppio click per modifica rapida",
+    "useFullEditForNewStock": "Prodotto senza giacenza. Usa il pulsante 'Modifica' per creare il primo record.",
+    "dashboardDisabledPagination": "Dashboard metriche disabilitata con paginazione server. Visualizzati {0} di {1} elementi totali su {2} pagine."
   },
   "stockStatus": {
     "ok": "OK",

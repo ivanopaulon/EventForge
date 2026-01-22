@@ -23,14 +23,35 @@
 @if (!_isLoading)
 {
     <div class="stock-overview-page-root">
-        <div class="stock-overview-top">
-            <ManagementDashboard TItem="StockLocationDetail"
-                                 Items="_stockItems"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="Stock"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        @* Dashboard only shown when not paginated - metrics would be inaccurate on paginated view *@
+        @if (_totalPages <= 1)
+        {
+            <div class="stock-overview-top">
+                <ManagementDashboard TItem="StockLocationDetail"
+                                     Items="_stockItems"
+                                     Metrics="_dashboardMetrics"
+                                     EntityType="Stock"
+                                     AllowConfiguration="true"
+                                     UseServerSide="false" />
+            </div>
+        }
+        else
+        {
+            <div class="pa-2">
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">
+                            @TranslationService.GetTranslation("stock.dashboardDisabledPagination", 
+                                "Dashboard metriche disabilitata con paginazione server. Visualizzati {0} di {1} elementi totali su {2} pagine.",
+                                _stockItems.Count,
+                                _totalCount,
+                                _totalPages)
+                        </MudText>
+                    </div>
+                </MudAlert>
+            </div>
+        }
 
         <div class="eftable-wrapper">
             @* Filter active indicator *@
@@ -62,6 +83,29 @@
                             </MudButton>
                         </div>
                     </MudAlert>
+                </div>
+            }
+            
+            @* Top pagination indicator for quick navigation *@
+            @if (_totalCount > 0 && _totalPages > 1)
+            {
+                <div class="pa-2 d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("common.page", "Pagina") 
+                        @_currentPage / @_totalPages 
+                        (@((_currentPage - 1) * _pageSize + 1))-@Math.Min(_currentPage * _pageSize, _totalCount) 
+                        @TranslationService.GetTranslation("common.of", "di") @_totalCount
+                    </MudText>
+                    <div class="d-flex align-center gap-1">
+                        <MudIconButton Icon="@Icons.Material.Outlined.NavigateBefore" 
+                                       Size="Size.Small"
+                                       Disabled="@(_currentPage <= 1)"
+                                       OnClick="@(() => OnPageChanged(_currentPage - 1))" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.NavigateNext" 
+                                       Size="Size.Small"
+                                       Disabled="@(_currentPage >= _totalPages)"
+                                       OnClick="@(() => OnPageChanged(_currentPage + 1))" />
+                    </div>
                 </div>
             }
             
@@ -135,10 +179,10 @@
                            Label="@TranslationService.GetTranslation("stock.onlyInStock", "Solo con giacenza")"
                            Color="Color.Success"
                            Class="ml-2" />
-                <MudTooltip Text="@TranslationService.GetTranslation("stock.showAllProductsTooltip", "Include prodotti senza giacenza registrata")">
+                <MudTooltip Text="@TranslationService.GetTranslation("stock.includeProductsWithoutStockTooltip", "Include prodotti che non hanno giacenza registrata")">
                     <MudSwitch @bind-Value="_showAllProducts"
                                @bind-Value:after="OnFilterChanged"
-                               Label="@TranslationService.GetTranslation("stock.showAllProducts", "Mostra tutti i prodotti")"
+                               Label="@TranslationService.GetTranslation("stock.includeProductsWithoutStock", "Includi prodotti senza giacenza")"
                                Color="Color.Info"
                                Class="ml-2" />
                 </MudTooltip>
@@ -312,8 +356,9 @@
                                                      Variant="Variant.Outlined"
                                                      Margin="Margin.Dense"
                                                      Min="0"
-                                                     HideSpinButtons="true"
-                                                     Style="width:100px;" />
+                                                     Max="999999"
+                                                     HideSpinButtons="false"
+                                                     Style="width:120px;" />
                                     <MudIconButton Icon="@Icons.Material.Outlined.Check"
                                                    Color="Color.Success"
                                                    Size="Size.Small"
@@ -326,11 +371,13 @@
                             }
                             else
                             {
-                                <MudText Typo="Typo.body2" 
-                                         Style="font-weight:600; cursor:pointer;"
-                                         @ondblclick="@(() => StartQuickEdit(item, "Quantity"))">
-                                    @item.Quantity.ToString("N2")
-                                </MudText>
+                                <MudTooltip Text="@TranslationService.GetTranslation("stock.doubleClickToEdit", "Doppio click per modifica rapida")">
+                                    <MudText Typo="Typo.body2" 
+                                             Style="font-weight:600; cursor:pointer;"
+                                             @ondblclick="@(() => StartQuickEdit(item, "Quantity"))">
+                                        @item.Quantity.ToString("N2")
+                                    </MudText>
+                                </MudTooltip>
                             }
                         </MudTd>
                     }
@@ -477,6 +524,8 @@
                                  Label="@TranslationService.GetTranslation("field.newQuantity", "Nuova Quantità")"
                                  Variant="Variant.Outlined"
                                  Min="0"
+                                 Max="999999"
+                                 HideSpinButtons="false"
                                  Class="mb-3" />
 
                 @if (_editingNewQuantity != _editingItem.Quantity)
@@ -523,8 +572,8 @@
                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
                               Variant="Variant.Outlined"
                               Lines="3"
-                              Required="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > 10)"
-                              HelperText="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > 10 ? TranslationService.GetTranslation("stock.notesRequired", "Note obbligatorie per differenze > 10 unità") : "")"
+                              Required="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference)"
+                              HelperText="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference ? TranslationService.GetTranslation("stock.notesRequired", $"Note obbligatorie per differenze > {FullEditNotesRequiredDifference} unità") : "")"
                               Class="mb-3" />
 
                 <div class="d-flex justify-end gap-2">
@@ -535,7 +584,7 @@
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                OnClick="@SaveFullEdit"
-                               Disabled="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > 10 && string.IsNullOrWhiteSpace(_editingNotes))">
+                               Disabled="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference && string.IsNullOrWhiteSpace(_editingNotes))">
                         @TranslationService.GetTranslation("common.save", "Salva")
                     </MudButton>
                 </div>
@@ -545,9 +594,16 @@
 }
 
 @code {
-    // Configuration constants
-    private const decimal QuickEditMaxDifference = 50m;
-    private const decimal FullEditNotesRequiredDifference = 10m;
+    // Configuration constants - Stock adjustment thresholds
+    private const decimal QuickEditMaxDifference = 50m; // Maximum quantity change allowed in quick edit without full approval
+    private const decimal FullEditNotesRequiredDifference = 10m; // Notes required for changes above this threshold
+    
+    // Pagination configuration
+    private const int DefaultPageSize = 50; // Default items per page - balance between performance and UX
+    private const int SearchDebounceMs = 300; // Debounce delay to prevent excessive API calls during search
+    
+    // Input validation limits
+    private const decimal MaxQuantityValue = 999999m; // Maximum quantity value to prevent data overflow
     
     // Dialog options for fullscreen audit dialog
     private readonly DialogOptions _auditDialogOptions = new() 
@@ -575,7 +631,7 @@
     
     // Pagination state
     private int _currentPage = 1;
-    private int _pageSize = 50;
+    private int _pageSize = DefaultPageSize;
     private long _totalCount = 0;
     private int _totalPages = 0;
 
@@ -600,18 +656,19 @@
     private EFTable<StockLocationDetail> _efTable = null!;
 
     // Column configuration for EFTable
+    // Default view shows core columns only (7 visible), secondary columns hidden to reduce clutter
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
         new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0 },
         new() { PropertyName = "ProductName", DisplayName = "Nome Prodotto", IsVisible = true, Order = 1 },
         new() { PropertyName = "WarehouseName", DisplayName = "Magazzino", IsVisible = true, Order = 2 },
         new() { PropertyName = "LocationCode", DisplayName = "Ubicazione", IsVisible = true, Order = 3 },
-        new() { PropertyName = "LotCode", DisplayName = "Lotto", IsVisible = true, Order = 4 },
+        new() { PropertyName = "LotCode", DisplayName = "Lotto", IsVisible = false, Order = 4 }, // Hidden by default
         new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 5 },
-        new() { PropertyName = "Reserved", DisplayName = "Riservato", IsVisible = true, Order = 6 },
+        new() { PropertyName = "Reserved", DisplayName = "Riservato", IsVisible = false, Order = 6 }, // Hidden by default
         new() { PropertyName = "Available", DisplayName = "Disponibile", IsVisible = true, Order = 7 },
-        new() { PropertyName = "ReorderPoint", DisplayName = "Punto Riordino", IsVisible = true, Order = 8 },
-        new() { PropertyName = "SafetyStock", DisplayName = "Scorta Sicurezza", IsVisible = true, Order = 9 },
+        new() { PropertyName = "ReorderPoint", DisplayName = "Punto Riordino", IsVisible = false, Order = 8 }, // Hidden by default
+        new() { PropertyName = "SafetyStock", DisplayName = "Scorta Sicurezza", IsVisible = false, Order = 9 }, // Hidden by default
         new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 10 }
     };
 
@@ -827,28 +884,43 @@
         await LoadStockOverviewAsync();
     }
 
+    /// <summary>
+    /// Unified filter changed handler - resets pagination and reloads data.
+    /// </summary>
+    private async Task OnFilterChangedAsync(bool resetPage = true)
+    {
+        if (resetPage) _currentPage = 1;
+        await LoadStockOverviewAsync();
+    }
+
+    /// <summary>
+    /// Handles search term changes with debouncing.
+    /// </summary>
     private async Task OnSearchChanged()
     {
-        // Cancel previous debounce if any
+        // Cancel and dispose previous debounce token to prevent memory leak
         _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
         _searchDebounceCts = new CancellationTokenSource();
         var token = _searchDebounceCts.Token;
         
         try
         {
-            await Task.Delay(300, token); // Debounce with cancellation
+            await Task.Delay(SearchDebounceMs, token); // Debounce with cancellation
             if (!token.IsCancellationRequested)
             {
-                _currentPage = 1; // Reset to first page
-                await LoadStockOverviewAsync();
+                await OnFilterChangedAsync();
             }
         }
         catch (OperationCanceledException)
         {
-            // Swallow cancellation
+            // Swallow cancellation - expected behavior
         }
     }
 
+    /// <summary>
+    /// Handles warehouse filter changes and loads locations for selected warehouse.
+    /// </summary>
     private async Task OnWarehouseChanged()
     {
         // Reset location when warehouse changes
@@ -876,21 +948,23 @@
             _locations.Clear();
         }
         
-        // Reload stock data with new warehouse filter
-        _currentPage = 1; // Reset to first page
-        await LoadStockOverviewAsync();
+        await OnFilterChangedAsync();
     }
 
+    /// <summary>
+    /// Handles filter toggle changes.
+    /// </summary>
     private async Task OnFilterChanged()
     {
-        _currentPage = 1; // Reset to first page
-        await LoadStockOverviewAsync();
+        await OnFilterChangedAsync();
     }
 
+    /// <summary>
+    /// Handles view mode changes (detailed/aggregated).
+    /// </summary>
     private async Task OnViewChanged()
     {
-        _currentPage = 1; // Reset to first page
-        await LoadStockOverviewAsync();
+        await OnFilterChangedAsync();
     }
 
     /// <summary>
@@ -947,9 +1021,9 @@
             if (item.StockId == Guid.Empty)
             {
                 Snackbar.Add(
-                    TranslationService.GetTranslation("stock.noStockEntry", 
-                        "Impossibile modificare: nessuna giacenza registrata per questo prodotto. Usa la modifica completa."),
-                    Severity.Warning);
+                    TranslationService.GetTranslation("stock.useFullEditForNewStock", 
+                        "Prodotto senza giacenza. Usa il pulsante 'Modifica' per creare il primo record."),
+                    Severity.Info);
                 return;
             }
 
