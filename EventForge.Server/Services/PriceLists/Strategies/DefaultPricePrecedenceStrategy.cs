@@ -42,10 +42,10 @@ public class DefaultPricePrecedenceStrategy : IPricePrecedenceStrategy
         DateTime evaluationDate,
         int quantity)
     {
-        if (entry.Status != PriceListEntryStatus.Active)
+        if (entry.Status != Data.Entities.PriceList.PriceListEntryStatus.Active)
             return false;
 
-        if (entry.PriceList?.Status != PriceListStatus.Active)
+        if (entry.PriceList?.Status != Data.Entities.PriceList.PriceListStatus.Active)
             return false;
 
         // Validità temporale listino
