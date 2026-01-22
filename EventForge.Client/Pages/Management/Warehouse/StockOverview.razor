@@ -1141,8 +1141,16 @@
             // Carica le ubicazioni del magazzino corrente
             if (_editingWarehouseId.HasValue)
             {
-                var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_editingWarehouseId.Value);
-                _editingLocations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
+                try
+                {
+                    var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_editingWarehouseId.Value);
+                    _editingLocations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _editingWarehouseId);
+                    _editingLocations = new List<StorageLocationDto>();
+                }
             }
         }
         
@@ -1205,7 +1213,13 @@
             // Handle creation of stock if it doesn't exist
             if (_editingItem.StockId == Guid.Empty)
             {
-                // Validate that location is selected
+                // Validate that warehouse and location are selected
+                if (!_editingWarehouseId.HasValue)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("stock.warehouseRequired", "Seleziona un magazzino"), Severity.Warning);
+                    return;
+                }
+                
                 if (!_editingLocationId.HasValue)
                 {
                     Snackbar.Add(TranslationService.GetTranslation("stock.locationRequired", "Seleziona un'ubicazione"), Severity.Warning);
