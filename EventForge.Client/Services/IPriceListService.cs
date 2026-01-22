@@ -81,4 +81,24 @@ public interface IPriceListService
     /// <param name="ct">Cancellation token</param>
     /// <returns>ID of the generated price list</returns>
     Task<Guid> GenerateFromPurchasesAsync(GeneratePriceListFromPurchasesDto dto, CancellationToken ct);
+
+    /// <summary>
+    /// Adds a single entry to a price list.
+    /// </summary>
+    Task<PriceListEntryDto> AddEntryAsync(CreatePriceListEntryDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates an existing price list entry.
+    /// </summary>
+    Task<PriceListEntryDto> UpdateEntryAsync(Guid id, UpdatePriceListEntryDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Deletes a price list entry.
+    /// </summary>
+    Task<bool> DeleteEntryAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Bulk add entries (for multi-select dialog - future PR).
+    /// </summary>
+    Task<int> AddEntriesBulkAsync(List<CreatePriceListEntryDto> entries, CancellationToken ct = default);
 }

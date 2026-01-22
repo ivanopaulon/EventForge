@@ -144,4 +144,68 @@ public class PriceListService : IPriceListService
             throw;
         }
     }
+
+    public async Task<PriceListEntryDto> AddEntryAsync(CreatePriceListEntryDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<CreatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/{dto.PriceListId}/entries", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to add entry to price list");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding entry to price list");
+            throw;
+        }
+    }
+
+    public async Task<PriceListEntryDto> UpdateEntryAsync(Guid id, UpdatePriceListEntryDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PutAsync<UpdatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/entries/{id}", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to update price list entry");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating price list entry with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteEntryAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"{BaseUrl}/entries/{id}", ct);
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting price list entry with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<int> AddEntriesBulkAsync(List<CreatePriceListEntryDto> entries, CancellationToken ct = default)
+    {
+        try
+        {
+            if (entries == null || !entries.Any())
+                return 0;
+
+            var priceListId = entries.First().PriceListId;
+            var result = await _httpClientService.PostAsync<List<CreatePriceListEntryDto>, int>($"{BaseUrl}/{priceListId}/entries/bulk", entries, ct);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk adding entries to price list");
+            throw;
+        }
+    }
 }
