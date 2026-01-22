@@ -176,7 +176,7 @@
         // Load business parties
         try
         {
-            var result = await BusinessPartyService.GetBusinessPartiesAsync(page: 1, pageSize: 1000);
+            var result = await BusinessPartyService.GetBusinessPartiesAsync(page: 1, pageSize: 200);
             if (result != null && result.Items != null)
             {
                 _businessParties = result.Items.Where(bp => bp.IsActive);

@@ -166,15 +166,8 @@
         }
 
         // Update model with dates
-        _model = new UpdateBusinessPartyAssignmentDto
-        {
-            IsPrimary = _model.IsPrimary,
-            OverridePriority = _model.OverridePriority,
-            GlobalDiscountPercentage = _model.GlobalDiscountPercentage,
-            SpecificValidFrom = _validFrom,
-            SpecificValidTo = _validTo,
-            Notes = _model.Notes
-        };
+        _model.SpecificValidFrom = _validFrom;
+        _model.SpecificValidTo = _validTo;
 
         MudDialog?.Close(DialogResult.Ok(_model));
     }

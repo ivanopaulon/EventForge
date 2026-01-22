@@ -310,11 +310,11 @@ else
 
     private async Task RemoveBusinessParty(PriceListBusinessPartyDto businessParty)
     {
-        var parameters = new DialogParameters
+        var parameters = new DialogParameters<ConfirmationDialog>
         {
-            { "ContentText", TranslationService.GetTranslation("pricelist.confirmRemoveBusinessParty", "Sei sicuro di voler rimuovere l'assegnazione di questo partner?") },
-            { "ButtonText", TranslationService.GetTranslation("button.remove", "Rimuovi") },
-            { "Color", Color.Error }
+            { x => x.ContentText, TranslationService.GetTranslation("pricelist.confirmRemoveBusinessParty", "Sei sicuro di voler rimuovere l'assegnazione di questo partner?") },
+            { x => x.ButtonText, TranslationService.GetTranslation("button.remove", "Rimuovi") },
+            { x => x.Color, Color.Error }
         };
 
         var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
