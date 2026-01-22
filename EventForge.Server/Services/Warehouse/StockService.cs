@@ -248,6 +248,51 @@ public class StockService : IStockService
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
+            // Validate Product exists
+            var productExists = await _context.Products
+                .AnyAsync(p => p.Id == createDto.ProductId && 
+                              p.TenantId == currentTenantId.Value && 
+                              !p.IsDeleted, 
+                          cancellationToken);
+
+            if (!productExists)
+            {
+                _logger.LogWarning("Product with ID {ProductId} not found for tenant {TenantId}.", 
+                    createDto.ProductId, currentTenantId.Value);
+                throw new ArgumentException($"Product with ID {createDto.ProductId} not found.");
+            }
+
+            // Validate StorageLocation exists
+            var locationExists = await _context.StorageLocations
+                .AnyAsync(sl => sl.Id == createDto.StorageLocationId && 
+                               sl.TenantId == currentTenantId.Value && 
+                               !sl.IsDeleted, 
+                          cancellationToken);
+
+            if (!locationExists)
+            {
+                _logger.LogWarning("Storage location with ID {StorageLocationId} not found for tenant {TenantId}.", 
+                    createDto.StorageLocationId, currentTenantId.Value);
+                throw new ArgumentException($"Storage location with ID {createDto.StorageLocationId} not found.");
+            }
+
+            // Validate Lot if provided
+            if (createDto.LotId.HasValue)
+            {
+                var lotExists = await _context.Lots
+                    .AnyAsync(l => l.Id == createDto.LotId.Value && 
+                                  l.TenantId == currentTenantId.Value && 
+                                  !l.IsDeleted, 
+                              cancellationToken);
+
+                if (!lotExists)
+                {
+                    _logger.LogWarning("Lot with ID {LotId} not found for tenant {TenantId}.", 
+                        createDto.LotId.Value, currentTenantId.Value);
+                    throw new ArgumentException($"Lot with ID {createDto.LotId.Value} not found.");
+                }
+            }
+
             // Check if stock entry already exists
             var existingStock = await _context.Stocks
                 .FirstOrDefaultAsync(s => s.ProductId == createDto.ProductId &&
