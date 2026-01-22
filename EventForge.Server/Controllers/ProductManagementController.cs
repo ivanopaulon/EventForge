@@ -1248,6 +1248,59 @@ public class ProductManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Duplica un listino esistente con opzioni di copia e trasformazione.
+    /// </summary>
+    /// <param name="id">ID del listino da duplicare</param>
+    /// <param name="dto">Opzioni di duplicazione</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Dettagli del listino duplicato</returns>
+    /// <response code="201">Listino duplicato con successo</response>
+    /// <response code="400">Se i parametri di duplicazione non sono validi</response>
+    /// <response code="404">Se il listino sorgente non esiste</response>
+    /// <response code="403">Se l'utente non ha accesso al tenant corrente</response>
+    [HttpPost("price-lists/{id:guid}/duplicate")]
+    [ProducesResponseType(typeof(DuplicatePriceListResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DuplicatePriceList(
+        Guid id,
+        [FromBody] DuplicatePriceListDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var result = await _priceListService.DuplicatePriceListAsync(
+                id, dto, currentUser, cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetPriceListById),
+                new { id = result.NewPriceList.Id },
+                result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation during price list duplication");
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error during price list duplication");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while duplicating the price list.");
+            return CreateInternalServerErrorProblem("An error occurred while duplicating the price list.", ex);
+        }
+    }
+
     #endregion
 
     #region Price List - BusinessParty Management

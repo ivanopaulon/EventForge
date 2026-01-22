@@ -18,6 +18,13 @@ public class PriceList : AuditableEntity
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Unique code for the price list.
+    /// </summary>
+    [MaxLength(50, ErrorMessage = "The code cannot exceed 50 characters.")]
+    [Display(Name = "Code", Description = "Unique code for the price list.")]
+    public string? Code { get; set; }
+
+    /// <summary>
     /// Description of the price list.
     /// </summary>
     [MaxLength(500, ErrorMessage = "The description cannot exceed 500 characters.")]

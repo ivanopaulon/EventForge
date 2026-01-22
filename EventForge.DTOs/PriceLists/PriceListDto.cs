@@ -21,6 +21,11 @@ namespace EventForge.DTOs.PriceLists
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
+        /// Unique code for the price list.
+        /// </summary>
+        public string? Code { get; set; }
+
+        /// <summary>
         /// Description of the price list.
         /// </summary>
         public string Description { get; set; } = string.Empty;

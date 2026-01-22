@@ -503,6 +503,7 @@ public class PriceListService : IPriceListService
         {
             Id = priceList.Id,
             Name = priceList.Name,
+            Code = priceList.Code,
             Description = priceList.Description,
             Type = priceList.Type,
             Direction = priceList.Direction,
@@ -1787,6 +1788,264 @@ public class PriceListService : IPriceListService
 
         // Update mode to Hybrid
         return result with { AppliedMode = PriceApplicationMode.HybridForcedWithOverrides };
+    }
+
+    #endregion
+
+    #region Phase 2C - Price List Duplication
+
+    /// <summary>
+    /// Duplica un listino esistente con opzioni di copia e trasformazione.
+    /// </summary>
+    public async Task<DuplicatePriceListResultDto> DuplicatePriceListAsync(
+        Guid sourcePriceListId,
+        DuplicatePriceListDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // 1. Recupera il listino sorgente
+            var sourcePriceList = await _context.PriceLists
+                .Include(pl => pl.ProductPrices)
+                    .ThenInclude(pp => pp.Product)
+                        .ThenInclude(p => p.Category)
+                .Include(pl => pl.BusinessParties)
+                    .ThenInclude(plbp => plbp.BusinessParty)
+                .FirstOrDefaultAsync(pl => pl.Id == sourcePriceListId && !pl.IsDeleted, cancellationToken);
+
+            if (sourcePriceList == null)
+            {
+                _logger.LogWarning("Source price list {PriceListId} not found for duplication", sourcePriceListId);
+                throw new InvalidOperationException($"Price list {sourcePriceListId} not found");
+            }
+
+            // 2. Genera codice se non fornito
+            var newCode = dto.Code ?? await GenerateUniquePriceListCodeAsync(
+                dto.Name, cancellationToken);
+
+            // 3. Crea il nuovo listino (copia metadati)
+            var newPriceList = new Data.Entities.PriceList.PriceList
+            {
+                Id = Guid.NewGuid(),
+                TenantId = sourcePriceList.TenantId,
+                Name = dto.Name,
+                Description = dto.Description ?? $"Duplicato da: {sourcePriceList.Name}",
+                Code = newCode,
+                Type = dto.NewType ?? sourcePriceList.Type,
+                Direction = dto.NewDirection ?? sourcePriceList.Direction,
+                Status = (Data.Entities.PriceList.PriceListStatus)dto.NewStatus,
+                Priority = dto.NewPriority ?? sourcePriceList.Priority,
+                ValidFrom = dto.NewValidFrom ?? sourcePriceList.ValidFrom,
+                ValidTo = dto.NewValidTo ?? sourcePriceList.ValidTo,
+                EventId = dto.NewEventId ?? sourcePriceList.EventId,
+                IsDefault = false, // Mai copiare IsDefault
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUser
+            };
+
+            _context.PriceLists.Add(newPriceList);
+
+            var stats = new
+            {
+                SourcePriceCount = sourcePriceList.ProductPrices.Count(pp => !pp.IsDeleted),
+                CopiedPriceCount = 0,
+                SkippedPriceCount = 0,
+                CopiedBusinessPartyCount = 0
+            };
+
+            // 4. Copia le voci di prezzo (se richiesto)
+            if (dto.CopyPrices)
+            {
+                var pricesToCopy = sourcePriceList.ProductPrices
+                    .Where(pp => !pp.IsDeleted && pp.Status == PriceListEntryStatus.Active);
+
+                // Applica filtri
+                if (dto.OnlyActiveProducts)
+                {
+                    pricesToCopy = pricesToCopy.Where(pp => pp.Product != null && !pp.Product.IsDeleted);
+                }
+
+                if (dto.FilterByProductIds?.Any() == true)
+                {
+                    pricesToCopy = pricesToCopy.Where(pp =>
+                        dto.FilterByProductIds.Contains(pp.ProductId));
+                }
+
+                if (dto.FilterByCategoryIds?.Any() == true)
+                {
+                    pricesToCopy = pricesToCopy.Where(pp =>
+                        pp.Product.CategoryId.HasValue &&
+                        dto.FilterByCategoryIds.Contains(pp.Product.CategoryId.Value));
+                }
+
+                var pricesList = pricesToCopy.ToList();
+
+                foreach (var sourcePrice in pricesList)
+                {
+                    var newPrice = sourcePrice.Price;
+
+                    // Applica maggiorazione se specificata
+                    if (dto.ApplyMarkupPercentage.HasValue)
+                    {
+                        newPrice *= (1 + dto.ApplyMarkupPercentage.Value / 100);
+                    }
+
+                    // Applica arrotondamento se specificato
+                    if (dto.RoundingStrategy.HasValue)
+                    {
+                        newPrice = ApplyRounding(newPrice, dto.RoundingStrategy.Value);
+                    }
+
+                    var newEntry = new PriceListEntry
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = sourcePriceList.TenantId,
+                        PriceListId = newPriceList.Id,
+                        ProductId = sourcePrice.ProductId,
+                        Price = newPrice,
+                        Currency = sourcePrice.Currency,
+                        MinQuantity = sourcePrice.MinQuantity,
+                        MaxQuantity = sourcePrice.MaxQuantity,
+                        LeadTimeDays = sourcePrice.LeadTimeDays,
+                        MinimumOrderQuantity = sourcePrice.MinimumOrderQuantity,
+                        SupplierProductCode = sourcePrice.SupplierProductCode,
+                        IsEditableInFrontend = sourcePrice.IsEditableInFrontend,
+                        IsDiscountable = sourcePrice.IsDiscountable,
+                        Score = sourcePrice.Score,
+                        Status = PriceListEntryStatus.Active,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = currentUser
+                    };
+
+                    _context.PriceListEntries.Add(newEntry);
+                    stats = stats with { CopiedPriceCount = stats.CopiedPriceCount + 1 };
+                }
+
+                stats = stats with {
+                    SkippedPriceCount = stats.SourcePriceCount - stats.CopiedPriceCount
+                };
+            }
+
+            // 5. Copia le assegnazioni BusinessParty (se richiesto)
+            if (dto.CopyBusinessParties)
+            {
+                foreach (var sourceBP in sourcePriceList.BusinessParties.Where(bp => !bp.IsDeleted))
+                {
+                    var newBP = new PriceListBusinessParty
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = sourcePriceList.TenantId,
+                        PriceListId = newPriceList.Id,
+                        BusinessPartyId = sourceBP.BusinessPartyId,
+                        IsPrimary = sourceBP.IsPrimary,
+                        OverridePriority = sourceBP.OverridePriority,
+                        GlobalDiscountPercentage = sourceBP.GlobalDiscountPercentage,
+                        SpecificValidFrom = sourceBP.SpecificValidFrom,
+                        SpecificValidTo = sourceBP.SpecificValidTo,
+                        Status = sourceBP.Status,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = currentUser
+                    };
+
+                    _context.PriceListBusinessParties.Add(newBP);
+                    stats = stats with { CopiedBusinessPartyCount = stats.CopiedBusinessPartyCount + 1 };
+                }
+            }
+
+            // 6. Salva tutto
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Price list duplicated: {SourceId} -> {NewId} ({CopiedPrices} prices, {CopiedBP} business parties)",
+                sourcePriceListId, newPriceList.Id, stats.CopiedPriceCount, stats.CopiedBusinessPartyCount);
+
+            // 7. Recupera il listino completo per il DTO
+            var newPriceListDto = await GetPriceListByIdAsync(newPriceList.Id, cancellationToken);
+
+            return new DuplicatePriceListResultDto
+            {
+                SourcePriceListId = sourcePriceListId,
+                SourcePriceListName = sourcePriceList.Name,
+                NewPriceList = newPriceListDto!,
+                SourcePriceCount = stats.SourcePriceCount,
+                CopiedPriceCount = stats.CopiedPriceCount,
+                SkippedPriceCount = stats.SkippedPriceCount,
+                CopiedBusinessPartyCount = stats.CopiedBusinessPartyCount,
+                AppliedMarkupPercentage = dto.ApplyMarkupPercentage,
+                AppliedRoundingStrategy = dto.RoundingStrategy,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUser
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error duplicating price list {PriceListId}", sourcePriceListId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Genera un codice univoco per il listino basato sul nome.
+    /// </summary>
+    private async Task<string> GenerateUniquePriceListCodeAsync(
+        string name,
+        CancellationToken cancellationToken)
+    {
+        // Normalizza il nome per creare un codice base
+        var baseCode = new string(name
+            .ToUpperInvariant()
+            .Replace(" ", "-")
+            .Replace("À", "A").Replace("Á", "A").Replace("Â", "A").Replace("Ã", "A").Replace("Ä", "A")
+            .Replace("È", "E").Replace("É", "E").Replace("Ê", "E").Replace("Ë", "E")
+            .Replace("Ì", "I").Replace("Í", "I").Replace("Î", "I").Replace("Ï", "I")
+            .Replace("Ò", "O").Replace("Ó", "O").Replace("Ô", "O").Replace("Õ", "O").Replace("Ö", "O")
+            .Replace("Ù", "U").Replace("Ú", "U").Replace("Û", "U").Replace("Ü", "U")
+            .Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_')
+            .Take(20)
+            .ToArray());
+
+        if (string.IsNullOrWhiteSpace(baseCode))
+            baseCode = "PRICELIST";
+
+        var code = baseCode;
+        var counter = 1;
+
+        while (await _context.PriceLists.AnyAsync(
+            pl => pl.Code == code && !pl.IsDeleted,
+            cancellationToken))
+        {
+            code = $"{baseCode}-{counter}";
+            counter++;
+        }
+
+        return code;
+    }
+
+    /// <summary>
+    /// Applica la strategia di arrotondamento al prezzo.
+    /// </summary>
+    private static decimal ApplyRounding(decimal value, EventForge.DTOs.Common.RoundingStrategy strategy)
+    {
+        return strategy switch
+        {
+            EventForge.DTOs.Common.RoundingStrategy.ToNearest5Cents =>
+                Math.Round(value * 20, MidpointRounding.AwayFromZero) / 20m,
+
+            EventForge.DTOs.Common.RoundingStrategy.ToNearest10Cents =>
+                Math.Round(value * 10, MidpointRounding.AwayFromZero) / 10m,
+
+            EventForge.DTOs.Common.RoundingStrategy.ToNearest50Cents =>
+                Math.Round(value * 2, MidpointRounding.AwayFromZero) / 2m,
+
+            EventForge.DTOs.Common.RoundingStrategy.ToNearestEuro =>
+                Math.Round(value, MidpointRounding.AwayFromZero),
+
+            EventForge.DTOs.Common.RoundingStrategy.ToNearest99Cents =>
+                Math.Floor(value) + 0.99m,
+
+            _ => value
+        };
     }
 
     #endregion

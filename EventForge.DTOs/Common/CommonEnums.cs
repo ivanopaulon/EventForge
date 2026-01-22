@@ -603,4 +603,40 @@ namespace EventForge.DTOs.Common
         Output,     // In uscita (vendita a clienti)
         Input       // In entrata (acquisto da fornitori)
     }
+
+    /// <summary>
+    /// Strategia di arrotondamento prezzi.
+    /// </summary>
+    public enum RoundingStrategy
+    {
+        /// <summary>
+        /// Nessun arrotondamento
+        /// </summary>
+        None = 0,
+        
+        /// <summary>
+        /// Arrotonda ai 5 centesimi più vicini (es. 10.37 → 10.35)
+        /// </summary>
+        ToNearest5Cents = 1,
+        
+        /// <summary>
+        /// Arrotonda ai 10 centesimi più vicini (es. 10.37 → 10.40)
+        /// </summary>
+        ToNearest10Cents = 2,
+        
+        /// <summary>
+        /// Arrotonda ai 50 centesimi più vicini (es. 10.37 → 10.50)
+        /// </summary>
+        ToNearest50Cents = 3,
+        
+        /// <summary>
+        /// Arrotonda all'euro più vicino (es. 10.37 → 10.00)
+        /// </summary>
+        ToNearestEuro = 4,
+        
+        /// <summary>
+        /// Arrotonda a X.99 (es. 10.37 → 9.99)
+        /// </summary>
+        ToNearest99Cents = 5
+    }
 }
