@@ -128,4 +128,19 @@ public interface IPriceListService
     Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default);
     Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(PriceListType type, CancellationToken cancellationToken = default);
     Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, PriceListType? type, CancellationToken cancellationToken = default);
+
+    // Phase 2C - Price list duplication
+    /// <summary>
+    /// Duplica un listino esistente con opzioni di copia e trasformazione.
+    /// </summary>
+    /// <param name="sourcePriceListId">ID del listino da duplicare</param>
+    /// <param name="dto">Opzioni di duplicazione</param>
+    /// <param name="currentUser">Utente corrente</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Dettagli del listino duplicato</returns>
+    Task<DuplicatePriceListResultDto> DuplicatePriceListAsync(
+        Guid sourcePriceListId,
+        DuplicatePriceListDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }
