@@ -1,0 +1,778 @@
+@page "/management/pricelists"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.PriceLists
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject IPriceListService PriceListService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<PriceListManagement> Logger
+
+<PageLoadingOverlay Visible="_isLoading || _isLoadingData"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="pricelist-page-root">
+        <div class="pricelist-top">
+            <ManagementDashboard TItem="PriceListDto"
+                                 Items="_filteredItems"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="PriceList"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
+
+        <div class="pricelist-filters">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudTextField @bind-Value="_searchTerm"
+                                      @bind-Value:after="OnSearchChanged"
+                                      Label="@TranslationService.GetTranslation("common.search", "Cerca")"
+                                      Placeholder="@TranslationService.GetTranslation("pricelist.searchPlaceholder", "Nome, codice...")"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Outlined.Search"
+                                      Clearable="true"
+                                      Dense="true"
+                                      Class="ef-input" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudSelect @bind-Value="_typeFilter"
+                                   @bind-Value:after="OnFilterChanged"
+                                   Label="@TranslationService.GetTranslation("pricelist.type", "Tipo")"
+                                   Variant="Variant.Outlined"
+                                   Dense="true">
+                            <MudSelectItem Value="@((PriceListType?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                            <MudSelectItem Value="@PriceListType.Sales">@TranslationService.GetTranslation("pricelist.type.sales", "Vendita")</MudSelectItem>
+                            <MudSelectItem Value="@PriceListType.Purchase">@TranslationService.GetTranslation("pricelist.type.purchase", "Acquisto")</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudSelect @bind-Value="_statusFilter"
+                                   @bind-Value:after="OnFilterChanged"
+                                   Label="@TranslationService.GetTranslation("common.status", "Stato")"
+                                   Variant="Variant.Outlined"
+                                   Dense="true">
+                            <MudSelectItem Value="@((PriceListStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                            <MudSelectItem Value="@PriceListStatus.Active">@TranslationService.GetTranslation("common.active", "Attivo")</MudSelectItem>
+                            <MudSelectItem Value="@PriceListStatus.Suspended">@TranslationService.GetTranslation("common.suspended", "Sospeso")</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudSwitch @bind-Value="_onlyDefault"
+                                   @bind-Value:after="OnFilterChanged"
+                                   Label="@TranslationService.GetTranslation("pricelist.onlyDefault", "Solo Default")"
+                                   Color="Color.Primary"
+                                   Dense="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudSwitch @bind-Value="_hideExpired"
+                                   @bind-Value:after="OnFilterChanged"
+                                   Label="@TranslationService.GetTranslation("pricelist.hideExpired", "Nascondi Scaduti")"
+                                   Color="Color.Primary"
+                                   Dense="true" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </div>
+
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                     TItem="PriceListDto"
+                     Items="_filteredItems"
+                     MultiSelection="true"
+                     SelectedItems="_selectedItems"
+                     SelectedItemsChanged="_selectedItemsChangedCallback"
+                     IsLoading="_isLoadingData"
+                     ComponentKey="PriceListManagement"
+                     InitialColumnConfigurations="_initialColumns"
+                     AllowDragDropGrouping="true">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h5">
+                        @TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")
+                    </MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Outlined.Add"
+                               OnClick="@OpenCreateDialog"
+                               Disabled="_isLoadingData">
+                        @TranslationService.GetTranslation("pricelist.create", "Nuovo Listino")
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Outlined.AutoAwesome"
+                               OnClick="@OpenGenerateFromDocumentsDialog"
+                               Disabled="_isLoadingData">
+                        @TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti")
+                    </MudButton>
+                    @if (_selectedItems.Count > 0)
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Outlined.CheckCircle"
+                                   OnClick="@BulkActivate"
+                                   Disabled="_isLoadingData">
+                            @TranslationService.GetTranslation("pricelist.bulkActivate", "Attiva") (@_selectedItems.Count)
+                        </MudButton>
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Outlined.Pause"
+                                   OnClick="@BulkSuspend"
+                                   Disabled="_isLoadingData">
+                            @TranslationService.GetTranslation("pricelist.bulkSuspend", "Sospendi") (@_selectedItems.Count)
+                        </MudButton>
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Outlined.Delete"
+                                   OnClick="@BulkDelete"
+                                   Disabled="_isLoadingData">
+                            @TranslationService.GetTranslation("common.delete", "Elimina") (@_selectedItems.Count)
+                        </MudButton>
+                    }
+                    <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                                   Color="Color.Default"
+                                   OnClick="@LoadDataAsync"
+                                   Disabled="_isLoadingData" />
+                </ToolBarContent>
+                <HeaderContent Context="columnConfigurations">
+                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                    {
+                        @if (column.PropertyName == "Name")
+                        {
+                            <EFTableColumnHeader TItem="PriceListDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Code")
+                        {
+                            <EFTableColumnHeader TItem="PriceListDto" PropertyName="Code" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Code ?? string.Empty))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Type")
+                        {
+                            <EFTableColumnHeader TItem="PriceListDto" PropertyName="Type" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Type))">@TranslationService.GetTranslation("pricelist.type", "Tipo")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Status")
+                        {
+                            <EFTableColumnHeader TItem="PriceListDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Status))">@TranslationService.GetTranslation("common.status", "Stato")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Priority")
+                        {
+                            <EFTableColumnHeader TItem="PriceListDto" PropertyName="Priority" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Priority))">@TranslationService.GetTranslation("field.priority", "Priorità")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "ValidFrom")
+                        {
+                            <EFTableColumnHeader TItem="PriceListDto" PropertyName="ValidFrom" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "ValidTo")
+                        {
+                            <EFTableColumnHeader TItem="PriceListDto" PropertyName="ValidTo" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido Fino")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "EntryCount")
+                        {
+                            <EFTableColumnHeader TItem="PriceListDto" PropertyName="EntryCount" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.EntryCount))">@TranslationService.GetTranslation("field.products", "Prodotti")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                    }
+                    <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+
+                <RowTemplate Context="item">
+                    @{
+                        var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                    }
+                    @foreach (var column in visibleColumns)
+                    {
+                        @if (column.PropertyName == "Name")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                <div class="d-flex align-center">
+                                    @if (item.IsDefault)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
+                                    }
+                                    <div>
+                                        <MudText Typo="Typo.body2">@item.Name</MudText>
+                                        @if (!string.IsNullOrEmpty(item.Code))
+                                        {
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.Code</MudText>
+                                        }
+                                    </div>
+                                </div>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Code")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                                <MudText Typo="Typo.body2">@(item.Code ?? "-")</MudText>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Type")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("pricelist.type", "Tipo")">
+                                <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(item.Type)">
+                                    @TranslationService.GetTranslation($"pricelist.type.{item.Type.ToString().ToLower()}", item.Type.ToString())
+                                </MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Status")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("common.status", "Stato")">
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(item.Status)" Icon="@GetStatusIcon(item.Status)">
+                                    @TranslationService.GetTranslation($"common.{item.Status.ToString().ToLower()}", item.Status.ToString())
+                                </MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Priority")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.priority", "Priorità")">
+                                <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(item.Priority)">
+                                    @item.Priority
+                                </MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "ValidFrom")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.validFrom", "Valido Da")">
+                                @if (item.ValidFrom.HasValue)
+                                {
+                                    <MudText Typo="Typo.body2">@item.ValidFrom.Value.ToShortDateString()</MudText>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2">-</MudText>
+                                }
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "ValidTo")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.validTo", "Valido Fino")">
+                                <div class="d-flex align-center">
+                                    @if (item.ValidTo.HasValue)
+                                    {
+                                        @if (GetValidityStatus(item) == "expired")
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" Class="mr-1" />
+                                        }
+                                        else if (GetValidityStatus(item) == "expiring")
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" Class="mr-1" />
+                                        }
+                                        <MudText Typo="Typo.body2">@item.ValidTo.Value.ToShortDateString()</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2">-</MudText>
+                                    }
+                                </div>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "EntryCount")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.products", "Prodotti")">
+                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Inventory">
+                                    @item.EntryCount
+                                </MudChip>
+                            </MudTd>
+                        }
+                    }
+                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                        <MudMenu Icon="@Icons.Material.Outlined.MoreVert" Size="Size.Small" Dense="true">
+                            <MudMenuItem OnClick="@(() => ViewDetails(item))" Icon="@Icons.Material.Outlined.Visibility">
+                                @TranslationService.GetTranslation("common.view", "Visualizza")
+                            </MudMenuItem>
+                            <MudMenuItem OnClick="@(() => EditItem(item))" Icon="@Icons.Material.Outlined.Edit">
+                                @TranslationService.GetTranslation("common.edit", "Modifica")
+                            </MudMenuItem>
+                            <MudMenuItem OnClick="@(() => DuplicateItem(item))" Icon="@Icons.Material.Outlined.ContentCopy">
+                                @TranslationService.GetTranslation("common.duplicate", "Duplica")
+                            </MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem OnClick="@(() => DeleteItem(item))" Icon="@Icons.Material.Outlined.Delete" IconColor="Color.Error">
+                                @TranslationService.GetTranslation("common.delete", "Elimina")
+                            </MudMenuItem>
+                        </MudMenu>
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                        <MudIcon Icon="@Icons.Material.Outlined.PriceCheck" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                        <MudText Typo="Typo.h6" Class="mb-2">
+                            @(_items.Any() ?
+                                TranslationService.GetTranslation("pricelist.noMatchFilters", "Nessun listino corrisponde ai filtri applicati") :
+                                TranslationService.GetTranslation("pricelist.noFound", "Nessun listino trovato"))
+                        </MudText>
+                        @if (_items.Any())
+                        {
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Outlined.Clear"
+                                       OnClick="@ClearFilters">
+                                @TranslationService.GetTranslation("common.clearFilters", "Cancella filtri")
+                            </MudButton>
+                        }
+                    </div>
+                </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
+
+@code {
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingData = false;
+
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private PriceListType? _typeFilter = null;
+    private PriceListStatus? _statusFilter = null;
+    private bool _onlyDefault = false;
+    private bool _hideExpired = false;
+    private CancellationTokenSource? _searchDebounceCts;
+
+    // Data collections
+    private List<PriceListDto> _items = new();
+    private HashSet<PriceListDto> _selectedItems = new();
+
+    // EFTable reference
+    private EFTable<PriceListDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Type", DisplayName = "Tipo", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3 },
+        new() { PropertyName = "Priority", DisplayName = "Priorità", IsVisible = true, Order = 4 },
+        new() { PropertyName = "ValidFrom", DisplayName = "Valido Da", IsVisible = true, Order = 5 },
+        new() { PropertyName = "ValidTo", DisplayName = "Valido Fino", IsVisible = true, Order = 6 },
+        new() { PropertyName = "EntryCount", DisplayName = "Prodotti", IsVisible = true, Order = 7 },
+        new() { PropertyName = "IsDefault", DisplayName = "Default", IsVisible = false, Order = 8 },
+        new() { PropertyName = "Direction", DisplayName = "Direzione", IsVisible = false, Order = 9 },
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<PriceListDto>> _dashboardMetrics = null!;
+
+    protected override void OnInitialized()
+    {
+        // Initialize dashboard metrics with translated strings
+        _dashboardMetrics = new()
+        {
+            new()
+            {
+                Title = TranslationService.GetTranslation("pricelist.metric.total", "Totale Listini"),
+                Type = MetricType.Count,
+                Icon = Icons.Material.Outlined.PriceCheck,
+                Color = "primary",
+                Description = TranslationService.GetTranslation("pricelist.metric.totalDesc", "Numero totale di listini"),
+                Format = "N0"
+            },
+            new()
+            {
+                Title = TranslationService.GetTranslation("pricelist.metric.active", "Listini Attivi"),
+                Type = MetricType.Count,
+                Filter = p => p.Status == PriceListStatus.Active,
+                Icon = Icons.Material.Outlined.CheckCircle,
+                Color = "success",
+                Description = TranslationService.GetTranslation("pricelist.metric.activeDesc", "Listini attivi"),
+                Format = "N0"
+            },
+            new()
+            {
+                Title = TranslationService.GetTranslation("pricelist.metric.sales", "Listini Vendita"),
+                Type = MetricType.Count,
+                Filter = p => p.Type == PriceListType.Sales,
+                Icon = Icons.Material.Outlined.Sell,
+                Color = "info",
+                Description = TranslationService.GetTranslation("pricelist.metric.salesDesc", "Listini di vendita"),
+                Format = "N0"
+            },
+            new()
+            {
+                Title = TranslationService.GetTranslation("pricelist.metric.default", "Listini Default"),
+                Type = MetricType.Count,
+                Filter = p => p.IsDefault,
+                Icon = Icons.Material.Outlined.Star,
+                Color = "warning",
+                Description = TranslationService.GetTranslation("pricelist.metric.defaultDesc", "Listini predefiniti"),
+                Format = "N0"
+            }
+        };
+    }
+
+    private EventCallback<HashSet<PriceListDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<PriceListDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered items based on search criteria.
+    /// </summary>
+    private IEnumerable<PriceListDto> _filteredItems
+    {
+        get
+        {
+            var filtered = _items.AsEnumerable();
+
+            // Search filter
+            if (!string.IsNullOrEmpty(_searchTerm))
+            {
+                filtered = filtered.Where(p =>
+                    p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    (p.Code != null && p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            // Type filter
+            if (_typeFilter.HasValue)
+            {
+                filtered = filtered.Where(p => p.Type == _typeFilter.Value);
+            }
+
+            // Status filter
+            if (_statusFilter.HasValue)
+            {
+                filtered = filtered.Where(p => p.Status == _statusFilter.Value);
+            }
+
+            // Only default filter
+            if (_onlyDefault)
+            {
+                filtered = filtered.Where(p => p.IsDefault);
+            }
+
+            // Hide expired filter
+            if (_hideExpired)
+            {
+                var now = DateTime.Now;
+                filtered = filtered.Where(p => !p.ValidTo.HasValue || p.ValidTo.Value >= now);
+            }
+
+            return filtered;
+        }
+    }
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<PriceListDto> items)
+    {
+        _selectedItems = items;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // Load data
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading price lists page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads price list data.
+    /// </summary>
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _isLoadingData = true;
+
+            // Using a reasonable page size for initial load
+            var result = await PriceListService.GetPagedAsync(1, 100, CancellationToken.None);
+            _items = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("pricelist.loadingError", "Errore nel caricamento dei listini: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading price lists");
+        }
+        finally
+        {
+            _isLoadingData = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _typeFilter = null;
+        _statusFilter = null;
+        _onlyDefault = false;
+        _hideExpired = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Expected when debounce is cancelled
+        }
+    }
+
+    private void OnFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    private Color GetTypeColor(PriceListType type) => type switch
+    {
+        PriceListType.Sales => Color.Primary,
+        PriceListType.Purchase => Color.Info,
+        _ => Color.Default
+    };
+
+    private Color GetStatusColor(PriceListStatus status) => status switch
+    {
+        PriceListStatus.Active => Color.Success,
+        PriceListStatus.Suspended => Color.Warning,
+        _ => Color.Default
+    };
+
+    private string GetStatusIcon(PriceListStatus status) => status switch
+    {
+        PriceListStatus.Active => Icons.Material.Filled.CheckCircle,
+        PriceListStatus.Suspended => Icons.Material.Filled.Pause,
+        _ => Icons.Material.Filled.Circle
+    };
+
+    private Color GetPriorityColor(int priority) => priority switch
+    {
+        <= 10 => Color.Error,      // High priority (red)
+        <= 50 => Color.Warning,    // Medium priority (yellow)
+        _ => Color.Info            // Low priority (blue)
+    };
+
+    private string GetValidityStatus(PriceListDto item)
+    {
+        if (!item.ValidTo.HasValue) return "valid";
+
+        var now = DateTime.Now;
+        var daysUntilExpiry = (item.ValidTo.Value - now).TotalDays;
+
+        if (daysUntilExpiry < 0) return "expired";
+        if (daysUntilExpiry <= 7) return "expiring";
+        if (item.ValidFrom.HasValue && item.ValidFrom.Value > now) return "future";
+
+        return "valid";
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CreatePriceListDialog>(
+            TranslationService.GetTranslation("pricelist.create", "Nuovo Listino"),
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenGenerateFromDocumentsDialog()
+    {
+        var dialog = await DialogService.ShowAsync<GeneratePriceListFromDocumentsDialog>(
+            TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti"),
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private void ViewDetails(PriceListDto item)
+    {
+        // Navigate to detail page (placeholder for now)
+        NavigationManager.NavigateTo($"/management/pricelists/{item.Id}");
+    }
+
+    private void EditItem(PriceListDto item)
+    {
+        // Navigate to edit page (placeholder for now)
+        NavigationManager.NavigateTo($"/management/pricelists/{item.Id}/edit");
+    }
+
+    private void DuplicateItem(PriceListDto item)
+    {
+        // TODO: Implement duplicate functionality
+        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
+
+    private async Task DeleteItem(PriceListDto item)
+    {
+        var parameters = new DialogParameters<ConfirmationDialog>
+        {
+            { x => x.ContentText, TranslationService.GetTranslation("pricelist.deleteConfirm", "Sei sicuro di voler eliminare il listino '{0}'? Questa operazione non può essere annullata.", item.Name) },
+            { x => x.ButtonText, TranslationService.GetTranslation("common.delete", "Elimina") },
+            { x => x.Color, Color.Error }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            TranslationService.GetTranslation("common.confirmDeletion", "Conferma eliminazione"),
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                var deleted = await PriceListService.DeleteAsync(item.Id, CancellationToken.None);
+                if (deleted)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("pricelist.deleted", "Listino eliminato con successo"), Severity.Success);
+                    await LoadDataAsync();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("pricelist.deleteNotFound", "Listino non trovato"), Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("pricelist.deleteError", "Errore durante l'eliminazione: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting price list {Id}", item.Id);
+            }
+        }
+    }
+
+    private async Task BulkActivate()
+    {
+        // TODO: Implement bulk activate functionality
+        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    private async Task BulkSuspend()
+    {
+        // TODO: Implement bulk suspend functionality
+        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    private async Task BulkDelete()
+    {
+        var parameters = new DialogParameters<ConfirmationDialog>
+        {
+            { x => x.ContentText, TranslationService.GetTranslation("pricelist.bulkDeleteConfirm", "Sei sicuro di voler eliminare {0} listini selezionati?", _selectedItems.Count) },
+            { x => x.ButtonText, TranslationService.GetTranslation("common.delete", "Elimina") },
+            { x => x.Color, Color.Error }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            TranslationService.GetTranslation("common.confirmDeletion", "Conferma eliminazione"),
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var successCount = 0;
+            var errorCount = 0;
+
+            foreach (var item in _selectedItems.ToList())
+            {
+                try
+                {
+                    var deleted = await PriceListService.DeleteAsync(item.Id, CancellationToken.None);
+                    if (deleted)
+                    {
+                        successCount++;
+                    }
+                    else
+                    {
+                        errorCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorCount++;
+                    Logger.LogError(ex, "Error deleting price list {Id}", item.Id);
+                }
+            }
+
+            if (successCount > 0)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("pricelist.bulkDeleteSuccess", "{0} listini eliminati con successo", successCount), Severity.Success);
+            }
+
+            if (errorCount > 0)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("pricelist.bulkDeleteErrors", "{0} errori durante l'eliminazione", errorCount), Severity.Error);
+            }
+
+            _selectedItems.Clear();
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        await AuthenticationDialogService.ShowLoginDialogAsync();
+    }
+}

@@ -1,0 +1,33 @@
+.pricelist-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.pricelist-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+.pricelist-filters {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+}
+
+.eftable-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 12px;
+}
+
+@media (max-width: 768px) {
+    .pricelist-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+    .pricelist-top { padding: 8px; }
+    .pricelist-filters { padding: 4px 8px; }
+    .eftable-wrapper { padding: 4px 8px; }
+}

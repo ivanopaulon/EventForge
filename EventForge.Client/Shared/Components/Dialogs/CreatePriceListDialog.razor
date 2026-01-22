@@ -1,0 +1,198 @@
+@using EventForge.DTOs.PriceLists
+@using EventForge.DTOs.Common
+@inject ITranslationService TranslationService
+@inject IPriceListService PriceListService
+@inject ISnackbar Snackbar
+@inject ILogger<CreatePriceListDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @TranslationService.GetTranslation("pricelist.create", "Nuovo Listino")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="ef-dialog-content">
+            <PageLoadingOverlay Visible="_isLoading" />
+
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+                <MudStack Spacing="3">
+                    
+                    <!-- Basic Information -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("common.basicInfo", "Informazioni di Base")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_model.Name"
+                                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                              MaxLength="100"
+                                              Counter="100" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_model.Description"
+                                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                              Variant="Variant.Outlined"
+                                              Lines="3"
+                                              MaxLength="500"
+                                              Counter="500" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Status and Priority -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("pricelist.statusAndPriority", "Stato e Priorità")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudSelect @bind-Value="_model.Status"
+                                           Label="@($"{TranslationService.GetTranslation("common.status", "Stato")} *")"
+                                           Variant="Variant.Outlined"
+                                           Required="true">
+                                    <MudSelectItem Value="PriceListStatus.Active">
+                                        @TranslationService.GetTranslation("common.active", "Attivo")
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="PriceListStatus.Suspended">
+                                        @TranslationService.GetTranslation("common.suspended", "Sospeso")
+                                    </MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField @bind-Value="_model.Priority"
+                                                 Label="@TranslationService.GetTranslation("field.priority", "Priorità")"
+                                                 Variant="Variant.Outlined"
+                                                 Min="0"
+                                                 Max="100"
+                                                 HelperText="@TranslationService.GetTranslation("pricelist.priorityHelper", "0 = priorità massima")" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudSwitch @bind-Value="_model.IsDefault"
+                                           Label="@TranslationService.GetTranslation("pricelist.isDefault", "Listino Default")"
+                                           Color="Color.Primary" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Validity Period -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("pricelist.validity", "Periodo di Validità")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker @bind-Date="_validFromDate"
+                                               Label="@TranslationService.GetTranslation("field.validFrom", "Valido Da")"
+                                               Variant="Variant.Outlined"
+                                               Editable="true"
+                                               DateFormat="dd/MM/yyyy" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker @bind-Date="_validToDate"
+                                               Label="@TranslationService.GetTranslation("field.validTo", "Valido Fino")"
+                                               Variant="Variant.Outlined"
+                                               Editable="true"
+                                               DateFormat="dd/MM/yyyy" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Notes -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("field.notes", "Note")
+                        </MudText>
+                        
+                        <MudTextField @bind-Value="_model.Notes"
+                                      Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                      Variant="Variant.Outlined"
+                                      Lines="4"
+                                      MaxLength="1000"
+                                      Counter="1000" />
+                    </MudPaper>
+
+                </MudStack>
+            </MudForm>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text" 
+                   Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="Create" 
+                   Variant="Variant.Filled" 
+                   Color="Color.Primary"
+                   Disabled="@(!_isFormValid || _isLoading)"
+                   StartIcon="@Icons.Material.Filled.Save">
+            @TranslationService.GetTranslation("common.create", "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isFormValid;
+    private bool _isLoading = false;
+
+    private CreatePriceListDto _model = new()
+    {
+        Name = string.Empty,
+        Description = string.Empty,
+        Notes = string.Empty,
+        Status = PriceListStatus.Active,
+        Priority = 0,
+        IsDefault = false
+    };
+
+    private DateTime? _validFromDate;
+    private DateTime? _validToDate;
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Create()
+    {
+        try
+        {
+            _isLoading = true;
+
+            // Set validity dates from date pickers
+            _model.ValidFrom = _validFromDate;
+            _model.ValidTo = _validToDate;
+
+            var result = await PriceListService.CreateAsync(_model, CancellationToken.None);
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("pricelist.created", "Listino creato con successo"),
+                Severity.Success);
+
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("pricelist.createError", "Errore durante la creazione: {0}", ex.Message),
+                Severity.Error);
+            Logger.LogError(ex, "Error creating price list");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

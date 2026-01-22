@@ -1,0 +1,430 @@
+@using EventForge.DTOs.PriceLists
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Business
+@inject ITranslationService TranslationService
+@inject IPriceListService PriceListService
+@inject IBusinessPartyService BusinessPartyService
+@inject ISnackbar Snackbar
+@inject ILogger<GeneratePriceListFromDocumentsDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="ef-dialog-content">
+            <PageLoadingOverlay Visible="_isLoading" />
+
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+                <MudStack Spacing="3">
+                    
+                    <!-- Step 1: Basic Information -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("pricelist.step1", "Passo 1: Informazioni di Base")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="8">
+                                <MudTextField @bind-Value="_name"
+                                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                              MaxLength="200" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField @bind-Value="_code"
+                                              Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                                              Variant="Variant.Outlined"
+                                              HelperText="@TranslationService.GetTranslation("pricelist.codeHelper", "Lascia vuoto per generazione automatica")"
+                                              MaxLength="50" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_description"
+                                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                              Variant="Variant.Outlined"
+                                              Lines="2"
+                                              MaxLength="500" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Step 2: Supplier and Date Range -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("pricelist.step2", "Passo 2: Fornitore e Periodo")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12">
+                                <MudAutocomplete T="BusinessPartyDto"
+                                                 @bind-Value="_selectedSupplier"
+                                                 Label="@($"{TranslationService.GetTranslation("field.supplier", "Fornitore")} *")"
+                                                 SearchFunc="@SearchSuppliers"
+                                                 ToStringFunc="@(s => s?.Name ?? string.Empty)"
+                                                 Variant="Variant.Outlined"
+                                                 Required="true"
+                                                 RequiredError="@TranslationService.GetTranslation("validation.supplierRequired", "Il fornitore è obbligatorio")"
+                                                 Adornment="Adornment.Start"
+                                                 AdornmentIcon="@Icons.Material.Outlined.Business"
+                                                 ResetValueOnEmptyText="true"
+                                                 CoerceText="true"
+                                                 CoerceValue="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker @bind-Date="_fromDate"
+                                               Label="@($"{TranslationService.GetTranslation("field.fromDate", "Dal")} *")"
+                                               Variant="Variant.Outlined"
+                                               Editable="true"
+                                               Required="true"
+                                               DateFormat="dd/MM/yyyy" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker @bind-Date="_toDate"
+                                               Label="@($"{TranslationService.GetTranslation("field.toDate", "Al")} *")"
+                                               Variant="Variant.Outlined"
+                                               Editable="true"
+                                               Required="true"
+                                               DateFormat="dd/MM/yyyy" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Step 3: Calculation Strategy -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("pricelist.step3", "Passo 3: Strategia di Calcolo")
+                        </MudText>
+                        
+                        <MudRadioGroup @bind-Value="_calculationStrategy">
+                            <MudRadio Value="PriceCalculationStrategy.LastPurchasePrice" Color="Color.Primary">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Schedule" Class="mr-2" />
+                                    <div>
+                                        <MudText Typo="Typo.body1">@TranslationService.GetTranslation("strategy.lastPurchase", "Ultimo Prezzo di Acquisto")</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("strategy.lastPurchaseDesc", "Usa il prezzo più recente")</MudText>
+                                    </div>
+                                </div>
+                            </MudRadio>
+                            <MudRadio Value="PriceCalculationStrategy.SimpleAveragePrice" Color="Color.Primary">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.BarChart" Class="mr-2" />
+                                    <div>
+                                        <MudText Typo="Typo.body1">@TranslationService.GetTranslation("strategy.average", "Prezzo Medio")</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("strategy.averageDesc", "Media aritmetica dei prezzi")</MudText>
+                                    </div>
+                                </div>
+                            </MudRadio>
+                            <MudRadio Value="PriceCalculationStrategy.WeightedAveragePrice" Color="Color.Primary">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.TrendingUp" Class="mr-2" />
+                                    <div>
+                                        <MudText Typo="Typo.body1">@TranslationService.GetTranslation("strategy.weighted", "Media Ponderata")</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("strategy.weightedDesc", "Ponderata per quantità")</MudText>
+                                    </div>
+                                </div>
+                            </MudRadio>
+                            <MudRadio Value="PriceCalculationStrategy.LowestPrice" Color="Color.Primary">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.ArrowDownward" Class="mr-2" />
+                                    <div>
+                                        <MudText Typo="Typo.body1">@TranslationService.GetTranslation("strategy.lowest", "Prezzo Più Basso")</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("strategy.lowestDesc", "Minimo trovato")</MudText>
+                                    </div>
+                                </div>
+                            </MudRadio>
+                            <MudRadio Value="PriceCalculationStrategy.HighestPrice" Color="Color.Primary">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.ArrowUpward" Class="mr-2" />
+                                    <div>
+                                        <MudText Typo="Typo.body1">@TranslationService.GetTranslation("strategy.highest", "Prezzo Più Alto")</MudText>
+                                        <MudText Typo="Typo.caption">@TranslationService.GetTranslation("strategy.highestDesc", "Massimo trovato")</MudText>
+                                    </div>
+                                </div>
+                            </MudRadio>
+                        </MudRadioGroup>
+                    </MudPaper>
+
+                    <!-- Step 4: Advanced Options -->
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="@TranslationService.GetTranslation("pricelist.advancedOptions", "Opzioni Avanzate")">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6">
+                                    <MudNumericField @bind-Value="_markupPercentage"
+                                                     Label="@TranslationService.GetTranslation("pricelist.markup", "Maggiorazione %")"
+                                                     Variant="Variant.Outlined"
+                                                     Min="-100"
+                                                     Max="500"
+                                                     HelperText="@TranslationService.GetTranslation("pricelist.markupHelper", "Es: 20 = +20%")" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudSelect @bind-Value="_roundingStrategy"
+                                               Label="@TranslationService.GetTranslation("pricelist.rounding", "Arrotondamento")"
+                                               Variant="Variant.Outlined">
+                                        <MudSelectItem Value="RoundingStrategy.None">@TranslationService.GetTranslation("rounding.none", "Nessuno")</MudSelectItem>
+                                        <MudSelectItem Value="RoundingStrategy.ToNearest5Cents">@TranslationService.GetTranslation("rounding.5cents", "0.05€")</MudSelectItem>
+                                        <MudSelectItem Value="RoundingStrategy.ToNearest10Cents">@TranslationService.GetTranslation("rounding.10cents", "0.10€")</MudSelectItem>
+                                        <MudSelectItem Value="RoundingStrategy.ToNearest50Cents">@TranslationService.GetTranslation("rounding.50cents", "0.50€")</MudSelectItem>
+                                        <MudSelectItem Value="RoundingStrategy.ToNearestEuro">@TranslationService.GetTranslation("rounding.1euro", "1.00€")</MudSelectItem>
+                                        <MudSelectItem Value="RoundingStrategy.ToNearest99Cents">@TranslationService.GetTranslation("rounding.99cents", "X.99€")</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudSwitch @bind-Value="_onlyActiveProducts"
+                                               Label="@TranslationService.GetTranslation("pricelist.onlyActiveProducts", "Solo Prodotti Attivi")"
+                                               Color="Color.Primary" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudNumericField @bind-Value="_minimumQuantity"
+                                                     Label="@TranslationService.GetTranslation("pricelist.minQuantity", "Quantità Minima Totale")"
+                                                     Variant="Variant.Outlined"
+                                                     Min="0"
+                                                     HelperText="@TranslationService.GetTranslation("pricelist.minQuantityHelper", "Opzionale")" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+
+                    @if (_preview != null)
+                    {
+                        <!-- Preview Results -->
+                        <MudPaper Elevation="2" Class="pa-4 mt-4">
+                            <MudText Typo="Typo.h6" Class="mb-3">
+                                @TranslationService.GetTranslation("pricelist.previewResults", "Anteprima Risultati")
+                            </MudText>
+
+                            <MudGrid Spacing="2" Class="mb-3">
+                                <MudItem xs="12" sm="4">
+                                    <MudPaper Elevation="0" Class="pa-2 bg-info">
+                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("preview.totalProducts", "Prodotti Totali")</MudText>
+                                        <MudText Typo="Typo.h5">@_preview.TotalProductsFound</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="12" sm="4">
+                                    <MudPaper Elevation="0" Class="pa-2 bg-primary">
+                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("preview.documentsAnalyzed", "Documenti Analizzati")</MudText>
+                                        <MudText Typo="Typo.h5">@_preview.TotalDocumentsAnalyzed</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="12" sm="4">
+                                    <MudPaper Elevation="0" Class="pa-2 bg-success">
+                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("preview.totalValue", "Valore Totale")</MudText>
+                                        <MudText Typo="Typo.h5">@_preview.TotalEstimatedValue.ToString("C2")</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+
+                            <MudTable Items="@_preview.ProductPreviews.Take(10)" Dense="true" Hover="true">
+                                <HeaderContent>
+                                    <MudTh>@TranslationService.GetTranslation("field.product", "Prodotto")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("field.calculatedPrice", "Prezzo Calcolato")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("field.minMax", "Min/Max")</MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("field.occurrences", "Occorrenze")</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Prodotto">
+                                        <MudText Typo="Typo.body2">@context.ProductName</MudText>
+                                        <MudText Typo="Typo.caption">@context.ProductCode</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Prezzo">@context.CalculatedPrice.ToString("C2")</MudTd>
+                                    <MudTd DataLabel="Min/Max">@context.LowestPrice?.ToString("C2") / @context.HighestPrice?.ToString("C2")</MudTd>
+                                    <MudTd DataLabel="Occorrenze">@context.OccurrencesInDocuments</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+
+                            @if (_preview.ProductPreviews.Count > 10)
+                            {
+                                <MudText Typo="Typo.caption" Class="mt-2">
+                                    @TranslationService.GetTranslation("preview.showingFirst10", "Mostrando i primi 10 di {0} prodotti", _preview.ProductPreviews.Count)
+                                </MudText>
+                            }
+                        </MudPaper>
+                    }
+
+                </MudStack>
+            </MudForm>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text" 
+                   Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="LoadPreview" 
+                   Variant="Variant.Outlined" 
+                   Color="Color.Info"
+                   Disabled="@(!_isFormValid || _isLoading || _selectedSupplier == null || _fromDate == null || _toDate == null)"
+                   StartIcon="@Icons.Material.Outlined.Visibility">
+            @TranslationService.GetTranslation("pricelist.preview", "Carica Anteprima")
+        </MudButton>
+        <MudButton OnClick="Generate" 
+                   Variant="Variant.Filled" 
+                   Color="Color.Primary"
+                   Disabled="@(!_isFormValid || _isLoading || _preview == null)"
+                   StartIcon="@Icons.Material.Filled.AutoAwesome">
+            @TranslationService.GetTranslation("pricelist.generate", "Genera Listino")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isFormValid;
+    private bool _isLoading = false;
+
+    // Individual fields for form binding
+    private string _name = string.Empty;
+    private string? _description;
+    private string? _code;
+    private PriceCalculationStrategy _calculationStrategy = PriceCalculationStrategy.LastPurchasePrice;
+    private RoundingStrategy _roundingStrategy = RoundingStrategy.None;
+    private decimal? _markupPercentage;
+    private bool _onlyActiveProducts = true;
+    private decimal? _minimumQuantity;
+
+    private List<BusinessPartyDto> _suppliers = new();
+    private BusinessPartyDto? _selectedSupplier;
+    private DateTime? _fromDate = DateTime.Now.AddMonths(-3);
+    private DateTime? _toDate = DateTime.Now;
+    private GeneratePriceListPreviewDto? _preview;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSuppliersAsync();
+    }
+
+    private async Task LoadSuppliersAsync()
+    {
+        try
+        {
+            var suppliers = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Supplier);
+            var both = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Both);
+            _suppliers = suppliers.Concat(both).OrderBy(s => s.Name).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading suppliers");
+            Snackbar.Add(
+                TranslationService.GetTranslation("supplier.loadingError", "Errore nel caricamento dei fornitori"),
+                Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<BusinessPartyDto>> SearchSuppliers(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(value))
+            return _suppliers;
+
+        return _suppliers.Where(s => s.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task LoadPreview()
+    {
+        if (_selectedSupplier == null || _fromDate == null || _toDate == null)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("validation.requiredFields", "Compila tutti i campi obbligatori"),
+                Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _isLoading = true;
+
+            var dto = new GeneratePriceListFromPurchasesDto
+            {
+                Name = _name,
+                Description = _description,
+                Code = _code,
+                SupplierId = _selectedSupplier.Id,
+                FromDate = _fromDate.Value,
+                ToDate = _toDate.Value,
+                CalculationStrategy = _calculationStrategy,
+                RoundingStrategy = _roundingStrategy,
+                MarkupPercentage = _markupPercentage,
+                OnlyActiveProducts = _onlyActiveProducts,
+                MinimumQuantity = _minimumQuantity
+            };
+
+            _preview = await PriceListService.PreviewGenerateFromPurchasesAsync(dto, CancellationToken.None);
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("pricelist.previewLoaded", "Anteprima caricata con successo"),
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("pricelist.previewError", "Errore nel caricamento dell'anteprima: {0}", ex.Message),
+                Severity.Error);
+            Logger.LogError(ex, "Error loading price list preview");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task Generate()
+    {
+        if (_selectedSupplier == null || _fromDate == null || _toDate == null || _preview == null)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("validation.requiredFields", "Compila tutti i campi obbligatori"),
+                Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _isLoading = true;
+
+            var dto = new GeneratePriceListFromPurchasesDto
+            {
+                Name = _name,
+                Description = _description,
+                Code = _code,
+                SupplierId = _selectedSupplier.Id,
+                FromDate = _fromDate.Value,
+                ToDate = _toDate.Value,
+                CalculationStrategy = _calculationStrategy,
+                RoundingStrategy = _roundingStrategy,
+                MarkupPercentage = _markupPercentage,
+                OnlyActiveProducts = _onlyActiveProducts,
+                MinimumQuantity = _minimumQuantity
+            };
+
+            var priceListId = await PriceListService.GenerateFromPurchasesAsync(dto, CancellationToken.None);
+
+            Snackbar.Add(
+                TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"),
+                Severity.Success);
+
+            MudDialog.Close(DialogResult.Ok(priceListId));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("pricelist.generateError", "Errore durante la generazione: {0}", ex.Message),
+                Severity.Error);
+            Logger.LogError(ex, "Error generating price list");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
