@@ -1,6 +1,5 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.DTOs.Common;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
@@ -8,7 +7,6 @@ using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatu
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
-using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 
 namespace EventForge.Server.Services.PriceLists;
 

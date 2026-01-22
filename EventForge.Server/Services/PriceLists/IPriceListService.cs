@@ -114,4 +114,18 @@ public interface IPriceListService
         int quantity = 1,
         DateTime? evaluationDate = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calcola il prezzo di un prodotto secondo la modalità specificata.
+    /// </summary>
+    Task<ProductPriceResultDto> GetProductPriceAsync(
+        GetProductPriceRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    // Phase 2A/2B - BusinessParty assignment methods
+    Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, string currentUser, CancellationToken cancellationToken = default);
+    Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default);
+    Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(PriceListType type, PriceListDirection direction, CancellationToken cancellationToken = default);
+    Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, CancellationToken cancellationToken = default);
 }
