@@ -33,6 +33,38 @@
         </div>
 
         <div class="eftable-wrapper">
+            @* Filter active indicator *@
+            @if (!string.IsNullOrWhiteSpace(_searchTerm) || 
+                 _selectedWarehouseId.HasValue || 
+                 _selectedLocationId.HasValue ||
+                 _showOnlyLowStock || 
+                 _showOnlyCritical || 
+                 _showOnlyOutOfStock ||
+                 _showOnlyInStock ||
+                 _showAllProducts)
+            {
+                <div class="pa-2">
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-0">
+                        <div class="d-flex align-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.FilterAlt" Size="Size.Small" />
+                            <MudText Typo="Typo.body2">
+                                @TranslationService.GetTranslation("stock.filtersActive", 
+                                    "Filtri attivi: visualizzati {0} di {1} risultati totali",
+                                    _stockItems.Count,
+                                    _totalCount)
+                            </MudText>
+                            <MudSpacer />
+                            <MudButton Size="Size.Small" 
+                                       Variant="Variant.Text" 
+                                       Color="Color.Primary"
+                                       OnClick="ClearFiltersAndReload">
+                                @TranslationService.GetTranslation("common.clearFilters", "Cancella filtri")
+                            </MudButton>
+                        </div>
+                    </MudAlert>
+                </div>
+            }
+            
             <EFTable @ref="_efTable"
                  TItem="StockLocationDetail"
                  Items="_stockItems"
@@ -42,7 +74,8 @@
                  IsLoading="_isLoadingStock"
                  ComponentKey="StockOverview"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowInternalPager="false">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")
@@ -122,6 +155,7 @@
                                         IsDisabled="_isLoadingStock"
                                         OnRefresh="@LoadStockOverviewAsync" />
             </ToolBarContent>
+            
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -376,6 +410,44 @@
                 </div>
             </NoRecordsContent>
             </EFTable>
+            
+            @* Server-side pagination controls *@
+            @if (_totalCount > 0)
+            {
+                <div class="d-flex justify-space-between align-center pa-4">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("common.showingItems", 
+                            "Visualizzati {0}-{1} di {2}", 
+                            (_currentPage - 1) * _pageSize + 1,
+                            Math.Min(_currentPage * _pageSize, _totalCount),
+                            _totalCount)
+                    </MudText>
+                    
+                    <div class="d-flex align-center gap-2">
+                        <MudSelect @bind-Value="_pageSize" 
+                                   @bind-Value:after="OnPageSizeChanged"
+                                   T="int" 
+                                   Label="@TranslationService.GetTranslation("common.itemsPerPage", "Elementi per pagina")"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Class="ef-input"
+                                   Style="width:150px;">
+                            <MudSelectItem Value="25">25</MudSelectItem>
+                            <MudSelectItem Value="50">50</MudSelectItem>
+                            <MudSelectItem Value="100">100</MudSelectItem>
+                            <MudSelectItem Value="200">200</MudSelectItem>
+                        </MudSelect>
+                        
+                        <MudPagination Count="_totalPages"
+                                       Selected="_currentPage"
+                                       SelectedChanged="OnPageChanged"
+                                       BoundaryCount="1"
+                                       MiddleCount="3"
+                                       ShowFirstButton="true"
+                                       ShowLastButton="true" />
+                    </div>
+                </div>
+            }
         </div>
     </div>
 
@@ -500,6 +572,12 @@
     private bool _showAllProducts = false;
     private bool _detailedView = true;
     private CancellationTokenSource? _searchDebounceCts;
+    
+    // Pagination state
+    private int _currentPage = 1;
+    private int _pageSize = 50;
+    private long _totalCount = 0;
+    private int _totalPages = 0;
 
     // Quick edit state
     private Guid? _editingStockId = null;
@@ -698,8 +776,8 @@
         {
             _isLoadingStock = true;
             var result = await StockService.GetStockOverviewAsync(
-                page: 1,
-                pageSize: 100, // Reasonable page size for initial load
+                page: _currentPage,
+                pageSize: _pageSize,
                 searchTerm: string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
                 warehouseId: _selectedWarehouseId,
                 locationId: _selectedLocationId,
@@ -713,9 +791,12 @@
 
             // Add null safety
             _stockItems = result?.Items?.ToList() ?? new List<StockLocationDetail>();
+            _totalCount = result?.TotalCount ?? 0;
+            _totalPages = _pageSize > 0 ? (int)((_totalCount + _pageSize - 1) / _pageSize) : 0;
             
             // Add diagnostic logging
-            Logger.LogInformation("Loaded {Count} stock items (showAllProducts={ShowAll})", _stockItems.Count, _showAllProducts);
+            Logger.LogInformation("Loaded page {Page} of {TotalPages} ({Count} items of {Total} total)", 
+                _currentPage, _totalPages, _stockItems.Count, _totalCount);
         }
         catch (Exception ex)
         {
@@ -742,6 +823,7 @@
         _showOnlyOutOfStock = false;
         _showOnlyInStock = false;
         _showAllProducts = false;
+        _currentPage = 1; // Reset to first page
         await LoadStockOverviewAsync();
     }
 
@@ -757,6 +839,7 @@
             await Task.Delay(300, token); // Debounce with cancellation
             if (!token.IsCancellationRequested)
             {
+                _currentPage = 1; // Reset to first page
                 await LoadStockOverviewAsync();
             }
         }
@@ -794,16 +877,40 @@
         }
         
         // Reload stock data with new warehouse filter
+        _currentPage = 1; // Reset to first page
         await LoadStockOverviewAsync();
     }
 
     private async Task OnFilterChanged()
     {
+        _currentPage = 1; // Reset to first page
         await LoadStockOverviewAsync();
     }
 
     private async Task OnViewChanged()
     {
+        _currentPage = 1; // Reset to first page
+        await LoadStockOverviewAsync();
+    }
+
+    /// <summary>
+    /// Handles page change event.
+    /// </summary>
+    private async Task OnPageChanged(int newPage)
+    {
+        if (newPage >= 1 && newPage <= _totalPages && newPage != _currentPage)
+        {
+            _currentPage = newPage;
+            await LoadStockOverviewAsync();
+        }
+    }
+
+    /// <summary>
+    /// Handles page size change event.
+    /// </summary>
+    private async Task OnPageSizeChanged()
+    {
+        _currentPage = 1; // Reset to first page
         await LoadStockOverviewAsync();
     }
 
@@ -836,6 +943,16 @@
     {
         try
         {
+            // Check if stock entry exists
+            if (item.StockId == Guid.Empty)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("stock.noStockEntry", 
+                        "Impossibile modificare: nessuna giacenza registrata per questo prodotto. Usa la modifica completa."),
+                    Severity.Warning);
+                return;
+            }
+
             var difference = Math.Abs(_editingNewQuantity - item.Quantity);
             
             // Block if difference exceeds quick edit limit
@@ -916,6 +1033,37 @@
 
         try
         {
+            // Handle creation of stock if it doesn't exist
+            if (_editingItem.StockId == Guid.Empty)
+            {
+                // Create a new stock record instead of adjusting
+                var createStockDto = new CreateStockDto
+                {
+                    ProductId = _editingItem.ProductId,
+                    StorageLocationId = _editingItem.LocationId,
+                    Quantity = _editingNewQuantity,
+                    ReservedQuantity = 0,
+                    Notes = _editingNotes
+                };
+
+                var createdStock = await StockService.CreateOrUpdateStockAsync(createStockDto);
+                
+                if (createdStock != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("stock.stockCreated", 
+                        "Giacenza creata con successo!"), Severity.Success);
+                    await LoadStockOverviewAsync();
+                    CloseFullEditPopover();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("stock.createError", 
+                        "Errore nella creazione della giacenza"), Severity.Error);
+                }
+                return;
+            }
+
+            // Existing code for stock adjustment
             var adjustDto = new AdjustStockDto
             {
                 StockId = _editingItem.StockId,

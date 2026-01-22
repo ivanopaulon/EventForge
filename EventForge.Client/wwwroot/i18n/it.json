@@ -321,7 +321,9 @@
     "row": "Riga",
     "data": "Dati",
     "selectedFile": "File selezionato",
-    "fileTooLarge": "Il file è troppo grande. Dimensione massima {0}MB"
+    "fileTooLarge": "Il file è troppo grande. Dimensione massima {0}MB",
+    "showingItems": "Visualizzati {0}-{1} di {2}",
+    "itemsPerPage": "Elementi per pagina"
   },
   "dataRetention": {
     "indefinite": "Indefinito"
@@ -2862,8 +2864,12 @@
   "stock": {
     "showAllProducts": "Mostra tutti i prodotti",
     "showAllProductsTooltip": "Include prodotti senza giacenza registrata",
-    "noStockEntry": "Nessuna giacenza",
-    "neverStocked": "Mai movimentato"
+    "noStockEntry": "Nessuna giacenza registrata per questo prodotto",
+    "neverStocked": "Mai movimentato",
+    "stockCreated": "Giacenza creata con successo!",
+    "createError": "Errore nella creazione della giacenza",
+    "filtersActive": "Filtri attivi: visualizzati {0} di {1} risultati totali",
+    "quickEditLimitExceeded": "Differenza troppo grande (> {0} unità). Usa la modalità di modifica completa."
   },
   "stockStatus": {
     "ok": "OK",

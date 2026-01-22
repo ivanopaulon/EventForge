@@ -318,7 +318,9 @@
     "row": "Row",
     "data": "Data",
     "selectedFile": "Selected file",
-    "fileTooLarge": "File is too large. Maximum size is {0}MB"
+    "fileTooLarge": "File is too large. Maximum size is {0}MB",
+    "showingItems": "Showing {0}-{1} of {2}",
+    "itemsPerPage": "Items per page"
   },
   "dataRetention": {
     "indefinite": "Indefinite"
@@ -2862,8 +2864,12 @@
   "stock": {
     "showAllProducts": "Show all products",
     "showAllProductsTooltip": "Include products without registered stock",
-    "noStockEntry": "No stock entry",
-    "neverStocked": "Never stocked"
+    "noStockEntry": "No stock entry registered for this product",
+    "neverStocked": "Never stocked",
+    "stockCreated": "Stock created successfully!",
+    "createError": "Error creating stock entry",
+    "filtersActive": "Active filters: showing {0} of {1} total results",
+    "quickEditLimitExceeded": "Difference too large (> {0} units). Use full edit mode."
   },
   "stockStatus": {
     "ok": "OK",
