@@ -1130,7 +1130,7 @@
             // Nuova giacenza - resetta i dropdown
             _editingWarehouseId = null;
             _editingLocationId = null;
-            _editingLocations = new List<StorageLocationDto>();
+            _editingLocations = new();
         }
         else
         {
@@ -1144,12 +1144,12 @@
                 try
                 {
                     var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_editingWarehouseId.Value);
-                    _editingLocations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
+                    _editingLocations = result?.Items?.ToList() ?? new();
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _editingWarehouseId);
-                    _editingLocations = new List<StorageLocationDto>();
+                    _editingLocations = new();
                 }
             }
         }
@@ -1170,7 +1170,7 @@
         _editingNotes = string.Empty;
         _editingWarehouseId = null;
         _editingLocationId = null;
-        _editingLocations = new List<StorageLocationDto>();
+        _editingLocations = new();
         StateHasChanged();
     }
 
@@ -1181,7 +1181,7 @@
     {
         // Reset location selection when warehouse changes
         _editingLocationId = null;
-        _editingLocations = new List<StorageLocationDto>();
+        _editingLocations = new();
         
         // Load locations for the selected warehouse
         if (_editingWarehouseId.HasValue)
@@ -1189,7 +1189,7 @@
             try
             {
                 var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_editingWarehouseId.Value);
-                _editingLocations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
+                _editingLocations = result?.Items?.ToList() ?? new();
             }
             catch (Exception ex)
             {
