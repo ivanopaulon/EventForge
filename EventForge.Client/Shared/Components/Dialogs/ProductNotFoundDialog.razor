@@ -177,6 +177,9 @@
     private ProductDto? _selectedProduct;
     private CreateProductCodeDto _createCodeDto = new();
     
+    // Delay to allow form to render in the DOM before validation
+    private const int FormRenderDelayMs = 150;
+    
     // Typed result class for assignment
     public class AssignResult
     {
@@ -206,7 +209,7 @@
         if (firstRender && _selectedProduct != null && _form != null)
         {
             Logger.LogInformation("Pre-selected product detected, triggering form validation for product {ProductId}", _selectedProduct.Id);
-            await Task.Delay(150);
+            await Task.Delay(FormRenderDelayMs);
             await _form.Validate();
             Logger.LogInformation("Form validation result for pre-selected product: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
                 _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
@@ -227,8 +230,8 @@
             
             if (product != null)
             {
-                // Aspetta che il form venga renderizzato nel DOM
-                await Task.Delay(150);
+                // Wait for the form to be rendered in the DOM
+                await Task.Delay(FormRenderDelayMs);
                 
                 if (_form != null)
                 {
