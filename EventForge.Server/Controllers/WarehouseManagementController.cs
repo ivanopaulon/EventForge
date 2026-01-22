@@ -2455,7 +2455,7 @@ public class WarehouseManagementController : BaseApiController
 
             // Start timing and initialize counters
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            var totalRows = documentHeader.Rows?.Count ?? 0;
+            var totalRows = documentHeader.Rows.Count;
             var processedRows = 0;
             var skippedRows = 0;
 
