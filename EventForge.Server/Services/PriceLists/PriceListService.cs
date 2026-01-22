@@ -1772,18 +1772,21 @@ public class PriceListService : IPriceListService
         Product product,
         CancellationToken cancellationToken)
     {
+        ProductPriceResultDto result;
+        
         // Se ManualPrice presente → usa ApplyManualPriceAsync
         if (request.ManualPrice.HasValue && request.ManualPrice.Value > 0)
         {
-            var manualResult = await ApplyManualPriceAsync(request, product, cancellationToken);
-            manualResult = manualResult with { AppliedMode = PriceApplicationMode.HybridForcedWithOverrides };
-            return manualResult;
+            result = await ApplyManualPriceAsync(request, product, cancellationToken);
+        }
+        else
+        {
+            // Altrimenti → usa ApplyForcedPriceListAsync
+            result = await ApplyForcedPriceListAsync(request, product, cancellationToken);
         }
 
-        // Altrimenti → usa ApplyForcedPriceListAsync
-        var forcedResult = await ApplyForcedPriceListAsync(request, product, cancellationToken);
-        forcedResult = forcedResult with { AppliedMode = PriceApplicationMode.HybridForcedWithOverrides };
-        return forcedResult;
+        // Update mode to Hybrid
+        return result with { AppliedMode = PriceApplicationMode.HybridForcedWithOverrides };
     }
 
     #endregion
