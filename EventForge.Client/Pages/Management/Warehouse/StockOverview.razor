@@ -520,6 +520,44 @@
                     </MudText>
                 </div>
 
+                @if (_editingItem.StockId == Guid.Empty)
+                {
+                    @* Creazione nuova giacenza - mostra dropdown *@
+                    <MudSelect @bind-Value="_editingWarehouseId"
+                               @bind-Value:after="OnEditingWarehouseChanged"
+                               Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               Class="mb-3">
+                        @foreach (var warehouse in _warehouses)
+                        {
+                            <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudSelect @bind-Value="_editingLocationId"
+                               Label="@TranslationService.GetTranslation("stock.location", "Ubicazione")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               Disabled="@(!_editingWarehouseId.HasValue)"
+                               Class="mb-3">
+                        @foreach (var location in _editingLocations)
+                        {
+                            <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    @* Modifica giacenza esistente - mostra info ma non permettere cambio *@
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        <strong>@TranslationService.GetTranslation("field.warehouse", "Magazzino"):</strong> @_editingItem.WarehouseName
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        <strong>@TranslationService.GetTranslation("field.location", "Ubicazione"):</strong> @_editingItem.LocationCode
+                    </MudText>
+                }
+
                 <MudNumericField @bind-Value="_editingNewQuantity"
                                  Label="@TranslationService.GetTranslation("field.newQuantity", "Nuova Quantità")"
                                  Variant="Variant.Outlined"
@@ -645,6 +683,9 @@
     private StockLocationDetail? _editingItem = null;
     private StockAdjustmentReason _editingReason = StockAdjustmentReason.ManualCorrection;
     private string _editingNotes = string.Empty;
+    private Guid? _editingWarehouseId = null;
+    private Guid? _editingLocationId = null;
+    private List<StorageLocationDto> _editingLocations = new();
 
     // Data collections
     private List<StockLocationDetail> _stockItems = new();
@@ -1076,12 +1117,35 @@
     /// <summary>
     /// Opens the full edit popover.
     /// </summary>
-    private void OpenFullEditPopover(StockLocationDetail item, MouseEventArgs e)
+    private async Task OpenFullEditPopover(StockLocationDetail item, MouseEventArgs e)
     {
         _editingItem = item;
         _editingNewQuantity = item.Quantity;
         _editingReason = StockAdjustmentReason.ManualCorrection;
         _editingNotes = string.Empty;
+        
+        // Inizializza i dropdown per creazione/modifica
+        if (item.StockId == Guid.Empty)
+        {
+            // Nuova giacenza - resetta i dropdown
+            _editingWarehouseId = null;
+            _editingLocationId = null;
+            _editingLocations = new List<StorageLocationDto>();
+        }
+        else
+        {
+            // Giacenza esistente - pre-popola con i valori attuali (read-only)
+            _editingWarehouseId = item.WarehouseId;
+            _editingLocationId = item.LocationId;
+            
+            // Carica le ubicazioni del magazzino corrente
+            if (_editingWarehouseId.HasValue)
+            {
+                var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_editingWarehouseId.Value);
+                _editingLocations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
+            }
+        }
+        
         _isPopoverOpen = true;
         StateHasChanged();
     }
@@ -1096,6 +1160,36 @@
         _editingNewQuantity = 0;
         _editingReason = StockAdjustmentReason.ManualCorrection;
         _editingNotes = string.Empty;
+        _editingWarehouseId = null;
+        _editingLocationId = null;
+        _editingLocations = new List<StorageLocationDto>();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles warehouse selection changes and loads corresponding locations.
+    /// </summary>
+    private async Task OnEditingWarehouseChanged()
+    {
+        // Reset location selection when warehouse changes
+        _editingLocationId = null;
+        _editingLocations = new List<StorageLocationDto>();
+        
+        // Load locations for the selected warehouse
+        if (_editingWarehouseId.HasValue)
+        {
+            try
+            {
+                var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_editingWarehouseId.Value);
+                _editingLocations = result?.Items?.ToList() ?? new List<StorageLocationDto>();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _editingWarehouseId);
+                Snackbar.Add(TranslationService.GetTranslation("stock.locationLoadError", "Errore nel caricamento delle ubicazioni"), Severity.Error);
+            }
+        }
+        
         StateHasChanged();
     }
 
@@ -1111,11 +1205,18 @@
             // Handle creation of stock if it doesn't exist
             if (_editingItem.StockId == Guid.Empty)
             {
+                // Validate that location is selected
+                if (!_editingLocationId.HasValue)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("stock.locationRequired", "Seleziona un'ubicazione"), Severity.Warning);
+                    return;
+                }
+                
                 // Create a new stock record instead of adjusting
                 var createStockDto = new CreateStockDto
                 {
                     ProductId = _editingItem.ProductId,
-                    StorageLocationId = _editingItem.LocationId,
+                    StorageLocationId = _editingLocationId.Value,
                     Quantity = _editingNewQuantity,
                     ReservedQuantity = 0,
                     Notes = _editingNotes
