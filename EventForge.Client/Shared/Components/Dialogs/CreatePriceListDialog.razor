@@ -25,7 +25,7 @@
                         </MudText>
                         
                         <MudGrid Spacing="2">
-                            <MudItem xs="12" sm="8">
+                            <MudItem xs="12">
                                 <MudTextField @bind-Value="_model.Name"
                                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                               Variant="Variant.Outlined"
@@ -33,13 +33,6 @@
                                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                               MaxLength="100"
                                               Counter="100" />
-                            </MudItem>
-                            <MudItem xs="12" sm="4">
-                                <MudTextField @bind-Value="_model.Code"
-                                              Label="@TranslationService.GetTranslation("field.code", "Codice")"
-                                              Variant="Variant.Outlined"
-                                              HelperText="@TranslationService.GetTranslation("pricelist.codeHelper", "Lascia vuoto per generazione automatica")"
-                                              MaxLength="50" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_model.Description"
@@ -52,26 +45,13 @@
                         </MudGrid>
                     </MudPaper>
 
-                    <!-- Type and Status -->
+                    <!-- Status and Priority -->
                     <MudPaper Elevation="2" Class="pa-4 mb-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
-                            @TranslationService.GetTranslation("pricelist.typeAndStatus", "Tipo e Stato")
+                            @TranslationService.GetTranslation("pricelist.statusAndPriority", "Stato e Priorità")
                         </MudText>
                         
                         <MudGrid Spacing="2">
-                            <MudItem xs="12" sm="6">
-                                <MudSelect @bind-Value="_model.Type"
-                                           Label="@($"{TranslationService.GetTranslation("pricelist.type", "Tipo")} *")"
-                                           Variant="Variant.Outlined"
-                                           Required="true">
-                                    <MudSelectItem Value="PriceListType.Sales">
-                                        @TranslationService.GetTranslation("pricelist.type.sales", "Vendita")
-                                    </MudSelectItem>
-                                    <MudSelectItem Value="PriceListType.Purchase">
-                                        @TranslationService.GetTranslation("pricelist.type.purchase", "Acquisto")
-                                    </MudSelectItem>
-                                </MudSelect>
-                            </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudSelect @bind-Value="_model.Status"
                                            Label="@($"{TranslationService.GetTranslation("common.status", "Stato")} *")"
@@ -93,7 +73,7 @@
                                                  Max="100"
                                                  HelperText="@TranslationService.GetTranslation("pricelist.priorityHelper", "0 = priorità massima")" />
                             </MudItem>
-                            <MudItem xs="12" sm="6">
+                            <MudItem xs="12">
                                 <MudSwitch @bind-Value="_model.IsDefault"
                                            Label="@TranslationService.GetTranslation("pricelist.isDefault", "Listino Default")"
                                            Color="Color.Primary" />
@@ -161,7 +141,7 @@
 
 @code {
     [CascadingParameter]
-    private MudDialogInstance MudDialog { get; set; } = null!;
+    private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private MudForm _form = null!;
     private bool _isFormValid;

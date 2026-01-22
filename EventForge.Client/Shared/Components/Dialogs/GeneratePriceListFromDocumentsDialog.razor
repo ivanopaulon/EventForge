@@ -28,7 +28,7 @@
                         
                         <MudGrid Spacing="2">
                             <MudItem xs="12" sm="8">
-                                <MudTextField @bind-Value="_model.Name"
+                                <MudTextField @bind-Value="_name"
                                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                               Variant="Variant.Outlined"
                                               Required="true"
@@ -36,14 +36,14 @@
                                               MaxLength="200" />
                             </MudItem>
                             <MudItem xs="12" sm="4">
-                                <MudTextField @bind-Value="_model.Code"
+                                <MudTextField @bind-Value="_code"
                                               Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                               Variant="Variant.Outlined"
                                               HelperText="@TranslationService.GetTranslation("pricelist.codeHelper", "Lascia vuoto per generazione automatica")"
                                               MaxLength="50" />
                             </MudItem>
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="_model.Description"
+                                <MudTextField @bind-Value="_description"
                                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                               Variant="Variant.Outlined"
                                               Lines="2"
@@ -99,7 +99,7 @@
                             @TranslationService.GetTranslation("pricelist.step3", "Passo 3: Strategia di Calcolo")
                         </MudText>
                         
-                        <MudRadioGroup @bind-Value="_model.CalculationStrategy">
+                        <MudRadioGroup @bind-Value="_calculationStrategy">
                             <MudRadio Value="PriceCalculationStrategy.LastPurchasePrice" Color="Color.Primary">
                                 <div class="d-flex align-center">
                                     <MudIcon Icon="@Icons.Material.Outlined.Schedule" Class="mr-2" />
@@ -153,7 +153,7 @@
                         <MudExpansionPanel Text="@TranslationService.GetTranslation("pricelist.advancedOptions", "Opzioni Avanzate")">
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="6">
-                                    <MudNumericField @bind-Value="_model.MarkupPercentage"
+                                    <MudNumericField @bind-Value="_markupPercentage"
                                                      Label="@TranslationService.GetTranslation("pricelist.markup", "Maggiorazione %")"
                                                      Variant="Variant.Outlined"
                                                      Min="-100"
@@ -161,7 +161,7 @@
                                                      HelperText="@TranslationService.GetTranslation("pricelist.markupHelper", "Es: 20 = +20%")" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
-                                    <MudSelect @bind-Value="_model.RoundingStrategy"
+                                    <MudSelect @bind-Value="_roundingStrategy"
                                                Label="@TranslationService.GetTranslation("pricelist.rounding", "Arrotondamento")"
                                                Variant="Variant.Outlined">
                                         <MudSelectItem Value="RoundingStrategy.None">@TranslationService.GetTranslation("rounding.none", "Nessuno")</MudSelectItem>
@@ -173,12 +173,12 @@
                                     </MudSelect>
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
-                                    <MudSwitch @bind-Value="_model.OnlyActiveProducts"
+                                    <MudSwitch @bind-Value="_onlyActiveProducts"
                                                Label="@TranslationService.GetTranslation("pricelist.onlyActiveProducts", "Solo Prodotti Attivi")"
                                                Color="Color.Primary" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
-                                    <MudNumericField @bind-Value="_model.MinimumQuantity"
+                                    <MudNumericField @bind-Value="_minimumQuantity"
                                                      Label="@TranslationService.GetTranslation("pricelist.minQuantity", "Quantità Minima Totale")"
                                                      Variant="Variant.Outlined"
                                                      Min="0"
@@ -273,26 +273,21 @@
 
 @code {
     [CascadingParameter]
-    private MudDialogInstance MudDialog { get; set; } = null!;
+    private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private MudForm _form = null!;
     private bool _isFormValid;
     private bool _isLoading = false;
 
-    private GeneratePriceListFromPurchasesDto _model = new()
-    {
-        Name = string.Empty,
-        Description = null,
-        Code = null,
-        SupplierId = Guid.Empty,
-        FromDate = DateTime.Now.AddMonths(-3),
-        ToDate = DateTime.Now,
-        CalculationStrategy = PriceCalculationStrategy.LastPurchasePrice,
-        RoundingStrategy = RoundingStrategy.None,
-        MarkupPercentage = null,
-        OnlyActiveProducts = true,
-        MinimumQuantity = null
-    };
+    // Individual fields for form binding
+    private string _name = string.Empty;
+    private string? _description;
+    private string? _code;
+    private PriceCalculationStrategy _calculationStrategy = PriceCalculationStrategy.LastPurchasePrice;
+    private RoundingStrategy _roundingStrategy = RoundingStrategy.None;
+    private decimal? _markupPercentage;
+    private bool _onlyActiveProducts = true;
+    private decimal? _minimumQuantity;
 
     private List<BusinessPartyDto> _suppliers = new();
     private BusinessPartyDto? _selectedSupplier;
@@ -351,17 +346,17 @@
 
             var dto = new GeneratePriceListFromPurchasesDto
             {
-                Name = _model.Name,
-                Description = _model.Description,
-                Code = _model.Code,
+                Name = _name,
+                Description = _description,
+                Code = _code,
                 SupplierId = _selectedSupplier.Id,
                 FromDate = _fromDate.Value,
                 ToDate = _toDate.Value,
-                CalculationStrategy = _model.CalculationStrategy,
-                RoundingStrategy = _model.RoundingStrategy,
-                MarkupPercentage = _model.MarkupPercentage,
-                OnlyActiveProducts = _model.OnlyActiveProducts,
-                MinimumQuantity = _model.MinimumQuantity
+                CalculationStrategy = _calculationStrategy,
+                RoundingStrategy = _roundingStrategy,
+                MarkupPercentage = _markupPercentage,
+                OnlyActiveProducts = _onlyActiveProducts,
+                MinimumQuantity = _minimumQuantity
             };
 
             _preview = await PriceListService.PreviewGenerateFromPurchasesAsync(dto, CancellationToken.None);
@@ -399,17 +394,17 @@
 
             var dto = new GeneratePriceListFromPurchasesDto
             {
-                Name = _model.Name,
-                Description = _model.Description,
-                Code = _model.Code,
+                Name = _name,
+                Description = _description,
+                Code = _code,
                 SupplierId = _selectedSupplier.Id,
                 FromDate = _fromDate.Value,
                 ToDate = _toDate.Value,
-                CalculationStrategy = _model.CalculationStrategy,
-                RoundingStrategy = _model.RoundingStrategy,
-                MarkupPercentage = _model.MarkupPercentage,
-                OnlyActiveProducts = _model.OnlyActiveProducts,
-                MinimumQuantity = _model.MinimumQuantity
+                CalculationStrategy = _calculationStrategy,
+                RoundingStrategy = _roundingStrategy,
+                MarkupPercentage = _markupPercentage,
+                OnlyActiveProducts = _onlyActiveProducts,
+                MinimumQuantity = _minimumQuantity
             };
 
             var priceListId = await PriceListService.GenerateFromPurchasesAsync(dto, CancellationToken.None);
