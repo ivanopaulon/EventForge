@@ -1819,6 +1819,17 @@ public class PriceListService : IPriceListService
                 throw new InvalidOperationException($"Price list {sourcePriceListId} not found");
             }
 
+            // Count source entries BEFORE adding the new price list
+            var sourceEntriesCount = sourcePriceList.ProductPrices?.Count(pp => !pp.IsDeleted) ?? 0;
+            
+            // If the navigation property is empty, do a direct query (can happen with in-memory DB in tests)
+            if (sourceEntriesCount == 0)
+            {
+                sourceEntriesCount = await _context.PriceListEntries
+                    .Where(e => e.PriceListId == sourcePriceListId && !e.IsDeleted)
+                    .CountAsync(cancellationToken);
+            }
+
             // 2. Genera codice se non fornito
             var newCode = dto.Code ?? await GenerateUniquePriceListCodeAsync(
                 dto.Name, cancellationToken);
@@ -1847,7 +1858,7 @@ public class PriceListService : IPriceListService
 
             var stats = new
             {
-                SourcePriceCount = sourcePriceList.ProductPrices.Count(pp => !pp.IsDeleted),
+                SourcePriceCount = sourceEntriesCount,
                 CopiedPriceCount = 0,
                 SkippedPriceCount = 0,
                 CopiedBusinessPartyCount = 0
