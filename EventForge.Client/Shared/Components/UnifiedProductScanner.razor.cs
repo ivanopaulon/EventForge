@@ -65,6 +65,11 @@ namespace EventForge.Client.Shared.Components
 
         #region Parameters - Appearance
 
+        /// <summary>
+        /// Title to display at the top of the component.
+        /// Set to null to hide the title section entirely.
+        /// Default: "Cerca Prodotto"
+        /// </summary>
         [Parameter] public string? Title { get; set; } = "Cerca Prodotto";
         [Parameter] public string Placeholder { get; set; } = "Scansiona barcode o cerca...";
         [Parameter] public string? SearchHelperText { get; set; }
