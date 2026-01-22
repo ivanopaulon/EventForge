@@ -198,10 +198,54 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        
+        // If a product was pre-selected, trigger form validation after first render
+        if (firstRender && _selectedProduct != null && _form != null)
+        {
+            Logger.LogInformation("Pre-selected product detected, triggering form validation for product {ProductId}", _selectedProduct.Id);
+            await Task.Delay(150);
+            await _form.Validate();
+            Logger.LogInformation("Form validation result for pre-selected product: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
+                _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
+            StateHasChanged();
+        }
+    }
+
     private async Task OnProductSelected(ProductDto? product)
     {
         _selectedProduct = product;
-        StateHasChanged();
+        
+        Logger.LogInformation("Product selected: {ProductId} - {ProductName}", 
+            product?.Id, product?.Name);
+        
+        await InvokeAsync(async () =>
+        {
+            StateHasChanged();
+            
+            if (product != null)
+            {
+                // Aspetta che il form venga renderizzato nel DOM
+                await Task.Delay(150);
+                
+                if (_form != null)
+                {
+                    Logger.LogInformation("Triggering form validation for product {ProductId}", product.Id);
+                    await _form.Validate();
+                    
+                    Logger.LogInformation("Form validation result: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
+                        _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
+                    
+                    StateHasChanged();
+                }
+                else
+                {
+                    Logger.LogWarning("Form reference is null after product selection");
+                }
+            }
+        });
     }
 
     private async Task AssignBarcodeToProduct()
