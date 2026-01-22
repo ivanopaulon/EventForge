@@ -2423,6 +2423,46 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
+            // Validate document is in Open status
+            if (documentHeader.Status != EventForge.DTOs.Common.DocumentStatus.Open)
+            {
+                _logger.LogWarning(
+                    "Cannot finalize inventory document {DocumentId}: status is {Status}, expected Open",
+                    documentId, documentHeader.Status);
+                
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid document status",
+                    Detail = $"Cannot finalize document: status is '{documentHeader.Status}'. Only documents in 'Open' status can be finalized.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Validate document has rows
+            if (documentHeader.Rows == null || !documentHeader.Rows.Any())
+            {
+                _logger.LogWarning(
+                    "Inventory document {DocumentId} has no rows to process",
+                    documentId);
+                
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Empty document",
+                    Detail = "Cannot finalize an inventory document with no rows.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Start timing and initialize counters
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var totalRows = documentHeader.Rows?.Count ?? 0;
+            var processedRows = 0;
+            var skippedRows = 0;
+
+            _logger.LogInformation(
+                "Starting finalization of inventory document {DocumentId} ({DocumentNumber}). Total rows: {TotalRows}",
+                documentId, documentHeader.Number, totalRows);
+
             // Validation: verify that all ProductId and LocationId exist before processing
             var productIds = documentHeader.Rows.Where(r => r.ProductId.HasValue).Select(r => r.ProductId!.Value).Distinct().ToList();
             var locationIds = documentHeader.Rows.Where(r => r.LocationId.HasValue).Select(r => r.LocationId!.Value).Distinct().ToList();
@@ -2483,6 +2523,7 @@ public class WarehouseManagementController : BaseApiController
                         if (productId == Guid.Empty || locationId == Guid.Empty)
                         {
                             _logger.LogWarning("Row {RowId} missing ProductId or LocationId, skipping", row.Id);
+                            skippedRows++;
                             continue;
                         }
 
@@ -2520,6 +2561,8 @@ public class WarehouseManagementController : BaseApiController
                                 "Applied inventory adjustment for product {ProductId} at location {LocationId}: {Adjustment} (from {Current} to {New})",
                                 productId, locationId, adjustmentQuantity, currentQuantity, newQuantity);
 
+                            processedRows++;
+
                             // 2) Ensure the Stocks table is updated to reflect the counted quantity
                             var createStockDto = new CreateStockDto
                             {
@@ -2550,6 +2593,7 @@ public class WarehouseManagementController : BaseApiController
                             _logger.LogInformation(
                                 "No adjustment needed for product {ProductId} at location {LocationId}: quantity unchanged at {Quantity}",
                                 productId, locationId, currentQuantity);
+                            processedRows++;
                         }
                     }
                     catch (Exception ex)
@@ -2585,6 +2629,13 @@ public class WarehouseManagementController : BaseApiController
                 FinalizedBy = closedDocument.ModifiedBy,
                 Rows = enrichedRows
             };
+
+            stopwatch.Stop();
+            _logger.LogInformation(
+                "Completed finalization of inventory document {DocumentId} ({DocumentNumber}) in {ElapsedMs}ms. " +
+                "Rows processed: {ProcessedRows}, Rows skipped: {SkippedRows}, Total: {TotalRows}",
+                documentId, documentHeader.Number, stopwatch.ElapsedMilliseconds,
+                processedRows, skippedRows, totalRows);
 
             return Ok(result);
         }
