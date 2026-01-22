@@ -20,8 +20,9 @@ namespace EventForge.DTOs.Warehouse
 
         /// <summary>
         /// Warehouse ID. Required for new stock. Cannot be changed for existing stock.
+        /// Nullable to indicate it's not needed for all operations.
         /// </summary>
-        public Guid WarehouseId { get; set; }
+        public Guid? WarehouseId { get; set; }
 
         /// <summary>
         /// Storage location ID. Required for new stock. Cannot be changed for existing stock.

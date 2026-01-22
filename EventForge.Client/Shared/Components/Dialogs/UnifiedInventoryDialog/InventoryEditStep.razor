@@ -105,7 +105,8 @@
 
             <MudDivider Class="my-4" />
 
-            <!-- Quantity Field (always editable) -->            @if (State.ConversionFactor > 1m && State.ProductUnit != null)
+            <!-- Quantity Field (always editable) -->
+            @if (State.ConversionFactor > 1m && State.ProductUnit != null)
             {
                 <!-- Alternative unit detected - show dual input fields -->
                 <MudAlert Severity="Severity.Info" Class="mb-3" Dense="true">

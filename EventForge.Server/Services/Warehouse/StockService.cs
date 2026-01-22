@@ -386,7 +386,7 @@ public class StockService : IStockService
             if (dto.StockId == null || dto.StockId == Guid.Empty)
             {
                 // Validate required fields for new stock
-                if (dto.WarehouseId == Guid.Empty)
+                if (!dto.WarehouseId.HasValue || dto.WarehouseId == Guid.Empty)
                     throw new ArgumentException("Warehouse is required for new stock");
                 
                 if (dto.StorageLocationId == Guid.Empty)
@@ -394,12 +394,12 @@ public class StockService : IStockService
                 
                 // Verify warehouse exists
                 var warehouseExists = await _context.StorageFacilities
-                    .AnyAsync(w => w.Id == dto.WarehouseId && 
+                    .AnyAsync(w => w.Id == dto.WarehouseId.Value && 
                                   w.TenantId == currentTenantId.Value && 
                                   !w.IsDeleted, 
                               cancellationToken);
                 if (!warehouseExists)
-                    throw new ArgumentException($"Warehouse {dto.WarehouseId} not found");
+                    throw new ArgumentException($"Warehouse {dto.WarehouseId.Value} not found");
                 
                 // Verify location exists and belongs to the warehouse
                 var location = await _context.StorageLocations
@@ -410,7 +410,7 @@ public class StockService : IStockService
                 if (location == null)
                     throw new ArgumentException($"Storage location {dto.StorageLocationId} not found");
                 
-                if (location.WarehouseId != dto.WarehouseId)
+                if (location.WarehouseId != dto.WarehouseId.Value)
                     throw new ArgumentException("Storage location does not belong to the selected warehouse");
                 
                 // Verify product exists
@@ -476,9 +476,10 @@ public class StockService : IStockService
                     throw new ArgumentException($"Stock {dto.StockId} not found");
                 
                 // ❌ BLOCK: Attempt to change warehouse
-                if (dto.WarehouseId != Guid.Empty && 
+                if (dto.WarehouseId.HasValue && 
+                    dto.WarehouseId != Guid.Empty && 
                     existingStock.StorageLocation?.WarehouseId != null &&
-                    dto.WarehouseId != existingStock.StorageLocation.WarehouseId)
+                    dto.WarehouseId.Value != existingStock.StorageLocation.WarehouseId)
                 {
                     throw new InvalidOperationException(
                         "Cannot change the warehouse of existing stock. " +
