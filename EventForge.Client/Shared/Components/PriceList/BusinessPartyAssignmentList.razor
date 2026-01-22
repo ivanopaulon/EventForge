@@ -1,0 +1,391 @@
+@using MudBlazor
+@using EventForge.DTOs.PriceLists
+@using EventForge.DTOs.Common
+@inject IPriceListService PriceListService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<BusinessPartyAssignmentList> Logger
+
+@if (_isLoading)
+{
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudProgressCircular Indeterminate="true" />
+            <MudText Typo="Typo.body2">
+                @TranslationService.GetTranslation("common.loading", "Caricamento...")
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+else if (!AssignedBusinessParties.Any())
+{
+    <MudPaper Elevation="1" Class="pa-6">
+        <MudStack AlignItems="AlignItems.Center" Spacing="3">
+            <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Large" Color="Color.Default" />
+            <MudText Typo="Typo.h6" Align="Align.Center">
+                @TranslationService.GetTranslation("pricelist.noBusinessPartiesAssigned", "Nessun partner commerciale assegnato a questo listino")
+            </MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="mud-text-secondary">
+                @TranslationService.GetTranslation("pricelist.assignFirstBusinessParty", "Clicca 'Assegna Partner' per iniziare")
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+else
+{
+    <MudTable T="PriceListBusinessPartyDto"
+              Items="@_sortedBusinessParties"
+              Hover="true"
+              Breakpoint="Breakpoint.Sm"
+              Loading="@_isLoading"
+              Dense="true"
+              Elevation="1">
+        <HeaderContent>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<PriceListBusinessPartyDto, object>(x => x.BusinessPartyName)">
+                    @TranslationService.GetTranslation("pricelist.businessPartyName", "Partner Commerciale")
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                @TranslationService.GetTranslation("pricelist.businessPartyType", "Tipo Partner")
+            </MudTh>
+            <MudTh>
+                @TranslationService.GetTranslation("pricelist.isPrimary", "Principale")
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<PriceListBusinessPartyDto, object>(x => x.OverridePriority ?? 0)">
+                    @TranslationService.GetTranslation("pricelist.effectivePriority", "Priorità")
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<PriceListBusinessPartyDto, object>(x => x.GlobalDiscountPercentage ?? 0)">
+                    @TranslationService.GetTranslation("pricelist.globalDiscount", "Sconto Globale %")
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                @TranslationService.GetTranslation("field.validity", "Validità")
+            </MudTh>
+            <MudTh>
+                @TranslationService.GetTranslation("field.status", "Stato")
+            </MudTh>
+            <MudTh Style="text-align: right;">
+                @TranslationService.GetTranslation("field.actions", "Azioni")
+            </MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@TranslationService.GetTranslation("pricelist.businessPartyName", "Partner Commerciale")">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Color="Color.Primary" />
+                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.BusinessPartyName</MudText>
+                </MudStack>
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("pricelist.businessPartyType", "Tipo Partner")">
+                <MudChip T="string" Size="Size.Small" Color="@GetBusinessPartyTypeColor(context.BusinessPartyType)">
+                    @context.BusinessPartyType
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("pricelist.isPrimary", "Principale")">
+                @if (context.IsPrimary)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.Star">
+                        @TranslationService.GetTranslation("common.primary", "Principale")
+                    </MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("pricelist.effectivePriority", "Priorità")">
+                @if (context.OverridePriority.HasValue)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                        @context.OverridePriority.Value
+                    </MudChip>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">-</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("pricelist.globalDiscount", "Sconto Globale %")">
+                @if (_editingBusinessPartyId == context.BusinessPartyId)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudNumericField @bind-Value="_editingDiscount"
+                                         Min="-100"
+                                         Max="100"
+                                         Step="0.01m"
+                                         Format="N2"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Style="width: 120px;" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Check"
+                                       Color="Color.Success"
+                                       Size="Size.Small"
+                                       OnClick="@(() => SaveDiscountEdit(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Color="Color.Default"
+                                       Size="Size.Small"
+                                       OnClick="CancelDiscountEdit" />
+                    </MudStack>
+                }
+                else if (context.GlobalDiscountPercentage.HasValue)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudChip T="string" 
+                                 Size="Size.Small" 
+                                 Color="@(context.GlobalDiscountPercentage.Value > 0 ? Color.Success : context.GlobalDiscountPercentage.Value < 0 ? Color.Warning : Color.Default)">
+                            @(context.GlobalDiscountPercentage.Value > 0 ? "+" : "")@context.GlobalDiscountPercentage.Value.ToString("N2")%
+                        </MudChip>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       Color="Color.Default"
+                                       OnClick="@(() => StartDiscountEdit(context))" />
+                    </MudStack>
+                }
+                else
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">-</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                       Size="Size.Small"
+                                       Color="Color.Primary"
+                                       OnClick="@(() => StartDiscountEdit(context))" />
+                    </MudStack>
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("field.validity", "Validità")">
+                @if (context.SpecificValidFrom.HasValue || context.SpecificValidTo.HasValue)
+                {
+                    <MudText Typo="Typo.body2" Style="font-size: 0.8rem;">
+                        @(context.SpecificValidFrom?.ToString("dd/MM/yyyy") ?? "∞") - @(context.SpecificValidTo?.ToString("dd/MM/yyyy") ?? "∞")
+                    </MudText>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.AllInclusive">
+                        @TranslationService.GetTranslation("common.alwaysValid", "Sempre valido")
+                    </MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                <MudChip T="string" 
+                         Size="Size.Small" 
+                         Color="@GetStatusColor(context.Status)"
+                         Icon="@GetStatusIcon(context.Status)">
+                    @GetStatusText(context.Status)
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => EditBusinessParty(context))"
+                                   title="@TranslationService.GetTranslation("button.edit", "Modifica")" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => RemoveBusinessParty(context))"
+                                   title="@TranslationService.GetTranslation("button.delete", "Elimina")" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid PriceListId { get; set; }
+    [Parameter, EditorRequired] public List<PriceListBusinessPartyDto> AssignedBusinessParties { get; set; } = new();
+    [Parameter] public EventCallback<Guid> OnBusinessPartyRemoved { get; set; }
+    [Parameter] public EventCallback<PriceListBusinessPartyDto> OnBusinessPartyUpdated { get; set; }
+
+    private bool _isLoading = false;
+    private Guid? _editingBusinessPartyId;
+    private decimal? _editingDiscount;
+    private List<PriceListBusinessPartyDto> _sortedBusinessParties = new();
+
+    protected override void OnParametersSet()
+    {
+        _sortedBusinessParties = AssignedBusinessParties
+            .OrderByDescending(bp => bp.IsPrimary)
+            .ThenByDescending(bp => bp.OverridePriority ?? 0)
+            .ThenBy(bp => bp.BusinessPartyName)
+            .ToList();
+    }
+
+    private void StartDiscountEdit(PriceListBusinessPartyDto businessParty)
+    {
+        _editingBusinessPartyId = businessParty.BusinessPartyId;
+        _editingDiscount = businessParty.GlobalDiscountPercentage ?? 0;
+    }
+
+    private void CancelDiscountEdit()
+    {
+        _editingBusinessPartyId = null;
+        _editingDiscount = null;
+    }
+
+    private async Task SaveDiscountEdit(PriceListBusinessPartyDto businessParty)
+    {
+        try
+        {
+            var updateDto = new UpdateBusinessPartyAssignmentDto
+            {
+                IsPrimary = businessParty.IsPrimary,
+                OverridePriority = businessParty.OverridePriority,
+                GlobalDiscountPercentage = _editingDiscount,
+                SpecificValidFrom = businessParty.SpecificValidFrom,
+                SpecificValidTo = businessParty.SpecificValidTo,
+                Notes = businessParty.Notes
+            };
+
+            var updated = await PriceListService.UpdateBusinessPartyAssignmentAsync(
+                PriceListId, 
+                businessParty.BusinessPartyId, 
+                updateDto, 
+                default);
+
+            if (updated != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("pricelist.businessPartyUpdatedSuccess", "Configurazione partner aggiornata"), 
+                    Severity.Success);
+                
+                _editingBusinessPartyId = null;
+                _editingDiscount = null;
+                
+                await OnBusinessPartyUpdated.InvokeAsync(updated);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating business party discount");
+            Snackbar.Add(
+                TranslationService.GetTranslation("pricelist.businessPartyUpdateFailed", "Errore aggiornamento configurazione"), 
+                Severity.Error);
+        }
+    }
+
+    private async Task EditBusinessParty(PriceListBusinessPartyDto businessParty)
+    {
+        var parameters = new DialogParameters
+        {
+            { "PriceListId", PriceListId },
+            { "ExistingAssignment", businessParty }
+        };
+
+        var dialog = await DialogService.ShowAsync<EditBusinessPartyAssignmentDialog>(
+            TranslationService.GetTranslation("pricelist.editBusinessParty", "Modifica Partner Commerciale"),
+            parameters);
+        
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is UpdateBusinessPartyAssignmentDto dto)
+        {
+            try
+            {
+                var updated = await PriceListService.UpdateBusinessPartyAssignmentAsync(
+                    PriceListId,
+                    businessParty.BusinessPartyId,
+                    dto,
+                    default);
+
+                if (updated != null)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("pricelist.businessPartyUpdatedSuccess", "Configurazione partner aggiornata"),
+                        Severity.Success);
+                    
+                    await OnBusinessPartyUpdated.InvokeAsync(updated);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating business party assignment");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("pricelist.businessPartyUpdateFailed", "Errore aggiornamento configurazione"),
+                    Severity.Error);
+            }
+        }
+    }
+
+    private async Task RemoveBusinessParty(PriceListBusinessPartyDto businessParty)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", TranslationService.GetTranslation("pricelist.confirmRemoveBusinessParty", "Sei sicuro di voler rimuovere l'assegnazione di questo partner?") },
+            { "ButtonText", TranslationService.GetTranslation("button.remove", "Rimuovi") },
+            { "Color", Color.Error }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            parameters);
+        
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            try
+            {
+                await PriceListService.UnassignBusinessPartyAsync(PriceListId, businessParty.BusinessPartyId, default);
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("pricelist.businessPartyRemovedSuccess", "Partner rimosso con successo"),
+                    Severity.Info);
+                
+                await OnBusinessPartyRemoved.InvokeAsync(businessParty.BusinessPartyId);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error removing business party from price list");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("pricelist.businessPartyRemoveFailed", "Errore rimozione partner"),
+                    Severity.Error);
+            }
+        }
+    }
+
+    private Color GetBusinessPartyTypeColor(string type)
+    {
+        return type.ToLower() switch
+        {
+            "customer" or "cliente" => Color.Primary,
+            "supplier" or "fornitore" => Color.Secondary,
+            "both" or "cliente/fornitore" => Color.Tertiary,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status.ToLower() switch
+        {
+            "active" or "attivo" => Color.Success,
+            "suspended" or "sospeso" => Color.Warning,
+            "inactive" or "inattivo" => Color.Default,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusIcon(string status)
+    {
+        return status.ToLower() switch
+        {
+            "active" or "attivo" => Icons.Material.Filled.CheckCircle,
+            "suspended" or "sospeso" => Icons.Material.Filled.PauseCircle,
+            "inactive" or "inattivo" => Icons.Material.Filled.Cancel,
+            _ => Icons.Material.Filled.Help
+        };
+    }
+
+    private string GetStatusText(string status)
+    {
+        return status.ToLower() switch
+        {
+            "active" => TranslationService.GetTranslation("status.active", "Attivo"),
+            "suspended" => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+            "inactive" => TranslationService.GetTranslation("status.inactive", "Inattivo"),
+            _ => status
+        };
+    }
+}

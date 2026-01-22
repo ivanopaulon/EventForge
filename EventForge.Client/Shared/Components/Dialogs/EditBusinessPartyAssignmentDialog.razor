@@ -1,0 +1,186 @@
+@using MudBlazor
+@using EventForge.DTOs.PriceLists
+@inject ITranslationService TranslationService
+@inject ILogger<EditBusinessPartyAssignmentDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <!-- Business Party Name (Read-only) -->
+                <MudItem xs="12">
+                    <MudTextField Value="@ExistingAssignment.BusinessPartyName"
+                                  Label="@TranslationService.GetTranslation("pricelist.businessPartyName", "Partner Commerciale")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  AdornmentIcon="@Icons.Material.Filled.People"
+                                  AdornmentColor="Color.Primary" />
+                </MudItem>
+
+                <!-- IsPrimary Switch -->
+                <MudItem xs="12">
+                    <MudSwitch @bind-Value="_model.IsPrimary"
+                               Label="@TranslationService.GetTranslation("pricelist.isPrimary", "Partner Principale")"
+                               Color="Color.Primary" />
+                </MudItem>
+
+                <!-- Override Priority -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.OverridePriority"
+                                     Label="@TranslationService.GetTranslation("pricelist.overridePriority", "Priorità Personalizzata")"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Max="100"
+                                     Clearable="true"
+                                     HelperText="0-100"
+                                     AdornmentIcon="@Icons.Material.Filled.LowPriority"
+                                     Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Global Discount Percentage -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.GlobalDiscountPercentage"
+                                     Label="@TranslationService.GetTranslation("pricelist.globalDiscount", "Sconto Globale %")"
+                                     Variant="Variant.Outlined"
+                                     Min="-100"
+                                     Max="100"
+                                     Step="0.01m"
+                                     Format="N2"
+                                     Clearable="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Percent"
+                                     Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Validity Period -->
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_validFrom"
+                                   Label="@TranslationService.GetTranslation("pricelist.specificValidFrom", "Validità Da")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                                   AdornmentColor="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_validTo"
+                                   Label="@TranslationService.GetTranslation("pricelist.specificValidTo", "Validità A")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                                   AdornmentColor="Color.Primary" />
+                </MudItem>
+
+                <!-- Notes -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  MaxLength="500"
+                                  Counter="500"
+                                  AdornmentIcon="@Icons.Material.Filled.Notes"
+                                  Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Validation Errors -->
+                @if (!string.IsNullOrEmpty(_validationError))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Error" Dense="true">
+                            @_validationError
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">
+            @TranslationService.GetTranslation("button.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter, EditorRequired] public PriceListBusinessPartyDto ExistingAssignment { get; set; } = null!;
+    [Parameter] public Guid PriceListId { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid;
+    private UpdateBusinessPartyAssignmentDto _model = new();
+    private DateTime? _validFrom;
+    private DateTime? _validTo;
+    private string _validationError = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Map existing assignment to model
+        _model = new UpdateBusinessPartyAssignmentDto
+        {
+            IsPrimary = ExistingAssignment.IsPrimary,
+            OverridePriority = ExistingAssignment.OverridePriority,
+            GlobalDiscountPercentage = ExistingAssignment.GlobalDiscountPercentage,
+            SpecificValidFrom = ExistingAssignment.SpecificValidFrom,
+            SpecificValidTo = ExistingAssignment.SpecificValidTo,
+            Notes = ExistingAssignment.Notes
+        };
+
+        _validFrom = ExistingAssignment.SpecificValidFrom;
+        _validTo = ExistingAssignment.SpecificValidTo;
+    }
+
+    private bool ValidateModel()
+    {
+        _validationError = string.Empty;
+
+        if (_model.OverridePriority.HasValue && (_model.OverridePriority.Value < 0 || _model.OverridePriority.Value > 100))
+        {
+            _validationError = TranslationService.GetTranslation("validation.overridePriorityRange", "La priorità deve essere compresa tra 0 e 100");
+            return false;
+        }
+
+        if (_model.GlobalDiscountPercentage.HasValue && (_model.GlobalDiscountPercentage.Value < -100 || _model.GlobalDiscountPercentage.Value > 100))
+        {
+            _validationError = TranslationService.GetTranslation("validation.globalDiscountRange", "Lo sconto deve essere compreso tra -100 e +100");
+            return false;
+        }
+
+        if (_validFrom.HasValue && _validTo.HasValue && _validTo.Value <= _validFrom.Value)
+        {
+            _validationError = TranslationService.GetTranslation("validation.validToAfterValidFrom", "La data di fine validità deve essere successiva alla data di inizio");
+            return false;
+        }
+
+        return true;
+    }
+
+    private void Submit()
+    {
+        if (!ValidateModel())
+        {
+            return;
+        }
+
+        // Update model with dates
+        _model = new UpdateBusinessPartyAssignmentDto
+        {
+            IsPrimary = _model.IsPrimary,
+            OverridePriority = _model.OverridePriority,
+            GlobalDiscountPercentage = _model.GlobalDiscountPercentage,
+            SpecificValidFrom = _validFrom,
+            SpecificValidTo = _validTo,
+            Notes = _model.Notes
+        };
+
+        MudDialog?.Close(DialogResult.Ok(_model));
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}
