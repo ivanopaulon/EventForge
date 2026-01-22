@@ -499,8 +499,8 @@ public class PriceListService : IPriceListService
             Id = priceList.Id,
             Name = priceList.Name,
             Description = priceList.Description,
-            Type = priceList.Type,  // ← NUOVO (FASE 1)
-            Direction = priceList.Direction,  // ← NUOVO (FASE 1)
+            Type = priceList.Type,
+            Direction = priceList.Direction,
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
@@ -514,7 +514,7 @@ public class PriceListService : IPriceListService
             CreatedBy = priceList.CreatedBy,
             ModifiedAt = priceList.ModifiedAt,
             ModifiedBy = priceList.ModifiedBy,
-            AssignedBusinessParties = priceList.BusinessParties  // ← NUOVO (FASE 2A)
+            AssignedBusinessParties = priceList.BusinessParties
                 .Where(bp => !bp.IsDeleted && bp.Status == PriceListBusinessPartyStatus.Active)
                 .Select(bp => new PriceListBusinessPartyDto
                 {
@@ -1398,23 +1398,24 @@ public class PriceListService : IPriceListService
                                !plbp.IsDeleted &&
                                plbp.Status == PriceListBusinessPartyStatus.Active)
                 .Include(plbp => plbp.BusinessParty)
-                .OrderByDescending(plbp => plbp.IsPrimary)
-                .ThenBy(plbp => plbp.OverridePriority ?? int.MaxValue)
                 .ToListAsync(cancellationToken);
 
-            return relations.Select(plbp => new PriceListBusinessPartyDto
-            {
-                BusinessPartyId = plbp.BusinessPartyId,
-                BusinessPartyName = plbp.BusinessParty?.Name ?? "Unknown",
-                BusinessPartyType = plbp.BusinessParty?.PartyType.ToString() ?? "Unknown",
-                IsPrimary = plbp.IsPrimary,
-                OverridePriority = plbp.OverridePriority,
-                SpecificValidFrom = plbp.SpecificValidFrom,
-                SpecificValidTo = plbp.SpecificValidTo,
-                GlobalDiscountPercentage = plbp.GlobalDiscountPercentage,
-                Notes = plbp.Notes,
-                Status = plbp.Status.ToString()
-            });
+            return relations
+                .OrderByDescending(plbp => plbp.IsPrimary)
+                .ThenBy(plbp => plbp.OverridePriority.HasValue ? plbp.OverridePriority.Value : int.MaxValue)
+                .Select(plbp => new PriceListBusinessPartyDto
+                {
+                    BusinessPartyId = plbp.BusinessPartyId,
+                    BusinessPartyName = plbp.BusinessParty?.Name ?? "Unknown",
+                    BusinessPartyType = plbp.BusinessParty?.PartyType.ToString() ?? "Unknown",
+                    IsPrimary = plbp.IsPrimary,
+                    OverridePriority = plbp.OverridePriority,
+                    SpecificValidFrom = plbp.SpecificValidFrom,
+                    SpecificValidTo = plbp.SpecificValidTo,
+                    GlobalDiscountPercentage = plbp.GlobalDiscountPercentage,
+                    Notes = plbp.Notes,
+                    Status = plbp.Status.ToString()
+                });
         }
         catch (Exception ex)
         {
