@@ -423,7 +423,8 @@ namespace EventForge.Client.Shared.Components
             var parameters = new DialogParameters
             {
                 { "ProductId", SelectedProduct.Id },
-                { "IsEditMode", true }
+                { "IsEditMode", true },
+                { "ExistingProduct", SelectedProduct }
             };
 
             var options = new DialogOptions
