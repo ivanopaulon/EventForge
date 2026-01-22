@@ -2869,6 +2869,32 @@ public class ProductManagementController : BaseApiController
         return Ok(result);
     }
 
+    /// <summary>
+    /// Calcola il prezzo di un prodotto secondo la modalità specificata.
+    /// Supporta modalità: Automatico, Listino Forzato, Manuale, Ibrido.
+    /// </summary>
+    /// <param name="request">Parametri per il calcolo del prezzo</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Dettagli del prezzo applicato</returns>
+    [HttpPost("products/price")]
+    [ProducesResponseType(typeof(ProductPriceResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetProductPrice(
+        [FromBody] GetProductPriceRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _priceListService.GetProductPriceAsync(request, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     #endregion
 
     #endregion

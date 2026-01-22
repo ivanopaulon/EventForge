@@ -197,6 +197,36 @@ public class DocumentRow : AuditableEntity
     public string? Notes { get; set; }
 
     /// <summary>
+    /// Indica se il prezzo è stato impostato manualmente
+    /// </summary>
+    [Display(Name = "Is Price Manual", Description = "Indicates if the price was set manually.")]
+    public bool IsPriceManual { get; set; } = false;
+
+    /// <summary>
+    /// Listino da cui deriva il prezzo (null se manuale)
+    /// </summary>
+    [Display(Name = "Applied Price List", Description = "Price list from which the price is derived (null if manual).")]
+    public Guid? AppliedPriceListId { get; set; }
+
+    /// <summary>
+    /// Navigation property
+    /// </summary>
+    public PriceList.PriceList? AppliedPriceList { get; set; }
+
+    /// <summary>
+    /// Prezzo originale del listino (prima di sconti)
+    /// </summary>
+    [Display(Name = "Original Price From Price List", Description = "Original price from price list (before discounts).")]
+    public decimal? OriginalPriceFromPriceList { get; set; }
+
+    /// <summary>
+    /// Note sul prezzo (es. "Prezzo manuale concordato con cliente")
+    /// </summary>
+    [StringLength(500, ErrorMessage = "Price notes cannot exceed 500 characters.")]
+    [Display(Name = "Price Notes", Description = "Notes about the price (e.g., 'Manual price agreed with customer').")]
+    public string? PriceNotes { get; set; }
+
+    /// <summary>
     /// Sort order for the row in the document.
     /// </summary>
     [Display(Name = "Sort Order", Description = "Sort order for the row in the document.")]

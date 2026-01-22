@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Documents;
 
@@ -326,6 +327,25 @@ public class DocumentHeader : AuditableEntity
     [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Modalità applicazione prezzo per questo ordine specifico
+    /// (override rispetto al default del BusinessParty)
+    /// </summary>
+    [Display(Name = "Price Application Mode Override", Description = "Price application mode override for this specific document.")]
+    public PriceApplicationMode? PriceApplicationModeOverride { get; set; }
+
+    /// <summary>
+    /// Listino forzato per questo ordine specifico
+    /// (override rispetto al default del BusinessParty)
+    /// </summary>
+    [Display(Name = "Forced Price List Override", Description = "Forced price list override for this specific document.")]
+    public Guid? ForcedPriceListIdOverride { get; set; }
+
+    /// <summary>
+    /// Navigation property
+    /// </summary>
+    public PriceList.PriceList? ForcedPriceListOverride { get; set; }
 
     // --- Collaboration and Lock Management ---
     /// <summary>
