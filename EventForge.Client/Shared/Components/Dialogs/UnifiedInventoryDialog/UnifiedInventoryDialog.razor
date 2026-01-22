@@ -208,7 +208,9 @@
         State.IsEditMode = IsEditMode;
         
         // Initialize stock assignment tracking
-        State.IsStockAlreadyAssigned = ExistingStockId.HasValue && ExistingStockId != Guid.Empty;
+        // Stock is "already assigned" if we're editing an existing document row (IsEditMode = true)
+        // OR if there's an existing stock ID (modifying warehouse stock directly)
+        State.IsStockAlreadyAssigned = IsEditMode || (ExistingStockId.HasValue && ExistingStockId != Guid.Empty);
         State.ExistingStockId = ExistingStockId;
         State.ExistingWarehouseId = ExistingWarehouseId;
         State.ExistingLocationId = ExistingLocationId;

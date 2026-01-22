@@ -78,9 +78,12 @@ public class InventoryDialogState
     public bool IsEditMode { get; set; }
 
     /// <summary>
-    /// Indicates if the stock is already assigned to a warehouse/location.
-    /// If TRUE: Warehouse and Location are READ-ONLY.
-    /// If FALSE: Warehouse and Location are editable.
+    /// Determines if warehouse/location are already assigned and should be read-only.
+    /// TRUE when:
+    /// - Editing existing document row (IsEditMode = true)
+    /// - Modifying existing warehouse stock (ExistingStockId present)
+    /// FALSE when:
+    /// - Inserting new stock into inventory document (IsEditMode = false, ExistingStockId = null)
     /// </summary>
     public bool IsStockAlreadyAssigned { get; set; }
 
