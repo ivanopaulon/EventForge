@@ -33,6 +33,10 @@ public class ProductManagementController : BaseApiController
     private readonly IModelService _modelService;
     private readonly IUMService _umService;
     private readonly IPriceListService _priceListService;
+    private readonly IPriceListGenerationService _priceListGenerationService;
+    private readonly IPriceCalculationService _priceCalculationService;
+    private readonly IPriceListBusinessPartyService _priceListBusinessPartyService;
+    private readonly IPriceListBulkOperationsService _priceListBulkOperationsService;
     private readonly IPromotionService _promotionService;
     private readonly IBarcodeService _barcodeService;
     private readonly IDocumentHeaderService _documentHeaderService;
@@ -46,6 +50,10 @@ public class ProductManagementController : BaseApiController
         IModelService modelService,
         IUMService umService,
         IPriceListService priceListService,
+        IPriceListGenerationService priceListGenerationService,
+        IPriceCalculationService priceCalculationService,
+        IPriceListBusinessPartyService priceListBusinessPartyService,
+        IPriceListBulkOperationsService priceListBulkOperationsService,
         IPromotionService promotionService,
         IBarcodeService barcodeService,
         IDocumentHeaderService documentHeaderService,
@@ -58,6 +66,10 @@ public class ProductManagementController : BaseApiController
         _modelService = modelService ?? throw new ArgumentNullException(nameof(modelService));
         _umService = umService ?? throw new ArgumentNullException(nameof(umService));
         _priceListService = priceListService ?? throw new ArgumentNullException(nameof(priceListService));
+        _priceListGenerationService = priceListGenerationService ?? throw new ArgumentNullException(nameof(priceListGenerationService));
+        _priceCalculationService = priceCalculationService ?? throw new ArgumentNullException(nameof(priceCalculationService));
+        _priceListBusinessPartyService = priceListBusinessPartyService ?? throw new ArgumentNullException(nameof(priceListBusinessPartyService));
+        _priceListBulkOperationsService = priceListBulkOperationsService ?? throw new ArgumentNullException(nameof(priceListBulkOperationsService));
         _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
         _barcodeService = barcodeService ?? throw new ArgumentNullException(nameof(barcodeService));
         _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
@@ -1276,7 +1288,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _priceListService.DuplicatePriceListAsync(
+            var result = await _priceListGenerationService.DuplicatePriceListAsync(
                 id, dto, currentUser, cancellationToken);
 
             return CreatedAtAction(
@@ -1324,7 +1336,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _priceListService.AssignBusinessPartyAsync(id, dto, currentUser, cancellationToken);
+            var result = await _priceListBusinessPartyService.AssignBusinessPartyAsync(id, dto, currentUser, cancellationToken);
             return CreatedAtAction(
                 nameof(GetBusinessPartiesForPriceList),
                 new { id },
@@ -1351,7 +1363,7 @@ public class ProductManagementController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        var result = await _priceListService.RemoveBusinessPartyAsync(id, businessPartyId, currentUser, cancellationToken);
+        var result = await _priceListBusinessPartyService.RemoveBusinessPartyAsync(id, businessPartyId, currentUser, cancellationToken);
         
         if (!result)
             return NotFound(new { error = "Business party assignment not found" });
@@ -1370,7 +1382,7 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceListService.GetBusinessPartiesForPriceListAsync(id, cancellationToken);
+        var result = await _priceListBusinessPartyService.GetBusinessPartiesForPriceListAsync(id, cancellationToken);
         return Ok(result);
     }
 
@@ -1406,7 +1418,7 @@ public class ProductManagementController : BaseApiController
         [FromQuery] PriceListType? type = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceListService.GetPriceListsByBusinessPartyAsync(id, type, cancellationToken);
+        var result = await _priceListBusinessPartyService.GetPriceListsByBusinessPartyAsync(id, type, cancellationToken);
         return Ok(result);
     }
 
@@ -1429,7 +1441,7 @@ public class ProductManagementController : BaseApiController
     {
         try
         {
-            var preview = await _priceListService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
+            var preview = await _priceListGenerationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
             return Ok(preview);
         }
         catch (InvalidOperationException ex)
@@ -1458,7 +1470,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = User.Identity?.Name ?? "system";
-            var priceListId = await _priceListService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
+            var priceListId = await _priceListGenerationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
             
             return CreatedAtAction(
                 nameof(GetPriceList),
@@ -1490,7 +1502,7 @@ public class ProductManagementController : BaseApiController
     {
         try
         {
-            var preview = await _priceListService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
+            var preview = await _priceListGenerationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
             return Ok(preview);
         }
         catch (InvalidOperationException ex)
@@ -1519,7 +1531,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = User.Identity?.Name ?? "system";
-            var result = await _priceListService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
+            var result = await _priceListGenerationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
             
             return Ok(result);
         }
@@ -3005,7 +3017,7 @@ public class ProductManagementController : BaseApiController
         [FromQuery] int quantity = 1,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceListService.GetAppliedPriceAsync(
+        var result = await _priceCalculationService.GetAppliedPriceAsync(
             productId,
             eventId,
             businessPartyId,
@@ -3032,7 +3044,7 @@ public class ProductManagementController : BaseApiController
         [FromQuery] int quantity = 1,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceListService.GetPurchasePriceComparisonAsync(
+        var result = await _priceCalculationService.GetPurchasePriceComparisonAsync(
             productId,
             quantity,
             null,
