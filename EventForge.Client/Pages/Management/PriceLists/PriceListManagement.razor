@@ -377,48 +377,54 @@
     };
 
     // Dashboard configuration
-    private List<DashboardMetric<PriceListDto>> _dashboardMetrics = new()
+    private List<DashboardMetric<PriceListDto>> _dashboardMetrics = null!;
+
+    protected override void OnInitialized()
     {
-        new()
+        // Initialize dashboard metrics with translated strings
+        _dashboardMetrics = new()
         {
-            Title = "Totale Listini",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.PriceCheck,
-            Color = "primary",
-            Description = "Numero totale di listini",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Listini Attivi",
-            Type = MetricType.Count,
-            Filter = p => p.Status == PriceListStatus.Active,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "success",
-            Description = "Listini attivi",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Listini Vendita",
-            Type = MetricType.Count,
-            Filter = p => p.Type == PriceListType.Sales,
-            Icon = Icons.Material.Outlined.Sell,
-            Color = "info",
-            Description = "Listini di vendita",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Listini Default",
-            Type = MetricType.Count,
-            Filter = p => p.IsDefault,
-            Icon = Icons.Material.Outlined.Star,
-            Color = "warning",
-            Description = "Listini predefiniti",
-            Format = "N0"
-        }
-    };
+            new()
+            {
+                Title = TranslationService.GetTranslation("pricelist.metric.total", "Totale Listini"),
+                Type = MetricType.Count,
+                Icon = Icons.Material.Outlined.PriceCheck,
+                Color = "primary",
+                Description = TranslationService.GetTranslation("pricelist.metric.totalDesc", "Numero totale di listini"),
+                Format = "N0"
+            },
+            new()
+            {
+                Title = TranslationService.GetTranslation("pricelist.metric.active", "Listini Attivi"),
+                Type = MetricType.Count,
+                Filter = p => p.Status == PriceListStatus.Active,
+                Icon = Icons.Material.Outlined.CheckCircle,
+                Color = "success",
+                Description = TranslationService.GetTranslation("pricelist.metric.activeDesc", "Listini attivi"),
+                Format = "N0"
+            },
+            new()
+            {
+                Title = TranslationService.GetTranslation("pricelist.metric.sales", "Listini Vendita"),
+                Type = MetricType.Count,
+                Filter = p => p.Type == PriceListType.Sales,
+                Icon = Icons.Material.Outlined.Sell,
+                Color = "info",
+                Description = TranslationService.GetTranslation("pricelist.metric.salesDesc", "Listini di vendita"),
+                Format = "N0"
+            },
+            new()
+            {
+                Title = TranslationService.GetTranslation("pricelist.metric.default", "Listini Default"),
+                Type = MetricType.Count,
+                Filter = p => p.IsDefault,
+                Icon = Icons.Material.Outlined.Star,
+                Color = "warning",
+                Description = TranslationService.GetTranslation("pricelist.metric.defaultDesc", "Listini predefiniti"),
+                Format = "N0"
+            }
+        };
+    }
 
     private EventCallback<HashSet<PriceListDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<PriceListDto>>(this, OnSelectedItemsChanged);
 
@@ -515,7 +521,8 @@
         {
             _isLoadingData = true;
 
-            var result = await PriceListService.GetPagedAsync(1, 1000, CancellationToken.None);
+            // Using a reasonable page size for initial load
+            var result = await PriceListService.GetPagedAsync(1, 100, CancellationToken.None);
             _items = result.Items.ToList();
         }
         catch (Exception ex)
