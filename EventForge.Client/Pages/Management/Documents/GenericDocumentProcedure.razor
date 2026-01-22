@@ -1,6 +1,7 @@
 @page "/documents/create"
 @page "/documents/edit/{DocumentId:guid}"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.SignalR
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Business
@@ -12,6 +13,7 @@
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @implements IAsyncDisposable
 @inject IDocumentHeaderService DocumentHeaderService
+@inject IDocumentStatusService DocumentStatusService
 @inject IDocumentTypeService DocumentTypeService
 @inject IBusinessPartyService BusinessPartyService
 @inject IProductService ProductService
@@ -811,28 +813,20 @@
                             Severity.Warning);
                     }
                 }
+                catch (HubException hex)
+                {
+                    _isReadOnly = true;
+                    Logger.LogWarning(hex, "Lock acquisition failed - HubException for document {DocumentId}", DocumentId.Value);
+                    Snackbar.Add(hex.Message, Severity.Warning);
+                }
                 catch (Exception ex)
                 {
                     _isReadOnly = true;
-                    // Extract the error message if it's about lock being held
-                    var errorMessage = ex.Message;
-                    if (errorMessage.Contains("Documento in modifica da"))
-                    {
-                        Snackbar.Add($"⚠️ {errorMessage}", Severity.Warning);
-                        // Try to parse the locked by name from the error message
-                        var match = System.Text.RegularExpressions.Regex.Match(errorMessage, @"da\s+(.+?)\s+dal");
-                        if (match.Success)
-                        {
-                            _lockHolderName = match.Groups[1].Value;
-                        }
-                    }
-                    else
-                    {
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("documents.lockAcquisitionError", 
-                                "⚠️ Errore acquisizione lock documento"),
-                            Severity.Warning);
-                    }
+                    Logger.LogWarning(ex, "Lock acquisition failed for document {DocumentId}", DocumentId.Value);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("documents.lockConnectionError", 
+                            "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."),
+                        Severity.Warning);
                 }
             }
         }
@@ -1074,49 +1068,35 @@
         try
         {
             _isLoading = true;
-            
             var previousStatus = _currentDocument.Status;
             
-            // If the status is "Closed", call the dedicated endpoint
-            if (newStatus == DocumentStatus.Closed && previousStatus != DocumentStatus.Closed)
+            // Use the dedicated status change endpoint for ALL status transitions
+            var result = await DocumentStatusService.ChangeStatusAsync(
+                _currentDocument.Id,
+                newStatus,
+                reason: null);
+            
+            if (result != null)
             {
-                var closed = await DocumentHeaderService.CloseDocumentAsync(_currentDocument.Id);
-                if (closed != null)
-                {
-                    _currentDocument = closed;
-                    _documentStatus = closed.Status;
-                    
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("documents.statusClosedSuccess", "Documento chiuso con successo"),
-                        Severity.Success
-                    );
-                    
-                    Logger.LogInformation("Document {DocumentId} closed successfully", _currentDocument.Id);
-                }
-                else
-                {
-                    // Rollback if close failed
-                    _documentStatus = previousStatus;
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("documents.statusUpdateError", "Errore nell'aggiornamento dello stato"),
-                        Severity.Error
-                    );
-                }
+                _currentDocument = result;
+                _documentStatus = result.Status;
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("documents.statusUpdatedSuccess", 
+                        "Stato aggiornato con successo"),
+                    Severity.Success);
+                
+                Logger.LogInformation("Document {DocumentId} status changed from {OldStatus} to {NewStatus}", 
+                    _currentDocument.Id, previousStatus, newStatus);
             }
             else
             {
-                // For other states, update the Status field in the document locally
-                // NOTE: The status change will be persisted to the backend when the user next saves the document header
-                // If a dedicated status update endpoint is added in the future, this should call it immediately
-                _currentDocument.Status = newStatus;
-                _documentStatus = newStatus;
-                
+                // Rollback on failure
+                _documentStatus = previousStatus;
                 Snackbar.Add(
-                    TranslationService.GetTranslation("documents.statusUpdated", "Stato documento aggiornato"),
-                    Severity.Info
-                );
-                
-                Logger.LogInformation("Document {DocumentId} status changed to {Status}", _currentDocument.Id, newStatus);
+                    TranslationService.GetTranslation("documents.statusUpdateError", 
+                        "Errore nell'aggiornamento dello stato"),
+                    Severity.Error);
             }
         }
         catch (Exception ex)
@@ -1129,8 +1109,9 @@
                 _documentStatus = _currentDocument.Status;
             }
             
+            // Show the validation error message from DocumentStateMachine
             Snackbar.Add(
-                TranslationService.GetTranslation("documents.statusUpdateError", "Errore nell'aggiornamento dello stato"),
+                ex.Message,
                 Severity.Error
             );
         }
