@@ -1,9 +1,12 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
+using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
+using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -496,17 +499,37 @@ public class PriceListService : IPriceListService
             Id = priceList.Id,
             Name = priceList.Name,
             Description = priceList.Description,
+            Type = priceList.Type,
+            Direction = priceList.Direction,
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
+            Status = (EventForge.DTOs.Common.PriceListStatus)priceList.Status,
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,
-            EntryCount = priceList.ProductPrices.Count(ple => !ple.IsDeleted),
+            EventName = priceList.Event?.Name,
+            EntryCount = priceList.ProductPrices?.Count(ple => !ple.IsDeleted) ?? 0,
             CreatedAt = priceList.CreatedAt,
             CreatedBy = priceList.CreatedBy,
             ModifiedAt = priceList.ModifiedAt,
-            ModifiedBy = priceList.ModifiedBy
+            ModifiedBy = priceList.ModifiedBy,
+            AssignedBusinessParties = priceList.BusinessParties
+                .Where(bp => !bp.IsDeleted && bp.Status == PriceListBusinessPartyStatus.Active)
+                .Select(bp => new PriceListBusinessPartyDto
+                {
+                    BusinessPartyId = bp.BusinessPartyId,
+                    BusinessPartyName = bp.BusinessParty?.Name ?? "Unknown",
+                    BusinessPartyType = bp.BusinessParty?.PartyType.ToString() ?? "Unknown",
+                    IsPrimary = bp.IsPrimary,
+                    OverridePriority = bp.OverridePriority,
+                    SpecificValidFrom = bp.SpecificValidFrom,
+                    SpecificValidTo = bp.SpecificValidTo,
+                    GlobalDiscountPercentage = bp.GlobalDiscountPercentage,
+                    Notes = bp.Notes,
+                    Status = bp.Status.ToString()
+                })
+                .ToList()
         };
     }
 
@@ -1222,4 +1245,246 @@ public class PriceListService : IPriceListService
             throw;
         }
     }
+
+    #region BusinessParty Management
+
+    public async Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(
+        Guid priceListId,
+        AssignBusinessPartyToPriceListDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Verifica che il listino esista
+            var priceList = await _context.PriceLists
+                .Include(pl => pl.BusinessParties)
+                .FirstOrDefaultAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+
+            if (priceList == null)
+                throw new InvalidOperationException($"Price list {priceListId} not found.");
+
+            // Verifica che il BusinessParty esista
+            var businessParty = await _context.BusinessParties
+                .FirstOrDefaultAsync(bp => bp.Id == dto.BusinessPartyId && !bp.IsDeleted, cancellationToken);
+
+            if (businessParty == null)
+                throw new InvalidOperationException($"Business party {dto.BusinessPartyId} not found.");
+
+            // Verifica se già assegnato
+            var existing = priceList.BusinessParties
+                .FirstOrDefault(bp => bp.BusinessPartyId == dto.BusinessPartyId && !bp.IsDeleted);
+
+            if (existing != null)
+                throw new InvalidOperationException($"Business party {dto.BusinessPartyId} is already assigned to price list {priceListId}.");
+
+            // Crea relazione
+            var relation = new PriceListBusinessParty
+            {
+                PriceListId = priceListId,
+                BusinessPartyId = dto.BusinessPartyId,
+                IsPrimary = dto.IsPrimary,
+                OverridePriority = dto.OverridePriority,
+                SpecificValidFrom = dto.SpecificValidFrom,
+                SpecificValidTo = dto.SpecificValidTo,
+                GlobalDiscountPercentage = dto.GlobalDiscountPercentage,
+                Notes = dto.Notes,
+                Status = PriceListBusinessPartyStatus.Active,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUser
+            };
+
+            _context.PriceListBusinessParties.Add(relation);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Business party {BusinessPartyId} assigned to price list {PriceListId} by {User}",
+                dto.BusinessPartyId, priceListId, currentUser);
+
+            // Audit log
+            await _auditLogService.LogEntityChangeAsync(
+                nameof(PriceListBusinessParty),
+                relation.Id,
+                "Assignment",
+                "Create",
+                null,
+                $"BusinessParty {businessParty.Name} assigned to PriceList {priceList.Name}",
+                currentUser,
+                cancellationToken: cancellationToken);
+
+            return new PriceListBusinessPartyDto
+            {
+                BusinessPartyId = relation.BusinessPartyId,
+                BusinessPartyName = businessParty.Name,
+                BusinessPartyType = businessParty.PartyType.ToString(),
+                IsPrimary = relation.IsPrimary,
+                OverridePriority = relation.OverridePriority,
+                SpecificValidFrom = relation.SpecificValidFrom,
+                SpecificValidTo = relation.SpecificValidTo,
+                GlobalDiscountPercentage = relation.GlobalDiscountPercentage,
+                Notes = relation.Notes,
+                Status = relation.Status.ToString()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning business party {BusinessPartyId} to price list {PriceListId}",
+                dto.BusinessPartyId, priceListId);
+            throw;
+        }
+    }
+
+    public async Task<bool> RemoveBusinessPartyAsync(
+        Guid priceListId,
+        Guid businessPartyId,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var relation = await _context.PriceListBusinessParties
+                .Include(plbp => plbp.PriceList)
+                .Include(plbp => plbp.BusinessParty)
+                .FirstOrDefaultAsync(
+                    plbp => plbp.PriceListId == priceListId &&
+                            plbp.BusinessPartyId == businessPartyId &&
+                            !plbp.IsDeleted,
+                    cancellationToken);
+
+            if (relation == null)
+                return false;
+
+            // Soft delete
+            relation.IsDeleted = true;
+            relation.DeletedAt = DateTime.UtcNow;
+            relation.DeletedBy = currentUser;
+            relation.Status = PriceListBusinessPartyStatus.Deleted;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Business party {BusinessPartyId} removed from price list {PriceListId} by {User}",
+                businessPartyId, priceListId, currentUser);
+
+            // Audit log
+            await _auditLogService.LogEntityChangeAsync(
+                nameof(PriceListBusinessParty),
+                relation.Id,
+                "Assignment",
+                "Delete",
+                $"BusinessParty {relation.BusinessParty?.Name} assigned",
+                "Removed",
+                currentUser,
+                cancellationToken: cancellationToken);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing business party {BusinessPartyId} from price list {PriceListId}",
+                businessPartyId, priceListId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(
+        Guid priceListId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var relations = await _context.PriceListBusinessParties
+                .Where(plbp => plbp.PriceListId == priceListId &&
+                               !plbp.IsDeleted &&
+                               plbp.Status == PriceListBusinessPartyStatus.Active)
+                .Include(plbp => plbp.BusinessParty)
+                .ToListAsync(cancellationToken);
+
+            return relations
+                .OrderByDescending(plbp => plbp.IsPrimary)
+                .ThenBy(plbp => plbp.OverridePriority.HasValue ? plbp.OverridePriority.Value : int.MaxValue)
+                .Select(plbp => new PriceListBusinessPartyDto
+                {
+                    BusinessPartyId = plbp.BusinessPartyId,
+                    BusinessPartyName = plbp.BusinessParty?.Name ?? "Unknown",
+                    BusinessPartyType = plbp.BusinessParty?.PartyType.ToString() ?? "Unknown",
+                    IsPrimary = plbp.IsPrimary,
+                    OverridePriority = plbp.OverridePriority,
+                    SpecificValidFrom = plbp.SpecificValidFrom,
+                    SpecificValidTo = plbp.SpecificValidTo,
+                    GlobalDiscountPercentage = plbp.GlobalDiscountPercentage,
+                    Notes = plbp.Notes,
+                    Status = plbp.Status.ToString()
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving business parties for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    #endregion
+
+    #region Advanced Queries
+
+    public async Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(
+        PriceListType type,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var priceLists = await _context.PriceLists
+                .Where(pl => !pl.IsDeleted && pl.Type == type)
+                .Include(pl => pl.BusinessParties.Where(bp => !bp.IsDeleted))
+                .ThenInclude(bp => bp.BusinessParty)
+                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+                .OrderBy(pl => pl.Priority)
+                .ThenBy(pl => pl.Name)
+                .ToListAsync(cancellationToken);
+
+            return priceLists.Select(MapToPriceListDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price lists by type {Type}", type);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(
+        Guid businessPartyId,
+        PriceListType? type = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = _context.PriceLists
+                .Where(pl => !pl.IsDeleted)
+                .Where(pl => pl.BusinessParties.Any(bp =>
+                    bp.BusinessPartyId == businessPartyId &&
+                    !bp.IsDeleted &&
+                    bp.Status == PriceListBusinessPartyStatus.Active));
+
+            if (type.HasValue)
+                query = query.Where(pl => pl.Type == type.Value);
+
+            var priceLists = await query
+                .Include(pl => pl.BusinessParties.Where(bp => !bp.IsDeleted))
+                .ThenInclude(bp => bp.BusinessParty)
+                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+                .OrderBy(pl => pl.Priority)
+                .ThenBy(pl => pl.Name)
+                .ToListAsync(cancellationToken);
+
+            return priceLists.Select(MapToPriceListDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price lists for business party {BusinessPartyId}", businessPartyId);
+            throw;
+        }
+    }
+
+    #endregion
 }
