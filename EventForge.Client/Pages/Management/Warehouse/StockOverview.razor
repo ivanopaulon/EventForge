@@ -573,7 +573,7 @@
                               Variant="Variant.Outlined"
                               Lines="3"
                               Required="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference)"
-                              HelperText="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference ? TranslationService.GetTranslation("stock.notesRequired", $"Note obbligatorie per differenze > {FullEditNotesRequiredDifference} unità") : "")"
+                              HelperText="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference ? TranslationService.GetTranslationFormatted("stock.notesRequired", "Note obbligatorie per differenze > {0} unità", FullEditNotesRequiredDifference) : "")"
                               Class="mb-3" />
 
                 <div class="d-flex justify-end gap-2">
@@ -656,7 +656,8 @@
     private EFTable<StockLocationDetail> _efTable = null!;
 
     // Column configuration for EFTable
-    // Default view shows core columns only (7 visible), secondary columns hidden to reduce clutter
+    // Default view shows core columns only (ProductCode, ProductName, WarehouseName, LocationCode, Quantity, Available, Status)
+    // Secondary columns (LotCode, Reserved, ReorderPoint, SafetyStock) hidden by default to reduce clutter
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
         new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0 },

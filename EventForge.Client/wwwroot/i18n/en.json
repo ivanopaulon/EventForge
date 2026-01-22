@@ -2876,7 +2876,8 @@
     "includeProductsWithoutStockTooltip": "Include products that have no registered stock",
     "doubleClickToEdit": "Double click for quick edit",
     "useFullEditForNewStock": "Product without stock. Use the 'Edit' button to create the first record.",
-    "dashboardDisabledPagination": "Dashboard metrics disabled with server-side pagination. Showing {0} of {1} total items across {2} pages."
+    "dashboardDisabledPagination": "Dashboard metrics disabled with server-side pagination. Showing {0} of {1} total items across {2} pages.",
+    "notesRequired": "Notes required for differences > {0} units"
   },
   "stockStatus": {
     "ok": "OK",

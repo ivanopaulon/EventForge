@@ -2876,7 +2876,8 @@
     "includeProductsWithoutStockTooltip": "Include prodotti che non hanno giacenza registrata",
     "doubleClickToEdit": "Doppio click per modifica rapida",
     "useFullEditForNewStock": "Prodotto senza giacenza. Usa il pulsante 'Modifica' per creare il primo record.",
-    "dashboardDisabledPagination": "Dashboard metriche disabilitata con paginazione server. Visualizzati {0} di {1} elementi totali su {2} pagine."
+    "dashboardDisabledPagination": "Dashboard metriche disabilitata con paginazione server. Visualizzati {0} di {1} elementi totali su {2} pagine.",
+    "notesRequired": "Note obbligatorie per differenze > {0} unità"
   },
   "stockStatus": {
     "ok": "OK",
