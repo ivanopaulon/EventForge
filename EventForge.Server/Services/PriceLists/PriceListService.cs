@@ -2060,5 +2060,249 @@ public class PriceListService : IPriceListService
         };
     }
 
+    /// <summary>
+    /// Calcola il nuovo prezzo in base all'operazione e al valore.
+    /// </summary>
+    private static decimal CalculateNewPrice(decimal currentPrice, EventForge.DTOs.Common.BulkUpdateOperation operation, decimal value)
+    {
+        return operation switch
+        {
+            EventForge.DTOs.Common.BulkUpdateOperation.IncreaseByPercentage => currentPrice * (1 + value / 100),
+            EventForge.DTOs.Common.BulkUpdateOperation.DecreaseByPercentage => currentPrice * (1 - value / 100),
+            EventForge.DTOs.Common.BulkUpdateOperation.IncreaseByAmount => currentPrice + value,
+            EventForge.DTOs.Common.BulkUpdateOperation.DecreaseByAmount => currentPrice - value,
+            EventForge.DTOs.Common.BulkUpdateOperation.SetFixedPrice => value,
+            EventForge.DTOs.Common.BulkUpdateOperation.MultiplyBy => currentPrice * value,
+            _ => currentPrice
+        };
+    }
+
+    #region Bulk Price Update Methods
+
+    /// <summary>
+    /// Anteprima aggiornamento massivo prezzi
+    /// </summary>
+    public async Task<BulkUpdatePreviewDto> PreviewBulkUpdateAsync(
+        Guid priceListId,
+        BulkPriceUpdateDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Verifica esistenza listino
+            var priceListExists = await _context.PriceLists
+                .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+
+            if (!priceListExists)
+            {
+                throw new InvalidOperationException($"Price list {priceListId} not found.");
+            }
+
+            // Query base per gli items del listino
+            IQueryable<PriceListEntry> query = _context.PriceListEntries
+                .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
+                .Include(ple => ple.Product);
+
+            // Applica filtri
+            query = ApplyBulkUpdateFilters(query, dto);
+
+            // Recupera items
+            var items = await query.ToListAsync(cancellationToken);
+
+            var changes = new List<PriceChangePreview>();
+            decimal totalCurrentValue = 0;
+            decimal totalNewValue = 0;
+
+            foreach (var item in items)
+            {
+                var currentPrice = item.Price;
+                var newPrice = CalculateNewPrice(currentPrice, dto.Operation, dto.Value);
+                newPrice = ApplyRounding(newPrice, dto.RoundingStrategy);
+
+                // Assicura che il prezzo non sia negativo
+                if (newPrice < 0)
+                    newPrice = 0;
+
+                var changeAmount = newPrice - currentPrice;
+                var changePercentage = currentPrice != 0 
+                    ? (changeAmount / currentPrice) * 100 
+                    : 0;
+
+                changes.Add(new PriceChangePreview
+                {
+                    ProductId = item.ProductId,
+                    ProductName = item.Product?.Name ?? "Unknown",
+                    ProductCode = item.Product?.Code,
+                    CurrentPrice = currentPrice,
+                    NewPrice = newPrice,
+                    ChangeAmount = changeAmount,
+                    ChangePercentage = changePercentage
+                });
+
+                totalCurrentValue += currentPrice;
+                totalNewValue += newPrice;
+            }
+
+            var averageIncreasePercentage = totalCurrentValue != 0
+                ? ((totalNewValue - totalCurrentValue) / totalCurrentValue) * 100
+                : 0;
+
+            return new BulkUpdatePreviewDto
+            {
+                AffectedCount = changes.Count,
+                Changes = changes,
+                TotalCurrentValue = totalCurrentValue,
+                TotalNewValue = totalNewValue,
+                AverageIncreasePercentage = averageIncreasePercentage
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error previewing bulk price update for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Esegue aggiornamento massivo prezzi
+    /// </summary>
+    public async Task<BulkUpdateResultDto> BulkUpdatePricesAsync(
+        Guid priceListId,
+        BulkPriceUpdateDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Verifica esistenza listino
+            var priceListExists = await _context.PriceLists
+                .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+
+            if (!priceListExists)
+            {
+                throw new InvalidOperationException($"Price list {priceListId} not found.");
+            }
+
+            // Query base per gli items del listino
+            IQueryable<PriceListEntry> query = _context.PriceListEntries
+                .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
+                .Include(ple => ple.Product);
+
+            // Applica filtri
+            query = ApplyBulkUpdateFilters(query, dto);
+
+            // Recupera items
+            var items = await query.ToListAsync(cancellationToken);
+
+            var result = new BulkUpdateResultDto
+            {
+                UpdatedAt = DateTime.UtcNow,
+                Errors = new List<string>()
+            };
+
+            // Aggiorna prezzi
+            foreach (var item in items)
+            {
+                try
+                {
+                    var currentPrice = item.Price;
+                    var newPrice = CalculateNewPrice(currentPrice, dto.Operation, dto.Value);
+                    newPrice = ApplyRounding(newPrice, dto.RoundingStrategy);
+
+                    // Assicura che il prezzo non sia negativo
+                    if (newPrice < 0)
+                    {
+                        result.Errors.Add($"Product {item.Product?.Name ?? item.ProductId.ToString()}: Calculated price is negative, skipping.");
+                        result.FailedCount++;
+                        continue;
+                    }
+
+                    item.Price = newPrice;
+                    item.ModifiedBy = currentUser;
+                    item.ModifiedAt = DateTime.UtcNow;
+
+                    result.UpdatedCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.Errors.Add($"Product {item.Product?.Name ?? item.ProductId.ToString()}: {ex.Message}");
+                    result.FailedCount++;
+                    _logger.LogError(ex, "Error updating price for product {ProductId} in price list {PriceListId}", 
+                        item.ProductId, priceListId);
+                }
+            }
+
+            // Salva modifiche in una transazione
+            if (result.UpdatedCount > 0)
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // Audit log per l'operazione bulk
+                await _auditLogService.LogEntityChangeAsync(
+                    "PriceList",
+                    priceListId,
+                    "BulkUpdate",
+                    "BulkUpdate",
+                    null,
+                    $"Operation: {dto.Operation}, Value: {dto.Value}, Updated: {result.UpdatedCount}, Failed: {result.FailedCount}",
+                    currentUser,
+                    null,
+                    cancellationToken);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing bulk price update for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Applica i filtri alla query per il bulk update.
+    /// </summary>
+    private IQueryable<PriceListEntry> ApplyBulkUpdateFilters(
+        IQueryable<PriceListEntry> query,
+        BulkPriceUpdateDto dto)
+    {
+        // Filtro per ProductIds specifici
+        if (dto.ProductIds != null && dto.ProductIds.Any())
+        {
+            query = query.Where(ple => dto.ProductIds.Contains(ple.ProductId));
+        }
+
+        // Filtro per CategoryIds
+        if (dto.CategoryIds != null && dto.CategoryIds.Any())
+        {
+            query = query.Where(ple => ple.Product != null && 
+                dto.CategoryIds.Contains(ple.Product.CategoryNodeId!.Value));
+        }
+
+        // Filtro per BrandIds
+        if (dto.BrandIds != null && dto.BrandIds.Any())
+        {
+            query = query.Where(ple => ple.Product != null && 
+                ple.Product.BrandId != null &&
+                dto.BrandIds.Contains(ple.Product.BrandId.Value));
+        }
+
+        // Filtro per MinPrice
+        if (dto.MinPrice.HasValue)
+        {
+            query = query.Where(ple => ple.Price >= dto.MinPrice.Value);
+        }
+
+        // Filtro per MaxPrice
+        if (dto.MaxPrice.HasValue)
+        {
+            query = query.Where(ple => ple.Price <= dto.MaxPrice.Value);
+        }
+
+        return query;
+    }
+
+    #endregion
+
     #endregion
 }
