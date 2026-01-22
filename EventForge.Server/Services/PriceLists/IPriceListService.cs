@@ -143,4 +143,31 @@ public interface IPriceListService
         DuplicatePriceListDto dto,
         string currentUser,
         CancellationToken cancellationToken = default);
+
+    // Bulk price update methods
+    /// <summary>
+    /// Anteprima aggiornamento massivo prezzi
+    /// </summary>
+    /// <param name="priceListId">ID del listino prezzi</param>
+    /// <param name="dto">Parametri di aggiornamento massivo</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Preview delle modifiche senza salvare</returns>
+    Task<BulkUpdatePreviewDto> PreviewBulkUpdateAsync(
+        Guid priceListId,
+        BulkPriceUpdateDto dto,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Esegue aggiornamento massivo prezzi
+    /// </summary>
+    /// <param name="priceListId">ID del listino prezzi</param>
+    /// <param name="dto">Parametri di aggiornamento massivo</param>
+    /// <param name="currentUser">Utente corrente</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Risultato dell'aggiornamento con conteggi e errori</returns>
+    Task<BulkUpdateResultDto> BulkUpdatePricesAsync(
+        Guid priceListId,
+        BulkPriceUpdateDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }
