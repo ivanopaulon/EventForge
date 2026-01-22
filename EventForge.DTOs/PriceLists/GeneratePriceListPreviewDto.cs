@@ -24,6 +24,11 @@ public class GeneratePriceListPreviewDto
     public int ProductsWithMultiplePrices { get; init; }
     
     /// <summary>
+    /// Numero prodotti esclusi per filtri
+    /// </summary>
+    public int ProductsExcluded { get; init; }
+    
+    /// <summary>
     /// Lista preview prezzi per prodotto
     /// </summary>
     public List<ProductPricePreview> ProductPreviews { get; init; } = new();
