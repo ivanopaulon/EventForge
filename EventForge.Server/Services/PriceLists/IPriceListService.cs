@@ -170,4 +170,35 @@ public interface IPriceListService
         BulkPriceUpdateDto dto,
         string currentUser,
         CancellationToken cancellationToken = default);
+
+    // Phase 2C - PR #4: Price list generation from purchase documents
+    /// <summary>
+    /// Preview generazione listino da documenti (senza salvataggio)
+    /// </summary>
+    Task<GeneratePriceListPreviewDto> PreviewGenerateFromPurchasesAsync(
+        GeneratePriceListFromPurchasesDto dto,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Genera nuovo listino da documenti di acquisto
+    /// </summary>
+    Task<Guid> GenerateFromPurchasesAsync(
+        GeneratePriceListFromPurchasesDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Preview aggiornamento listino esistente
+    /// </summary>
+    Task<GeneratePriceListPreviewDto> PreviewUpdateFromPurchasesAsync(
+        UpdatePriceListFromPurchasesDto dto,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Aggiorna listino esistente con prezzi da documenti
+    /// </summary>
+    Task<UpdatePriceListResultDto> UpdateFromPurchasesAsync(
+        UpdatePriceListFromPurchasesDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }

@@ -641,6 +641,44 @@ namespace EventForge.DTOs.Common
     }
 
     /// <summary>
+    /// Strategia di calcolo del prezzo da documenti di carico
+    /// </summary>
+    public enum PriceCalculationStrategy
+    {
+        /// <summary>
+        /// Ultimo prezzo di acquisto (più recente cronologicamente)
+        /// </summary>
+        LastPurchasePrice = 0,
+        
+        /// <summary>
+        /// Prezzo medio ponderato per quantità
+        /// Formula: Sum(Price * Quantity) / Sum(Quantity)
+        /// </summary>
+        WeightedAveragePrice = 1,
+        
+        /// <summary>
+        /// Prezzo medio semplice (media aritmetica)
+        /// Formula: Sum(Price) / Count(Price)
+        /// </summary>
+        SimpleAveragePrice = 2,
+        
+        /// <summary>
+        /// Prezzo più basso trovato nei documenti
+        /// </summary>
+        LowestPrice = 3,
+        
+        /// <summary>
+        /// Prezzo più alto trovato nei documenti
+        /// </summary>
+        HighestPrice = 4,
+        
+        /// <summary>
+        /// Prezzo mediano (valore centrale della distribuzione)
+        /// </summary>
+        MedianPrice = 5
+    }
+
+    /// <summary>
     /// Bulk price update operation type enumeration.
     /// </summary>
     public enum BulkUpdateOperation

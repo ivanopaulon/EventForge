@@ -1410,6 +1410,125 @@ public class ProductManagementController : BaseApiController
         return Ok(result);
     }
 
+    /// <summary>
+    /// Preview generazione listino da documenti di acquisto
+    /// </summary>
+    /// <param name="dto">Parametri generazione</param>
+    /// <param name="cancellationToken">Token cancellazione</param>
+    /// <returns>Preview con statistiche</returns>
+    /// <response code="200">Returns preview statistics</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="404">If supplier not found</response>
+    [HttpPost("price-lists/generate-from-purchases/preview")]
+    [ProducesResponseType(typeof(GeneratePriceListPreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GeneratePriceListPreviewDto>> PreviewGenerateFromPurchases(
+        [FromBody] GeneratePriceListFromPurchasesDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var preview = await _priceListService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
+            return Ok(preview);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Genera nuovo listino da documenti di acquisto
+    /// </summary>
+    /// <param name="dto">Parametri generazione</param>
+    /// <param name="cancellationToken">Token cancellazione</param>
+    /// <returns>ID del listino creato</returns>
+    /// <response code="201">Price list created successfully</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="404">If supplier not found</response>
+    [HttpPost("price-lists/generate-from-purchases")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Guid>> GenerateFromPurchases(
+        [FromBody] GeneratePriceListFromPurchasesDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "system";
+            var priceListId = await _priceListService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
+            
+            return CreatedAtAction(
+                nameof(GetPriceList),
+                new { id = priceListId },
+                priceListId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Preview aggiornamento listino esistente da documenti
+    /// </summary>
+    /// <param name="dto">Parametri aggiornamento</param>
+    /// <param name="cancellationToken">Token cancellazione</param>
+    /// <returns>Preview con statistiche modifiche</returns>
+    /// <response code="200">Returns preview statistics</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="404">If price list not found</response>
+    [HttpPost("price-lists/update-from-purchases/preview")]
+    [ProducesResponseType(typeof(GeneratePriceListPreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GeneratePriceListPreviewDto>> PreviewUpdateFromPurchases(
+        [FromBody] UpdatePriceListFromPurchasesDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var preview = await _priceListService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
+            return Ok(preview);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Aggiorna listino esistente con prezzi da documenti
+    /// </summary>
+    /// <param name="dto">Parametri aggiornamento</param>
+    /// <param name="cancellationToken">Token cancellazione</param>
+    /// <returns>Risultato aggiornamento con statistiche</returns>
+    /// <response code="200">Price list updated successfully</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="404">If price list not found</response>
+    [HttpPost("price-lists/update-from-purchases")]
+    [ProducesResponseType(typeof(UpdatePriceListResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UpdatePriceListResultDto>> UpdateFromPurchases(
+        [FromBody] UpdatePriceListFromPurchasesDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "system";
+            var result = await _priceListService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
+            
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message });
+        }
+    }
+
     #endregion
 
     #region Promotions Management

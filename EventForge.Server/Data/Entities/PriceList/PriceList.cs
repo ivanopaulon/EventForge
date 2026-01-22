@@ -106,6 +106,33 @@ public class PriceList : AuditableEntity
     /// </summary>
     [Display(Name = "Business Parties", Description = "Partner commerciali assegnati a questo listino.")]
     public ICollection<PriceListBusinessParty> BusinessParties { get; set; } = new List<PriceListBusinessParty>();
+
+    /// <summary>
+    /// Indica se il listino è stato generato automaticamente da documenti di carico
+    /// </summary>
+    [Display(Name = "Is Generated From Documents", Description = "Indica se il listino è stato generato automaticamente da documenti di carico.")]
+    public bool IsGeneratedFromDocuments { get; set; } = false;
+
+    /// <summary>
+    /// Metadati sulla generazione (JSON serializzato)
+    /// Contiene: strategia usata, range date, numero documenti analizzati, etc.
+    /// </summary>
+    [MaxLength(4000)]
+    [Display(Name = "Generation Metadata", Description = "Metadati sulla generazione (JSON serializzato).")]
+    public string? GenerationMetadata { get; set; }
+
+    /// <summary>
+    /// Data/ora ultimo aggiornamento da documenti
+    /// </summary>
+    [Display(Name = "Last Synced At", Description = "Data/ora ultimo aggiornamento da documenti.")]
+    public DateTime? LastSyncedAt { get; set; }
+
+    /// <summary>
+    /// Utente che ha eseguito l'ultimo sync
+    /// </summary>
+    [MaxLength(256)]
+    [Display(Name = "Last Synced By", Description = "Utente che ha eseguito l'ultimo sync.")]
+    public string? LastSyncedBy { get; set; }
 }
 
 /// <summary>

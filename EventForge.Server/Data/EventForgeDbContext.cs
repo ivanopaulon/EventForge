@@ -613,6 +613,19 @@ public partial class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<PriceList>().HasIndex(pl => pl.EventId)
             .HasDatabaseName("IX_PriceLists_EventId");
 
+        // PriceList property configurations for document generation (FASE 2C - PR #4)
+        _ = modelBuilder.Entity<PriceList>()
+            .Property(p => p.IsGeneratedFromDocuments)
+            .IsRequired();
+
+        _ = modelBuilder.Entity<PriceList>()
+            .Property(p => p.GenerationMetadata)
+            .HasMaxLength(4000);
+
+        _ = modelBuilder.Entity<PriceList>()
+            .Property(p => p.LastSyncedBy)
+            .HasMaxLength(256);
+
         // PriceListEntry → UnitOfMeasure
         _ = modelBuilder.Entity<PriceListEntry>()
             .HasOne(e => e.UnitOfMeasure)
