@@ -181,7 +181,7 @@ public class StockServiceValidationTests : IDisposable
         // Arrange
         var validProduct = CreateTestProduct();
         var validStorageLocation = CreateTestStorageLocation();
-        var deletedLot = CreateTestLot();
+        var deletedLot = CreateTestLot(validProduct.Id); // Use valid product ID
         deletedLot.IsDeleted = true; // Soft deleted
         
         await _context.Products.AddAsync(validProduct);
@@ -301,7 +301,7 @@ public class StockServiceValidationTests : IDisposable
         // Arrange
         var validProduct = CreateTestProduct();
         var validStorageLocation = CreateTestStorageLocation();
-        var validLot = CreateTestLot();
+        var validLot = CreateTestLot(validProduct.Id); // Use valid product ID
         
         await _context.Products.AddAsync(validProduct);
         await _context.StorageLocations.AddAsync(validStorageLocation);
@@ -426,14 +426,14 @@ public class StockServiceValidationTests : IDisposable
         };
     }
 
-    private Lot CreateTestLot()
+    private Lot CreateTestLot(Guid? productId = null)
     {
         return new Lot
         {
             Id = Guid.NewGuid(),
             TenantId = _tenantId,
             Code = $"LOT-{Guid.NewGuid():N}",
-            ProductId = Guid.NewGuid(), // Simplified - not validating product here
+            ProductId = productId ?? Guid.NewGuid(), // Use provided productId or generate new one
             IsDeleted = false,
             CreatedBy = "testuser",
             CreatedAt = DateTime.UtcNow
