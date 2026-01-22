@@ -201,4 +201,20 @@ public interface IPriceListService
         UpdatePriceListFromPurchasesDto dto,
         string currentUser,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Genera nuovo listino dai prezzi DefaultPrice dei prodotti
+    /// </summary>
+    Task<Guid> GenerateFromProductPricesAsync(
+        GeneratePriceListFromProductsDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Applica i prezzi di un listino ai Product.DefaultPrice
+    /// </summary>
+    Task<ApplyPriceListResultDto> ApplyPriceListToProductsAsync(
+        ApplyPriceListToProductsDto dto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }
