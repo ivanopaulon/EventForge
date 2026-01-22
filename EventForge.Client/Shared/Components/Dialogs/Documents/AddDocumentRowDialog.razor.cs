@@ -237,8 +237,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task OnProductSelectedAsync(ProductDto? product)
     {
-        Logger.LogDebug("OnProductSelectedAsync called. Selected product: {ProductId}", 
-            product?.Id);
+        Logger.LogInformation("OnProductSelectedAsync called. Product: {ProductId} - {ProductName}", 
+            product?.Id, product?.Name ?? "NULL");
 
         // Update local variable to match the parameter
         _selectedProduct = product;
@@ -249,15 +249,27 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _state.SelectedProduct = _selectedProduct;
             _state.PreviousSelectedProduct = _selectedProduct;
 
+            Logger.LogInformation("Populating fields for product {ProductId}", _selectedProduct.Id);
+
             // Populate all related fields from the selected product
             await PopulateFromProductAsync(_selectedProduct);
+            
+            // ✅ Force UI update after population
+            await InvokeAsync(StateHasChanged);
+            
+            Logger.LogInformation("Product fields populated. UnitOfMeasureId: {UnitId}, VatRateId: {VatId}", 
+                _state.SelectedUnitOfMeasureId, _state.SelectedVatRateId);
         }
         else
         {
+            Logger.LogInformation("Product cleared");
+            
             // Product was cleared
             _state.SelectedProduct = null;
             _state.PreviousSelectedProduct = null;
             ClearProductFields();
+            
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -980,10 +992,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 await _quantityField.FocusAsync();
             }
 
-            // ✅ Blazor will automatically re-render after async method completes
-            // Removed StateHasChanged() to prevent interference with autocomplete typing
+            // ✅ Force UI update
+            await InvokeAsync(StateHasChanged);
             
-            Logger.LogInformation("Product fields populated successfully for {ProductId}", product.Id);
+            Logger.LogInformation("Product fields populated successfully. UnitOfMeasureId: {UnitId}, Price: {Price}, VatRate: {VatRate}%", 
+                _state.Model.UnitOfMeasureId, _state.Model.UnitPrice, _state.Model.VatRate);
         }
         catch (Exception ex)
         {
@@ -992,6 +1005,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 TranslationService.GetTranslation("error.loadProductData", 
                     "Errore caricamento dati prodotto"),
                 Severity.Error);
+            
+            // ✅ Ensure UI update even on error
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -1803,19 +1819,28 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task OpenEditProductDialog()
     {
-        if (_state.SelectedProduct == null || _state.SelectedProduct.Id == Guid.Empty)
+        // ✅ Check both _state.SelectedProduct and _selectedProduct
+        var productToEdit = _state.SelectedProduct ?? _selectedProduct;
+        
+        if (productToEdit == null || productToEdit.Id == Guid.Empty)
         {
+            Logger.LogWarning("OpenEditProductDialog called but no product selected. _state.SelectedProduct: {StateProduct}, _selectedProduct: {SelectedProduct}", 
+                _state.SelectedProduct?.Id, _selectedProduct?.Id);
+                
             Snackbar.Add(
                 TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"),
                 Severity.Warning);
             return;
         }
 
+        Logger.LogInformation("Opening edit dialog for product {ProductId} - {ProductName}", 
+            productToEdit.Id, productToEdit.Name);
+
         var parameters = new DialogParameters
         {
             { "IsEditMode", true },
-            { "ProductId", _state.SelectedProduct.Id },
-            { "ExistingProduct", _state.SelectedProduct }
+            { "ProductId", productToEdit.Id },
+            { "ExistingProduct", productToEdit }
         };
 
         var options = new DialogOptions
@@ -1835,6 +1860,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
         if (!result.Canceled && result.Data is ProductDto updatedProduct)
         {
+            Logger.LogInformation("Product updated: {ProductId} - {ProductName}", 
+                updatedProduct.Id, updatedProduct.Name);
+                
+            // ✅ Update both variables
+            _selectedProduct = updatedProduct;
             _state.SelectedProduct = updatedProduct;
 
             _state.Model.Description = updatedProduct.Description;
@@ -1852,6 +1882,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 }
             }
 
+            if (updatedProduct.UnitOfMeasureId.HasValue)
+            {
+                _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+            }
+
             // Invalidate cached calculation result
             InvalidateCalculationCache();
 
@@ -1859,7 +1894,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
                 Severity.Success);
 
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            Logger.LogInformation("Product edit dialog canceled");
         }
     }
 
