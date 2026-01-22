@@ -199,7 +199,8 @@
                                 {
                                     var diff = preview.CalculatedPrice - preview.OriginalPrice;
                                     var diffPercent = (diff / preview.OriginalPrice) * 100;
-                                    <MudChip Size="Size.Small" 
+                                    <MudChip T="string"
+                                             Size="Size.Small" 
                                              Color="@(diff > 0 ? Color.Success : Color.Error)" 
                                              Variant="Variant.Text">
                                         @(diff > 0 ? "+" : "")@diff.ToString("C2") (@diffPercent.ToString("+0.0;-0.0"))%
@@ -238,7 +239,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     
     private MudForm _form = null!;
     private bool _isValid;
@@ -276,7 +277,7 @@
             var dto = BuildDto();
             
             // Call preview endpoint
-            _previewData = await PriceListService.PreviewGenerateFromDefaultPricesAsync(dto);
+            _previewData = await PriceListService.PreviewGenerateFromDefaultPricesAsync(dto, CancellationToken.None);
             
             StateHasChanged();
         }
@@ -303,7 +304,7 @@
             var dto = BuildDto();
             
             // Call generate endpoint
-            var newPriceListId = await PriceListService.GenerateFromDefaultPricesAsync(dto);
+            var newPriceListId = await PriceListService.GenerateFromDefaultPricesAsync(dto, CancellationToken.None);
             
             Snackbar.Add(
                 TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"), 
