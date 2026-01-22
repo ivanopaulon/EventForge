@@ -66,8 +66,7 @@ namespace EventForge.DTOs.PriceLists
         /// <summary>
         /// Event associated with the price list.
         /// </summary>
-        [Required]
         [Display(Name = "Event", Description = "Event associated with the price list.")]
-        public Guid EventId { get; set; }
+        public Guid? EventId { get; set; }
     }
 }

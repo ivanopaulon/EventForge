@@ -1,5 +1,7 @@
 using EventForge.DTOs.Common;
 using System;
+using System.Collections.Generic;
+
 namespace EventForge.DTOs.PriceLists
 {
 
@@ -54,9 +56,19 @@ namespace EventForge.DTOs.PriceLists
         public int Priority { get; set; }
 
         /// <summary>
+        /// Tipo di listino (Sales/Purchase).
+        /// </summary>
+        public PriceListType Type { get; set; }
+
+        /// <summary>
+        /// Direzione del listino (Output/Input).
+        /// </summary>
+        public PriceListDirection Direction { get; set; }
+
+        /// <summary>
         /// Associated event ID.
         /// </summary>
-        public Guid EventId { get; set; }
+        public Guid? EventId { get; set; }
 
         /// <summary>
         /// Event name (for display purposes).
@@ -87,5 +99,10 @@ namespace EventForge.DTOs.PriceLists
         /// User who last modified the price list.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        /// <summary>
+        /// BusinessParties assegnati a questo listino.
+        /// </summary>
+        public List<PriceListBusinessPartyDto> AssignedBusinessParties { get; set; } = new();
     }
 }

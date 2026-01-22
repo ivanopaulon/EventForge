@@ -58,7 +58,7 @@ namespace EventForge.DTOs.PriceLists
         /// <summary>
         /// Associated event ID.
         /// </summary>
-        public Guid EventId { get; set; }
+        public Guid? EventId { get; set; }
 
         /// <summary>
         /// Event name (for display purposes).
