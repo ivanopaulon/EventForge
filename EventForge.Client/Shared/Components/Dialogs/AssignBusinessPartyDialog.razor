@@ -1,0 +1,298 @@
+@using MudBlazor
+@using EventForge.DTOs.PriceLists
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@inject IBusinessPartyService BusinessPartyService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<AssignBusinessPartyDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <!-- BusinessParty Selection -->
+                <MudItem xs="12">
+                    <MudAutocomplete T="BusinessPartyDto"
+                                     @bind-Value="_selectedBusinessParty"
+                                     SearchFunc="@SearchBusinessParties"
+                                     Label="@($"{TranslationService.GetTranslation("pricelist.businessPartyName", "Partner Commerciale")} *")"
+                                     Variant="Variant.Outlined"
+                                     ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
+                                     Required="true"
+                                     RequiredError="@TranslationService.GetTranslation("validation.businessPartyRequired", "Il partner commerciale è obbligatorio")"
+                                     AdornmentIcon="@Icons.Material.Filled.People"
+                                     AdornmentColor="Color.Primary">
+                        <ItemTemplate Context="bp">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudText>@bp.Name</MudText>
+                                <MudChip T="string" Size="Size.Small" Color="@GetBusinessPartyTypeColor(bp.PartyType)">
+                                    @GetBusinessPartyTypeText(bp.PartyType)
+                                </MudChip>
+                            </MudStack>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </MudItem>
+
+                <!-- IsPrimary Switch -->
+                <MudItem xs="12">
+                    <MudSwitch @bind-Value="_model.IsPrimary"
+                               Label="@TranslationService.GetTranslation("pricelist.isPrimary", "Partner Principale")"
+                               Color="Color.Primary" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("pricelist.isPrimaryHelp", "Il partner principale ha priorità maggiore")
+                    </MudText>
+                </MudItem>
+
+                <!-- Override Priority -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.OverridePriority"
+                                     Label="@TranslationService.GetTranslation("pricelist.overridePriority", "Priorità Personalizzata")"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Max="100"
+                                     Clearable="true"
+                                     HelperText="@TranslationService.GetTranslation("pricelist.overridePriorityHelp", "0-100, lasciare vuoto per priorità predefinita")"
+                                     AdornmentIcon="@Icons.Material.Filled.LowPriority"
+                                     Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Global Discount Percentage -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.GlobalDiscountPercentage"
+                                     Label="@TranslationService.GetTranslation("pricelist.globalDiscount", "Sconto Globale %")"
+                                     Variant="Variant.Outlined"
+                                     Min="-100"
+                                     Max="100"
+                                     Step="0.01m"
+                                     Format="N2"
+                                     Clearable="true"
+                                     HelperText="@TranslationService.GetTranslation("pricelist.globalDiscountHelp", "Positivo = sconto, Negativo = ricarico")"
+                                     AdornmentIcon="@Icons.Material.Filled.Percent"
+                                     Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Validity Period -->
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_validFrom"
+                                   Label="@TranslationService.GetTranslation("pricelist.specificValidFrom", "Validità Da")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                                   AdornmentColor="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_validTo"
+                                   Label="@TranslationService.GetTranslation("pricelist.specificValidTo", "Validità A")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                                   AdornmentColor="Color.Primary" />
+                </MudItem>
+
+                <!-- Notes -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  MaxLength="500"
+                                  Counter="500"
+                                  AdornmentIcon="@Icons.Material.Filled.Notes"
+                                  Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Preview Alert -->
+                @if (_model.GlobalDiscountPercentage.HasValue && _model.GlobalDiscountPercentage.Value != 0)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="@(_model.GlobalDiscountPercentage.Value > 0 ? Severity.Success : Severity.Warning)" 
+                                  Dense="true" 
+                                  Icon="@Icons.Material.Filled.Calculate">
+                            <MudText Typo="Typo.body2">
+                                @if (_model.GlobalDiscountPercentage.Value > 0)
+                                {
+                                    <b>@TranslationService.GetTranslation("pricelist.discountPreview", "Sconto applicato"):</b>
+                                    <text> @_model.GlobalDiscountPercentage.Value.ToString("N2")% su tutti i prezzi del listino</text>
+                                }
+                                else
+                                {
+                                    <b>@TranslationService.GetTranslation("pricelist.markupPreview", "Ricarico applicato"):</b>
+                                    <text> @Math.Abs(_model.GlobalDiscountPercentage.Value).ToString("N2")% su tutti i prezzi del listino</text>
+                                }
+                            </MudText>
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                <!-- Validation Errors -->
+                @if (!string.IsNullOrEmpty(_validationError))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Error" Dense="true">
+                            @_validationError
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Disabled="@(!_isValid || _selectedBusinessParty == null || _isSaving)" 
+                   OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public Guid PriceListId { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private AssignBusinessPartyToPriceListDto _model = new();
+    private BusinessPartyDto? _selectedBusinessParty;
+    private IEnumerable<BusinessPartyDto> _businessParties = new List<BusinessPartyDto>();
+    private DateTime? _validFrom;
+    private DateTime? _validTo;
+    private string _validationError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load business parties
+        try
+        {
+            var result = await BusinessPartyService.GetBusinessPartiesAsync(page: 1, pageSize: 200);
+            if (result != null && result.Items != null)
+            {
+                _businessParties = result.Items.Where(bp => bp.IsActive);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load business parties");
+            Snackbar.Add(TranslationService.GetTranslation("messages.businessPartiesLoadFailed", "Errore nel caricamento dei partner commerciali"), Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<BusinessPartyDto>> SearchBusinessParties(string value, CancellationToken token)
+    {
+        await Task.Delay(50, token);
+
+        if (string.IsNullOrWhiteSpace(value))
+            return _businessParties;
+
+        return _businessParties.Where(bp => 
+            bp.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            (bp.TaxCode != null && bp.TaxCode.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
+            (bp.VatNumber != null && bp.VatNumber.Contains(value, StringComparison.OrdinalIgnoreCase))
+        );
+    }
+
+    private bool ValidateModel()
+    {
+        _validationError = string.Empty;
+
+        if (_selectedBusinessParty == null)
+        {
+            _validationError = TranslationService.GetTranslation("validation.businessPartyRequired", "Il partner commerciale è obbligatorio");
+            return false;
+        }
+
+        if (_model.OverridePriority.HasValue && (_model.OverridePriority.Value < 0 || _model.OverridePriority.Value > 100))
+        {
+            _validationError = TranslationService.GetTranslation("validation.overridePriorityRange", "La priorità deve essere compresa tra 0 e 100");
+            return false;
+        }
+
+        if (_model.GlobalDiscountPercentage.HasValue && (_model.GlobalDiscountPercentage.Value < -100 || _model.GlobalDiscountPercentage.Value > 100))
+        {
+            _validationError = TranslationService.GetTranslation("validation.globalDiscountRange", "Lo sconto deve essere compreso tra -100 e +100");
+            return false;
+        }
+
+        if (_validFrom.HasValue && _validTo.HasValue && _validTo.Value <= _validFrom.Value)
+        {
+            _validationError = TranslationService.GetTranslation("validation.validToAfterValidFrom", "La data di fine validità deve essere successiva alla data di inizio");
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task Submit()
+    {
+        if (!ValidateModel())
+        {
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            // Map dates
+            _model = new AssignBusinessPartyToPriceListDto
+            {
+                BusinessPartyId = _selectedBusinessParty!.Id,
+                IsPrimary = _model.IsPrimary,
+                OverridePriority = _model.OverridePriority,
+                GlobalDiscountPercentage = _model.GlobalDiscountPercentage,
+                SpecificValidFrom = _validFrom,
+                SpecificValidTo = _validTo,
+                Notes = _model.Notes
+            };
+
+            MudDialog?.Close(DialogResult.Ok(_model));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to prepare business party assignment");
+            Snackbar.Add(TranslationService.GetTranslation("messages.businessPartyAssignFailed", "Errore durante la preparazione dell'assegnazione"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private Color GetBusinessPartyTypeColor(BusinessPartyType type)
+    {
+        return type switch
+        {
+            BusinessPartyType.Customer => Color.Primary,
+            BusinessPartyType.Supplier => Color.Secondary,
+            BusinessPartyType.Both => Color.Tertiary,
+            _ => Color.Default
+        };
+    }
+
+    private string GetBusinessPartyTypeText(BusinessPartyType type)
+    {
+        return type switch
+        {
+            BusinessPartyType.Customer => TranslationService.GetTranslation("businessPartyType.customer", "Cliente"),
+            BusinessPartyType.Supplier => TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore"),
+            BusinessPartyType.Both => TranslationService.GetTranslation("businessPartyType.both", "Cliente/Fornitore"),
+            _ => type.ToString()
+        };
+    }
+}

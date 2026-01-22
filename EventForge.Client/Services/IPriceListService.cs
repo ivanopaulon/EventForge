@@ -101,4 +101,38 @@ public interface IPriceListService
     /// Bulk add entries (for multi-select dialog - future PR).
     /// </summary>
     Task<int> AddEntriesBulkAsync(List<CreatePriceListEntryDto> entries, CancellationToken ct = default);
+
+    /// <summary>
+    /// Assegna un BusinessParty al listino con configurazione specifica.
+    /// </summary>
+    /// <param name="priceListId">ID del listino prezzi</param>
+    /// <param name="dto">Dati di assegnazione del BusinessParty</param>
+    /// <param name="ct">Cancellation token</param>
+    Task AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Rimuove l'assegnazione di un BusinessParty dal listino.
+    /// </summary>
+    /// <param name="priceListId">ID del listino prezzi</param>
+    /// <param name="businessPartyId">ID del BusinessParty da rimuovere</param>
+    /// <param name="ct">Cancellation token</param>
+    Task UnassignBusinessPartyAsync(Guid priceListId, Guid businessPartyId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Ottiene tutti i BusinessParty assegnati a un listino.
+    /// </summary>
+    /// <param name="priceListId">ID del listino prezzi</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Elenco dei BusinessParty assegnati</returns>
+    Task<IEnumerable<PriceListBusinessPartyDto>> GetAssignedBusinessPartiesAsync(Guid priceListId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Aggiorna la configurazione di un BusinessParty assegnato.
+    /// </summary>
+    /// <param name="priceListId">ID del listino prezzi</param>
+    /// <param name="businessPartyId">ID del BusinessParty</param>
+    /// <param name="dto">Dati di aggiornamento</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>BusinessParty aggiornato</returns>
+    Task<PriceListBusinessPartyDto> UpdateBusinessPartyAssignmentAsync(Guid priceListId, Guid businessPartyId, UpdateBusinessPartyAssignmentDto dto, CancellationToken ct = default);
 }

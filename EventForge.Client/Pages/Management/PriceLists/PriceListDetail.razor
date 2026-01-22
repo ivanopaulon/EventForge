@@ -4,6 +4,8 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.PriceList
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IPriceListService PriceListService
 @inject IProductService ProductService
@@ -541,13 +543,35 @@
                         </MudStack>
                     </MudTabPanel>
 
-                    <!-- Tab 3: Clienti/Fornitori (Placeholder) -->
+                    <!-- Tab 3: Clienti/Fornitori -->
                     <MudTabPanel Text="@TranslationService.GetTranslation("pricelist.tab.businessParties", "Clienti/Fornitori")" Icon="@Icons.Material.Filled.People">
-                        <MudAlert Severity="Severity.Info">
-                            <MudText Typo="Typo.body2">
-                                @TranslationService.GetTranslation("pricelist.businessPartiesPlaceholder", "Gestione assegnazioni BusinessParty in arrivo nella prossima PR")
-                            </MudText>
-                        </MudAlert>
+                        <MudStack Spacing="3">
+                            <!-- Toolbar -->
+                            <MudPaper Elevation="1" Class="pa-3">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudText Typo="Typo.subtitle1">
+                                            @TranslationService.GetTranslation("pricelist.assignedBusinessParties", "Partner Commerciali Assegnati")
+                                        </MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                                            @_assignedBusinessParties.Count
+                                        </MudChip>
+                                    </MudStack>
+                                    <MudButton Variant="Variant.Filled" 
+                                               Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.Add"
+                                               OnClick="@OpenAssignBusinessPartyDialog">
+                                        @TranslationService.GetTranslation("pricelist.assignBusinessParty", "Assegna Partner")
+                                    </MudButton>
+                                </MudStack>
+                            </MudPaper>
+
+                            <!-- Lista BusinessParty -->
+                            <BusinessPartyAssignmentList PriceListId="@Id"
+                                                          AssignedBusinessParties="@_assignedBusinessParties"
+                                                          OnBusinessPartyRemoved="@HandleBusinessPartyRemoved"
+                                                          OnBusinessPartyUpdated="@HandleBusinessPartyUpdated" />
+                        </MudStack>
                     </MudTabPanel>
 
                     <!-- Tab 4: Operazioni (Placeholder) -->
@@ -636,6 +660,10 @@
     private HashSet<PriceListEntryDto> _selectedEntries = new();
     private int _entriesCount = 0;
 
+    // Tab 3: Business Parties
+    private List<PriceListBusinessPartyDto> _assignedBusinessParties = new();
+    private bool _isLoadingBusinessParties = false;
+
     // Quick Add State
     private ProductDto? _selectedProductToAdd;
     private decimal _quickAddPrice = 0;
@@ -685,6 +713,9 @@
 
             // Load entries for Tab 2
             await LoadEntriesAsync();
+
+            // Load assigned business parties for Tab 3
+            await LoadAssignedBusinessPartiesAsync();
 
             // Calculate total value
             _totalValue = _allEntries.Sum(e => e.Price);
@@ -1097,5 +1128,68 @@
             return (TranslationService.GetTranslation("pricelist.expired", $"Scaduto (il {_validTo.Value:dd/MM/yyyy})"), Severity.Warning);
         }
         return (TranslationService.GetTranslation("pricelist.active", "Attivo"), Severity.Success);
+    }
+
+    // Tab 3: Business Party Management Methods
+    private async Task LoadAssignedBusinessPartiesAsync()
+    {
+        _isLoadingBusinessParties = true;
+        try
+        {
+            _assignedBusinessParties = (await PriceListService.GetAssignedBusinessPartiesAsync(Id, default)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading assigned business parties for price list {Id}", Id);
+            Snackbar.Add(TranslationService.GetTranslation("pricelist.businessPartiesLoadFailed", "Errore caricamento partner commerciali"), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingBusinessParties = false;
+        }
+    }
+
+    private async Task OpenAssignBusinessPartyDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            { "PriceListId", Id }
+        };
+
+        var dialog = await DialogService.ShowAsync<AssignBusinessPartyDialog>(
+            TranslationService.GetTranslation("pricelist.assignBusinessParty", "Assegna Partner Commerciale"),
+            parameters);
+        
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is AssignBusinessPartyToPriceListDto dto)
+        {
+            await AssignBusinessPartyAsync(dto);
+        }
+    }
+
+    private async Task AssignBusinessPartyAsync(AssignBusinessPartyToPriceListDto dto)
+    {
+        try
+        {
+            await PriceListService.AssignBusinessPartyAsync(Id, dto, default);
+            Snackbar.Add(TranslationService.GetTranslation("pricelist.businessPartyAssignedSuccess", "Partner assegnato con successo"), Severity.Success);
+            await LoadAssignedBusinessPartiesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error assigning business party to price list {Id}", Id);
+            Snackbar.Add(TranslationService.GetTranslation("pricelist.businessPartyAssignFailed", "Errore assegnazione partner"), Severity.Error);
+        }
+    }
+
+    private async Task HandleBusinessPartyRemoved(Guid businessPartyId)
+    {
+        await LoadAssignedBusinessPartiesAsync();
+    }
+
+    private async Task HandleBusinessPartyUpdated(PriceListBusinessPartyDto updated)
+    {
+        await LoadAssignedBusinessPartiesAsync();
     }
 }

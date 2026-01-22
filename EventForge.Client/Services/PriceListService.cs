@@ -213,4 +213,58 @@ public class PriceListService : IPriceListService
             throw;
         }
     }
+
+    public async Task AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            await _httpClientService.PostAsync($"{BaseUrl}/{priceListId}/business-parties", dto, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning business party to price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task UnassignBusinessPartyAsync(Guid priceListId, Guid businessPartyId, CancellationToken ct = default)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{priceListId}/business-parties/{businessPartyId}", ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error unassigning business party {BusinessPartyId} from price list {PriceListId}", businessPartyId, priceListId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<PriceListBusinessPartyDto>> GetAssignedBusinessPartiesAsync(Guid priceListId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.GetAsync<IEnumerable<PriceListBusinessPartyDto>>($"{BaseUrl}/{priceListId}/business-parties", ct);
+            return result ?? new List<PriceListBusinessPartyDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting assigned business parties for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<PriceListBusinessPartyDto> UpdateBusinessPartyAssignmentAsync(Guid priceListId, Guid businessPartyId, UpdateBusinessPartyAssignmentDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PutAsync<UpdateBusinessPartyAssignmentDto, PriceListBusinessPartyDto>($"{BaseUrl}/{priceListId}/business-parties/{businessPartyId}", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to update business party assignment");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating business party assignment for price list {PriceListId}, business party {BusinessPartyId}", priceListId, businessPartyId);
+            throw;
+        }
+    }
 }
