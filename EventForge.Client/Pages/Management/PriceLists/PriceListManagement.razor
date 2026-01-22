@@ -109,6 +109,13 @@
                         @TranslationService.GetTranslation("pricelist.create", "Nuovo Listino")
                     </MudButton>
                     <MudButton Variant="Variant.Outlined"
+                               Color="Color.Success"
+                               StartIcon="@Icons.Material.Filled.PriceChange"
+                               OnClick="@OpenGenerateFromDefaultPricesDialog"
+                               Disabled="_isLoadingData">
+                        @TranslationService.GetTranslation("pricelist.generateFromDefaults", "Da Prezzi Default")
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
                                Color="Color.Secondary"
                                StartIcon="@Icons.Material.Outlined.AutoAwesome"
                                OnClick="@OpenGenerateFromDocumentsDialog"
@@ -642,6 +649,22 @@
         if (!result.Canceled)
         {
             await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenGenerateFromDefaultPricesDialog()
+    {
+        var dialog = await DialogService.ShowAsync<GenerateFromDefaultPricesDialog>(
+            TranslationService.GetTranslation("pricelist.generateFromDefaults", "Genera Listino da Prezzi Default"),
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data != null)
+        {
+            await LoadDataAsync();
+            Snackbar.Add(
+                TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"), 
+                Severity.Success);
         }
     }
 
