@@ -20,19 +20,40 @@
     <!-- Edit Form -->
     <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
         <MudStack Spacing="3">
-            @if (State.IsEditMode)
+            <!-- WAREHOUSE AND LOCATION SECTION -->
+            <MudText Typo="Typo.h6" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Class="mr-1" />
+                @TranslationService.GetTranslation("warehouse.warehouseAndLocation", "Magazzino e Ubicazione")
+            </MudText>
+
+            @if (!State.IsStockAlreadyAssigned)
             {
-                <!-- In edit mode, show location as read-only -->
-                <MudTextField Value="@GetLocationDisplayText()"
-                              Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Outlined.LocationOn" />
-            }
-            else
-            {
-                <!-- In insert mode, allow location selection -->
+                <!-- NEW INSERTION: Editable fields -->
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    @TranslationService.GetTranslation("warehouse.selectWarehouseAndLocation", 
+                        "Seleziona magazzino e ubicazione per il nuovo stock")
+                </MudAlert>
+
+                <MudSelect T="Guid?"
+                           Value="@State.DraftWarehouseId"
+                           Label="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Outlined.Warehouse"
+                           RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                           ValueChanged="@_warehouseChangedCallback">
+                    @if (Warehouses != null)
+                    {
+                        @foreach (var warehouse in Warehouses)
+                        {
+                            <MudSelectItem Value="@((Guid?)warehouse.Id)">
+                                @warehouse.Name
+                            </MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+
                 <MudSelect T="Guid?"
                            Value="@State.DraftLocationId"
                            Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
@@ -54,8 +75,37 @@
                     }
                 </MudSelect>
             }
+            else
+            {
+                <!-- EXISTING STOCK EDIT: READ-ONLY fields -->
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Class="mr-1" />
+                    @TranslationService.GetTranslation("warehouse.cannotChangeWarehouseLocation", 
+                        "Magazzino e ubicazione non possono essere modificati per giacenza esistente")
+                </MudAlert>
 
-            @if (State.ConversionFactor > 1m && State.ProductUnit != null)
+                <MudTextField Value="@GetWarehouseName()"
+                              Label="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Disabled="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Outlined.Warehouse"
+                              Class="mud-input-disabled-custom" />
+
+                <MudTextField Value="@GetLocationDisplay()"
+                              Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Disabled="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                              Class="mud-input-disabled-custom" />
+            }
+
+            <MudDivider Class="my-4" />
+
+            <!-- Quantity Field (always editable) -->            @if (State.ConversionFactor > 1m && State.ProductUnit != null)
             {
                 <!-- Alternative unit detected - show dual input fields -->
                 <MudAlert Severity="Severity.Info" Class="mb-3" Dense="true">
@@ -161,6 +211,9 @@
     public List<StorageLocationDto>? Locations { get; set; }
 
     [Parameter]
+    public List<WarehouseDto>? Warehouses { get; set; }
+
+    [Parameter]
     public EventCallback OnDraftChanged { get; set; }
 
     [Parameter]
@@ -239,12 +292,14 @@
     }
 
     private EventCallback<Guid?> _locationChangedCallback;
+    private EventCallback<Guid?> _warehouseChangedCallback;
     private EventCallback<decimal> _quantityChangedCallback;
     private EventCallback<string> _notesChangedCallback;
 
     protected override void OnInitialized()
     {
         _locationChangedCallback = EventCallback.Factory.Create<Guid?>(this, HandleLocationChanged);
+        _warehouseChangedCallback = EventCallback.Factory.Create<Guid?>(this, HandleWarehouseChanged);
         _quantityChangedCallback = EventCallback.Factory.Create<decimal>(this, HandleQuantityChanged);
         _notesChangedCallback = EventCallback.Factory.Create<string>(this, HandleNotesChanged);
         
@@ -263,6 +318,12 @@
     private async Task HandleLocationChanged(Guid? value)
     {
         State.DraftLocationId = value;
+        await NotifyDraftChanged();
+    }
+
+    private async Task HandleWarehouseChanged(Guid? value)
+    {
+        State.DraftWarehouseId = value;
         await NotifyDraftChanged();
     }
 
@@ -339,5 +400,26 @@
                 StateHasChanged();
             }
         }
+    }
+
+    private string GetWarehouseName()
+    {
+        if (!State.ExistingWarehouseId.HasValue || Warehouses == null)
+            return "-";
+        
+        var warehouse = Warehouses.FirstOrDefault(w => w.Id == State.ExistingWarehouseId.Value);
+        return warehouse?.Name ?? TranslationService.GetTranslation("common.unknown", "Sconosciuto");
+    }
+
+    private string GetLocationDisplay()
+    {
+        if (!State.ExistingLocationId.HasValue || Locations == null)
+            return "-";
+        
+        var location = Locations.FirstOrDefault(l => l.Id == State.ExistingLocationId.Value);
+        if (location == null)
+            return TranslationService.GetTranslation("common.unknown", "Sconosciuto");
+        
+        return $"{location.Code} - {location.Description}";
     }
 }
