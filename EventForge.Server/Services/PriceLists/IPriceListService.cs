@@ -32,15 +32,22 @@ public interface IPriceListService
     // Enhanced price calculation methods (Issue #245)
     /// <summary>
     /// Gets the effective price for a product considering all applicable price lists with precedence logic.
-    /// Includes priority, validity dates, and default price list handling.
+    /// Includes priority, validity dates, default price list handling, and BusinessParty-specific discounts.
     /// </summary>
     /// <param name="productId">Product identifier</param>
     /// <param name="eventId">Event identifier</param>
+    /// <param name="businessPartyId">BusinessParty identifier (optional, for partner-specific pricing)</param>
     /// <param name="evaluationDate">Date to evaluate price validity (default: current UTC)</param>
     /// <param name="quantity">Quantity for price tier evaluation (default: 1)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Applied price information or null if no price found</returns>
-    Task<AppliedPriceDto?> GetAppliedPriceAsync(Guid productId, Guid eventId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default);
+    Task<AppliedPriceDto?> GetAppliedPriceAsync(
+        Guid productId,
+        Guid eventId,
+        Guid? businessPartyId = null,
+        DateTime? evaluationDate = null,
+        int quantity = 1,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the effective price for a product in a specific unit of measure with automatic conversion.
@@ -92,4 +99,19 @@ public interface IPriceListService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Validation result with any identified precedence issues</returns>
     Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Confronta i prezzi di acquisto per un prodotto da tutti i fornitori nei listini attivi.
+    /// Ritorna lista ordinata per prezzo (migliore prima).
+    /// </summary>
+    /// <param name="productId">ID prodotto</param>
+    /// <param name="quantity">Quantità per calcolo scaglioni</param>
+    /// <param name="evaluationDate">Data valutazione (default: oggi)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Lista confronto prezzi ordinata per prezzo crescente</returns>
+    Task<List<PurchasePriceComparisonDto>> GetPurchasePriceComparisonAsync(
+        Guid productId,
+        int quantity = 1,
+        DateTime? evaluationDate = null,
+        CancellationToken cancellationToken = default);
 }

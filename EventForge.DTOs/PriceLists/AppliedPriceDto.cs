@@ -112,5 +112,20 @@ namespace EventForge.DTOs.PriceLists
         /// Explanation of how this price was calculated (for debugging/transparency).
         /// </summary>
         public string? CalculationNotes { get; set; }
+
+        /// <summary>
+        /// ID del BusinessParty per cui è stato calcolato il prezzo (se applicabile).
+        /// </summary>
+        public Guid? BusinessPartyId { get; set; }
+
+        /// <summary>
+        /// Nome del BusinessParty per cui è stato calcolato il prezzo (se applicabile).
+        /// </summary>
+        public string? BusinessPartyName { get; set; }
+
+        /// <summary>
+        /// Percentuale di sconto globale applicata dal BusinessParty (se presente).
+        /// </summary>
+        public decimal? AppliedDiscountPercentage { get; set; }
     }
 }

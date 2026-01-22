@@ -2704,6 +2704,64 @@ public class ProductManagementController : BaseApiController
 
     #endregion
 
+    #region Price Calculation
+
+    /// <summary>
+    /// Calcola il prezzo applicato per un prodotto considerando listini e BusinessParty.
+    /// </summary>
+    /// <param name="productId">ID prodotto</param>
+    /// <param name="eventId">ID evento</param>
+    /// <param name="businessPartyId">ID BusinessParty (opzionale)</param>
+    /// <param name="quantity">Quantità</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("products/{productId}/applied-price")]
+    [ProducesResponseType(typeof(AppliedPriceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAppliedPrice(
+        Guid productId,
+        [FromQuery] Guid eventId,
+        [FromQuery] Guid? businessPartyId = null,
+        [FromQuery] int quantity = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _priceListService.GetAppliedPriceAsync(
+            productId,
+            eventId,
+            businessPartyId,
+            null,
+            quantity,
+            cancellationToken);
+
+        if (result == null)
+            return NotFound(new { error = "No applicable price found for this product" });
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Confronta i prezzi di acquisto per un prodotto da tutti i fornitori.
+    /// </summary>
+    /// <param name="productId">ID prodotto</param>
+    /// <param name="quantity">Quantità</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("products/{productId}/purchase-price-comparison")]
+    [ProducesResponseType(typeof(List<PurchasePriceComparisonDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPurchasePriceComparison(
+        Guid productId,
+        [FromQuery] int quantity = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _priceListService.GetPurchasePriceComparisonAsync(
+            productId,
+            quantity,
+            null,
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    #endregion
+
     #endregion
 }
 
