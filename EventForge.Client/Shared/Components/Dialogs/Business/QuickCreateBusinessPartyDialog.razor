@@ -7,12 +7,9 @@
 
 <MudDialog>
     <TitleContent>
-        <MudPaper Elevation="3" Class="pa-3 ef-header-create">
-            <MudText Typo="Typo.h5" Class="ef-header-text" Align="Align.Center">
-                <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" Size="Size.Large" Class="mr-2" />
-                @TranslationService.GetTranslation("business.quickCreatePartner", "Creazione Rapida Partner")
-            </MudText>
-        </MudPaper>
+        <MudText Typo="Typo.h6">
+            @TranslationService.GetTranslation("business.quickCreatePartner", "Creazione Rapida Partner")
+        </MudText>
     </TitleContent>
     <DialogContent>
         <div class="ef-dialog-content">
@@ -21,88 +18,67 @@
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudStack Spacing="3">
                     
-                    <!-- SEZIONE 1: Dati Identificativi (Bordo Verde) -->
-                    <MudPaper Elevation="2" Class="pa-3 ef-section-scanner">
-                        <MudStack Spacing="2">
-                            <MudText Typo="Typo.subtitle2" Class="ef-section-title-green">
-                                <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
-                                @TranslationService.GetTranslation("business.identification", "Dati Identificativi")
-                            </MudText>
-                            
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="6">
-                                    <MudSelect @bind-Value="_model.PartyType"
-                                              Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo Partner")} *")"
+                    <!-- Dati Identificativi -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("business.identification", "Dati Identificativi")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudSelect @bind-Value="_model.PartyType"
+                                          Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo Partner")} *")"
+                                          Variant="Variant.Outlined"
+                                          Required="true">
+                                    <MudSelectItem Value="BusinessPartyType.Cliente">
+                                        @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="BusinessPartyType.Supplier">
+                                        @TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore")
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="BusinessPartyType.Both">
+                                        @TranslationService.GetTranslation("businessPartyType.both", "Entrambi")
+                                    </MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_model.Name"
+                                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome/Ragione Sociale")} *")"
                                               Variant="Variant.Outlined"
                                               Required="true"
-                                              Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Outlined.Category"
-                                              AdornmentColor="Color.Primary">
-                                        <MudSelectItem Value="BusinessPartyType.Cliente">
-                                            @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
-                                        </MudSelectItem>
-                                        <MudSelectItem Value="BusinessPartyType.Supplier">
-                                            @TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore")
-                                        </MudSelectItem>
-                                        <MudSelectItem Value="BusinessPartyType.Both">
-                                            @TranslationService.GetTranslation("businessPartyType.both", "Entrambi")
-                                        </MudSelectItem>
-                                    </MudSelect>
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudTextField @bind-Value="_model.Name"
-                                                  Label="@($"{TranslationService.GetTranslation("field.name", "Nome/Ragione Sociale")} *")"
-                                                  Variant="Variant.Outlined"
-                                                  Required="true"
-                                                  RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
-                                                  MaxLength="200"
-                                                  Counter="200"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Outlined.Business"
-                                                  AdornmentColor="Color.Success" />
-                                </MudItem>
-                            </MudGrid>
-                        </MudStack>
+                                              RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                              MaxLength="200"
+                                              Counter="200" />
+                            </MudItem>
+                        </MudGrid>
                     </MudPaper>
 
-                    <!-- SEZIONE 2: Dati Fiscali (Bordo Viola) -->
-                    <MudPaper Elevation="2" Class="pa-3 ef-section-description">
-                        <MudStack Spacing="2">
-                            <MudText Typo="Typo.subtitle2" Class="ef-section-title-purple">
-                                <MudIcon Icon="@Icons.Material.Outlined.Receipt" Size="Size.Small" Class="mr-2" />
-                                @TranslationService.GetTranslation("business.fiscalData", "Dati Fiscali (Opzionali)")
-                            </MudText>
-                            
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="4">
-                                    <MudTextField @bind-Value="_model.TaxCode"
-                                                  Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
-                                                  Variant="Variant.Outlined"
-                                                  MaxLength="20"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Outlined.Badge"
-                                                  AdornmentColor="Color.Info" />
-                                </MudItem>
-                                <MudItem xs="12" sm="4">
-                                    <MudTextField @bind-Value="_model.VatNumber"
-                                                  Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
-                                                  Variant="Variant.Outlined"
-                                                  MaxLength="20"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Outlined.Numbers"
-                                                  AdornmentColor="Color.Warning" />
-                                </MudItem>
-                                <MudItem xs="12" sm="4">
-                                    <MudTextField @bind-Value="_model.SdiCode"
-                                                  Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
-                                                  Variant="Variant.Outlined"
-                                                  MaxLength="10"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Outlined.QrCode"
-                                                  AdornmentColor="Color.Secondary" />
-                                </MudItem>
-                            </MudGrid>
-                        </MudStack>
+                    <!-- Dati Fiscali -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("business.fiscalData", "Dati Fiscali (Opzionali)")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="4">
+                                <MudTextField @bind-Value="_model.TaxCode"
+                                              Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                                              Variant="Variant.Outlined"
+                                              MaxLength="20" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField @bind-Value="_model.VatNumber"
+                                              Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                              Variant="Variant.Outlined"
+                                              MaxLength="20" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField @bind-Value="_model.SdiCode"
+                                              Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
+                                              Variant="Variant.Outlined"
+                                              MaxLength="10" />
+                            </MudItem>
+                        </MudGrid>
                     </MudPaper>
 
                 </MudStack>

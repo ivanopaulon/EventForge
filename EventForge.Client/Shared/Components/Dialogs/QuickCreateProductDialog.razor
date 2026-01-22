@@ -10,15 +10,11 @@
 
 <MudDialog>
     <TitleContent>
-        <MudPaper Elevation="3" Class="@($"pa-3 {(IsEditMode ? "ef-header-edit" : "ef-header-create")}")">
-            <MudText Typo="Typo.h5" Class="ef-header-text" Align="Align.Center">
-                <MudIcon Icon="@(IsEditMode ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" 
-                         Size="Size.Large" Class="mr-2" />
-                @(IsEditMode 
-                    ? TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto")
-                    : TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto"))
-            </MudText>
-        </MudPaper>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode 
+                ? TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto")
+                : TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto"))
+        </MudText>
     </TitleContent>
     <DialogContent>
         <div class="ef-dialog-content">
@@ -37,8 +33,8 @@
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudStack Spacing="3">
                     
-                    <!-- SEZIONE 1: Codice (Bordo Verde) -->
-                    <MudPaper Elevation="2" Class="pa-3 ef-section-scanner">
+                    <!-- Codice -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
                         <MudTextField @bind-Value="_model.Code"
                                       Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
                                       Variant="Variant.Outlined"
@@ -46,14 +42,11 @@
                                       RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
                                       MaxLength="100"
                                       Counter="100"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Outlined.QrCode"
-                                      AdornmentColor="Color.Success"
                                       Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
                     </MudPaper>
 
-                    <!-- SEZIONE 2: Descrizione (Bordo Viola) -->
-                    <MudPaper Elevation="2" Class="pa-3 ef-section-description">
+                    <!-- Descrizione -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
                         <MudTextField @bind-Value="_model.Description"
                                       Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
                                       Variant="Variant.Outlined"
@@ -61,73 +54,58 @@
                                       RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
                                       Lines="3"
                                       MaxLength="500"
-                                      Counter="500"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Outlined.Description"
-                                      AdornmentColor="Color.Secondary" />
+                                      Counter="500" />
                     </MudPaper>
 
-                    <!-- SEZIONE 3: Dati Commerciali - UoM + Prezzo + IVA in LINEA (Bordo Blu) -->
-                    <MudPaper Elevation="3" Class="pa-4 ef-section-commercial">
-                        <MudStack Spacing="2">
-                            <MudText Typo="Typo.subtitle2" Class="ef-section-title-blue">
-                                <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" Class="mr-2" />
-                                @TranslationService.GetTranslation("products.commercialData", "Dati Commerciali")
-                            </MudText>
+                    <!-- Dati Commerciali -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("products.commercialData", "Dati Commerciali")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <!-- Unità di Misura -->
+                            <MudItem xs="12" sm="4">
+                                <MudSelect @bind-Value="_model.UnitOfMeasureId"
+                                          Label="@($"{TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")} *")"
+                                          Variant="Variant.Outlined"
+                                          Required="true">
+                                    @if (_availableUnits != null && _availableUnits.Any())
+                                    {
+                                        @foreach (var unit in _availableUnits)
+                                        {
+                                            <MudSelectItem Value="@((Guid?)unit.Id)">@unit.Symbol - @unit.Name</MudSelectItem>
+                                        }
+                                    }
+                                </MudSelect>
+                            </MudItem>
                             
-                            <MudGrid Spacing="2">
-                                <!-- Unità di Misura -->
-                                <MudItem xs="12" sm="4">
-                                    <MudSelect @bind-Value="_model.UnitOfMeasureId"
-                                              Label="@($"{TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")} *")"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Outlined.Straighten"
-                                              AdornmentColor="Color.Primary">
-                                        @if (_availableUnits != null && _availableUnits.Any())
+                            <!-- Prezzo -->
+                            <MudItem xs="12" sm="4">
+                                <MudNumericField @bind-Value="_model.DefaultPrice"
+                                               Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo")} *")"
+                                               Variant="Variant.Outlined"
+                                               Required="true"
+                                               Min="0"
+                                               Format="F2" />
+                            </MudItem>
+                            
+                            <!-- Aliquota IVA -->
+                            <MudItem xs="12" sm="4">
+                                <MudSelect @bind-Value="_model.VatRateId"
+                                          Label="@($"{TranslationService.GetTranslation("products.vatRate", "Aliquota IVA")} *")"
+                                          Variant="Variant.Outlined"
+                                          Required="true">
+                                    @if (_vatRates != null && _vatRates.Any())
+                                    {
+                                        @foreach (var vat in _vatRates)
                                         {
-                                            @foreach (var unit in _availableUnits)
-                                            {
-                                                <MudSelectItem Value="@((Guid?)unit.Id)">@unit.Symbol - @unit.Name</MudSelectItem>
-                                            }
+                                            <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage %)</MudSelectItem>
                                         }
-                                    </MudSelect>
-                                </MudItem>
-                                
-                                <!-- Prezzo -->
-                                <MudItem xs="12" sm="4">
-                                    <MudNumericField @bind-Value="_model.DefaultPrice"
-                                                   Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo")} *")"
-                                                   Variant="Variant.Outlined"
-                                                   Required="true"
-                                                   Min="0"
-                                                   Format="F2"
-                                                   Adornment="Adornment.Start"
-                                                   AdornmentIcon="@Icons.Material.Outlined.Euro"
-                                                   AdornmentColor="Color.Success" />
-                                </MudItem>
-                                
-                                <!-- Aliquota IVA -->
-                                <MudItem xs="12" sm="4">
-                                    <MudSelect @bind-Value="_model.VatRateId"
-                                              Label="@($"{TranslationService.GetTranslation("products.vatRate", "Aliquota IVA")} *")"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Outlined.Percent"
-                                              AdornmentColor="Color.Info">
-                                        @if (_vatRates != null && _vatRates.Any())
-                                        {
-                                            @foreach (var vat in _vatRates)
-                                            {
-                                                <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage %)</MudSelectItem>
-                                            }
-                                        }
-                                    </MudSelect>
-                                </MudItem>
-                            </MudGrid>
-                        </MudStack>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
                     </MudPaper>
 
                 </MudStack>
