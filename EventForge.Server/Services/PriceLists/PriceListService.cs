@@ -1809,7 +1809,6 @@ public class PriceListService : IPriceListService
             var sourcePriceList = await _context.PriceLists
                 .Include(pl => pl.ProductPrices)
                     .ThenInclude(pp => pp.Product)
-                        .ThenInclude(p => p.Category)
                 .Include(pl => pl.BusinessParties)
                     .ThenInclude(plbp => plbp.BusinessParty)
                 .FirstOrDefaultAsync(pl => pl.Id == sourcePriceListId && !pl.IsDeleted, cancellationToken);
@@ -1875,8 +1874,8 @@ public class PriceListService : IPriceListService
                 if (dto.FilterByCategoryIds?.Any() == true)
                 {
                     pricesToCopy = pricesToCopy.Where(pp =>
-                        pp.Product.CategoryId.HasValue &&
-                        dto.FilterByCategoryIds.Contains(pp.Product.CategoryId.Value));
+                        pp.Product.CategoryNodeId.HasValue &&
+                        dto.FilterByCategoryIds.Contains(pp.Product.CategoryNodeId.Value));
                 }
 
                 var pricesList = pricesToCopy.ToList();

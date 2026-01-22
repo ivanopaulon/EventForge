@@ -1280,7 +1280,7 @@ public class ProductManagementController : BaseApiController
                 id, dto, currentUser, cancellationToken);
 
             return CreatedAtAction(
-                nameof(GetPriceListById),
+                nameof(GetPriceList),
                 new { id = result.NewPriceList.Id },
                 result);
         }

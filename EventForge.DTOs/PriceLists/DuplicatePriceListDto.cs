@@ -1,4 +1,6 @@
 using EventForge.DTOs.Common;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.PriceLists;
@@ -78,9 +80,9 @@ public record DuplicatePriceListDto
     public PriceListDirection? NewDirection { get; init; }
     
     /// <summary>
-    /// Status iniziale del nuovo listino (default = Draft)
+    /// Status iniziale del nuovo listino (default = Active)
     /// </summary>
-    public PriceListStatus NewStatus { get; init; } = PriceListStatus.Draft;
+    public PriceListStatus NewStatus { get; init; } = PriceListStatus.Active;
     
     // === FILTRI (per copia parziale) ===
     
