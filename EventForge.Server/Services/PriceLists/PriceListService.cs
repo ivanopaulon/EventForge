@@ -2002,15 +2002,17 @@ public class PriceListService : IPriceListService
         string name,
         CancellationToken cancellationToken)
     {
-        // Normalizza il nome per creare un codice base
-        var baseCode = new string(name
+        // Normalizza il nome per creare un codice base usando System.Text per rimuovere accenti
+        var normalized = name.Normalize(System.Text.NormalizationForm.FormD);
+        var withoutAccents = new string(normalized
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) 
+                != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .ToArray())
+            .Normalize(System.Text.NormalizationForm.FormC);
+
+        var baseCode = new string(withoutAccents
             .ToUpperInvariant()
             .Replace(" ", "-")
-            .Replace("À", "A").Replace("Á", "A").Replace("Â", "A").Replace("Ã", "A").Replace("Ä", "A")
-            .Replace("È", "E").Replace("É", "E").Replace("Ê", "E").Replace("Ë", "E")
-            .Replace("Ì", "I").Replace("Í", "I").Replace("Î", "I").Replace("Ï", "I")
-            .Replace("Ò", "O").Replace("Ó", "O").Replace("Ô", "O").Replace("Õ", "O").Replace("Ö", "O")
-            .Replace("Ù", "U").Replace("Ú", "U").Replace("Û", "U").Replace("Ü", "U")
             .Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_')
             .Take(20)
             .ToArray());

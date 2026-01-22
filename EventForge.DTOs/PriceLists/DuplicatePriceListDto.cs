@@ -13,7 +13,7 @@ public record DuplicatePriceListDto
     /// <summary>
     /// Nome del nuovo listino
     /// </summary>
-    [Required, MaxLength(200)]
+    [Required, MaxLength(100)]
     public required string Name { get; init; }
     
     /// <summary>
