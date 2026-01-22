@@ -144,4 +144,32 @@ public class PriceListService : IPriceListService
             throw;
         }
     }
+
+    public async Task<GeneratePriceListPreviewDto> PreviewGenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<GenerateFromDefaultPricesDto, GeneratePriceListPreviewDto>($"{BaseUrl}/generate-from-defaults/preview", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to preview price list generation from default prices");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error previewing price list generation from default prices");
+            throw;
+        }
+    }
+
+    public async Task<Guid> GenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<GenerateFromDefaultPricesDto, Guid>($"{BaseUrl}/generate-from-defaults", dto, ct);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating price list from default prices");
+            throw;
+        }
+    }
 }
