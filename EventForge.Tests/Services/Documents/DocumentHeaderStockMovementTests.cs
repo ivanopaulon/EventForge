@@ -949,6 +949,328 @@ public class DocumentHeaderStockMovementTests : IDisposable
         Assert.Contains("Compensating movement", movements[1].Notes ?? "");
     }
 
+    [Fact]
+    public async Task CloseDocumentAsync_WithStockIncreaseDocument_CreatesInboundMovement()
+    {
+        // Arrange
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase DDT",
+            Code = "DDT_ACQ",
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            BusinessPartyId = _businessPartyId,
+            Number = "DDT-ACQ-001",
+            Date = DateTime.UtcNow,
+            Status = EventForge.DTOs.Common.DocumentStatus.Open,
+            ApprovalStatus = EntityApprovalStatus.None,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 15,
+            UnitPrice = 45,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+
+        await _context.SaveChangesAsync();
+
+        var initialStockQuantity = await _context.Stocks
+            .Where(s => s.ProductId == _productId && s.StorageLocationId == _storageLocationId)
+            .SumAsync(s => s.Quantity);
+
+        // Act
+        var result = await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(EventForge.DTOs.Common.DocumentStatus.Closed, result.Status);
+
+        // Check that stock movement was created
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+
+        Assert.Single(movements);
+        var movement = movements.First();
+        Assert.Equal(StockMovementType.Inbound, movement.MovementType);
+        Assert.Equal(_productId, movement.ProductId);
+        Assert.Equal(15, movement.Quantity);
+        Assert.Equal(_storageLocationId, movement.ToLocationId);
+
+        // Check that stock was increased
+        var finalStockQuantity = await _context.Stocks
+            .Where(s => s.ProductId == _productId && s.StorageLocationId == _storageLocationId)
+            .SumAsync(s => s.Quantity);
+
+        Assert.Equal(initialStockQuantity + 15, finalStockQuantity);
+    }
+
+    [Fact]
+    public async Task CloseDocumentAsync_WithStockDecreaseDocument_CreatesOutboundMovement()
+    {
+        // Arrange
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Sales DDT",
+            Code = "DDT_VEND",
+            IsStockIncrease = false,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Cliente,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var businessPartyCustomer = new BusinessParty
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Test Customer",
+            PartyType = EntityBusinessPartyType.Cliente,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.BusinessParties.Add(businessPartyCustomer);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            BusinessPartyId = businessPartyCustomer.Id,
+            Number = "DDT-VEND-001",
+            Date = DateTime.UtcNow,
+            Status = EventForge.DTOs.Common.DocumentStatus.Open,
+            ApprovalStatus = EntityApprovalStatus.None,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 7,
+            UnitPrice = 100,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+
+        await _context.SaveChangesAsync();
+
+        var initialStockQuantity = await _context.Stocks
+            .Where(s => s.ProductId == _productId && s.StorageLocationId == _storageLocationId)
+            .SumAsync(s => s.Quantity);
+
+        // Act
+        var result = await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(EventForge.DTOs.Common.DocumentStatus.Closed, result.Status);
+
+        // Check that stock movement was created
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+
+        Assert.Single(movements);
+        var movement = movements.First();
+        Assert.Equal(StockMovementType.Outbound, movement.MovementType);
+        Assert.Equal(_productId, movement.ProductId);
+        Assert.Equal(7, movement.Quantity);
+        Assert.Equal(_storageLocationId, movement.FromLocationId);
+
+        // Check that stock was decreased
+        var finalStockQuantity = await _context.Stocks
+            .Where(s => s.ProductId == _productId && s.StorageLocationId == _storageLocationId)
+            .SumAsync(s => s.Quantity);
+
+        Assert.Equal(initialStockQuantity - 7, finalStockQuantity);
+    }
+
+    [Fact]
+    public async Task CloseDocumentAsync_WithoutStockManagement_DoesNotCreateMovements()
+    {
+        // Arrange
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Service Invoice",
+            Code = "INV_SRV",
+            IsStockIncrease = false, // Service document - no stock management
+            RequiredPartyType = EntityBusinessPartyType.Cliente,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var businessPartyCustomer = new BusinessParty
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Test Customer",
+            PartyType = EntityBusinessPartyType.Cliente,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.BusinessParties.Add(businessPartyCustomer);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            BusinessPartyId = businessPartyCustomer.Id,
+            Number = "INV-SRV-001",
+            Date = DateTime.UtcNow,
+            Status = EventForge.DTOs.Common.DocumentStatus.Open,
+            ApprovalStatus = EntityApprovalStatus.None,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = null, // No product - service row
+            Description = "Service - Consulting",
+            Quantity = 1,
+            UnitPrice = 200,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(EventForge.DTOs.Common.DocumentStatus.Closed, result.Status);
+
+        // Check that NO stock movement was created
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+
+        Assert.Empty(movements);
+    }
+
+    [Fact]
+    public async Task CloseDocumentAsync_AlreadyClosed_DoesNotDuplicateMovements()
+    {
+        // Arrange
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase Order",
+            Code = "PO",
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            BusinessPartyId = _businessPartyId,
+            Number = "PO-002",
+            Date = DateTime.UtcNow,
+            Status = EventForge.DTOs.Common.DocumentStatus.Open,
+            ApprovalStatus = EntityApprovalStatus.None,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 20,
+            UnitPrice = 50,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+
+        await _context.SaveChangesAsync();
+
+        // Close the document first time
+        await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+
+        var movementsAfterFirstClose = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .CountAsync();
+
+        // Act - try to close again (simulate re-opening and closing again)
+        // First we need to manually set it back to Open to allow closing again
+        var docToReclose = await _context.DocumentHeaders.FindAsync(documentHeader.Id);
+        if (docToReclose != null)
+        {
+            docToReclose.Status = EventForge.DTOs.Common.DocumentStatus.Open;
+            await _context.SaveChangesAsync();
+        }
+
+        await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+
+        // Assert
+        var movementsAfterSecondClose = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .CountAsync();
+
+        // Should still have only 1 movement (duplicate prevention logic in ProcessStockMovementsForDocumentAsync)
+        Assert.Equal(1, movementsAfterFirstClose);
+        Assert.Equal(1, movementsAfterSecondClose);
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();
