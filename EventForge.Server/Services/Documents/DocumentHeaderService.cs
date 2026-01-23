@@ -444,6 +444,18 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
 
+            // Reload document with dependencies for stock movement processing
+            var documentForStockMovement = await _context.DocumentHeaders
+                .Include(dh => dh.DocumentType)
+                .Include(dh => dh.Rows)
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (documentForStockMovement != null)
+            {
+                // Process stock movements after closing
+                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
+            }
+
             _logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
