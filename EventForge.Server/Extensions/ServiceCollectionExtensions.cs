@@ -16,6 +16,7 @@ using EventForge.Server.Services.Logs;
 using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.PriceHistory;
 using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.PriceLists.Strategies;
 using EventForge.Server.Services.Printing;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
@@ -246,8 +247,15 @@ public static class ServiceCollectionExtensions
 
 
 
-        // Register price list services
+        // Register price list services (refactored into specialized services)
         _ = services.AddScoped<IPriceListService, PriceListService>();
+        _ = services.AddScoped<IPriceListGenerationService, PriceListGenerationService>();
+        _ = services.AddScoped<IPriceCalculationService, PriceCalculationService>();
+        _ = services.AddScoped<IPriceListBusinessPartyService, PriceListBusinessPartyService>();
+        _ = services.AddScoped<IPriceListBulkOperationsService, PriceListBulkOperationsService>();
+
+        // Register price precedence strategy
+        _ = services.AddScoped<IPricePrecedenceStrategy, DefaultPricePrecedenceStrategy>();
 
         // Register payment term services
         _ = services.AddScoped<IPaymentTermService, PaymentTermService>();

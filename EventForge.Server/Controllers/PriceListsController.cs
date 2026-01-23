@@ -14,14 +14,17 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 public class PriceListsController : BaseApiController
 {
-    private readonly IPriceListService _priceListService;
+    private readonly IPriceListGenerationService _generationService;
+    private readonly IPriceListBulkOperationsService _bulkOperationsService;
     private readonly ILogger<PriceListsController> _logger;
 
     public PriceListsController(
-        IPriceListService priceListService,
+        IPriceListGenerationService generationService,
+        IPriceListBulkOperationsService bulkOperationsService,
         ILogger<PriceListsController> logger)
     {
-        _priceListService = priceListService ?? throw new ArgumentNullException(nameof(priceListService));
+        _generationService = generationService ?? throw new ArgumentNullException(nameof(generationService));
+        _bulkOperationsService = bulkOperationsService ?? throw new ArgumentNullException(nameof(bulkOperationsService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -54,7 +57,7 @@ public class PriceListsController : BaseApiController
 
         try
         {
-            var result = await _priceListService.PreviewBulkUpdateAsync(id, dto, cancellationToken);
+            var result = await _bulkOperationsService.PreviewBulkUpdateAsync(id, dto, cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -99,7 +102,7 @@ public class PriceListsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _priceListService.BulkUpdatePricesAsync(id, dto, currentUser, cancellationToken);
+            var result = await _bulkOperationsService.BulkUpdatePricesAsync(id, dto, currentUser, cancellationToken);
 
             if (result.FailedCount > 0)
             {
@@ -155,7 +158,7 @@ public class PriceListsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var priceListId = await _priceListService.GenerateFromProductPricesAsync(
+            var priceListId = await _generationService.GenerateFromProductPricesAsync(
                 dto,
                 currentUser,
                 cancellationToken);
@@ -213,7 +216,7 @@ public class PriceListsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _priceListService.ApplyPriceListToProductsAsync(
+            var result = await _bulkOperationsService.ApplyPriceListToProductsAsync(
                 dto,
                 currentUser,
                 cancellationToken);
