@@ -2689,6 +2689,95 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
+    /// Ottiene il testo da mostrare per la sorgente del prezzo
+    /// </summary>
+    private string GetPriceSourceText()
+    {
+        if (_state.Model.IsPriceManual && _state.Model.AppliedPriceListId.HasValue)
+        {
+            // Prezzo modificato manualmente, ma c'era un listino originale
+            return $"{TranslationService.GetTranslation("documents.originalFromList", "Originale da")}: {GetAppliedPriceListName()}";
+        }
+        
+        if (_state.Model.AppliedPriceListId.HasValue)
+        {
+            // Prezzo da listino non modificato
+            return $"{TranslationService.GetTranslation("documents.fromPriceList", "Da listino")}: {GetAppliedPriceListName()}";
+        }
+        
+        return TranslationService.GetTranslation("documents.defaultPrice", "Prezzo predefinito prodotto");
+    }
+
+    /// <summary>
+    /// Ottiene il colore dell'icona in base alla sorgente del prezzo
+    /// </summary>
+    private Color GetPriceSourceColor()
+    {
+        if (_state.Model.IsPriceManual)
+        {
+            return Color.Warning; // Giallo/arancione per modifiche manuali
+        }
+        
+        if (_state.Model.AppliedPriceListId.HasValue)
+        {
+            return Color.Info; // Blu per listini applicati
+        }
+        
+        return Color.Default; // Grigio per default price
+    }
+
+    /// <summary>
+    /// Ottiene la classe CSS da applicare al campo prezzo
+    /// </summary>
+    private string GetPriceFieldClass()
+    {
+        if (_state.Model.IsPriceManual)
+        {
+            return "price-field-manual"; // Classe custom per highlight
+        }
+        
+        if (_state.Model.AppliedPriceListId.HasValue)
+        {
+            return "price-field-from-list";
+        }
+        
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Genera tooltip esplicativo per la sorgente del prezzo
+    /// </summary>
+    private string GetPriceSourceTooltip()
+    {
+        if (_state.Model.IsPriceManual && _state.Model.AppliedPriceListId.HasValue)
+        {
+            return string.Format(
+                TranslationService.GetTranslation(
+                    "documents.priceManualTooltip",
+                    "Prezzo modificato manualmente. Originale da listino: {0:C2}"
+                ),
+                _state.Model.OriginalPriceFromPriceList ?? 0m
+            );
+        }
+        
+        if (_state.Model.AppliedPriceListId.HasValue)
+        {
+            return string.Format(
+                TranslationService.GetTranslation(
+                    "documents.priceFromListTooltip",
+                    "Prezzo applicato automaticamente dal listino: {0}"
+                ),
+                GetAppliedPriceListName()
+            );
+        }
+        
+        return TranslationService.GetTranslation(
+            "documents.defaultPriceTooltip",
+            "Prezzo predefinito del prodotto. Nessun listino applicabile."
+        );
+    }
+
+    /// <summary>
     /// Handles manual price changes by the user
     /// </summary>
     private void OnPriceManuallyChanged(decimal newPrice)

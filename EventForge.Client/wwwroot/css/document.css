@@ -124,3 +124,29 @@
 .document-inline-header .mud-input-control {
     margin-bottom: 0 !important;
 }
+
+/* Price Field Highlighting for AddDocumentRowDialog */
+
+/* Highlight campo prezzo quando viene da listino */
+.price-field-from-list .mud-input-root {
+    border-left: 3px solid var(--mud-palette-info);
+    background-color: rgba(33, 150, 243, 0.05);
+}
+
+/* Highlight campo prezzo quando modificato manualmente */
+.price-field-manual .mud-input-root {
+    border-left: 3px solid var(--mud-palette-warning);
+    background-color: rgba(255, 152, 0, 0.05);
+}
+
+/* Animazione subtle quando il prezzo cambia */
+@keyframes price-changed {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.price-field-manual.price-just-changed .mud-input-root,
+.price-field-from-list.price-just-changed .mud-input-root {
+    animation: price-changed 0.3s ease-in-out;
+}
