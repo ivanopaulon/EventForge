@@ -44,12 +44,13 @@
                             </MudRadioGroup>
 
                             <!-- Value Input -->
-                            <MudNumericField @bind-Value="_value"
+                            <MudNumericField T="decimal"
+                                           @bind-Value="_value"
                                            Label="@GetValueLabel()"
                                            Variant="Variant.Outlined"
                                            Required="true"
                                            Min="@GetMinValue()"
-                                           Max="@GetMaxValue()"
+                                           Max="@(GetMaxValue())"
                                            Step="0.01m"
                                            Format="N2"
                                            Adornment="Adornment.End"
@@ -279,9 +280,9 @@
         return _operation == BulkUpdateOperation.SetFixedPrice ? 0.01m : 0m;
     }
 
-    private decimal? GetMaxValue()
+    private decimal GetMaxValue()
     {
-        return _operation != BulkUpdateOperation.SetFixedPrice ? 100m : null;
+        return _operation != BulkUpdateOperation.SetFixedPrice ? 100m : decimal.MaxValue;
     }
 
     private async Task PreviewChanges()

@@ -148,12 +148,13 @@
                                     var index = _parsedEntries.IndexOf(entry) + 1;
                                     var isValid = ValidateEntry(entry, out var errors);
                                     var bgColor = isValid ? "" : "background: var(--mud-palette-error-lighten);";
+                                    var productCode = entry.Notes?.Replace("ProductCode:", "") ?? "";
                                 }
                                 <MudTd DataLabel="#" Style="@bgColor">@index</MudTd>
                                 <MudTd DataLabel="Codice" Style="@bgColor">
-                                    @if (!string.IsNullOrEmpty(entry.ProductCode))
+                                    @if (!string.IsNullOrEmpty(productCode))
                                     {
-                                        @entry.ProductCode
+                                        @productCode
                                     }
                                     else
                                     {
@@ -162,10 +163,10 @@
                                 </MudTd>
                                 <MudTd DataLabel="Prezzo" Style="@bgColor">€@entry.Price.ToString("N2")</MudTd>
                                 <MudTd DataLabel="Valuta" Style="@bgColor">@(entry.Currency ?? "EUR")</MudTd>
-                                <MudTd DataLabel="Qta Min" Style="@bgColor">@(entry.MinQuantity?.ToString() ?? "-")</MudTd>
-                                <MudTd DataLabel="Qta Max" Style="@bgColor">@(entry.MaxQuantity?.ToString() ?? "-")</MudTd>
+                                <MudTd DataLabel="Qta Min" Style="@bgColor">@entry.MinQuantity</MudTd>
+                                <MudTd DataLabel="Qta Max" Style="@bgColor">@(entry.MaxQuantity > 0 ? entry.MaxQuantity.ToString() : "-")</MudTd>
                                 <MudTd DataLabel="Stato" Style="@bgColor">
-                                    <MudChip T="string" Size="Size.Small" Color="@(entry.Status == PriceListEntryStatus.Active ? Color.Success : Color.Default)">
+                                    <MudChip T="string" Size="Size.Small" Color="@(entry.Status == PriceListEntryStatus.Attivo ? Color.Success : Color.Default)">
                                         @entry.Status
                                     </MudChip>
                                 </MudTd>
@@ -367,18 +368,19 @@
 
                 try
                 {
+                    var productCode = columns.Length > 0 ? columns[0].Trim() : "";
                     var entry = new CreatePriceListEntryDto
                     {
                         PriceListId = PriceListId,
-                        ProductCode = columns.Length > 0 ? columns[0].Trim() : null,
-                        // ProductId will be resolved by backend
+                        ProductId = Guid.Empty, // Will be resolved by backend from product code in Notes
                         Price = columns.Length > 2 && decimal.TryParse(columns[2].Trim(), out var price) ? price : 0,
                         Currency = columns.Length > 3 ? columns[3].Trim() : "EUR",
-                        MinQuantity = columns.Length > 4 && int.TryParse(columns[4].Trim(), out var minQty) ? minQty : null,
-                        MaxQuantity = columns.Length > 5 && int.TryParse(columns[5].Trim(), out var maxQty) ? maxQty : null,
+                        MinQuantity = columns.Length > 4 && int.TryParse(columns[4].Trim(), out var minQty) ? minQty : 1,
+                        MaxQuantity = columns.Length > 5 && int.TryParse(columns[5].Trim(), out var maxQty) ? maxQty : 0,
                         Status = columns.Length > 6 && Enum.TryParse<PriceListEntryStatus>(columns[6].Trim(), out var status) 
                             ? status 
-                            : PriceListEntryStatus.Active
+                            : PriceListEntryStatus.Attivo,
+                        Notes = $"ProductCode:{productCode}" // Store product code in notes for backend processing
                     };
 
                     entries.Add(entry);
@@ -422,13 +424,14 @@
     {
         errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(entry.ProductCode))
+        var productCode = entry.Notes?.Replace("ProductCode:", "") ?? "";
+        if (string.IsNullOrWhiteSpace(productCode))
             errors.Add("Codice prodotto mancante");
 
         if (entry.Price <= 0)
             errors.Add("Prezzo non valido (deve essere > 0)");
 
-        if (entry.MinQuantity.HasValue && entry.MaxQuantity.HasValue && entry.MinQuantity > entry.MaxQuantity)
+        if (entry.MinQuantity > 0 && entry.MaxQuantity > 0 && entry.MinQuantity > entry.MaxQuantity)
             errors.Add("Quantità minima maggiore della massima");
 
         return errors.Count == 0;
