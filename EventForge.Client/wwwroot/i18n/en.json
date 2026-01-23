@@ -2974,5 +2974,23 @@
   "nav": {
     "stockManagement": "Stock",
     "stockReconciliation": "Stock Reconciliation"
+  },
+  "priceList": {
+    "fromList": "From price list: {0}",
+    "manuallyModified": "Price manually modified",
+    "selectPriceList": "Select Price List",
+    "defaultPartyPriceList": "Default customer/supplier price list",
+    "noPriceListAvailable": "No price list available",
+    "sales": "Sales Price List",
+    "purchase": "Purchase Price List",
+    "priceFromList": "From price list: {0}",
+    "priceManuallyModified": "Price manually modified",
+    "appliedPriceList": "Applied price list",
+    "priceSource": {
+      "ForcedList": "Forced price list in document",
+      "PartyList": "Default customer/supplier price list",
+      "GeneralList": "Active general price list",
+      "DefaultPrice": "Product default price"
+    }
   }
 }
