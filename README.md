@@ -645,3 +645,57 @@ L'interfaccia permette di:
 - La quantità viene calcolata secondo la modalità scelta per ogni prodotto
 - L'operazione restituisce metriche di performance (durata, conteggi)
 - **Migration**: Report completamento e guide migrazione
+
+## 🔄 Stock Reconciliation
+
+### Overview
+
+The **Stock Reconciliation** feature allows verification and correction of warehouse stock quantities by comparing actual stock levels with calculated quantities from documents, inventories, and manual movements.
+
+### Key Features
+
+- **Calculate Preview**: Analyze stock discrepancies without modifying data
+- **Selective Application**: Choose which items to reconcile
+- **Multi-Source Calculation**: Includes documents, inventories, and manual movements
+- **Severity Classification**: Automatic categorization (Correct, Minor, Major, Missing)
+- **Audit Trail**: Full logging of all reconciliation operations
+- **Excel Export**: Generate reports for offline analysis
+
+### Navigation
+
+Access via: **Magazzino → Giacenze → Riconciliazione Giacenze**
+
+Or directly: `/warehouse/stock-reconciliation`
+
+### Menu Structure
+
+The warehouse menu has been restructured for better organization:
+
+```
+Magazzino (Warehouse Management)
+├─ Magazzini (Storage Facilities)
+├─ Giacenze (Stock Management) ⭐ NEW
+│  ├─ Situazione Giacenze
+│  ├─ Riconciliazione Giacenze ⭐ NEW
+│  └─ Gestione Lotti
+├─ Inventari (Inventory Management)
+│  ├─ Esegui Inventario
+│  └─ Diagnostica e Correggi
+└─ Trasferimenti (Transfers)
+```
+
+### Documentation
+
+- **User Guide**: [docs/STOCK_RECONCILIATION_GUIDE.md](docs/STOCK_RECONCILIATION_GUIDE.md)
+- **Technical Docs**: [docs/STOCK_RECONCILIATION_TECHNICAL.md](docs/STOCK_RECONCILIATION_TECHNICAL.md)
+- **Menu Restructure**: [docs/MENU_RESTRUCTURE.md](docs/MENU_RESTRUCTURE.md)
+
+### Authorization
+
+Required roles: `SuperAdmin`, `Admin`, `Manager`
+
+### API Endpoints
+
+- `POST /api/v1/warehouse/stock-reconciliation/calculate` - Calculate discrepancies
+- `POST /api/v1/warehouse/stock-reconciliation/apply` - Apply corrections
+- `GET /api/v1/warehouse/stock-reconciliation/export` - Export Excel report
