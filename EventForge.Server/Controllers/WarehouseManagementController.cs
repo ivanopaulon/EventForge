@@ -3831,7 +3831,8 @@ public class WarehouseManagementController : BaseApiController
 
             if (fileBytes == null || fileBytes.Length == 0)
             {
-                return NoContent();
+                _logger.LogWarning("Export generated no data or feature not yet implemented");
+                return StatusCode(501, new { message = "Excel export feature not yet implemented" });
             }
 
             var fileName = $"StockReconciliation_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";

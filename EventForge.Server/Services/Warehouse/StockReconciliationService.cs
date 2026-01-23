@@ -258,9 +258,9 @@ public class StockReconciliationService : IStockReconciliationService
         Guid tenantId,
         CancellationToken cancellationToken)
     {
-        // Note: Inventory data model needs to be clarified
-        // For now, returning null as placeholder
-        // TODO: Implement inventory movement retrieval when model is available
+        // TODO: Implement inventory movement retrieval when inventory data model is clarified
+        // The inventory document structure needs to be reviewed to properly integrate with reconciliation
+        // For now, this method returns null, meaning inventories are not included in the calculation
         await Task.CompletedTask;
         return null;
     }
@@ -403,7 +403,6 @@ public class StockReconciliationService : IStockReconciliationService
                     // Create adjustment movement if requested
                     if (request.CreateAdjustmentMovements && adjustment != 0)
                     {
-                        // Use ProcessAdjustmentMovementAsync instead
                         await _stockMovementService.ProcessAdjustmentMovementAsync(
                             productId: stock.ProductId,
                             locationId: stock.StorageLocationId,
@@ -427,7 +426,7 @@ public class StockReconciliationService : IStockReconciliationService
                         oldValue: oldQuantity.ToString(),
                         newValue: newQuantity.ToString(),
                         changedBy: currentUser,
-                        entityDisplayName: $"{stock.Product?.Name} @ {stock.StorageLocation?.Code}",
+                        entityDisplayName: $"{stock.Product?.Name ?? "Unknown"} @ {stock.StorageLocation?.Code ?? "Unknown"}",
                         cancellationToken: cancellationToken);
                 }
 
@@ -470,8 +469,12 @@ public class StockReconciliationService : IStockReconciliationService
             var reconciliation = await CalculateReconciledStockAsync(request, cancellationToken);
 
             // TODO: Implement Excel export using EPPlus or ClosedXML
-            // For now, return placeholder
+            // For now, this feature is not implemented and returns empty array
+            // This should be enhanced in a future iteration to generate a proper Excel file
+            // with Summary, Details, and Movements sheets
             await Task.CompletedTask;
+            
+            _logger.LogWarning("Excel export not yet implemented - returning empty array");
             return Array.Empty<byte>();
         }
         catch (Exception ex)
