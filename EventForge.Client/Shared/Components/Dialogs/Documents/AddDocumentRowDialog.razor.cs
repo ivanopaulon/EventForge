@@ -28,6 +28,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     [Inject] private IFinancialService FinancialService { get; set; } = null!;
     [Inject] private IDocumentRowCalculationService CalculationService { get; set; } = null!;
     [Inject] private IDocumentDialogCacheService CacheService { get; set; } = null!;
+    [Inject] private IPriceResolutionService PriceResolutionService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private ITranslationService TranslationService { get; set; } = null!;
     [Inject] private ILogger<AddDocumentRowDialog> Logger { get; set; } = null!;
@@ -147,6 +148,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     // Loading states - PR #2c-Part2 Commit 3
     private bool _isSaving = false;
+
+    // Price list metadata - PriceResolutionService integration
+    private string? _appliedPriceListName;
     private bool _isLoadingProductData = false;
     private bool _isApplyingPrice = false;
 
@@ -925,29 +929,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _state.Model.ProductCode = product.Code;
             _state.Model.Description = product.Name;
             
-            // 2. Populate price and VAT
-            decimal productPrice = product.DefaultPrice ?? 0m;
-            decimal vatRate = 0m;
+            // 2. Populate price and VAT using PriceResolutionService
+            var (productPrice, vatRate) = await CalculateProductPriceAsync(product);
 
-            if (product.VatRateId.HasValue)
-            {
-                _state.SelectedVatRateId = product.VatRateId;
-                var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
-                if (vatRateDto != null)
-                {
-                    vatRate = vatRateDto.Percentage;
-                    _state.Model.VatRate = vatRate;
-                    _state.Model.VatDescription = vatRateDto.Name;
-                }
-            }
-            
-            // 3. Handle VAT-included price
-            if (product.IsVatIncluded && vatRate > 0)
-            {
-                productPrice = productPrice / (1 + vatRate / 100m);
-            }
-
-            // 4. Load product units
+            // 3. Load product units
             var units = await ProductService.GetProductUnitsAsync(product.Id);
             _state.Cache.AvailableUnits = units?.ToList() ?? new List<ProductUnitDto>();
 
@@ -975,17 +960,17 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 }
             }
 
-            // 5. Set final price
+            // 4. Set final price
             _state.Model.UnitPrice = productPrice;
             
-            // 6. Invalidate cached calculation
+            // 5. Invalidate cached calculation
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
 
-            // 7. Load recent transactions
+            // 6. Load recent transactions
             await LoadRecentTransactions(product.Id);
 
-            // 8. Auto-focus quantity field
+            // 7. Auto-focus quantity field
             if (_quantityField != null)
             {
                 await Task.Delay(100);
@@ -1018,30 +1003,116 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         _state.Model.Description = product.Name;
     }
 
-    private decimal CalculateProductPrice(ProductDto product, out decimal vatRate)
+    /// <summary>
+    /// Calculates product price using PriceResolutionService with price list support
+    /// Returns a tuple of (price, vatRate)
+    /// </summary>
+    private async Task<(decimal price, decimal vatRate)> CalculateProductPriceAsync(ProductDto product)
     {
-        decimal productPrice = product.DefaultPrice ?? 0m;
-        vatRate = 0m;
+        decimal vatRate = 0m;
 
-        if (product.VatRateId.HasValue)
+        try
         {
-            _state.SelectedVatRateId = product.VatRateId;
-            var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
-            if (vatRateDto != null)
+            // 1. Determine price list direction based on document type
+            // TODO: Load DocumentType to check IsStockIncrease property
+            // For now, default to Output (sales). This should be enhanced to fetch
+            // the DocumentType and check IsStockIncrease property.
+            PriceListDirection direction = PriceListDirection.Output; // Default to sales
+            
+            // If we have a way to determine if it's a purchase, set to Input
+            // This will be improved in a future iteration
+            Logger.LogDebug("Using price list direction: {Direction}", direction);
+
+            // 2. Call PriceResolutionService
+            var priceResult = await PriceResolutionService.ResolvePriceAsync(
+                productId: product.Id,
+                documentHeaderId: DocumentHeaderId,
+                businessPartyId: _state.DocumentHeader?.BusinessPartyId,
+                direction: direction
+            );
+
+            // 3. Populate metadata in document row
+            _state.Model.AppliedPriceListId = priceResult.AppliedPriceListId;
+            _state.Model.OriginalPriceFromPriceList = priceResult.OriginalPrice;
+            _state.Model.IsPriceManual = false;
+
+            // 4. Show feedback to user
+            if (priceResult.IsPriceFromList)
             {
-                vatRate = vatRateDto.Percentage;
-                _state.Model.VatRate = vatRate;
-                _state.Model.VatDescription = vatRateDto.Name;
+                _appliedPriceListName = priceResult.PriceListName;
+                
+                Snackbar.Add(
+                    $"📋 {TranslationService.GetTranslation("documents.priceFromList", "Prezzo da listino")}: {priceResult.PriceListName} - {priceResult.Price:C2}",
+                    Severity.Info,
+                    config => config.VisibleStateDuration = 3000
+                );
+                
+                Logger.LogInformation(
+                    "Price resolved from price list: {PriceListName} (ID: {PriceListId}), Price: {Price}, Source: {Source}",
+                    priceResult.PriceListName,
+                    priceResult.AppliedPriceListId,
+                    priceResult.Price,
+                    priceResult.Source
+                );
             }
-        }
+            else
+            {
+                Logger.LogInformation(
+                    "Price resolved from default: {Price}, Source: {Source}",
+                    priceResult.Price,
+                    priceResult.Source
+                );
+            }
 
-        // Handle VAT-included pricing
-        if (product.IsVatIncluded && vatRate > 0)
+            decimal productPrice = priceResult.Price;
+
+            // 5. Handle VAT rate (existing logic)
+            if (product.VatRateId.HasValue)
+            {
+                _state.SelectedVatRateId = product.VatRateId;
+                var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
+                if (vatRateDto != null)
+                {
+                    vatRate = vatRateDto.Percentage;
+                    _state.Model.VatRate = vatRate;
+                    _state.Model.VatDescription = vatRateDto.Name;
+                }
+            }
+
+            // 6. Handle VAT-included pricing (existing logic)
+            if (product.IsVatIncluded && vatRate > 0)
+            {
+                productPrice = productPrice / (1 + vatRate / 100m);
+            }
+
+            return (productPrice, vatRate);
+        }
+        catch (Exception ex)
         {
-            productPrice = productPrice / (1 + vatRate / 100m);
-        }
+            Logger.LogError(ex, "Error calculating price for product {ProductId}, falling back to DefaultPrice", product.Id);
+            
+            // Fallback to default price on error
+            decimal productPrice = product.DefaultPrice ?? 0m;
+            
+            if (product.VatRateId.HasValue)
+            {
+                _state.SelectedVatRateId = product.VatRateId;
+                var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
+                if (vatRateDto != null)
+                {
+                    vatRate = vatRateDto.Percentage;
+                    _state.Model.VatRate = vatRate;
+                    _state.Model.VatDescription = vatRateDto.Name;
+                }
+            }
 
-        return productPrice;
+            if (product.IsVatIncluded && vatRate > 0)
+            {
+                productPrice = productPrice / (1 + vatRate / 100m);
+            }
+
+            return (productPrice, vatRate);
+        }
     }
 
     private async Task PopulateProductUnitsAsync(ProductDto product)
@@ -2586,6 +2657,50 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             return $"{(int)elapsed.TotalHours} h fa";
 
         return timestamp.ToString("HH:mm");
+    }
+
+    /// <summary>
+    /// Gets the name of the applied price list for the current row
+    /// </summary>
+    private string GetAppliedPriceListName()
+    {
+        if (!_state.Model.AppliedPriceListId.HasValue)
+            return string.Empty;
+
+        // Return cached name if available
+        return _appliedPriceListName ?? TranslationService.GetTranslation("documents.priceList", "Listino");
+    }
+
+    /// <summary>
+    /// Handles manual price changes by the user
+    /// </summary>
+    private void OnPriceManuallyChanged(decimal newPrice)
+    {
+        // Compare with current price to avoid unnecessary triggers
+        if (_state.Model.UnitPrice != newPrice)
+        {
+            _state.Model.UnitPrice = newPrice;
+            _state.Model.IsPriceManual = true;
+            
+            Snackbar.Add(
+                $"⚠️ {TranslationService.GetTranslation("documents.priceManuallyModified", "Prezzo modificato manualmente")}",
+                Severity.Warning,
+                config => config.VisibleStateDuration = 2000
+            );
+            
+            Logger.LogInformation(
+                "Price manually overridden: Original={Original}, New={New}, Product={ProductId}",
+                _state.Model.OriginalPriceFromPriceList ?? 0m,
+                newPrice,
+                _state.Model.ProductId
+            );
+            
+            // Invalidate cache calculations
+            _cachedCalculationResult = null;
+            _cachedCalculationKey = string.Empty;
+            
+            StateHasChanged();
+        }
     }
 
     /// <summary>
