@@ -35,6 +35,7 @@ public class WarehouseManagementController : BaseApiController
     private readonly IProductService _productService;
     private readonly IInventoryBulkSeedService _inventoryBulkSeedService;
     private readonly IInventoryDiagnosticService _inventoryDiagnosticService;
+    private readonly IStockReconciliationService _stockReconciliationService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<WarehouseManagementController> _logger;
     private readonly EventForgeDbContext _context;
@@ -50,6 +51,7 @@ public class WarehouseManagementController : BaseApiController
         IProductService productService,
         IInventoryBulkSeedService inventoryBulkSeedService,
         IInventoryDiagnosticService inventoryDiagnosticService,
+        IStockReconciliationService stockReconciliationService,
         ITenantContext tenantContext,
         ILogger<WarehouseManagementController> logger,
         EventForgeDbContext context)
@@ -64,6 +66,7 @@ public class WarehouseManagementController : BaseApiController
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _inventoryBulkSeedService = inventoryBulkSeedService ?? throw new ArgumentNullException(nameof(inventoryBulkSeedService));
         _inventoryDiagnosticService = inventoryDiagnosticService ?? throw new ArgumentNullException(nameof(inventoryDiagnosticService));
+        _stockReconciliationService = stockReconciliationService ?? throw new ArgumentNullException(nameof(stockReconciliationService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -3718,6 +3721,126 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while merging inventory documents.");
             return CreateInternalServerErrorProblem("An error occurred while merging inventory documents.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Stock Reconciliation
+
+    /// <summary>
+    /// Calculates stock reconciliation preview.
+    /// Analyzes stock discrepancies based on documents, inventories, and manual movements.
+    /// This endpoint does NOT modify data - it only calculates and returns preview.
+    /// </summary>
+    /// <param name="request">Reconciliation request with filters and options</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Reconciliation result with calculated quantities and discrepancies</returns>
+    [HttpPost("stock-reconciliation/calculate")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(StockReconciliationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CalculateStockReconciliation(
+        [FromBody] StockReconciliationRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Calculating stock reconciliation preview");
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _stockReconciliationService.CalculateReconciledStockAsync(request, cancellationToken);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating stock reconciliation");
+            return CreateInternalServerErrorProblem("An error occurred while calculating stock reconciliation.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Applies stock reconciliation corrections to selected items.
+    /// Updates stock quantities and creates adjustment movements with full audit trail.
+    /// This operation is atomic - either all updates succeed or all fail.
+    /// </summary>
+    /// <param name="request">Apply request with items to update and reason</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result of the apply operation</returns>
+    [HttpPost("stock-reconciliation/apply")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(StockReconciliationApplyResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ApplyStockReconciliation(
+        [FromBody] StockReconciliationApplyRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Applying stock reconciliation for {Count} items", request.ItemsToApply.Count);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var currentUser = User.Identity?.Name ?? "Unknown";
+            var result = await _stockReconciliationService.ApplyReconciliationAsync(request, currentUser, cancellationToken);
+
+            if (!result.Success)
+            {
+                return BadRequest(new { message = result.ErrorMessage });
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying stock reconciliation");
+            return CreateInternalServerErrorProblem("An error occurred while applying stock reconciliation.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Exports stock reconciliation report as Excel file.
+    /// Includes summary, details, and source movements.
+    /// </summary>
+    /// <param name="request">Reconciliation request with filters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Excel file</returns>
+    [HttpGet("stock-reconciliation/export")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ExportStockReconciliation(
+        [FromQuery] StockReconciliationRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Exporting stock reconciliation report");
+
+            var fileBytes = await _stockReconciliationService.ExportReconciliationReportAsync(request, cancellationToken);
+
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                return NoContent();
+            }
+
+            var fileName = $"StockReconciliation_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+            return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting stock reconciliation report");
+            return CreateInternalServerErrorProblem("An error occurred while exporting stock reconciliation report.", ex);
         }
     }
 

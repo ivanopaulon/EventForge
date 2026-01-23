@@ -403,30 +403,31 @@ public class StockReconciliationService : IStockReconciliationService
                     // Create adjustment movement if requested
                     if (request.CreateAdjustmentMovements && adjustment != 0)
                     {
-                        var movementDto = new CreateStockMovementDto
-                        {
-                            ProductId = stock.ProductId,
-                            MovementType = Data.Entities.Warehouse.StockMovementType.Adjustment,
-                            Quantity = adjustment,
-                            ToLocationId = adjustment > 0 ? stock.StorageLocationId : null,
-                            FromLocationId = adjustment < 0 ? stock.StorageLocationId : null,
-                            MovementDate = DateTime.UtcNow,
-                            Reference = "Stock Reconciliation",
-                            Notes = $"{request.Reason}. Adjusted from {oldQuantity} to {newQuantity}",
-                            LotId = stock.LotId
-                        };
+                        // Use ProcessAdjustmentMovementAsync instead
+                        await _stockMovementService.ProcessAdjustmentMovementAsync(
+                            productId: stock.ProductId,
+                            locationId: stock.StorageLocationId,
+                            adjustmentQuantity: adjustment,
+                            reason: "Stock Reconciliation",
+                            lotId: stock.LotId,
+                            notes: $"{request.Reason}. Adjusted from {oldQuantity} to {newQuantity}",
+                            currentUser: currentUser,
+                            movementDate: DateTime.UtcNow,
+                            cancellationToken: cancellationToken);
 
-                        await _stockMovementService.CreateStockMovementAsync(movementDto, currentUser, cancellationToken);
                         result.MovementsCreated++;
                     }
 
                     // Audit log
-                    await _auditLogService.LogAsync(
+                    await _auditLogService.LogEntityChangeAsync(
                         entityName: "Stock",
                         entityId: stock.Id,
-                        operation: "Reconciliation",
-                        details: $"Quantity adjusted from {oldQuantity} to {newQuantity}. Reason: {request.Reason}",
-                        currentUser: currentUser,
+                        propertyName: "Quantity",
+                        operationType: "Reconciliation",
+                        oldValue: oldQuantity.ToString(),
+                        newValue: newQuantity.ToString(),
+                        changedBy: currentUser,
+                        entityDisplayName: $"{stock.Product?.Name} @ {stock.StorageLocation?.Code}",
                         cancellationToken: cancellationToken);
                 }
 
