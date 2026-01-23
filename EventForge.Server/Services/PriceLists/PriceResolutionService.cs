@@ -36,7 +36,7 @@ namespace EventForge.Server.Services.PriceLists
                 var forcedResult = await TryGetPriceFromPriceListAsync(productId, forcedPriceListId.Value, cancellationToken);
                 if (forcedResult != null)
                 {
-                    forcedResult.Source = "ForcedList";
+                    forcedResult.Source = "ParameterList";
                     return forcedResult;
                 }
             }
@@ -46,6 +46,7 @@ namespace EventForge.Server.Services.PriceLists
             {
                 var documentHeader = await _context.DocumentHeaders
                     .Include(d => d.PriceList)
+                    .Include(d => d.DocumentType)
                     .FirstOrDefaultAsync(d => d.Id == documentHeaderId.Value, cancellationToken);
 
                 if (documentHeader?.PriceListId.HasValue == true)
@@ -53,7 +54,7 @@ namespace EventForge.Server.Services.PriceLists
                     var docResult = await TryGetPriceFromPriceListAsync(productId, documentHeader.PriceListId.Value, cancellationToken);
                     if (docResult != null)
                     {
-                        docResult.Source = "ForcedList";
+                        docResult.Source = "DocumentList";
                         return docResult;
                     }
                 }
@@ -64,17 +65,6 @@ namespace EventForge.Server.Services.PriceLists
                     direction = documentHeader.DocumentType.IsStockIncrease 
                         ? PriceListDirection.Input 
                         : PriceListDirection.Output;
-                }
-                else if (direction == null && documentHeader?.DocumentTypeId != null)
-                {
-                    var docType = await _context.DocumentTypes
-                        .FirstOrDefaultAsync(dt => dt.Id == documentHeader.DocumentTypeId, cancellationToken);
-                    if (docType != null)
-                    {
-                        direction = docType.IsStockIncrease 
-                            ? PriceListDirection.Input 
-                            : PriceListDirection.Output;
-                    }
                 }
             }
 

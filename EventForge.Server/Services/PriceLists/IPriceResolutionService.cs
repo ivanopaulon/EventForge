@@ -13,10 +13,11 @@ namespace EventForge.Server.Services.PriceLists
     {
         /// <summary>
         /// Resolves the price for a product based on the cascading priority:
-        /// 1. Forced price list in document (DocumentHeader.PriceListId)
-        /// 2. Default price list from Business Party (Customer/Supplier based on direction)
-        /// 3. General active price list (first valid for direction Sales/Purchase)
-        /// 4. Fallback: Product.DefaultPrice
+        /// 1. Forced price list parameter (forcedPriceListId - highest priority)
+        /// 2. Forced price list in document (DocumentHeader.PriceListId)
+        /// 3. Default price list from Business Party (Customer/Supplier based on direction)
+        /// 4. General active price list (first valid for direction Sales/Purchase)
+        /// 5. Fallback: Product.DefaultPrice
         /// </summary>
         /// <param name="productId">ID of the product</param>
         /// <param name="documentHeaderId">Optional document header ID (to get forced price list)</param>

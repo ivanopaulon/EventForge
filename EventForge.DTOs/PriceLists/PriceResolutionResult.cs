@@ -33,7 +33,7 @@ namespace EventForge.DTOs.PriceLists
         public bool IsPriceFromList { get; set; }
 
         /// <summary>
-        /// Source of the price: "ForcedList", "PartyList", "GeneralList", "DefaultPrice"
+        /// Source of the price: "ParameterList", "DocumentList", "PartyList", "GeneralList", "DefaultPrice"
         /// </summary>
         public string Source { get; set; } = "DefaultPrice";
     }

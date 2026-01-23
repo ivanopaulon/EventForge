@@ -2987,7 +2987,8 @@
     "priceManuallyModified": "Price manually modified",
     "appliedPriceList": "Applied price list",
     "priceSource": {
-      "ForcedList": "Forced price list in document",
+      "ParameterList": "Forced price list from parameter",
+      "DocumentList": "Forced price list in document",
       "PartyList": "Default customer/supplier price list",
       "GeneralList": "Active general price list",
       "DefaultPrice": "Product default price"

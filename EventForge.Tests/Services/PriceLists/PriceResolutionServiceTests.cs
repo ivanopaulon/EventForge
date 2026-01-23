@@ -133,7 +133,7 @@ public class PriceResolutionServiceTests : IDisposable
         // Assert
         Assert.NotNull(result);
         Assert.Equal(150m, result.Price);
-        Assert.Equal("ForcedList", result.Source);
+        Assert.Equal("ParameterList", result.Source);
         Assert.True(result.IsPriceFromList);
         Assert.Equal(priceListId, result.AppliedPriceListId);
         Assert.Equal("Forced Price List", result.PriceListName);
@@ -194,7 +194,7 @@ public class PriceResolutionServiceTests : IDisposable
         // Assert
         Assert.NotNull(result);
         Assert.Equal(120m, result.Price);
-        Assert.Equal("ForcedList", result.Source);
+        Assert.Equal("DocumentList", result.Source);
         Assert.True(result.IsPriceFromList);
         Assert.Equal(priceListId, result.AppliedPriceListId);
     }
@@ -423,10 +423,10 @@ public class PriceResolutionServiceTests : IDisposable
             forcedPriceListId: forcedPriceListId,
             direction: PriceListDirection.Output);
 
-        // Assert - Should use forced (higher priority)
+        // Assert - Should use parameter list (higher priority)
         Assert.NotNull(result);
         Assert.Equal(150m, result.Price);
-        Assert.Equal("ForcedList", result.Source);
+        Assert.Equal("ParameterList", result.Source);
         Assert.Equal(forcedPriceListId, result.AppliedPriceListId);
     }
 
