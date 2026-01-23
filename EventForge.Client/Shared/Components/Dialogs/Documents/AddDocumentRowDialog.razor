@@ -257,7 +257,8 @@
 
                             <!-- Seconda riga: Prezzo + Sconto % + Sconto € -->
                             <MudItem xs="12" sm="4">
-                                <MudNumericField @bind-Value="_model.UnitPrice"
+                                <MudNumericField Value="_model.UnitPrice"
+                                                 ValueChanged="@((decimal val) => OnPriceManuallyChanged(val))"
                                                  Label="@TranslationService.GetTranslation("documents.price", "Prezzo")"
                                                  Variant="Variant.Outlined"
                                                  Required="true"
@@ -265,8 +266,29 @@
                                                  Format="F2"
                                                  Adornment="Adornment.Start"
                                                  AdornmentIcon="@Icons.Material.Outlined.Euro"
-                                                 AdornmentColor="Color.Success"
-                                                 HelperText="@GetPriceHelperText()" />
+                                                 AdornmentColor="Color.Success">
+                                    <HelperTextContent>
+                                        @if (_model.AppliedPriceListId.HasValue)
+                                        {
+                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                                <MudIcon Icon="@Icons.Material.Outlined.PriceCheck" Size="Size.Small" Color="Color.Info" />
+                                                <MudText Typo="Typo.caption" Color="Color.Info">
+                                                    @TranslationService.GetTranslation("documents.fromPriceList", "Da listino"): @GetAppliedPriceListName()
+                                                </MudText>
+                                                @if (_model.IsPriceManual)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                                        @TranslationService.GetTranslation("documents.manualOverride", "Modificato")
+                                                    </MudChip>
+                                                }
+                                            </MudStack>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.caption">@GetPriceHelperText()</MudText>
+                                        }
+                                    </HelperTextContent>
+                                </MudNumericField>
                             </MudItem>
 
                             <MudItem xs="12" sm="4">

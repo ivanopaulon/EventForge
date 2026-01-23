@@ -156,5 +156,20 @@ namespace EventForge.DTOs.Documents
         /// Base unit of measure identifier (optional, computed server-side if not provided).
         /// </summary>
         public Guid? BaseUnitOfMeasureId { get; set; }
+
+        /// <summary>
+        /// ID of the price list applied to this row (if any).
+        /// </summary>
+        public Guid? AppliedPriceListId { get; set; }
+
+        /// <summary>
+        /// Original price from the price list before any manual modifications.
+        /// </summary>
+        public decimal? OriginalPriceFromPriceList { get; set; }
+
+        /// <summary>
+        /// Indicates if the price was manually modified by the user.
+        /// </summary>
+        public bool IsPriceManual { get; set; } = false;
     }
 }

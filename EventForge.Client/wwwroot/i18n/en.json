@@ -2684,7 +2684,13 @@
     "csvFormatHelp": "CSV Format: ProductCode, Description, Quantity, UnitPrice, VatRate, UnitOfMeasure",
     "csvParsedSuccess": "CSV parsed: {0} valid rows, {1} errors",
     "noValidRows": "No valid rows found in CSV",
-    "importPartialSuccess": "{0} rows imported, {1} failed"
+    "importPartialSuccess": "{0} rows imported, {1} failed",
+    "priceFromList": "Price from list",
+    "fromPriceList": "From price list",
+    "manualOverride": "Modified",
+    "priceManuallyModified": "Price manually modified",
+    "priceList": "Price List",
+    "priceHelper": "Unit price"
   },
   "documentType": {
     "management": "Document Type Management",

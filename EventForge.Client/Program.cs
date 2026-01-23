@@ -110,6 +110,7 @@ builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IModelService, ModelService>();
 builder.Services.AddScoped<ILookupCacheService, LookupCacheService>();
 builder.Services.AddScoped<IPriceListService, PriceListService>();
+builder.Services.AddScoped<IPriceResolutionService, PriceResolutionService>();
 
 // Add DevTools services
 builder.Services.AddScoped<IDevToolsService, DevToolsService>();

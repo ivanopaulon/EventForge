@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 using EventForge.Server.Services.PriceLists;
 using Microsoft.AspNetCore.Authorization;
@@ -16,15 +17,18 @@ public class PriceListsController : BaseApiController
 {
     private readonly IPriceListGenerationService _generationService;
     private readonly IPriceListBulkOperationsService _bulkOperationsService;
+    private readonly IPriceResolutionService _priceResolutionService;
     private readonly ILogger<PriceListsController> _logger;
 
     public PriceListsController(
         IPriceListGenerationService generationService,
         IPriceListBulkOperationsService bulkOperationsService,
+        IPriceResolutionService priceResolutionService,
         ILogger<PriceListsController> logger)
     {
         _generationService = generationService ?? throw new ArgumentNullException(nameof(generationService));
         _bulkOperationsService = bulkOperationsService ?? throw new ArgumentNullException(nameof(bulkOperationsService));
+        _priceResolutionService = priceResolutionService ?? throw new ArgumentNullException(nameof(priceResolutionService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -236,6 +240,71 @@ public class PriceListsController : BaseApiController
         {
             _logger.LogError(ex, "Error applying price list {PriceListId} to products", id);
             return CreateInternalServerErrorProblem("An error occurred while applying the price list to products.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Risolve il prezzo per un prodotto basandosi sulla priorità dei listini:
+    /// 1. Listino forzato nel parametro (forcedPriceListId)
+    /// 2. Listino forzato nel documento (DocumentHeader.PriceListId)
+    /// 3. Listino predefinito del Business Party (Cliente/Fornitore)
+    /// 4. Listino generale attivo per direzione (Vendita/Acquisto)
+    /// 5. Fallback: Product.DefaultPrice
+    /// </summary>
+    /// <param name="productId">ID del prodotto</param>
+    /// <param name="documentHeaderId">ID dell'intestazione documento (opzionale)</param>
+    /// <param name="businessPartyId">ID del Business Party (opzionale)</param>
+    /// <param name="forcedPriceListId">ID del listino forzato (opzionale)</param>
+    /// <param name="direction">Direzione del listino (Input=acquisto, Output=vendita)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Risultato della risoluzione del prezzo con metadati</returns>
+    /// <response code="200">Restituisce il prezzo risolto con metadati</response>
+    /// <response code="400">Se i parametri della richiesta non sono validi</response>
+    /// <response code="404">Se il prodotto non è stato trovato</response>
+    /// <response code="500">Se si verifica un errore interno del server</response>
+    [HttpGet("resolve-price")]
+    [ProducesResponseType(typeof(PriceResolutionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PriceResolutionResult>> ResolvePriceAsync(
+        [FromQuery] Guid productId,
+        [FromQuery] Guid? documentHeaderId = null,
+        [FromQuery] Guid? businessPartyId = null,
+        [FromQuery] Guid? forcedPriceListId = null,
+        [FromQuery] PriceListDirection? direction = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (productId == Guid.Empty)
+        {
+            return BadRequest("Product ID is required");
+        }
+
+        try
+        {
+            var result = await _priceResolutionService.ResolvePriceAsync(
+                productId,
+                documentHeaderId,
+                businessPartyId,
+                forcedPriceListId,
+                direction,
+                cancellationToken);
+
+            _logger.LogInformation(
+                "Price resolved for product {ProductId}: {Price} from {Source}",
+                productId, result.Price, result.Source);
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Product {ProductId} not found for price resolution", productId);
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resolving price for product {ProductId}", productId);
+            return CreateInternalServerErrorProblem("An error occurred while resolving the price.", ex);
         }
     }
 }
