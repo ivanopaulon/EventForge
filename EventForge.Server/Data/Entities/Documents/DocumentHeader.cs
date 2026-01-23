@@ -347,6 +347,17 @@ public class DocumentHeader : AuditableEntity
     /// </summary>
     public PriceList.PriceList? ForcedPriceListOverride { get; set; }
 
+    /// <summary>
+    /// Listino prezzi applicato al documento (per gestione completa listini)
+    /// </summary>
+    [Display(Name = "Price List", Description = "Price list applied to this document.")]
+    public Guid? PriceListId { get; set; }
+
+    /// <summary>
+    /// Navigation property per il listino prezzi
+    /// </summary>
+    public PriceList.PriceList? PriceList { get; set; }
+
     // --- Collaboration and Lock Management ---
     /// <summary>
     /// User currently editing this document (email/username).

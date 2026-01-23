@@ -205,6 +205,11 @@ namespace EventForge.DTOs.Documents
         public string? Notes { get; set; }
 
         /// <summary>
+        /// Price list to apply to this document.
+        /// </summary>
+        public Guid? PriceListId { get; set; }
+
+        /// <summary>
         /// Document rows to create with the header.
         /// </summary>
         public List<CreateDocumentRowDto>? Rows { get; set; }

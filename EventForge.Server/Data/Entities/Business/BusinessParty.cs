@@ -93,6 +93,28 @@ public class BusinessParty : AuditableEntity
     /// Navigation property per il listino forzato
     /// </summary>
     public PriceList.PriceList? ForcedPriceList { get; set; }
+
+    /// <summary>
+    /// Listino vendita predefinito per questo Business Party
+    /// </summary>
+    [Display(Name = "Default Sales Price List", Description = "Default sales price list for this business party.")]
+    public Guid? DefaultSalesPriceListId { get; set; }
+
+    /// <summary>
+    /// Navigation property per il listino vendita predefinito
+    /// </summary>
+    public PriceList.PriceList? DefaultSalesPriceList { get; set; }
+
+    /// <summary>
+    /// Listino acquisto predefinito per questo Business Party
+    /// </summary>
+    [Display(Name = "Default Purchase Price List", Description = "Default purchase price list for this business party.")]
+    public Guid? DefaultPurchasePriceListId { get; set; }
+
+    /// <summary>
+    /// Navigation property per il listino acquisto predefinito
+    /// </summary>
+    public PriceList.PriceList? DefaultPurchasePriceList { get; set; }
 }
 
 /// <summary>

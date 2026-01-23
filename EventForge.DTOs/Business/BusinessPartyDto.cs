@@ -113,5 +113,25 @@ namespace EventForge.DTOs.Business
         /// User who last modified the business party.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        /// <summary>
+        /// Default sales price list ID for this business party.
+        /// </summary>
+        public Guid? DefaultSalesPriceListId { get; set; }
+
+        /// <summary>
+        /// Default sales price list name for this business party.
+        /// </summary>
+        public string? DefaultSalesPriceListName { get; set; }
+
+        /// <summary>
+        /// Default purchase price list ID for this business party.
+        /// </summary>
+        public Guid? DefaultPurchasePriceListId { get; set; }
+
+        /// <summary>
+        /// Default purchase price list name for this business party.
+        /// </summary>
+        public string? DefaultPurchasePriceListName { get; set; }
     }
 }

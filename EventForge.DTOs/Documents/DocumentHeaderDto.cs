@@ -286,6 +286,16 @@ namespace EventForge.DTOs.Documents
         public string? Notes { get; set; }
 
         /// <summary>
+        /// Price list applied to this document.
+        /// </summary>
+        public Guid? PriceListId { get; set; }
+
+        /// <summary>
+        /// Name of the price list applied to this document.
+        /// </summary>
+        public string? PriceListName { get; set; }
+
+        /// <summary>
         /// Date and time when the document was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

@@ -223,5 +223,10 @@ namespace EventForge.DTOs.Documents
         /// </summary>
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Price list to apply to this document.
+        /// </summary>
+        public Guid? PriceListId { get; set; }
     }
 }
