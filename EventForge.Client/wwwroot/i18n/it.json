@@ -2900,5 +2900,79 @@
     "expiry": "Scadenza",
     "quality": "Controllo Qualità",
     "other": "Altro"
+  },
+  "stockReconciliation": {
+    "title": "Riconciliazione Giacenze di Magazzino",
+    "filters": "Filtri e Opzioni",
+    "calculate": "Calcola Preview",
+    "apply": "Applica Ricalcolo",
+    "export": "Esporta Report",
+    "currentQty": "Giacenza Attuale",
+    "calculatedQty": "Giacenza Ricalcolata",
+    "difference": "Differenza",
+    "differencePercentage": "Differenza %",
+    "sourceMovements": "Movimenti Fonte",
+    "confirmTitle": "Conferma Applicazione",
+    "confirmMessage": "Stai per aggiornare {0} giacenze. Questa operazione NON può essere annullata. Vuoi procedere?",
+    "includeDocuments": "Includi documenti di carico/scarico",
+    "includeInventories": "Includi inventari fisici",
+    "onlyWithDiscrepancies": "Solo prodotti con discrepanze",
+    "itemsToUpdate": "Elementi da aggiornare",
+    "selectAll": "Seleziona tutto",
+    "deselectAll": "Deseleziona tutto",
+    "noResults": "Nessun risultato trovato",
+    "calculating": "Calcolo in corso...",
+    "applying": "Applicazione in corso...",
+    "reason": "Motivo",
+    "reasonRequired": "Il motivo è obbligatorio",
+    "createAdjustmentMovements": "Crea movimenti di aggiustamento",
+    "product": "Prodotto",
+    "warehouse": "Magazzino",
+    "location": "Ubicazione",
+    "actions": "Azioni",
+    "expandDetails": "Espandi dettagli",
+    "collapseDetails": "Comprimi dettagli",
+    "severity": {
+      "correct": "Corretto",
+      "minor": "Discrepanza Minore",
+      "major": "Discrepanza Maggiore",
+      "missing": "Mancante"
+    },
+    "summary": {
+      "title": "Riepilogo",
+      "totalProducts": "Prodotti Totali",
+      "correct": "Corretti",
+      "minorDiscrepancies": "Discrepanze Minori",
+      "majorDiscrepancies": "Discrepanze Maggiori",
+      "missing": "Mancanti",
+      "totalDifference": "Differenza Totale"
+    },
+    "confirmDialog": {
+      "title": "⚠️ ATTENZIONE",
+      "message": "Stai per aggiornare {0} giacenze con i valori ricalcolati.",
+      "operation": "Questa operazione:",
+      "willUpdateStock": "✅ Aggiornerà Stock.Quantity",
+      "willCreateMovements": "✅ Creerà movimenti di aggiustamento",
+      "willLogAudit": "✅ Registrerà operazione nell'audit log",
+      "cannotUndo": "⚠️ Questa azione NON può essere annullata",
+      "details": "Dettagli",
+      "correctItems": "Corretti: {0} (verranno ignorati)",
+      "itemsToUpdate": "Da aggiornare: {0}",
+      "majorDiscrepancies": "Discrepanze maggiori: {0} (>10%)",
+      "confirmButton": "✓ Conferma Applicazione"
+    },
+    "success": {
+      "calculated": "Calcolo completato con successo",
+      "applied": "Riconciliazione applicata con successo. Aggiornati {0} giacenze."
+    },
+    "error": {
+      "calculationFailed": "Errore durante il calcolo della riconciliazione",
+      "applyFailed": "Errore durante l'applicazione della riconciliazione",
+      "exportFailed": "Errore durante l'esportazione del report"
+    }
+  },
+  "nav": {
+    "stockManagement": "Giacenze",
+    "stockReconciliation": "Riconciliazione Giacenze"
   }
 }

@@ -292,6 +292,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<ITransferOrderService, TransferOrderService>();
         _ = services.AddScoped<IInventoryBulkSeedService, InventoryBulkSeedService>();
         _ = services.AddScoped<IInventoryDiagnosticService, InventoryDiagnosticService>();
+        _ = services.AddScoped<IStockReconciliationService, StockReconciliationService>();
 
         // Register promotion services
         _ = services.AddScoped<IPromotionService, PromotionService>();

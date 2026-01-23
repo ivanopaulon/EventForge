@@ -1,0 +1,607 @@
+@page "/warehouse/stock-reconciliation"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
+@using static EventForge.Client.Shared.Components.Dialogs.StockReconciliationConfirmDialog
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@inject IStockReconciliationService StockReconciliationService
+@inject IWarehouseService WarehouseService
+@inject IStorageLocationService StorageLocationService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<StockReconciliation> Logger
+@inject IJSRuntime JSRuntime
+
+<PageLoadingOverlay Visible="_isLoading"
+                    Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...")" />
+
+@if (!_isLoading)
+{
+    <div class="stock-reconciliation-page-root">
+        <MudText Typo="Typo.h4" Class="mb-4">
+            @TranslationService.GetTranslation("stockReconciliation.title", "Warehouse Stock Reconciliation")
+        </MudText>
+
+        @* Filters Section *@
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">
+                @TranslationService.GetTranslation("stockReconciliation.filters", "Filters and Options")
+            </MudText>
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_fromDate"
+                                   Label="@TranslationService.GetTranslation("field.fromDate", "From Date")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   Class="ef-input" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_toDate"
+                                   Label="@TranslationService.GetTranslation("field.toDate", "To Date")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   Class="ef-input" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_selectedWarehouseId"
+                               @bind-Value:after="OnWarehouseChanged"
+                               Label="@TranslationService.GetTranslation("field.warehouse", "Warehouse")"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               Class="ef-input">
+                        @foreach (var warehouse in _warehouses)
+                        {
+                            <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_selectedLocationId"
+                               Label="@TranslationService.GetTranslation("field.location", "Location")"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               Disabled="@(!_selectedWarehouseId.HasValue)"
+                               Class="ef-input">
+                        @foreach (var location in _locations)
+                        {
+                            <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSwitch @bind-Value="_includeDocuments"
+                               Label="@TranslationService.GetTranslation("stockReconciliation.includeDocuments", "Include documents (receipt/shipment)")"
+                               Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSwitch @bind-Value="_includeInventories"
+                               Label="@TranslationService.GetTranslation("stockReconciliation.includeInventories", "Include physical inventories")"
+                               Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSwitch @bind-Value="_onlyWithDiscrepancies"
+                               Label="@TranslationService.GetTranslation("stockReconciliation.onlyWithDiscrepancies", "Only products with discrepancies")"
+                               Color="Color.Warning" />
+                </MudItem>
+                <MudItem xs="12" Class="d-flex gap-2 justify-end">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="CalculatePreviewAsync"
+                               Disabled="_isCalculating"
+                               StartIcon="@Icons.Material.Outlined.Calculate">
+                        @if (_isCalculating)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <MudText Class="ms-2">@TranslationService.GetTranslation("stockReconciliation.calculating", "Calculating...")</MudText>
+                        }
+                        else
+                        {
+                            <MudText>@TranslationService.GetTranslation("stockReconciliation.calculate", "Calculate Preview")</MudText>
+                        }
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Warning"
+                               OnClick="ApplyReconciliationAsync"
+                               Disabled="@(_reconciliationResult == null || _selectedItems.Count == 0 || _isApplying)"
+                               StartIcon="@Icons.Material.Outlined.Check">
+                        @if (_isApplying)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <MudText Class="ms-2">@TranslationService.GetTranslation("stockReconciliation.applying", "Applying...")</MudText>
+                        }
+                        else
+                        {
+                            <MudText>@TranslationService.GetTranslation("stockReconciliation.apply", "Apply Recalculation")</MudText>
+                        }
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Info"
+                               OnClick="ExportReportAsync"
+                               Disabled="@(_reconciliationResult == null || _isExporting)"
+                               StartIcon="@Icons.Material.Outlined.Download">
+                        @TranslationService.GetTranslation("stockReconciliation.export", "Export Report")
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @* Results Section *@
+        @if (_reconciliationResult != null)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <div class="d-flex align-center justify-space-between mb-3">
+                    <MudText Typo="Typo.h6">
+                        @TranslationService.GetTranslation("common.results", "Results")
+                    </MudText>
+                    <div class="d-flex gap-2">
+                        <MudButton Size="Size.Small"
+                                   Variant="Variant.Text"
+                                   OnClick="SelectAll"
+                                   Disabled="@(_reconciliationResult.Items.Count == 0)">
+                            @TranslationService.GetTranslation("stockReconciliation.selectAll", "Select all")
+                        </MudButton>
+                        <MudButton Size="Size.Small"
+                                   Variant="Variant.Text"
+                                   OnClick="DeselectAll"
+                                   Disabled="@(_selectedItems.Count == 0)">
+                            @TranslationService.GetTranslation("stockReconciliation.deselectAll", "Deselect all")
+                        </MudButton>
+                    </div>
+                </div>
+
+                <MudTable T="StockReconciliationItemDto"
+                          Items="_reconciliationResult.Items"
+                          Hover="true"
+                          Striped="true"
+                          Dense="true"
+                          MultiSelection="true"
+                          @bind-SelectedItems="_selectedItems"
+                          FixedHeader="true"
+                          Height="500px">
+                    <HeaderContent>
+                        <MudTh></MudTh>
+                        <MudTh>@TranslationService.GetTranslation("stockReconciliation.product", "Product")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("stockReconciliation.warehouse", "Warehouse")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("stockReconciliation.location", "Location")</MudTh>
+                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")</MudTh>
+                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")</MudTh>
+                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")</MudTh>
+                        <MudTh Style="text-align:center;">@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <MudIconButton Icon="@(context.SourceMovements.Any() ? Icons.Material.Outlined.ExpandMore : Icons.Material.Outlined.ChevronRight)"
+                                           Size="Size.Small"
+                                           OnClick="@(() => ToggleRowExpansion(context))"
+                                           Disabled="@(!context.SourceMovements.Any())" />
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.product", "Product")">
+                            <div>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;">@context.ProductCode</MudText>
+                                <MudText Typo="Typo.caption">@context.ProductName</MudText>
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.warehouse", "Warehouse")">
+                            @context.WarehouseName
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.location", "Location")">
+                            @context.LocationCode
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")" Style="text-align:right;">
+                            <MudText Typo="Typo.body2">@context.CurrentQuantity.ToString("N2")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")" Style="text-align:right;">
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">@context.CalculatedQuantity.ToString("N2")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")" Style="text-align:right;">
+                            <MudText Typo="Typo.body2" 
+                                     Color="@(context.Difference > 0 ? Color.Success : (context.Difference < 0 ? Color.Error : Color.Default))"
+                                     Style="font-weight:600;">
+                                @((context.Difference > 0 ? "+" : "") + context.Difference.ToString("N2"))
+                                @if (context.DifferencePercentage != 0)
+                                {
+                                    <text> (@((context.DifferencePercentage > 0 ? "+" : ""))@context.DifferencePercentage.ToString("N1")%)</text>
+                                }
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")" Style="text-align:center;">
+                            <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(context.Severity)">
+                                @TranslationService.GetTranslation($"stockReconciliation.severity.{context.Severity.ToString().ToLower()}", context.Severity.ToString())
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                    <ChildRowContent>
+                        @if (_expandedRows.Contains(context) && context.SourceMovements.Any())
+                        {
+                            <MudTr>
+                                <td colspan="8" style="padding:0;">
+                                    <MudPaper Class="pa-3 ma-2" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                            @TranslationService.GetTranslation("stockReconciliation.sourceMovements", "Source Movements")
+                                        </MudText>
+                                        <MudSimpleTable Dense="true" Hover="true" Style="overflow-x: auto;">
+                                            <thead>
+                                                <tr>
+                                                    <th>@TranslationService.GetTranslation("field.type", "Type")</th>
+                                                    <th>@TranslationService.GetTranslation("field.reference", "Reference")</th>
+                                                    <th>@TranslationService.GetTranslation("field.date", "Date")</th>
+                                                    <th style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantity")</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var movement in context.SourceMovements.OrderBy(m => m.Date))
+                                                {
+                                                    <tr>
+                                                        <td>@movement.Type</td>
+                                                        <td>@movement.Reference</td>
+                                                        <td>@movement.Date.ToString("dd/MM/yyyy HH:mm")</td>
+                                                        <td style="text-align:right;">
+                                                            <MudText Color="@(movement.Quantity > 0 ? Color.Success : Color.Error)">
+                                                                @((movement.Quantity > 0 ? "+" : ""))@movement.Quantity.ToString("N2")
+                                                            </MudText>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </MudSimpleTable>
+                                        <MudText Typo="Typo.caption" Class="mt-2">
+                                            Documents: @context.TotalDocuments | Inventories: @context.TotalInventories | Manual: @context.TotalManualMovements
+                                        </MudText>
+                                    </MudPaper>
+                                </td>
+                            </MudTr>
+                        }
+                    </ChildRowContent>
+                    <NoRecordsContent>
+                        <div class="text-center pa-4">
+                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Large" Class="mb-2 mud-text-secondary" />
+                            <MudText Typo="Typo.h6">
+                                @TranslationService.GetTranslation("stockReconciliation.noResults", "No results found")
+                            </MudText>
+                        </div>
+                    </NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+
+            @* Summary Section *@
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    @TranslationService.GetTranslation("stockReconciliation.summary.title", "Summary")
+                </MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten);">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("stockReconciliation.summary.totalProducts", "Total Products")
+                            </MudText>
+                            <MudText Typo="Typo.h5">@_reconciliationResult.Summary.TotalProducts</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("stockReconciliation.summary.correct", "Correct")
+                            </MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success">@_reconciliationResult.Summary.CorrectCount</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("stockReconciliation.summary.minorDiscrepancies", "Minor Discrepancies")
+                            </MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Warning">@_reconciliationResult.Summary.MinorDiscrepancyCount</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("stockReconciliation.summary.majorDiscrepancies", "Major Discrepancies")
+                            </MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Error">@_reconciliationResult.Summary.MajorDiscrepancyCount</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-dark-lighten);">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("stockReconciliation.summary.missing", "Missing")
+                            </MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Dark">@_reconciliationResult.Summary.MissingCount</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-primary-lighten);">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("stockReconciliation.summary.totalDifference", "Total Difference")
+                            </MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary">@_reconciliationResult.Summary.TotalDifferenceValue.ToString("N2")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+                @if (_selectedItems.Count > 0)
+                {
+                    <MudDivider Class="my-3" />
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        @TranslationService.GetTranslationFormatted(
+                            "stockReconciliation.itemsToUpdate",
+                            "Items to update: {0}",
+                            _selectedItems.Count)
+                    </MudAlert>
+                }
+            </MudPaper>
+        }
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isCalculating = false;
+    private bool _isApplying = false;
+    private bool _isExporting = false;
+
+    // Filters
+    private DateTime? _fromDate = null;
+    private DateTime? _toDate = null;
+    private Guid? _selectedWarehouseId = null;
+    private Guid? _selectedLocationId = null;
+    private bool _includeDocuments = true;
+    private bool _includeInventories = true;
+    private bool _onlyWithDiscrepancies = false;
+
+    // Data
+    private List<StorageFacilityDto> _warehouses = new();
+    private List<StorageLocationDto> _locations = new();
+    private StockReconciliationResultDto? _reconciliationResult = null;
+    private HashSet<StockReconciliationItemDto> _selectedItems = new();
+    private HashSet<StockReconciliationItemDto> _expandedRows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadWarehousesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing stock reconciliation page");
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore nel caricamento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadWarehousesAsync()
+    {
+        var warehouses = await WarehouseService.GetStorageFacilitiesAsync(page: 1, pageSize: 1000);
+        _warehouses = warehouses?.Items?.ToList() ?? new();
+    }
+
+    private async Task OnWarehouseChanged()
+    {
+        _selectedLocationId = null;
+        _locations.Clear();
+
+        if (_selectedWarehouseId.HasValue)
+        {
+            var locations = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_selectedWarehouseId.Value, page: 1, pageSize: 1000);
+            _locations = locations?.Items?.ToList() ?? new();
+        }
+    }
+
+    private async Task CalculatePreviewAsync()
+    {
+        _isCalculating = true;
+        try
+        {
+            var request = new StockReconciliationRequestDto
+            {
+                FromDate = _fromDate,
+                ToDate = _toDate,
+                WarehouseId = _selectedWarehouseId,
+                LocationId = _selectedLocationId,
+                IncludeDocuments = _includeDocuments,
+                IncludeInventories = _includeInventories,
+                OnlyWithDiscrepancies = _onlyWithDiscrepancies
+            };
+
+            _reconciliationResult = await StockReconciliationService.CalculateReconciliationAsync(request);
+            _selectedItems.Clear();
+            _expandedRows.Clear();
+
+            if (_reconciliationResult != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("stockReconciliation.success.calculated", "Calculation completed successfully"),
+                    Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("stockReconciliation.error.calculationFailed", "Error during reconciliation calculation"),
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error calculating stock reconciliation");
+            Snackbar.Add(
+                TranslationService.GetTranslation("stockReconciliation.error.calculationFailed", "Error during reconciliation calculation"),
+                Severity.Error);
+        }
+        finally
+        {
+            _isCalculating = false;
+        }
+    }
+
+    private async Task ApplyReconciliationAsync()
+    {
+        if (_reconciliationResult == null || _selectedItems.Count == 0)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            { "ItemsToUpdate", _selectedItems.Count },
+            { "Summary", _reconciliationResult.Summary },
+            { "CreateAdjustmentMovements", true }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<StockReconciliationConfirmDialog>(
+            TranslationService.GetTranslation("stockReconciliation.confirmTitle", "Confirm Application"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is StockReconciliationConfirmResult confirmResult)
+        {
+            await ExecuteApplyReconciliationAsync(confirmResult.Reason, confirmResult.CreateAdjustmentMovements);
+        }
+    }
+
+    private async Task ExecuteApplyReconciliationAsync(string reason, bool createAdjustmentMovements)
+    {
+        _isApplying = true;
+        try
+        {
+            var request = new StockReconciliationApplyRequestDto
+            {
+                ItemsToApply = _selectedItems.Select(x => x.StockId).ToList(),
+                Reason = reason,
+                CreateAdjustmentMovements = createAdjustmentMovements
+            };
+
+            var result = await StockReconciliationService.ApplyReconciliationAsync(request);
+
+            if (result != null && result.Success)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslationFormatted(
+                        "stockReconciliation.success.applied",
+                        "Reconciliation applied successfully. Updated {0} stock records.",
+                        result.UpdatedCount),
+                    Severity.Success);
+
+                // Reload the preview
+                await CalculatePreviewAsync();
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("stockReconciliation.error.applyFailed", "Error applying reconciliation"),
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error applying stock reconciliation");
+            Snackbar.Add(
+                TranslationService.GetTranslation("stockReconciliation.error.applyFailed", "Error applying reconciliation"),
+                Severity.Error);
+        }
+        finally
+        {
+            _isApplying = false;
+        }
+    }
+
+    private async Task ExportReportAsync()
+    {
+        if (_reconciliationResult == null)
+            return;
+
+        _isExporting = true;
+        try
+        {
+            var request = new StockReconciliationRequestDto
+            {
+                FromDate = _fromDate,
+                ToDate = _toDate,
+                WarehouseId = _selectedWarehouseId,
+                LocationId = _selectedLocationId,
+                IncludeDocuments = _includeDocuments,
+                IncludeInventories = _includeInventories,
+                OnlyWithDiscrepancies = _onlyWithDiscrepancies
+            };
+
+            var fileData = await StockReconciliationService.ExportReconciliationAsync(request);
+
+            if (fileData != null && fileData.Length > 0)
+            {
+                // Download file using JavaScript interop
+                var fileName = $"StockReconciliation_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+                var base64 = Convert.ToBase64String(fileData);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", fileName, base64);
+
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.exportSuccess", "Esportazione completata"),
+                    Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("stockReconciliation.error.exportFailed", "Error exporting report"),
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting stock reconciliation report");
+            Snackbar.Add(
+                TranslationService.GetTranslation("stockReconciliation.error.exportFailed", "Error exporting report"),
+                Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
+        }
+    }
+
+    private void SelectAll()
+    {
+        if (_reconciliationResult?.Items != null)
+        {
+            _selectedItems = _reconciliationResult.Items.ToHashSet();
+        }
+    }
+
+    private void DeselectAll()
+    {
+        _selectedItems.Clear();
+    }
+
+    private void ToggleRowExpansion(StockReconciliationItemDto item)
+    {
+        if (_expandedRows.Contains(item))
+        {
+            _expandedRows.Remove(item);
+        }
+        else
+        {
+            _expandedRows.Add(item);
+        }
+    }
+
+    private Color GetSeverityColor(ReconciliationSeverity severity)
+    {
+        return severity switch
+        {
+            ReconciliationSeverity.Correct => Color.Success,
+            ReconciliationSeverity.Minor => Color.Warning,
+            ReconciliationSeverity.Major => Color.Error,
+            ReconciliationSeverity.Missing => Color.Dark,
+            _ => Color.Default
+        };
+    }
+}

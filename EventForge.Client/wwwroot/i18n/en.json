@@ -2900,5 +2900,79 @@
     "expiry": "Expiry",
     "quality": "Quality Control",
     "other": "Other"
+  },
+  "stockReconciliation": {
+    "title": "Warehouse Stock Reconciliation",
+    "filters": "Filters and Options",
+    "calculate": "Calculate Preview",
+    "apply": "Apply Recalculation",
+    "export": "Export Report",
+    "currentQty": "Current Stock",
+    "calculatedQty": "Calculated Stock",
+    "difference": "Difference",
+    "differencePercentage": "Difference %",
+    "sourceMovements": "Source Movements",
+    "confirmTitle": "Confirm Application",
+    "confirmMessage": "You are about to update {0} stock quantities. This operation CANNOT be undone. Do you want to proceed?",
+    "includeDocuments": "Include documents (receipt/shipment)",
+    "includeInventories": "Include physical inventories",
+    "onlyWithDiscrepancies": "Only products with discrepancies",
+    "itemsToUpdate": "Items to update",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "noResults": "No results found",
+    "calculating": "Calculating...",
+    "applying": "Applying...",
+    "reason": "Reason",
+    "reasonRequired": "Reason is required",
+    "createAdjustmentMovements": "Create adjustment movements",
+    "product": "Product",
+    "warehouse": "Warehouse",
+    "location": "Location",
+    "actions": "Actions",
+    "expandDetails": "Expand details",
+    "collapseDetails": "Collapse details",
+    "severity": {
+      "correct": "Correct",
+      "minor": "Minor Discrepancy",
+      "major": "Major Discrepancy",
+      "missing": "Missing"
+    },
+    "summary": {
+      "title": "Summary",
+      "totalProducts": "Total Products",
+      "correct": "Correct",
+      "minorDiscrepancies": "Minor Discrepancies",
+      "majorDiscrepancies": "Major Discrepancies",
+      "missing": "Missing",
+      "totalDifference": "Total Difference"
+    },
+    "confirmDialog": {
+      "title": "⚠️ WARNING",
+      "message": "You are about to update {0} stock quantities with recalculated values.",
+      "operation": "This operation will:",
+      "willUpdateStock": "✅ Update Stock.Quantity",
+      "willCreateMovements": "✅ Create adjustment movements",
+      "willLogAudit": "✅ Log operation in audit trail",
+      "cannotUndo": "⚠️ This action CANNOT be undone",
+      "details": "Details",
+      "correctItems": "Correct: {0} (will be ignored)",
+      "itemsToUpdate": "To update: {0}",
+      "majorDiscrepancies": "Major discrepancies: {0} (>10%)",
+      "confirmButton": "✓ Confirm Application"
+    },
+    "success": {
+      "calculated": "Calculation completed successfully",
+      "applied": "Reconciliation applied successfully. Updated {0} stock records."
+    },
+    "error": {
+      "calculationFailed": "Error during reconciliation calculation",
+      "applyFailed": "Error applying reconciliation",
+      "exportFailed": "Error exporting report"
+    }
+  },
+  "nav": {
+    "stockManagement": "Stock",
+    "stockReconciliation": "Stock Reconciliation"
   }
 }
