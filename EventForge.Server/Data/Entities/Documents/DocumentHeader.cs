@@ -336,18 +336,6 @@ public class DocumentHeader : AuditableEntity
     public PriceApplicationMode? PriceApplicationModeOverride { get; set; }
 
     /// <summary>
-    /// Listino forzato per questo ordine specifico
-    /// (override rispetto al default del BusinessParty)
-    /// </summary>
-    [Display(Name = "Forced Price List Override", Description = "Forced price list override for this specific document.")]
-    public Guid? ForcedPriceListIdOverride { get; set; }
-
-    /// <summary>
-    /// Navigation property
-    /// </summary>
-    public PriceList.PriceList? ForcedPriceListOverride { get; set; }
-
-    /// <summary>
     /// Listino prezzi applicato al documento (per gestione completa listini)
     /// </summary>
     [Display(Name = "Price List", Description = "Price list applied to this document.")]
