@@ -361,8 +361,7 @@ public class PriceListService : IPriceListService
                 return new List<PriceListDto>();
             }
             
-            _logger.LogInformation("Fetched {Count} active price lists for direction {Direction}", 
-                result.Items.Count, direction);
+            _logger.LogInformation("Fetched active price lists for direction: " + direction);
             
             return result.Items.ToList();
         }

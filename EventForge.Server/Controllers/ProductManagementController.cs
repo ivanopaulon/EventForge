@@ -1077,7 +1077,7 @@ public class ProductManagementController : BaseApiController
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] PriceListDirection? direction = null,
-        [FromQuery] PriceListStatus? status = null,
+        [FromQuery] DTOs.Common.PriceListStatus? status = null,
         CancellationToken cancellationToken = default)
     {
         var validationResult = ValidatePaginationParameters(page, pageSize);
