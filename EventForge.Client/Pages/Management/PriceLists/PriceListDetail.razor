@@ -1131,14 +1131,18 @@
             _isLoading = true;
             var entries = await PriceListService.ExportEntriesAsync(Id, includeInactive: false);
             
-            // Note: In production, you'd convert this to Excel using a library like ClosedXML or EPPlus
-            // For now, just show a success message
+            // TODO: Implement actual Excel file generation using ClosedXML or EPPlus
+            // This would involve:
+            // 1. Creating a workbook with proper formatting
+            // 2. Adding headers and data rows
+            // 3. Generating a downloadable file stream
+            // 4. Using JS interop to trigger browser download
+            
             Snackbar.Add(
                 $"{TranslationService.GetTranslation("pricelist.exportReady", "Esportazione pronta")}: {entries.Count} {TranslationService.GetTranslation("pricelist.entries", "voci")}",
                 Severity.Success);
             
-            // TODO: Implement actual Excel download
-            Logger.LogInformation("Export ready for {Count} entries", entries.Count);
+            Logger.LogInformation("Export ready for {Count} entries. Actual Excel generation not yet implemented.", entries.Count);
         }
         catch (Exception ex)
         {

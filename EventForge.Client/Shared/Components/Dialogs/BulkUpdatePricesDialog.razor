@@ -7,6 +7,7 @@
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject ILogger<BulkUpdatePricesDialog> Logger
+@inject IDialogService DialogService
 
 <MudDialog>
     <TitleContent>
@@ -372,6 +373,4 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
-
-    [Inject] private IDialogService DialogService { get; set; } = null!;
 }

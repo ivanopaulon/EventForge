@@ -7,6 +7,7 @@
 @inject IPriceListService PriceListService
 @inject ISnackbar Snackbar
 @inject ILogger<ImportPriceListDialog> Logger
+@inject IDialogService DialogService
 
 <MudDialog>
     <TitleContent>
@@ -339,8 +340,8 @@
         
         try
         {
-            // Note: This is a simplified CSV parsing. In production, you'd use a proper library
-            // like CsvHelper or handle Excel files with EPPlus/ClosedXML
+            // TODO: In production, replace with proper Excel/CSV parsing using ExcelDataReader or ClosedXML
+            // Current implementation is a simplified parser for demonstration purposes
             
             var entries = new List<CreatePriceListEntryDto>();
             _validationErrors.Clear();
@@ -358,6 +359,8 @@
                 rowIndex++;
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
+                // Note: This simple split doesn't handle quoted values with delimiters inside
+                // TODO: Use a proper CSV parsing library like CsvHelper in production
                 var columns = line.Split(new[] { ',', '\t', ';' }, StringSplitOptions.None);
                 
                 if (columns.Length < 3)
@@ -368,6 +371,9 @@
 
                 try
                 {
+                    // Note: ProductCode is stored in Notes field because CreatePriceListEntryDto requires ProductId
+                    // Backend is expected to resolve ProductCode to ProductId during import
+                    // TODO: Consider using a dedicated import DTO with ProductCode field
                     var productCode = columns.Length > 0 ? columns[0].Trim() : "";
                     var entry = new CreatePriceListEntryDto
                     {
@@ -380,7 +386,7 @@
                         Status = columns.Length > 6 && Enum.TryParse<PriceListEntryStatus>(columns[6].Trim(), out var status) 
                             ? status 
                             : PriceListEntryStatus.Attivo,
-                        Notes = $"ProductCode:{productCode}" // Store product code in notes for backend processing
+                        Notes = $"ProductCode:{productCode}" // Temporary storage for backend ProductId resolution
                     };
 
                     entries.Add(entry);
@@ -488,8 +494,6 @@
             MudDialog.Cancel();
         }
     }
-
-    [Inject] private IDialogService DialogService { get; set; } = null!;
 
     private class ValidationError
     {
