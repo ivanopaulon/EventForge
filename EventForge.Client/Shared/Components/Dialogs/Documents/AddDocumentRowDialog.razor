@@ -266,26 +266,45 @@
                                                  Format="F2"
                                                  Adornment="Adornment.Start"
                                                  AdornmentIcon="@Icons.Material.Outlined.Euro"
-                                                 AdornmentColor="Color.Success">
+                                                 AdornmentColor="Color.Success"
+                                                 Class="@GetPriceFieldClass()">
                                     <HelperTextContent>
                                         @if (_model.AppliedPriceListId.HasValue)
                                         {
-                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                                <MudIcon Icon="@Icons.Material.Outlined.PriceCheck" Size="Size.Small" Color="Color.Info" />
-                                                <MudText Typo="Typo.caption" Color="Color.Info">
-                                                    @TranslationService.GetTranslation("documents.fromPriceList", "Da listino"): @GetAppliedPriceListName()
-                                                </MudText>
-                                                @if (_model.IsPriceManual)
-                                                {
-                                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
-                                                        @TranslationService.GetTranslation("documents.manualOverride", "Modificato")
-                                                    </MudChip>
-                                                }
-                                            </MudStack>
+                                            <!-- Badge quando c'è un listino applicato -->
+                                            <MudTooltip Text="@GetPriceSourceTooltip()" Delay="300">
+                                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
+                                                    <MudIcon Icon="@Icons.Material.Outlined.PriceCheck" 
+                                                             Size="Size.Small" 
+                                                             Color="@GetPriceSourceColor()" />
+                                                    <MudText Typo="Typo.caption" Color="@GetPriceSourceColor()">
+                                                        @GetPriceSourceText()
+                                                    </MudText>
+                                                    @if (_model.IsPriceManual)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" 
+                                                                 Color="Color.Warning" 
+                                                                 Variant="Variant.Text"
+                                                                 Icon="@Icons.Material.Outlined.Edit">
+                                                            @TranslationService.GetTranslation("documents.manualOverride", "Modificato")
+                                                        </MudChip>
+                                                    }
+                                                </MudStack>
+                                            </MudTooltip>
                                         }
                                         else
                                         {
-                                            <MudText Typo="Typo.caption">@GetPriceHelperText()</MudText>
+                                            <!-- Fallback quando non c'è listino (usa DefaultPrice) -->
+                                            <MudTooltip Text="@GetPriceSourceTooltip()" Delay="300">
+                                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
+                                                    <MudIcon Icon="@Icons.Material.Outlined.Info" 
+                                                             Size="Size.Small" 
+                                                             Color="Color.Default" />
+                                                    <MudText Typo="Typo.caption">
+                                                        @TranslationService.GetTranslation("documents.defaultPrice", "Prezzo predefinito prodotto")
+                                                    </MudText>
+                                                </MudStack>
+                                            </MudTooltip>
                                         }
                                     </HelperTextContent>
                                 </MudNumericField>
