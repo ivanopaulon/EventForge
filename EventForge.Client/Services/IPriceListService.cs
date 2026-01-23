@@ -135,4 +135,50 @@ public interface IPriceListService
     /// <param name="ct">Cancellation token</param>
     /// <returns>BusinessParty aggiornato</returns>
     Task<PriceListBusinessPartyDto> UpdateBusinessPartyAssignmentAsync(Guid priceListId, Guid businessPartyId, UpdateBusinessPartyAssignmentDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Preview bulk price update operation without applying changes.
+    /// </summary>
+    /// <param name="priceListId">Price list ID</param>
+    /// <param name="dto">Bulk update parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Preview of the changes that would be applied</returns>
+    Task<BulkUpdatePreviewDto> PreviewBulkUpdateAsync(Guid priceListId, BulkPriceUpdateDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Apply bulk price update operation.
+    /// </summary>
+    /// <param name="priceListId">Price list ID</param>
+    /// <param name="dto">Bulk update parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Result of the bulk update operation</returns>
+    Task<BulkUpdateResultDto> BulkUpdatePricesAsync(Guid priceListId, BulkPriceUpdateDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Bulk import price list entries from a list.
+    /// </summary>
+    /// <param name="priceListId">Price list ID</param>
+    /// <param name="entries">List of entries to import</param>
+    /// <param name="replaceExisting">Whether to replace existing entries</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Result of the import operation</returns>
+    Task<BulkImportResultDto> BulkImportEntriesAsync(Guid priceListId, List<CreatePriceListEntryDto> entries, bool replaceExisting, CancellationToken ct = default);
+
+    /// <summary>
+    /// Export price list entries to a list suitable for Excel export.
+    /// </summary>
+    /// <param name="priceListId">Price list ID</param>
+    /// <param name="includeInactive">Whether to include inactive entries</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of exportable entries</returns>
+    Task<List<ExportablePriceListEntryDto>> ExportEntriesAsync(Guid priceListId, bool includeInactive, CancellationToken ct = default);
+
+    /// <summary>
+    /// Duplicate an existing price list with optional transformations.
+    /// </summary>
+    /// <param name="priceListId">Source price list ID</param>
+    /// <param name="dto">Duplication parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Result of the duplication operation</returns>
+    Task<DuplicatePriceListResultDto> DuplicatePriceListAsync(Guid priceListId, DuplicatePriceListDto dto, CancellationToken ct = default);
 }

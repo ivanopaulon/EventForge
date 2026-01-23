@@ -1,0 +1,496 @@
+@using EventForge.DTOs.PriceLists
+@using EventForge.DTOs.Common
+@using System.Text
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Forms
+@inject ITranslationService TranslationService
+@inject IPriceListService PriceListService
+@inject ISnackbar Snackbar
+@inject ILogger<ImportPriceListDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.FileUpload" Class="mr-2" />
+            @TranslationService.GetTranslation("pricelist.importFromExcel", "Importa da Excel")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="ef-dialog-content">
+            <PageLoadingOverlay Visible="_isLoading" Message="@_loadingMessage" />
+
+            <MudStack Spacing="3">
+                
+                <!-- File Upload Section -->
+                @if (_parsedEntries == null)
+                {
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.CloudUpload" Class="mr-2" Size="Size.Small" />
+                            @TranslationService.GetTranslation("pricelist.uploadFile", "Carica File")
+                        </MudText>
+                        
+                        <MudFileUpload T="IBrowserFile" 
+                                     Accept=".xlsx,.csv"
+                                     FilesChanged="HandleFileSelected"
+                                     MaximumFileCount="1">
+                            <ActivatorContent>
+                                <MudPaper Outlined="true" Class="pa-8 d-flex flex-column align-center justify-center" Style="border: 2px dashed var(--mud-palette-primary); cursor: pointer;">
+                                    <MudIcon Icon="@Icons.Material.Outlined.CloudUpload" Size="Size.Large" Color="Color.Primary" />
+                                    <MudText Typo="Typo.h6" Class="mt-2">
+                                        @TranslationService.GetTranslation("pricelist.dragDropFile", "Trascina il file qui o clicca per selezionare")
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("pricelist.supportedFormats", "Formati supportati: .xlsx, .csv (max 5MB)")
+                                    </MudText>
+                                </MudPaper>
+                            </ActivatorContent>
+                        </MudFileUpload>
+
+                        @if (_selectedFile != null)
+                        {
+                            <MudChip T="string" 
+                                   Color="Color.Primary" 
+                                   Icon="@Icons.Material.Outlined.AttachFile"
+                                   OnClose="ClearFile"
+                                   Class="mt-2">
+                                @_selectedFile.Name (@((_selectedFile.Size / 1024.0).ToString("N0")) KB)
+                            </MudChip>
+
+                            <MudButton Color="Color.Primary"
+                                     Variant="Variant.Filled"
+                                     OnClick="ParseFile"
+                                     Class="mt-3"
+                                     FullWidth="true"
+                                     StartIcon="@Icons.Material.Outlined.PlayArrow">
+                                @TranslationService.GetTranslation("pricelist.parseFile", "Analizza File")
+                            </MudButton>
+                        }
+
+                        <!-- Expected Format Info -->
+                        <MudAlert Severity="Severity.Info" Class="mt-3">
+                            <MudText Typo="Typo.body2" Class="mb-2">
+                                <strong>@TranslationService.GetTranslation("pricelist.expectedFormat", "Formato Atteso:"):</strong>
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="font-monospace">
+                                ProductCode | ProductName | Price | Currency | MinQuantity | MaxQuantity | Status
+                            </MudText>
+                        </MudAlert>
+                    </MudPaper>
+                }
+                else
+                {
+                    <!-- Validation Summary -->
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Assessment" Class="mr-2" Size="Size.Small" />
+                            @TranslationService.GetTranslation("pricelist.validationSummary", "Riepilogo Validazione")
+                        </MudText>
+                        
+                        <MudGrid>
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-info-lighten);">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("pricelist.totalRows", "Righe Totali")
+                                    </MudText>
+                                    <MudText Typo="Typo.h5" Color="Color.Info">@_parsedEntries.Count</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-success-lighten);">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("pricelist.validRows", "Righe Valide")
+                                    </MudText>
+                                    <MudText Typo="Typo.h5" Color="Color.Success">@_validRowCount</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-error-lighten);">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("pricelist.invalidRows", "Righe Non Valide")
+                                    </MudText>
+                                    <MudText Typo="Typo.h5" Color="Color.Error">@_invalidRowCount</MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudDivider Class="my-3" />
+
+                        <MudSwitch @bind-Value="_replaceExisting"
+                                 Label="@TranslationService.GetTranslation("pricelist.replaceExisting", "Sostituisci prezzi esistenti")"
+                                 Color="Color.Primary" />
+                    </MudPaper>
+
+                    <!-- Preview Table -->
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Preview" Class="mr-2" Size="Size.Small" />
+                            @TranslationService.GetTranslation("pricelist.previewData", "Anteprima Dati") (@TranslationService.GetTranslation("pricelist.first20Rows", "Prime 20 righe"))
+                        </MudText>
+
+                        <MudTable Items="@_parsedEntries.Take(20)"
+                                Dense="true"
+                                Hover="true"
+                                Striped="true"
+                                FixedHeader="true"
+                                Height="400px">
+                            <HeaderContent>
+                                <MudTh>#</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.productCode", "Codice")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.price", "Prezzo")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.currency", "Valuta")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.minQty", "Qta Min")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.maxQty", "Qta Max")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="entry">
+                                @{
+                                    var index = _parsedEntries.IndexOf(entry) + 1;
+                                    var isValid = ValidateEntry(entry, out var errors);
+                                    var bgColor = isValid ? "" : "background: var(--mud-palette-error-lighten);";
+                                }
+                                <MudTd DataLabel="#" Style="@bgColor">@index</MudTd>
+                                <MudTd DataLabel="Codice" Style="@bgColor">
+                                    @if (!string.IsNullOrEmpty(entry.ProductCode))
+                                    {
+                                        @entry.ProductCode
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Mancante</MudChip>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Prezzo" Style="@bgColor">€@entry.Price.ToString("N2")</MudTd>
+                                <MudTd DataLabel="Valuta" Style="@bgColor">@(entry.Currency ?? "EUR")</MudTd>
+                                <MudTd DataLabel="Qta Min" Style="@bgColor">@(entry.MinQuantity?.ToString() ?? "-")</MudTd>
+                                <MudTd DataLabel="Qta Max" Style="@bgColor">@(entry.MaxQuantity?.ToString() ?? "-")</MudTd>
+                                <MudTd DataLabel="Stato" Style="@bgColor">
+                                    <MudChip T="string" Size="Size.Small" Color="@(entry.Status == PriceListEntryStatus.Active ? Color.Success : Color.Default)">
+                                        @entry.Status
+                                    </MudChip>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudPaper>
+
+                    <!-- Validation Errors (if any) -->
+                    @if (_validationErrors.Any())
+                    {
+                        <MudPaper Elevation="1" Class="pa-4">
+                            <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Error">
+                                <MudIcon Icon="@Icons.Material.Outlined.Error" Class="mr-2" Size="Size.Small" />
+                                @TranslationService.GetTranslation("pricelist.validationErrors", "Errori di Validazione") (@_validationErrors.Count)
+                            </MudText>
+                            
+                            <MudList T="string" Dense="true">
+                                @foreach (var error in _validationErrors.Take(10))
+                                {
+                                    <MudListItem T="string" Icon="@Icons.Material.Outlined.ErrorOutline" IconColor="Color.Error">
+                                        <MudText Typo="Typo.body2">Riga @error.RowIndex: @error.Message</MudText>
+                                    </MudListItem>
+                                }
+                            </MudList>
+
+                            @if (_validationErrors.Count > 10)
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+                                    ...@(_validationErrors.Count - 10) @TranslationService.GetTranslation("pricelist.moreErrors", "altri errori")
+                                </MudText>
+                            }
+                        </MudPaper>
+                    }
+
+                    <!-- Result Summary (after import) -->
+                    @if (_importResult != null)
+                    {
+                        <MudPaper Elevation="2" Class="pa-4" Style="background: var(--mud-palette-success-lighten);">
+                            <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Success">
+                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Class="mr-2" Size="Size.Small" />
+                                @TranslationService.GetTranslation("pricelist.importComplete", "Importazione Completata")
+                            </MudText>
+                            
+                            <MudGrid>
+                                <MudItem xs="12" sm="3">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("pricelist.successCount", "Importati")
+                                    </MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Success">@_importResult.SuccessCount</MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="3">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("pricelist.failureCount", "Falliti")
+                                    </MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Error">@_importResult.FailureCount</MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="3">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("pricelist.skippedCount", "Saltati")
+                                    </MudText>
+                                    <MudText Typo="Typo.h6">@_importResult.SkippedCount</MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="3">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("pricelist.duration", "Durata")
+                                    </MudText>
+                                    <MudText Typo="Typo.h6">@_importResult.Duration.TotalSeconds.ToString("N1")s</MudText>
+                                </MudItem>
+                            </MudGrid>
+
+                            @if (_importResult.Errors.Any())
+                            {
+                                <MudDivider Class="my-3" />
+                                <MudText Typo="Typo.subtitle2" Class="mb-2" Color="Color.Error">
+                                    @TranslationService.GetTranslation("pricelist.importErrors", "Errori (max 10):")
+                                </MudText>
+                                <MudList T="string" Dense="true">
+                                    @foreach (var error in _importResult.Errors.Take(10))
+                                    {
+                                        <MudListItem T="string" Icon="@Icons.Material.Outlined.Error" IconColor="Color.Error">
+                                            <MudText Typo="Typo.caption">
+                                                Riga @error.RowIndex: @error.ErrorMessage
+                                            </MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                        </MudPaper>
+                    }
+                }
+            </MudStack>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        @if (_parsedEntries != null && _importResult == null)
+        {
+            <MudButton OnClick="ResetImport"
+                      StartIcon="@Icons.Material.Outlined.Refresh">
+                @TranslationService.GetTranslation("button.reset", "Ricarica File")
+            </MudButton>
+        }
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("button.cancel", _importResult != null ? "Chiudi" : "Annulla")
+        </MudButton>
+        @if (_parsedEntries != null && _validRowCount > 0 && _importResult == null)
+        {
+            <MudButton Color="Color.Primary"
+                      Variant="Variant.Filled"
+                      OnClick="ImportData"
+                      Disabled="@_isLoading"
+                      StartIcon="@Icons.Material.Outlined.CloudUpload">
+                @TranslationService.GetTranslation("pricelist.importButton", "Importa") (@_validRowCount @TranslationService.GetTranslation("pricelist.rows", "righe"))
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public Guid PriceListId { get; set; }
+
+    private bool _isLoading;
+    private string _loadingMessage = "";
+
+    private IBrowserFile? _selectedFile;
+    private List<CreatePriceListEntryDto>? _parsedEntries;
+    private bool _replaceExisting = false;
+    private int _validRowCount => _parsedEntries?.Count(e => ValidateEntry(e, out _)) ?? 0;
+    private int _invalidRowCount => (_parsedEntries?.Count ?? 0) - _validRowCount;
+    private List<ValidationError> _validationErrors = new();
+    private BulkImportResultDto? _importResult;
+
+    private void HandleFileSelected(IBrowserFile? file)
+    {
+        _selectedFile = file;
+        StateHasChanged();
+    }
+
+    private void ClearFile()
+    {
+        _selectedFile = null;
+        StateHasChanged();
+    }
+
+    private void ResetImport()
+    {
+        _parsedEntries = null;
+        _selectedFile = null;
+        _validationErrors.Clear();
+        _importResult = null;
+        StateHasChanged();
+    }
+
+    private async Task ParseFile()
+    {
+        if (_selectedFile == null) return;
+
+        // Validate file size (max 5MB)
+        if (_selectedFile.Size > 5 * 1024 * 1024)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("error.fileTooLarge", "File troppo grande (max 5MB)"),
+                Severity.Error);
+            return;
+        }
+
+        _isLoading = true;
+        _loadingMessage = TranslationService.GetTranslation("pricelist.parsingFile", "Analisi file in corso...");
+        
+        try
+        {
+            // Note: This is a simplified CSV parsing. In production, you'd use a proper library
+            // like CsvHelper or handle Excel files with EPPlus/ClosedXML
+            
+            var entries = new List<CreatePriceListEntryDto>();
+            _validationErrors.Clear();
+
+            using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var reader = new StreamReader(stream);
+            
+            // Skip header row
+            await reader.ReadLineAsync();
+            
+            int rowIndex = 1;
+            string? line;
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                rowIndex++;
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                var columns = line.Split(new[] { ',', '\t', ';' }, StringSplitOptions.None);
+                
+                if (columns.Length < 3)
+                {
+                    _validationErrors.Add(new ValidationError { RowIndex = rowIndex, Message = "Numero di colonne insufficiente" });
+                    continue;
+                }
+
+                try
+                {
+                    var entry = new CreatePriceListEntryDto
+                    {
+                        PriceListId = PriceListId,
+                        ProductCode = columns.Length > 0 ? columns[0].Trim() : null,
+                        // ProductId will be resolved by backend
+                        Price = columns.Length > 2 && decimal.TryParse(columns[2].Trim(), out var price) ? price : 0,
+                        Currency = columns.Length > 3 ? columns[3].Trim() : "EUR",
+                        MinQuantity = columns.Length > 4 && int.TryParse(columns[4].Trim(), out var minQty) ? minQty : null,
+                        MaxQuantity = columns.Length > 5 && int.TryParse(columns[5].Trim(), out var maxQty) ? maxQty : null,
+                        Status = columns.Length > 6 && Enum.TryParse<PriceListEntryStatus>(columns[6].Trim(), out var status) 
+                            ? status 
+                            : PriceListEntryStatus.Active
+                    };
+
+                    entries.Add(entry);
+
+                    // Validate entry
+                    if (!ValidateEntry(entry, out var errors))
+                    {
+                        foreach (var error in errors)
+                        {
+                            _validationErrors.Add(new ValidationError { RowIndex = rowIndex, Message = error });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _validationErrors.Add(new ValidationError { RowIndex = rowIndex, Message = $"Errore parsing: {ex.Message}" });
+                }
+            }
+
+            _parsedEntries = entries;
+            
+            Snackbar.Add(
+                $"{TranslationService.GetTranslation("pricelist.parsedRows", "Analizzate")} {entries.Count} {TranslationService.GetTranslation("pricelist.rows", "righe")}",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error parsing file");
+            Snackbar.Add(
+                TranslationService.GetTranslation("error.parseFailed", $"Errore analisi file: {ex.Message}"),
+                Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            _loadingMessage = "";
+        }
+    }
+
+    private bool ValidateEntry(CreatePriceListEntryDto entry, out List<string> errors)
+    {
+        errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(entry.ProductCode))
+            errors.Add("Codice prodotto mancante");
+
+        if (entry.Price <= 0)
+            errors.Add("Prezzo non valido (deve essere > 0)");
+
+        if (entry.MinQuantity.HasValue && entry.MaxQuantity.HasValue && entry.MinQuantity > entry.MaxQuantity)
+            errors.Add("Quantità minima maggiore della massima");
+
+        return errors.Count == 0;
+    }
+
+    private async Task ImportData()
+    {
+        if (_parsedEntries == null || _validRowCount == 0) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("pricelist.confirmImport", "Conferma Importazione"),
+            $"{TranslationService.GetTranslation("pricelist.confirmImportMessage", "Confermi l'importazione di")} {_validRowCount} {TranslationService.GetTranslation("pricelist.entries", "voci")}?",
+            yesText: TranslationService.GetTranslation("button.yes", "Sì"),
+            cancelText: TranslationService.GetTranslation("button.no", "No"));
+
+        if (confirmed != true) return;
+
+        _isLoading = true;
+        _loadingMessage = TranslationService.GetTranslation("pricelist.importing", "Importazione in corso...");
+        
+        try
+        {
+            // Only import valid entries
+            var validEntries = _parsedEntries.Where(e => ValidateEntry(e, out _)).ToList();
+            
+            _importResult = await PriceListService.BulkImportEntriesAsync(PriceListId, validEntries, _replaceExisting);
+            
+            Snackbar.Add(
+                $"{TranslationService.GetTranslation("pricelist.importSuccess", "Importazione completata")}: {_importResult.SuccessCount} {TranslationService.GetTranslation("pricelist.entries", "voci")}",
+                _importResult.FailureCount > 0 ? Severity.Warning : Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error importing entries");
+            Snackbar.Add(
+                TranslationService.GetTranslation("error.importFailed", $"Errore importazione: {ex.Message}"),
+                Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            _loadingMessage = "";
+        }
+    }
+
+    private void Cancel()
+    {
+        if (_importResult != null)
+        {
+            MudDialog.Close(DialogResult.Ok(_importResult));
+        }
+        else
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+
+    private class ValidationError
+    {
+        public int RowIndex { get; set; }
+        public string Message { get; set; } = "";
+    }
+}

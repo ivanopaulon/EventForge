@@ -267,4 +267,79 @@ public class PriceListService : IPriceListService
             throw;
         }
     }
+
+    public async Task<BulkUpdatePreviewDto> PreviewBulkUpdateAsync(Guid priceListId, BulkPriceUpdateDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<BulkPriceUpdateDto, BulkUpdatePreviewDto>(
+                $"{BaseUrl}/{priceListId}/bulk-update-preview", dto, ct);
+            return result ?? throw new InvalidOperationException("Preview failed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error previewing bulk update for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<BulkUpdateResultDto> BulkUpdatePricesAsync(Guid priceListId, BulkPriceUpdateDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<BulkPriceUpdateDto, BulkUpdateResultDto>(
+                $"{BaseUrl}/{priceListId}/bulk-update", dto, ct);
+            return result ?? throw new InvalidOperationException("Bulk update failed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying bulk update for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<BulkImportResultDto> BulkImportEntriesAsync(Guid priceListId, List<CreatePriceListEntryDto> entries, bool replaceExisting, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<List<CreatePriceListEntryDto>, BulkImportResultDto>(
+                $"{BaseUrl}/{priceListId}/entries/bulk?replaceExisting={replaceExisting}", entries, ct);
+            return result ?? throw new InvalidOperationException("Import failed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk importing entries for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<List<ExportablePriceListEntryDto>> ExportEntriesAsync(Guid priceListId, bool includeInactive, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.GetAsync<List<ExportablePriceListEntryDto>>(
+                $"{BaseUrl}/{priceListId}/export?includeInactive={includeInactive}", ct);
+            return result ?? new List<ExportablePriceListEntryDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting entries for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<DuplicatePriceListResultDto> DuplicatePriceListAsync(Guid priceListId, DuplicatePriceListDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<DuplicatePriceListDto, DuplicatePriceListResultDto>(
+                $"{BaseUrl}/{priceListId}/duplicate", dto, ct);
+            return result ?? throw new InvalidOperationException("Duplication failed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error duplicating price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
 }
