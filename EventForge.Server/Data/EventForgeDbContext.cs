@@ -933,16 +933,6 @@ public partial class EventForgeDbContext : DbContext
             .Property(dh => dh.PriceApplicationModeOverride)
             .HasConversion<int?>();
 
-        _ = modelBuilder.Entity<DocumentHeader>()
-            .HasOne(dh => dh.ForcedPriceListOverride)
-            .WithMany()
-            .HasForeignKey(dh => dh.ForcedPriceListIdOverride)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<DocumentHeader>()
-            .HasIndex(dh => dh.ForcedPriceListIdOverride)
-            .HasDatabaseName("IX_DocumentHeaders_ForcedPriceListIdOverride");
-
         // DocumentRow price tracking configuration
         _ = modelBuilder.Entity<DocumentRow>()
             .Property(dr => dr.IsPriceManual)
