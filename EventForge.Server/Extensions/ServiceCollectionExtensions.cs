@@ -253,6 +253,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IPriceCalculationService, PriceCalculationService>();
         _ = services.AddScoped<IPriceListBusinessPartyService, PriceListBusinessPartyService>();
         _ = services.AddScoped<IPriceListBulkOperationsService, PriceListBulkOperationsService>();
+        _ = services.AddScoped<IPriceResolutionService, PriceResolutionService>();
 
         // Register price precedence strategy
         _ = services.AddScoped<IPricePrecedenceStrategy, DefaultPricePrecedenceStrategy>();

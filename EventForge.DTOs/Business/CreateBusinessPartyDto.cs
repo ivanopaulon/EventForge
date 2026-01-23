@@ -1,4 +1,5 @@
 using EventForge.DTOs.Common;
+using System;
 using System.ComponentModel.DataAnnotations;
 namespace EventForge.DTOs.Business
 {
@@ -57,5 +58,15 @@ namespace EventForge.DTOs.Business
         [MaxLength(500, ErrorMessage = "The notes cannot exceed 500 characters.")]
         [Display(Name = "Notes", Description = "Additional notes.")]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Default sales price list ID for this business party.
+        /// </summary>
+        public Guid? DefaultSalesPriceListId { get; set; }
+
+        /// <summary>
+        /// Default purchase price list ID for this business party.
+        /// </summary>
+        public Guid? DefaultPurchasePriceListId { get; set; }
     }
 }

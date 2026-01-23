@@ -2974,5 +2974,24 @@
   "nav": {
     "stockManagement": "Giacenze",
     "stockReconciliation": "Riconciliazione Giacenze"
+  },
+  "priceList": {
+    "fromList": "Da listino: {0}",
+    "manuallyModified": "Prezzo modificato manualmente",
+    "selectPriceList": "Seleziona Listino",
+    "defaultPartyPriceList": "Listino predefinito del cliente/fornitore",
+    "noPriceListAvailable": "Nessun listino disponibile",
+    "sales": "Listino Vendita",
+    "purchase": "Listino Acquisto",
+    "priceFromList": "Da listino: {0}",
+    "priceManuallyModified": "Prezzo modificato manualmente",
+    "appliedPriceList": "Listino applicato",
+    "priceSource": {
+      "ParameterList": "Listino forzato da parametro",
+      "DocumentList": "Listino forzato nel documento",
+      "PartyList": "Listino predefinito cliente/fornitore",
+      "GeneralList": "Listino generale attivo",
+      "DefaultPrice": "Prezzo predefinito prodotto"
+    }
   }
 }
