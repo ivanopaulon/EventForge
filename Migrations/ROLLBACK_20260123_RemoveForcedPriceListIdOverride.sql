@@ -16,7 +16,7 @@ PRINT '=== Starting ROLLBACK of ForcedPriceListIdOverride Removal ===';
 IF NOT EXISTS (
     SELECT 1 
     FROM sys.columns 
-    WHERE object_id = OBJECT_ID(N'[dbo].[DocumentHeaders]') 
+    WHERE object_id = OBJECT_ID('DocumentHeaders') 
       AND name = 'ForcedPriceListIdOverride'
 )
 BEGIN

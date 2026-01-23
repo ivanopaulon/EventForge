@@ -133,7 +133,7 @@ PRINT 'Step 4: Dropping column ForcedPriceListIdOverride...';
 IF EXISTS (
     SELECT 1 
     FROM sys.columns 
-    WHERE object_id = OBJECT_ID(N'[dbo].[DocumentHeaders]') 
+    WHERE object_id = OBJECT_ID('DocumentHeaders') 
       AND name = 'ForcedPriceListIdOverride'
 )
 BEGIN
@@ -157,7 +157,7 @@ PRINT 'Step 5: Verifying cleanup...';
 IF NOT EXISTS (
     SELECT 1 
     FROM sys.columns 
-    WHERE object_id = OBJECT_ID(N'[dbo].[DocumentHeaders]') 
+    WHERE object_id = OBJECT_ID('DocumentHeaders') 
       AND name = 'ForcedPriceListIdOverride'
 )
 BEGIN
