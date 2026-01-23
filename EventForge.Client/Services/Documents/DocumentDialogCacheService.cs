@@ -163,7 +163,11 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
                     PriceListDirection.Output
                 );
                 
-                _priceListsCacheTimestamp = DateTime.UtcNow;
+                // Only update timestamp if not already set or expired
+                if (_priceListsCacheTimestamp == null || IsPriceListsCacheExpired())
+                {
+                    _priceListsCacheTimestamp = DateTime.UtcNow;
+                }
                 
                 _logger.LogInformation(
                     "Loaded {Count} active sales price lists into cache (expires at {ExpiryTime})",
@@ -201,7 +205,11 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
                     PriceListDirection.Input
                 );
                 
-                _priceListsCacheTimestamp = DateTime.UtcNow;
+                // Only update timestamp if not already set or expired
+                if (_priceListsCacheTimestamp == null || IsPriceListsCacheExpired())
+                {
+                    _priceListsCacheTimestamp = DateTime.UtcNow;
+                }
                 
                 _logger.LogInformation(
                     "Loaded {Count} active purchase price lists into cache (expires at {ExpiryTime})",
