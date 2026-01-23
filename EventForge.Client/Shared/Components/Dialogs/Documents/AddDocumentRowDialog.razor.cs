@@ -1014,14 +1014,31 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         try
         {
             // 1. Determine price list direction based on document type
-            // TODO: Load DocumentType to check IsStockIncrease property
-            // For now, default to Output (sales). This should be enhanced to fetch
-            // the DocumentType and check IsStockIncrease property.
+            // Check document type name for purchase/sales indicators
             PriceListDirection direction = PriceListDirection.Output; // Default to sales
             
-            // If we have a way to determine if it's a purchase, set to Input
-            // This will be improved in a future iteration
-            Logger.LogDebug("Using price list direction: {Direction}", direction);
+            if (_state.DocumentHeader?.DocumentTypeName != null)
+            {
+                var typeName = _state.DocumentHeader.DocumentTypeName.ToLower();
+                // Check if document type indicates a purchase (stock increase)
+                if (typeName.Contains("acquisto") || 
+                    typeName.Contains("ddt ingresso") || 
+                    typeName.Contains("carico") ||
+                    typeName.Contains("purchase") ||
+                    typeName.Contains("receipt"))
+                {
+                    direction = PriceListDirection.Input; // Purchase
+                    Logger.LogDebug("Document type '{TypeName}' detected as purchase, using Input direction", _state.DocumentHeader.DocumentTypeName);
+                }
+                else
+                {
+                    Logger.LogDebug("Document type '{TypeName}' detected as sales, using Output direction", _state.DocumentHeader.DocumentTypeName);
+                }
+            }
+            else
+            {
+                Logger.LogDebug("No document type name available, defaulting to Output (sales) direction");
+            }
 
             // 2. Call PriceResolutionService
             var priceResult = await PriceResolutionService.ResolvePriceAsync(
