@@ -93,20 +93,41 @@
                              Icon="@Icons.Material.Outlined.Warehouse" 
                              Expanded="false">
                     
+                    <!-- 1. Magazzini -->
                     <MudNavLink Href="/warehouse/facilities" 
-                                Icon="@Icons.Material.Outlined.Warehouse" 
+                                Icon="@Icons.Material.Outlined.Business" 
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.facilities", "Magazzini")
                     </MudNavLink>
                     
-                    <MudNavLink Href="/warehouse/stock-overview" 
-                                Icon="@Icons.Material.Outlined.Inventory" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.stockOverview", "Situazione Giacenze")
-                    </MudNavLink>
+                    <!-- 2. Giacenze (New Submenu) -->
+                    <MudNavGroup title="@TranslationService.GetTranslation("nav.stockManagement", "Giacenze")" 
+                                 Icon="@Icons.Material.Outlined.Inventory2" 
+                                 Expanded="false">
+                        
+                        <MudNavLink Href="/warehouse/stock-overview" 
+                                    Icon="@Icons.Material.Outlined.TableChart" 
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.stockOverview", "Situazione Giacenze")
+                        </MudNavLink>
+                        
+                        <MudNavLink Href="/warehouse/stock-reconciliation" 
+                                    Icon="@Icons.Material.Outlined.FactCheck" 
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.stockReconciliation", "Riconciliazione Giacenze")
+                        </MudNavLink>
+                        
+                        <MudNavLink Href="/warehouse/lot-management" 
+                                    Icon="@Icons.Material.Outlined.QrCode" 
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.lotManagement", "Gestione Lotti")
+                        </MudNavLink>
+                        
+                    </MudNavGroup>
                     
+                    <!-- 3. Inventari (Restructured Submenu) -->
                     <MudNavGroup title="@TranslationService.GetTranslation("nav.inventoryManagement", "Inventari")" 
-                                 Icon="@Icons.Material.Outlined.Inventory" 
+                                 Icon="@Icons.Material.Outlined.Checklist" 
                                  Expanded="false">
                         
                         <MudNavLink Href="/warehouse/inventory-procedure" 
@@ -123,16 +144,11 @@
                         
                     </MudNavGroup>
                     
+                    <!-- 4. Trasferimenti -->
                     <MudNavLink Href="/warehouse/transfers" 
                                 Icon="@Icons.Material.Outlined.CompareArrows" 
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.transferOrders", "Trasferimenti")
-                    </MudNavLink>
-                    
-                    <MudNavLink Href="/warehouse/lot-management" 
-                                Icon="@Icons.Material.Outlined.QrCode" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.lotManagement", "Gestione Lotti")
                     </MudNavLink>
                     
                 </MudNavGroup>

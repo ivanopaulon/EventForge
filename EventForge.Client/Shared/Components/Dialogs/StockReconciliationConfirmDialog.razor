@@ -1,0 +1,156 @@
+@using MudBlazor
+@using EventForge.DTOs.Warehouse
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+            <div class="d-flex align-center gap-2 mb-3">
+                <MudIcon Icon="@Icons.Material.Outlined.Warning" Color="Color.Warning" Size="Size.Large" />
+                <MudText Typo="Typo.h6">
+                    @TranslationService.GetTranslation("stockReconciliation.confirmDialog.title", "⚠️ WARNING")
+                </MudText>
+            </div>
+            <MudText Typo="Typo.body1" Class="mb-2">
+                @TranslationService.GetTranslationFormatted(
+                    "stockReconciliation.confirmDialog.message",
+                    "You are about to update {0} stock quantities with recalculated values.",
+                    ItemsToUpdate)
+            </MudText>
+        </MudPaper>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">
+            @TranslationService.GetTranslation("stockReconciliation.confirmDialog.operation", "This operation will:")
+        </MudText>
+        <MudList T="string" Dense="true" Class="mb-4">
+            <MudListItem T="string" Icon="@Icons.Material.Outlined.CheckCircle" IconColor="Color.Success">
+                @TranslationService.GetTranslation("stockReconciliation.confirmDialog.willUpdateStock", "✅ Update Stock.Quantity")
+            </MudListItem>
+            @if (CreateAdjustmentMovements)
+            {
+                <MudListItem T="string" Icon="@Icons.Material.Outlined.CheckCircle" IconColor="Color.Success">
+                    @TranslationService.GetTranslation("stockReconciliation.confirmDialog.willCreateMovements", "✅ Create adjustment movements")
+                </MudListItem>
+            }
+            <MudListItem T="string" Icon="@Icons.Material.Outlined.CheckCircle" IconColor="Color.Success">
+                @TranslationService.GetTranslation("stockReconciliation.confirmDialog.willLogAudit", "✅ Log operation in audit trail")
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Outlined.Warning" IconColor="Color.Error">
+                @TranslationService.GetTranslation("stockReconciliation.confirmDialog.cannotUndo", "⚠️ This action CANNOT be undone")
+            </MudListItem>
+        </MudList>
+
+        @if (Summary != null)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                @TranslationService.GetTranslation("stockReconciliation.confirmDialog.details", "Details")
+            </MudText>
+            <MudPaper Class="pa-3 mb-4" Elevation="0">
+                <div class="d-flex flex-column gap-2">
+                    @if (Summary.CorrectCount > 0)
+                    {
+                        <MudText Typo="Typo.body2">
+                            @TranslationService.GetTranslationFormatted(
+                                "stockReconciliation.confirmDialog.correctItems",
+                                "Correct: {0} (will be ignored)",
+                                Summary.CorrectCount)
+                        </MudText>
+                    }
+                    <MudText Typo="Typo.body2" Style="font-weight:600;">
+                        @TranslationService.GetTranslationFormatted(
+                            "stockReconciliation.confirmDialog.itemsToUpdate",
+                            "To update: {0}",
+                            ItemsToUpdate)
+                    </MudText>
+                    @if (Summary.MajorDiscrepancyCount > 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Warning">
+                            @TranslationService.GetTranslationFormatted(
+                                "stockReconciliation.confirmDialog.majorDiscrepancies",
+                                "Major discrepancies: {0} (>10%)",
+                                Summary.MajorDiscrepancyCount)
+                        </MudText>
+                    }
+                </div>
+            </MudPaper>
+        }
+
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudTextField @bind-Value="_reason"
+                          Label="@($"{TranslationService.GetTranslation("stockReconciliation.reason", "Reason")} *")"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          Required="true"
+                          RequiredError="@TranslationService.GetTranslation("stockReconciliation.reasonRequired", "Reason is required")"
+                          MaxLength="500"
+                          Counter="500"
+                          Immediate="true"
+                          Class="mb-2" />
+
+            <MudSwitch @bind-Value="_createAdjustmentMovements"
+                       Label="@TranslationService.GetTranslation("stockReconciliation.createAdjustmentMovements", "Create adjustment movements")"
+                       Color="Color.Primary" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Warning"
+                   Variant="Variant.Filled"
+                   Disabled="@(!_isValid)"
+                   OnClick="Submit"
+                   StartIcon="@Icons.Material.Outlined.Check">
+            @TranslationService.GetTranslation("stockReconciliation.confirmDialog.confirmButton", "✓ Confirm Application")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public int ItemsToUpdate { get; set; }
+
+    [Parameter]
+    public StockReconciliationSummaryDto? Summary { get; set; }
+
+    [Parameter]
+    public bool CreateAdjustmentMovements { get; set; } = true;
+
+    private MudForm? _form;
+    private bool _isValid;
+    private string _reason = string.Empty;
+    private bool _createAdjustmentMovements = true;
+
+    protected override void OnInitialized()
+    {
+        _createAdjustmentMovements = CreateAdjustmentMovements;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Submit()
+    {
+        if (_form == null || !_form.IsValid)
+            return;
+
+        var result = new StockReconciliationConfirmResult
+        {
+            Reason = _reason,
+            CreateAdjustmentMovements = _createAdjustmentMovements
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    public class StockReconciliationConfirmResult
+    {
+        public string Reason { get; set; } = string.Empty;
+        public bool CreateAdjustmentMovements { get; set; } = true;
+    }
+}
