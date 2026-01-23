@@ -197,6 +197,7 @@ Always provide translated tooltips for better accessibility:
 - **TranslationService** - Handles multi-language support
 - **AuthService** - Authentication and authorization
 - **ThemeService** - Multi-theme management with 6 color palettes
+- **StockMovementService** - Automatic warehouse stock management with document lifecycle integration ([Learn more](docs/AUTOMATIC_STOCK_MOVEMENTS.md))
 
 ## 🚀 Getting Started
 
