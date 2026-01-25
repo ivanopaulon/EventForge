@@ -83,6 +83,22 @@ public interface IPriceListService
     Task<Guid> GenerateFromPurchasesAsync(GeneratePriceListFromPurchasesDto dto, CancellationToken ct);
 
     /// <summary>
+    /// Previews price list generation from product default prices without saving.
+    /// </summary>
+    /// <param name="dto">Generation parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Preview of the price list to be generated</returns>
+    Task<GeneratePriceListPreviewDto> PreviewGenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct);
+
+    /// <summary>
+    /// Generates and saves a price list from product default prices.
+    /// </summary>
+    /// <param name="dto">Generation parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>ID of the generated price list</returns>
+    Task<Guid> GenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct);
+
+    /// <summary>
     /// Adds a single entry to a price list.
     /// </summary>
     Task<PriceListEntryDto> AddEntryAsync(CreatePriceListEntryDto dto, CancellationToken ct = default);

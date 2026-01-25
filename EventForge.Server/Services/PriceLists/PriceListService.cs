@@ -806,6 +806,16 @@ public class PriceListService : IPriceListService
     }
 
     /// <summary>
+    /// Preview generazione listino da prezzi default prodotti
+    /// </summary>
+    public async Task<GeneratePriceListPreviewDto> PreviewGenerateFromProductPricesAsync(
+        GeneratePriceListFromProductsDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        return await _generationService.PreviewGenerateFromProductPricesAsync(dto, cancellationToken);
+    }
+
+    /// <summary>
     /// Applica i prezzi di un listino ai Product.DefaultPrice
     /// </summary>
     public async Task<ApplyPriceListResultDto> ApplyPriceListToProductsAsync(

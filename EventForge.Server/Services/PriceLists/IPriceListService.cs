@@ -211,6 +211,16 @@ public interface IPriceListService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Preview della generazione listino da prezzi default prodotti (senza salvare).
+    /// </summary>
+    /// <param name="dto">Parametri generazione</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Preview del listino che verrebbe generato</returns>
+    Task<GeneratePriceListPreviewDto> PreviewGenerateFromProductPricesAsync(
+        GeneratePriceListFromProductsDto dto,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Applica i prezzi di un listino ai Product.DefaultPrice
     /// </summary>
     Task<ApplyPriceListResultDto> ApplyPriceListToProductsAsync(

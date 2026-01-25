@@ -40,6 +40,27 @@ public class GeneratePriceListFromProductsDto
     public PriceListDirection Direction { get; init; } = PriceListDirection.Output;
     
     /// <summary>
+    /// Priorità del listino (0-100, default 50)
+    /// </summary>
+    [Range(0, 100)]
+    public int Priority { get; init; } = 50;
+    
+    /// <summary>
+    /// Indica se questo è il listino default
+    /// </summary>
+    public bool IsDefault { get; init; } = false;
+    
+    /// <summary>
+    /// Data inizio validità
+    /// </summary>
+    public DateTime? ValidFrom { get; init; }
+    
+    /// <summary>
+    /// Data fine validità
+    /// </summary>
+    public DateTime? ValidTo { get; init; }
+    
+    /// <summary>
     /// Event opzionale
     /// </summary>
     public Guid? EventId { get; init; }
@@ -55,6 +76,11 @@ public class GeneratePriceListFromProductsDto
     /// Arrotondamento da applicare
     /// </summary>
     public RoundingStrategy RoundingStrategy { get; init; } = RoundingStrategy.None;
+    
+    /// <summary>
+    /// Prezzo minimo per includere il prodotto
+    /// </summary>
+    public decimal? MinimumPrice { get; init; }
     
     /// <summary>
     /// Filtro per categorie prodotti (opzionale)

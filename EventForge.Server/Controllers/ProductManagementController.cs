@@ -1541,6 +1541,108 @@ public class ProductManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Preview generation of price list from product default prices
+    /// </summary>
+    /// <param name="dto">Generation parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Preview con statistiche</returns>
+    /// <response code="200">Returns preview statistics</response>
+    /// <response code="400">If the request is invalid</response>
+    [HttpPost("price-lists/generate-from-defaults/preview")]
+    [ProducesResponseType(typeof(GeneratePriceListPreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<GeneratePriceListPreviewDto>> PreviewGenerateFromDefaults(
+        [FromBody] GenerateFromDefaultPricesDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Map from GenerateFromDefaultPricesDto to GeneratePriceListFromProductsDto
+            var productsDto = new GeneratePriceListFromProductsDto
+            {
+                Name = dto.Name,
+                Description = dto.Description,
+                Code = dto.Code,
+                Type = PriceListType.Sales,
+                Direction = PriceListDirection.Output,
+                Priority = dto.Priority,
+                IsDefault = dto.IsDefault,
+                ValidFrom = dto.ValidFrom,
+                ValidTo = dto.ValidTo,
+                EventId = null,
+                MarkupPercentage = dto.MarkupPercentage,
+                RoundingStrategy = dto.RoundingStrategy ?? EventForge.DTOs.Common.RoundingStrategy.None,
+                OnlyActiveProducts = dto.OnlyActiveProducts,
+                OnlyProductsWithPrice = true,
+                MinimumPrice = dto.MinimumPrice,
+                FilterByCategoryIds = null,
+                BusinessPartyIds = null
+            };
+
+            var result = await _priceListService.PreviewGenerateFromProductPricesAsync(productsDto, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Generate price list from product default prices
+    /// </summary>
+    /// <param name="dto">Generation parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>ID del listino creato</returns>
+    /// <response code="201">Price list created successfully</response>
+    /// <response code="400">If the request is invalid</response>
+    [HttpPost("price-lists/generate-from-defaults")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<Guid>> GenerateFromDefaults(
+        [FromBody] GenerateFromDefaultPricesDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "system";
+
+            // Map from GenerateFromDefaultPricesDto to GeneratePriceListFromProductsDto
+            var productsDto = new GeneratePriceListFromProductsDto
+            {
+                Name = dto.Name,
+                Description = dto.Description,
+                Code = dto.Code,
+                Type = PriceListType.Sales,
+                Direction = PriceListDirection.Output,
+                Priority = dto.Priority,
+                IsDefault = dto.IsDefault,
+                ValidFrom = dto.ValidFrom,
+                ValidTo = dto.ValidTo,
+                EventId = null,
+                MarkupPercentage = dto.MarkupPercentage,
+                RoundingStrategy = dto.RoundingStrategy ?? EventForge.DTOs.Common.RoundingStrategy.None,
+                OnlyActiveProducts = dto.OnlyActiveProducts,
+                OnlyProductsWithPrice = true,
+                MinimumPrice = dto.MinimumPrice,
+                FilterByCategoryIds = null,
+                BusinessPartyIds = null
+            };
+
+            var priceListId = await _priceListService.GenerateFromProductPricesAsync(productsDto, currentUser, cancellationToken);
+            
+            return CreatedAtAction(
+                nameof(GetPriceList),
+                new { id = priceListId },
+                priceListId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message });
+        }
+    }
+
     #endregion
 
     #region Promotions Management
