@@ -304,7 +304,12 @@ public class PriceListGenerationService : IPriceListGenerationService
                 ProductCode = product.Code,
                 ProductName = product.Name,
                 OriginalPrice = product.DefaultPrice.Value,
-                CalculatedPrice = basePrice
+                CalculatedPrice = basePrice,
+                OccurrencesInDocuments = 0, // Not applicable for default price generation
+                LowestPrice = null,
+                HighestPrice = null,
+                AveragePrice = null,
+                LastPurchaseDate = null
             });
 
             totalEstimatedValue += basePrice;
@@ -313,11 +318,13 @@ public class PriceListGenerationService : IPriceListGenerationService
 
         return new GeneratePriceListPreviewDto
         {
+            TotalDocumentsAnalyzed = 0, // Not applicable for default price generation
             TotalProductsFound = validProductsCount,
+            ProductsWithMultiplePrices = 0, // Not applicable for default price generation
             ProductPreviews = previewEntries,
             TotalEstimatedValue = totalEstimatedValue,
-            AnalysisFromDate = DateTime.UtcNow,
-            AnalysisToDate = DateTime.UtcNow,
+            AnalysisFromDate = DateTime.MinValue, // Not applicable for default price generation
+            AnalysisToDate = DateTime.MinValue, // Not applicable for default price generation
             ProductsExcluded = products.Count - validProductsCount
         };
     }
