@@ -1058,10 +1058,12 @@ public class ProductManagementController : BaseApiController
     #region Price Lists Management
 
     /// <summary>
-    /// Gets all price lists with optional pagination.
+    /// Gets all price lists with optional pagination and filtering.
     /// </summary>
     /// <param name="page">Page number (1-based)</param>
     /// <param name="pageSize">Number of items per page</param>
+    /// <param name="direction">Optional filter by direction (Input/Output)</param>
+    /// <param name="status">Optional filter by status (Active/Suspended/Deleted)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of price lists</returns>
     /// <response code="200">Returns the paginated list of price lists</response>
@@ -1074,6 +1076,8 @@ public class ProductManagementController : BaseApiController
     public async Task<ActionResult<PagedResult<PriceListDto>>> GetPriceLists(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] PriceListDirection? direction = null,
+        [FromQuery] DTOs.Common.PriceListStatus? status = null,
         CancellationToken cancellationToken = default)
     {
         var validationResult = ValidatePaginationParameters(page, pageSize);
@@ -1086,7 +1090,34 @@ public class ProductManagementController : BaseApiController
 
         try
         {
+            // Get all price lists first
             var result = await _priceListService.GetPriceListsAsync(page, pageSize, cancellationToken);
+            
+            // Apply filters if specified
+            if (result != null && result.Items != null && (direction.HasValue || status.HasValue))
+            {
+                var filteredItems = result.Items.AsEnumerable();
+                
+                if (direction.HasValue)
+                {
+                    filteredItems = filteredItems.Where(pl => pl.Direction == direction.Value);
+                }
+                
+                if (status.HasValue)
+                {
+                    filteredItems = filteredItems.Where(pl => pl.Status == status.Value);
+                }
+                
+                var filteredList = filteredItems.ToList();
+                result = new PagedResult<PriceListDto>
+                {
+                    Items = filteredList,
+                    TotalCount = filteredList.Count,
+                    Page = page,
+                    PageSize = pageSize
+                };
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)

@@ -198,7 +198,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             await Task.WhenAll(
                 LoadDocumentHeaderAsync(),
                 LoadUnitsOfMeasureAsync(),
-                LoadVatRatesAsync()
+                LoadVatRatesAsync(),
+                PreloadPriceListsCacheAsync() // ✅ NUOVO: Preload cache listini
             );
 
             // Add edit mode task if applicable
@@ -497,6 +498,58 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             () => CacheService.GetVatRatesAsync(),
             operationName: "loadVatRates",
             showErrorToUser: true) ?? new List<VatRateDto>();
+    }
+
+    /// <summary>
+    /// Precarica i listini nel cache in background per performance.
+    /// Carica solo i listini rilevanti per il tipo di documento (vendita o acquisto).
+    /// </summary>
+    private async Task PreloadPriceListsCacheAsync()
+    {
+        try
+        {
+            // Determina direzione in base al tipo documento
+            PriceListDirection direction = PriceListDirection.Output; // Default: vendita
+            
+            if (_state.DocumentHeader?.DocumentTypeName != null)
+            {
+                var typeName = _state.DocumentHeader.DocumentTypeName.ToLower();
+                // Check if document type indicates a purchase (stock increase)
+                if (typeName.Contains("acquisto") || 
+                    typeName.Contains("purchase") || 
+                    typeName.Contains("carico") ||
+                    typeName.Contains("ddt") && typeName.Contains("fornitore"))
+                {
+                    direction = PriceListDirection.Input; // Acquisto
+                    Logger.LogDebug("Document type '{TypeName}' detected as purchase, preloading Input price lists", _state.DocumentHeader.DocumentTypeName);
+                }
+                else
+                {
+                    Logger.LogDebug("Document type '{TypeName}' detected as sales, preloading Output price lists", _state.DocumentHeader.DocumentTypeName);
+                }
+            }
+
+            // Preload listini per la direzione corretta
+            if (direction == PriceListDirection.Input)
+            {
+                await CacheService.GetActivePurchasePriceListsAsync();
+            }
+            else
+            {
+                await CacheService.GetActiveSalesPriceListsAsync();
+            }
+
+            Logger.LogDebug(
+                "Price lists cache preloaded for direction {Direction} (DocumentType: {DocType})",
+                direction,
+                _state.DocumentHeader?.DocumentTypeName
+            );
+        }
+        catch (Exception ex)
+        {
+            // Non bloccare l'init del dialog se preload fallisce
+            Logger.LogWarning(ex, "Failed to preload price lists cache (non-blocking)");
+        }
     }
 
     /// <summary>

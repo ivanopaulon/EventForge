@@ -181,4 +181,12 @@ public interface IPriceListService
     /// <param name="ct">Cancellation token</param>
     /// <returns>Result of the duplication operation</returns>
     Task<DuplicatePriceListResultDto> DuplicatePriceListAsync(Guid priceListId, DuplicatePriceListDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets active price lists filtered by direction
+    /// </summary>
+    /// <param name="direction">Price list direction (Input for purchases, Output for sales)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of active price lists for the specified direction</returns>
+    Task<List<PriceListDto>> GetActivePriceListsAsync(PriceListDirection direction, CancellationToken ct = default);
 }

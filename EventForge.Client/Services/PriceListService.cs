@@ -342,4 +342,33 @@ public class PriceListService : IPriceListService
             throw;
         }
     }
+
+    public async Task<List<PriceListDto>> GetActivePriceListsAsync(PriceListDirection direction, CancellationToken ct = default)
+    {
+        try
+        {
+            var queryString = $"direction={direction}&status=Active&pageSize=1000";
+            
+            _logger.LogDebug("Fetching active price lists: {QueryString}", queryString);
+            
+            var result = await _httpClientService.GetAsync<PagedResult<PriceListDto>>(
+                $"{BaseUrl}?{queryString}", ct
+            );
+            
+            if (result == null || result.Items == null)
+            {
+                _logger.LogWarning("GetActivePriceListsAsync returned null for direction {Direction}", direction);
+                return new List<PriceListDto>();
+            }
+            
+            _logger.LogInformation("Fetched active price lists for direction: " + direction);
+            
+            return result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching active price lists for direction {Direction}", direction);
+            return new List<PriceListDto>();
+        }
+    }
 }
