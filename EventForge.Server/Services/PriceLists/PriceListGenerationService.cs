@@ -110,6 +110,10 @@ public class PriceListGenerationService : IPriceListGenerationService
             Code = dto.Code ?? await GenerateUniquePriceListCodeAsync(tenantId, cancellationToken),
             Type = dto.Type,
             Direction = dto.Direction,
+            Priority = dto.Priority,
+            IsDefault = dto.IsDefault,
+            ValidFrom = dto.ValidFrom,
+            ValidTo = dto.ValidTo,
             Status = PriceListStatus.Active,
             EventId = dto.EventId,
             CreatedBy = currentUser,
@@ -137,6 +141,12 @@ public class PriceListGenerationService : IPriceListGenerationService
 
             // Applica arrotondamento
             price = ApplyRounding(price, dto.RoundingStrategy);
+
+            // Applica prezzo minimo se specificato
+            if (dto.MinimumPrice.HasValue && price < dto.MinimumPrice.Value)
+            {
+                continue; // Salta questo prodotto se il prezzo è inferiore al minimo
+            }
 
             var entry = new PriceListEntry
             {
@@ -202,6 +212,121 @@ public class PriceListGenerationService : IPriceListGenerationService
             cancellationToken);
 
         return priceList.Id;
+    }
+
+    /// <summary>
+    /// Preview generazione listino da prezzi default prodotti (senza salvare)
+    /// </summary>
+    public async Task<GeneratePriceListPreviewDto> PreviewGenerateFromProductPricesAsync(
+        GeneratePriceListFromProductsDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        // Validazione e recupero TenantId
+        var anyProduct = await _context.Products
+            .Where(p => !p.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (anyProduct == null)
+        {
+            throw new InvalidOperationException("Nessun prodotto disponibile nel sistema");
+        }
+
+        var tenantId = anyProduct.TenantId;
+
+        // Validazione EventId se specificato
+        if (dto.EventId.HasValue)
+        {
+            var eventExists = await _context.Events
+                .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId && !e.IsDeleted, cancellationToken);
+            
+            if (!eventExists)
+            {
+                throw new InvalidOperationException($"Event {dto.EventId.Value} non trovato");
+            }
+        }
+
+        // Query prodotti con stessa logica di GenerateFromProductPricesAsync
+        var query = _context.Products
+            .Where(p => p.TenantId == tenantId && !p.IsDeleted);
+
+        if (dto.OnlyActiveProducts)
+        {
+            query = query.Where(p => p.Status == EventForge.Server.Data.Entities.Products.ProductStatus.Active);
+        }
+
+        if (dto.OnlyProductsWithPrice)
+        {
+            query = query.Where(p => p.DefaultPrice.HasValue && p.DefaultPrice.Value > 0);
+        }
+
+        if (dto.FilterByCategoryIds != null && dto.FilterByCategoryIds.Any())
+        {
+            query = query.Where(p => p.CategoryNodeId.HasValue && dto.FilterByCategoryIds.Contains(p.CategoryNodeId.Value));
+        }
+
+        var products = await query.ToListAsync(cancellationToken);
+
+        if (!products.Any())
+        {
+            throw new InvalidOperationException("Nessun prodotto trovato con i criteri specificati");
+        }
+
+        // Calcola preview entries
+        var previewEntries = new List<ProductPricePreview>();
+        decimal totalEstimatedValue = 0m;
+        int validProductsCount = 0;
+
+        foreach (var product in products)
+        {
+            if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)
+                continue;
+
+            var basePrice = product.DefaultPrice.Value;
+            
+            // Applica markup se specificato
+            if (dto.MarkupPercentage.HasValue)
+            {
+                basePrice *= (1 + dto.MarkupPercentage.Value / 100m);
+            }
+
+            // Applica arrotondamento se specificato
+            basePrice = ApplyRounding(basePrice, dto.RoundingStrategy);
+
+            // Applica prezzo minimo se specificato
+            if (dto.MinimumPrice.HasValue && basePrice < dto.MinimumPrice.Value)
+            {
+                continue; // Salta questo prodotto se il prezzo è inferiore al minimo
+            }
+
+            previewEntries.Add(new ProductPricePreview
+            {
+                ProductId = product.Id,
+                ProductCode = product.Code,
+                ProductName = product.Name,
+                OriginalPrice = product.DefaultPrice.Value,
+                CalculatedPrice = basePrice,
+                OccurrencesInDocuments = 0, // Not applicable for default price generation
+                LowestPrice = null,
+                HighestPrice = null,
+                AveragePrice = null,
+                LastPurchaseDate = null
+            });
+
+            totalEstimatedValue += basePrice;
+            validProductsCount++;
+        }
+
+        return new GeneratePriceListPreviewDto
+        {
+            TotalDocumentsAnalyzed = 0, // Not applicable for default price generation
+            TotalProductsFound = validProductsCount,
+            ProductsWithMultiplePrices = 0, // Not applicable for default price generation
+            ProductPreviews = previewEntries,
+            TotalEstimatedValue = totalEstimatedValue,
+            AnalysisFromDate = DateTime.MinValue, // Not applicable for default price generation
+            AnalysisToDate = DateTime.MinValue, // Not applicable for default price generation
+            ProductsExcluded = products.Count - validProductsCount
+        };
     }
 
     #endregion
