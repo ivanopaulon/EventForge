@@ -639,16 +639,19 @@
             return string.Empty;
 
         // Validate format: must be exactly 7 characters starting with # followed by 6 hex digits
-        if (_colorHex.Length == 7 && 
-            _colorHex[0] == '#' && 
-            _colorHex.Skip(1).All(c => (c >= '0' && c <= '9') || 
-                                       (c >= 'A' && c <= 'F') || 
-                                       (c >= 'a' && c <= 'f')))
+        if (_colorHex.Length != 7 || _colorHex[0] != '#')
+            return string.Empty;
+
+        // Validate the 6 hex characters
+        for (int i = 1; i < 7; i++)
         {
-            return _colorHex;
+            var c = _colorHex[i];
+            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+            {
+                return string.Empty;
+            }
         }
 
-        // Return empty string if invalid (preview won't be shown)
-        return string.Empty;
+        return _colorHex;
     }
 }
