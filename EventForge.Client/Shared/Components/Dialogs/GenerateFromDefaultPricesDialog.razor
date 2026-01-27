@@ -6,12 +6,16 @@
 @inject ITranslationService TranslationService
 @inject ILogger<GenerateFromDefaultPricesDialog> Logger
 
-<MudDialog>
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.PriceChange" Class="mr-2" />
-            @TranslationService.GetTranslation("pricelist.generateFromDefaults", "Genera Listino da Prezzi Default")
-        </MudText>
+        <div class="@DialogStyleConstants.Classes.DialogTitle">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.PriceChange" Class="mr-2" />
+                    @TranslationService.GetTranslation("pricelist.generateFromDefaults", "Genera Listino da Prezzi Default")
+                </MudText>
+            </MudStack>
+        </div>
     </TitleContent>
     
     <DialogContent>
@@ -21,7 +25,7 @@
                 <!-- Section 1: Basic Info -->
                 <MudPaper Elevation="1" Class="pa-3">
                     <MudText Typo="Typo.subtitle1" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-1" />
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
                         Informazioni Listino
                     </MudText>
                     
@@ -31,25 +35,31 @@
                                   RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                   Variant="Variant.Outlined"
                                   Immediate="true"
-                                  Class="ef-input" />
+                                  Class="ef-input"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Label" />
                     
                     <MudTextField @bind-Value="_description" 
                                   Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                   Lines="2"
                                   Variant="Variant.Outlined"
-                                  Class="ef-input mt-2" />
+                                  Class="ef-input mt-2"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Description" />
                     
                     <MudTextField @bind-Value="_code" 
                                   Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                   Variant="Variant.Outlined"
                                   HelperText="@TranslationService.GetTranslation("pricelist.codeHelper", "Lascia vuoto per generazione automatica")"
-                                  Class="ef-input mt-2" />
+                                  Class="ef-input mt-2"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Tag" />
                 </MudPaper>
                 
                 <!-- Section 2: Options -->
                 <MudPaper Elevation="1" Class="pa-3">
                     <MudText Typo="Typo.subtitle1" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Class="mr-1" />
+                        <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" Class="mr-2" />
                         Opzioni
                     </MudText>
                     
@@ -66,21 +76,27 @@
                                              Min="0" Max="100"
                                              Variant="Variant.Outlined"
                                              HelperText="@TranslationService.GetTranslation("pricelist.priorityHelper", "0 = priorità massima")"
-                                             Class="ef-numeric" />
+                                             Class="ef-numeric"
+                                             Adornment="Adornment.Start"
+                                             AdornmentIcon="@Icons.Material.Outlined.Numbers" />
                         </MudItem>
                         
                         <MudItem xs="12" md="6">
                             <MudDatePicker @bind-Date="_validFrom" 
                                            Label="@TranslationService.GetTranslation("field.validFrom", "Valido Da")"
                                            Variant="Variant.Outlined"
-                                           Class="ef-datepicker" />
+                                           Class="ef-datepicker"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
                         </MudItem>
                         
                         <MudItem xs="12" md="6">
                             <MudDatePicker @bind-Date="_validTo" 
                                            Label="@TranslationService.GetTranslation("field.validTo", "Valido Fino")"
                                            Variant="Variant.Outlined"
-                                           Class="ef-datepicker" />
+                                           Class="ef-datepicker"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
@@ -91,7 +107,7 @@
                         <MudStack Spacing="2">
                             <!-- Price Adjustments -->
                             <MudText Typo="Typo.subtitle2" Class="mt-2">
-                                <MudIcon Icon="@Icons.Material.Filled.Calculate" Size="Size.Small" Class="mr-1" />
+                                <MudIcon Icon="@Icons.Material.Outlined.Calculate" Size="Size.Small" Class="mr-2" />
                                 Adattamento Prezzi
                             </MudText>
                             
@@ -101,12 +117,16 @@
                                              Step="0.1M"
                                              Variant="Variant.Outlined"
                                              HelperText="Valori negativi = sconto. Es: +10% = 1.10x, -15% = 0.85x"
-                                             Class="ef-numeric" />
+                                             Class="ef-numeric"
+                                             Adornment="Adornment.Start"
+                                             AdornmentIcon="@Icons.Material.Outlined.Percent" />
                             
                             <MudSelect @bind-Value="_roundingStrategy" 
                                        Label="@TranslationService.GetTranslation("pricelist.rounding", "Arrotondamento")"
                                        Variant="Variant.Outlined"
-                                       Class="ef-select">
+                                       Class="ef-select"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Outlined.RoundedCorner">
                                 <MudSelectItem Value="@((RoundingStrategy?)null)">Nessuno</MudSelectItem>
                                 <MudSelectItem Value="@RoundingStrategy.ToNearest5Cents">0.05 € (es. 12.47 → 12.45)</MudSelectItem>
                                 <MudSelectItem Value="@RoundingStrategy.ToNearest10Cents">0.10 € (es. 12.47 → 12.50)</MudSelectItem>
@@ -119,7 +139,7 @@
                             <MudDivider Class="my-2" />
                             
                             <MudText Typo="Typo.subtitle2">
-                                <MudIcon Icon="@Icons.Material.Filled.FilterList" Size="Size.Small" Class="mr-1" />
+                                <MudIcon Icon="@Icons.Material.Outlined.FilterList" Size="Size.Small" Class="mr-2" />
                                 Filtri Prodotti
                             </MudText>
                             
@@ -132,7 +152,9 @@
                                              Min="0"
                                              Variant="Variant.Outlined"
                                              HelperText="Escludi prodotti con prezzo inferiore"
-                                             Class="ef-numeric" />
+                                             Class="ef-numeric"
+                                             Adornment="Adornment.Start"
+                                             AdornmentIcon="@Icons.Material.Outlined.Euro" />
                         </MudStack>
                     </MudExpansionPanel>
                 </MudExpansionPanels>

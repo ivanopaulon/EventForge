@@ -5,11 +5,16 @@
 @inject ISnackbar Snackbar
 @inject ILogger<CreatePriceListDialog> Logger
 
-<MudDialog>
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            @TranslationService.GetTranslation("pricelist.create", "Nuovo Listino")
-        </MudText>
+        <div class="@DialogStyleConstants.Classes.DialogTitle">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.AddCircleOutline" Class="mr-2" />
+                    @TranslationService.GetTranslation("pricelist.create", "Nuovo Listino")
+                </MudText>
+            </MudStack>
+        </div>
     </TitleContent>
     <DialogContent>
         <div class="ef-dialog-content">
@@ -19,8 +24,9 @@
                 <MudStack Spacing="3">
                     
                     <!-- Basic Information -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudPaper Elevation="2" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("common.basicInfo", "Informazioni di Base")
                         </MudText>
                         
@@ -32,7 +38,9 @@
                                               Required="true"
                                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                               MaxLength="100"
-                                              Counter="100" />
+                                              Counter="100"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Label" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_model.Description"
@@ -40,14 +48,17 @@
                                               Variant="Variant.Outlined"
                                               Lines="3"
                                               MaxLength="500"
-                                              Counter="500" />
+                                              Counter="500"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Description" />
                             </MudItem>
                         </MudGrid>
                     </MudPaper>
 
                     <!-- Status and Priority -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudPaper Elevation="2" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.statusAndPriority", "Stato e Priorità")
                         </MudText>
                         
@@ -56,7 +67,9 @@
                                 <MudSelect @bind-Value="_model.Status"
                                            Label="@($"{TranslationService.GetTranslation("common.status", "Stato")} *")"
                                            Variant="Variant.Outlined"
-                                           Required="true">
+                                           Required="true"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Outlined.ToggleOn">
                                     <MudSelectItem Value="PriceListStatus.Active">
                                         @TranslationService.GetTranslation("common.active", "Attivo")
                                     </MudSelectItem>
@@ -71,7 +84,9 @@
                                                  Variant="Variant.Outlined"
                                                  Min="0"
                                                  Max="100"
-                                                 HelperText="@TranslationService.GetTranslation("pricelist.priorityHelper", "0 = priorità massima")" />
+                                                 HelperText="@TranslationService.GetTranslation("pricelist.priorityHelper", "0 = priorità massima")"
+                                                 Adornment="Adornment.Start"
+                                                 AdornmentIcon="@Icons.Material.Outlined.PriorityHigh" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudSwitch @bind-Value="_model.IsDefault"
@@ -82,8 +97,9 @@
                     </MudPaper>
 
                     <!-- Validity Period -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudPaper Elevation="2" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.validity", "Periodo di Validità")
                         </MudText>
                         
@@ -93,21 +109,26 @@
                                                Label="@TranslationService.GetTranslation("field.validFrom", "Valido Da")"
                                                Variant="Variant.Outlined"
                                                Editable="true"
-                                               DateFormat="dd/MM/yyyy" />
+                                               DateFormat="dd/MM/yyyy"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudDatePicker @bind-Date="_validToDate"
                                                Label="@TranslationService.GetTranslation("field.validTo", "Valido Fino")"
                                                Variant="Variant.Outlined"
                                                Editable="true"
-                                               DateFormat="dd/MM/yyyy" />
+                                               DateFormat="dd/MM/yyyy"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
                             </MudItem>
                         </MudGrid>
                     </MudPaper>
 
                     <!-- Notes -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudPaper Elevation="2" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Notes" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("field.notes", "Note")
                         </MudText>
                         
@@ -116,7 +137,9 @@
                                       Variant="Variant.Outlined"
                                       Lines="4"
                                       MaxLength="1000"
-                                      Counter="1000" />
+                                      Counter="1000"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Outlined.StickyNote2" />
                     </MudPaper>
 
                 </MudStack>

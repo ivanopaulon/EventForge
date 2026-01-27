@@ -204,7 +204,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             "PriceList",
             priceList.Id,
             "Create",
-            "GenerateFromProductPrices",
+            "GenFromProducts",
             null,
             $"Generated price list '{priceList.Name}' from {entriesCount} products",
             currentUser,
