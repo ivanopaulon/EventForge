@@ -567,10 +567,8 @@
             }
             
             var fileName = $"membri_gruppo_{_group?.Name ?? "export"}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
-            var base64 = Convert.ToBase64String(bytes);
             
-            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", bytes);
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", csv.ToString());
             
             Snackbar.Add($"Esportati {_members.Count()} membri", Severity.Success);
         }
