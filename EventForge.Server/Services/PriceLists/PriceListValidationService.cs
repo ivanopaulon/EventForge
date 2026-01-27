@@ -275,7 +275,8 @@ public class PriceListValidationService : IPriceListValidationService
         }
         
         // Check precisione decimali (max 4 cifre)
-        var decimalPlaces = BitConverter.GetBytes(decimal.GetBits(price)[3])[2];
+        // Decimal structure: bits[3] contains scale in bits 16-23
+        var decimalPlaces = (decimal.GetBits(price)[3] >> 16) & 0xFF;
         if (decimalPlaces > 4)
         {
             errors.Add($"{fieldName} può avere massimo 4 cifre decimali");
@@ -332,7 +333,10 @@ public class PriceListValidationService : IPriceListValidationService
             );
         }
         
-        if (!SupportedCurrencies.Contains(currency.ToUpperInvariant()))
+        // Normalize to uppercase once for comparison
+        var normalizedCurrency = currency.ToUpperInvariant();
+        
+        if (!SupportedCurrencies.Contains(normalizedCurrency))
         {
             _logger.LogWarning("Unsupported currency: {Currency}", currency);
             
