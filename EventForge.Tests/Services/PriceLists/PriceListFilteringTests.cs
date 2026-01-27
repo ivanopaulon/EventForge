@@ -97,7 +97,7 @@ public class PriceListFilteringTests : IDisposable
         Assert.NotNull(result);
         Assert.Equal(4, result.TotalCount); // 4 Active price lists
         Assert.Equal(4, result.Items.Count());
-        Assert.All(result.Items, pl => Assert.Equal(PriceListStatus.Active, pl.Status));
+        Assert.All(result.Items, pl => Assert.Equal(DtoPriceListStatus.Active, pl.Status));
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class PriceListFilteringTests : IDisposable
         Assert.All(result.Items, pl =>
         {
             Assert.Equal(PriceListDirection.Output, pl.Direction);
-            Assert.Equal(PriceListStatus.Active, pl.Status);
+            Assert.Equal(DtoPriceListStatus.Active, pl.Status);
         });
     }
 
