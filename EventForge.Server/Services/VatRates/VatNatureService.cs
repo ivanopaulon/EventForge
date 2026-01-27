@@ -1,4 +1,5 @@
 using EventForge.DTOs.VatRates;
+using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.VatRates;
@@ -12,13 +13,22 @@ public class VatNatureService : IVatNatureService
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<VatNatureService> _logger;
+    private readonly ICacheService _cacheService;
+    
+    private const string CACHE_KEY_ALL = "VatNatures_All";
 
-    public VatNatureService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<VatNatureService> logger)
+    public VatNatureService(
+        EventForgeDbContext context, 
+        IAuditLogService auditLogService, 
+        ITenantContext tenantContext, 
+        ILogger<VatNatureService> logger,
+        ICacheService cacheService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
     public async Task<PagedResult<VatNatureDto>> GetVatNaturesAsync(int page = 1, int pageSize = 100, CancellationToken cancellationToken = default)
@@ -31,21 +41,31 @@ public class VatNatureService : IVatNatureService
                 throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
             }
 
-            var query = _context.VatNatures
-                .WhereActiveTenant(currentTenantId.Value);
+            // Cache all VatNatures for 30 minutes
+            var allNatures = await _cacheService.GetOrCreateAsync(
+                CACHE_KEY_ALL,
+                currentTenantId.Value,
+                async () =>
+                {
+                    return await _context.VatNatures
+                        .WhereActiveTenant(currentTenantId.Value)
+                        .OrderBy(v => v.Code)
+                        .Select(v => MapToVatNatureDto(v))
+                        .ToListAsync(cancellationToken);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(30)
+            );
 
-            var totalCount = await query.CountAsync(cancellationToken);
-            var vatNatures = await query
-                .OrderBy(v => v.Code)
+            // Paginate in memory (VatNatures are few)
+            var totalCount = allNatures.Count;
+            var items = allNatures
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var vatNatureDtos = vatNatures.Select(MapToVatNatureDto);
+                .ToList();
 
             return new PagedResult<VatNatureDto>
             {
-                Items = vatNatureDtos,
+                Items = items,
                 Page = page,
                 PageSize = pageSize,
                 TotalCount = totalCount
@@ -104,6 +124,9 @@ public class VatNatureService : IVatNatureService
 
             _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Insert", currentUser, null, cancellationToken);
 
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+
             _logger.LogInformation("VAT nature {VatNatureId} created by {User}.", vatNature.Id, currentUser);
 
             return MapToVatNatureDto(vatNature);
@@ -145,6 +168,9 @@ public class VatNatureService : IVatNatureService
 
             _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Update", currentUser, originalVatNature, cancellationToken);
 
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
+
             _logger.LogInformation("VAT nature {VatNatureId} updated by {User}.", vatNature.Id, currentUser);
 
             return MapToVatNatureDto(vatNature);
@@ -182,6 +208,9 @@ public class VatNatureService : IVatNatureService
             _ = await _context.SaveChangesAsync(cancellationToken);
 
             _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Delete", currentUser, originalVatNature, cancellationToken);
+
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
 
             _logger.LogInformation("VAT nature {VatNatureId} deleted by {User}.", vatNature.Id, currentUser);
 

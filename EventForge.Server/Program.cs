@@ -30,8 +30,15 @@ builder.Services.AddHealthChecks(builder.Configuration);
 // Add API Controllers support
 builder.Services.AddControllers();
 
-// Add Memory Cache for performance optimizations
-builder.Services.AddMemoryCache();
+// Add Memory Cache for performance optimizations with size limits
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 1024;  // Maximum 1024 cache entries
+    options.CompactionPercentage = 0.25;  // Compact when 75% full
+});
+
+// Register cache service
+builder.Services.AddSingleton<EventForge.Server.Services.Caching.ICacheService, EventForge.Server.Services.Caching.CacheService>();
 
 // Add SignalR for real-time communication
 builder.Services.AddSignalR(options =>

@@ -1,4 +1,5 @@
 using EventForge.DTOs.Sales;
+using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Sales;
@@ -12,17 +13,22 @@ public class PaymentMethodService : IPaymentMethodService
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<PaymentMethodService> _logger;
+    private readonly ICacheService _cacheService;
+    
+    private const string CACHE_KEY_ALL = "PaymentMethods_All";
 
     public PaymentMethodService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
-        ILogger<PaymentMethodService> logger)
+        ILogger<PaymentMethodService> logger,
+        ICacheService cacheService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
     public async Task<PagedResult<PaymentMethodDto>> GetPaymentMethodsAsync(int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
@@ -37,25 +43,34 @@ public class PaymentMethodService : IPaymentMethodService
 
             _logger.LogDebug("Querying payment methods for tenant {TenantId}", currentTenantId.Value);
 
-            var query = _context.PaymentMethods
-                .Where(pm => pm.TenantId == currentTenantId.Value && !pm.IsDeleted);
+            // Cache all PaymentMethods for 15 minutes
+            var allPaymentMethods = await _cacheService.GetOrCreateAsync(
+                CACHE_KEY_ALL,
+                currentTenantId.Value,
+                async () =>
+                {
+                    return await _context.PaymentMethods
+                        .Where(pm => pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
+                        .OrderBy(pm => pm.DisplayOrder)
+                        .ThenBy(pm => pm.Name)
+                        .Select(pm => MapToDto(pm))
+                        .ToListAsync(cancellationToken);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(15)
+            );
 
-            var totalCount = await query.CountAsync(cancellationToken);
+            // Paginate in memory (PaymentMethods are few)
+            var totalCount = allPaymentMethods.Count;
+            var items = allPaymentMethods
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             _logger.LogDebug("Found {Count} payment methods for tenant {TenantId}", totalCount, currentTenantId.Value);
 
-            var paymentMethods = await query
-                .OrderBy(pm => pm.DisplayOrder)
-                .ThenBy(pm => pm.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var dtos = paymentMethods.Select(MapToDto);
-
             return new PagedResult<PaymentMethodDto>
             {
-                Items = dtos,
+                Items = items,
                 Page = page,
                 PageSize = pageSize,
                 TotalCount = totalCount
@@ -191,6 +206,9 @@ public class PaymentMethodService : IPaymentMethodService
                 entityDisplayName: paymentMethod.Name,
                 cancellationToken: cancellationToken);
 
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+
             _logger.LogInformation("Payment method {Name} created by {User}.", paymentMethod.Name, currentUser);
 
             return MapToDto(paymentMethod);
@@ -249,6 +267,9 @@ public class PaymentMethodService : IPaymentMethodService
                 entityDisplayName: paymentMethod.Name,
                 cancellationToken: cancellationToken);
 
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+
             _logger.LogInformation("Payment method {Name} updated by {User}.", paymentMethod.Name, currentUser);
 
             return MapToDto(paymentMethod);
@@ -298,6 +319,9 @@ public class PaymentMethodService : IPaymentMethodService
                 changedBy: currentUser,
                 entityDisplayName: paymentMethod.Name,
                 cancellationToken: cancellationToken);
+
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
 
             _logger.LogInformation("Payment method {Name} deleted by {User}.", paymentMethod.Name, currentUser);
 
