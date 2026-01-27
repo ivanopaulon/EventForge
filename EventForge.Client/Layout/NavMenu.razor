@@ -197,6 +197,11 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.customerManagement", "Clienti")
                 </MudNavLink>
+                <MudNavLink Href="/business/groups"
+                            Icon="@Icons.Material.Outlined.Group" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.businessPartyGroupManagement", "Gruppi Business Party")
+                </MudNavLink>
                 <MudNavLink Href="/management/pricelists"
                             Icon="@Icons.Material.Filled.PriceCheck"
                             IconColor="Color.Tertiary">
