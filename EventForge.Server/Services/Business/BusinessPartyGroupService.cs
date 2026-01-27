@@ -44,7 +44,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
 
             var query = _context.BusinessPartyGroups
                 .WhereActiveTenant(currentTenantId.Value)
-                .Include(g => g.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value));
+                .Include(g => g.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
+                .AsQueryable();
 
             if (groupType.HasValue)
             {
@@ -790,7 +791,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             GroupIcon = member.Group?.Icon,
             BusinessPartyId = member.BusinessPartyId,
             BusinessPartyName = member.BusinessParty?.Name ?? string.Empty,
-            BusinessPartyType = member.BusinessParty?.PartyType ?? BusinessPartyType.Cliente,
+            BusinessPartyType = (DTOs.Common.BusinessPartyType)(member.BusinessParty?.PartyType ?? Data.Entities.Business.BusinessPartyType.Cliente),
             MemberSince = member.MemberSince,
             MemberUntil = member.MemberUntil,
             Status = member.Status,
