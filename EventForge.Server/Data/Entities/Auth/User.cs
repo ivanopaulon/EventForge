@@ -145,6 +145,13 @@ public class User : AuditableEntity
     public bool InAppNotificationsEnabled { get; set; } = true;
 
     /// <summary>
+    /// Additional metadata in JSON format for extensibility (e.g., notification preferences).
+    /// </summary>
+    [MaxLength(4000, ErrorMessage = "Metadata cannot exceed 4000 characters.")]
+    [Display(Name = "Metadata JSON", Description = "Additional metadata in JSON format.")]
+    public string? MetadataJson { get; set; }
+
+    /// <summary>
     /// Tenant ID this user belongs to.
     /// </summary>
     [Required]
