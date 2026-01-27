@@ -535,55 +535,7 @@ public class ChatService : IChatService
 
         // 7. Execute query and map to DTOs
         var messages = await query.ToListAsync(cancellationToken);
-
-        var messageDtos = messages.Select(m => new ChatMessageDto
-        {
-            Id = m.Id,
-            ChatId = m.ChatThreadId,
-            SenderId = m.SenderId,
-            SenderName = $"User_{m.SenderId:N}", // TODO: Resolve from user service
-            Content = m.Content,
-            ReplyToMessageId = m.ReplyToMessageId,
-            ReplyToMessage = m.ReplyToMessage != null ? new ChatMessageDto
-            {
-                Id = m.ReplyToMessage.Id,
-                ChatId = m.ReplyToMessage.ChatThreadId,
-                SenderId = m.ReplyToMessage.SenderId,
-                Content = m.ReplyToMessage.Content,
-                SentAt = m.ReplyToMessage.SentAt
-            } : null,
-            Attachments = m.Attachments.Select(a => new MessageAttachmentDto
-            {
-                Id = a.Id,
-                FileName = a.FileName,
-                OriginalFileName = a.OriginalFileName,
-                FileSize = a.FileSize,
-                ContentType = a.ContentType,
-                MediaType = a.MediaType,
-                FileUrl = a.FileUrl,
-                ThumbnailUrl = a.ThumbnailUrl,
-                UploadedAt = a.UploadedAt,
-                UploadedBy = a.UploadedBy
-            }).ToList(),
-            ReadReceipts = m.ReadReceipts.Select(r => new MessageReadReceiptDto
-            {
-                UserId = r.UserId,
-                Username = $"User_{r.UserId:N}", // TODO: Resolve from user service
-                ReadAt = r.ReadAt
-            }).ToList(),
-            Status = m.Status,
-            SentAt = m.SentAt,
-            DeliveredAt = m.DeliveredAt,
-            ReadAt = m.ReadAt,
-            EditedAt = m.EditedAt,
-            DeletedAt = m.DeletedAt,
-            IsEdited = m.IsEdited,
-            IsDeleted = m.IsDeleted,
-            Locale = m.Locale,
-            Metadata = string.IsNullOrEmpty(m.MetadataJson) 
-                ? new Dictionary<string, object>() 
-                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(m.MetadataJson) ?? new Dictionary<string, object>()
-        }).ToList();
+        var messageDtos = messages.Select(MapToChatMessageDto).ToList();
 
         // 8. Return PagedResult
         return new PagedResult<ChatMessageDto>
@@ -651,56 +603,7 @@ public class ChatService : IChatService
         }
 
         // 5. Map to ChatMessageDto
-        var messageDto = new ChatMessageDto
-        {
-            Id = message.Id,
-            ChatId = message.ChatThreadId,
-            SenderId = message.SenderId,
-            SenderName = $"User_{message.SenderId:N}", // TODO: Resolve from user service
-            Content = message.Content,
-            ReplyToMessageId = message.ReplyToMessageId,
-            ReplyToMessage = message.ReplyToMessage != null ? new ChatMessageDto
-            {
-                Id = message.ReplyToMessage.Id,
-                ChatId = message.ReplyToMessage.ChatThreadId,
-                SenderId = message.ReplyToMessage.SenderId,
-                Content = message.ReplyToMessage.Content,
-                SentAt = message.ReplyToMessage.SentAt
-            } : null,
-            Attachments = message.Attachments.Select(a => new MessageAttachmentDto
-            {
-                Id = a.Id,
-                FileName = a.FileName,
-                OriginalFileName = a.OriginalFileName,
-                FileSize = a.FileSize,
-                ContentType = a.ContentType,
-                MediaType = a.MediaType,
-                FileUrl = a.FileUrl,
-                ThumbnailUrl = a.ThumbnailUrl,
-                UploadedAt = a.UploadedAt,
-                UploadedBy = a.UploadedBy
-            }).ToList(),
-            ReadReceipts = message.ReadReceipts.Select(r => new MessageReadReceiptDto
-            {
-                UserId = r.UserId,
-                Username = $"User_{r.UserId:N}", // TODO: Resolve from user service
-                ReadAt = r.ReadAt
-            }).ToList(),
-            Status = message.Status,
-            SentAt = message.SentAt,
-            DeliveredAt = message.DeliveredAt,
-            ReadAt = message.ReadAt,
-            EditedAt = message.EditedAt,
-            DeletedAt = message.DeletedAt,
-            IsEdited = message.IsEdited,
-            IsDeleted = message.IsDeleted,
-            Locale = message.Locale,
-            Metadata = string.IsNullOrEmpty(message.MetadataJson)
-                ? new Dictionary<string, object>()
-                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>()
-        };
-
-        return messageDto;
+        return MapToChatMessageDto(message);
     }
 
     /// <summary>
@@ -780,53 +683,8 @@ public class ChatService : IChatService
             "User {UserId} edited message {MessageId} with reason: {Reason}",
             editDto.UserId, editDto.MessageId, editDto.EditReason ?? "No reason provided");
 
-        // 9. Map to DTO
-        var mappedDto = new ChatMessageDto
-        {
-            Id = message.Id,
-            ChatId = message.ChatThreadId,
-            SenderId = message.SenderId,
-            SenderName = $"User_{message.SenderId:N}", // TODO: Resolve from user service
-            Content = message.Content,
-            ReplyToMessageId = message.ReplyToMessageId,
-            ReplyToMessage = message.ReplyToMessage != null ? new ChatMessageDto
-            {
-                Id = message.ReplyToMessage.Id,
-                ChatId = message.ReplyToMessage.ChatThreadId,
-                SenderId = message.ReplyToMessage.SenderId,
-                Content = message.ReplyToMessage.Content,
-                SentAt = message.ReplyToMessage.SentAt
-            } : null,
-            Attachments = message.Attachments.Select(a => new MessageAttachmentDto
-            {
-                Id = a.Id,
-                FileName = a.FileName,
-                OriginalFileName = a.OriginalFileName,
-                FileSize = a.FileSize,
-                ContentType = a.ContentType,
-                MediaType = a.MediaType,
-                FileUrl = a.FileUrl,
-                ThumbnailUrl = a.ThumbnailUrl,
-                UploadedAt = a.UploadedAt,
-                UploadedBy = a.UploadedBy
-            }).ToList(),
-            ReadReceipts = message.ReadReceipts.Select(r => new MessageReadReceiptDto
-            {
-                UserId = r.UserId,
-                Username = $"User_{r.UserId:N}", // TODO: Resolve from user service
-                ReadAt = r.ReadAt
-            }).ToList(),
-            Status = message.Status,
-            SentAt = message.SentAt,
-            DeliveredAt = message.DeliveredAt,
-            ReadAt = message.ReadAt,
-            EditedAt = message.EditedAt,
-            DeletedAt = message.DeletedAt,
-            IsEdited = message.IsEdited,
-            IsDeleted = message.IsDeleted,
-            Locale = message.Locale,
-            Metadata = metadata
-        };
+        // 9. Map to DTO using helper method
+        var mappedDto = MapToChatMessageDto(message);
 
         // 10. Send SignalR notification to chat members
         await _hubContext.Clients.Group($"chat_{message.ChatThreadId}")
@@ -1765,7 +1623,8 @@ public class ChatService : IChatService
             message.Metadata["LocalizedBy"] = userId.Value.ToString();
         }
 
-        await Task.Delay(10, cancellationToken);
+        // Note: Localization is transient (client-side only) and not persisted to database
+        await Task.CompletedTask; // Satisfy async signature
 
         // 4. Return localized ChatMessageDto
         return message;
@@ -1868,6 +1727,75 @@ public class ChatService : IChatService
             var ct when ct.StartsWith("audio/") => MediaType.Audio,
             var ct when ct.Contains("zip") || ct.Contains("rar") || ct.Contains("7z") => MediaType.Archive,
             _ => MediaType.Document
+        };
+    }
+
+    /// <summary>
+    /// Maps ChatMessage entity to ChatMessageDto.
+    /// </summary>
+    private static ChatMessageDto MapToChatMessageDto(Data.Entities.Chat.ChatMessage message)
+    {
+        Dictionary<string, object> metadata;
+        try
+        {
+            metadata = string.IsNullOrEmpty(message.MetadataJson)
+                ? new Dictionary<string, object>()
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>();
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            // Log error and return empty dictionary for corrupted metadata
+            metadata = new Dictionary<string, object>
+            {
+                ["_DeserializationError"] = $"Failed to deserialize metadata: {ex.Message}"
+            };
+        }
+
+        return new ChatMessageDto
+        {
+            Id = message.Id,
+            ChatId = message.ChatThreadId,
+            SenderId = message.SenderId,
+            SenderName = $"User_{message.SenderId:N}", // TODO: Resolve from user service
+            Content = message.Content,
+            ReplyToMessageId = message.ReplyToMessageId,
+            ReplyToMessage = message.ReplyToMessage != null ? new ChatMessageDto
+            {
+                Id = message.ReplyToMessage.Id,
+                ChatId = message.ReplyToMessage.ChatThreadId,
+                SenderId = message.ReplyToMessage.SenderId,
+                Content = message.ReplyToMessage.Content,
+                SentAt = message.ReplyToMessage.SentAt
+            } : null,
+            Attachments = message.Attachments.Select(a => new MessageAttachmentDto
+            {
+                Id = a.Id,
+                FileName = a.FileName,
+                OriginalFileName = a.OriginalFileName,
+                FileSize = a.FileSize,
+                ContentType = a.ContentType,
+                MediaType = a.MediaType,
+                FileUrl = a.FileUrl,
+                ThumbnailUrl = a.ThumbnailUrl,
+                UploadedAt = a.UploadedAt,
+                UploadedBy = a.UploadedBy
+            }).ToList(),
+            ReadReceipts = message.ReadReceipts.Select(r => new MessageReadReceiptDto
+            {
+                UserId = r.UserId,
+                Username = $"User_{r.UserId:N}", // TODO: Resolve from user service
+                ReadAt = r.ReadAt
+            }).ToList(),
+            Status = message.Status,
+            SentAt = message.SentAt,
+            DeliveredAt = message.DeliveredAt,
+            ReadAt = message.ReadAt,
+            EditedAt = message.EditedAt,
+            DeletedAt = message.DeletedAt,
+            IsEdited = message.IsEdited,
+            IsDeleted = message.IsDeleted,
+            Locale = message.Locale,
+            Metadata = metadata
         };
     }
 
