@@ -184,16 +184,6 @@ public class EventService : IEventService
                 throw new InvalidOperationException("Tenant context is required for event operations.");
             }
 
-            var originalEvent = await _context.Events
-                .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted, cancellationToken);
-
-            if (originalEvent == null)
-            {
-                _logger.LogWarning("Evento con ID {EventId} non trovato per aggiornamento.", id);
-                return null;
-            }
-
             var eventEntity = await _context.Events
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
@@ -204,6 +194,10 @@ public class EventService : IEventService
                 _logger.LogWarning("Evento con ID {EventId} non trovato per aggiornamento.", id);
                 return null;
             }
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(eventEntity).CurrentValues.Clone();
+            var originalEvent = (Event)originalValues.ToObject();
 
             eventEntity.Name = updateEventDto.Name;
             eventEntity.ShortDescription = updateEventDto.ShortDescription;
@@ -253,16 +247,6 @@ public class EventService : IEventService
                 throw new InvalidOperationException("Tenant context is required for event operations.");
             }
 
-            var originalEvent = await _context.Events
-                .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted, cancellationToken);
-
-            if (originalEvent == null)
-            {
-                _logger.LogWarning("Evento con ID {EventId} non trovato per cancellazione.", id);
-                return false;
-            }
-
             var eventEntity = await _context.Events
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -273,6 +257,10 @@ public class EventService : IEventService
                 return false;
             }
 
+            // Create snapshot of original event state
+            var originalEventValues = _context.Entry(eventEntity).CurrentValues.Clone();
+            var originalEvent = (Event)originalEventValues.ToObject();
+
             eventEntity.IsDeleted = true;
             eventEntity.DeletedBy = currentUser;
             eventEntity.DeletedAt = DateTime.UtcNow;
@@ -282,11 +270,18 @@ public class EventService : IEventService
                 .Where(t => t.EventId == id && !t.IsDeleted)
                 .ToListAsync(cancellationToken);
 
+            // Create snapshots of all teams BEFORE modifying them
+            var originalTeams = teams.ToDictionary(
+                t => t.Id,
+                t => {
+                    var originalValues = _context.Entry(t).CurrentValues.Clone();
+                    return (Team)originalValues.ToObject();
+                }
+            );
+
             foreach (var team in teams)
             {
-                var originalTeam = await _context.Teams
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
+                var originalTeam = originalTeams[team.Id];
 
                 team.IsDeleted = true;
                 team.DeletedBy = currentUser;
@@ -298,11 +293,18 @@ public class EventService : IEventService
                     .Where(m => m.TeamId == team.Id && !m.IsDeleted)
                     .ToListAsync(cancellationToken);
 
+                // Create snapshots of all members BEFORE modifying them
+                var originalMembers = members.ToDictionary(
+                    m => m.Id,
+                    m => {
+                        var originalValues = _context.Entry(m).CurrentValues.Clone();
+                        return (TeamMember)originalValues.ToObject();
+                    }
+                );
+
                 foreach (var member in members)
                 {
-                    var originalMember = await _context.TeamMembers
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(m => m.Id == member.Id, cancellationToken);
+                    var originalMember = originalMembers[member.Id];
 
                     member.IsDeleted = true;
                     member.DeletedBy = currentUser;
