@@ -112,10 +112,13 @@
                                                 Label="Colore"
                                                 Variant="Variant.Outlined"
                                                 Style="flex: 1;" />
-                                @if (!string.IsNullOrEmpty(_colorHex))
+                                @{
+                                    var safeColor = GetSafeColorHex();
+                                }
+                                @if (!string.IsNullOrEmpty(safeColor))
                                 {
-                                    <div style="width: 50px; height: 50px; background: @_colorHex; border-radius: 8px; border: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
-                                         title="Anteprima colore: @_colorHex">
+                                    <div style="width: 50px; height: 50px; background: @safeColor; border-radius: 8px; border: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                         title="Anteprima colore: @safeColor">
                                     </div>
                                 }
                             </MudStack>
@@ -625,4 +628,27 @@
         BusinessPartyGroupMemberStatus.Revoked => "Revocato",
         _ => "N/D"
     };
+
+    /// <summary>
+    /// Safely validates and returns the color hex code for CSS rendering.
+    /// Prevents CSS injection by validating the format.
+    /// </summary>
+    private string GetSafeColorHex()
+    {
+        if (string.IsNullOrWhiteSpace(_colorHex))
+            return string.Empty;
+
+        // Validate format: must be exactly 7 characters starting with # followed by 6 hex digits
+        if (_colorHex.Length == 7 && 
+            _colorHex[0] == '#' && 
+            _colorHex.Skip(1).All(c => (c >= '0' && c <= '9') || 
+                                       (c >= 'A' && c <= 'F') || 
+                                       (c >= 'a' && c <= 'f')))
+        {
+            return _colorHex;
+        }
+
+        // Return empty string if invalid (preview won't be shown)
+        return string.Empty;
+    }
 }
