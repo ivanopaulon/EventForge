@@ -81,10 +81,15 @@ public static class ServiceCollectionExtensions
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: fileRetention,
                 restrictedToMinimumLevel: LogEventLevel.Information,
-                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-            .WriteTo.Console(
+                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+
+        // Console logging enabled only in Development environment for better performance in production
+        if (builder.Environment.IsDevelopment())
+        {
+            loggerConfiguration.WriteTo.Console(
                 restrictedToMinimumLevel: LogEventLevel.Information,
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+        }
 
         // Add SQL Server sink if connection string is available
         // Test connection first before adding the sink to avoid partial configuration
