@@ -12,6 +12,7 @@ using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatu
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
+using PriceListDirection = EventForge.DTOs.Common.PriceListDirection;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -46,16 +47,40 @@ public class PriceListService : IPriceListService
         _bulkOperationsService = bulkOperationsService ?? throw new ArgumentNullException(nameof(bulkOperationsService));
     }
 
-    public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(int page = 1, int pageSize = 20, PriceListDirection? direction = null, DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var query = _context.PriceLists
-                .Where(pl => !pl.IsDeleted)
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted));
+                .Where(pl => !pl.IsDeleted);
 
+            // Apply filters BEFORE pagination
+            if (direction.HasValue)
+            {
+                query = query.Where(pl => pl.Direction == direction.Value);
+                _logger.LogDebug("Filtering price lists by direction: {Direction}", direction.Value);
+            }
+            
+            if (status.HasValue)
+            {
+                // Cast DTO enum to entity enum for comparison
+                var entityStatus = (PriceListStatus)status.Value;
+                query = query.Where(pl => pl.Status == entityStatus);
+                _logger.LogDebug("Filtering price lists by status: {Status}", status.Value);
+            }
+
+            // Count AFTER filters
             var totalCount = await query.CountAsync(cancellationToken);
+            
+            _logger.LogInformation(
+                "Found {TotalCount} price lists matching filters (Direction: {Direction}, Status: {Status})",
+                totalCount, 
+                direction?.ToString() ?? "Any", 
+                status?.ToString() ?? "Any");
+
+            // Include related data and apply pagination AFTER filters
             var priceLists = await query
+                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .OrderBy(pl => pl.Priority)
                 .ThenBy(pl => pl.Name)
                 .Skip((page - 1) * pageSize)
@@ -74,7 +99,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price lists.");
+            _logger.LogError(ex, "Error retrieving price lists with filters.");
             throw;
         }
     }

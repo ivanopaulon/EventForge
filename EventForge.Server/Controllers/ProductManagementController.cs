@@ -1090,33 +1090,8 @@ public class ProductManagementController : BaseApiController
 
         try
         {
-            // Get all price lists first
-            var result = await _priceListService.GetPriceListsAsync(page, pageSize, cancellationToken);
-            
-            // Apply filters if specified
-            if (result != null && result.Items != null && (direction.HasValue || status.HasValue))
-            {
-                var filteredItems = result.Items.AsEnumerable();
-                
-                if (direction.HasValue)
-                {
-                    filteredItems = filteredItems.Where(pl => pl.Direction == direction.Value);
-                }
-                
-                if (status.HasValue)
-                {
-                    filteredItems = filteredItems.Where(pl => pl.Status == status.Value);
-                }
-                
-                var filteredList = filteredItems.ToList();
-                result = new PagedResult<PriceListDto>
-                {
-                    Items = filteredList,
-                    TotalCount = filteredList.Count,
-                    Page = page,
-                    PageSize = pageSize
-                };
-            }
+            // Pass filters to service for server-side filtering before pagination
+            var result = await _priceListService.GetPriceListsAsync(page, pageSize, direction, status, cancellationToken);
             
             return Ok(result);
         }

@@ -18,6 +18,17 @@ public interface IPriceListService
     Task<PagedResult<PriceListDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct);
 
     /// <summary>
+    /// Gets price lists with pagination and optional filtering by direction and status.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="direction">Optional filter by price list direction (Input/Output)</param>
+    /// <param name="status">Optional filter by price list status (Active/Suspended/Deleted)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated list of filtered price lists</returns>
+    Task<PagedResult<PriceListDto>> GetPagedAsync(int page, int pageSize, PriceListDirection? direction = null, PriceListStatus? status = null, CancellationToken ct = default);
+
+    /// <summary>
     /// Gets a price list by ID.
     /// </summary>
     /// <param name="id">Price list ID</param>
