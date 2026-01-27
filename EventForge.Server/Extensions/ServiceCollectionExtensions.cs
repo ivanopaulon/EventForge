@@ -276,6 +276,7 @@ public static class ServiceCollectionExtensions
 
         // Register business party services
         _ = services.AddScoped<IBusinessPartyService, BusinessPartyService>();
+        _ = services.AddScoped<IBusinessPartyGroupService, BusinessPartyGroupService>();
 
         // Register common services
         _ = services.AddScoped<IAddressService, AddressService>();

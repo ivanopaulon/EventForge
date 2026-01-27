@@ -713,4 +713,25 @@ namespace EventForge.DTOs.Common
         /// </summary>
         MultiplyBy = 6
     }
+
+    /// <summary>
+    /// Business Party Group type enumeration.
+    /// </summary>
+    public enum BusinessPartyGroupType
+    {
+        Customer = 0,
+        Supplier = 1,
+        Both = 2
+    }
+
+    /// <summary>
+    /// Business Party Group Member status enumeration.
+    /// </summary>
+    public enum BusinessPartyGroupMemberStatus
+    {
+        Active = 0,
+        Suspended = 1,
+        Expired = 2,
+        Revoked = 3
+    }
 }

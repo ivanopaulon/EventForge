@@ -115,6 +115,12 @@ public class BusinessParty : AuditableEntity
     /// Navigation property per il listino acquisto predefinito
     /// </summary>
     public PriceList.PriceList? DefaultPurchasePriceList { get; set; }
+
+    /// <summary>
+    /// Gruppi di appartenenza del Business Party
+    /// </summary>
+    [Display(Name = "Group Memberships", Description = "Gruppi di appartenenza")]
+    public ICollection<BusinessPartyGroupMember> GroupMemberships { get; set; } = new List<BusinessPartyGroupMember>();
 }
 
 /// <summary>
