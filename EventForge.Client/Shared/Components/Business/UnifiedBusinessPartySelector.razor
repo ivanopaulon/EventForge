@@ -93,12 +93,12 @@
                                 </MudText>
                             }
                             
-                            <!-- Groups (max 2 + counter) -->
+                            <!-- Groups (max visible + counter) -->
                             @if (ShowGroups && bp.Groups != null && bp.Groups.Any())
                             {
                                 var sortedGroups = GetSortedGroups(bp).ToList();
-                                var visibleGroups = sortedGroups.Take(2).ToList();
-                                var remainingCount = sortedGroups.Count - 2;
+                                var visibleGroups = sortedGroups.Take(MaxVisibleGroupsInAutocomplete).ToList();
+                                var remainingCount = sortedGroups.Count - MaxVisibleGroupsInAutocomplete;
                                 
                                 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
                                     @foreach (var group in visibleGroups)

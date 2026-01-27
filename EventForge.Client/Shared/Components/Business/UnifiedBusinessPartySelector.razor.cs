@@ -46,6 +46,7 @@ namespace EventForge.Client.Shared.Components.Business
         [Parameter] public bool ShowContactStats { get; set; } = true;
         [Parameter] public bool ShowEditButton { get; set; } = false;
         [Parameter] public bool GroupClickable { get; set; } = false;
+        [Parameter] public int MaxVisibleGroupsInAutocomplete { get; set; } = 2;
 
         #endregion
 
@@ -82,6 +83,15 @@ namespace EventForge.Client.Shared.Components.Business
 
         private MudAutocomplete<BusinessPartyDto>? _autocomplete;
         private string _searchText = string.Empty;
+
+        // Styling constants for group badges
+        private const string InlineBadgeOpacity = "15"; // ~8% opacity for background
+        private const string InlineBadgeHeight = "18px";
+        private const string InlineBadgeFontSize = "0.7rem";
+        private const string InlineBadgePadding = "0 6px";
+        
+        private const string CardBadgeBackgroundOpacity = "20"; // ~12% opacity for background
+        private const string CardBadgeBorderOpacity = "40"; // ~25% opacity for border
 
         #endregion
 
@@ -274,9 +284,9 @@ namespace EventForge.Client.Shared.Components.Business
         private string GetGroupInlineStyle(BusinessPartyGroupDto group)
         {
             if (string.IsNullOrEmpty(group.ColorHex))
-                return "font-size: 0.7rem; height: 18px;";
+                return $"font-size: {InlineBadgeFontSize}; height: {InlineBadgeHeight};";
 
-            return $"background-color: {group.ColorHex}15; color: {group.ColorHex}; font-size: 0.7rem; height: 18px; padding: 0 6px;";
+            return $"background-color: {group.ColorHex}{InlineBadgeOpacity}; color: {group.ColorHex}; font-size: {InlineBadgeFontSize}; height: {InlineBadgeHeight}; padding: {InlineBadgePadding};";
         }
 
         /// <summary>
@@ -287,8 +297,8 @@ namespace EventForge.Client.Shared.Components.Business
             if (string.IsNullOrEmpty(group.ColorHex))
                 return string.Empty;
 
-            var bgColor = $"{group.ColorHex}20"; // 20 = opacity 12.5%
-            return $"background-color: {bgColor}; color: {group.ColorHex}; border: 1px solid {group.ColorHex}40;";
+            var bgColor = $"{group.ColorHex}{CardBadgeBackgroundOpacity}";
+            return $"background-color: {bgColor}; color: {group.ColorHex}; border: 1px solid {group.ColorHex}{CardBadgeBorderOpacity};";
         }
 
         /// <summary>
