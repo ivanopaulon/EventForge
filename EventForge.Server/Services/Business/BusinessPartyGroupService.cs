@@ -215,15 +215,6 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 }
             }
 
-            var group = await _context.BusinessPartyGroups
-                .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (group == null)
-            {
-                throw new InvalidOperationException($"Business Party Group with ID {id} not found.");
-            }
-
             group.Name = dto.Name;
             group.Code = dto.Code;
             group.Description = dto.Description;
