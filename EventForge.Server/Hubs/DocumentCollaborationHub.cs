@@ -119,8 +119,17 @@ public class DocumentCollaborationHub : Hub
             else
             {
                 var lockInfo = await _documentHeaderService.GetLockInfoAsync(documentId);
-                throw new HubException(
-                    $"Documento in modifica da {lockInfo?.LockedBy} dal {lockInfo?.LockedAt:HH:mm}");
+                
+                if (lockInfo != null)
+                {
+                    throw new HubException(
+                        $"Documento in modifica da {lockInfo.LockedBy} dal {lockInfo.LockedAt:HH:mm}");
+                }
+                else
+                {
+                    throw new HubException(
+                        "Documento attualmente non disponibile per la modifica. Riprova tra qualche istante.");
+                }
             }
         }
         catch (HubException)
@@ -177,27 +186,49 @@ public class DocumentCollaborationHub : Hub
     {
         var userId = GetCurrentUserId();
         var tenantId = GetCurrentTenantId();
+        var userName = GetCurrentUserName();
 
-        if (!userId.HasValue || !tenantId.HasValue)
+        if (!userId.HasValue)
         {
-            throw new HubException("User not authenticated");
+            _logger.LogWarning(
+                "JoinDocument failed: UserId claim not found. ConnectionId: {ConnectionId}, User claims: {@Claims}",
+                Context.ConnectionId,
+                Context.User?.Claims.Select(c => new { c.Type, c.Value }));
+            throw new HubException("Autenticazione non valida: User ID non trovato. Effettua nuovamente il login.");
+        }
+
+        if (!tenantId.HasValue)
+        {
+            _logger.LogWarning(
+                "JoinDocument failed: TenantId claim not found. ConnectionId: {ConnectionId}, UserId: {UserId}",
+                Context.ConnectionId,
+                userId.Value);
+            throw new HubException("Autenticazione non valida: Tenant ID non trovato. Effettua nuovamente il login.");
         }
 
         try
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"document_{documentId}");
 
-            _logger.LogInformation("User {UserId} joined document {DocumentId} collaboration room",
-                userId.Value, documentId);
+            _logger.LogInformation(
+                "User {UserName} (ID: {UserId}) joined document {DocumentId} collaboration room",
+                userName, userId.Value, documentId);
 
             // Notify other users in the document that someone joined
             await Clients.GroupExcept($"document_{documentId}", Context.ConnectionId)
-                .SendAsync("UserJoinedDocument", new { DocumentId = documentId, UserId = userId.Value });
+                .SendAsync("UserJoinedDocument", new
+                {
+                    DocumentId = documentId,
+                    UserName = userName,
+                    JoinedAt = DateTime.UtcNow
+                });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to join document {DocumentId} for user {UserId}", documentId, userId.Value);
-            throw new HubException("Failed to join document collaboration room");
+            _logger.LogError(ex, 
+                "Failed to join document {DocumentId} for user {UserId}", 
+                documentId, userId.Value);
+            throw new HubException("Errore durante la connessione al documento. Riprova.");
         }
     }
 

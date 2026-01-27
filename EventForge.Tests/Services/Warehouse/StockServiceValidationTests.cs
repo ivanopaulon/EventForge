@@ -50,6 +50,77 @@ public class StockServiceValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateOrUpdateStockAsync_WithEmptyProductId_ThrowsArgumentException()
+    {
+        // Arrange
+        var validStorageLocation = CreateTestStorageLocation();
+        await _context.StorageLocations.AddAsync(validStorageLocation);
+        await _context.SaveChangesAsync();
+
+        var createDto = new CreateStockDto
+        {
+            ProductId = Guid.Empty, // Empty GUID
+            StorageLocationId = validStorageLocation.Id,
+            Quantity = 10
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
+        
+        Assert.Contains("ProductId non valido", exception.Message);
+        Assert.Contains("prodotto valido", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateStockAsync_WithEmptyStorageLocationId_ThrowsArgumentException()
+    {
+        // Arrange
+        var validProduct = CreateTestProduct();
+        await _context.Products.AddAsync(validProduct);
+        await _context.SaveChangesAsync();
+
+        var createDto = new CreateStockDto
+        {
+            ProductId = validProduct.Id,
+            StorageLocationId = Guid.Empty, // Empty GUID
+            Quantity = 10
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
+        
+        Assert.Contains("Storage Location non valida", exception.Message);
+        Assert.Contains("posizione di magazzino valida", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateStockAsync_WithEmptyLotId_ThrowsArgumentException()
+    {
+        // Arrange
+        var validProduct = CreateTestProduct();
+        var validStorageLocation = CreateTestStorageLocation();
+        await _context.Products.AddAsync(validProduct);
+        await _context.StorageLocations.AddAsync(validStorageLocation);
+        await _context.SaveChangesAsync();
+
+        var createDto = new CreateStockDto
+        {
+            ProductId = validProduct.Id,
+            StorageLocationId = validStorageLocation.Id,
+            LotId = Guid.Empty, // Empty GUID
+            Quantity = 10
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
+        
+        Assert.Contains("Lot ID non valido", exception.Message);
+    }
+
+    [Fact]
     public async Task CreateOrUpdateStockAsync_WithNonExistentProduct_ThrowsArgumentException()
     {
         // Arrange
