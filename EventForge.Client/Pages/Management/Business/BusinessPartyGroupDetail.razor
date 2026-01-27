@@ -107,9 +107,18 @@
                                              Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudColorPicker @bind-Text="_colorHex" 
-                                            Label="Colore"
-                                            Variant="Variant.Outlined" />
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudColorPicker @bind-Text="_colorHex" 
+                                                Label="Colore"
+                                                Variant="Variant.Outlined"
+                                                Style="flex: 1;" />
+                                @if (!string.IsNullOrEmpty(_colorHex))
+                                {
+                                    <div style="width: 50px; height: 50px; background: @_colorHex; border-radius: 8px; border: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                         title="Anteprima colore: @_colorHex">
+                                    </div>
+                                }
+                            </MudStack>
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>
