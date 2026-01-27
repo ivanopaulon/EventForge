@@ -12,6 +12,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyGroupDetail> Logger
+@inject IJSRuntime JSRuntime
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <PageLoadingOverlay Visible="_isLoading || _isSaving"
@@ -121,26 +122,75 @@
                                  BadgeDot="@(_members?.Any() == true)">
                         <MudStack Spacing="3">
                             <!-- Toolbar -->
-                            <MudPaper Outlined="true" Class="pa-3">
-                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudText Typo="Typo.h6">Gestione Membri</MudText>
+                            <MudPaper Elevation="0" Class="pa-3 mb-3">
+                                <div class="d-flex justify-space-between align-center mb-3">
+                                    <MudText Typo="Typo.h6">
+                                        <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2" />
+                                        Membri del Gruppo
+                                    </MudText>
                                     <MudStack Row="true" Spacing="2">
-                                        <MudButton Variant="Variant.Filled" 
-                                                   Color="Color.Primary" 
-                                                   StartIcon="@Icons.Material.Filled.PersonAdd"
-                                                   OnClick="OpenAddMemberDialog"
-                                                   Size="Size.Small">
-                                            Aggiungi Membro
+                                        <MudButton Variant="Variant.Text"
+                                                   StartIcon="@Icons.Material.Filled.Download"
+                                                   OnClick="@ExportMembersToCsv"
+                                                   Size="Size.Small"
+                                                   Disabled="@(!_members?.Any() ?? true)">
+                                            Esporta CSV
                                         </MudButton>
-                                        <MudButton Variant="Variant.Outlined" 
-                                                   Color="Color.Primary" 
+                                        
+                                        <MudButton Variant="Variant.Outlined"
+                                                   Color="Color.Primary"
                                                    StartIcon="@Icons.Material.Filled.GroupAdd"
-                                                   OnClick="OpenBulkAddDialog"
-                                                   Size="Size.Small">
+                                                   Size="Size.Small"
+                                                   OnClick="@OpenBulkAddDialog">
                                             Aggiungi Multipli
                                         </MudButton>
+                                        
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.Add"
+                                                   Size="Size.Small"
+                                                   OnClick="@OpenAddMemberDialog">
+                                            Aggiungi Membro
+                                        </MudButton>
                                     </MudStack>
-                                </MudStack>
+                                </div>
+                                
+                                <!-- Statistiche Membri -->
+                                @if (_members?.Any() == true)
+                                {
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="4">
+                                            <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-primary-lighten);">
+                                                <MudStack Spacing="0" AlignItems="AlignItems.Center">
+                                                    <MudText Typo="Typo.h5" Color="Color.Primary">@_members.Count()</MudText>
+                                                    <MudText Typo="Typo.caption">Totali</MudText>
+                                                </MudStack>
+                                            </MudPaper>
+                                        </MudItem>
+                                        
+                                        <MudItem xs="4">
+                                            <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-success-lighten);">
+                                                <MudStack Spacing="0" AlignItems="AlignItems.Center">
+                                                    <MudText Typo="Typo.h5" Color="Color.Success">
+                                                        @_members.Count(m => m.Status == BusinessPartyGroupMemberStatus.Active)
+                                                    </MudText>
+                                                    <MudText Typo="Typo.caption">Attivi</MudText>
+                                                </MudStack>
+                                            </MudPaper>
+                                        </MudItem>
+                                        
+                                        <MudItem xs="4">
+                                            <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-warning-lighten);">
+                                                <MudStack Spacing="0" AlignItems="AlignItems.Center">
+                                                    <MudText Typo="Typo.h5" Color="Color.Warning">
+                                                        @_members.Count(m => m.Status == BusinessPartyGroupMemberStatus.Suspended)
+                                                    </MudText>
+                                                    <MudText Typo="Typo.caption">Sospesi</MudText>
+                                                </MudStack>
+                                            </MudPaper>
+                                        </MudItem>
+                                    </MudGrid>
+                                }
                             </MudPaper>
 
                             <!-- Members List -->
@@ -220,7 +270,7 @@
                                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                                                        Color="Color.Error" 
                                                                        Size="Size.Small"
-                                                                       OnClick="@(() => RemoveMember(member.Id, member.BusinessPartyId))" />
+                                                                       OnClick="@(() => RemoveMember(member.BusinessPartyId))" />
                                                     </MudStack>
                                                 </td>
                                             </tr>
@@ -376,20 +426,27 @@
 
     private async Task OpenAddMemberDialog()
     {
+        if (_group == null) return;
+        
         var parameters = new DialogParameters<AddGroupMemberDialog>
         {
-            { x => x.GroupId, _group!.Id },
+            { x => x.GroupId, _group.Id },
             { x => x.GroupType, _group.GroupType },
             { x => x.ExistingMemberIds, _members?.Select(m => m.BusinessPartyId).ToList() }
         };
-
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true 
+        };
+        
         var dialog = await DialogService.ShowAsync<AddGroupMemberDialog>(
-            "Aggiungi Membro",
+            "Aggiungi Membro al Gruppo",
             parameters,
-            options
-        );
-
+            options);
+        
         var result = await dialog.Result;
         if (!result.Canceled)
         {
@@ -399,42 +456,57 @@
 
     private async Task OpenBulkAddDialog()
     {
+        if (_group == null) return;
+        
         var parameters = new DialogParameters<BulkAddGroupMembersDialog>
         {
-            { x => x.GroupId, _group!.Id },
+            { x => x.GroupId, _group.Id },
             { x => x.GroupType, _group.GroupType },
             { x => x.ExistingMemberIds, _members?.Select(m => m.BusinessPartyId).ToList() }
         };
-
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true };
+        
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Large, 
+            FullWidth = true 
+        };
+        
         var dialog = await DialogService.ShowAsync<BulkAddGroupMembersDialog>(
             "Aggiungi Multipli Membri",
             parameters,
-            options
-        );
-
+            options);
+        
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (!result.Canceled && result.Data is int count && count > 0)
         {
+            Snackbar.Add($"{count} membri aggiunti con successo", Severity.Success);
             await LoadMembersAsync();
         }
     }
 
     private async Task OpenEditMemberDialog(BusinessPartyGroupMemberDto member)
     {
+        if (_group == null) return;
+        
         var parameters = new DialogParameters<EditGroupMemberDialog>
         {
             { x => x.Member, member },
-            { x => x.GroupId, _group!.Id }
+            { x => x.GroupId, _group.Id }
         };
-
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true 
+        };
+        
         var dialog = await DialogService.ShowAsync<EditGroupMemberDialog>(
-            "Modifica Membro",
+            "Modifica Membro Gruppo",
             parameters,
-            options
-        );
-
+            options);
+        
         var result = await dialog.Result;
         if (!result.Canceled)
         {
@@ -442,26 +514,72 @@
         }
     }
 
-    private async Task RemoveMember(Guid memberId, Guid businessPartyId)
+    private async Task RemoveMember(Guid businessPartyId)
     {
-        var confirm = await DialogService.ShowMessageBox(
-            "Conferma",
-            "Sei sicuro di voler rimuovere questo membro dal gruppo?",
-            yesText: "Rimuovi",
-            cancelText: "Annulla");
-
-        if (confirm != true) return;
-
+        if (_group == null) return;
+        
         try
         {
-            await GroupService.RemoveMemberAsync(_group!.Id, businessPartyId);
-            Snackbar.Add("Membro rimosso con successo", Severity.Success);
-            await LoadMembersAsync();
+            var confirm = await DialogService.ShowMessageBox(
+                "Conferma Rimozione",
+                "Sei sicuro di voler rimuovere questo membro dal gruppo?",
+                yesText: "Rimuovi",
+                cancelText: "Annulla");
+
+            if (confirm != true) return;
+
+            var removed = await GroupService.RemoveMemberAsync(_group.Id, businessPartyId);
+            if (removed)
+            {
+                Snackbar.Add("Membro rimosso con successo", Severity.Success);
+                await LoadMembersAsync();
+            }
+            else
+            {
+                Snackbar.Add("Impossibile rimuovere il membro: membro non trovato o già rimosso", Severity.Warning);
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to remove member {MemberId}", memberId);
+            Logger.LogError(ex, "Failed to remove business party {BusinessPartyId}", businessPartyId);
             Snackbar.Add("Errore durante la rimozione del membro", Severity.Error);
+        }
+    }
+
+    private async Task ExportMembersToCsv()
+    {
+        if (_members == null || !_members.Any()) return;
+        
+        try
+        {
+            var csv = new System.Text.StringBuilder();
+            csv.AppendLine("Nome,Tipo,Membro Dal,Membro Fino,Stato,Priorità,In Evidenza");
+            
+            foreach (var member in _members.OrderBy(m => m.BusinessPartyName))
+            {
+                csv.AppendLine($"\"{member.BusinessPartyName}\"," +
+                              $"{GetBusinessPartyTypeLabel(member.BusinessPartyType)}," +
+                              $"{member.MemberSince?.ToString("dd/MM/yyyy") ?? "-"}," +
+                              $"{member.MemberUntil?.ToString("dd/MM/yyyy") ?? "Permanente"}," +
+                              $"{GetMemberStatusLabel(member.Status)}," +
+                              $"{member.OverridePriority?.ToString() ?? "-"}," +
+                              $"{(member.IsFeatured ? "Sì" : "No")}");
+            }
+            
+            var groupName = _group?.Name ?? "export";
+            // Sanitize filename by removing invalid characters
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var sanitizedName = string.Join("_", groupName.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
+            var fileName = $"membri_gruppo_{sanitizedName}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", csv.ToString());
+            
+            Snackbar.Add($"Esportati {_members.Count()} membri", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to export members to CSV");
+            Snackbar.Add("Errore durante l'esportazione", Severity.Error);
         }
     }
 
