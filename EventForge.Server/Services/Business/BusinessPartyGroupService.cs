@@ -178,18 +178,33 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
             }
 
-            var originalGroup = await _context.BusinessPartyGroups
-                .AsNoTracking()
+            var group = await _context.BusinessPartyGroups
                 .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalGroup == null)
+            if (group == null)
             {
                 throw new InvalidOperationException($"Business Party Group with ID {id} not found.");
             }
 
+            // Capture original state for audit
+            var originalGroup = new BusinessPartyGroup
+            {
+                Id = group.Id,
+                Name = group.Name,
+                Code = group.Code,
+                Description = group.Description,
+                GroupType = group.GroupType,
+                ColorHex = group.ColorHex,
+                Icon = group.Icon,
+                Priority = group.Priority,
+                IsActive = group.IsActive,
+                ValidFrom = group.ValidFrom,
+                ValidTo = group.ValidTo
+            };
+
             // Check for duplicate code if provided and changed
-            if (!string.IsNullOrWhiteSpace(dto.Code) && dto.Code != originalGroup.Code)
+            if (!string.IsNullOrWhiteSpace(dto.Code) && dto.Code != group.Code)
             {
                 var codeExists = await _context.BusinessPartyGroups
                     .AnyAsync(g => g.Code == dto.Code && g.Id != id && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
@@ -249,17 +264,6 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
             }
 
-            var originalGroup = await _context.BusinessPartyGroups
-                .AsNoTracking()
-                .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalGroup == null)
-            {
-                _logger.LogWarning("Business Party Group with ID {GroupId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
             var group = await _context.BusinessPartyGroups
                 .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -269,6 +273,17 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 _logger.LogWarning("Business Party Group with ID {GroupId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
+
+            // Capture original state for audit
+            var originalGroup = new BusinessPartyGroup
+            {
+                Id = group.Id,
+                Name = group.Name,
+                Code = group.Code,
+                Description = group.Description,
+                GroupType = group.GroupType,
+                IsActive = group.IsActive
+            };
 
             group.IsDeleted = true;
             group.DeletedAt = DateTime.UtcNow;
@@ -535,20 +550,6 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
             }
 
-            var originalMember = await _context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .Where(m => m.BusinessPartyGroupId == groupId 
-                    && m.BusinessPartyId == businessPartyId 
-                    && m.TenantId == currentTenantId.Value 
-                    && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalMember == null)
-            {
-                _logger.LogWarning("Member not found in group {GroupId}.", groupId);
-                return false;
-            }
-
             var member = await _context.BusinessPartyGroupMembers
                 .Where(m => m.BusinessPartyGroupId == groupId 
                     && m.BusinessPartyId == businessPartyId 
@@ -561,6 +562,15 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 _logger.LogWarning("Member not found in group {GroupId}.", groupId);
                 return false;
             }
+
+            // Capture original state for audit
+            var originalMember = new BusinessPartyGroupMember
+            {
+                Id = member.Id,
+                BusinessPartyGroupId = member.BusinessPartyGroupId,
+                BusinessPartyId = member.BusinessPartyId,
+                Status = member.Status
+            };
 
             member.IsDeleted = true;
             member.DeletedAt = DateTime.UtcNow;
@@ -600,16 +610,6 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
             }
 
-            var originalMember = await _context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .Where(m => m.Id == membershipId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalMember == null)
-            {
-                throw new InvalidOperationException($"Membership with ID {membershipId} not found.");
-            }
-
             var member = await _context.BusinessPartyGroupMembers
                 .Include(m => m.Group)
                 .Include(m => m.BusinessParty)
@@ -620,6 +620,20 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             {
                 throw new InvalidOperationException($"Membership with ID {membershipId} not found.");
             }
+
+            // Capture original state for audit
+            var originalMember = new BusinessPartyGroupMember
+            {
+                Id = member.Id,
+                BusinessPartyGroupId = member.BusinessPartyGroupId,
+                BusinessPartyId = member.BusinessPartyId,
+                MemberSince = member.MemberSince,
+                MemberUntil = member.MemberUntil,
+                Status = member.Status,
+                OverridePriority = member.OverridePriority,
+                Notes = member.Notes,
+                IsFeatured = member.IsFeatured
+            };
 
             member.MemberSince = dto.MemberSince;
             member.MemberUntil = dto.MemberUntil;
