@@ -128,18 +128,15 @@ public class VatRateService : IVatRateService
             ArgumentNullException.ThrowIfNull(updateVatRateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalVatRate = await _context.VatRates
-                .AsNoTracking()
-                .Where(v => v.Id == id && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalVatRate == null) return null;
-
             var vatRate = await _context.VatRates
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vatRate == null) return null;
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(vatRate).CurrentValues.Clone();
+            var originalVatRate = (VatRate)originalValues.ToObject();
 
             vatRate.Name = updateVatRateDto.Name;
             vatRate.Percentage = updateVatRateDto.Percentage;
@@ -171,18 +168,15 @@ public class VatRateService : IVatRateService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalVatRate = await _context.VatRates
-                .AsNoTracking()
-                .Where(v => v.Id == id && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalVatRate == null) return false;
-
             var vatRate = await _context.VatRates
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vatRate == null) return false;
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(vatRate).CurrentValues.Clone();
+            var originalVatRate = (VatRate)originalValues.ToObject();
 
             vatRate.IsDeleted = true;
             vatRate.ModifiedAt = DateTime.UtcNow;

@@ -328,22 +328,21 @@ public class AuthenticationService : IAuthenticationService
         try
         {
             var user = await _dbContext.Users
-                .Include(u => u.UserRoles)
+                .Include(u => u.UserRoles.Where(ur => ur.IsCurrentlyValid))
                     .ThenInclude(ur => ur.Role)
                         .ThenInclude(r => r.RolePermissions)
                             .ThenInclude(rp => rp.Permission)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, cancellationToken);
 
             if (user == null)
                 return null;
 
             var roles = user.UserRoles
-                .Where(ur => ur.IsCurrentlyValid)
                 .Select(ur => ur.Role.Name)
                 .ToList();
 
             var permissions = user.UserRoles
-                .Where(ur => ur.IsCurrentlyValid)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => $"{rp.Permission.Category}.{rp.Permission.Resource}.{rp.Permission.Action}")
                 .Distinct()
@@ -408,11 +407,12 @@ public class AuthenticationService : IAuthenticationService
         {
             // Load user with roles and permissions
             var user = await _dbContext.Users
-                .Include(u => u.UserRoles)
+                .Include(u => u.UserRoles.Where(ur => ur.IsCurrentlyValid))
                     .ThenInclude(ur => ur.Role)
                         .ThenInclude(r => r.RolePermissions)
                             .ThenInclude(rp => rp.Permission)
                 .Include(u => u.Tenant)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, cancellationToken);
 
             if (user == null || user.Tenant == null || !user.Tenant.IsActive)
@@ -430,12 +430,10 @@ public class AuthenticationService : IAuthenticationService
 
             // Get roles and permissions
             var roles = user.UserRoles
-                .Where(ur => ur.IsCurrentlyValid)
                 .Select(ur => ur.Role.Name)
                 .ToList();
 
             var permissions = user.UserRoles
-                .Where(ur => ur.IsCurrentlyValid)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => $"{rp.Permission.Category}.{rp.Permission.Resource}.{rp.Permission.Action}")
                 .Distinct()

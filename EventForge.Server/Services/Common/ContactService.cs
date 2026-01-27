@@ -152,18 +152,15 @@ public class ContactService : IContactService
             ArgumentNullException.ThrowIfNull(updateContactDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalContact = await _context.Contacts
-                .AsNoTracking()
-                .Where(c => c.Id == id && !c.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalContact == null) return null;
-
             var contact = await _context.Contacts
                 .Where(c => c.Id == id && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (contact == null) return null;
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(contact).CurrentValues.Clone();
+            var originalContact = (Contact)originalValues.ToObject();
 
             contact.ContactType = updateContactDto.ContactType.ToEntity();
             contact.Value = updateContactDto.Value;
@@ -192,18 +189,15 @@ public class ContactService : IContactService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalContact = await _context.Contacts
-                .AsNoTracking()
-                .Where(c => c.Id == id && !c.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalContact == null) return false;
-
             var contact = await _context.Contacts
                 .Where(c => c.Id == id && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (contact == null) return false;
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(contact).CurrentValues.Clone();
+            var originalContact = (Contact)originalValues.ToObject();
 
             contact.IsDeleted = true;
             contact.DeletedAt = DateTime.UtcNow;

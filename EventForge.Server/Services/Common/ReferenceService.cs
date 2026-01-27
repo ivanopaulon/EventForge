@@ -162,16 +162,6 @@ public class ReferenceService : IReferenceService
             ArgumentNullException.ThrowIfNull(updateReferenceDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalEntity = await _context.References
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-
-            if (originalEntity == null)
-            {
-                _logger.LogWarning("Reference with ID {ReferenceId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
             var entity = await _context.References
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
@@ -180,6 +170,10 @@ public class ReferenceService : IReferenceService
                 _logger.LogWarning("Reference with ID {ReferenceId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(entity).CurrentValues.Clone();
+            var originalEntity = (Reference)originalValues.ToObject();
 
             ReferenceMapper.UpdateEntity(entity, updateReferenceDto);
             entity.ModifiedAt = DateTime.UtcNow;
@@ -207,16 +201,6 @@ public class ReferenceService : IReferenceService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalEntity = await _context.References
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-
-            if (originalEntity == null)
-            {
-                _logger.LogWarning("Reference with ID {ReferenceId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
             var entity = await _context.References
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
@@ -225,6 +209,10 @@ public class ReferenceService : IReferenceService
                 _logger.LogWarning("Reference with ID {ReferenceId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(entity).CurrentValues.Clone();
+            var originalEntity = (Reference)originalValues.ToObject();
 
             entity.IsDeleted = true;
             entity.ModifiedAt = DateTime.UtcNow;

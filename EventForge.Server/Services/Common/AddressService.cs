@@ -154,18 +154,15 @@ public class AddressService : IAddressService
             ArgumentNullException.ThrowIfNull(updateAddressDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalAddress = await _context.Addresses
-                .AsNoTracking()
-                .Where(a => a.Id == id && !a.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalAddress == null) return null;
-
             var address = await _context.Addresses
                 .Where(a => a.Id == id && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (address == null) return null;
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(address).CurrentValues.Clone();
+            var originalAddress = (Address)originalValues.ToObject();
 
             address.AddressType = updateAddressDto.AddressType.ToEntity();
             address.Street = updateAddressDto.Street;
@@ -198,18 +195,15 @@ public class AddressService : IAddressService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalAddress = await _context.Addresses
-                .AsNoTracking()
-                .Where(a => a.Id == id && !a.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalAddress == null) return false;
-
             var address = await _context.Addresses
                 .Where(a => a.Id == id && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (address == null) return false;
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(address).CurrentValues.Clone();
+            var originalAddress = (Address)originalValues.ToObject();
 
             address.IsDeleted = true;
             address.DeletedAt = DateTime.UtcNow;
