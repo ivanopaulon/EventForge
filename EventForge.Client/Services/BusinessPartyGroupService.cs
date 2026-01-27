@@ -1,5 +1,5 @@
-using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.Business;
 
 namespace EventForge.Client.Services;
 
@@ -38,7 +38,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 100, BusinessPartyGroupType? groupType = null)
+    public async Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 20, BusinessPartyGroupType? groupType = null)
     {
         try
         {
@@ -85,12 +85,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto)
+    public async Task<BusinessPartyGroupDto?> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto)
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}/{id}", updateDto);
-            return result ?? throw new InvalidOperationException("Failed to update business party group");
+            return await _httpClientService.PutAsync<UpdateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
