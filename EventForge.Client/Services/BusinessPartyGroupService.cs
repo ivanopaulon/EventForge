@@ -51,11 +51,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto, string currentUser)
+    public async Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto)
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}?currentUser={currentUser}", createDto);
+            var result = await _httpClientService.PostAsync<CreateBusinessPartyGroupDto, BusinessPartyGroupDto>(BaseUrl, createDto);
             return result ?? throw new InvalidOperationException("Failed to create business party group");
         }
         catch (Exception ex)
@@ -65,11 +65,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<BusinessPartyGroupDto?> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto, string currentUser)
+    public async Task<BusinessPartyGroupDto?> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto)
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}/{id}?currentUser={currentUser}", updateDto);
+            return await _httpClientService.PutAsync<UpdateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
@@ -78,11 +78,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<bool> DeleteGroupAsync(Guid id, string currentUser)
+    public async Task<bool> DeleteGroupAsync(Guid id)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}?currentUser={currentUser}");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -111,11 +111,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto addDto, string currentUser)
+    public async Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto addDto)
     {
         try
         {
-            var result = await _httpClientService.PostAsync<AddBusinessPartyToGroupDto, BusinessPartyGroupMemberDto>($"{BaseUrl}/{groupId}/members?currentUser={currentUser}", addDto);
+            var result = await _httpClientService.PostAsync<AddBusinessPartyToGroupDto, BusinessPartyGroupMemberDto>($"{BaseUrl}/{groupId}/members", addDto);
             return result ?? throw new InvalidOperationException("Failed to add member to business party group");
         }
         catch (Exception ex)
@@ -125,11 +125,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<bool> RemoveMemberAsync(Guid groupId, Guid memberId, string currentUser)
+    public async Task<bool> RemoveMemberAsync(Guid groupId, Guid businessPartyId)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{groupId}/members/{memberId}?currentUser={currentUser}");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{groupId}/members/{businessPartyId}");
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -138,16 +138,16 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing member {MemberId} from business party group {GroupId}", memberId, groupId);
+            _logger.LogError(ex, "Error removing business party {BusinessPartyId} from group {GroupId}", businessPartyId, groupId);
             throw;
         }
     }
 
-    public async Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto, string currentUser)
+    public async Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto)
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupMemberDto, BusinessPartyGroupMemberDto>($"{BaseUrl}/members/{membershipId}?currentUser={currentUser}", updateDto);
+            var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupMemberDto, BusinessPartyGroupMemberDto>($"{BaseUrl}/members/{membershipId}", updateDto);
             return result ?? throw new InvalidOperationException("Failed to update membership");
         }
         catch (Exception ex)

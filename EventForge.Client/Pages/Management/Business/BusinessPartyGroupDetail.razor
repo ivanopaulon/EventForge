@@ -9,7 +9,6 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyGroupDetail> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
@@ -299,7 +298,7 @@
                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                                        Color="Color.Error" 
                                                        Size="Size.Small"
-                                                       OnClick="@(() => RemoveMember(context.Id))"
+                                                       OnClick="@(() => RemoveMember(context.BusinessPartyId))"
                                                        title="Rimuovi" />
                                     </MudTd>
                                 </RowTemplate>
@@ -505,7 +504,7 @@
                     ValidTo = _group.ValidTo
                 };
 
-                var created = await GroupService.CreateGroupAsync(createDto, "current-user");
+                var created = await GroupService.CreateGroupAsync(createDto);
                 Snackbar.Add("Gruppo creato con successo", Severity.Success);
                 
                 // Navigate to edit page
@@ -527,7 +526,13 @@
                     ValidTo = _group.ValidTo
                 };
 
-                await GroupService.UpdateGroupAsync(GroupId.Value, updateDto, "current-user");
+                var updated = await GroupService.UpdateGroupAsync(GroupId.Value, updateDto);
+                if (updated == null)
+                {
+                    Snackbar.Add("Gruppo non trovato o non più disponibile", Severity.Warning);
+                    return;
+                }
+                
                 Snackbar.Add("Gruppo aggiornato con successo", Severity.Success);
                 await LoadGroupAsync(); // Refresh and reset snapshot
             }
@@ -581,7 +586,11 @@
         if (result == true)
         {
             await SaveGroupAsync();
-            NavigationManager.NavigateTo(target);
+            // Navigate away only if there are no more unsaved changes after saving
+            if (!HasUnsavedChanges())
+            {
+                NavigationManager.NavigateTo(target);
+            }
         }
         else if (result == false)
         {
@@ -654,7 +663,7 @@
         await Task.CompletedTask;
     }
 
-    private async Task RemoveMember(Guid memberId)
+    private async Task RemoveMember(Guid businessPartyId)
     {
         try
         {
@@ -666,14 +675,20 @@
 
             if (confirm != true) return;
 
-            await GroupService.RemoveMemberAsync(_group!.Id, memberId, "current-user");
-            Snackbar.Add("Membro rimosso con successo", Severity.Success);
-
-            await LoadMembersAsync();
+            var removed = await GroupService.RemoveMemberAsync(_group!.Id, businessPartyId);
+            if (removed)
+            {
+                Snackbar.Add("Membro rimosso con successo", Severity.Success);
+                await LoadMembersAsync();
+            }
+            else
+            {
+                Snackbar.Add("Impossibile rimuovere il membro: membro non trovato o già rimosso", Severity.Warning);
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to remove member {MemberId}", memberId);
+            Logger.LogError(ex, "Failed to remove business party {BusinessPartyId}", businessPartyId);
             Snackbar.Add("Errore durante la rimozione del membro", Severity.Error);
         }
     }

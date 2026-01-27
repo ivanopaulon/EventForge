@@ -28,26 +28,23 @@ public interface IBusinessPartyGroupService
     /// Creates a new business party group.
     /// </summary>
     /// <param name="createDto">Group creation data</param>
-    /// <param name="currentUser">Current user identifier</param>
     /// <returns>Created group DTO</returns>
-    Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto, string currentUser);
+    Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto);
 
     /// <summary>
     /// Updates an existing business party group.
     /// </summary>
     /// <param name="id">Group ID</param>
     /// <param name="updateDto">Group update data</param>
-    /// <param name="currentUser">Current user identifier</param>
     /// <returns>Updated group DTO or null if not found</returns>
-    Task<BusinessPartyGroupDto?> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto, string currentUser);
+    Task<BusinessPartyGroupDto?> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto);
 
     /// <summary>
     /// Deletes a business party group.
     /// </summary>
     /// <param name="id">Group ID</param>
-    /// <param name="currentUser">Current user identifier</param>
     /// <returns>True if deleted, false if not found</returns>
-    Task<bool> DeleteGroupAsync(Guid id, string currentUser);
+    Task<bool> DeleteGroupAsync(Guid id);
 
     /// <summary>
     /// Gets members of a business party group with pagination.
@@ -63,25 +60,22 @@ public interface IBusinessPartyGroupService
     /// </summary>
     /// <param name="groupId">Group ID</param>
     /// <param name="addDto">Member addition data</param>
-    /// <param name="currentUser">Current user identifier</param>
     /// <returns>Created member DTO</returns>
-    Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto addDto, string currentUser);
+    Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto addDto);
 
     /// <summary>
     /// Removes a member from a business party group.
     /// </summary>
     /// <param name="groupId">Group ID</param>
-    /// <param name="memberId">Member ID</param>
-    /// <param name="currentUser">Current user identifier</param>
+    /// <param name="businessPartyId">Business Party ID to remove</param>
     /// <returns>True if removed, false if not found</returns>
-    Task<bool> RemoveMemberAsync(Guid groupId, Guid memberId, string currentUser);
+    Task<bool> RemoveMemberAsync(Guid groupId, Guid businessPartyId);
 
     /// <summary>
     /// Updates a group membership.
     /// </summary>
     /// <param name="membershipId">Membership ID</param>
     /// <param name="updateDto">Membership update data</param>
-    /// <param name="currentUser">Current user identifier</param>
     /// <returns>Updated member DTO</returns>
-    Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto, string currentUser);
+    Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto);
 }
