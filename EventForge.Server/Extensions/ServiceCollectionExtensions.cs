@@ -52,6 +52,7 @@ public static class ServiceCollectionExtensions
         
         // Determine if console logging should be enabled (only in Development)
         var isConsoleLoggingEnabled = builder.Environment.IsDevelopment();
+        var consoleStatus = isConsoleLoggingEnabled ? "attivo" : "disabilitato";
 
         // Configure column options for enriched properties
         var columnOptions = new ColumnOptions();
@@ -118,7 +119,6 @@ public static class ServiceCollectionExtensions
                     columnOptions: columnOptions);
 
                 Log.Logger = loggerConfiguration.CreateLogger();
-                var consoleStatus = isConsoleLoggingEnabled ? "attivo" : "disabilitato";
                 Log.Information("Serilog configurato per SQL Server con enrichment e file logging. Console logging: {ConsoleStatus}.", consoleStatus);
             }
             catch (Exception ex)
@@ -126,14 +126,12 @@ public static class ServiceCollectionExtensions
                 // If SQL Server connection fails, fall back to file logging only (console in Development)
                 // Don't add SQL Server sink to configuration
                 Log.Logger = loggerConfiguration.CreateLogger();
-                var consoleStatus = isConsoleLoggingEnabled ? "attivo" : "disabilitato";
                 Log.Warning(ex, "Impossibile connettersi al database per il logging. SQL Server logging disabilitato. Utilizzo file logging. Console logging: {ConsoleStatus}.", consoleStatus);
             }
         }
         else
         {
             Log.Logger = loggerConfiguration.CreateLogger();
-            var consoleStatus = isConsoleLoggingEnabled ? "attivo" : "disabilitato";
             Log.Warning("LogDb connection string non trovato. SQL Server logging disabilitato. Utilizzo file logging. Console logging: {ConsoleStatus}.", consoleStatus);
         }
 
