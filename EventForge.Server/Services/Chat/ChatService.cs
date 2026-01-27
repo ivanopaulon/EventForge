@@ -473,21 +473,130 @@ public class ChatService : IChatService
             "Retrieving messages for chat {ChatId} from {FromDate} to {ToDate} - Page {Page}",
             searchDto.ChatId, searchDto.FromDate, searchDto.ToDate, searchDto.PageNumber);
 
-        // TODO: Implement database query with filtering
-        await Task.Delay(15, cancellationToken); // Simulate async operation
+        // 1. Build query from ChatMessages DbSet
+        var query = _context.ChatMessages
+            .Where(m => !m.IsDeleted || searchDto.IncludeDeleted)
+            .AsQueryable();
 
+        // 2. Apply filters from searchDto
+        if (searchDto.ChatId.HasValue)
+        {
+            query = query.Where(m => m.ChatThreadId == searchDto.ChatId.Value);
+        }
+
+        if (searchDto.TenantId.HasValue)
+        {
+            query = query.Where(m => m.TenantId == searchDto.TenantId.Value);
+        }
+
+        if (searchDto.SenderId.HasValue)
+        {
+            query = query.Where(m => m.SenderId == searchDto.SenderId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
+        {
+            query = query.Where(m => m.Content != null && m.Content.Contains(searchDto.SearchTerm));
+        }
+
+        if (searchDto.FromDate.HasValue)
+        {
+            query = query.Where(m => m.SentAt >= searchDto.FromDate.Value);
+        }
+
+        if (searchDto.ToDate.HasValue)
+        {
+            query = query.Where(m => m.SentAt <= searchDto.ToDate.Value);
+        }
+
+        if (searchDto.HasMediaType.HasValue)
+        {
+            query = query.Where(m => m.Attachments.Any(a => a.MediaType == searchDto.HasMediaType.Value));
+        }
+
+        // 3. Include related entities
+        query = query
+            .Include(m => m.Attachments)
+            .Include(m => m.ReadReceipts)
+            .Include(m => m.ReplyToMessage);
+
+        // 4. Get total count for pagination
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // 5. Apply sorting
+        query = searchDto.SortOrder.ToLowerInvariant() == "asc"
+            ? query.OrderBy(m => m.SentAt)
+            : query.OrderByDescending(m => m.SentAt);
+
+        // 6. Apply pagination
+        query = query
+            .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
+            .Take(searchDto.PageSize);
+
+        // 7. Execute query and map to DTOs
+        var messages = await query.ToListAsync(cancellationToken);
+
+        var messageDtos = messages.Select(m => new ChatMessageDto
+        {
+            Id = m.Id,
+            ChatId = m.ChatThreadId,
+            SenderId = m.SenderId,
+            SenderName = $"User_{m.SenderId:N}", // TODO: Resolve from user service
+            Content = m.Content,
+            ReplyToMessageId = m.ReplyToMessageId,
+            ReplyToMessage = m.ReplyToMessage != null ? new ChatMessageDto
+            {
+                Id = m.ReplyToMessage.Id,
+                ChatId = m.ReplyToMessage.ChatThreadId,
+                SenderId = m.ReplyToMessage.SenderId,
+                Content = m.ReplyToMessage.Content,
+                SentAt = m.ReplyToMessage.SentAt
+            } : null,
+            Attachments = m.Attachments.Select(a => new MessageAttachmentDto
+            {
+                Id = a.Id,
+                FileName = a.FileName,
+                OriginalFileName = a.OriginalFileName,
+                FileSize = a.FileSize,
+                ContentType = a.ContentType,
+                MediaType = a.MediaType,
+                FileUrl = a.FileUrl,
+                ThumbnailUrl = a.ThumbnailUrl,
+                UploadedAt = a.UploadedAt,
+                UploadedBy = a.UploadedBy
+            }).ToList(),
+            ReadReceipts = m.ReadReceipts.Select(r => new MessageReadReceiptDto
+            {
+                UserId = r.UserId,
+                Username = $"User_{r.UserId:N}", // TODO: Resolve from user service
+                ReadAt = r.ReadAt
+            }).ToList(),
+            Status = m.Status,
+            SentAt = m.SentAt,
+            DeliveredAt = m.DeliveredAt,
+            ReadAt = m.ReadAt,
+            EditedAt = m.EditedAt,
+            DeletedAt = m.DeletedAt,
+            IsEdited = m.IsEdited,
+            IsDeleted = m.IsDeleted,
+            Locale = m.Locale,
+            Metadata = string.IsNullOrEmpty(m.MetadataJson) 
+                ? new Dictionary<string, object>() 
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(m.MetadataJson) ?? new Dictionary<string, object>()
+        }).ToList();
+
+        // 8. Return PagedResult
         return new PagedResult<ChatMessageDto>
         {
-            Items = new List<ChatMessageDto>(),
+            Items = messageDtos,
             Page = searchDto.PageNumber,
             PageSize = searchDto.PageSize,
-            TotalCount = 0
+            TotalCount = totalCount
         };
     }
 
     /// <summary>
     /// Gets a specific message by ID with access validation.
-    /// STUB IMPLEMENTATION - Returns null (not found).
     /// </summary>
     public async Task<ChatMessageDto?> GetMessageByIdAsync(
         Guid messageId,
@@ -499,26 +608,169 @@ public class ChatService : IChatService
             "Retrieving message {MessageId} for user {UserId} in tenant {TenantId}",
             messageId, userId, tenantId);
 
-        // TODO: Implement database query with access validation
-        await Task.Delay(10, cancellationToken); // Simulate async operation
+        // 1. Query ChatMessages by messageId with related entities
+        var message = await _context.ChatMessages
+            .Include(m => m.ChatThread)
+            .Include(m => m.Attachments)
+            .Include(m => m.ReadReceipts)
+            .Include(m => m.ReplyToMessage)
+            .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
 
-        return null; // Not found in stub implementation
+        if (message == null)
+        {
+            _logger.LogWarning("Message {MessageId} not found", messageId);
+            return null;
+        }
+
+        // 2. Validate tenant access
+        if (tenantId.HasValue && message.TenantId != tenantId.Value)
+        {
+            _logger.LogWarning(
+                "Access denied: Message {MessageId} belongs to tenant {MessageTenantId}, but requested by tenant {RequestTenantId}",
+                messageId, message.TenantId, tenantId.Value);
+            return null;
+        }
+
+        // 3. Validate user is member of chat
+        var isMember = await _context.ChatMembers
+            .AnyAsync(cm => cm.ChatThreadId == message.ChatThreadId && cm.UserId == userId, cancellationToken);
+
+        if (!isMember)
+        {
+            _logger.LogWarning(
+                "Access denied: User {UserId} is not a member of chat {ChatId}",
+                userId, message.ChatThreadId);
+            return null;
+        }
+
+        // 4. Check if message is deleted
+        if (message.IsDeleted)
+        {
+            _logger.LogWarning("Message {MessageId} is deleted", messageId);
+            return null;
+        }
+
+        // 5. Map to ChatMessageDto
+        var messageDto = new ChatMessageDto
+        {
+            Id = message.Id,
+            ChatId = message.ChatThreadId,
+            SenderId = message.SenderId,
+            SenderName = $"User_{message.SenderId:N}", // TODO: Resolve from user service
+            Content = message.Content,
+            ReplyToMessageId = message.ReplyToMessageId,
+            ReplyToMessage = message.ReplyToMessage != null ? new ChatMessageDto
+            {
+                Id = message.ReplyToMessage.Id,
+                ChatId = message.ReplyToMessage.ChatThreadId,
+                SenderId = message.ReplyToMessage.SenderId,
+                Content = message.ReplyToMessage.Content,
+                SentAt = message.ReplyToMessage.SentAt
+            } : null,
+            Attachments = message.Attachments.Select(a => new MessageAttachmentDto
+            {
+                Id = a.Id,
+                FileName = a.FileName,
+                OriginalFileName = a.OriginalFileName,
+                FileSize = a.FileSize,
+                ContentType = a.ContentType,
+                MediaType = a.MediaType,
+                FileUrl = a.FileUrl,
+                ThumbnailUrl = a.ThumbnailUrl,
+                UploadedAt = a.UploadedAt,
+                UploadedBy = a.UploadedBy
+            }).ToList(),
+            ReadReceipts = message.ReadReceipts.Select(r => new MessageReadReceiptDto
+            {
+                UserId = r.UserId,
+                Username = $"User_{r.UserId:N}", // TODO: Resolve from user service
+                ReadAt = r.ReadAt
+            }).ToList(),
+            Status = message.Status,
+            SentAt = message.SentAt,
+            DeliveredAt = message.DeliveredAt,
+            ReadAt = message.ReadAt,
+            EditedAt = message.EditedAt,
+            DeletedAt = message.DeletedAt,
+            IsEdited = message.IsEdited,
+            IsDeleted = message.IsDeleted,
+            Locale = message.Locale,
+            Metadata = string.IsNullOrEmpty(message.MetadataJson)
+                ? new Dictionary<string, object>()
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>()
+        };
+
+        return messageDto;
     }
 
     /// <summary>
     /// Edits an existing message with validation and change tracking.
-    /// STUB IMPLEMENTATION - Logs edit and returns mock response.
     /// </summary>
     public async Task<ChatMessageDto> EditMessageAsync(
         EditMessageDto editDto,
         CancellationToken cancellationToken = default)
     {
+        // 1. Find message by editDto.MessageId
+        var message = await _context.ChatMessages
+            .Include(m => m.Attachments)
+            .Include(m => m.ReadReceipts)
+            .Include(m => m.ReplyToMessage)
+            .FirstOrDefaultAsync(m => m.Id == editDto.MessageId, cancellationToken);
+
+        if (message == null)
+        {
+            throw new InvalidOperationException($"Message {editDto.MessageId} not found");
+        }
+
+        // 2. Validate user is sender
+        if (message.SenderId != editDto.UserId)
+        {
+            throw new UnauthorizedAccessException($"User {editDto.UserId} is not the sender of message {editDto.MessageId}");
+        }
+
+        // 3. Validate message is not deleted
+        if (message.IsDeleted)
+        {
+            throw new InvalidOperationException($"Cannot edit deleted message {editDto.MessageId}");
+        }
+
+        // 4. Store original content in metadata (if first edit)
+        var metadata = string.IsNullOrEmpty(message.MetadataJson)
+            ? new Dictionary<string, object>()
+            : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>();
+
+        var oldContent = message.Content ?? string.Empty;
+
+        if (!message.IsEdited && !metadata.ContainsKey("OriginalContent"))
+        {
+            metadata["OriginalContent"] = oldContent;
+        }
+
+        // 5. Store edit reason in metadata
+        if (!string.IsNullOrEmpty(editDto.EditReason))
+        {
+            metadata["EditReason"] = editDto.EditReason;
+        }
+        metadata["EditedBy"] = editDto.UserId.ToString();
+        metadata["LastEditedAt"] = DateTime.UtcNow.ToString("O");
+
+        // 6. Update message fields
+        message.Content = editDto.Content;
+        message.IsEdited = true;
+        message.EditedAt = DateTime.UtcNow;
+        message.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+        message.ModifiedAt = DateTime.UtcNow;
+
+        // 7. Save to database
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // 8. Log audit trail with old and new content
         _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatMessage",
             entityId: editDto.MessageId,
             propertyName: "Content",
             operationType: "Update",
-            oldValue: "Previous content",
+            oldValue: oldContent,
             newValue: editDto.Content,
             changedBy: editDto.UserId.ToString(),
             entityDisplayName: $"Message Edit: {editDto.MessageId}",
@@ -528,24 +780,64 @@ public class ChatService : IChatService
             "User {UserId} edited message {MessageId} with reason: {Reason}",
             editDto.UserId, editDto.MessageId, editDto.EditReason ?? "No reason provided");
 
-        return new ChatMessageDto
+        // 9. Map to DTO
+        var mappedDto = new ChatMessageDto
         {
-            Id = editDto.MessageId,
-            Content = editDto.Content,
-            IsEdited = true,
-            EditedAt = DateTime.UtcNow,
-            Metadata = new Dictionary<string, object>
+            Id = message.Id,
+            ChatId = message.ChatThreadId,
+            SenderId = message.SenderId,
+            SenderName = $"User_{message.SenderId:N}", // TODO: Resolve from user service
+            Content = message.Content,
+            ReplyToMessageId = message.ReplyToMessageId,
+            ReplyToMessage = message.ReplyToMessage != null ? new ChatMessageDto
             {
-                ["EditedBy"] = editDto.UserId,
-                ["EditReason"] = editDto.EditReason ?? "No reason provided",
-                ["OriginalContent"] = "Previous content" // TODO: Store actual original content
-            }
+                Id = message.ReplyToMessage.Id,
+                ChatId = message.ReplyToMessage.ChatThreadId,
+                SenderId = message.ReplyToMessage.SenderId,
+                Content = message.ReplyToMessage.Content,
+                SentAt = message.ReplyToMessage.SentAt
+            } : null,
+            Attachments = message.Attachments.Select(a => new MessageAttachmentDto
+            {
+                Id = a.Id,
+                FileName = a.FileName,
+                OriginalFileName = a.OriginalFileName,
+                FileSize = a.FileSize,
+                ContentType = a.ContentType,
+                MediaType = a.MediaType,
+                FileUrl = a.FileUrl,
+                ThumbnailUrl = a.ThumbnailUrl,
+                UploadedAt = a.UploadedAt,
+                UploadedBy = a.UploadedBy
+            }).ToList(),
+            ReadReceipts = message.ReadReceipts.Select(r => new MessageReadReceiptDto
+            {
+                UserId = r.UserId,
+                Username = $"User_{r.UserId:N}", // TODO: Resolve from user service
+                ReadAt = r.ReadAt
+            }).ToList(),
+            Status = message.Status,
+            SentAt = message.SentAt,
+            DeliveredAt = message.DeliveredAt,
+            ReadAt = message.ReadAt,
+            EditedAt = message.EditedAt,
+            DeletedAt = message.DeletedAt,
+            IsEdited = message.IsEdited,
+            IsDeleted = message.IsDeleted,
+            Locale = message.Locale,
+            Metadata = metadata
         };
+
+        // 10. Send SignalR notification to chat members
+        await _hubContext.Clients.Group($"chat_{message.ChatThreadId}")
+            .SendAsync("MessageEdited", mappedDto, cancellationToken);
+
+        // 11. Return updated ChatMessageDto
+        return mappedDto;
     }
 
     /// <summary>
     /// Deletes a message with soft/hard delete options.
-    /// STUB IMPLEMENTATION - Logs deletion and returns success result.
     /// </summary>
     public async Task<MessageOperationResultDto> DeleteMessageAsync(
         Guid messageId,
@@ -554,12 +846,71 @@ public class ChatService : IChatService
         bool softDelete = true,
         CancellationToken cancellationToken = default)
     {
+        // 1. Find message by messageId
+        var message = await _context.ChatMessages
+            .Include(m => m.ChatThread)
+                .ThenInclude(ct => ct.Members)
+            .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
+
+        if (message == null)
+        {
+            throw new InvalidOperationException($"Message {messageId} not found");
+        }
+
+        // 2. Validate user is sender OR chat owner/admin
+        var isSender = message.SenderId == userId;
+        var isOwnerOrAdmin = await _context.ChatMembers
+            .AnyAsync(cm => 
+                cm.ChatThreadId == message.ChatThreadId && 
+                cm.UserId == userId && 
+                (cm.Role == ChatMemberRole.Owner || cm.Role == ChatMemberRole.Admin),
+                cancellationToken);
+
+        if (!isSender && !isOwnerOrAdmin)
+        {
+            throw new UnauthorizedAccessException($"User {userId} does not have permission to delete message {messageId}");
+        }
+
+        var oldStatus = message.IsDeleted ? "Deleted" : "Active";
+
+        if (softDelete)
+        {
+            // 3. Soft delete: Set IsDeleted = true
+            message.IsDeleted = true;
+            message.DeletedAt = DateTime.UtcNow;
+            message.Status = MessageStatus.Deleted;
+            message.ModifiedAt = DateTime.UtcNow;
+
+            // Store delete reason in metadata
+            var metadata = string.IsNullOrEmpty(message.MetadataJson)
+                ? new Dictionary<string, object>()
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>();
+
+            if (!string.IsNullOrEmpty(reason))
+            {
+                metadata["DeleteReason"] = reason;
+            }
+            metadata["DeletedBy"] = userId.ToString();
+            metadata["DeletedAt"] = DateTime.UtcNow.ToString("O");
+
+            message.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+        }
+        else
+        {
+            // 4. Hard delete: Remove from database (only SuperAdmin should do this - validation should be done at controller level)
+            _context.ChatMessages.Remove(message);
+        }
+
+        // 5. Save changes
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // 6. Log audit trail
         _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatMessage",
             entityId: messageId,
             propertyName: softDelete ? "SoftDelete" : "HardDelete",
             operationType: "Delete",
-            oldValue: "Active",
+            oldValue: oldStatus,
             newValue: softDelete ? "Deleted" : "Permanently Deleted",
             changedBy: userId.ToString(),
             entityDisplayName: $"Message Deletion: {messageId}",
@@ -569,11 +920,20 @@ public class ChatService : IChatService
             "User {UserId} {DeleteType} message {MessageId} with reason: {Reason}",
             userId, softDelete ? "soft deleted" : "hard deleted", messageId, reason ?? "No reason provided");
 
+        // 7. Send SignalR notification
+        if (softDelete)
+        {
+            await _hubContext.Clients.Group($"chat_{message.ChatThreadId}")
+                .SendAsync("MessageDeleted", new { MessageId = messageId, DeletedAt = DateTime.UtcNow }, cancellationToken);
+        }
+
+        // 8. Return MessageOperationResultDto with success status
         return new MessageOperationResultDto
         {
             MessageId = messageId,
             Success = true,
-            NewStatus = MessageStatus.Deleted
+            NewStatus = MessageStatus.Deleted,
+            ProcessedAt = DateTime.UtcNow
         };
     }
 
@@ -1369,7 +1729,6 @@ public class ChatService : IChatService
 
     /// <summary>
     /// Localizes chat content based on user preferences.
-    /// STUB IMPLEMENTATION - Returns message unchanged.
     /// </summary>
     public async Task<ChatMessageDto> LocalizeChatMessageAsync(
         ChatMessageDto message,
@@ -1381,30 +1740,71 @@ public class ChatService : IChatService
             "Localizing message {MessageId} to locale {Locale} for user {UserId}",
             message.Id, targetLocale, userId);
 
-        // TODO: Implement localization logic
+        // 1. Check if message.Locale == targetLocale (already localized)
+        if (message.Locale == targetLocale)
+        {
+            _logger.LogDebug("Message {MessageId} is already in locale {Locale}", message.Id, targetLocale);
+            return message;
+        }
+
+        // 2. Update message.Locale = targetLocale
+        message.Locale = targetLocale;
+
+        // 3. Store localized content in metadata
+        // For Phase 1: Simple implementation - just update Locale field
+        // Future: Integrate with translation service for actual content translation
+        if (message.Metadata == null)
+        {
+            message.Metadata = new Dictionary<string, object>();
+        }
+
+        message.Metadata["LocalizedTo"] = targetLocale;
+        message.Metadata["LocalizedAt"] = DateTime.UtcNow.ToString("O");
+        if (userId.HasValue)
+        {
+            message.Metadata["LocalizedBy"] = userId.Value.ToString();
+        }
+
         await Task.Delay(10, cancellationToken);
 
-        // Return message with updated locale metadata
-        message.Locale = targetLocale;
+        // 4. Return localized ChatMessageDto
         return message;
     }
 
     /// <summary>
     /// Updates chat localization preferences for users.
-    /// STUB IMPLEMENTATION - Logs update and returns preferences.
     /// </summary>
     public async Task<ChatLocalizationPreferencesDto> UpdateChatLocalizationAsync(
         Guid userId,
         ChatLocalizationPreferencesDto preferences,
         CancellationToken cancellationToken = default)
     {
+        // 1. Find user
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User {userId} not found");
+        }
+
+        // 2. Store preferences in User's PreferredLanguage field
+        // For Phase 1: Simple implementation using existing User fields
+        var oldLocale = user.PreferredLanguage;
+        user.PreferredLanguage = preferences.PreferredLocale;
+        user.ModifiedAt = DateTime.UtcNow;
+
+        // 3. Save to database
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // 4. Log audit trail
         _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatLocalizationPreferences",
             entityId: userId,
-            propertyName: "Update",
+            propertyName: "PreferredLocale",
             operationType: "Update",
-            oldValue: "Previous preferences",
-            newValue: $"Locale: {preferences.PreferredLocale}, AutoTranslate: {preferences.AutoTranslate}",
+            oldValue: oldLocale,
+            newValue: preferences.PreferredLocale,
             changedBy: userId.ToString(),
             entityDisplayName: $"Chat Localization: {userId}",
             cancellationToken: cancellationToken);
@@ -1413,6 +1813,8 @@ public class ChatService : IChatService
             "Updated chat localization preferences for user {UserId}: Locale={Locale}, AutoTranslate={AutoTranslate}",
             userId, preferences.PreferredLocale, preferences.AutoTranslate);
 
+        // 5. Return updated preferences
+        preferences.UserId = userId;
         return preferences;
     }
 
