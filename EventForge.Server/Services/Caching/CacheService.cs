@@ -35,30 +35,43 @@ public class CacheService : ICacheService
         _cacheKeys.TryAdd(cacheKey, 0);
 
         // Try get from cache
-        if (_cache.TryGetValue(cacheKey, out T? cachedValue) && cachedValue != null)
+        if (_cache.TryGetValue<T>(cacheKey, out var cachedValue))
         {
             _logger.LogDebug("Cache HIT for key: {CacheKey}", cacheKey);
-            return cachedValue;
+            return cachedValue!;
         }
 
         _logger.LogDebug("Cache MISS for key: {CacheKey}", cacheKey);
 
-        // Cache miss - create new entry
-        var value = await factory();
-
-        var cacheEntryOptions = new MemoryCacheEntryOptions()
-            .SetSize(1)  // Count towards size limit
-            .SetAbsoluteExpiration(absoluteExpiration ?? DefaultAbsoluteExpiration)
-            .SetSlidingExpiration(slidingExpiration ?? DefaultSlidingExpiration)
-            .RegisterPostEvictionCallback((key, value, reason, state) =>
+        // Cache miss - create new entry using GetOrCreateAsync to prevent race conditions
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.SetSize(1);  // Count towards size limit
+            entry.SetAbsoluteExpiration(absoluteExpiration ?? DefaultAbsoluteExpiration);
+            
+            // Only set sliding expiration if absolute expiration is not specified
+            // to avoid confusion about when the entry actually expires
+            if (!absoluteExpiration.HasValue)
             {
-                _logger.LogDebug("Cache entry evicted: {Key}, Reason: {Reason}", key, reason);
-                _cacheKeys.TryRemove(key.ToString()!, out _);
+                entry.SetSlidingExpiration(slidingExpiration ?? DefaultSlidingExpiration);
+            }
+            
+            entry.RegisterPostEvictionCallback((key, value, reason, state) =>
+            {
+                try
+                {
+                    _logger.LogDebug("Cache entry evicted: {Key}, Reason: {Reason}", key, reason);
+                    _cacheKeys.TryRemove(key.ToString()!, out _);
+                }
+                catch (Exception ex)
+                {
+                    // Suppress exceptions in eviction callback to prevent crashes
+                    _logger.LogWarning(ex, "Error in cache eviction callback for key: {Key}", key);
+                }
             });
 
-        _cache.Set(cacheKey, value, cacheEntryOptions);
-        
-        return value;
+            return await factory();
+        }) ?? throw new InvalidOperationException("Factory returned null");
     }
 
     public void Invalidate(string key, Guid tenantId)
@@ -102,6 +115,9 @@ public class CacheService : ICacheService
     private static bool MatchesPattern(string key, string pattern)
     {
         // Simple wildcard matching (* = any characters)
+        // Note: Only supports wildcards at the beginning or end of the pattern
+        // Examples: "*_tenantId" or "prefix_*" 
+        // Does not support: "prefix_*_suffix"
         if (pattern.StartsWith("*"))
         {
             return key.EndsWith(pattern.TrimStart('*'));

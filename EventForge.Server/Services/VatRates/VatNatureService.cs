@@ -56,7 +56,8 @@ public class VatNatureService : IVatNatureService
                 absoluteExpiration: TimeSpan.FromMinutes(30)
             );
 
-            // Paginate in memory (VatNatures are few)
+            // Paginate in memory (VatNatures are typically few - usually < 50 per tenant)
+            // Note: If a tenant has a very large number of VAT natures, consider per-page caching
             var totalCount = allNatures.Count;
             var items = allNatures
                 .Skip((page - 1) * pageSize)

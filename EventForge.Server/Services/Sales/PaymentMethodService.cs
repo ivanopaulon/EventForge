@@ -59,7 +59,8 @@ public class PaymentMethodService : IPaymentMethodService
                 absoluteExpiration: TimeSpan.FromMinutes(15)
             );
 
-            // Paginate in memory (PaymentMethods are few)
+            // Paginate in memory (PaymentMethods are typically few - usually < 20 per tenant)
+            // Note: If a tenant has a very large number of payment methods, consider per-page caching
             var totalCount = allPaymentMethods.Count;
             var items = allPaymentMethods
                 .Skip((page - 1) * pageSize)

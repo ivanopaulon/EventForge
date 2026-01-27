@@ -59,7 +59,8 @@ public class StorageFacilityService : IStorageFacilityService
                 absoluteExpiration: TimeSpan.FromMinutes(5)
             );
 
-            // Paginate in memory
+            // Paginate in memory (StorageFacilities are typically few - usually < 50 per tenant)
+            // Note: If a tenant has a very large number of facilities, consider per-page caching
             var totalCount = allFacilities.Count;
             var items = allFacilities
                 .Skip((page - 1) * pageSize)

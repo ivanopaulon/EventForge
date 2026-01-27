@@ -30,11 +30,12 @@ builder.Services.AddHealthChecks(builder.Configuration);
 // Add API Controllers support
 builder.Services.AddControllers();
 
-// Add Memory Cache for performance optimizations with size limits
+// Configure Memory Cache for performance optimizations with size limits
 builder.Services.AddMemoryCache(options =>
 {
     options.SizeLimit = 1024;  // Maximum 1024 cache entries
-    options.CompactionPercentage = 0.25;  // Compact when 75% full
+    // CompactionPercentage: when cache is full, remove 25% of entries based on priority
+    options.CompactionPercentage = 0.25;
 });
 
 // Register cache service
