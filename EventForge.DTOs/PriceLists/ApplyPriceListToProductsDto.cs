@@ -18,7 +18,7 @@ public class ApplyPriceListToProductsDto
     /// <summary>
     /// Modalità di applicazione
     /// </summary>
-    public PriceListApplicationMode ApplicationMode { get; init; } = PriceListApplicationMode.UpdateExisting;
+    public PriceListToProductApplicationMode ApplicationMode { get; init; } = PriceListToProductApplicationMode.UpdateExisting;
     
     /// <summary>
     /// Aggiorna solo se prezzo listino > DefaultPrice
@@ -47,9 +47,9 @@ public class ApplyPriceListToProductsDto
 }
 
 /// <summary>
-/// Modalità di applicazione prezzi da listino a prodotti
+/// Modalità di applicazione prezzi da listino a prodotti (bulk operation)
 /// </summary>
-public enum PriceListApplicationMode
+public enum PriceListToProductApplicationMode
 {
     /// <summary>
     /// Aggiorna solo prodotti già nel listino
