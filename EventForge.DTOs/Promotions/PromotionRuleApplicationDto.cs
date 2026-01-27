@@ -21,6 +21,11 @@ namespace EventForge.DTOs.Promotions
         public Guid? CustomerId { get; set; }
 
         /// <summary>
+        /// Business Party Group IDs (optional, for group-specific promotions).
+        /// </summary>
+        public List<Guid>? BusinessPartyGroupIds { get; set; }
+
+        /// <summary>
         /// Sales channel (optional, for channel-specific promotions).
         /// </summary>
         public string? SalesChannel { get; set; }

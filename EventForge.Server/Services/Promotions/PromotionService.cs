@@ -563,6 +563,22 @@ public class PromotionService : IPromotionService
     /// </summary>
     private bool IsRuleApplicable(PromotionRule rule, ApplyPromotionRulesDto applyDto)
     {
+        // Check Business Party Groups (support both new and deprecated field)
+        var groupIdsToCheck = rule.BusinessPartyGroupIds ?? rule.CustomerGroupIds;
+        
+        if (groupIdsToCheck != null && groupIdsToCheck.Any())
+        {
+            if (applyDto.BusinessPartyGroupIds == null || !applyDto.BusinessPartyGroupIds.Any())
+            {
+                return false;
+            }
+            
+            if (!groupIdsToCheck.Any(rg => applyDto.BusinessPartyGroupIds.Contains(rg)))
+            {
+                return false;
+            }
+        }
+
         // Check sales channel
         if (rule.SalesChannels != null && rule.SalesChannels.Any() && !string.IsNullOrEmpty(applyDto.SalesChannel))
         {

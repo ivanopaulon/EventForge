@@ -50,6 +50,8 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<BusinessParty> BusinessParties { get; set; }
     public DbSet<BusinessPartyAccounting> BusinessPartyAccountings { get; set; }
     public DbSet<PaymentTerm> PaymentTerms { get; set; }
+    public DbSet<BusinessPartyGroup> BusinessPartyGroups { get; set; }
+    public DbSet<BusinessPartyGroupMember> BusinessPartyGroupMembers { get; set; }
 
     // Document Entities
     public DbSet<DocumentType> DocumentTypes { get; set; }
