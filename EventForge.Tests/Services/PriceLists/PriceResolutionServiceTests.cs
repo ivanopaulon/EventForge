@@ -6,6 +6,8 @@ using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.PriceLists;
 using Microsoft.EntityFrameworkCore;
+using EntityBusinessPartyType = EventForge.Server.Data.Entities.Business.BusinessPartyType;
+using EntityPriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -56,7 +58,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = _businessPartyId,
             Name = "Test Customer",
-            PartyType = BusinessPartyType.Cliente,
+            PartyType = EntityBusinessPartyType.Cliente,
             TenantId = _tenantId,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -104,7 +106,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = priceListId,
             Name = "Forced Price List",
-            Status = PriceListStatus.Active,
+            Status = EntityPriceListStatus.Active,
             Direction = PriceListDirection.Output,
             TenantId = _tenantId,
             IsActive = true,
@@ -150,7 +152,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = priceListId,
             Name = "Document Price List",
-            Status = PriceListStatus.Active,
+            Status = EntityPriceListStatus.Active,
             Direction = PriceListDirection.Output,
             TenantId = _tenantId,
             IsActive = true,
@@ -209,7 +211,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = priceListId,
             Name = "Customer Default Price List",
-            Status = PriceListStatus.Active,
+            Status = EntityPriceListStatus.Active,
             Direction = PriceListDirection.Output,
             TenantId = _tenantId,
             IsActive = true,
@@ -260,7 +262,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = priceListId,
             Name = "Supplier Default Price List",
-            Status = PriceListStatus.Active,
+            Status = EntityPriceListStatus.Active,
             Direction = PriceListDirection.Input,
             TenantId = _tenantId,
             IsActive = true,
@@ -311,7 +313,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = priceListId,
             Name = "General Sales Price List",
-            Status = PriceListStatus.Active,
+            Status = EntityPriceListStatus.Active,
             Direction = PriceListDirection.Output,
             Priority = 1,
             ValidFrom = DateTime.UtcNow.AddDays(-1),
@@ -362,7 +364,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = forcedPriceListId,
             Name = "Forced Price List",
-            Status = PriceListStatus.Active,
+            Status = EntityPriceListStatus.Active,
             Direction = PriceListDirection.Output,
             TenantId = _tenantId,
             IsActive = true,
@@ -389,7 +391,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = partyPriceListId,
             Name = "Party Price List",
-            Status = PriceListStatus.Active,
+            Status = EntityPriceListStatus.Active,
             Direction = PriceListDirection.Output,
             TenantId = _tenantId,
             IsActive = true,
@@ -439,7 +441,7 @@ public class PriceResolutionServiceTests : IDisposable
         {
             Id = priceListId,
             Name = "Empty Price List",
-            Status = PriceListStatus.Active,
+            Status = EntityPriceListStatus.Active,
             Direction = PriceListDirection.Output,
             TenantId = _tenantId,
             IsActive = true,
