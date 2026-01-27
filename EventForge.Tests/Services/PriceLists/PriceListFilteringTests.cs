@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using EntityPriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
+using DtoPriceListStatus = EventForge.DTOs.Common.PriceListStatus;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -90,7 +91,7 @@ public class PriceListFilteringTests : IDisposable
             page: 1,
             pageSize: 10,
             direction: null,
-            status: PriceListStatus.Active);
+            status: DtoPriceListStatus.Active);
 
         // Assert: Should return only Active price lists
         Assert.NotNull(result);
@@ -110,7 +111,7 @@ public class PriceListFilteringTests : IDisposable
             page: 1,
             pageSize: 10,
             direction: PriceListDirection.Output,
-            status: PriceListStatus.Active);
+            status: DtoPriceListStatus.Active);
 
         // Assert: Should return only Active Output price lists
         Assert.NotNull(result);
@@ -182,7 +183,7 @@ public class PriceListFilteringTests : IDisposable
             page: 1,
             pageSize: 10,
             direction: PriceListDirection.Input,
-            status: PriceListStatus.Suspended);
+            status: DtoPriceListStatus.Suspended);
 
         // Assert: TotalCount should be 1, not 6
         Assert.NotNull(result);
