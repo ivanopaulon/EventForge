@@ -20,14 +20,41 @@ public class PriceListService : IPriceListService
 
     public async Task<PagedResult<PriceListDto>> GetPagedAsync(int page = 1, int pageSize = 1000, CancellationToken ct = default)
     {
+        return await GetPagedAsync(page, pageSize, null, null, ct);
+    }
+
+    public async Task<PagedResult<PriceListDto>> GetPagedAsync(int page, int pageSize, PriceListDirection? direction = null, PriceListStatus? status = null, CancellationToken ct = default)
+    {
         try
         {
-            var result = await _httpClientService.GetAsync<PagedResult<PriceListDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
-            return result ?? new PagedResult<PriceListDto> { Items = new List<PriceListDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+            var queryParams = new List<string> 
+            { 
+                $"page={page}", 
+                $"pageSize={pageSize}" 
+            };
+            
+            if (direction.HasValue)
+                queryParams.Add($"direction={direction.Value}");
+            
+            if (status.HasValue)
+                queryParams.Add($"status={status.Value}");
+            
+            var queryString = string.Join("&", queryParams);
+            
+            var result = await _httpClientService.GetAsync<PagedResult<PriceListDto>>(
+                $"{BaseUrl}?{queryString}", ct);
+            
+            return result ?? new PagedResult<PriceListDto> 
+            { 
+                Items = new List<PriceListDto>(), 
+                TotalCount = 0, 
+                Page = page, 
+                PageSize = pageSize 
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price lists");
+            _logger.LogError(ex, "Error retrieving price lists with filters");
             throw;
         }
     }
