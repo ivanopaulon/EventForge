@@ -107,9 +107,21 @@
                                              Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudColorPicker @bind-Text="_colorHex" 
-                                            Label="Colore"
-                                            Variant="Variant.Outlined" />
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudColorPicker @bind-Text="_colorHex" 
+                                                Label="Colore"
+                                                Variant="Variant.Outlined"
+                                                Style="flex: 1;" />
+                                @{
+                                    var safeColor = GetSafeColorHex();
+                                }
+                                @if (!string.IsNullOrEmpty(safeColor))
+                                {
+                                    <div style="width: 50px; height: 50px; background: @safeColor; border-radius: 8px; border: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                         title="Anteprima colore: @safeColor">
+                                    </div>
+                                }
+                            </MudStack>
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>
@@ -616,4 +628,30 @@
         BusinessPartyGroupMemberStatus.Revoked => "Revocato",
         _ => "N/D"
     };
+
+    /// <summary>
+    /// Safely validates and returns the color hex code for CSS rendering.
+    /// Prevents CSS injection by validating the format.
+    /// </summary>
+    private string GetSafeColorHex()
+    {
+        if (string.IsNullOrWhiteSpace(_colorHex))
+            return string.Empty;
+
+        // Validate format: must be exactly 7 characters starting with # followed by 6 hex digits
+        if (_colorHex.Length != 7 || _colorHex[0] != '#')
+            return string.Empty;
+
+        // Validate the 6 hex characters
+        for (int i = 1; i < 7; i++)
+        {
+            var c = _colorHex[i];
+            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+            {
+                return string.Empty;
+            }
+        }
+
+        return _colorHex;
+    }
 }
