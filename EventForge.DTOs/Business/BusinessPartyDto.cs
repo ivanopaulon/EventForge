@@ -133,5 +133,11 @@ namespace EventForge.DTOs.Business
         /// Default purchase price list name for this business party.
         /// </summary>
         public string? DefaultPurchasePriceListName { get; set; }
+
+        /// <summary>
+        /// List of groups this business party belongs to (for progressive enhancement).
+        /// Null or empty when groups are not loaded/available.
+        /// </summary>
+        public List<BusinessPartyGroupDto>? Groups { get; set; }
     }
 }

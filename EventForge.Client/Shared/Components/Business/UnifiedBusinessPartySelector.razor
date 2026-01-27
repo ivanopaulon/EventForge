@@ -1,0 +1,328 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+
+@* UnifiedBusinessPartySelector Component - Unified business party search with groups display *@
+<MudStack Spacing="2" Class="@Class" Style="@Style">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <!-- Header with Title and Action Buttons -->
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Small" Class="mr-1" />
+                @Title
+            </MudText>
+            @if (SelectedBusinessParty != null)
+            {
+                <MudStack Row="true" Spacing="1">
+                    @if (ShowEditButton && OnEdit.HasDelegate)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("businessparty.edit", "Modifica Business Party")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="HandleEditClick" />
+                        </MudTooltip>
+                    }
+                    @if (AllowClear)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("common.clear", "Pulisci")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Clear"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="ClearSelection" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            }
+        </MudStack>
+
+        <MudDivider />
+    }
+
+    @if (SelectedBusinessParty == null)
+    {
+        <!-- SEARCH MODE: Autocomplete for business party search -->
+        <MudAutocomplete T="BusinessPartyDto"
+                         @ref="_autocomplete"
+                         Value="SelectedBusinessParty"
+                         ValueChanged="@OnBusinessPartySelectionChangedAsync"
+                         @bind-Text="_searchText"
+                         SearchFunc="@SearchBusinessPartiesAsync"
+                         ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
+                         Variant="Variant.Outlined"
+                         Dense="@Dense"
+                         Margin="Margin.Dense"
+                         MinCharacters="@MinSearchCharacters"
+                         DebounceInterval="@DebounceMs"
+                         ShowProgressIndicator="true"
+                         Clearable="@AllowClear"
+                         Disabled="@Disabled"
+                         Placeholder="@Placeholder"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Outlined.Search"
+                         AdornmentColor="Color.Primary">
+            <!-- ItemTemplate -->
+            <ItemTemplate Context="bp">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Style="flex: 1;">
+                        <!-- Avatar -->
+                        <MudAvatar Color="@GetAvatarColor(bp)" Size="Size.Small">
+                            <MudIcon Icon="@GetIcon(bp)" Size="Size.Small" />
+                        </MudAvatar>
+                        
+                        <!-- Business Party Info -->
+                        <MudStack Spacing="0" Style="flex: 1;">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@bp.Name</MudText>
+                            
+                            <!-- Fiscal Info (inline) -->
+                            @if (ShowFiscalInfo && (!string.IsNullOrEmpty(bp.VatNumber) || !string.IsNullOrEmpty(bp.TaxCode)))
+                            {
+                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                                    @if (!string.IsNullOrEmpty(bp.VatNumber))
+                                    {
+                                        <span>P.IVA: @bp.VatNumber</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(bp.TaxCode))
+                                    {
+                                        @if (!string.IsNullOrEmpty(bp.VatNumber))
+                                        {
+                                            <span> | </span>
+                                        }
+                                        <span>C.F.: @bp.TaxCode</span>
+                                    }
+                                </MudText>
+                            }
+                            
+                            <!-- Groups (max visible + counter) -->
+                            @if (ShowGroups && bp.Groups != null && bp.Groups.Any())
+                            {
+                                var sortedGroups = GetSortedGroups(bp).ToList();
+                                var visibleGroups = sortedGroups.Take(MaxVisibleGroupsInAutocomplete).ToList();
+                                var remainingCount = sortedGroups.Count - MaxVisibleGroupsInAutocomplete;
+                                
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
+                                    @foreach (var group in visibleGroups)
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Variant="Variant.Filled"
+                                                 Style="@GetGroupInlineStyle(group)">
+                                            @if (!string.IsNullOrEmpty(group.Icon))
+                                            {
+                                                <MudIcon Icon="@group.Icon" Size="Size.Small" Class="mr-1" />
+                                            }
+                                            @group.Name
+                                        </MudChip>
+                                    }
+                                    @if (remainingCount > 0)
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Variant="Variant.Text"
+                                                 Color="Color.Default"
+                                                 Style="font-size: 0.7rem;">
+                                            +@remainingCount
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            }
+                        </MudStack>
+                    </MudStack>
+                    
+                    <!-- Location Icon -->
+                    @if (ShowLocation && !string.IsNullOrEmpty(bp.City))
+                    {
+                        <MudTooltip Text="@GetLocationTooltip(bp)">
+                            <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small" Color="Color.Default" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </ItemTemplate>
+
+            <!-- NoItemsTemplate -->
+            <NoItemsTemplate>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">
+                    @TranslationService.GetTranslation("businessparty.noResults", "Nessun Business Party trovato")
+                </MudText>
+            </NoItemsTemplate>
+        </MudAutocomplete>
+    }
+
+    @if (SelectedBusinessParty != null)
+    {
+        <!-- VIEW MODE: Display business party information -->
+        <MudCard Outlined="true" Elevation="0">
+            <MudCardContent>
+                <MudStack Spacing="2">
+                    <!-- Header: Avatar + Name + Type -->
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudAvatar Color="@GetAvatarColor(SelectedBusinessParty)" Size="Size.Large">
+                            <MudIcon Icon="@GetIcon(SelectedBusinessParty)" Size="Size.Large" />
+                        </MudAvatar>
+                        <MudStack Spacing="0" Style="flex: 1;">
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                @SelectedBusinessParty.Name
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @GetBusinessPartyTypeLabel(SelectedBusinessParty)
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+
+                    <!-- Groups (all badges, sorted by priority) -->
+                    @if (ShowGroups && SelectedBusinessParty.Groups != null && SelectedBusinessParty.Groups.Any())
+                    {
+                        <MudDivider />
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("businessparty.groups", "Gruppi")
+                            </MudText>
+                            <MudStack Row="true" Spacing="1" Style="flex-wrap: wrap;">
+                                @foreach (var group in GetSortedGroups(SelectedBusinessParty))
+                                {
+                                    var currentGroup = group; // Capture for closure
+                                    <MudTooltip Text="@GetGroupTooltip(group)">
+                                        @if (GroupClickable)
+                                        {
+                                            <MudChip T="string"
+                                                     Size="Size.Small"
+                                                     Variant="Variant.Filled"
+                                                     Style="@GetGroupChipStyle(group)"
+                                                     OnClick="@(() => HandleGroupClick(currentGroup))">
+                                                @if (!string.IsNullOrEmpty(group.Icon))
+                                                {
+                                                    <MudIcon Icon="@group.Icon" Size="Size.Small" Class="mr-1" />
+                                                }
+                                                @group.Name
+                                                @if (ShowGroupPriority)
+                                                {
+                                                    <span style="opacity: 0.6; margin-left: 4px;">(@group.Priority)</span>
+                                                }
+                                            </MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string"
+                                                     Size="Size.Small"
+                                                     Variant="Variant.Filled"
+                                                     Style="@GetGroupChipStyle(group)">
+                                                @if (!string.IsNullOrEmpty(group.Icon))
+                                                {
+                                                    <MudIcon Icon="@group.Icon" Size="Size.Small" Class="mr-1" />
+                                                }
+                                                @group.Name
+                                                @if (ShowGroupPriority)
+                                                {
+                                                    <span style="opacity: 0.6; margin-left: 4px;">(@group.Priority)</span>
+                                                }
+                                            </MudChip>
+                                        }
+                                    </MudTooltip>
+                                }
+                            </MudStack>
+                        </MudStack>
+                    }
+
+                    <!-- Fiscal Info -->
+                    @if (ShowFiscalInfo)
+                    {
+                        <MudDivider />
+                        <MudGrid Spacing="2">
+                            @if (!string.IsNullOrEmpty(SelectedBusinessParty.VatNumber))
+                            {
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("businessparty.vatNumber", "Partita IVA")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                        @SelectedBusinessParty.VatNumber
+                                    </MudText>
+                                </MudItem>
+                            }
+                            @if (!string.IsNullOrEmpty(SelectedBusinessParty.TaxCode))
+                            {
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("businessparty.taxCode", "Codice Fiscale")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                        @SelectedBusinessParty.TaxCode
+                                    </MudText>
+                                </MudItem>
+                            }
+                            @if (!string.IsNullOrEmpty(SelectedBusinessParty.SdiCode))
+                            {
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("businessparty.sdiCode", "Codice SDI")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                        @SelectedBusinessParty.SdiCode
+                                    </MudText>
+                                </MudItem>
+                            }
+                            @if (!string.IsNullOrEmpty(SelectedBusinessParty.Pec))
+                            {
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("businessparty.pec", "PEC")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                        @SelectedBusinessParty.Pec
+                                    </MudText>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    }
+
+                    <!-- Location -->
+                    @if (ShowLocation && !string.IsNullOrEmpty(SelectedBusinessParty.City))
+                    {
+                        <MudDivider />
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("businessparty.location", "Località")
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small" Class="mr-1" />
+                                @GetLocationTooltip(SelectedBusinessParty)
+                            </MudText>
+                        </div>
+                    }
+
+                    <!-- Contact Stats -->
+                    @if (ShowContactStats)
+                    {
+                        <MudDivider />
+                        <MudGrid Spacing="2">
+                            <MudItem xs="4">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @TranslationService.GetTranslation("businessparty.addresses", "Indirizzi")
+                                </MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                    @SelectedBusinessParty.AddressCount
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="4">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @TranslationService.GetTranslation("businessparty.contacts", "Contatti")
+                                </MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                    @SelectedBusinessParty.ContactCount
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="4">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @TranslationService.GetTranslation("businessparty.references", "Referenze")
+                                </MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                    @SelectedBusinessParty.ReferenceCount
+                                </MudText>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+</MudStack>
