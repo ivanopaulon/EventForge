@@ -240,12 +240,16 @@ public class NotificationService : INotificationService
         // 4. Process batches with optimized database operations
         foreach (var batch in batches)
         {
+            var batchSuccessCount = 0;
+            var batchFailureCount = 0;
+            var batchResults = new List<NotificationOperationResult>();
+            
             try
             {
                 var now = DateTime.UtcNow;
                 var notificationEntities = new List<Data.Entities.Notifications.Notification>();
                 var recipientEntities = new List<Data.Entities.Notifications.NotificationRecipient>();
-                var notificationIdMap = new Dictionary<CreateNotificationDto, Guid>();
+                var dtoToIdMap = new Dictionary<CreateNotificationDto, Guid>();
 
                 // Create all notification entities for this batch
                 foreach (var createDto in batch)
@@ -256,7 +260,7 @@ public class NotificationService : INotificationService
                         await ValidateTenantAccessAsync(createDto.TenantId, cancellationToken);
 
                         var notificationId = Guid.NewGuid();
-                        notificationIdMap[createDto] = notificationId;
+                        dtoToIdMap[createDto] = notificationId;
 
                         var notification = new Data.Entities.Notifications.Notification
                         {
@@ -300,17 +304,17 @@ public class NotificationService : INotificationService
                             recipientEntities.Add(recipient);
                         }
 
-                        results.Add(new NotificationOperationResult
+                        batchResults.Add(new NotificationOperationResult
                         {
                             NotificationId = notificationId,
                             Success = true,
                             Metadata = new Dictionary<string, object> { ["ProcessedAt"] = now }
                         });
-                        successCount++;
+                        batchSuccessCount++;
                     }
                     catch (Exception ex)
                     {
-                        results.Add(new NotificationOperationResult
+                        batchResults.Add(new NotificationOperationResult
                         {
                             Success = false,
                             ErrorMessage = ex.Message,
@@ -321,82 +325,97 @@ public class NotificationService : INotificationService
                                 ["ExceptionType"] = ex.GetType().Name
                             }
                         });
-                        failureCount++;
+                        batchFailureCount++;
                         _logger.LogWarning(ex, "Failed to prepare notification in bulk batch");
                     }
                 }
 
-                // 5. Bulk insert into database
+                // 5. Bulk insert into database  
                 if (notificationEntities.Any())
                 {
                     await _context.Notifications.AddRangeAsync(notificationEntities, cancellationToken);
-                }
-                if (recipientEntities.Any())
-                {
                     await _context.NotificationRecipients.AddRangeAsync(recipientEntities, cancellationToken);
-                }
-                
-                // Single SaveChanges per batch
-                await _context.SaveChangesAsync(cancellationToken);
+                    
+                    // Single SaveChanges per batch
+                    await _context.SaveChangesAsync(cancellationToken);
 
-                // 6. Send SignalR notifications in batches (group by recipient)
-                var recipientGroups = recipientEntities.GroupBy(r => r.UserId);
-                foreach (var recipientGroup in recipientGroups)
-                {
-                    try
+                    // 6. Send SignalR notifications in batches (group by recipient)
+                    // Create lookup for O(1) access
+                    var notificationLookup = notificationEntities.ToDictionary(n => n.Id);
+                    var recipientGroups = recipientEntities.GroupBy(r => r.UserId);
+                    
+                    foreach (var recipientGroup in recipientGroups)
                     {
-                        var recipientId = recipientGroup.Key;
-                        var recipientNotifications = recipientGroup
-                            .Select(r => notificationEntities.FirstOrDefault(n => n.Id == r.NotificationId))
-                            .Where(n => n != null)
-                            .ToList();
-
-                        // Send to user's SignalR group
-                        foreach (var notification in recipientNotifications)
+                        try
                         {
+                            var recipientId = recipientGroup.Key;
+                            var recipientNotifications = recipientGroup
+                                .Select(r => notificationLookup.TryGetValue(r.NotificationId, out var n) ? n : null)
+                                .Where(n => n != null)
+                                .Select(n => new
+                                {
+                                    id = n!.Id,
+                                    type = n.Type.ToString(),
+                                    priority = n.Priority.ToString(),
+                                    title = n.Title,
+                                    message = n.Message,
+                                    actionUrl = n.ActionUrl,
+                                    createdAt = n.CreatedAt
+                                })
+                                .ToList();
+
+                            // Send all notifications for this user in one call
                             await _hubContext.Clients
                                 .Group($"user_{recipientId}")
-                                .SendAsync("ReceiveNotification", new
-                                {
-                                    id = notification!.Id,
-                                    type = notification.Type.ToString(),
-                                    priority = notification.Priority.ToString(),
-                                    title = notification.Title,
-                                    message = notification.Message,
-                                    actionUrl = notification.ActionUrl,
-                                    createdAt = notification.CreatedAt
-                                }, cancellationToken);
-                        }
+                                .SendAsync("ReceiveBulkNotifications", recipientNotifications, cancellationToken);
 
-                        _logger.LogDebug("Sent {Count} notifications to user {UserId} via SignalR", 
-                            recipientNotifications.Count, recipientId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to send SignalR notification to user {UserId}", recipientGroup.Key);
-                        // Continue processing other recipients
+                            _logger.LogDebug("Sent {Count} notifications to user {UserId} via SignalR", 
+                                recipientNotifications.Count, recipientId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to send SignalR notifications to user {UserId}", recipientGroup.Key);
+                            // Continue processing other recipients
+                        }
                     }
                 }
+
+                // Add batch results to overall results
+                results.AddRange(batchResults);
+                successCount += batchSuccessCount;
+                failureCount += batchFailureCount;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to process batch in bulk notification operation");
-                // Mark all items in this batch as failed
-                foreach (var notification in batch)
+                
+                // Only mark as failed items that weren't already processed
+                var alreadyProcessedCount = batchResults.Count;
+                var remainingCount = batch.Count - alreadyProcessedCount;
+                
+                if (remainingCount > 0)
                 {
-                    results.Add(new NotificationOperationResult
+                    for (int i = 0; i < remainingCount; i++)
                     {
-                        Success = false,
-                        ErrorMessage = $"Batch processing failed: {ex.Message}",
-                        ErrorCode = "BATCH_FAILED",
-                        Metadata = new Dictionary<string, object>
+                        results.Add(new NotificationOperationResult
                         {
-                            ["ProcessedAt"] = DateTime.UtcNow,
-                            ["ExceptionType"] = ex.GetType().Name
-                        }
-                    });
-                    failureCount++;
+                            Success = false,
+                            ErrorMessage = $"Batch processing failed: {ex.Message}",
+                            ErrorCode = "BATCH_FAILED",
+                            Metadata = new Dictionary<string, object>
+                            {
+                                ["ProcessedAt"] = DateTime.UtcNow,
+                                ["ExceptionType"] = ex.GetType().Name
+                            }
+                        });
+                        failureCount++;
+                    }
                 }
+                
+                // Add any successfully prepared items from this batch (even though save failed)
+                results.AddRange(batchResults);
+                successCount += batchSuccessCount;
+                failureCount += batchFailureCount;
             }
         }
 
@@ -1004,8 +1023,9 @@ public class NotificationService : INotificationService
                     
                     if (metadata?.ContainsKey("NotificationPreferences") == true)
                     {
-                        var preferencesJson = metadata["NotificationPreferences"].GetRawText();
-                        var preferences = System.Text.Json.JsonSerializer.Deserialize<NotificationPreferencesDto>(preferencesJson);
+                        // Deserialize the JsonElement directly to NotificationPreferencesDto
+                        var preferences = System.Text.Json.JsonSerializer.Deserialize<NotificationPreferencesDto>(
+                            metadata["NotificationPreferences"].GetRawText());
                         
                         if (preferences != null)
                         {
@@ -1079,37 +1099,30 @@ public class NotificationService : INotificationService
             var oldPreferences = await GetUserPreferencesAsync(preferences.UserId, preferences.TenantId, cancellationToken);
 
             // 3. Update User.MetadataJson with new preferences
-            Dictionary<string, object> metadata;
+            Dictionary<string, System.Text.Json.JsonElement> metadata;
             
             if (user.MetadataJson != null)
             {
                 try
                 {
-                    var existingMetadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(user.MetadataJson);
-                    metadata = existingMetadata ?? new Dictionary<string, object>();
+                    var existingMetadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(user.MetadataJson);
+                    metadata = existingMetadata ?? new Dictionary<string, System.Text.Json.JsonElement>();
                 }
                 catch
                 {
-                    metadata = new Dictionary<string, object>();
+                    metadata = new Dictionary<string, System.Text.Json.JsonElement>();
                 }
             }
             else
             {
-                metadata = new Dictionary<string, object>();
+                metadata = new Dictionary<string, System.Text.Json.JsonElement>();
             }
 
-            // Serialize preferences to store in metadata
-            var preferencesObject = new
-            {
-                preferences.NotificationsEnabled,
-                preferences.MinPriority,
-                preferences.EnabledTypes,
-                preferences.PreferredLocale,
-                preferences.SoundEnabled,
-                preferences.AutoArchiveAfterDays
-            };
-
-            metadata["NotificationPreferences"] = preferencesObject;
+            // Serialize preferences DTO to JSON and convert to JsonElement
+            var preferencesJson = System.Text.Json.JsonSerializer.Serialize(preferences);
+            var preferencesElement = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(preferencesJson);
+            
+            metadata["NotificationPreferences"] = preferencesElement;
             user.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
             user.ModifiedAt = DateTime.UtcNow;
 
@@ -1228,7 +1241,7 @@ public class NotificationService : INotificationService
 
         try
         {
-            // 1. Query expired notifications
+            // 1. Query expired notifications and get all IDs upfront to avoid infinite loop
             var query = _context.Notifications
                 .Where(n => n.ExpiresAt.HasValue && n.ExpiresAt.Value <= now)
                 .Where(n => n.Status != NotificationStatus.Archived && n.Status != NotificationStatus.Expired);
@@ -1239,17 +1252,26 @@ public class NotificationService : INotificationService
                 query = query.Where(n => n.TenantId == tenantId.Value);
             }
 
-            // 3. Process in batches to avoid memory issues
-            while (true)
-            {
-                // Get batch
-                var batch = await query
-                    .OrderBy(n => n.ExpiresAt)
-                    .Take(batchSize)
-                    .ToListAsync(cancellationToken);
+            // Get all IDs that need processing to avoid fetching new items in loop
+            var expiredNotificationIds = await query
+                .OrderBy(n => n.ExpiresAt)
+                .Select(n => new { n.Id, n.ExpiresAt })
+                .ToListAsync(cancellationToken);
 
-                if (!batch.Any())
-                    break;
+            _logger.LogInformation("Found {Count} expired notifications to process", expiredNotificationIds.Count);
+
+            // 3. Process in batches to avoid memory issues
+            var remainingIds = expiredNotificationIds.Select(n => n.Id).ToList();
+            
+            while (remainingIds.Any())
+            {
+                // Get batch of IDs
+                var batchIds = remainingIds.Take(batchSize).ToList();
+                
+                // Fetch the actual entities for this batch
+                var batch = await _context.Notifications
+                    .Where(n => batchIds.Contains(n.Id))
+                    .ToListAsync(cancellationToken);
 
                 foreach (var notification in batch)
                 {
@@ -1289,15 +1311,14 @@ public class NotificationService : INotificationService
                 // 5. Save changes for this batch
                 await _context.SaveChangesAsync(cancellationToken);
                 processedCount += batch.Count;
+                
+                // Remove processed IDs from remaining list
+                remainingIds = remainingIds.Skip(batchSize).ToList();
 
                 // 6. Log progress
                 _logger.LogInformation(
                     "Processed {ProcessedCount} expired notifications ({Expired} expired, {Archived} archived, {Deleted} deleted)",
                     processedCount, expiredCount, archivedCount, deletedCount);
-
-                // Break if we processed less than batch size (last batch)
-                if (batch.Count < batchSize)
-                    break;
             }
 
             // 7. Log audit trail for cleanup operation

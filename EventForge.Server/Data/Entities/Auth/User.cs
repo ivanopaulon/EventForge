@@ -146,8 +146,8 @@ public class User : AuditableEntity
 
     /// <summary>
     /// Additional metadata in JSON format for extensibility (e.g., notification preferences).
+    /// Uses NVARCHAR(MAX) to accommodate complex metadata structures without truncation.
     /// </summary>
-    [MaxLength(4000, ErrorMessage = "Metadata cannot exceed 4000 characters.")]
     [Display(Name = "Metadata JSON", Description = "Additional metadata in JSON format.")]
     public string? MetadataJson { get; set; }
 
