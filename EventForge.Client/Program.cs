@@ -167,6 +167,7 @@ builder.Services.AddScoped<ILogManagementService, LogManagementService>();
 builder.Services.AddScoped<IEntityManagementService, EntityManagementService>();
 builder.Services.AddScoped<IFinancialService, FinancialService>();
 builder.Services.AddScoped<IBusinessPartyService, BusinessPartyService>();
+builder.Services.AddScoped<IBusinessPartyGroupService, BusinessPartyGroupService>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
 
 // Add Event management services
