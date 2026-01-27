@@ -115,7 +115,7 @@
     private MudForm? _form;
     private bool _isFormValid;
     private BusinessPartyDto? _selectedBusinessParty;
-    private DateTime? _memberSince = DateTime.Today;
+    private DateTime? _memberSince = DateTime.UtcNow.Date;
     private DateTime? _memberUntil;
     private int? _overridePriority;
     private bool _isFeatured;

@@ -301,8 +301,15 @@
         _isLoadingMembers = true;
         try
         {
-            var result = await GroupService.GetGroupMembersAsync(GroupId.Value, 1, 1000);
+            // Load with pagination - start with first 100 members
+            // TODO: Implement proper pagination UI if groups have many members
+            var result = await GroupService.GetGroupMembersAsync(GroupId.Value, 1, 100);
             _members = result?.Items?.ToList();
+            
+            if (result?.TotalCount > 100)
+            {
+                Snackbar.Add($"Visualizzati i primi 100 membri di {result.TotalCount} totali", Severity.Info);
+            }
         }
         catch (Exception ex)
         {

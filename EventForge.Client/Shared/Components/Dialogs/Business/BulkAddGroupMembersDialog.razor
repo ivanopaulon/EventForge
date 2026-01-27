@@ -255,7 +255,7 @@
     private string? _csvFileName;
     
     // Batch settings
-    private DateTime? _batchMemberSince = DateTime.Today;
+    private DateTime? _batchMemberSince = DateTime.UtcNow.Date;
     private DateTime? _batchMemberUntil;
     private BusinessPartyGroupMemberStatus _batchStatus = BusinessPartyGroupMemberStatus.Active;
     private bool _batchIsFeatured;
@@ -317,7 +317,15 @@
         
         try
         {
-            using var reader = new StreamReader(e.File.OpenReadStream());
+            // Limit file size to 5 MB to prevent DoS attacks
+            const long maxFileSize = 5 * 1024 * 1024;
+            if (e.File.Size > maxFileSize)
+            {
+                Snackbar.Add("Il file CSV è troppo grande. Dimensione massima: 5 MB", Severity.Error);
+                return;
+            }
+            
+            using var reader = new StreamReader(e.File.OpenReadStream(maxFileSize));
             var csvContent = await reader.ReadToEndAsync();
             
             var lines = csvContent.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1); // Skip header
@@ -327,11 +335,13 @@
                 var trimmedLine = line.Trim();
                 if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
                 
+                // Simple CSV parsing - handles basic cases
+                // Note: This doesn't handle complex CSV cases with quoted commas
                 var parts = trimmedLine.Split(',');
                 if (parts.Length < 2) continue;
                 
-                var vatNumber = parts.Length > 1 ? parts[1].Trim() : "";
-                var taxCode = parts.Length > 2 ? parts[2].Trim() : "";
+                var vatNumber = parts.Length > 1 ? parts[1].Trim().Trim('"') : "";
+                var taxCode = parts.Length > 2 ? parts[2].Trim().Trim('"') : "";
                 
                 var searchTerm = !string.IsNullOrEmpty(vatNumber) ? vatNumber : taxCode;
                 
@@ -364,9 +374,9 @@
     
     private void DownloadCsvTemplate()
     {
-        // Note: This requires JSInterop to trigger browser download
-        // For now, just show a message
-        Snackbar.Add("Template CSV: Nome,P.IVA,CodiceFiscale", Severity.Info);
+        // Display template format as guidance
+        // For actual file download, JSInterop would be needed which is out of scope for this implementation
+        Snackbar.Add("Formato template: Nome,P.IVA,CodiceFiscale (esempio: Acme Corp,12345678901,)", Severity.Info);
     }
     
     private IEnumerable<BusinessPartyDto> GetValidBusinessParties()

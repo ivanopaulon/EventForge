@@ -193,7 +193,7 @@
     
     private void ExtendMembership()
     {
-        _memberUntil = DateTime.Today.AddMonths(12);
+        _memberUntil = DateTime.UtcNow.Date.AddMonths(12);
     }
     
     private async Task Submit()
