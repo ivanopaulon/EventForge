@@ -925,7 +925,11 @@ public class PriceListServicePhase2CTests_PR4
     {
         var mockAudit = new MockAuditLogService();
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
-        return new PriceListService(context, mockAudit, Microsoft.Extensions.Logging.Abstractions.NullLogger<PriceListService>.Instance, mockUnitConversion);
+        var mockGenerationService = new MockPriceListGenerationService();
+        var mockCalculationService = new MockPriceCalculationService();
+        var mockBusinessPartyService = new MockPriceListBusinessPartyService();
+        var mockBulkOperationsService = new MockPriceListBulkOperationsService();
+        return new PriceListService(context, mockAudit, Microsoft.Extensions.Logging.Abstractions.NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
     }
 
     private static Tenant CreateTenant() => new()
@@ -1119,6 +1123,76 @@ public class PriceListServicePhase2CTests_PR4
         {
             return Task.FromResult<ExportResultDto?>(null);
         }
+    }
+
+    private class MockPriceListGenerationService : IPriceListGenerationService
+    {
+        public Task<GeneratePriceListPreviewDto> PreviewGenerateFromPurchasesAsync(GeneratePriceListFromPurchasesDto dto, CancellationToken cancellationToken = default)
+            => Task.FromResult(new GeneratePriceListPreviewDto());
+        public Task<Guid> GenerateFromPurchasesAsync(GeneratePriceListFromPurchasesDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(Guid.NewGuid());
+        public Task<GeneratePriceListPreviewDto> PreviewUpdateFromPurchasesAsync(UpdatePriceListFromPurchasesDto dto, CancellationToken cancellationToken = default)
+            => Task.FromResult(new GeneratePriceListPreviewDto());
+        public Task<UpdatePriceListResultDto> UpdateFromPurchasesAsync(UpdatePriceListFromPurchasesDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(new UpdatePriceListResultDto());
+        public Task<Guid> GenerateFromProductPricesAsync(GeneratePriceListFromProductsDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(Guid.NewGuid());
+        public Task<GeneratePriceListPreviewDto> PreviewGenerateFromProductPricesAsync(GeneratePriceListFromProductsDto dto, CancellationToken cancellationToken = default)
+            => Task.FromResult(new GeneratePriceListPreviewDto());
+        public Task<ApplyPriceListResultDto> ApplyPriceListToProductsAsync(ApplyPriceListToProductsDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(new ApplyPriceListResultDto());
+        public Task<DuplicatePriceListResultDto> DuplicatePriceListAsync(Guid sourcePriceListId, DuplicatePriceListDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(new DuplicatePriceListResultDto { NewPriceList = new PriceListDto() });
+        public Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default)
+            => Task.FromResult(new BulkImportResultDto());
+        public Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default)
+            => Task.FromResult(Enumerable.Empty<ExportablePriceListEntryDto>());
+        public Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PrecedenceValidationResultDto());
+    }
+
+    private class MockPriceCalculationService : IPriceCalculationService
+    {
+        public Task<ProductPriceResultDto> GetProductPriceAsync(GetProductPriceRequestDto request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new ProductPriceResultDto());
+        public Task<List<PurchasePriceComparisonDto>> GetPurchasePriceComparisonAsync(Guid productId, int quantity = 1, DateTime? evaluationDate = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new List<PurchasePriceComparisonDto>());
+        public Task<AppliedPriceDto?> GetAppliedPriceAsync(Guid productId, Guid eventId, Guid? businessPartyId = null, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default)
+            => Task.FromResult<AppliedPriceDto?>(null);
+        public Task<AppliedPriceDto?> GetAppliedPriceWithUnitConversionAsync(Guid productId, Guid eventId, Guid targetUnitId, DateTime? evaluationDate = null, int quantity = 1, Guid? businessPartyId = null, CancellationToken cancellationToken = default)
+            => Task.FromResult<AppliedPriceDto?>(null);
+        public Task<IEnumerable<PriceHistoryDto>> GetPriceHistoryAsync(Guid productId, Guid eventId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(Enumerable.Empty<PriceHistoryDto>());
+    }
+
+    private class MockPriceListBusinessPartyService : IPriceListBusinessPartyService
+    {
+        public Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PriceListBusinessPartyDto());
+        public Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
+        public Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default)
+            => Task.FromResult(Enumerable.Empty<PriceListBusinessPartyDto>());
+        public Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, PriceListType? type, CancellationToken cancellationToken = default)
+            => Task.FromResult(Enumerable.Empty<PriceListDto>());
+    }
+
+    private class MockPriceListBulkOperationsService : IPriceListBulkOperationsService
+    {
+        public Task<BulkUpdatePreviewDto> PreviewBulkUpdateAsync(Guid priceListId, BulkPriceUpdateDto dto, CancellationToken cancellationToken = default)
+            => Task.FromResult(new BulkUpdatePreviewDto());
+        public Task<BulkUpdateResultDto> BulkUpdatePricesAsync(Guid priceListId, BulkPriceUpdateDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(new BulkUpdateResultDto());
+        public Task<DuplicatePriceListResultDto> DuplicatePriceListAsync(Guid sourcePriceListId, DuplicatePriceListDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(new DuplicatePriceListResultDto { NewPriceList = new PriceListDto() });
+        public Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default)
+            => Task.FromResult(new BulkImportResultDto());
+        public Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default)
+            => Task.FromResult(Enumerable.Empty<ExportablePriceListEntryDto>());
+        public Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PrecedenceValidationResultDto());
+        public Task<ApplyPriceListResultDto> ApplyPriceListToProductsAsync(ApplyPriceListToProductsDto dto, string currentUser, CancellationToken cancellationToken = default)
+            => Task.FromResult(new ApplyPriceListResultDto());
     }
 
     #endregion
