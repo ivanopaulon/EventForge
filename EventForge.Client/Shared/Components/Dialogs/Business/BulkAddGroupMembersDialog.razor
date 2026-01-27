@@ -1,0 +1,435 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using Microsoft.AspNetCore.Components.Forms
+@inject IBusinessPartyService BusinessPartyService
+@inject IBusinessPartyGroupService GroupService
+@inject ISnackbar Snackbar
+@inject ILogger<BulkAddGroupMembersDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.GroupAdd" />
+            <MudText Typo="Typo.h6">Aggiungi Multipli Membri</MudText>
+        </MudStack>
+    </TitleContent>
+    
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+                <!-- Tab 1: Selezione Manuale -->
+                <MudTabPanel Text="Selezione Manuale" Icon="@Icons.Material.Filled.Checklist">
+                    <MudStack Spacing="2" Class="pa-3">
+                        <MudAutocomplete T="BusinessPartyDto"
+                                         @bind-Value="_currentSearchSelection"
+                                         SearchFunc="@SearchBusinessPartiesAsync"
+                                         ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
+                                         Label="Cerca Business Party"
+                                         Variant="Variant.Outlined"
+                                         Clearable="true"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="false"
+                                         Placeholder="Digita per cercare..."
+                                         AdornmentIcon="@Icons.Material.Filled.Search"
+                                         Adornment="Adornment.Start">
+                            <ItemTemplate Context="bp">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudAvatar Color="Color.Primary" Size="Size.Small">
+                                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                                        </MudAvatar>
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@bp.Name</MudText>
+                                            @if (!string.IsNullOrEmpty(bp.VatNumber))
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">P.IVA: @bp.VatNumber</MudText>
+                                            }
+                                        </MudStack>
+                                    </MudStack>
+                                </MudStack>
+                            </ItemTemplate>
+                        </MudAutocomplete>
+                        
+                        @if (_currentSearchSelection != null)
+                        {
+                            <MudButton OnClick="AddToSelection" 
+                                       Color="Color.Primary" 
+                                       Variant="Variant.Filled"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       FullWidth="true">
+                                Aggiungi alla Selezione
+                            </MudButton>
+                        }
+                        
+                        <MudDivider />
+                        
+                        <!-- Lista selezionati -->
+                        @if (_selectedBusinessParties.Any())
+                        {
+                            <MudText Typo="Typo.subtitle2">Business Party Selezionati (@_selectedBusinessParties.Count)</MudText>
+                            
+                            <MudPaper Outlined="true" Class="pa-2" Style="max-height: 300px; overflow-y: auto;">
+                                <MudStack Spacing="1">
+                                    @foreach (var bp in _selectedBusinessParties)
+                                    {
+                                        var isAlreadyMember = ExistingMemberIds?.Contains(bp.Id) == true;
+                                        <MudChip T="string" OnClose="@(() => RemoveFromSelection(bp))" 
+                                                 Color="@(isAlreadyMember ? Color.Warning : Color.Primary)"
+                                                 Variant="Variant.Filled"
+                                                 Size="Size.Small">
+                                            @bp.Name
+                                            @if (isAlreadyMember)
+                                            {
+                                                <MudText Typo="Typo.caption" Style="margin-left: 8px;">(Già membro)</MudText>
+                                            }
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            </MudPaper>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true">
+                                Nessun Business Party selezionato. Cerca e aggiungi Business Party alla selezione.
+                            </MudAlert>
+                        }
+                    </MudStack>
+                </MudTabPanel>
+                
+                <!-- Tab 2: Import CSV -->
+                <MudTabPanel Text="Import CSV" Icon="@Icons.Material.Filled.UploadFile">
+                    <MudStack Spacing="2" Class="pa-3">
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            <MudText Typo="Typo.body2">
+                                <strong>Formato CSV richiesto:</strong> Nome,P.IVA,CodiceFiscale
+                            </MudText>
+                            <MudText Typo="Typo.caption">
+                                La prima riga (header) verrà automaticamente ignorata.
+                            </MudText>
+                        </MudAlert>
+                        
+                        <MudButton OnClick="DownloadCsvTemplate" 
+                                   Color="Color.Secondary" 
+                                   Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.Download"
+                                   Size="Size.Small">
+                            Scarica Template CSV
+                        </MudButton>
+                        
+                        <MudFileUpload T="IBrowserFile" 
+                                       OnFilesChanged="ParseCsvFile"
+                                       Accept=".csv">
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                                    Carica File CSV
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                        
+                        @if (_csvFileName != null)
+                        {
+                            <MudText Typo="Typo.body2">
+                                File caricato: <strong>@_csvFileName</strong>
+                            </MudText>
+                        }
+                        
+                        <!-- Preview parsed -->
+                        @if (_csvParsedBusinessParties.Any())
+                        {
+                            <MudDivider />
+                            <MudText Typo="Typo.subtitle2">Anteprima Importazione (@_csvParsedBusinessParties.Count elementi)</MudText>
+                            
+                            <MudSimpleTable Striped="true" Dense="true" Style="max-height: 300px; overflow-y: auto;">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>P.IVA / C.F.</th>
+                                        <th>Stato</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var bp in _csvParsedBusinessParties)
+                                    {
+                                        var isAlreadyMember = ExistingMemberIds?.Contains(bp.Id) == true;
+                                        <tr>
+                                            <td>@bp.Name</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(bp.VatNumber))
+                                                {
+                                                    <MudText Typo="Typo.caption">@bp.VatNumber</MudText>
+                                                }
+                                                @if (!string.IsNullOrEmpty(bp.TaxCode))
+                                                {
+                                                    <MudText Typo="Typo.caption">@bp.TaxCode</MudText>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (isAlreadyMember)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning">Già membro</MudChip>
+                                                }
+                                                else
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Da aggiungere</MudChip>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        }
+                    </MudStack>
+                </MudTabPanel>
+            </MudTabs>
+            
+            <MudDivider />
+            
+            <!-- Impostazioni Batch -->
+            <MudPaper Outlined="true" Class="pa-3">
+                <MudText Typo="Typo.h6" Class="mb-3">Impostazioni per tutti i membri</MudText>
+                
+                <MudStack Spacing="2">
+                    <MudDatePicker @bind-Date="_batchMemberSince" 
+                                   Label="Membro Dal" 
+                                   Required="true"
+                                   Variant="Variant.Outlined" />
+                    
+                    <MudDatePicker @bind-Date="_batchMemberUntil" 
+                                   Label="Membro Fino"
+                                   Clearable="true"
+                                   Variant="Variant.Outlined" />
+                    
+                    <MudSelect @bind-Value="_batchStatus" 
+                               Label="Stato"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="BusinessPartyGroupMemberStatus.Active">Attivo</MudSelectItem>
+                        <MudSelectItem Value="BusinessPartyGroupMemberStatus.Suspended">Sospeso</MudSelectItem>
+                    </MudSelect>
+                    
+                    <MudSwitch @bind-Value="_batchIsFeatured" 
+                               Label="Tutti in Evidenza"
+                               Color="Color.Primary" />
+                </MudStack>
+            </MudPaper>
+        </MudStack>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text">
+            Annulla
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   OnClick="SubmitBulk" 
+                   Disabled="@(!GetValidBusinessParties().Any())"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.GroupAdd">
+            Aggiungi @GetValidBusinessParties().Count() Membri
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] 
+    public Guid GroupId { get; set; }
+    
+    [Parameter] 
+    public BusinessPartyGroupType? GroupType { get; set; }
+    
+    [Parameter] 
+    public List<Guid>? ExistingMemberIds { get; set; }
+    
+    private int _activeTab = 0;
+    
+    // Manual selection
+    private BusinessPartyDto? _currentSearchSelection;
+    private List<BusinessPartyDto> _selectedBusinessParties = new();
+    
+    // CSV import
+    private List<BusinessPartyDto> _csvParsedBusinessParties = new();
+    private string? _csvFileName;
+    
+    // Batch settings
+    private DateTime? _batchMemberSince = DateTime.UtcNow.Date;
+    private DateTime? _batchMemberUntil;
+    private BusinessPartyGroupMemberStatus _batchStatus = BusinessPartyGroupMemberStatus.Active;
+    private bool _batchIsFeatured;
+    
+    private async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
+            return Array.Empty<BusinessPartyDto>();
+        
+        try
+        {
+            var results = await BusinessPartyService.SearchBusinessPartiesAsync(searchTerm, GetBusinessPartyType(), 50);
+            return results ?? Array.Empty<BusinessPartyDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching business parties");
+            return Array.Empty<BusinessPartyDto>();
+        }
+    }
+    
+    private BusinessPartyType? GetBusinessPartyType()
+    {
+        if (!GroupType.HasValue) return null;
+        
+        return GroupType.Value switch
+        {
+            BusinessPartyGroupType.Customer => BusinessPartyType.Cliente,
+            BusinessPartyGroupType.Supplier => BusinessPartyType.Supplier,
+            BusinessPartyGroupType.Both => BusinessPartyType.Both,
+            _ => null
+        };
+    }
+    
+    private void AddToSelection()
+    {
+        if (_currentSearchSelection == null) return;
+        
+        // Check if already selected
+        if (_selectedBusinessParties.Any(bp => bp.Id == _currentSearchSelection.Id))
+        {
+            Snackbar.Add("Business Party già nella selezione", Severity.Warning);
+            return;
+        }
+        
+        _selectedBusinessParties.Add(_currentSearchSelection);
+        _currentSearchSelection = null;
+    }
+    
+    private void RemoveFromSelection(BusinessPartyDto bp)
+    {
+        _selectedBusinessParties.Remove(bp);
+    }
+    
+    private async Task ParseCsvFile(InputFileChangeEventArgs e)
+    {
+        _csvParsedBusinessParties.Clear();
+        _csvFileName = e.File.Name;
+        
+        try
+        {
+            // Limit file size to 5 MB to prevent DoS attacks
+            const long maxFileSize = 5 * 1024 * 1024;
+            if (e.File.Size > maxFileSize)
+            {
+                Snackbar.Add("Il file CSV è troppo grande. Dimensione massima: 5 MB", Severity.Error);
+                return;
+            }
+            
+            using var reader = new StreamReader(e.File.OpenReadStream(maxFileSize));
+            var csvContent = await reader.ReadToEndAsync();
+            
+            var lines = csvContent.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1); // Skip header
+            
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
+                
+                // Simple CSV parsing - handles basic cases
+                // Note: This doesn't handle complex CSV cases with quoted commas
+                var parts = trimmedLine.Split(',');
+                if (parts.Length < 2) continue;
+                
+                var vatNumber = parts.Length > 1 ? parts[1].Trim().Trim('"') : "";
+                var taxCode = parts.Length > 2 ? parts[2].Trim().Trim('"') : "";
+                
+                var searchTerm = !string.IsNullOrEmpty(vatNumber) ? vatNumber : taxCode;
+                
+                if (string.IsNullOrEmpty(searchTerm)) continue;
+                
+                try
+                {
+                    var results = await BusinessPartyService.SearchBusinessPartiesAsync(searchTerm, GetBusinessPartyType(), 1);
+                    var bp = results?.FirstOrDefault();
+                    
+                    if (bp != null && !_csvParsedBusinessParties.Any(p => p.Id == bp.Id))
+                    {
+                        _csvParsedBusinessParties.Add(bp);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error searching for business party with term {SearchTerm}", searchTerm);
+                }
+            }
+            
+            Snackbar.Add($"Trovati {_csvParsedBusinessParties.Count} Business Party dal CSV", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error parsing CSV file");
+            Snackbar.Add("Errore durante la lettura del file CSV", Severity.Error);
+        }
+    }
+    
+    private void DownloadCsvTemplate()
+    {
+        // Display template format as guidance
+        // For actual file download, JSInterop would be needed which is out of scope for this implementation
+        Snackbar.Add("Formato template: Nome,P.IVA,CodiceFiscale (esempio: Acme Corp,12345678901,)", Severity.Info);
+    }
+    
+    private IEnumerable<BusinessPartyDto> GetValidBusinessParties()
+    {
+        var allBPs = _activeTab == 0 ? _selectedBusinessParties : _csvParsedBusinessParties;
+        
+        // Filter out business parties that are already members
+        return allBPs.Where(bp => ExistingMemberIds?.Contains(bp.Id) != true);
+    }
+    
+    private async Task SubmitBulk()
+    {
+        var validBPs = GetValidBusinessParties().ToList();
+        
+        if (!validBPs.Any())
+        {
+            Snackbar.Add("Nessun nuovo membro da aggiungere", Severity.Warning);
+            return;
+        }
+        
+        try
+        {
+            var bulkDto = new BulkAddMembersDto
+            {
+                BusinessPartyGroupId = GroupId,
+                BusinessPartyIds = validBPs.Select(bp => bp.Id).ToList(),
+                MemberSince = _batchMemberSince,
+                MemberUntil = _batchMemberUntil
+            };
+            
+            var result = await GroupService.AddMembersBulkAsync(bulkDto);
+            
+            if (result.SuccessCount > 0)
+            {
+                Snackbar.Add($"{result.SuccessCount} membri aggiunti con successo", Severity.Success);
+            }
+            
+            if (result.FailureCount > 0)
+            {
+                Snackbar.Add($"{result.FailureCount} membri non aggiunti", Severity.Warning);
+            }
+            
+            MudDialog.Close(DialogResult.Ok(result.SuccessCount));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error bulk adding members to group {GroupId}", GroupId);
+            Snackbar.Add("Errore durante l'aggiunta dei membri", Severity.Error);
+        }
+    }
+    
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

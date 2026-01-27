@@ -4,7 +4,27 @@ using EventForge.DTOs.Business;
 namespace EventForge.Client.Services;
 
 /// <summary>
-/// Service implementation for managing business party groups.
+/// Client-side service for managing Business Party Groups.
+/// </summary>
+public interface IBusinessPartyGroupService
+{
+    // Group Management
+    Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 100, BusinessPartyGroupType? groupType = null);
+    Task<BusinessPartyGroupDto?> GetGroupByIdAsync(Guid id);
+    Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto);
+    Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto);
+    Task<bool> DeleteGroupAsync(Guid id);
+    
+    // Member Management
+    Task<PagedResult<BusinessPartyGroupMemberDto>> GetGroupMembersAsync(Guid groupId, int page = 1, int pageSize = 100);
+    Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto createDto);
+    Task<BulkOperationResultDto> AddMembersBulkAsync(BulkAddMembersDto bulkDto);
+    Task<BusinessPartyGroupMemberDto> UpdateMemberAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto);
+    Task<bool> RemoveMemberAsync(Guid groupId, Guid businessPartyId);
+}
+
+/// <summary>
+/// Service implementation for managing Business Party Groups.
 /// </summary>
 public class BusinessPartyGroupService : IBusinessPartyGroupService
 {
@@ -96,6 +116,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
+    // Member Management Methods
+
     public async Task<PagedResult<BusinessPartyGroupMemberDto>> GetGroupMembersAsync(Guid groupId, int page = 1, int pageSize = 100)
     {
         try
@@ -111,16 +133,50 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto addDto)
+    public async Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto createDto)
     {
         try
         {
-            var result = await _httpClientService.PostAsync<AddBusinessPartyToGroupDto, BusinessPartyGroupMemberDto>($"{BaseUrl}/{groupId}/members", addDto);
+            var result = await _httpClientService.PostAsync<AddBusinessPartyToGroupDto, BusinessPartyGroupMemberDto>(
+                $"{BaseUrl}/{groupId}/members", 
+                createDto);
             return result ?? throw new InvalidOperationException("Failed to add member to business party group");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error adding member to business party group {GroupId}", groupId);
+            throw;
+        }
+    }
+
+    public async Task<BulkOperationResultDto> AddMembersBulkAsync(BulkAddMembersDto bulkDto)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<BulkAddMembersDto, BulkOperationResultDto>(
+                $"{BaseUrl}/bulk-add-members", 
+                bulkDto);
+            return result ?? throw new InvalidOperationException("Failed to bulk add members to business party group");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk adding members to business party group {GroupId}", bulkDto.BusinessPartyGroupId);
+            throw;
+        }
+    }
+
+    public async Task<BusinessPartyGroupMemberDto> UpdateMemberAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto)
+    {
+        try
+        {
+            var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupMemberDto, BusinessPartyGroupMemberDto>(
+                $"{BaseUrl}/members/{membershipId}", 
+                updateDto);
+            return result ?? throw new InvalidOperationException("Failed to update member");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating membership {MembershipId}", membershipId);
             throw;
         }
     }
@@ -138,21 +194,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing business party {BusinessPartyId} from group {GroupId}", businessPartyId, groupId);
-            throw;
-        }
-    }
-
-    public async Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto)
-    {
-        try
-        {
-            var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupMemberDto, BusinessPartyGroupMemberDto>($"{BaseUrl}/members/{membershipId}", updateDto);
-            return result ?? throw new InvalidOperationException("Failed to update membership");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating membership {MembershipId}", membershipId);
+            _logger.LogError(ex, "Error removing member {BusinessPartyId} from group {GroupId}", businessPartyId, groupId);
             throw;
         }
     }

@@ -4,21 +4,23 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs.Business
 @attribute [Authorize]
 @inject IBusinessPartyGroupService GroupService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyGroupDetail> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <PageLoadingOverlay Visible="_isLoading || _isSaving"
-                        Message="@(_isSaving ? "Salvataggio..." : "Caricamento...")" />
+                         Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (!_isLoading && _group == null && !_isCreateMode)
+    @if (_group == null && !_isCreateMode && !_isLoading)
     {
         <MudAlert Severity="Severity.Error">
-            Gruppo non trovato
+            @TranslationService.GetTranslation("businessPartyGroup.notFound", "Gruppo non trovato")
         </MudAlert>
     }
     else if (!_isLoading)
@@ -30,26 +32,27 @@
                     <div class="d-flex align-center gap-2 mb-2">
                         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
                                        Color="Color.Primary"
-                                       OnClick="@(() => TryNavigateAway("/business/groups"))"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/business/groups"))"
                                        Size="Size.Small" />
                         <MudText Typo="Typo.h4">
                             <MudIcon Icon="@Icons.Material.Outlined.Group" Class="mr-2" />
-                            @(_isCreateMode ? "Crea Nuovo Gruppo" : _group?.Name)
+                            @if (_isCreateMode)
+                            {
+                                <text>Nuovo Gruppo</text>
+                            }
+                            else
+                            {
+                                <text>@(_group?.Name ?? "Gruppo Business Party")</text>
+                            }
                         </MudText>
-
-                        @if (HasUnsavedChanges())
+                        
+                        @if (!_isCreateMode && _group != null)
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
-                                Modifiche non salvate
+                            <MudChip T="string" Size="Size.Small" Color="@(_group.IsActive ? Color.Success : Color.Default)">
+                                @(_group.IsActive ? "Attivo" : "Inattivo")
                             </MudChip>
                         }
                     </div>
-                    @if (!_isCreateMode && _group != null)
-                    {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            Creato il: @_group.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                        </MudText>
-                    }
                 </div>
                 <div class="d-flex gap-2">
                     <MudButton Variant="Variant.Filled" 
@@ -68,255 +71,164 @@
         <MudPaper Elevation="2" Class="pa-2">
             <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
                 <MudTabPanel Text="Informazioni Generali" Icon="@Icons.Material.Filled.Info">
-                    <MudForm @ref="_form" Class="pa-2">
-                        <MudGrid>
-                            <!-- Riga 1: Nome + Codice -->
-                            <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="GroupName"
-                                              Label="Nome Gruppo *"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              RequiredError="Il nome è obbligatorio"
-                                              MaxLength="100"
-                                              Immediate="true"
-                                              OnBlur="@(() => MarkChanged())"
-                                              aria-describedby="name-help" />
-                                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Nome identificativo del gruppo
-                                </MudText>
-                            </MudItem>
-                            
-                            <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="GroupCode"
-                                              Label="Codice"
-                                              Variant="Variant.Outlined"
-                                              MaxLength="50"
-                                              OnBlur="@(() => MarkChanged())"
-                                              aria-describedby="code-help" />
-                                <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Codice breve opzionale (es: VIP, GOLD)
-                                </MudText>
-                            </MudItem>
-                            
-                            <!-- Riga 2: Tipo Gruppo + Stato Attivo -->
-                            <MudItem xs="12" md="6">
-                                <MudSelect @bind-Value="GroupType"
-                                           Label="Tipo Gruppo *"
-                                           Variant="Variant.Outlined"
-                                           Required="true"
-                                           OnBlur="@(() => MarkChanged())"
-                                           aria-describedby="type-help">
-                                    <MudSelectItem Value="@BusinessPartyGroupType.Customer">Cliente</MudSelectItem>
-                                    <MudSelectItem Value="@BusinessPartyGroupType.Supplier">Fornitore</MudSelectItem>
-                                    <MudSelectItem Value="@BusinessPartyGroupType.Both">Entrambi (Cliente/Fornitore)</MudSelectItem>
-                                </MudSelect>
-                                <MudText id="type-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Definisce se il gruppo è per clienti, fornitori o entrambi
-                                </MudText>
-                            </MudItem>
-                            
-                            <MudItem xs="12" md="6">
-                                <MudSwitch @bind-Value="IsActive"
-                                           Label="Gruppo Attivo"
-                                           Color="Color.Success"
-                                           For="@(() => IsActive)" />
-                                <MudText Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Disattiva per nascondere il gruppo senza eliminarlo
-                                </MudText>
-                            </MudItem>
-                            
-                            <!-- Riga 3: Colore Badge -->
-                            <MudItem xs="12" md="6">
-                                <MudColorPicker @bind-Text="ColorHex"
-                                                Label="Colore Badge"
-                                                Variant="Variant.Outlined"
-                                                DisableAlpha="true"
-                                                OnBlur="@(() => MarkChanged())"
-                                                aria-describedby="color-help" />
-                                <MudText id="color-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Colore del badge visualizzato nelle liste
-                                </MudText>
-                                
-                                <!-- Preview Badge -->
-                                @if (!string.IsNullOrEmpty(ColorHex) && !string.IsNullOrEmpty(GroupName))
-                                {
-                                    <div class="mt-2">
-                                        <MudText Typo="Typo.caption" Class="mb-1">Anteprima:</MudText>
-                                        <MudChip T="string"
-                                                 Size="Size.Small"
-                                                 Variant="Variant.Filled"
-                                                 Style="@GetPreviewBadgeStyle()"
-                                                 Icon="@(string.IsNullOrEmpty(Icon) ? Icons.Material.Outlined.Group : Icon)">
-                                            @GroupName
-                                        </MudChip>
-                                    </div>
-                                }
-                            </MudItem>
-                            
-                            <!-- Riga 3b: Icona -->
-                            <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="Icon"
-                                              Label="Icona MaterialDesign"
-                                              Variant="Variant.Outlined"
-                                              MaxLength="100"
-                                              OnBlur="@(() => MarkChanged())"
-                                              aria-describedby="icon-help" />
-                                <MudText id="icon-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Nome icona MaterialDesign (es: star, diamond, workspace_premium)
-                                </MudText>
-                            </MudItem>
-                            
-                            <!-- Riga 4: Descrizione -->
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="Description"
-                                              Label="Descrizione"
-                                              Variant="Variant.Outlined"
-                                              Lines="3"
-                                              MaxLength="500"
-                                              OnBlur="@(() => MarkChanged())"
-                                              aria-describedby="description-help" />
-                                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Descrizione opzionale visibile nei tooltip
-                                </MudText>
-                            </MudItem>
-                            
-                            <!-- Riga 5: Validità Da/A -->
-                            <MudItem xs="12" md="6">
-                                <MudDatePicker @bind-Date="ValidFrom"
-                                               Label="Valido Da"
-                                               Variant="Variant.Outlined"
-                                               Clearable="true"
-                                               OnBlur="@(() => MarkChanged())"
-                                               aria-describedby="valid-from-help" />
-                                <MudText id="valid-from-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Lascia vuoto per nessun limite iniziale
-                                </MudText>
-                            </MudItem>
-                            
-                            <MudItem xs="12" md="6">
-                                <MudDatePicker @bind-Date="ValidTo"
-                                               Label="Valido Fino"
-                                               Variant="Variant.Outlined"
-                                               Clearable="true"
-                                               OnBlur="@(() => MarkChanged())"
-                                               aria-describedby="valid-to-help" />
-                                <MudText id="valid-to-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    Lascia vuoto per nessun limite finale
-                                </MudText>
-                            </MudItem>
-                            
-                            <!-- Info Read-Only (solo edit mode) -->
-                            @if (!_isCreateMode && _group != null)
-                            {
-                                <MudItem xs="12" md="6">
-                                    <MudTextField Value="@_group.Id.ToString()"
-                                                  Label="ID"
-                                                  Variant="Variant.Outlined"
-                                                  ReadOnly="true"
-                                                  aria-label="Identificativo unico" />
-                                </MudItem>
-                                
-                                <MudItem xs="12" md="6">
-                                    <MudTextField Value="@_group.Priority.ToString()"
-                                                  Label="Priorità (Gestita Automaticamente)"
-                                                  Variant="Variant.Outlined"
-                                                  ReadOnly="true"
-                                                  aria-label="Priorità del gruppo" />
-                                    <MudText Typo="Typo.caption" Class="mud-input-helper-text">
-                                        La priorità viene gestita tramite riordino nella pagina lista
-                                    </MudText>
-                                </MudItem>
-                            }
-                        </MudGrid>
-                    </MudForm>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_groupName" 
+                                          Label="Nome" 
+                                          Required="true"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_groupCode" 
+                                          Label="Codice" 
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_description" 
+                                          Label="Descrizione" 
+                                          Lines="3"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudSelect @bind-Value="_groupType" 
+                                       Label="Tipo Gruppo"
+                                       Variant="Variant.Outlined">
+                                <MudSelectItem Value="BusinessPartyGroupType.Customer">Cliente</MudSelectItem>
+                                <MudSelectItem Value="BusinessPartyGroupType.Supplier">Fornitore</MudSelectItem>
+                                <MudSelectItem Value="BusinessPartyGroupType.Both">Entrambi</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudNumericField @bind-Value="_priority" 
+                                             Label="Priorità" 
+                                             Min="0" 
+                                             Max="100"
+                                             Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudColorPicker @bind-Text="_colorHex" 
+                                            Label="Colore"
+                                            Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
                 </MudTabPanel>
 
                 @if (!_isCreateMode && _group != null)
                 {
-                    <MudTabPanel Text="@($"Membri ({_members?.Count() ?? 0})")" 
-                                 Icon="@Icons.Material.Filled.People"
-                                 BadgeData="@_members?.Count()" 
-                                 BadgeDot="@(_members?.Any() ?? false)">
-                        
-                        <!-- Header con azioni -->
-                        <MudPaper Elevation="0" Class="pa-3 mb-3">
-                            <div class="d-flex justify-space-between align-center">
-                                <MudText Typo="Typo.h6">
-                                    <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2" />
-                                    Membri del Gruppo
-                                </MudText>
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Filled.Add"
-                                           Size="Size.Small"
-                                           OnClick="@OpenAddMemberDialog">
-                                    Aggiungi Membro
-                                </MudButton>
-                            </div>
-                        </MudPaper>
-
-                        <!-- Loading -->
-                        @if (_loadingMembers)
-                        {
-                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
-                            <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
-                                Caricamento membri...
-                            </MudText>
-                        }
-                        <!-- Tabella membri -->
-                        else if (_members?.Any() == true)
-                        {
-                            <MudTable Items="_members" Hover="true" Dense="false" Striped="true" FixedHeader="true" Height="60vh">
-                                <HeaderContent>
-                                    <MudTh><MudTableSortLabel SortBy="new Func<BusinessPartyGroupMemberDto, object>(x => x.BusinessPartyName)">Business Party</MudTableSortLabel></MudTh>
-                                    <MudTh>Tipo</MudTh>
-                                    <MudTh><MudTableSortLabel SortBy="new Func<BusinessPartyGroupMemberDto, object>(x => x.MemberSince ?? DateTime.MinValue)">Membro Dal</MudTableSortLabel></MudTh>
-                                    <MudTh><MudTableSortLabel SortBy="new Func<BusinessPartyGroupMemberDto, object>(x => x.MemberUntil ?? DateTime.MaxValue)">Membro Fino</MudTableSortLabel></MudTh>
-                                    <MudTh><MudTableSortLabel SortBy="new Func<BusinessPartyGroupMemberDto, object>(x => x.Status)">Stato</MudTableSortLabel></MudTh>
-                                    <MudTh Style="text-align: right;">Azioni</MudTh>
-                                </HeaderContent>
-                                <RowTemplate>
-                                    <MudTd DataLabel="Business Party">@context.BusinessPartyName</MudTd>
-                                    <MudTd DataLabel="Tipo">
-                                        <MudChip T="string" Size="Size.Small" Color="@GetBusinessPartyTypeColor(context.BusinessPartyType)">
-                                            @GetBusinessPartyTypeLabel(context.BusinessPartyType)
-                                        </MudChip>
-                                    </MudTd>
-                                    <MudTd DataLabel="Membro Dal">@(context.MemberSince?.ToString("dd/MM/yyyy") ?? "-")</MudTd>
-                                    <MudTd DataLabel="Membro Fino">@(context.MemberUntil?.ToString("dd/MM/yyyy") ?? "Permanente")</MudTd>
-                                    <MudTd DataLabel="Stato">
-                                        <MudChip T="string" Size="Size.Small" Color="@GetMemberStatusColor(context.Status)">
-                                            @GetMemberStatusLabel(context.Status)
-                                        </MudChip>
-                                    </MudTd>
-                                    <MudTd DataLabel="Azioni" Style="text-align: right;">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                                       Color="Color.Primary" 
-                                                       Size="Size.Small"
-                                                       OnClick="@(() => OpenEditMemberDialog(context))"
-                                                       title="Modifica" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                                       Color="Color.Error" 
-                                                       Size="Size.Small"
-                                                       OnClick="@(() => RemoveMember(context.BusinessPartyId))"
-                                                       title="Rimuovi" />
-                                    </MudTd>
-                                </RowTemplate>
-                                <NoRecordsContent>
-                                    <MudText Class="pa-4">Nessun membro disponibile</MudText>
-                                </NoRecordsContent>
-                            </MudTable>
-                        }
-                        <!-- Empty state -->
-                        else
-                        {
-                            <MudPaper Elevation="0" Class="pa-4 text-center">
-                                <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Large" Class="mb-2 mud-text-secondary" />
-                                <MudText Typo="Typo.body1" Class="mud-text-secondary">
-                                    Nessun membro nel gruppo
-                                </MudText>
+                    <MudTabPanel Text="Membri" 
+                                 Icon="@Icons.Material.Filled.People" 
+                                 BadgeData="@_members?.Count" 
+                                 BadgeDot="@(_members?.Any() == true)">
+                        <MudStack Spacing="3">
+                            <!-- Toolbar -->
+                            <MudPaper Outlined="true" Class="pa-3">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.h6">Gestione Membri</MudText>
+                                    <MudStack Row="true" Spacing="2">
+                                        <MudButton Variant="Variant.Filled" 
+                                                   Color="Color.Primary" 
+                                                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                                                   OnClick="OpenAddMemberDialog"
+                                                   Size="Size.Small">
+                                            Aggiungi Membro
+                                        </MudButton>
+                                        <MudButton Variant="Variant.Outlined" 
+                                                   Color="Color.Primary" 
+                                                   StartIcon="@Icons.Material.Filled.GroupAdd"
+                                                   OnClick="OpenBulkAddDialog"
+                                                   Size="Size.Small">
+                                            Aggiungi Multipli
+                                        </MudButton>
+                                    </MudStack>
+                                </MudStack>
                             </MudPaper>
-                        }
+
+                            <!-- Members List -->
+                            @if (_isLoadingMembers)
+                            {
+                                <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                            }
+                            else if (_members == null || !_members.Any())
+                            {
+                                <MudAlert Severity="Severity.Info">
+                                    Nessun membro nel gruppo. Aggiungi membri utilizzando i pulsanti sopra.
+                                </MudAlert>
+                            }
+                            else
+                            {
+                                <MudSimpleTable Striped="true" Dense="false" Hover="true">
+                                    <thead>
+                                        <tr>
+                                            <th>Business Party</th>
+                                            <th>Tipo</th>
+                                            <th>Membro Dal</th>
+                                            <th>Membro Fino</th>
+                                            <th>Stato</th>
+                                            <th>Priorità</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var member in _members)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <MudStack Spacing="0">
+                                                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                                            @member.BusinessPartyName
+                                                            @if (member.IsFeatured)
+                                                            {
+                                                                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" Class="ml-1" />
+                                                            }
+                                                        </MudText>
+                                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                            @member.BusinessPartyId
+                                                        </MudText>
+                                                    </MudStack>
+                                                </td>
+                                                <td>
+                                                    <MudChip T="string" Size="Size.Small" Color="@GetBusinessPartyTypeColor(member.BusinessPartyType)">
+                                                        @GetBusinessPartyTypeLabel(member.BusinessPartyType)
+                                                    </MudChip>
+                                                </td>
+                                                <td>
+                                                    <MudText Typo="Typo.body2">
+                                                        @(member.MemberSince?.ToString("dd/MM/yyyy") ?? "-")
+                                                    </MudText>
+                                                </td>
+                                                <td>
+                                                    <MudText Typo="Typo.body2">
+                                                        @(member.MemberUntil?.ToString("dd/MM/yyyy") ?? "∞")
+                                                    </MudText>
+                                                </td>
+                                                <td>
+                                                    <MudChip T="string" Size="Size.Small" Color="@GetMemberStatusColor(member.Status)">
+                                                        @GetMemberStatusLabel(member.Status)
+                                                    </MudChip>
+                                                </td>
+                                                <td>
+                                                    <MudText Typo="Typo.body2">
+                                                        @(member.OverridePriority?.ToString() ?? "-")
+                                                    </MudText>
+                                                </td>
+                                                <td>
+                                                    <MudStack Row="true" Spacing="1">
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                       Color="Color.Primary" 
+                                                                       Size="Size.Small"
+                                                                       OnClick="@(() => OpenEditMemberDialog(member))" />
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                       Color="Color.Error" 
+                                                                       Size="Size.Small"
+                                                                       OnClick="@(() => RemoveMember(member.Id, member.BusinessPartyId))" />
+                                                    </MudStack>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </MudSimpleTable>
+                            }
+                        </MudStack>
                     </MudTabPanel>
                 }
             </MudTabs>
@@ -325,121 +237,50 @@
 </MudContainer>
 
 @code {
-    [Parameter] public Guid? GroupId { get; set; }
+    [Parameter]
+    public Guid? GroupId { get; set; }
 
-    private BusinessPartyGroupDto? _group;
-    private bool _isLoading = true;
-    private bool _isCreateMode => GroupId == null || GroupId == Guid.Empty;
-    private bool _isSaving = false;
+    private bool _isCreateMode => !GroupId.HasValue || GroupId.Value == Guid.Empty;
+    private bool _isLoading;
+    private bool _isSaving;
+    private bool _isLoadingMembers;
     private int _activeTab = 0;
-    private MudForm? _form;
 
-    // Membri
-    private IEnumerable<BusinessPartyGroupMemberDto>? _members;
-    private bool _loadingMembers = false;
+    // Group properties
+    private BusinessPartyGroupDto? _group;
+    private string _groupName = string.Empty;
+    private string? _groupCode;
+    private string? _description;
+    private BusinessPartyGroupType _groupType = BusinessPartyGroupType.Customer;
+    private int _priority = 50;
+    private string? _colorHex = "#1976D2";
 
-    // Unsaved changes tracking
-    private string _originalGroupSnapshot = string.Empty;
-    private bool _hasLocalChanges = false;
-
-    // Bound properties per two-way binding con form
-    private string GroupName
-    {
-        get => _group?.Name ?? string.Empty;
-        set { if (_group != null) _group.Name = value; }
-    }
-
-    private string? GroupCode
-    {
-        get => _group?.Code;
-        set { if (_group != null) _group.Code = value; }
-    }
-
-    private string? Description
-    {
-        get => _group?.Description;
-        set { if (_group != null) _group.Description = value; }
-    }
-
-    private BusinessPartyGroupType GroupType
-    {
-        get => _group?.GroupType ?? BusinessPartyGroupType.Customer;
-        set { if (_group != null) _group.GroupType = value; }
-    }
-
-    private string? ColorHex
-    {
-        get => _group?.ColorHex;
-        set { if (_group != null) _group.ColorHex = value; }
-    }
-
-    private string? Icon
-    {
-        get => _group?.Icon;
-        set { if (_group != null) _group.Icon = value; }
-    }
-
-    private bool IsActive
-    {
-        get => _group?.IsActive ?? true;
-        set { if (_group != null) _group.IsActive = value; }
-    }
-
-    private DateTime? ValidFrom
-    {
-        get => _group?.ValidFrom;
-        set { if (_group != null) _group.ValidFrom = value; }
-    }
-
-    private DateTime? ValidTo
-    {
-        get => _group?.ValidTo;
-        set { if (_group != null) _group.ValidTo = value; }
-    }
-
-    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadGroupAsync();
-    }
+    // Members
+    private List<BusinessPartyGroupMemberDto>? _members;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_group?.Id != GroupId)
-            await LoadGroupAsync();
+        await LoadDataAsync();
     }
 
-    private async Task LoadGroupAsync()
+    private async Task LoadDataAsync()
     {
+        if (_isCreateMode) return;
+
         _isLoading = true;
         try
         {
-            if (_isCreateMode)
+            _group = await GroupService.GetGroupByIdAsync(GroupId!.Value);
+            if (_group != null)
             {
-                _group = new BusinessPartyGroupDto 
-                { 
-                    Name = string.Empty,
-                    GroupType = BusinessPartyGroupType.Customer,
-                    Priority = 50, // Default
-                    IsActive = true
-                };
-                _originalGroupSnapshot = SerializeGroup(_group);
-            }
-            else if (GroupId.HasValue)
-            {
-                var group = await GroupService.GetGroupByIdAsync(GroupId.Value);
-                _group = group;
+                _groupName = _group.Name;
+                _groupCode = _group.Code;
+                _description = _group.Description;
+                _groupType = _group.GroupType;
+                _priority = _group.Priority;
+                _colorHex = _group.ColorHex;
 
-                if (_group != null)
-                {
-                    _originalGroupSnapshot = SerializeGroup(_group);
-                    await LoadMembersAsync();
-                }
+                await LoadMembersAsync();
             }
         }
         catch (Exception ex)
@@ -450,41 +291,39 @@
         finally
         {
             _isLoading = false;
-            _hasLocalChanges = false;
         }
     }
 
     private async Task LoadMembersAsync()
     {
-        if (_group == null || _isCreateMode) return;
+        if (_isCreateMode || GroupId == null) return;
 
+        _isLoadingMembers = true;
         try
         {
-            _loadingMembers = true;
-            StateHasChanged();
-
-            var result = await GroupService.GetGroupMembersAsync(_group.Id, page: 1, pageSize: 100);
-            _members = result.Items ?? new List<BusinessPartyGroupMemberDto>();
+            // Load with pagination - start with first 100 members
+            // TODO: Implement proper pagination UI if groups have many members
+            var result = await GroupService.GetGroupMembersAsync(GroupId.Value, 1, 100);
+            _members = result?.Items?.ToList();
+            
+            if (result?.TotalCount > 100)
+            {
+                Snackbar.Add($"Visualizzati i primi 100 membri di {result.TotalCount} totali", Severity.Info);
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to load members for group {GroupId}", _group.Id);
-            Snackbar.Add("Errore durante il caricamento dei membri", Severity.Warning);
+            Logger.LogError(ex, "Error loading members for group {GroupId}", GroupId);
+            Snackbar.Add("Errore nel caricamento dei membri", Severity.Error);
         }
         finally
         {
-            _loadingMembers = false;
-            StateHasChanged();
+            _isLoadingMembers = false;
         }
     }
 
     private async Task SaveGroupAsync()
     {
-        if (_group == null || _form == null) return;
-
-        await _form.Validate();
-        if (!_form.IsValid) return;
-
         _isSaving = true;
         try
         {
@@ -492,49 +331,36 @@
             {
                 var createDto = new CreateBusinessPartyGroupDto
                 {
-                    Name = _group.Name,
-                    Code = _group.Code,
-                    Description = _group.Description,
-                    GroupType = _group.GroupType,
-                    ColorHex = _group.ColorHex,
-                    Icon = _group.Icon,
-                    Priority = 50, // Default, verrà gestito dal riordino
-                    IsActive = _group.IsActive,
-                    ValidFrom = _group.ValidFrom,
-                    ValidTo = _group.ValidTo
+                    Name = _groupName,
+                    Code = _groupCode,
+                    Description = _description,
+                    GroupType = _groupType,
+                    Priority = _priority,
+                    ColorHex = _colorHex
                 };
 
                 var created = await GroupService.CreateGroupAsync(createDto);
                 Snackbar.Add("Gruppo creato con successo", Severity.Success);
-                
-                // Navigate to edit page
                 NavigationManager.NavigateTo($"/business/groups/{created.Id}");
             }
             else if (GroupId.HasValue)
             {
                 var updateDto = new UpdateBusinessPartyGroupDto
                 {
-                    Name = _group.Name,
-                    Code = _group.Code,
-                    Description = _group.Description,
-                    GroupType = _group.GroupType,
-                    ColorHex = _group.ColorHex,
-                    Icon = _group.Icon,
-                    Priority = _group.Priority, // Mantiene priorità attuale
-                    IsActive = _group.IsActive,
-                    ValidFrom = _group.ValidFrom,
-                    ValidTo = _group.ValidTo
+                    Name = _groupName,
+                    Code = _groupCode,
+                    Description = _description,
+                    GroupType = _groupType,
+                    Priority = _priority,
+                    ColorHex = _colorHex,
+                    IsActive = _group?.IsActive ?? true,
+                    ValidFrom = _group?.ValidFrom,
+                    ValidTo = _group?.ValidTo
                 };
 
-                var updated = await GroupService.UpdateGroupAsync(GroupId.Value, updateDto);
-                if (updated == null)
-                {
-                    Snackbar.Add("Gruppo non trovato o non più disponibile", Severity.Warning);
-                    return;
-                }
-                
+                await GroupService.UpdateGroupAsync(GroupId.Value, updateDto);
                 Snackbar.Add("Gruppo aggiornato con successo", Severity.Success);
-                await LoadGroupAsync(); // Refresh and reset snapshot
+                await LoadDataAsync();
             }
         }
         catch (Exception ex)
@@ -548,80 +374,108 @@
         }
     }
 
-    private void MarkChanged()
+    private async Task OpenAddMemberDialog()
     {
-        _hasLocalChanges = true;
-        StateHasChanged();
-    }
-
-    private string SerializeGroup(BusinessPartyGroupDto? g)
-    {
-        if (g == null) return string.Empty;
-        return System.Text.Json.JsonSerializer.Serialize(g, _jsonOptions);
-    }
-
-    private bool HasUnsavedChanges()
-    {
-        if (_group == null) return false;
-        if (_hasLocalChanges) return true;
-        var current = SerializeGroup(_group);
-        return !string.Equals(current, _originalGroupSnapshot, StringComparison.Ordinal);
-    }
-
-    private async Task TryNavigateAway(string target)
-    {
-        if (!HasUnsavedChanges())
+        var parameters = new DialogParameters<AddGroupMemberDialog>
         {
-            NavigationManager.NavigateTo(target);
-            return;
-        }
+            { x => x.GroupId, _group!.Id },
+            { x => x.GroupType, _group.GroupType },
+            { x => x.ExistingMemberIds, _members?.Select(m => m.BusinessPartyId).ToList() }
+        };
 
-        var result = await DialogService.ShowMessageBox(
-            "Conferma", 
-            "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?",
-            yesText: "Salva",
-            noText: "Non salvare",
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddGroupMemberDialog>(
+            "Aggiungi Membro",
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadMembersAsync();
+        }
+    }
+
+    private async Task OpenBulkAddDialog()
+    {
+        var parameters = new DialogParameters<BulkAddGroupMembersDialog>
+        {
+            { x => x.GroupId, _group!.Id },
+            { x => x.GroupType, _group.GroupType },
+            { x => x.ExistingMemberIds, _members?.Select(m => m.BusinessPartyId).ToList() }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<BulkAddGroupMembersDialog>(
+            "Aggiungi Multipli Membri",
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadMembersAsync();
+        }
+    }
+
+    private async Task OpenEditMemberDialog(BusinessPartyGroupMemberDto member)
+    {
+        var parameters = new DialogParameters<EditGroupMemberDialog>
+        {
+            { x => x.Member, member },
+            { x => x.GroupId, _group!.Id }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditGroupMemberDialog>(
+            "Modifica Membro",
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadMembersAsync();
+        }
+    }
+
+    private async Task RemoveMember(Guid memberId, Guid businessPartyId)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Conferma",
+            "Sei sicuro di voler rimuovere questo membro dal gruppo?",
+            yesText: "Rimuovi",
             cancelText: "Annulla");
 
-        if (result == true)
-        {
-            await SaveGroupAsync();
-            // Navigate away only if there are no more unsaved changes after saving
-            if (!HasUnsavedChanges())
-            {
-                NavigationManager.NavigateTo(target);
-            }
-        }
-        else if (result == false)
-        {
-            NavigationManager.NavigateTo(target);
-        }
-    }
+        if (confirm != true) return;
 
-    #region Helper Methods
-
-    private string GetPreviewBadgeStyle()
-    {
-        if (string.IsNullOrEmpty(ColorHex))
-            return string.Empty;
-        
-        var bgColor = $"{ColorHex}20";
-        return $"background-color: {bgColor}; color: {ColorHex}; border: 1px solid {ColorHex}40;";
+        try
+        {
+            await GroupService.RemoveMemberAsync(_group!.Id, businessPartyId);
+            Snackbar.Add("Membro rimosso con successo", Severity.Success);
+            await LoadMembersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to remove member {MemberId}", memberId);
+            Snackbar.Add("Errore durante la rimozione del membro", Severity.Error);
+        }
     }
 
     private Color GetBusinessPartyTypeColor(BusinessPartyType type) => type switch
     {
-        BusinessPartyType.Cliente => Color.Primary,
-        BusinessPartyType.Customer => Color.Primary,
-        BusinessPartyType.Supplier => Color.Success,
-        BusinessPartyType.Both => Color.Secondary,
+        BusinessPartyType.Cliente or BusinessPartyType.Customer => Color.Primary,
+        BusinessPartyType.Supplier => Color.Secondary,
+        BusinessPartyType.Both => Color.Info,
         _ => Color.Default
     };
 
     private string GetBusinessPartyTypeLabel(BusinessPartyType type) => type switch
     {
-        BusinessPartyType.Cliente => "Cliente",
-        BusinessPartyType.Customer => "Cliente",
+        BusinessPartyType.Cliente or BusinessPartyType.Customer => "Cliente",
         BusinessPartyType.Supplier => "Fornitore",
         BusinessPartyType.Both => "Entrambi",
         _ => "N/D"
@@ -631,8 +485,8 @@
     {
         BusinessPartyGroupMemberStatus.Active => Color.Success,
         BusinessPartyGroupMemberStatus.Suspended => Color.Warning,
-        BusinessPartyGroupMemberStatus.Expired => Color.Error,
-        BusinessPartyGroupMemberStatus.Revoked => Color.Dark,
+        BusinessPartyGroupMemberStatus.Expired => Color.Default,
+        BusinessPartyGroupMemberStatus.Revoked => Color.Error,
         _ => Color.Default
     };
 
@@ -644,54 +498,4 @@
         BusinessPartyGroupMemberStatus.Revoked => "Revocato",
         _ => "N/D"
     };
-
-    #endregion
-
-    #region Member Management (Placeholder)
-
-    private async Task OpenAddMemberDialog()
-    {
-        // TODO: Implementare dialog con UnifiedBusinessPartySelector
-        Snackbar.Add("Funzionalità aggiungi membro in sviluppo", Severity.Info);
-        await Task.CompletedTask;
-    }
-
-    private async Task OpenEditMemberDialog(BusinessPartyGroupMemberDto member)
-    {
-        // TODO: Implementare dialog modifica membro
-        Snackbar.Add("Funzionalità modifica membro in sviluppo", Severity.Info);
-        await Task.CompletedTask;
-    }
-
-    private async Task RemoveMember(Guid businessPartyId)
-    {
-        try
-        {
-            var confirm = await DialogService.ShowMessageBox(
-                "Conferma",
-                "Sei sicuro di voler rimuovere questo membro dal gruppo?",
-                yesText: "Rimuovi",
-                cancelText: "Annulla");
-
-            if (confirm != true) return;
-
-            var removed = await GroupService.RemoveMemberAsync(_group!.Id, businessPartyId);
-            if (removed)
-            {
-                Snackbar.Add("Membro rimosso con successo", Severity.Success);
-                await LoadMembersAsync();
-            }
-            else
-            {
-                Snackbar.Add("Impossibile rimuovere il membro: membro non trovato o già rimosso", Severity.Warning);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to remove business party {BusinessPartyId}", businessPartyId);
-            Snackbar.Add("Errore durante la rimozione del membro", Severity.Error);
-        }
-    }
-
-    #endregion
 }
