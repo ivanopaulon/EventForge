@@ -95,7 +95,8 @@
                      IsLoading="_isLoadingData"
                      ComponentKey="PriceListManagement"
                      InitialColumnConfigurations="_initialColumns"
-                     AllowDragDropGrouping="true">
+                     AllowDragDropGrouping="true"
+                     OnRowClick="@(args => NavigationManager.NavigateTo($"/management/pricelists/{args.Item.Id}"))">
                 <ToolBarContent>
                     <MudText Typo="Typo.h5">
                         @TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")
@@ -306,21 +307,15 @@
                         }
                     }
                     <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                        <MudMenu Icon="@Icons.Material.Outlined.MoreVert" Size="Size.Small" Dense="true">
-                            <MudMenuItem OnClick="@(() => ViewDetails(item))" Icon="@Icons.Material.Outlined.Visibility">
-                                @TranslationService.GetTranslation("common.view", "Visualizza")
-                            </MudMenuItem>
-                            <MudMenuItem OnClick="@(() => EditItem(item))" Icon="@Icons.Material.Outlined.Edit">
-                                @TranslationService.GetTranslation("common.edit", "Modifica")
-                            </MudMenuItem>
-                            <MudMenuItem OnClick="@(() => DuplicateItem(item))" Icon="@Icons.Material.Outlined.ContentCopy">
-                                @TranslationService.GetTranslation("common.duplicate", "Duplica")
-                            </MudMenuItem>
-                            <MudDivider />
-                            <MudMenuItem OnClick="@(() => DeleteItem(item))" Icon="@Icons.Material.Outlined.Delete" IconColor="Color.Error">
-                                @TranslationService.GetTranslation("common.delete", "Elimina")
-                            </MudMenuItem>
-                        </MudMenu>
+                        <ActionButtonGroup EntityName="@item.Name"
+                                           ItemDisplayName="@item.Name"
+                                           ShowView="false"
+                                           ShowEdit="true"
+                                           ShowAuditLog="false"
+                                           ShowToggleStatus="false"
+                                           ShowDelete="true"
+                                           OnEdit="@(() => EditItem(item))"
+                                           OnDelete="@(() => DeleteItem(item))" />
                     </MudTd>
                 </RowTemplate>
 
@@ -668,16 +663,10 @@
         }
     }
 
-    private void ViewDetails(PriceListDto item)
-    {
-        // Navigate to detail page (placeholder for now)
-        NavigationManager.NavigateTo($"/management/pricelists/{item.Id}");
-    }
-
     private void EditItem(PriceListDto item)
     {
-        // Navigate to edit page (placeholder for now)
-        NavigationManager.NavigateTo($"/management/pricelists/{item.Id}/edit");
+        // Navigate to detail page
+        NavigationManager.NavigateTo($"/management/pricelists/{item.Id}");
     }
 
     private void DuplicateItem(PriceListDto item)
