@@ -566,7 +566,11 @@
                               $"{(member.IsFeatured ? "Sì" : "No")}");
             }
             
-            var fileName = $"membri_gruppo_{_group?.Name ?? "export"}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            var groupName = _group?.Name ?? "export";
+            // Sanitize filename by removing invalid characters
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var sanitizedName = string.Join("_", groupName.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
+            var fileName = $"membri_gruppo_{sanitizedName}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
             
             await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", csv.ToString());
             
