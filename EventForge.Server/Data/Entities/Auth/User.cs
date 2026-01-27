@@ -145,6 +145,13 @@ public class User : AuditableEntity
     public bool InAppNotificationsEnabled { get; set; } = true;
 
     /// <summary>
+    /// Additional metadata in JSON format for extensibility (e.g., notification preferences).
+    /// Uses NVARCHAR(MAX) to accommodate complex metadata structures without truncation.
+    /// </summary>
+    [Display(Name = "Metadata JSON", Description = "Additional metadata in JSON format.")]
+    public string? MetadataJson { get; set; }
+
+    /// <summary>
     /// Tenant ID this user belongs to.
     /// </summary>
     [Required]
