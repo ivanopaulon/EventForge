@@ -10,9 +10,9 @@ public interface IBusinessPartyGroupService
 {
     Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 100, BusinessPartyGroupType? groupType = null);
     Task<BusinessPartyGroupDto?> GetGroupByIdAsync(Guid id);
-    Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto, string currentUser);
-    Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto, string currentUser);
-    Task<bool> DeleteGroupAsync(Guid id, string currentUser);
+    Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto);
+    Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto);
+    Task<bool> DeleteGroupAsync(Guid id);
 }
 
 /// <summary>
@@ -63,7 +63,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto, string currentUser)
+    public async Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto)
     {
         try
         {
@@ -77,7 +77,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto, string currentUser)
+    public async Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto)
     {
         try
         {
@@ -91,7 +91,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<bool> DeleteGroupAsync(Guid id, string currentUser)
+    public async Task<bool> DeleteGroupAsync(Guid id)
     {
         try
         {
