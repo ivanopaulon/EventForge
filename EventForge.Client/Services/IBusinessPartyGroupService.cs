@@ -64,6 +64,13 @@ public interface IBusinessPartyGroupService
     Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto addDto);
 
     /// <summary>
+    /// Adds multiple members to a business party group in a single operation.
+    /// </summary>
+    /// <param name="bulkDto">Bulk add members data</param>
+    /// <returns>Bulk operation result with success/failure counts</returns>
+    Task<BulkOperationResultDto> AddMembersBulkAsync(BulkAddMembersDto bulkDto);
+
+    /// <summary>
     /// Removes a member from a business party group.
     /// </summary>
     /// <param name="groupId">Group ID</param>
@@ -77,5 +84,5 @@ public interface IBusinessPartyGroupService
     /// <param name="membershipId">Membership ID</param>
     /// <param name="updateDto">Membership update data</param>
     /// <returns>Updated member DTO</returns>
-    Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto);
+    Task<BusinessPartyGroupMemberDto> UpdateMemberAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto);
 }

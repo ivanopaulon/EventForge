@@ -4,26 +4,6 @@ using EventForge.DTOs.Business;
 namespace EventForge.Client.Services;
 
 /// <summary>
-/// Client-side service for managing Business Party Groups.
-/// </summary>
-public interface IBusinessPartyGroupService
-{
-    // Group Management
-    Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 100, BusinessPartyGroupType? groupType = null);
-    Task<BusinessPartyGroupDto?> GetGroupByIdAsync(Guid id);
-    Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto);
-    Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto);
-    Task<bool> DeleteGroupAsync(Guid id);
-    
-    // Member Management
-    Task<PagedResult<BusinessPartyGroupMemberDto>> GetGroupMembersAsync(Guid groupId, int page = 1, int pageSize = 100);
-    Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto createDto);
-    Task<BulkOperationResultDto> AddMembersBulkAsync(BulkAddMembersDto bulkDto);
-    Task<BusinessPartyGroupMemberDto> UpdateMemberAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto);
-    Task<bool> RemoveMemberAsync(Guid groupId, Guid businessPartyId);
-}
-
-/// <summary>
 /// Service implementation for managing Business Party Groups.
 /// </summary>
 public class BusinessPartyGroupService : IBusinessPartyGroupService
