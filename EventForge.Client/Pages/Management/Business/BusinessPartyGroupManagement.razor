@@ -1,0 +1,877 @@
+@page "/business/groups"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IBusinessPartyGroupService GroupService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<BusinessPartyGroupManagement> Logger
+
+<PageLoadingOverlay Visible="_isLoading || _isLoadingGroups"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="brand-page-root">
+        <div class="brand-top">
+            <ManagementDashboard TItem="BusinessPartyGroupDto"
+                                 Items="_filteredGroups"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="BusinessPartyGroup"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
+
+        <!-- Reorder Mode Toolbar -->
+        @if (_groups.Any())
+        {
+            <MudPaper Elevation="1" Class="pa-3 mb-3">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <!-- Toggle Switch -->
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudSwitch @bind-Value="_isReorderMode" Color="Color.Primary" T="bool">
+                            <MudText Typo="Typo.body2">
+                                <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" Size="Size.Small" />
+                                Modalità Riordino
+                            </MudText>
+                        </MudSwitch>
+                        
+                        @if (_isReorderMode)
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Text" Class="pa-2">
+                                Usa le frecce per riordinare. Le priorità verranno ricalcolate automaticamente.
+                            </MudAlert>
+                        }
+                    </MudStack>
+                    
+                    <!-- Save/Cancel Buttons -->
+                    @if (_isReorderMode && _hasReorderChanges)
+                    {
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="SaveReorderAsync"
+                                       Disabled="_isSavingOrder">
+                                Salva Ordine
+                            </MudButton>
+                            
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Default"
+                                       StartIcon="@Icons.Material.Filled.Undo"
+                                       OnClick="CancelReorder">
+                                Annulla
+                            </MudButton>
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="BusinessPartyGroupDto"
+                 Items="_filteredGroups"
+                 MultiSelection="@(!_isReorderMode)"
+                 SelectedItems="_selectedGroups"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingGroups"
+                 ComponentKey="BusinessPartyGroupManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="@(!_isReorderMode)">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("businessPartyGroup.management", "Gestione Gruppi Business Party")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("businessPartyGroup.search", "Cerca gruppi")"
+                              Placeholder="@TranslationService.GetTranslation("businessPartyGroup.searchPlaceholder", "Inserisci nome o codice...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Disabled="_isReorderMode"
+                              Class="ef-input" />
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedGroups.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateTooltip="businessPartyGroup.createNew"
+                                        IsDisabled="@(_isLoadingGroups || _isReorderMode)"
+                                        OnRefresh="@LoadGroupsAsync"
+                                        OnCreate="@CreateGroup"
+                                        OnDelete="@DeleteSelectedGroups" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @if (_isReorderMode)
+                {
+                    <MudTh Style="width:80px;">Azioni</MudTh>
+                }
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Priority")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Priority" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.Priority))" InitialDirection="SortDirection.Descending" Enabled="@(!_isReorderMode)">@TranslationService.GetTranslation("field.priority", "Priorità")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Name")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.Name))" Enabled="@(!_isReorderMode)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Code")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Code" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.Code ?? string.Empty))" Enabled="@(!_isReorderMode)">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "GroupType")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="GroupType" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.GroupType))" Enabled="@(!_isReorderMode)">@TranslationService.GetTranslation("field.groupType", "Tipo")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "ActiveMembersCount")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="ActiveMembersCount" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.ActiveMembersCount))" Enabled="@(!_isReorderMode)">@TranslationService.GetTranslation("field.members", "Membri")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "ColorPreview")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="ColorPreview" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            @TranslationService.GetTranslation("field.color", "Colore")
+                        </EFTableColumnHeader>
+                    }
+                }
+                @if (!_isReorderMode)
+                {
+                    <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                }
+            </HeaderContent>
+
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                    var index = _orderedGroups.IndexOf(item);
+                }
+                
+                @* Reorder Actions Column *@
+                @if (_isReorderMode)
+                {
+                    <MudTd Style="width:80px;">
+                        <MudStack Row="true" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           Disabled="@(index == 0)"
+                                           OnClick="@(() => MoveUp(item))"
+                                           title="Sposta su" />
+                            
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           Disabled="@(index == _orderedGroups.Count - 1)"
+                                           OnClick="@(() => MoveDown(item))"
+                                           title="Sposta giù" />
+                        </MudStack>
+                    </MudTd>
+                }
+                
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Priority")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.priority", "Priorità")">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudChip T="string" 
+                                         Size="Size.Small" 
+                                         Color="@GetPriorityColor(item.Priority)"
+                                         Variant="Variant.Filled">
+                                    @item.Priority
+                                </MudChip>
+                                
+                                @* Change Indicator *@
+                                @if (_isReorderMode && _originalPriorities.ContainsKey(item.Id) && _originalPriorities[item.Id] != item.Priority)
+                                {
+                                    <MudTooltip Text="@($"Era: {_originalPriorities[item.Id]}")">
+                                        <MudIcon Icon="@Icons.Material.Filled.ChangeCircle" 
+                                                 Size="Size.Small" 
+                                                 Color="Color.Warning" />
+                                    </MudTooltip>
+                                }
+                            </MudStack>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Name")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                @if (_isReorderMode)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" 
+                                             Size="Size.Small" 
+                                             Style="cursor: grab; color: var(--mud-palette-text-secondary);" />
+                                }
+                                
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Variant="Variant.Filled"
+                                         Style="@GetGroupBadgeStyle(item)"
+                                         Icon="@item.Icon">
+                                    @item.Name
+                                </MudChip>
+                            </MudStack>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Code")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                            <MudText Typo="Typo.body2">@(item.Code ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "GroupType")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.groupType", "Tipo")">
+                            <MudChip T="string" Size="Size.Small" Color="@GetGroupTypeColor(item.GroupType)">
+                                @GetGroupTypeLabel(item.GroupType)
+                            </MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ActiveMembersCount")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.members", "Membri")">
+                            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.People">
+                                @item.ActiveMembersCount / @item.TotalMembersCount
+                            </MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ColorPreview")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.color", "Colore")">
+                            @if (!string.IsNullOrEmpty(item.ColorHex))
+                            {
+                                <div style="width:30px; height:30px; background:@item.ColorHex; border-radius:4px; border:1px solid #ccc;"></div>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">-</MudText>
+                            }
+                        </MudTd>
+                    }
+                }
+                
+                @* Actions Column (only in normal mode) *@
+                @if (!_isReorderMode)
+                {
+                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                        <ActionButtonGroup EntityName="@item.Name"
+                                           ItemDisplayName="@item.Name"
+                                           ShowView="false"
+                                           ShowEdit="true"
+                                           ShowAuditLog="true"
+                                           ShowToggleStatus="false"
+                                           ShowDelete="true"
+                                           OnEdit="@(() => EditGroup(item.Id))"
+                                           OnAuditLog="@(() => ViewGroupAuditLog(item))"
+                                           OnDelete="@(() => DeleteGroup(item))" />
+                    </MudTd>
+                }
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Group" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_groups.Any() ?
+                                            TranslationService.GetTranslation("businessPartyGroup.noGroupsMatchFilters", "Nessun gruppo corrisponde ai filtri applicati") :
+                                            TranslationService.GetTranslation("businessPartyGroup.noGroupsFound", "Nessun gruppo trovato"))
+                    </MudText>
+                    @if (_groups.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+            
+            <!-- Pagination -->
+            @if (_pagedResult != null)
+            {
+                <MudDivider Class="my-4" />
+                <div class="d-flex justify-center align-center flex-wrap gap-4">
+                    @if (_pagedResult.TotalPages > 1)
+                    {
+                        <MudPagination Count="@_pagedResult.TotalPages" 
+                                       Selected="@_currentPage" 
+                                       Color="Color.Primary"
+                                       Size="Size.Medium"
+                                       ShowFirstButton="true"
+                                       ShowLastButton="true"
+                                       SelectedChanged="@OnPageChanged" />
+                    }
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @if (_pagedResult.TotalPages > 1)
+                        {
+                            @TranslationService.GetTranslation("pagination.info", 
+                                "Pagina {0} di {1} - Totale: {2} gruppi", 
+                                _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
+                        }
+                        else
+                        {
+                            @TranslationService.GetTranslation("pagination.singlePage", 
+                                "Totale: {0} gruppi", 
+                                _pagedResult.TotalCount)
+                        }
+                    </MudText>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingGroups = false;
+    private bool _isReorderMode = false;
+    private bool _isSavingOrder = false;
+    private bool _hasReorderChanges = false;
+
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
+
+    // Pagination state
+    private PagedResult<BusinessPartyGroupDto>? _pagedResult;
+    private int _currentPage = 1;
+    private int _pageSize = 100;
+
+    // Data collections
+    private List<BusinessPartyGroupDto> _groups = new();
+    private List<BusinessPartyGroupDto> _orderedGroups = new();
+    private Dictionary<Guid, int> _originalPriorities = new();
+    private HashSet<BusinessPartyGroupDto> _selectedGroups = new();
+
+    // EFTable reference
+    private EFTable<BusinessPartyGroupDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Priority", DisplayName = "Priorità", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 2 },
+        new() { PropertyName = "GroupType", DisplayName = "Tipo", IsVisible = true, Order = 3 },
+        new() { PropertyName = "ActiveMembersCount", DisplayName = "Membri", IsVisible = true, Order = 4 },
+        new() { PropertyName = "ColorPreview", DisplayName = "Colore", IsVisible = true, Order = 5 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<BusinessPartyGroupDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Gruppi",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Group,
+            Color = "primary",
+            Description = "Numero totale di gruppi",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Gruppi Clienti",
+            Type = MetricType.Count,
+            Filter = g => g.GroupType == BusinessPartyGroupType.Customer || g.GroupType == BusinessPartyGroupType.Both,
+            Icon = Icons.Material.Outlined.Person,
+            Color = "info",
+            Description = "Gruppi per clienti"
+        },
+        new()
+        {
+            Title = "Gruppi Fornitori",
+            Type = MetricType.Count,
+            Filter = g => g.GroupType == BusinessPartyGroupType.Supplier || g.GroupType == BusinessPartyGroupType.Both,
+            Icon = Icons.Material.Outlined.LocalShipping,
+            Color = "success",
+            Description = "Gruppi per fornitori"
+        },
+        new()
+        {
+            Title = "Gruppi Attivi",
+            Type = MetricType.Count,
+            Filter = g => g.IsActive && g.IsCurrentlyValid,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Gruppi attualmente validi"
+        }
+    };
+
+    private EventCallback<HashSet<BusinessPartyGroupDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<BusinessPartyGroupDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered groups based on search criteria.
+    /// </summary>
+    private IEnumerable<BusinessPartyGroupDto> _filteredGroups
+    {
+        get
+        {
+            var items = _isReorderMode ? _orderedGroups : _groups;
+            
+            return items.Where(g => 
+                string.IsNullOrEmpty(_searchTerm) || 
+                g.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (g.Code != null && g.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<BusinessPartyGroupDto> items)
+    {
+        _selectedGroups = items;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // Load groups
+            await LoadGroupsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("businessPartyGroup.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading business party groups page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads group data.
+    /// </summary>
+    private async Task LoadGroupsAsync()
+    {
+        try
+        {
+            _isLoadingGroups = true;
+            _pagedResult = await GroupService.GetGroupsAsync(_currentPage, _pageSize);
+            
+            if (_pagedResult != null)
+            {
+                _groups = _pagedResult.Items.OrderByDescending(g => g.Priority).ToList();
+            }
+            
+            RefreshOrderedGroups();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("businessPartyGroup.loadingGroupsError", "Errore nel caricamento dei gruppi: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading business party groups");
+        }
+        finally
+        {
+            _isLoadingGroups = false;
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the ordered groups list and saves original priorities.
+    /// </summary>
+    private void RefreshOrderedGroups()
+    {
+        _orderedGroups = _groups.OrderByDescending(g => g.Priority).ToList();
+        
+        // Save snapshot of original priorities
+        _originalPriorities.Clear();
+        foreach (var group in _orderedGroups)
+        {
+            _originalPriorities[group.Id] = group.Priority;
+        }
+        
+        _hasReorderChanges = false;
+    }
+
+    /// <summary>
+    /// Recalculates priorities from 100 (first) to 1 (last) with uniform distribution.
+    /// </summary>
+    private void RecalculatePriorities()
+    {
+        var count = _orderedGroups.Count;
+        for (int i = 0; i < count; i++)
+        {
+            int newPriority;
+            
+            if (count == 1)
+            {
+                newPriority = 100;
+            }
+            else
+            {
+                double step = 99.0 / (count - 1);
+                newPriority = (int)(100 - (i * step));
+            }
+            
+            _orderedGroups[i].Priority = newPriority;
+        }
+    }
+
+    /// <summary>
+    /// Moves a group up in the order (swap with previous).
+    /// </summary>
+    private void MoveUp(BusinessPartyGroupDto group)
+    {
+        var index = _orderedGroups.IndexOf(group);
+        if (index <= 0) return;
+        
+        _orderedGroups.RemoveAt(index);
+        _orderedGroups.Insert(index - 1, group);
+        
+        RecalculatePriorities();
+        _hasReorderChanges = true;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Moves a group down in the order (swap with next).
+    /// </summary>
+    private void MoveDown(BusinessPartyGroupDto group)
+    {
+        var index = _orderedGroups.IndexOf(group);
+        if (index >= _orderedGroups.Count - 1) return;
+        
+        _orderedGroups.RemoveAt(index);
+        _orderedGroups.Insert(index + 1, group);
+        
+        RecalculatePriorities();
+        _hasReorderChanges = true;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Saves the reordered priorities (batch update only changed items).
+    /// </summary>
+    private async Task SaveReorderAsync()
+    {
+        try
+        {
+            _isSavingOrder = true;
+            
+            var updates = _orderedGroups
+                .Where(g => _originalPriorities.ContainsKey(g.Id) && _originalPriorities[g.Id] != g.Priority)
+                .ToList();
+            
+            foreach (var group in updates)
+            {
+                var updateDto = new UpdateBusinessPartyGroupDto
+                {
+                    Name = group.Name,
+                    Code = group.Code,
+                    Description = group.Description,
+                    GroupType = group.GroupType,
+                    ColorHex = group.ColorHex,
+                    Icon = group.Icon,
+                    Priority = group.Priority,
+                    IsActive = group.IsActive,
+                    ValidFrom = group.ValidFrom,
+                    ValidTo = group.ValidTo
+                };
+                
+                await GroupService.UpdateGroupAsync(group.Id, updateDto);
+            }
+            
+            Snackbar.Add($"Ordine salvato! {updates.Count} priorità aggiornate.", Severity.Success);
+            
+            // Refresh data and exit reorder mode
+            await LoadGroupsAsync();
+            _isReorderMode = false;
+            _hasReorderChanges = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("businessPartyGroup.saveOrderError", "Errore nel salvataggio dell'ordine: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error saving group order");
+        }
+        finally
+        {
+            _isSavingOrder = false;
+        }
+    }
+
+    /// <summary>
+    /// Cancels reordering and restores original priorities.
+    /// </summary>
+    private void CancelReorder()
+    {
+        foreach (var group in _orderedGroups)
+        {
+            if (_originalPriorities.TryGetValue(group.Id, out var originalPriority))
+            {
+                group.Priority = originalPriority;
+            }
+        }
+        
+        RefreshOrderedGroups();
+        _hasReorderChanges = false;
+        _isReorderMode = false;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Gets the color for a priority value.
+    /// </summary>
+    private Color GetPriorityColor(int priority) => priority switch
+    {
+        >= 90 => Color.Error,     // Red = highest
+        >= 70 => Color.Warning,   // Orange = high
+        >= 50 => Color.Info,      // Blue = medium
+        >= 30 => Color.Success,   // Green = low
+        _ => Color.Default        // Gray = lowest
+    };
+
+    /// <summary>
+    /// Gets the badge style for a group with colored background.
+    /// </summary>
+    private string GetGroupBadgeStyle(BusinessPartyGroupDto group)
+    {
+        if (string.IsNullOrEmpty(group.ColorHex))
+            return string.Empty;
+        
+        var bgColor = $"{group.ColorHex}20"; // opacity 12.5%
+        return $"background-color: {bgColor}; color: {group.ColorHex}; border: 1px solid {group.ColorHex}40;";
+    }
+
+    /// <summary>
+    /// Gets the color for a group type.
+    /// </summary>
+    private Color GetGroupTypeColor(BusinessPartyGroupType type) => type switch
+    {
+        BusinessPartyGroupType.Customer => Color.Primary,
+        BusinessPartyGroupType.Supplier => Color.Success,
+        BusinessPartyGroupType.Both => Color.Secondary,
+        _ => Color.Default
+    };
+
+    /// <summary>
+    /// Gets the label for a group type.
+    /// </summary>
+    private string GetGroupTypeLabel(BusinessPartyGroupType type) => type switch
+    {
+        BusinessPartyGroupType.Customer => "Cliente",
+        BusinessPartyGroupType.Supplier => "Fornitore",
+        BusinessPartyGroupType.Both => "Entrambi",
+        _ => "N/D"
+    };
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _currentPage = page;
+        await LoadGroupsAsync();
+    }
+
+    private void CreateGroup()
+    {
+        NavigationManager.NavigateTo("/business/groups/new");
+    }
+
+    private void EditGroup(Guid id)
+    {
+        NavigationManager.NavigateTo($"/business/groups/{id}");
+    }
+
+    private async Task DeleteGroup(BusinessPartyGroupDto group)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("businessPartyGroup.confirmDelete", 
+            "Sei sicuro di voler eliminare il gruppo '{0}'? Questa azione non può essere annullata.", 
+            group.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await GroupService.DeleteGroupAsync(group.Id);
+                _groups.Remove(group);
+                Snackbar.Add(TranslationService.GetTranslation("businessPartyGroup.groupDeleted", "Gruppo eliminato con successo!"), Severity.Success);
+                await LoadGroupsAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("businessPartyGroup.deleteGroupError", 
+                    "Errore nell'eliminazione del gruppo: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting group {GroupId}", group.Id);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens the audit log dialog for a group using IDialogService.
+    /// </summary>
+    private async Task ViewGroupAuditLog(BusinessPartyGroupDto group)
+    {
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "BusinessPartyGroup" },
+            { x => x.EntityId, group.Id },
+            { x => x.EntityName, group.Name }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
+    }
+
+    /// <summary>
+    /// Deletes all selected groups.
+    /// </summary>
+    private async Task DeleteSelectedGroups()
+    {
+        if (_selectedGroups.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("businessPartyGroup.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} gruppi selezionati? Questa azione non può essere annullata.", 
+            _selectedGroups.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var group in _selectedGroups.ToList())
+                {
+                    try
+                    {
+                        await GroupService.DeleteGroupAsync(group.Id);
+                        _groups.RemoveAll(g => g.Id == group.Id);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting group {GroupId}", group.Id);
+                    }
+                }
+                
+                _selectedGroups.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("businessPartyGroup.deletedMultiple", 
+                        "{0} gruppi eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("businessPartyGroup.deletedMultiplePartial", 
+                        "{0} gruppi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                await LoadGroupsAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslationFormatted("businessPartyGroup.deleteError", 
+                    "Errore nell'eliminazione dei gruppi: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected groups");
+            }
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
+        }
+    }
+}
