@@ -57,7 +57,9 @@
                                Adornment="Adornment.Start">
                         @foreach (var warehouse in _warehouses)
                         {
-                            <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Code - @warehouse.Name</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="@warehouse.Id">
+                                @(string.IsNullOrWhiteSpace(warehouse.Code) ? warehouse.Name : $"{warehouse.Code} - {warehouse.Name}")
+                            </MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
