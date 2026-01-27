@@ -248,6 +248,19 @@ public class StockService : IStockService
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
+            // Validate GUID is not empty BEFORE database query
+            if (createDto.ProductId == Guid.Empty)
+            {
+                _logger.LogWarning("CreateOrUpdateStock called with empty ProductId");
+                throw new ArgumentException("ProductId non valido. Seleziona un prodotto valido.");
+            }
+
+            if (createDto.StorageLocationId == Guid.Empty)
+            {
+                _logger.LogWarning("CreateOrUpdateStock called with empty StorageLocationId");
+                throw new ArgumentException("Storage Location non valida. Seleziona una posizione di magazzino valida.");
+            }
+
             // Validate Product exists
             var productExists = await _context.Products
                 .AnyAsync(p => p.Id == createDto.ProductId && 
@@ -279,6 +292,12 @@ public class StockService : IStockService
             // Validate Lot if provided
             if (createDto.LotId.HasValue)
             {
+                if (createDto.LotId.Value == Guid.Empty)
+                {
+                    _logger.LogWarning("CreateOrUpdateStock called with empty LotId");
+                    throw new ArgumentException("Lot ID non valido.");
+                }
+                
                 var lotExists = await _context.Lots
                     .AnyAsync(l => l.Id == createDto.LotId.Value && 
                                   l.TenantId == currentTenantId.Value && 
