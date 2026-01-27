@@ -1,4 +1,5 @@
 using EventForge.DTOs.Warehouse;
+using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -12,13 +13,22 @@ public class StorageFacilityService : IStorageFacilityService
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<StorageFacilityService> _logger;
+    private readonly ICacheService _cacheService;
+    
+    private const string CACHE_KEY_ALL = "StorageFacilities_All";
 
-    public StorageFacilityService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<StorageFacilityService> logger)
+    public StorageFacilityService(
+        EventForgeDbContext context, 
+        IAuditLogService auditLogService, 
+        ITenantContext tenantContext, 
+        ILogger<StorageFacilityService> logger,
+        ICacheService cacheService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
     public async Task<PagedResult<StorageFacilityDto>> GetStorageFacilitiesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
@@ -32,22 +42,34 @@ public class StorageFacilityService : IStorageFacilityService
                 throw new InvalidOperationException("Tenant context is required for storage facility operations.");
             }
 
-            var query = _context.StorageFacilities
-                .WhereActiveTenant(currentTenantId.Value)
-                .Include(sf => sf.Locations.Where(l => !l.IsDeleted && l.TenantId == currentTenantId.Value));
+            // Cache all StorageFacilities for 5 minutes
+            var allFacilities = await _cacheService.GetOrCreateAsync(
+                CACHE_KEY_ALL,
+                currentTenantId.Value,
+                async () =>
+                {
+                    var facilities = await _context.StorageFacilities
+                        .WhereActiveTenant(currentTenantId.Value)
+                        .Include(sf => sf.Locations.Where(l => !l.IsDeleted && l.TenantId == currentTenantId.Value))
+                        .OrderBy(sf => sf.Name)
+                        .ToListAsync(cancellationToken);
 
-            var totalCount = await query.CountAsync(cancellationToken);
-            var facilities = await query
-                .OrderBy(sf => sf.Name)
+                    return facilities.Select(MapToStorageFacilityDto).ToList();
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5)
+            );
+
+            // Paginate in memory (StorageFacilities are typically few - usually < 50 per tenant)
+            // Note: If a tenant has a very large number of facilities, consider per-page caching
+            var totalCount = allFacilities.Count;
+            var items = allFacilities
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var facilityDtos = facilities.Select(MapToStorageFacilityDto);
+                .ToList();
 
             return new PagedResult<StorageFacilityDto>
             {
-                Items = facilityDtos,
+                Items = items,
                 Page = page,
                 PageSize = pageSize,
                 TotalCount = totalCount
@@ -116,6 +138,9 @@ public class StorageFacilityService : IStorageFacilityService
 
             _ = await _auditLogService.TrackEntityChangesAsync(facility, "Create", currentUser, null, cancellationToken);
 
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+
             _logger.LogInformation("Storage facility {FacilityId} created by {User}.", facility.Id, currentUser);
 
             return MapToStorageFacilityDto(facility);
@@ -164,6 +189,9 @@ public class StorageFacilityService : IStorageFacilityService
 
             _ = await _auditLogService.TrackEntityChangesAsync(facility, "Update", currentUser, originalFacility, cancellationToken);
 
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
+
             _logger.LogInformation("Storage facility {FacilityId} updated by {User}.", facility.Id, currentUser);
 
             return MapToStorageFacilityDto(facility);
@@ -203,6 +231,9 @@ public class StorageFacilityService : IStorageFacilityService
             _ = await _context.SaveChangesAsync(cancellationToken);
 
             _ = await _auditLogService.TrackEntityChangesAsync(facility, "Delete", currentUser, originalFacility, cancellationToken);
+
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
 
             _logger.LogInformation("Storage facility {FacilityId} deleted by {User}.", facility.Id, currentUser);
 

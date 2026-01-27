@@ -1,5 +1,6 @@
 using EventForge.DTOs.Documents;
 using EventForge.Server.Mappers;
+using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -13,6 +14,9 @@ public class DocumentTypeService : IDocumentTypeService
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<DocumentTypeService> _logger;
+    private readonly ICacheService _cacheService;
+    
+    private const string CACHE_KEY_ALL = "DocumentTypes_All";
 
     /// <summary>
     /// Initializes a new instance of the DocumentTypeService
@@ -21,16 +25,19 @@ public class DocumentTypeService : IDocumentTypeService
     /// <param name="auditLogService">Audit log service</param>
     /// <param name="tenantContext">Tenant context</param>
     /// <param name="logger">Logger</param>
+    /// <param name="cacheService">Cache service</param>
     public DocumentTypeService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
-        ILogger<DocumentTypeService> logger)
+        ILogger<DocumentTypeService> logger,
+        ICacheService cacheService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
     /// <inheritdoc />
@@ -45,13 +52,24 @@ public class DocumentTypeService : IDocumentTypeService
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
-            var entities = await _context.DocumentTypes
-                .Include(dt => dt.DefaultWarehouse)
-                .Where(dt => dt.TenantId == tenantId.Value)
-                .OrderBy(dt => dt.Name)
-                .ToListAsync(cancellationToken);
+            // Cache all DocumentTypes for 30 minutes
+            var allDocumentTypes = await _cacheService.GetOrCreateAsync(
+                CACHE_KEY_ALL,
+                tenantId.Value,
+                async () =>
+                {
+                    var entities = await _context.DocumentTypes
+                        .Include(dt => dt.DefaultWarehouse)
+                        .Where(dt => dt.TenantId == tenantId.Value)
+                        .OrderBy(dt => dt.Name)
+                        .ToListAsync(cancellationToken);
 
-            return DocumentTypeMapper.ToDtoCollection(entities);
+                    return DocumentTypeMapper.ToDtoCollection(entities).ToList();
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(30)
+            );
+
+            return allDocumentTypes;
         }
         catch (Exception ex)
         {
@@ -116,6 +134,9 @@ public class DocumentTypeService : IDocumentTypeService
                 .Reference(dt => dt.DefaultWarehouse)
                 .LoadAsync(cancellationToken);
 
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
+
             _logger.LogInformation("Document type {DocumentTypeId} created by {User}.", entity.Id, currentUser);
 
             return DocumentTypeMapper.ToDto(entity);
@@ -170,6 +191,9 @@ public class DocumentTypeService : IDocumentTypeService
 
             _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
+
             _logger.LogInformation("Document type {DocumentTypeId} updated by {User}.", id, currentUser);
 
             return DocumentTypeMapper.ToDto(entity);
@@ -221,6 +245,9 @@ public class DocumentTypeService : IDocumentTypeService
             _ = await _context.SaveChangesAsync(cancellationToken);
 
             _ = await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
+
+            // Invalidate cache
+            _cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
 
             _logger.LogInformation("Document type {DocumentTypeId} deleted by {User}.", id, currentUser);
 
