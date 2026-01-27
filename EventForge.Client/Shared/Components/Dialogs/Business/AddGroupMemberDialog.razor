@@ -1,0 +1,183 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components.Business
+@inject IBusinessPartyGroupService GroupService
+@inject ISnackbar Snackbar
+@inject ILogger<AddGroupMemberDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" />
+            <MudText Typo="Typo.h6">Aggiungi Membro al Gruppo</MudText>
+        </MudStack>
+    </TitleContent>
+    
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudStack Spacing="3">
+                <!-- UnifiedBusinessPartySelector -->
+                <UnifiedBusinessPartySelector @bind-SelectedBusinessParty="_selectedBusinessParty"
+                                              FilterByType="@GetBusinessPartyType()"
+                                              ShowGroups="true"
+                                              AutoFocus="true"
+                                              Title="Seleziona Business Party"
+                                              AllowClear="true" />
+                
+                @if (_selectedBusinessParty != null)
+                {
+                    <!-- Alert duplicato -->
+                    @if (_isDuplicate)
+                    {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+                            <MudText>⚠️ Questo Business Party è già membro del gruppo!</MudText>
+                        </MudAlert>
+                    }
+                    
+                    <MudDivider />
+                    
+                    <!-- Date pickers -->
+                    <MudStack Spacing="2">
+                        <MudDatePicker @bind-Date="_memberSince" 
+                                       Label="Membro Dal" 
+                                       Required="true"
+                                       Variant="Variant.Outlined"
+                                       HelperText="Data di inizio appartenenza al gruppo" />
+                        
+                        <MudDatePicker @bind-Date="_memberUntil" 
+                                       Label="Membro Fino" 
+                                       Clearable="true"
+                                       Variant="Variant.Outlined"
+                                       HelperText="Data di fine appartenenza (opzionale)" />
+                    </MudStack>
+                    
+                    <MudDivider />
+                    
+                    <!-- Priority + Featured -->
+                    <MudStack Spacing="2">
+                        <MudNumericField @bind-Value="_overridePriority" 
+                                         Label="Priorità Specifica" 
+                                         Min="0" 
+                                         Max="100"
+                                         Variant="Variant.Outlined"
+                                         HelperText="Priorità personalizzata per questo membro (0-100)" />
+                        
+                        <MudSwitch @bind-Value="_isFeatured" 
+                                   Label="Membro in Evidenza"
+                                   Color="Color.Primary">
+                            <MudText Typo="Typo.body2">Evidenzia questo membro</MudText>
+                        </MudSwitch>
+                    </MudStack>
+                    
+                    <MudDivider />
+                    
+                    <!-- Notes -->
+                    <MudTextField @bind-Value="_notes" 
+                                  Label="Note" 
+                                  Lines="3" 
+                                  MaxLength="500"
+                                  Counter="500"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Note aggiuntive sull'appartenenza al gruppo" />
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text">
+            Annulla
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   OnClick="Submit" 
+                   Disabled="@(!_canSubmit)"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.PersonAdd">
+            Aggiungi Membro
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] 
+    public Guid GroupId { get; set; }
+    
+    [Parameter] 
+    public BusinessPartyGroupType? GroupType { get; set; }
+    
+    [Parameter] 
+    public List<Guid>? ExistingMemberIds { get; set; }
+    
+    private MudForm? _form;
+    private bool _isFormValid;
+    private BusinessPartyDto? _selectedBusinessParty;
+    private DateTime? _memberSince = DateTime.Today;
+    private DateTime? _memberUntil;
+    private int? _overridePriority;
+    private bool _isFeatured;
+    private string? _notes;
+    
+    private bool _isDuplicate => 
+        _selectedBusinessParty != null && 
+        ExistingMemberIds?.Contains(_selectedBusinessParty.Id) == true;
+    
+    private bool _canSubmit => 
+        _isFormValid && 
+        _selectedBusinessParty != null && 
+        !_isDuplicate;
+    
+    private BusinessPartyType? GetBusinessPartyType()
+    {
+        if (!GroupType.HasValue) return null;
+        
+        return GroupType.Value switch
+        {
+            BusinessPartyGroupType.Customer => BusinessPartyType.Cliente,
+            BusinessPartyGroupType.Supplier => BusinessPartyType.Supplier,
+            BusinessPartyGroupType.Both => BusinessPartyType.Both,
+            _ => null
+        };
+    }
+    
+    private async Task Submit()
+    {
+        if (_form == null || !_canSubmit || _selectedBusinessParty == null) 
+            return;
+        
+        await _form.Validate();
+        if (!_form.IsValid) 
+            return;
+        
+        try
+        {
+            var createDto = new AddBusinessPartyToGroupDto
+            {
+                BusinessPartyId = _selectedBusinessParty.Id,
+                MemberSince = _memberSince,
+                MemberUntil = _memberUntil,
+                OverridePriority = _overridePriority,
+                IsFeatured = _isFeatured,
+                Notes = _notes
+            };
+            
+            await GroupService.AddMemberAsync(GroupId, createDto);
+            
+            Snackbar.Add($"Membro '{_selectedBusinessParty.Name}' aggiunto con successo", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding member to group {GroupId}", GroupId);
+            Snackbar.Add("Errore durante l'aggiunta del membro", Severity.Error);
+        }
+    }
+    
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
