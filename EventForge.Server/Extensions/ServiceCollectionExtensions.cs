@@ -49,6 +49,10 @@ public static class ServiceCollectionExtensions
         var filePath = builder.Configuration["Serilog:FilePath"] ?? "Logs/log-.log";
         var fileRetention = builder.Configuration.GetValue<int?>("Serilog:FileRetention") ?? 7;
         var logDbConnectionString = builder.Configuration.GetConnectionString("LogDb");
+        
+        // Determine if console logging should be enabled (only in Development)
+        var isConsoleLoggingEnabled = builder.Environment.IsDevelopment();
+        var consoleStatus = isConsoleLoggingEnabled ? "attivo" : "disabilitato";
 
         // Configure column options for enriched properties
         var columnOptions = new ColumnOptions();
@@ -81,10 +85,15 @@ public static class ServiceCollectionExtensions
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: fileRetention,
                 restrictedToMinimumLevel: LogEventLevel.Information,
-                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-            .WriteTo.Console(
+                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+
+        // Console logging enabled only in Development environment for better performance in production
+        if (isConsoleLoggingEnabled)
+        {
+            loggerConfiguration.WriteTo.Console(
                 restrictedToMinimumLevel: LogEventLevel.Information,
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+        }
 
         // Add SQL Server sink if connection string is available
         // Test connection first before adding the sink to avoid partial configuration
@@ -110,20 +119,20 @@ public static class ServiceCollectionExtensions
                     columnOptions: columnOptions);
 
                 Log.Logger = loggerConfiguration.CreateLogger();
-                Log.Information("Serilog configurato per SQL Server con enrichment, file e console logging.");
+                Log.Information("Serilog configurato per SQL Server con enrichment e file logging. Console logging: {ConsoleStatus}.", consoleStatus);
             }
             catch (Exception ex)
             {
-                // If SQL Server connection fails, fall back to file and console logging only
+                // If SQL Server connection fails, fall back to file logging only (console in Development)
                 // Don't add SQL Server sink to configuration
                 Log.Logger = loggerConfiguration.CreateLogger();
-                Log.Warning(ex, "Impossibile connettersi al database per il logging. SQL Server logging disabilitato. Utilizzo file e console logging.");
+                Log.Warning(ex, "Impossibile connettersi al database per il logging. SQL Server logging disabilitato. Utilizzo file logging. Console logging: {ConsoleStatus}.", consoleStatus);
             }
         }
         else
         {
             Log.Logger = loggerConfiguration.CreateLogger();
-            Log.Warning("LogDb connection string non trovato. SQL Server logging disabilitato. Utilizzo file e console logging.");
+            Log.Warning("LogDb connection string non trovato. SQL Server logging disabilitato. Utilizzo file logging. Console logging: {ConsoleStatus}.", consoleStatus);
         }
 
         _ = builder.Host.UseSerilog();
