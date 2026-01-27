@@ -39,13 +39,21 @@ public class BrandService : IBrandService
                 .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
-            var brands = await query
+            var brandDtos = await query
                 .OrderBy(b => b.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(b => new BrandDto
+                {
+                    Id = b.Id,
+                    Name = b.Name,
+                    Description = b.Description,
+                    Website = b.Website,
+                    Country = b.Country,
+                    CreatedAt = b.CreatedAt,
+                    CreatedBy = b.CreatedBy
+                })
                 .ToListAsync(cancellationToken);
-
-            var brandDtos = brands.Select(MapToBrandDto).ToList();
 
             return new PagedResult<BrandDto>
             {

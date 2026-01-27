@@ -40,14 +40,23 @@ public class ModelService : IModelService
                 .Include(m => m.Brand);
 
             var totalCount = await query.CountAsync(cancellationToken);
-            var models = await query
+            var modelDtos = await query
                 .OrderBy(m => m.Brand!.Name)
                 .ThenBy(m => m.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(m => new ModelDto
+                {
+                    Id = m.Id,
+                    BrandId = m.BrandId,
+                    BrandName = m.Brand != null ? m.Brand.Name : null,
+                    Name = m.Name,
+                    Description = m.Description,
+                    ManufacturerPartNumber = m.ManufacturerPartNumber,
+                    CreatedAt = m.CreatedAt,
+                    CreatedBy = m.CreatedBy
+                })
                 .ToListAsync(cancellationToken);
-
-            var modelDtos = models.Select(MapToModelDto).ToList();
 
             return new PagedResult<ModelDto>
             {
@@ -80,13 +89,22 @@ public class ModelService : IModelService
                 .Include(m => m.Brand);
 
             var totalCount = await query.CountAsync(cancellationToken);
-            var models = await query
+            var modelDtos = await query
                 .OrderBy(m => m.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(m => new ModelDto
+                {
+                    Id = m.Id,
+                    BrandId = m.BrandId,
+                    BrandName = m.Brand != null ? m.Brand.Name : null,
+                    Name = m.Name,
+                    Description = m.Description,
+                    ManufacturerPartNumber = m.ManufacturerPartNumber,
+                    CreatedAt = m.CreatedAt,
+                    CreatedBy = m.CreatedBy
+                })
                 .ToListAsync(cancellationToken);
-
-            var modelDtos = models.Select(MapToModelDto).ToList();
 
             return new PagedResult<ModelDto>
             {
