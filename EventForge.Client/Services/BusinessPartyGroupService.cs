@@ -1,22 +1,10 @@
-using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.Business;
 
 namespace EventForge.Client.Services;
 
 /// <summary>
-/// Client-side service for managing Business Party Groups.
-/// </summary>
-public interface IBusinessPartyGroupService
-{
-    Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 100, BusinessPartyGroupType? groupType = null);
-    Task<BusinessPartyGroupDto?> GetGroupByIdAsync(Guid id);
-    Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto);
-    Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto);
-    Task<bool> DeleteGroupAsync(Guid id);
-}
-
-/// <summary>
-/// Service implementation for managing Business Party Groups.
+/// Service implementation for managing business party groups.
 /// </summary>
 public class BusinessPartyGroupService : IBusinessPartyGroupService
 {
@@ -30,7 +18,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 100, BusinessPartyGroupType? groupType = null)
+    public async Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 20, BusinessPartyGroupType? groupType = null)
     {
         try
         {
@@ -77,12 +65,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
     }
 
-    public async Task<BusinessPartyGroupDto> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto)
+    public async Task<BusinessPartyGroupDto?> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto)
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}/{id}", updateDto);
-            return result ?? throw new InvalidOperationException("Failed to update business party group");
+            return await _httpClientService.PutAsync<UpdateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
@@ -105,6 +92,67 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting business party group with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<BusinessPartyGroupMemberDto>> GetGroupMembersAsync(Guid groupId, int page = 1, int pageSize = 100)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/{groupId}/members?page={page}&pageSize={pageSize}";
+            var result = await _httpClientService.GetAsync<PagedResult<BusinessPartyGroupMemberDto>>(url);
+            return result ?? new PagedResult<BusinessPartyGroupMemberDto> { Items = new List<BusinessPartyGroupMemberDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving members for business party group {GroupId}", groupId);
+            throw;
+        }
+    }
+
+    public async Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto addDto)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<AddBusinessPartyToGroupDto, BusinessPartyGroupMemberDto>($"{BaseUrl}/{groupId}/members", addDto);
+            return result ?? throw new InvalidOperationException("Failed to add member to business party group");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding member to business party group {GroupId}", groupId);
+            throw;
+        }
+    }
+
+    public async Task<bool> RemoveMemberAsync(Guid groupId, Guid businessPartyId)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{groupId}/members/{businessPartyId}");
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing business party {BusinessPartyId} from group {GroupId}", businessPartyId, groupId);
+            throw;
+        }
+    }
+
+    public async Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto)
+    {
+        try
+        {
+            var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupMemberDto, BusinessPartyGroupMemberDto>($"{BaseUrl}/members/{membershipId}", updateDto);
+            return result ?? throw new InvalidOperationException("Failed to update membership");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating membership {MembershipId}", membershipId);
             throw;
         }
     }
