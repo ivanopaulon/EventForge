@@ -25,24 +25,27 @@
         </MudText>
 
         @* Filters Section *@
-        <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudPaper Class="pa-4 mb-4" Elevation="2" Style="background-color: var(--mud-palette-background-grey);">
             <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Outlined.FilterList" Class="mr-2" />
                 @TranslationService.GetTranslation("stockReconciliation.filters", "Filters and Options")
             </MudText>
-            <MudGrid>
+            <MudGrid Spacing="2">
                 <MudItem xs="12" md="6">
                     <MudDatePicker @bind-Date="_fromDate"
                                    Label="@TranslationService.GetTranslation("field.fromDate", "From Date")"
                                    Variant="Variant.Outlined"
                                    Clearable="true"
-                                   Class="ef-input" />
+                                   AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
+                                   Adornment="Adornment.Start" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudDatePicker @bind-Date="_toDate"
                                    Label="@TranslationService.GetTranslation("field.toDate", "To Date")"
                                    Variant="Variant.Outlined"
                                    Clearable="true"
-                                   Class="ef-input" />
+                                   AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
+                                   Adornment="Adornment.Start" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudSelect @bind-Value="_selectedWarehouseId"
@@ -50,10 +53,13 @@
                                Label="@TranslationService.GetTranslation("field.warehouse", "Warehouse")"
                                Variant="Variant.Outlined"
                                Clearable="true"
-                               Class="ef-input">
+                               AdornmentIcon="@Icons.Material.Outlined.Warehouse"
+                               Adornment="Adornment.Start">
                         @foreach (var warehouse in _warehouses)
                         {
-                            <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="@warehouse.Id">
+                                @(string.IsNullOrWhiteSpace(warehouse.Code) ? warehouse.Name : $"{warehouse.Code} - {warehouse.Name}")
+                            </MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -63,48 +69,94 @@
                                Variant="Variant.Outlined"
                                Clearable="true"
                                Disabled="@(!_selectedWarehouseId.HasValue)"
-                               Class="ef-input">
+                               AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                               Adornment="Adornment.Start">
                         @foreach (var location in _locations)
                         {
                             <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudSwitch @bind-Value="_includeDocuments"
-                               Label="@TranslationService.GetTranslation("stockReconciliation.includeDocuments", "Include documents (receipt/shipment)")"
-                               Color="Color.Primary" />
+                
+                <!-- Switches on a separate row -->
+                <MudItem xs="12">
+                    <MudStack Row="true" Spacing="3" Class="mt-2">
+                        <MudSwitch @bind-Value="_includeDocuments"
+                                   Label="@TranslationService.GetTranslation("stockReconciliation.includeDocuments", "Include documents")"
+                                   Color="Color.Primary" />
+                        <MudSwitch @bind-Value="_includeInventories"
+                                   Label="@TranslationService.GetTranslation("stockReconciliation.includeInventories", "Include inventories")"
+                                   Color="Color.Primary" />
+                        <MudSwitch @bind-Value="_onlyWithDiscrepancies"
+                                   Label="@TranslationService.GetTranslation("stockReconciliation.onlyWithDiscrepancies", "Only discrepancies")"
+                                   Color="Color.Warning" />
+                    </MudStack>
                 </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudSwitch @bind-Value="_includeInventories"
-                               Label="@TranslationService.GetTranslation("stockReconciliation.includeInventories", "Include physical inventories")"
-                               Color="Color.Primary" />
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudSwitch @bind-Value="_onlyWithDiscrepancies"
-                               Label="@TranslationService.GetTranslation("stockReconciliation.onlyWithDiscrepancies", "Only products with discrepancies")"
-                               Color="Color.Warning" />
-                </MudItem>
-                <MudItem xs="12" Class="d-flex gap-2 justify-end">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               OnClick="CalculatePreviewAsync"
-                               Disabled="_isCalculating"
-                               StartIcon="@Icons.Material.Outlined.Calculate">
-                        @if (_isCalculating)
+            </MudGrid>
+            
+            <!-- Action buttons aligned to right -->
+            <MudStack Row="true" Spacing="2" Class="mt-3" Justify="Justify.FlexEnd">
+                <MudButton Variant="Variant.Outlined" 
+                           OnClick="ClearFilters"
+                           StartIcon="@Icons.Material.Outlined.Clear">
+                    @TranslationService.GetTranslation("common.clearFilters", "Clear Filters")
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary"
+                           OnClick="CalculatePreviewAsync"
+                           Disabled="_isCalculating"
+                           StartIcon="@Icons.Material.Outlined.Calculate">
+                    @if (_isCalculating)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">@TranslationService.GetTranslation("stockReconciliation.calculating", "Calculating...")</MudText>
+                    }
+                    else
+                    {
+                        <MudText>@TranslationService.GetTranslation("stockReconciliation.calculate", "Calculate Reconciliation")</MudText>
+                    }
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @* Info Banner *@
+        @if (_reconciliationResult != null)
+        {
+            <MudPaper Elevation="1" Class="pa-3 mb-3" Style="background-color: var(--mud-palette-info-lighten);">
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Info" />
+                    <MudText Typo="Typo.body2">
+                        <strong>@TranslationService.GetTranslation("stockReconciliation.resultsLabel", "Results:"):</strong>
+                        @(" ")
+                        @_reconciliationResult.Summary.TotalProducts @TranslationService.GetTranslation("stockReconciliation.productsFound", "products")
+                        @if ((_reconciliationResult.Summary.MinorDiscrepancyCount + _reconciliationResult.Summary.MajorDiscrepancyCount + _reconciliationResult.Summary.MissingCount) > 0)
                         {
-                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                            <MudText Class="ms-2">@TranslationService.GetTranslation("stockReconciliation.calculating", "Calculating...")</MudText>
+                            <span> | </span>
+                            <strong>@(_reconciliationResult.Summary.MinorDiscrepancyCount + _reconciliationResult.Summary.MajorDiscrepancyCount + _reconciliationResult.Summary.MissingCount)</strong>
+                            @(" ")
+                            @TranslationService.GetTranslation("stockReconciliation.withDiscrepancies", "with discrepancies")
                         }
-                        else
-                        {
-                            <MudText>@TranslationService.GetTranslation("stockReconciliation.calculate", "Calculate Preview")</MudText>
-                        }
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        }
+
+        @* Action Buttons *@
+        @if (_reconciliationResult != null)
+        {
+            <MudPaper Elevation="2" Class="pa-3 mb-4">
+                <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Info"
+                               OnClick="ExportReportAsync"
+                               Disabled="@_isExporting"
+                               StartIcon="@Icons.Material.Outlined.Download">
+                        @TranslationService.GetTranslation("stockReconciliation.export", "Export Report")
                     </MudButton>
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Warning"
                                OnClick="ApplyReconciliationAsync"
-                               Disabled="@(_reconciliationResult == null || _selectedItems.Count == 0 || _isApplying)"
+                               Disabled="@(_selectedItems.Count == 0 || _isApplying)"
                                StartIcon="@Icons.Material.Outlined.Check">
                         @if (_isApplying)
                         {
@@ -113,19 +165,12 @@
                         }
                         else
                         {
-                            <MudText>@TranslationService.GetTranslation("stockReconciliation.apply", "Apply Recalculation")</MudText>
+                            <MudText>@TranslationService.GetTranslation("stockReconciliation.apply", "Apply Recalculation") (@_selectedItems.Count)</MudText>
                         }
                     </MudButton>
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Info"
-                               OnClick="ExportReportAsync"
-                               Disabled="@(_reconciliationResult == null || _isExporting)"
-                               StartIcon="@Icons.Material.Outlined.Download">
-                        @TranslationService.GetTranslation("stockReconciliation.export", "Export Report")
-                    </MudButton>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
+                </MudStack>
+            </MudPaper>
+        }
 
         @* Results Section *@
         @if (_reconciliationResult != null)
@@ -579,6 +624,20 @@
     private void DeselectAll()
     {
         _selectedItems.Clear();
+    }
+
+    private void ClearFilters()
+    {
+        _fromDate = null;
+        _toDate = null;
+        _selectedWarehouseId = null;
+        _selectedLocationId = null;
+        _includeDocuments = true;
+        _includeInventories = true;
+        _onlyWithDiscrepancies = false;
+        _reconciliationResult = null;
+        _selectedItems.Clear();
+        _locations.Clear();
     }
 
     private void ToggleRowExpansion(StockReconciliationItemDto item)

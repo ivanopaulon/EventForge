@@ -7,11 +7,16 @@
 @inject ISnackbar Snackbar
 @inject ILogger<GeneratePriceListFromDocumentsDialog> Logger
 
-<MudDialog>
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            @TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti")
-        </MudText>
+        <div class="@DialogStyleConstants.Classes.DialogTitle">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.Article" Class="mr-2" />
+                    @TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti")
+                </MudText>
+            </MudStack>
+        </div>
     </TitleContent>
     <DialogContent>
         <div class="ef-dialog-content">
@@ -21,8 +26,9 @@
                 <MudStack Spacing="3">
                     
                     <!-- Step 1: Basic Information -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudPaper Elevation="2" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step1", "Passo 1: Informazioni di Base")
                         </MudText>
                         
@@ -33,28 +39,35 @@
                                               Variant="Variant.Outlined"
                                               Required="true"
                                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
-                                              MaxLength="200" />
+                                              MaxLength="200"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Label" />
                             </MudItem>
                             <MudItem xs="12" sm="4">
                                 <MudTextField @bind-Value="_code"
                                               Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                               Variant="Variant.Outlined"
                                               HelperText="@TranslationService.GetTranslation("pricelist.codeHelper", "Lascia vuoto per generazione automatica")"
-                                              MaxLength="50" />
+                                              MaxLength="50"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Tag" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_description"
                                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                               Variant="Variant.Outlined"
                                               Lines="2"
-                                              MaxLength="500" />
+                                              MaxLength="500"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Description" />
                             </MudItem>
                         </MudGrid>
                     </MudPaper>
 
                     <!-- Step 2: Supplier and Date Range -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudPaper Elevation="2" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step2", "Passo 2: Fornitore e Periodo")
                         </MudText>
                         
@@ -80,7 +93,9 @@
                                                Variant="Variant.Outlined"
                                                Editable="true"
                                                Required="true"
-                                               DateFormat="dd/MM/yyyy" />
+                                               DateFormat="dd/MM/yyyy"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudDatePicker @bind-Date="_toDate"
@@ -88,14 +103,17 @@
                                                Variant="Variant.Outlined"
                                                Editable="true"
                                                Required="true"
-                                               DateFormat="dd/MM/yyyy" />
+                                               DateFormat="dd/MM/yyyy"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
                             </MudItem>
                         </MudGrid>
                     </MudPaper>
 
                     <!-- Step 3: Calculation Strategy -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudPaper Elevation="2" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Calculate" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step3", "Passo 3: Strategia di Calcolo")
                         </MudText>
                         
@@ -158,12 +176,16 @@
                                                      Variant="Variant.Outlined"
                                                      Min="-100"
                                                      Max="500"
-                                                     HelperText="@TranslationService.GetTranslation("pricelist.markupHelper", "Es: 20 = +20%")" />
+                                                     HelperText="@TranslationService.GetTranslation("pricelist.markupHelper", "Es: 20 = +20%")"
+                                                     Adornment="Adornment.Start"
+                                                     AdornmentIcon="@Icons.Material.Outlined.Percent" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudSelect @bind-Value="_roundingStrategy"
                                                Label="@TranslationService.GetTranslation("pricelist.rounding", "Arrotondamento")"
-                                               Variant="Variant.Outlined">
+                                               Variant="Variant.Outlined"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.RoundedCorner">
                                         <MudSelectItem Value="RoundingStrategy.None">@TranslationService.GetTranslation("rounding.none", "Nessuno")</MudSelectItem>
                                         <MudSelectItem Value="RoundingStrategy.ToNearest5Cents">@TranslationService.GetTranslation("rounding.5cents", "0.05€")</MudSelectItem>
                                         <MudSelectItem Value="RoundingStrategy.ToNearest10Cents">@TranslationService.GetTranslation("rounding.10cents", "0.10€")</MudSelectItem>
@@ -182,7 +204,9 @@
                                                      Label="@TranslationService.GetTranslation("pricelist.minQuantity", "Quantità Minima Totale")"
                                                      Variant="Variant.Outlined"
                                                      Min="0"
-                                                     HelperText="@TranslationService.GetTranslation("pricelist.minQuantityHelper", "Opzionale")" />
+                                                     HelperText="@TranslationService.GetTranslation("pricelist.minQuantityHelper", "Opzionale")"
+                                                     Adornment="Adornment.Start"
+                                                     AdornmentIcon="@Icons.Material.Outlined.Numbers" />
                                 </MudItem>
                             </MudGrid>
                         </MudExpansionPanel>

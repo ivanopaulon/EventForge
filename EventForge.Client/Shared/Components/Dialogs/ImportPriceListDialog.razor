@@ -9,12 +9,16 @@
 @inject ILogger<ImportPriceListDialog> Logger
 @inject IDialogService DialogService
 
-<MudDialog>
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.FileUpload" Class="mr-2" />
-            @TranslationService.GetTranslation("pricelist.importFromExcel", "Importa da Excel")
-        </MudText>
+        <div class="@DialogStyleConstants.Classes.DialogTitle">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.FileUpload" Class="mr-2" />
+                    @TranslationService.GetTranslation("pricelist.importFromExcel", "Importa da Excel")
+                </MudText>
+            </MudStack>
+        </div>
     </TitleContent>
     <DialogContent>
         <div class="ef-dialog-content">
@@ -27,7 +31,7 @@
                 {
                     <MudPaper Elevation="1" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Outlined.CloudUpload" Class="mr-2" Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Outlined.CloudUpload" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.uploadFile", "Carica File")
                         </MudText>
                         
@@ -84,7 +88,7 @@
                     <!-- Validation Summary -->
                     <MudPaper Elevation="1" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Outlined.Assessment" Class="mr-2" Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Outlined.Assessment" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.validationSummary", "Riepilogo Validazione")
                         </MudText>
                         
@@ -125,7 +129,7 @@
                     <!-- Preview Table -->
                     <MudPaper Elevation="1" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Outlined.Preview" Class="mr-2" Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Outlined.Preview" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.previewData", "Anteprima Dati") (@TranslationService.GetTranslation("pricelist.first20Rows", "Prime 20 righe"))
                         </MudText>
 
@@ -180,7 +184,7 @@
                     {
                         <MudPaper Elevation="1" Class="pa-4">
                             <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Error">
-                                <MudIcon Icon="@Icons.Material.Outlined.Error" Class="mr-2" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Outlined.Error" Size="Size.Small" Class="mr-2" />
                                 @TranslationService.GetTranslation("pricelist.validationErrors", "Errori di Validazione") (@_validationErrors.Count)
                             </MudText>
                             
@@ -207,7 +211,7 @@
                     {
                         <MudPaper Elevation="2" Class="pa-4" Style="background: var(--mud-palette-success-lighten);">
                             <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Success">
-                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Class="mr-2" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-2" />
                                 @TranslationService.GetTranslation("pricelist.importComplete", "Importazione Completata")
                             </MudText>
                             

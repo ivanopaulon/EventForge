@@ -9,12 +9,16 @@
 @inject ILogger<BulkUpdatePricesDialog> Logger
 @inject IDialogService DialogService
 
-<MudDialog>
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Update" Class="mr-2" />
-            @TranslationService.GetTranslation("pricelist.bulkUpdatePrices", "Aggiornamento Massivo Prezzi")
-        </MudText>
+        <div class="@DialogStyleConstants.Classes.DialogTitle">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.Update" Class="mr-2" />
+                    @TranslationService.GetTranslation("pricelist.bulkUpdatePrices", "Aggiornamento Massivo Prezzi")
+                </MudText>
+            </MudStack>
+        </div>
     </TitleContent>
     <DialogContent>
         <div class="ef-dialog-content">
@@ -26,7 +30,7 @@
                     <!-- Operation Configuration -->
                     <MudPaper Elevation="1" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Outlined.Settings" Class="mr-2" Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.operationConfig", "Configurazione Operazione")
                         </MudText>
                         
