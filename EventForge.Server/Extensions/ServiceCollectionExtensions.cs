@@ -126,13 +126,15 @@ public static class ServiceCollectionExtensions
                 // If SQL Server connection fails, fall back to file logging only (console in Development)
                 // Don't add SQL Server sink to configuration
                 Log.Logger = loggerConfiguration.CreateLogger();
-                Log.Warning(ex, "Impossibile connettersi al database per il logging. SQL Server logging disabilitato. Utilizzo file{ConsoleLogging} logging.", isConsoleLoggingEnabled ? " e console" : "");
+                var consoleStatus = isConsoleLoggingEnabled ? "attivo" : "disabilitato";
+                Log.Warning(ex, "Impossibile connettersi al database per il logging. SQL Server logging disabilitato. Utilizzo file logging. Console logging: {ConsoleStatus}.", consoleStatus);
             }
         }
         else
         {
             Log.Logger = loggerConfiguration.CreateLogger();
-            Log.Warning("LogDb connection string non trovato. SQL Server logging disabilitato. Utilizzo file{ConsoleLogging} logging.", isConsoleLoggingEnabled ? " e console" : "");
+            var consoleStatus = isConsoleLoggingEnabled ? "attivo" : "disabilitato";
+            Log.Warning("LogDb connection string non trovato. SQL Server logging disabilitato. Utilizzo file logging. Console logging: {ConsoleStatus}.", consoleStatus);
         }
 
         _ = builder.Host.UseSerilog();
