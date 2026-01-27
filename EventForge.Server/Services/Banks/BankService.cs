@@ -124,18 +124,15 @@ public class BankService : IBankService
             ArgumentNullException.ThrowIfNull(updateBankDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalBank = await _context.Banks
-                .AsNoTracking()
-                .Where(b => b.Id == id && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalBank == null) return null;
-
             var bank = await _context.Banks
                 .Where(b => b.Id == id && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (bank == null) return null;
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(bank).CurrentValues.Clone();
+            var originalBank = (Bank)originalValues.ToObject();
 
             bank.Name = updateBankDto.Name;
             // Note: Code and SwiftBic are intentionally not updatable - they are regulatory identifiers
@@ -169,18 +166,15 @@ public class BankService : IBankService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalBank = await _context.Banks
-                .AsNoTracking()
-                .Where(b => b.Id == id && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalBank == null) return false;
-
             var bank = await _context.Banks
                 .Where(b => b.Id == id && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (bank == null) return false;
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(bank).CurrentValues.Clone();
+            var originalBank = (Bank)originalValues.ToObject();
 
             bank.IsDeleted = true;
             bank.ModifiedAt = DateTime.UtcNow;

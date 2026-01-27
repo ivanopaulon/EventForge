@@ -236,17 +236,6 @@ public class StoreUserService : IStoreUserService
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var originalStoreUser = await _context.StoreUsers
-                .AsNoTracking()
-                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalStoreUser == null)
-            {
-                _logger.LogWarning("Store user with ID {StoreUserId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
             var storeUser = await _context.StoreUsers
                 .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -256,6 +245,10 @@ public class StoreUserService : IStoreUserService
                 _logger.LogWarning("Store user with ID {StoreUserId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(storeUser).CurrentValues.Clone();
+            var originalStoreUser = (StoreUser)originalValues.ToObject();
 
             storeUser.Name = updateStoreUserDto.Name;
             // Note: Username and PasswordHash are intentionally not updatable via this method
@@ -300,17 +293,6 @@ public class StoreUserService : IStoreUserService
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var originalStoreUser = await _context.StoreUsers
-                .AsNoTracking()
-                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalStoreUser == null)
-            {
-                _logger.LogWarning("Store user with ID {StoreUserId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
             var storeUser = await _context.StoreUsers
                 .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -320,6 +302,10 @@ public class StoreUserService : IStoreUserService
                 _logger.LogWarning("Store user with ID {StoreUserId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
+
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(storeUser).CurrentValues.Clone();
+            var originalStoreUser = (StoreUser)originalValues.ToObject();
 
             storeUser.IsDeleted = true;
             storeUser.DeletedAt = DateTime.UtcNow;

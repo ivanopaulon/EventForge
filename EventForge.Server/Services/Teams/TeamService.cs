@@ -197,11 +197,9 @@ public class TeamService : ITeamService
                 return null;
             }
 
-            // Recupera i valori originali per l'audit (preferibilmente AsNoTracking)
-            var originalTeam = await _context.Teams
-                .AsNoTracking()
-                .Where(t => t.Id == id && !t.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(team).CurrentValues.Clone();
+            var originalTeam = (Team)originalValues.ToObject();
 
             team.Name = updateTeamDto.Name;
             team.ShortDescription = updateTeamDto.ShortDescription;
@@ -240,10 +238,9 @@ public class TeamService : ITeamService
                 return false;
             }
 
-            var originalTeam = await _context.Teams
-                .AsNoTracking()
-                .Where(t => t.Id == id && !t.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+            // Create snapshot of original state before modifications
+            var originalValues = _context.Entry(team).CurrentValues.Clone();
+            var originalTeam = (Team)originalValues.ToObject();
 
             team.IsDeleted = true;
             team.DeletedBy = currentUser;
@@ -253,14 +250,25 @@ public class TeamService : ITeamService
                 .Where(m => m.TeamId == id && !m.IsDeleted)
                 .ToListAsync(cancellationToken);
 
+            // Create snapshots of all members BEFORE modifying them
+            var originalMembers = members.ToDictionary(
+                m => m.Id,
+                m => {
+                    var originalMemberValues = _context.Entry(m).CurrentValues.Clone();
+                    return (TeamMember)originalMemberValues.ToObject();
+                }
+            );
+
             foreach (var member in members)
             {
+                var originalMember = originalMembers[member.Id];
+
                 member.IsDeleted = true;
                 member.DeletedBy = currentUser;
                 member.DeletedAt = DateTime.UtcNow;
 
                 // Audit log per ogni membro eliminato
-                _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, null, cancellationToken);
+                _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
             }
 
             _ = await _context.SaveChangesAsync(cancellationToken);

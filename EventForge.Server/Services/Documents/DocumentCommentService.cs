@@ -362,8 +362,35 @@ public class DocumentCommentService : IDocumentCommentService
             query = query.Where(c => c.Status == status);
         }
 
-        var comments = await query.OrderByDescending(c => c.CreatedAt).ToListAsync(cancellationToken);
-        return comments.Select(MapToDto);
+        return await query
+            .OrderByDescending(c => c.CreatedAt)
+            .Select(c => new DocumentCommentDto
+            {
+                Id = c.Id,
+                DocumentHeaderId = c.DocumentHeaderId,
+                DocumentRowId = c.DocumentRowId,
+                Content = c.Content,
+                CommentType = c.CommentType.ToString(),
+                Priority = c.Priority.ToString(),
+                Status = c.Status.ToString(),
+                ParentCommentId = c.ParentCommentId,
+                AssignedTo = c.AssignedTo,
+                DueDate = c.DueDate,
+                ResolvedAt = c.ResolvedAt,
+                ResolvedBy = c.ResolvedBy,
+                MentionedUsers = c.MentionedUsers,
+                IsPrivate = c.IsPrivate,
+                IsPinned = c.IsPinned,
+                Visibility = c.Visibility.ToString(),
+                Tags = c.Tags,
+                Metadata = c.Metadata,
+                CreatedAt = c.CreatedAt,
+                CreatedBy = c.CreatedBy ?? string.Empty,
+                ModifiedAt = c.ModifiedAt,
+                ModifiedBy = c.ModifiedBy,
+                Replies = new List<DocumentCommentDto>()
+            })
+            .ToListAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -374,12 +401,36 @@ public class DocumentCommentService : IDocumentCommentService
         if (!Enum.TryParse<CommentPriority>(priority, out var priorityEnum))
             return Enumerable.Empty<DocumentCommentDto>();
 
-        var comments = await _context.DocumentComments
+        return await _context.DocumentComments
             .Where(c => c.Priority == priorityEnum && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
+            .Select(c => new DocumentCommentDto
+            {
+                Id = c.Id,
+                DocumentHeaderId = c.DocumentHeaderId,
+                DocumentRowId = c.DocumentRowId,
+                Content = c.Content,
+                CommentType = c.CommentType.ToString(),
+                Priority = c.Priority.ToString(),
+                Status = c.Status.ToString(),
+                ParentCommentId = c.ParentCommentId,
+                AssignedTo = c.AssignedTo,
+                DueDate = c.DueDate,
+                ResolvedAt = c.ResolvedAt,
+                ResolvedBy = c.ResolvedBy,
+                MentionedUsers = c.MentionedUsers,
+                IsPrivate = c.IsPrivate,
+                IsPinned = c.IsPinned,
+                Visibility = c.Visibility.ToString(),
+                Tags = c.Tags,
+                Metadata = c.Metadata,
+                CreatedAt = c.CreatedAt,
+                CreatedBy = c.CreatedBy ?? string.Empty,
+                ModifiedAt = c.ModifiedAt,
+                ModifiedBy = c.ModifiedBy,
+                Replies = new List<DocumentCommentDto>()
+            })
             .ToListAsync(cancellationToken);
-
-        return comments.Select(MapToDto);
     }
 
     /// <inheritdoc />
@@ -390,12 +441,36 @@ public class DocumentCommentService : IDocumentCommentService
         if (!Enum.TryParse<CommentStatus>(status, out var statusEnum))
             return Enumerable.Empty<DocumentCommentDto>();
 
-        var comments = await _context.DocumentComments
+        return await _context.DocumentComments
             .Where(c => c.Status == statusEnum && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
+            .Select(c => new DocumentCommentDto
+            {
+                Id = c.Id,
+                DocumentHeaderId = c.DocumentHeaderId,
+                DocumentRowId = c.DocumentRowId,
+                Content = c.Content,
+                CommentType = c.CommentType.ToString(),
+                Priority = c.Priority.ToString(),
+                Status = c.Status.ToString(),
+                ParentCommentId = c.ParentCommentId,
+                AssignedTo = c.AssignedTo,
+                DueDate = c.DueDate,
+                ResolvedAt = c.ResolvedAt,
+                ResolvedBy = c.ResolvedBy,
+                MentionedUsers = c.MentionedUsers,
+                IsPrivate = c.IsPrivate,
+                IsPinned = c.IsPinned,
+                Visibility = c.Visibility.ToString(),
+                Tags = c.Tags,
+                Metadata = c.Metadata,
+                CreatedAt = c.CreatedAt,
+                CreatedBy = c.CreatedBy ?? string.Empty,
+                ModifiedAt = c.ModifiedAt,
+                ModifiedBy = c.ModifiedBy,
+                Replies = new List<DocumentCommentDto>()
+            })
             .ToListAsync(cancellationToken);
-
-        return comments.Select(MapToDto);
     }
 
     /// <inheritdoc />
@@ -406,12 +481,36 @@ public class DocumentCommentService : IDocumentCommentService
         if (!Enum.TryParse<DocumentCommentType>(commentType, out var typeEnum))
             return Enumerable.Empty<DocumentCommentDto>();
 
-        var comments = await _context.DocumentComments
+        return await _context.DocumentComments
             .Where(c => c.CommentType == typeEnum && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
+            .Select(c => new DocumentCommentDto
+            {
+                Id = c.Id,
+                DocumentHeaderId = c.DocumentHeaderId,
+                DocumentRowId = c.DocumentRowId,
+                Content = c.Content,
+                CommentType = c.CommentType.ToString(),
+                Priority = c.Priority.ToString(),
+                Status = c.Status.ToString(),
+                ParentCommentId = c.ParentCommentId,
+                AssignedTo = c.AssignedTo,
+                DueDate = c.DueDate,
+                ResolvedAt = c.ResolvedAt,
+                ResolvedBy = c.ResolvedBy,
+                MentionedUsers = c.MentionedUsers,
+                IsPrivate = c.IsPrivate,
+                IsPinned = c.IsPinned,
+                Visibility = c.Visibility.ToString(),
+                Tags = c.Tags,
+                Metadata = c.Metadata,
+                CreatedAt = c.CreatedAt,
+                CreatedBy = c.CreatedBy ?? string.Empty,
+                ModifiedAt = c.ModifiedAt,
+                ModifiedBy = c.ModifiedBy,
+                Replies = new List<DocumentCommentDto>()
+            })
             .ToListAsync(cancellationToken);
-
-        return comments.Select(MapToDto);
     }
 
     /// <inheritdoc />
