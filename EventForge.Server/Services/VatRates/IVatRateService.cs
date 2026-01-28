@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.VatRates;
 
 namespace EventForge.Server.Services.VatRates;
@@ -8,13 +9,12 @@ namespace EventForge.Server.Services.VatRates;
 public interface IVatRateService
 {
     /// <summary>
-    /// Gets all VAT rates with optional pagination.
+    /// Gets all VAT rates with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of VAT rates</returns>
-    Task<PagedResult<VatRateDto>> GetVatRatesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<VatRateDto>> GetVatRatesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a VAT rate by ID.

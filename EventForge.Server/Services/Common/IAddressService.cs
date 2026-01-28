@@ -6,13 +6,12 @@ namespace EventForge.Server.Services.Common;
 public interface IAddressService
 {
     /// <summary>
-    /// Gets all addresses with optional pagination.
+    /// Gets all addresses with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of addresses</returns>
-    Task<PagedResult<AddressDto>> GetAddressesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<AddressDto>> GetAddressesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets addresses by owner ID.

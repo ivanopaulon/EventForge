@@ -1,4 +1,5 @@
 using EventForge.DTOs.Banks;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Banks;
 
@@ -8,13 +9,12 @@ namespace EventForge.Server.Services.Banks;
 public interface IBankService
 {
     /// <summary>
-    /// Gets all banks with optional pagination.
+    /// Gets all banks with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of banks</returns>
-    Task<PagedResult<BankDto>> GetBanksAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<BankDto>> GetBanksAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a bank by ID.

@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Common;
@@ -20,7 +21,7 @@ public class AddressService : IAddressService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<AddressDto>> GetAddressesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<AddressDto>> GetAddressesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -38,8 +39,8 @@ public class AddressService : IAddressService
             var addresses = await query
                 .OrderBy(a => a.OwnerType)
                 .ThenBy(a => a.City)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var addressDtos = addresses.Select(MapToAddressDto);
@@ -47,8 +48,8 @@ public class AddressService : IAddressService
             return new PagedResult<AddressDto>
             {
                 Items = addressDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

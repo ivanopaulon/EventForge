@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.VatRates;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,7 +22,7 @@ public class VatRateService : IVatRateService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<VatRateDto>> GetVatRatesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<VatRateDto>> GetVatRatesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -39,8 +40,8 @@ public class VatRateService : IVatRateService
             var totalCount = await query.CountAsync(cancellationToken);
             var vatRates = await query
                 .OrderBy(v => v.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var vatRateDtos = vatRates.Select(MapToVatRateDto);
@@ -48,8 +49,8 @@ public class VatRateService : IVatRateService
             return new PagedResult<VatRateDto>
             {
                 Items = vatRateDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

@@ -6,13 +6,12 @@ namespace EventForge.Server.Services.Common;
 public interface IContactService
 {
     /// <summary>
-    /// Gets all contacts with optional pagination.
+    /// Gets all contacts with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of contacts</returns>
-    Task<PagedResult<ContactDto>> GetContactsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<ContactDto>> GetContactsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets contacts by owner ID.
