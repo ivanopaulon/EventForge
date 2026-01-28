@@ -161,7 +161,7 @@
     /// <summary>
     /// Stato di caricamento per ogni tab
     /// </summary>
-    private Dictionary<string, TabLoadState> _tabStates = new()
+    private readonly Dictionary<string, TabLoadState> _tabLoadStates = new()
     {
         { "General", TabLoadState.Loaded },      // Caricato all'init
         { "Addresses", TabLoadState.NotLoaded },
@@ -350,7 +350,7 @@
     /// <summary>
     /// Apre dialog per gestire gruppi (placeholder - implementazione in fase successiva)
     /// </summary>
-    private async Task OnManageGroupsClicked()
+    private void OnManageGroupsClicked()
     {
         // TODO: Implementare in Fase successiva
         // var parameters = new DialogParameters
@@ -366,7 +366,7 @@
     /// <summary>
     /// Rimuove un gruppo dal business party
     /// </summary>
-    private async Task OnRemoveGroup(Guid groupId)
+    private void OnRemoveGroup(Guid groupId)
     {
         // TODO: Implementare chiamata API per rimuovere gruppo
         // await GroupService.RemoveBusinessPartyFromGroupAsync(groupId, _party.Id);

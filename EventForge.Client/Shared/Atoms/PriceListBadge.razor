@@ -1,4 +1,7 @@
 @* EventForge.Client/Shared/Atoms/PriceListBadge.razor *@
+@* Componente per badge listini prezzi (preparatorio per Fase 3).
+   Visualizza il nome del listino con icona e colore in base al tipo (Sales/Purchase).
+   Mostra una stella se è il listino principale. Supporta tooltip con informazioni di validità. *@
 
 <MudTooltip Text="@GetTooltip()" Placement="Placement.Top">
     <MudChip T="string"

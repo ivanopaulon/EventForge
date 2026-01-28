@@ -1,4 +1,7 @@
 @* EventForge.Client/Shared/Atoms/GroupBadge.razor *@
+@* Componente riutilizzabile per visualizzare badge di gruppi Business Party con colore personalizzato.
+   Mostra il nome del gruppo, un'icona opzionale, e una stella se il gruppo ha priorità alta (>80).
+   Supporta rimozione tramite callback OnRemove se in modalità edit. *@
 @using EventForge.DTOs.Business
 
 <MudTooltip Text="@GetTooltip()" Placement="Placement.Top">
