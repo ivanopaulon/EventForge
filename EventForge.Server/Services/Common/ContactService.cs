@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Common;
@@ -20,7 +21,7 @@ public class ContactService : IContactService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<ContactDto>> GetContactsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ContactDto>> GetContactsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -39,8 +40,8 @@ public class ContactService : IContactService
                 .OrderBy(c => c.OwnerType)
                 .ThenBy(c => c.ContactType)
                 .ThenBy(c => c.Value)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var contactDtos = contacts.Select(MapToContactDto);
@@ -48,8 +49,8 @@ public class ContactService : IContactService
             return new PagedResult<ContactDto>
             {
                 Items = contactDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

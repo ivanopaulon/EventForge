@@ -1,7 +1,10 @@
+using EventForge.DTOs.Common;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -41,33 +44,40 @@ public class EntityManagementController : BaseApiController
     #region Address Management
 
     /// <summary>
-    /// Gets all addresses with optional pagination.
+    /// Retrieves all addresses with pagination
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of addresses</returns>
-    /// <response code="200">Returns the paginated list of addresses</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved addresses with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("addresses")]
     [ProducesResponseType(typeof(PagedResult<AddressDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<AddressDto>>> GetAddresses(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _addressService.GetAddressesAsync(page, pageSize, cancellationToken);
+            var result = await _addressService.GetAddressesAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -269,33 +279,40 @@ public class EntityManagementController : BaseApiController
     #region Contact Management
 
     /// <summary>
-    /// Gets all contacts with optional pagination.
+    /// Retrieves all contacts with pagination
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of contacts</returns>
-    /// <response code="200">Returns the paginated list of contacts</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved contacts with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("contacts")]
     [ProducesResponseType(typeof(PagedResult<ContactDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<ContactDto>>> GetContacts(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _contactService.GetContactsAsync(page, pageSize, cancellationToken);
+            var result = await _contactService.GetContactsAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -725,16 +742,16 @@ public class EntityManagementController : BaseApiController
     #region Classification Node Management
 
     /// <summary>
-    /// Gets all classification nodes with optional pagination and parent filtering.
+    /// <summary>
+    /// Retrieves all classification nodes with pagination and parent filtering
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="parentId">Optional parent ID to filter children</param>
     /// <param name="deleted">Filter for soft-deleted items: 'false' (default), 'true', or 'all'</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of classification nodes</returns>
-    /// <response code="200">Returns the paginated list of classification nodes</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved classification nodes with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("classification-nodes")]
     [SoftDeleteFilter]
@@ -742,8 +759,7 @@ public class EntityManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<ClassificationNodeDto>>> GetClassificationNodes(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] Guid? parentId = null,
         [FromQuery] string deleted = "false",
         CancellationToken cancellationToken = default)
@@ -753,15 +769,24 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _classificationNodeService.GetClassificationNodesAsync(page, pageSize, parentId, cancellationToken);
+            var result = await _classificationNodeService.GetClassificationNodesAsync(pagination, parentId, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)

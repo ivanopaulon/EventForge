@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Common;
@@ -24,7 +25,7 @@ public class ClassificationNodeService : IClassificationNodeService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<ClassificationNodeDto>> GetClassificationNodesAsync(int page = 1, int pageSize = 20, Guid? parentId = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ClassificationNodeDto>> GetClassificationNodesAsync(PaginationParameters pagination, Guid? parentId = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -34,7 +35,7 @@ public class ClassificationNodeService : IClassificationNodeService
             {
                 throw new InvalidOperationException("Tenant context is required for classification node operations.");
             }
-            _logger.LogDebug("Getting classification nodes: page={Page}, pageSize={PageSize}, parentId={ParentId}", page, pageSize, parentId);
+            _logger.LogDebug("Getting classification nodes: page={Page}, pageSize={PageSize}, parentId={ParentId}", pagination.Page, pagination.PageSize, parentId);
 
             var query = _context.ClassificationNodes.AsQueryable();
 
@@ -44,11 +45,10 @@ public class ClassificationNodeService : IClassificationNodeService
             }
 
             var totalCount = await query.CountAsync(cancellationToken);
-            var skip = (page - 1) * pageSize;
 
             var items = await query
-                .Skip(skip)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .Select(cn => new ClassificationNodeDto
                 {
                     Id = cn.Id,
@@ -72,8 +72,8 @@ public class ClassificationNodeService : IClassificationNodeService
             {
                 Items = items,
                 TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
             };
         }
         catch (Exception ex)

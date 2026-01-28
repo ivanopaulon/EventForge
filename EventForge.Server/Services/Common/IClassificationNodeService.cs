@@ -6,14 +6,13 @@ namespace EventForge.Server.Services.Common;
 public interface IClassificationNodeService
 {
     /// <summary>
-    /// Gets all classification nodes with optional pagination.
+    /// Gets all classification nodes with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="parentId">Optional parent ID to filter children</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of classification nodes</returns>
-    Task<PagedResult<ClassificationNodeDto>> GetClassificationNodesAsync(int page = 1, int pageSize = 20, Guid? parentId = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<ClassificationNodeDto>> GetClassificationNodesAsync(PaginationParameters pagination, Guid? parentId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a classification node by ID.

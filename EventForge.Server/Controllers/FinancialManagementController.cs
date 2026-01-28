@@ -1,11 +1,14 @@
 using EventForge.DTOs.Banks;
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
 using EventForge.DTOs.VatRates;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
 using EventForge.Server.Services.VatRates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -45,33 +48,40 @@ public class FinancialManagementController : BaseApiController
     #region Bank Management
 
     /// <summary>
-    /// Gets all banks with optional pagination.
+    /// Retrieves all banks with pagination
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of banks</returns>
-    /// <response code="200">Returns the paginated list of banks</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved banks with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("banks")]
     [ProducesResponseType(typeof(PagedResult<BankDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BankDto>>> GetBanks(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _bankService.GetBanksAsync(page, pageSize, cancellationToken);
+            var result = await _bankService.GetBanksAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -243,33 +253,40 @@ public class FinancialManagementController : BaseApiController
     #region Payment Terms Management
 
     /// <summary>
-    /// Gets all payment terms with optional pagination.
+    /// Retrieves all payment terms with pagination
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of payment terms</returns>
-    /// <response code="200">Returns the paginated list of payment terms</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved payment terms with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("payment-terms")]
     [ProducesResponseType(typeof(PagedResult<PaymentTermDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<PaymentTermDto>>> GetPaymentTerms(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _paymentTermService.GetPaymentTermsAsync(page, pageSize, cancellationToken);
+            var result = await _paymentTermService.GetPaymentTermsAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -441,33 +458,40 @@ public class FinancialManagementController : BaseApiController
     #region VAT Rates Management
 
     /// <summary>
-    /// Gets all VAT rates with optional pagination.
+    /// Retrieves all VAT rates with pagination
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of VAT rates</returns>
-    /// <response code="200">Returns the paginated list of VAT rates</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved VAT rates with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("vat-rates")]
     [ProducesResponseType(typeof(PagedResult<VatRateDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<VatRateDto>>> GetVatRates(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _vatRateService.GetVatRatesAsync(page, pageSize, cancellationToken);
+            var result = await _vatRateService.GetVatRatesAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)

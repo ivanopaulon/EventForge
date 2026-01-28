@@ -1,4 +1,5 @@
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;
@@ -25,7 +26,7 @@ public class PaymentTermService : IPaymentTermService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -41,8 +42,8 @@ public class PaymentTermService : IPaymentTermService
             var totalCount = await query.CountAsync(cancellationToken);
             var paymentTerms = await query
                 .OrderBy(pt => pt.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var paymentTermDtos = paymentTerms.Select(MapToPaymentTermDto);
@@ -50,8 +51,8 @@ public class PaymentTermService : IPaymentTermService
             return new PagedResult<PaymentTermDto>
             {
                 Items = paymentTermDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

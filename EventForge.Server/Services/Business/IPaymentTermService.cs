@@ -1,4 +1,5 @@
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Business;
 
@@ -8,13 +9,12 @@ namespace EventForge.Server.Services.Business;
 public interface IPaymentTermService
 {
     /// <summary>
-    /// Gets all payment terms with optional pagination.
+    /// Gets all payment terms with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of payment terms</returns>
-    Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a payment term by ID.

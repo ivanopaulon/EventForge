@@ -1,4 +1,5 @@
 using EventForge.DTOs.Banks;
+using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Banks;
@@ -21,7 +22,7 @@ public class BankService : IBankService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<BankDto>> GetBanksAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<BankDto>> GetBanksAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -40,8 +41,8 @@ public class BankService : IBankService
             var totalCount = await query.CountAsync(cancellationToken);
             var banks = await query
                 .OrderBy(b => b.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var bankDtos = banks.Select(MapToBankDto);
@@ -49,8 +50,8 @@ public class BankService : IBankService
             return new PagedResult<BankDto>
             {
                 Items = bankDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }
