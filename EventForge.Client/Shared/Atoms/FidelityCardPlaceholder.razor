@@ -1,0 +1,78 @@
+@* EventForge.Client/Shared/Atoms/FidelityCardPlaceholder.razor *@
+
+<MudPaper Elevation="4" 
+          Class="pa-4" 
+          Style="@GetCardStyle()">
+    
+    @if (IsPlaceholder)
+    {
+        <!-- Overlay "Coming Soon" -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%; z-index: 10;">
+            <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Large" Style="opacity: 0.5; color: white;" />
+            <MudText Typo="Typo.h6" Style="opacity: 0.8; color: white;">Coming Soon</MudText>
+        </div>
+    }
+    
+    <MudStack Spacing="2" Style="@(IsPlaceholder ? "opacity: 0.4;" : "")">
+        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600; color: white;">
+                @ProgramName
+            </MudText>
+            <MudChip T="string"
+                     Size="Size.Small" 
+                     Style="background: rgba(255,255,255,0.3); color: white;">
+                @Level
+            </MudChip>
+        </MudStack>
+        
+        <MudText Typo="Typo.caption" Style="opacity: 0.9; color: white;">
+            Card N. @CardNumber
+        </MudText>
+        
+        <MudDivider Style="background: rgba(255,255,255,0.3); margin: 8px 0;" />
+        
+        <MudStack Row Justify="Justify.SpaceBetween">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.caption" Style="opacity: 0.8; color: white;">Punti</MudText>
+                <MudText Typo="Typo.h6" Style="color: white;">@Points</MudText>
+            </MudStack>
+            <MudStack Spacing="0" AlignItems="AlignItems.End">
+                <MudText Typo="Typo.caption" Style="opacity: 0.8; color: white;">Scadenza</MudText>
+                <MudText Typo="Typo.body2" Style="color: white;">@ExpiryDate</MudText>
+            </MudStack>
+        </MudStack>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] 
+    public bool IsPlaceholder { get; set; } = true;
+    
+    [Parameter] 
+    public string ProgramName { get; set; } = "Loyalty Program";
+    
+    [Parameter] 
+    public string Level { get; set; } = "Gold";
+    
+    [Parameter] 
+    public string CardNumber { get; set; } = "**** **** **** 9012";
+    
+    [Parameter] 
+    public string Points { get; set; } = "12,450";
+    
+    [Parameter] 
+    public string ExpiryDate { get; set; } = "12/2025";
+    
+    [Parameter] 
+    public string GradientColors { get; set; } = "#667eea 0%, #764ba2 100%";
+    
+    private string GetCardStyle()
+    {
+        var baseStyle = $"background: linear-gradient(135deg, {GradientColors}); color: white; border-radius: 12px; min-height: 180px; position: relative;";
+        
+        if (IsPlaceholder)
+            baseStyle += " opacity: 0.6;";
+        
+        return baseStyle;
+    }
+}

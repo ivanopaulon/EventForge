@@ -81,7 +81,13 @@
         <MudPaper Elevation="2" Class="pa-2">
             <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
                 <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
-                    <GeneralInfoTab Party="@_party" IsEditMode="@_isEditMode" IsNewParty="@_isCreateMode" OnPartyUpdated="@HandlePartyLocallyChanged" OnAddressCreated="@HandleAddressCreated" />
+                    <GeneralInfoTab Party="@_party" 
+                                    IsEditMode="@_isEditMode" 
+                                    IsNewParty="@_isCreateMode" 
+                                    OnPartyUpdated="@HandlePartyLocallyChanged" 
+                                    OnAddressCreated="@HandleAddressCreated"
+                                    OnManageGroupsClicked="@OnManageGroupsClicked"
+                                    OnRemoveGroup="@OnRemoveGroup" />
                 </MudTabPanel>
 
                 @if (!_isCreateMode && _party != null)
@@ -149,6 +155,23 @@
 
     // Determine if we're in supplier or customer mode based on route
     private bool _isSupplierMode => NavigationManager.Uri.Contains("/suppliers");
+    
+    // ========== LAZY LOADING INFRASTRUCTURE (NUOVO) ==========
+    
+    /// <summary>
+    /// Stato di caricamento per ogni tab
+    /// </summary>
+    private Dictionary<string, TabLoadState> _tabStates = new()
+    {
+        { "General", TabLoadState.Loaded },      // Caricato all'init
+        { "Addresses", TabLoadState.NotLoaded },
+        { "Contacts", TabLoadState.NotLoaded },
+        { "References", TabLoadState.NotLoaded },
+        { "Accounting", TabLoadState.NotLoaded },
+        { "Documents", TabLoadState.NotLoaded },
+        { "Products", TabLoadState.NotLoaded },
+        { "SuppliedProducts", TabLoadState.NotLoaded }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -320,5 +343,44 @@
         return _isSupplierMode 
             ? TranslationService.GetTranslation("entity.supplier", "Fornitore")
             : TranslationService.GetTranslation("entity.customer", "Cliente");
+    }
+    
+    // ========== GESTIONE GRUPPI (NUOVO) ==========
+    
+    /// <summary>
+    /// Apre dialog per gestire gruppi (placeholder - implementazione in fase successiva)
+    /// </summary>
+    private async Task OnManageGroupsClicked()
+    {
+        // TODO: Implementare in Fase successiva
+        // var parameters = new DialogParameters
+        // {
+        //     { "BusinessPartyId", _party.Id },
+        //     { "CurrentGroups", _party.Groups }
+        // };
+        // var result = await DialogService.ShowAsync<ManageBusinessPartyGroupsDialog>(...);
+        
+        Snackbar.Add("Gestione gruppi: implementazione in fase successiva", Severity.Info);
+    }
+    
+    /// <summary>
+    /// Rimuove un gruppo dal business party
+    /// </summary>
+    private async Task OnRemoveGroup(Guid groupId)
+    {
+        // TODO: Implementare chiamata API per rimuovere gruppo
+        // await GroupService.RemoveBusinessPartyFromGroupAsync(groupId, _party.Id);
+        
+        // Placeholder: rimuovi solo lato client
+        if (_party?.Groups != null)
+        {
+            var group = _party.Groups.FirstOrDefault(g => g.Id == groupId);
+            if (group != null)
+            {
+                _party.Groups.Remove(group);
+                StateHasChanged();
+                Snackbar.Add($"Gruppo '{group.Name}' rimosso (solo UI - backend non implementato)", Severity.Warning);
+            }
+        }
     }
 }

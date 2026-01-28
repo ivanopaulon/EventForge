@@ -1,0 +1,81 @@
+@* EventForge.Client/Shared/Atoms/PriceListBadge.razor *@
+
+<MudTooltip Text="@GetTooltip()" Placement="Placement.Top">
+    <MudChip T="string"
+             Size="@Size" 
+             Color="@GetColor()"
+             Variant="@Variant"
+             Icon="@GetIcon()">
+        @PriceListName
+        @if (IsPrimary)
+        {
+            <MudIcon Icon="@Icons.Material.Filled.Star" 
+                     Color="Color.Warning" 
+                     Size="Size.Small" 
+                     Class="ml-1" />
+        }
+    </MudChip>
+</MudTooltip>
+
+@code {
+    [Parameter, EditorRequired] 
+    public string PriceListName { get; set; } = string.Empty;
+    
+    [Parameter] 
+    public bool IsPrimary { get; set; }
+    
+    [Parameter] 
+    public string? PriceListType { get; set; } // "Sales" | "Purchase"
+    
+    [Parameter] 
+    public DateTime? ValidFrom { get; set; }
+    
+    [Parameter] 
+    public DateTime? ValidTo { get; set; }
+    
+    [Parameter] 
+    public Size Size { get; set; } = Size.Small;
+    
+    [Parameter] 
+    public Variant Variant { get; set; } = Variant.Filled;
+    
+    private Color GetColor()
+    {
+        if (IsPrimary) return Color.Success;
+        
+        return PriceListType?.ToLower() switch
+        {
+            "sales" => Color.Primary,
+            "purchase" => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+    
+    private string GetIcon()
+    {
+        return PriceListType?.ToLower() switch
+        {
+            "sales" => Icons.Material.Outlined.Sell,
+            "purchase" => Icons.Material.Outlined.LocalShipping,
+            _ => Icons.Material.Outlined.PriceCheck
+        };
+    }
+    
+    private string GetTooltip()
+    {
+        var tooltip = PriceListName;
+        
+        if (IsPrimary)
+            tooltip += "\n⭐ Listino Principale";
+        
+        if (ValidFrom.HasValue || ValidTo.HasValue)
+        {
+            tooltip += "\n\nValidità: ";
+            tooltip += ValidFrom.HasValue ? $"dal {ValidFrom.Value:dd/MM/yyyy}" : "da sempre";
+            tooltip += " ";
+            tooltip += ValidTo.HasValue ? $"al {ValidTo.Value:dd/MM/yyyy}" : "per sempre";
+        }
+        
+        return tooltip;
+    }
+}

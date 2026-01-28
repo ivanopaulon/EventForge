@@ -1,0 +1,69 @@
+@* EventForge.Client/Shared/Atoms/GroupBadge.razor *@
+@using EventForge.DTOs.Business
+
+<MudTooltip Text="@GetTooltip()" Placement="Placement.Top">
+    <MudChip T="string"
+             Size="@Size" 
+             Style="@GetChipStyle()"
+             Icon="@(Group.Icon ?? Icons.Material.Filled.Group)"
+             OnClose="@(OnRemove.HasDelegate ? () => OnRemove.InvokeAsync(Group.Id) : null)">
+        @Group.Name
+        @if (ShowPriority && Group.Priority > 80)
+        {
+            <MudIcon Icon="@Icons.Material.Filled.Star" 
+                     Color="Color.Warning" 
+                     Size="Size.Small" 
+                     Class="ml-1" />
+        }
+    </MudChip>
+</MudTooltip>
+
+@code {
+    [Parameter, EditorRequired] 
+    public BusinessPartyGroupDto Group { get; set; } = null!;
+    
+    [Parameter] 
+    public Size Size { get; set; } = Size.Small;
+    
+    [Parameter] 
+    public bool ShowPriority { get; set; } = true;
+    
+    [Parameter] 
+    public EventCallback<Guid> OnRemove { get; set; }
+    
+    private string GetChipStyle()
+    {
+        if (string.IsNullOrEmpty(Group.ColorHex))
+            return string.Empty;
+        
+        // Background con 12.5% opacity
+        var bgColor = $"{Group.ColorHex}20";
+        // Border con 25% opacity
+        var borderColor = $"{Group.ColorHex}40";
+        
+        return $"background-color: {bgColor}; color: {Group.ColorHex}; border: 1px solid {borderColor}; font-weight: 500;";
+    }
+    
+    private string GetTooltip()
+    {
+        var tooltip = Group.Name;
+        
+        if (!string.IsNullOrEmpty(Group.Description))
+        {
+            tooltip += $"\n{Group.Description}";
+        }
+        
+        tooltip += $"\n\nPriorità: {Group.Priority}";
+        tooltip += $"\nMembri attivi: {Group.ActiveMembersCount}";
+        
+        if (Group.ValidFrom.HasValue || Group.ValidTo.HasValue)
+        {
+            tooltip += "\n\nValidità: ";
+            tooltip += Group.ValidFrom.HasValue ? $"dal {Group.ValidFrom.Value:dd/MM/yyyy}" : "da sempre";
+            tooltip += " ";
+            tooltip += Group.ValidTo.HasValue ? $"al {Group.ValidTo.Value:dd/MM/yyyy}" : "per sempre";
+        }
+        
+        return tooltip;
+    }
+}
