@@ -7,8 +7,8 @@ using System.Text.Json;
 namespace EventForge.Server.Middleware;
 
 /// <summary>
-/// Middleware globale per la gestione centralizzata delle eccezioni.
-/// Intercetta TUTTE le eccezioni non gestite e le converte in risposte RFC 7807 Problem Details.
+/// Global middleware for centralized exception handling.
+/// Intercepts ALL unhandled exceptions and converts them to RFC 7807 Problem Details responses.
 /// </summary>
 public class GlobalExceptionHandlerMiddleware
 {
@@ -34,13 +34,20 @@ public class GlobalExceptionHandlerMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Eccezione non gestita intercettata dal GlobalExceptionHandler");
+            _logger.LogError(ex, "Unhandled exception caught by GlobalExceptionHandler");
             await HandleExceptionAsync(context, ex);
         }
     }
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        // Check if response has already started - if so, we can't modify it
+        if (context.Response.HasStarted)
+        {
+            _logger.LogWarning("Cannot handle exception - response has already started");
+            return;
+        }
+
         var problemDetails = CreateProblemDetails(context, exception);
 
         context.Response.StatusCode = problemDetails.Status ?? (int)HttpStatusCode.InternalServerError;
@@ -74,7 +81,7 @@ public class GlobalExceptionHandlerMiddleware
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Business Validation Error";
-                problemDetails.Detail = businessEx.Message;
+                problemDetails.Detail = _environment.IsDevelopment() ? businessEx.Message : "A business validation error occurred.";
                 problemDetails.Extensions["errorCode"] = businessEx.ErrorCode;
                 
                 if (businessEx.ValidationErrors != null && businessEx.ValidationErrors.Any())
@@ -103,21 +110,23 @@ public class GlobalExceptionHandlerMiddleware
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Bad Request";
-                problemDetails.Detail = $"Required parameter '{nullEx.ParamName}' was null or missing";
+                problemDetails.Detail = _environment.IsDevelopment() 
+                    ? $"Required parameter '{nullEx.ParamName}' was null or missing"
+                    : "A required parameter was null or missing";
                 break;
 
             case ArgumentException argEx:
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Bad Request";
-                problemDetails.Detail = argEx.Message;
+                problemDetails.Detail = _environment.IsDevelopment() ? argEx.Message : "Invalid argument provided";
                 break;
 
             case InvalidOperationException invalidEx:
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Invalid Operation";
-                problemDetails.Detail = invalidEx.Message;
+                problemDetails.Detail = _environment.IsDevelopment() ? invalidEx.Message : "The requested operation is invalid";
                 break;
 
             case UnauthorizedAccessException:
@@ -131,14 +140,14 @@ public class GlobalExceptionHandlerMiddleware
                 problemDetails.Status = (int)HttpStatusCode.NotFound;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.4";
                 problemDetails.Title = "Not Found";
-                problemDetails.Detail = notFoundEx.Message;
+                problemDetails.Detail = _environment.IsDevelopment() ? notFoundEx.Message : "The requested resource was not found";
                 break;
 
             case TimeoutException timeoutEx:
                 problemDetails.Status = (int)HttpStatusCode.RequestTimeout;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.7";
                 problemDetails.Title = "Request Timeout";
-                problemDetails.Detail = timeoutEx.Message;
+                problemDetails.Detail = _environment.IsDevelopment() ? timeoutEx.Message : "The request timed out";
                 break;
 
             default:

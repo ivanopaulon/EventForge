@@ -4,7 +4,7 @@ using FluentValidation;
 namespace EventForge.Server.Validators.Auth;
 
 /// <summary>
-/// Validatore FluentValidation per LoginRequestDto.
+/// FluentValidation validator for LoginRequestDto.
 /// </summary>
 public class LoginRequestDtoValidator : AbstractValidator<LoginRequestDto>
 {

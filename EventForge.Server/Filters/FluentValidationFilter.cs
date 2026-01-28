@@ -1,12 +1,11 @@
 using FluentValidation;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace EventForge.Server.Filters;
 
 /// <summary>
-/// Filtro di validazione automatica che usa FluentValidation per validare i model.
-/// Se la validazione fallisce, lancia una ValidationException che verrà gestita dal GlobalExceptionHandlerMiddleware.
+/// Automatic validation filter that uses FluentValidation to validate models.
+/// If validation fails, throws a ValidationException that will be handled by GlobalExceptionHandlerMiddleware.
 /// </summary>
 public class FluentValidationFilter : IAsyncActionFilter
 {
@@ -19,7 +18,7 @@ public class FluentValidationFilter : IAsyncActionFilter
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        // Valida tutti i parametri dell'action
+        // Validate all action parameters
         foreach (var parameter in context.ActionDescriptor.Parameters)
         {
             if (context.ActionArguments.TryGetValue(parameter.Name, out var argument) && argument != null)
@@ -36,7 +35,7 @@ public class FluentValidationFilter : IAsyncActionFilter
                     
                     if (!validationResult.IsValid)
                     {
-                        // Lancia ValidationException che verrà gestita dal GlobalExceptionHandlerMiddleware
+                        // Throws ValidationException which will be handled by GlobalExceptionHandlerMiddleware
                         throw new ValidationException(validationResult.Errors);
                     }
                 }
@@ -44,20 +43,5 @@ public class FluentValidationFilter : IAsyncActionFilter
         }
 
         await next();
-    }
-}
-
-/// <summary>
-/// Extension methods per registrare FluentValidationFilter.
-/// </summary>
-public static class FluentValidationFilterExtensions
-{
-    /// <summary>
-    /// Aggiunge il filtro di validazione FluentValidation ai controller.
-    /// </summary>
-    public static IMvcBuilder AddFluentValidationFilter(this IMvcBuilder builder)
-    {
-        builder.Services.AddScoped<FluentValidationFilter>();
-        return builder;
     }
 }

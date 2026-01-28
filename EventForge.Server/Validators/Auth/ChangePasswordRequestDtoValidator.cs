@@ -4,7 +4,7 @@ using FluentValidation;
 namespace EventForge.Server.Validators.Auth;
 
 /// <summary>
-/// Validatore FluentValidation per ChangePasswordRequestDto.
+/// FluentValidation validator for ChangePasswordRequestDto.
 /// </summary>
 public class ChangePasswordRequestDtoValidator : AbstractValidator<ChangePasswordRequestDto>
 {
