@@ -193,8 +193,9 @@
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.groups", "Gruppi")">
                             @if (item.Groups != null && item.Groups.Any())
                             {
+                                var sortedGroups = GetSortedGroups(item.Groups).ToList();
                                 <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Style="max-width: 300px;">
-                                    @foreach (var group in GetSortedGroups(item.Groups).Take(3))
+                                    @foreach (var group in sortedGroups.Take(3))
                                     {
                                         <MudTooltip Text="@GetGroupTooltip(group)" Placement="Placement.Top">
                                             <MudChip T="string"
@@ -205,14 +206,14 @@
                                             </MudChip>
                                         </MudTooltip>
                                     }
-                                    @if (item.Groups.Count > 3)
+                                    @if (sortedGroups.Count > 3)
                                     {
-                                        <MudTooltip Text="@GetRemainingGroupsTooltip(item.Groups.Skip(3))">
+                                        <MudTooltip Text="@GetRemainingGroupsTooltip(sortedGroups.Skip(3))">
                                             <MudChip T="string" 
                                                      Size="Size.Small" 
                                                      Color="Color.Default" 
                                                      Variant="Variant.Outlined">
-                                                +@(item.Groups.Count - 3)
+                                                +@(sortedGroups.Count - 3)
                                             </MudChip>
                                         </MudTooltip>
                                     }
@@ -393,7 +394,7 @@
             Color = "secondary",
             Description = "Aggiunti negli ultimi 30 giorni",
             Format = "N0",
-            Filter = item => item.CreatedAt >= DateTime.UtcNow.AddDays(-30)
+            Filter = item => item.CreatedAt >= DateTime.Now.AddDays(-30)
         }
     };
 
