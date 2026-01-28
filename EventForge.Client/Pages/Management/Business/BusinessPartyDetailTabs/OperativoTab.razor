@@ -1,0 +1,78 @@
+@* EventForge.Client/Pages/Management/Business/BusinessPartyDetailTabs/OperativoTab.razor *@
+
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.BusinessParty
+@inject ITranslationService TranslationService
+
+<MudExpansionPanels MultiExpansion="true" Class="mt-2">
+    
+    <!-- ========== ACCORDION 1: DOCUMENTI ========== -->
+    <MudExpansionPanel IsInitiallyExpanded="true">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Outlined.Description" />
+                <MudText Typo="Typo.subtitle1">
+                    @TranslationService.GetTranslation("businessParty.documents", "Documenti")
+                </MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <div class="pa-3">
+                <BusinessPartyDocumentsTab BusinessPartyId="@BusinessPartyId" />
+            </div>
+        </ChildContent>
+    </MudExpansionPanel>
+    
+    <!-- ========== ACCORDION 2: ANALISI PRODOTTI ========== -->
+    <MudExpansionPanel IsInitiallyExpanded="false">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Outlined.Inventory2" />
+                <MudText Typo="Typo.subtitle1">
+                    @TranslationService.GetTranslation("businessParty.productAnalysis", "Analisi Prodotti")
+                </MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <div class="pa-3">
+                <BusinessPartyProductsTab BusinessPartyId="@BusinessPartyId" />
+            </div>
+        </ChildContent>
+    </MudExpansionPanel>
+    
+    <!-- ========== ACCORDION 3: CATALOGO FORNITORE (Solo Supplier/Both) ========== -->
+    @if (PartyType == BusinessPartyType.Supplier || PartyType == BusinessPartyType.Both)
+    {
+        <MudExpansionPanel IsInitiallyExpanded="false">
+            <TitleContent>
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Outlined.LocalShipping" />
+                    <MudText Typo="Typo.subtitle1">
+                        @TranslationService.GetTranslation("businessParty.suppliedProducts", "Prodotti Forniti")
+                    </MudText>
+                </div>
+            </TitleContent>
+            <ChildContent>
+                <div class="pa-3">
+                    <BusinessPartySuppliedProductsTab BusinessPartyId="@BusinessPartyId" />
+                </div>
+            </ChildContent>
+        </MudExpansionPanel>
+    }
+    
+</MudExpansionPanels>
+
+@code {
+    /// <summary>
+    /// ID del Business Party
+    /// </summary>
+    [Parameter, EditorRequired]
+    public Guid BusinessPartyId { get; set; }
+    
+    /// <summary>
+    /// Tipo di Business Party (per mostrare/nascondere Catalogo Fornitore)
+    /// </summary>
+    [Parameter, EditorRequired]
+    public BusinessPartyType PartyType { get; set; }
+}
