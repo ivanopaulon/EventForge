@@ -1,5 +1,9 @@
+using EventForge.DTOs.Common;
+using EventForge.DTOs.Tenants;
+using EventForge.Server.ModelBinders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
 
@@ -112,20 +116,92 @@ public class TenantsController : BaseApiController
     }
 
     /// <summary>
-    /// Gets all tenants (super admin only).
+    /// Gets all tenants with pagination (SuperAdmin only).
     /// </summary>
-    /// <returns>List of all tenants</returns>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of tenants</returns>
+    /// <response code="200">Successfully retrieved tenants with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    /// <response code="403">User not authorized to view tenants</response>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TenantResponseDto>>> GetAllTenants()
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(PagedResult<TenantResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<TenantResponseDto>>> GetTenants(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            var tenants = await _tenantService.GetAllTenantsAsync();
-            return Ok(tenants);
+            var result = await _tenantService.GetTenantsAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
         {
             return CreateValidationProblemDetails("Access denied: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving tenants.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets all active tenants with pagination (SuperAdmin only).
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of active tenants</returns>
+    /// <response code="200">Successfully retrieved active tenants with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    /// <response code="403">User not authorized to view tenants</response>
+    [HttpGet("active")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(PagedResult<TenantResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<TenantResponseDto>>> GetActiveTenants(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _tenantService.GetActiveTenantsAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving active tenants.", ex);
         }
     }
 

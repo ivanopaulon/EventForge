@@ -164,4 +164,52 @@ public interface IAuditLogService
     Task<ExportResultDto?> GetExportStatusAsync(
         Guid exportId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all audit logs with pagination.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated audit logs</returns>
+    Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets audit logs for a specific entity type with pagination.
+    /// </summary>
+    /// <param name="entityType">Entity type name</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated audit logs for the entity type</returns>
+    Task<PagedResult<EntityChangeLogDto>> GetLogsByEntityAsync(
+        string entityType,
+        PaginationParameters pagination,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets audit logs for a specific user with pagination.
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated audit logs for the user</returns>
+    Task<PagedResult<EntityChangeLogDto>> GetLogsByUserAsync(
+        Guid userId,
+        PaginationParameters pagination,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets audit logs within a date range with pagination.
+    /// </summary>
+    /// <param name="startDate">Start date</param>
+    /// <param name="endDate">End date (optional, defaults to now)</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated audit logs within the date range</returns>
+    Task<PagedResult<EntityChangeLogDto>> GetLogsByDateRangeAsync(
+        DateTime startDate,
+        DateTime? endDate,
+        PaginationParameters pagination,
+        CancellationToken ct = default);
 }
