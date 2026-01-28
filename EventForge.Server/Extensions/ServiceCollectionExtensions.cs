@@ -9,6 +9,7 @@ using EventForge.Server.Services.Dashboard;
 using EventForge.Server.Services.DevTools;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
+using EventForge.Server.Services.Export;
 using EventForge.Server.Services.External;
 using EventForge.Server.Services.Licensing;
 using EventForge.Server.Services.Logging;
@@ -286,6 +287,9 @@ public static class ServiceCollectionExtensions
         // Register business party services
         _ = services.AddScoped<IBusinessPartyService, BusinessPartyService>();
         _ = services.AddScoped<IBusinessPartyGroupService, BusinessPartyGroupService>();
+
+        // Register export services
+        _ = services.AddScoped<IExportService, ExportService>();
 
         // Register common services
         _ = services.AddScoped<IAddressService, AddressService>();
