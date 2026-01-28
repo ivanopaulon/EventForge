@@ -205,7 +205,15 @@
                                    Label="Membro Fino"
                                    Clearable="true"
                                    Variant="Variant.Outlined"
-                                   HelperText="Data di fine appartenenza (opzionale)" />
+                                   HelperText="Data di fine appartenenza (opzionale)"
+                                   MinDate="_memberSince" />
+                    
+                    @if (HasInvalidDateRange)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            La data "Membro Fino" non può essere precedente alla data "Membro Dal"
+                        </MudAlert>
+                    }
                     
                     <MudSelect @bind-Value="_status" 
                                Label="Stato"
@@ -285,7 +293,9 @@
     private int? _overridePriority;
     private string? _notes;
     
-    private bool CanSubmit => GetValidBusinessParties().Any();
+    private bool HasInvalidDateRange => _memberUntil.HasValue && _memberSince.HasValue && _memberUntil.Value < _memberSince.Value;
+    
+    private bool CanSubmit => GetValidBusinessParties().Any() && !HasInvalidDateRange;
     
     private void OnBusinessPartySelected(BusinessPartyDto? bp)
     {
@@ -431,7 +441,8 @@
             using var reader = new StreamReader(e.File.OpenReadStream(maxFileSize));
             var csvContent = await reader.ReadToEndAsync();
             
-            var lines = csvContent.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1); // Skip header
+            // Handle both Unix (\n) and Windows (\r\n) line endings
+            var lines = csvContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries).Skip(1); // Skip header
             
             foreach (var line in lines)
             {
@@ -480,7 +491,7 @@
         try
         {
             var csv = "Nome,P.IVA,CodiceFiscale\n";
-            csv += "Acme Corp,12345678901,\n";
+            csv += "Acme Corp,12345678901\n";
             csv += "Example SRL,,EXMPLS80A01H501X\n";
             
             await JSRuntime.InvokeVoidAsync("downloadFile", "template_membri_gruppo.csv", "text/csv", csv);
