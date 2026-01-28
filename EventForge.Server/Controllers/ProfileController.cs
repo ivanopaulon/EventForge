@@ -783,6 +783,35 @@ public class ProfileController : BaseApiController
                 var displayPrefs = System.Text.Json.JsonSerializer.Deserialize<UserDisplayPreferencesDto>(
                     metadata["DisplayPreferences"].GetRawText());
                 
+                if (displayPrefs != null)
+                {
+                    // Backward compatibility: ensure defaults for new fields
+                    if (string.IsNullOrEmpty(displayPrefs.HeadingsFont))
+                        displayPrefs.HeadingsFont = "Noto Sans Display";
+                    
+                    if (string.IsNullOrEmpty(displayPrefs.BodyFont))
+                    {
+                        // Migrate from PrimaryFontFamily if present
+                        displayPrefs.BodyFont = !string.IsNullOrEmpty(displayPrefs.PrimaryFontFamily) 
+                            ? displayPrefs.PrimaryFontFamily 
+                            : "Noto Sans";
+                    }
+                    
+                    if (string.IsNullOrEmpty(displayPrefs.ContentFont))
+                        displayPrefs.ContentFont = "Noto Serif";
+                    
+                    if (string.IsNullOrEmpty(displayPrefs.MonospaceFont))
+                    {
+                        // Migrate from MonospaceFontFamily if present
+                        displayPrefs.MonospaceFont = !string.IsNullOrEmpty(displayPrefs.MonospaceFontFamily)
+                            ? displayPrefs.MonospaceFontFamily
+                            : "Noto Sans Mono";
+                    }
+                    
+                    if (displayPrefs.BaseFontSize < 12 || displayPrefs.BaseFontSize > 24)
+                        displayPrefs.BaseFontSize = 16;
+                }
+                
                 return displayPrefs;
             }
         }

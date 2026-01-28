@@ -6,22 +6,110 @@
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="4">
+            <!-- Preset Veloci -->
+            <MudText Typo="Typo.h6">@TranslationService.GetTranslation("fontPreferences.presets", "Preset Veloci")</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="@(GetPresetColor(NotoPreset.AllSans))"
+                               FullWidth="true" 
+                               OnClick="@(() => ApplyPreset(NotoPreset.AllSans))"
+                               StartIcon="@Icons.Material.Filled.TextFields"
+                               Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("fontPreferences.preset.allSans", "Tutto Sans")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("fontPreferences.preset.allSans.desc", "Moderno e pulito")
+                            </MudText>
+                        </MudStack>
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="@(GetPresetColor(NotoPreset.SerifBody))"
+                               FullWidth="true" 
+                               OnClick="@(() => ApplyPreset(NotoPreset.SerifBody))"
+                               StartIcon="@Icons.Material.Filled.MenuBook"
+                               Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("fontPreferences.preset.serifBody", "Serif per Lettura")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("fontPreferences.preset.serifBody.desc", "Classico e leggibile")
+                            </MudText>
+                        </MudStack>
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="@(GetPresetColor(NotoPreset.DisplayHeadings))"
+                               FullWidth="true" 
+                               OnClick="@(() => ApplyPreset(NotoPreset.DisplayHeadings))"
+                               StartIcon="@Icons.Material.Filled.Title"
+                               Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("fontPreferences.preset.displayHeadings", "Titoli Display")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("fontPreferences.preset.displayHeadings.desc", "Impatto visivo")
+                            </MudText>
+                        </MudStack>
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="@(GetPresetColor(NotoPreset.Editorial))"
+                               FullWidth="true" 
+                               OnClick="@(() => ApplyPreset(NotoPreset.Editorial))"
+                               StartIcon="@Icons.Material.Filled.Article"
+                               Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("fontPreferences.preset.editorial", "Editoriale")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("fontPreferences.preset.editorial.desc", "Elegante, mix serif")
+                            </MudText>
+                        </MudStack>
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider />
+
+            <!-- Configurazione Custom -->
+            <MudText Typo="Typo.h6">@TranslationService.GetTranslation("fontPreferences.customize", "Personalizza")</MudText>
+            
             <MudSelect T="string" 
-                       @bind-Value="_preferences.PrimaryFontFamily"
-                       Label="@TranslationService.GetTranslation("fontPreferences.primaryFont", "Font Principale")"
+                       @bind-Value="_preferences.BodyFont"
+                       Label="@TranslationService.GetTranslation("fontPreferences.bodyFont", "Font per Testo Corpo")"
+                       HelperText="@TranslationService.GetTranslation("fontPreferences.bodyFont.help", "Usato in paragrafi, descrizioni, labels")"
                        Variant="Variant.Outlined">
-                <MudSelectItem Value="@("Noto Sans")">Noto Sans (@TranslationService.GetTranslation("fontPreferences.recommended", "Recommended"))</MudSelectItem>
-                <MudSelectItem Value="@("Noto Serif")">Noto Serif</MudSelectItem>
-                <MudSelectItem Value="@("System")">@TranslationService.GetTranslation("fontPreferences.systemFont", "System Font")</MudSelectItem>
+                <MudSelectItem Value="@("Noto Sans")">Noto Sans - @TranslationService.GetTranslation("fontPreferences.notoSans.desc", "Moderno, neutro")</MudSelectItem>
+                <MudSelectItem Value="@("Noto Serif")">Noto Serif - @TranslationService.GetTranslation("fontPreferences.notoSerif.desc", "Classico, leggibile")</MudSelectItem>
             </MudSelect>
 
             <MudSelect T="string" 
-                       @bind-Value="_preferences.MonospaceFontFamily"
-                       Label="@TranslationService.GetTranslation("fontPreferences.monoFont", "Font Monospace")"
+                       @bind-Value="_preferences.HeadingsFont"
+                       Label="@TranslationService.GetTranslation("fontPreferences.headingsFont", "Font per Titoli")"
+                       HelperText="@TranslationService.GetTranslation("fontPreferences.headingsFont.help", "Usato in H1-H6, card headers, page titles")"
                        Variant="Variant.Outlined">
-                <MudSelectItem Value="@("Noto Sans Mono")">Noto Sans Mono (@TranslationService.GetTranslation("fontPreferences.recommended", "Recommended"))</MudSelectItem>
-                <MudSelectItem Value="@("Courier New")">Courier New</MudSelectItem>
+                <MudSelectItem Value="@("Noto Sans")">Noto Sans</MudSelectItem>
+                <MudSelectItem Value="@("Noto Sans Display")">Noto Sans Display (@TranslationService.GetTranslation("fontPreferences.recommended", "Consigliato"))</MudSelectItem>
+                <MudSelectItem Value="@("Noto Serif")">Noto Serif</MudSelectItem>
+                <MudSelectItem Value="@("Noto Serif Display")">Noto Serif Display</MudSelectItem>
             </MudSelect>
+
+            <MudTextField T="string" 
+                          Value="@_preferences.MonospaceFont"
+                          Label="@TranslationService.GetTranslation("fontPreferences.monoFont", "Font per Codice")"
+                          HelperText="@TranslationService.GetTranslation("fontPreferences.monoFont.help", "Unica opzione monospace")"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true" />
 
             <MudSlider @bind-Value="_preferences.BaseFontSize" 
                        Min="12" 
@@ -31,27 +119,107 @@
                 @TranslationService.GetTranslation("fontPreferences.fontSize", "Dimensione Font"): @_preferences.BaseFontSize px
             </MudSlider>
 
-            <MudSwitch @bind-Value="_preferences.EnableExtendedFonts"
-                       Label="@TranslationService.GetTranslation("fontPreferences.extendedFonts", "Abilita Font Multilingua Estesi")"
+            <MudSwitch @bind-Value="_preferences.EnableExtendedScripts"
+                       Label="@TranslationService.GetTranslation("fontPreferences.extendedScripts", "Abilita Supporto Lingue Estese")"
                        Color="Color.Primary" />
 
-            <MudSwitch @bind-Value="_preferences.UseSystemFonts"
-                       Label="@TranslationService.GetTranslation("fontPreferences.useSystem", "Usa Font di Sistema (Performance)")"
-                       Color="Color.Secondary" />
+            <MudDivider />
 
-            <MudPaper Class="pa-4" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
-                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">
-                    @TranslationService.GetTranslation("fontPreferences.preview", "Anteprima"):
-                </MudText>
-                <MudText Typo="Typo.body1" Style="@GetPreviewStyle()">
-                    EventForge ABC 123 - àèéìòù
-                </MudText>
+            <!-- Anteprima Live con 3 Tab -->
+            <MudText Typo="Typo.h6">@TranslationService.GetTranslation("fontPreferences.preview", "Anteprima Live")</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                @TranslationService.GetTranslation("fontPreferences.preview.hint", "L'anteprima si aggiorna in tempo reale")
+            </MudText>
+
+            <MudPaper Class="pa-4" Elevation="0" Style="background-color: var(--mud-palette-background-grey); min-height: 300px;">
+                <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                    <!-- Tab Generale -->
+                    <MudTabPanel Text="@TranslationService.GetTranslation("fontPreferences.preview.general", "Generale")" Icon="@Icons.Material.Filled.Visibility">
+                        <MudStack Spacing="3">
+                            <MudText Typo="Typo.h3" Style="@GetHeadingsPreviewStyle()">
+                                EventForge Platform
+                            </MudText>
+                            <MudText Typo="Typo.h5" Style="@GetHeadingsPreviewStyle()">
+                                Sistema di Gestione Eventi
+                            </MudText>
+                            <MudText Typo="Typo.body1" Style="@GetBodyPreviewStyle()">
+                                EventForge è una piattaforma completa per la gestione di eventi aziendali. 
+                                Permette di organizzare, tracciare e analizzare eventi in modo efficiente. 
+                                Con un'interfaccia intuitiva e strumenti potenti, semplifica ogni aspetto della gestione eventi.
+                            </MudText>
+                            <MudStack Row="true" Spacing="2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Style="@GetBodyPreviewStyle()">
+                                    Azione Principale
+                                </MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Style="@GetBodyPreviewStyle()">
+                                    Annulla
+                                </MudButton>
+                            </MudStack>
+                            <MudPaper Class="pa-3" Elevation="0" Style="background-color: rgba(0,0,0,0.03);">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">Esempio JSON:</MudText>
+                                <pre style="@GetMonoPreviewStyle(); margin: 0; overflow-x: auto;"><code>{
+  "event": "UserLogin",
+  "timestamp": "2026-01-28T18:30:00Z",
+  "status": "success"
+}</code></pre>
+                            </MudPaper>
+                        </MudStack>
+                    </MudTabPanel>
+
+                    <!-- Tab Titoli -->
+                    <MudTabPanel Text="@TranslationService.GetTranslation("fontPreferences.preview.headings", "Titoli")" Icon="@Icons.Material.Filled.FormatSize">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h1" Style="@GetHeadingsPreviewStyle()">H1: Titolo Principale</MudText>
+                            <MudText Typo="Typo.h2" Style="@GetHeadingsPreviewStyle()">H2: Titolo Sezione</MudText>
+                            <MudText Typo="Typo.h3" Style="@GetHeadingsPreviewStyle()">H3: Sottotitolo</MudText>
+                            <MudText Typo="Typo.h4" Style="@GetHeadingsPreviewStyle()">H4: Intestazione</MudText>
+                            <MudText Typo="Typo.h5" Style="@GetHeadingsPreviewStyle()">H5: Titolo Card</MudText>
+                            <MudText Typo="Typo.h6" Style="@GetHeadingsPreviewStyle()">H6: Sezione Minore</MudText>
+                        </MudStack>
+                    </MudTabPanel>
+
+                    <!-- Tab Componenti -->
+                    <MudTabPanel Text="@TranslationService.GetTranslation("fontPreferences.preview.components", "Componenti")" Icon="@Icons.Material.Filled.Widgets">
+                        <MudStack Spacing="3">
+                            <MudCard>
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.h6" Style="@GetHeadingsPreviewStyle()">Card Header</MudText>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudText Style="@GetBodyPreviewStyle()">
+                                        Questo è il contenuto di una card MudBlazor. 
+                                        Il testo usa il font body selezionato.
+                                    </MudText>
+                                </MudCardContent>
+                            </MudCard>
+
+                            <MudTable Items="@_sampleData" Dense="true" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh Style="@GetHeadingsPreviewStyle()">Nome</MudTh>
+                                    <MudTh Style="@GetHeadingsPreviewStyle()">Tipo</MudTh>
+                                    <MudTh Style="@GetHeadingsPreviewStyle()">Stato</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd Style="@GetBodyPreviewStyle()">@context.Name</MudTd>
+                                    <MudTd Style="@GetBodyPreviewStyle()">@context.Type</MudTd>
+                                    <MudTd Style="@GetBodyPreviewStyle()">@context.Status</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudStack>
+                    </MudTabPanel>
+                </MudTabs>
             </MudPaper>
         </MudStack>
     </DialogContent>
     <DialogActions>
+        <MudButton OnClick="Reset" StartIcon="@Icons.Material.Filled.Refresh">
+            @TranslationService.GetTranslation("common.reset", "Reset")
+        </MudButton>
+        <MudSpacer />
         <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" StartIcon="@Icons.Material.Filled.Save">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
@@ -61,17 +229,82 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
 
     private UserDisplayPreferencesDto _preferences = new();
+    private NotoPreset? _currentPreset = null;
+
+    // Sample data for table preview
+    private List<SampleDataItem> _sampleData = new()
+    {
+        new SampleDataItem { Name = "Evento 2026", Type = "Conferenza", Status = "Attivo" },
+        new SampleDataItem { Name = "Meeting Q1", Type = "Riunione", Status = "Completato" },
+        new SampleDataItem { Name = "Workshop", Type = "Formazione", Status = "Pianificato" }
+    };
+
+    private enum NotoPreset
+    {
+        AllSans,
+        SerifBody,
+        DisplayHeadings,
+        Editorial
+    }
+
+    private class SampleDataItem
+    {
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
 
     protected override void OnInitialized()
     {
         _preferences = new UserDisplayPreferencesDto
         {
-            PrimaryFontFamily = FontPreferencesService.CurrentPreferences.PrimaryFontFamily,
-            MonospaceFontFamily = FontPreferencesService.CurrentPreferences.MonospaceFontFamily,
+            BodyFont = FontPreferencesService.CurrentPreferences.BodyFont,
+            HeadingsFont = FontPreferencesService.CurrentPreferences.HeadingsFont,
+            MonospaceFont = FontPreferencesService.CurrentPreferences.MonospaceFont,
+            ContentFont = FontPreferencesService.CurrentPreferences.ContentFont,
             BaseFontSize = FontPreferencesService.CurrentPreferences.BaseFontSize,
-            EnableExtendedFonts = FontPreferencesService.CurrentPreferences.EnableExtendedFonts,
+            EnableExtendedScripts = FontPreferencesService.CurrentPreferences.EnableExtendedScripts,
             UseSystemFonts = FontPreferencesService.CurrentPreferences.UseSystemFonts
         };
+    }
+
+    private void ApplyPreset(NotoPreset preset)
+    {
+        _currentPreset = preset;
+        
+        switch (preset)
+        {
+            case NotoPreset.AllSans:
+                _preferences.BodyFont = "Noto Sans";
+                _preferences.HeadingsFont = "Noto Sans";
+                _preferences.ContentFont = "Noto Serif";
+                break;
+                
+            case NotoPreset.SerifBody:
+                _preferences.BodyFont = "Noto Serif";
+                _preferences.HeadingsFont = "Noto Sans";
+                _preferences.ContentFont = "Noto Serif";
+                break;
+                
+            case NotoPreset.DisplayHeadings:
+                _preferences.BodyFont = "Noto Sans";
+                _preferences.HeadingsFont = "Noto Sans Display";
+                _preferences.ContentFont = "Noto Serif";
+                break;
+                
+            case NotoPreset.Editorial:
+                _preferences.BodyFont = "Noto Serif";
+                _preferences.HeadingsFont = "Noto Serif Display";
+                _preferences.ContentFont = "Noto Serif";
+                break;
+        }
+        
+        StateHasChanged();
+    }
+
+    private Color GetPresetColor(NotoPreset preset)
+    {
+        return _currentPreset == preset ? Color.Primary : Color.Default;
     }
 
     private async Task Save()
@@ -82,21 +315,48 @@
 
     private void Cancel() => MudDialog.Cancel();
 
+    private void Reset()
+    {
+        _preferences.BodyFont = "Noto Sans";
+        _preferences.HeadingsFont = "Noto Sans Display";
+        _preferences.MonospaceFont = "Noto Sans Mono";
+        _preferences.ContentFont = "Noto Serif";
+        _preferences.BaseFontSize = 16;
+        _currentPreset = null;
+        StateHasChanged();
+    }
+
     private string GetFontFamilyCss(string fontName)
     {
         return fontName switch
         {
             "Noto Sans" => "'Noto Sans', sans-serif",
+            "Noto Sans Display" => "'Noto Sans Display', sans-serif",
             "Noto Serif" => "'Noto Serif', serif",
-            "System" => "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            "Noto Serif Display" => "'Noto Serif Display', serif",
+            "Noto Sans Mono" => "'Noto Sans Mono', monospace",
             _ => "'Noto Sans', sans-serif"
         };
     }
 
-    private string GetPreviewStyle()
+    private string GetBodyPreviewStyle()
     {
-        var fontFamily = GetFontFamilyCss(_preferences.PrimaryFontFamily);
+        var fontFamily = GetFontFamilyCss(_preferences.BodyFont);
         var fontSize = $"{_preferences.BaseFontSize}px";
-        return $"font-family: {fontFamily}; font-size: {fontSize};";
+        return $"font-family: {fontFamily} !important; font-size: {fontSize};";
+    }
+
+    private string GetHeadingsPreviewStyle()
+    {
+        var fontFamily = GetFontFamilyCss(_preferences.HeadingsFont);
+        var fontSize = $"{_preferences.BaseFontSize}px";
+        return $"font-family: {fontFamily} !important;";
+    }
+
+    private string GetMonoPreviewStyle()
+    {
+        var fontFamily = GetFontFamilyCss(_preferences.MonospaceFont);
+        var fontSize = $"{Math.Max(12, _preferences.BaseFontSize - 2)}px";
+        return $"font-family: {fontFamily} !important; font-size: {fontSize}; line-height: 1.5;";
     }
 }

@@ -1,13 +1,23 @@
-// Font preferences helper functions
+// Font preferences helper functions - Multi-Context Font System
 window.EventForge = window.EventForge || {};
 
-window.EventForge.setFontPreferences = function(primaryFont, monoFont, fontSize) {
+window.EventForge.setFontPreferences = function(bodyFont, headingsFont, monoFont, contentFont, fontSize) {
     try {
-        if (primaryFont) {
-            document.documentElement.style.setProperty('--font-family-primary', primaryFont);
+        if (bodyFont) {
+            document.documentElement.style.setProperty('--font-family-body', bodyFont);
+            // Backward compatibility
+            document.documentElement.style.setProperty('--font-family-primary', bodyFont);
+        }
+        if (headingsFont) {
+            document.documentElement.style.setProperty('--font-family-headings', headingsFont);
         }
         if (monoFont) {
             document.documentElement.style.setProperty('--font-family-monospace', monoFont);
+        }
+        if (contentFont) {
+            document.documentElement.style.setProperty('--font-family-content', contentFont);
+            // Backward compatibility
+            document.documentElement.style.setProperty('--font-family-serif', contentFont);
         }
         if (fontSize) {
             document.documentElement.style.fontSize = fontSize;
