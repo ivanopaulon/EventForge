@@ -1,0 +1,601 @@
+@page "/business/customers"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IBusinessPartyService BusinessPartyService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<CustomerManagement> Logger
+
+<PageLoadingOverlay Visible="_isLoading || _isLoadingCustomers"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="customer-page-root">
+        <div class="customer-top">
+            <ManagementDashboard TItem="BusinessPartyDto"
+                                 Items="_filteredCustomers"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="Customer"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
+
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="BusinessPartyDto"
+                 Items="_filteredCustomers"
+                 MultiSelection="true"
+                 SelectedItems="_selectedCustomers"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingCustomers"
+                 ComponentKey="CustomerManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("customer.management", "Gestione Clienti")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("customer.search", "Cerca clienti")"
+                              Placeholder="@TranslationService.GetTranslation("customer.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedCustomers.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateTooltip="customer.createNew"
+                                        IsDisabled="_isLoadingCustomers"
+                                        OnRefresh="@LoadCustomersAsync"
+                                        OnCreate="@CreateCustomer"
+                                        OnDelete="@DeleteSelectedCustomers" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Name")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "VatNumber")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="VatNumber" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.VatNumber ?? string.Empty))">@TranslationService.GetTranslation("field.vatNumber", "P.IVA")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "TaxCode")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="TaxCode" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.TaxCode ?? string.Empty))">@TranslationService.GetTranslation("field.taxCode", "C.F.")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "City")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="City" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.City ?? string.Empty))">@TranslationService.GetTranslation("field.city", "Località")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Province")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="Province" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Province ?? string.Empty))">@TranslationService.GetTranslation("field.province", "Provincia")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Country")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="Country" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Country ?? string.Empty))">@TranslationService.GetTranslation("field.country", "Nazione")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Contacts")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="Contacts" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTh>@TranslationService.GetTranslation("field.contacts", "Contatti")</MudTh>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Name")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Info" Size="Size.Small" Class="mr-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2">@item.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
+                                </div>
+                            </div>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "VatNumber")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.vatNumber", "P.IVA")">
+                            <MudText Typo="Typo.body2">@(item.VatNumber ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "TaxCode")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.taxCode", "C.F.")">
+                            <MudText Typo="Typo.body2">@(item.TaxCode ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "City")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.city", "Località")">
+                            <MudText Typo="Typo.body2">@(item.City ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Province")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.province", "Provincia")">
+                            <MudText Typo="Typo.body2">@(item.Province ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Country")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Nazione")">
+                            <MudText Typo="Typo.body2">@(item.Country ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Contacts")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.contacts", "Contatti")">
+                            <div class="d-flex gap-2">
+                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.LocationOn">@item.AddressCount</MudChip>
+                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Phone">@item.ContactCount</MudChip>
+                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@item.ReferenceCount</MudChip>
+                            </div>
+                        </MudTd>
+                    }
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <ActionButtonGroup EntityName="@item.Name"
+                                       ItemDisplayName="@item.Name"
+                                       ShowView="false"
+                                       ShowEdit="true"
+                                       ShowAuditLog="true"
+                                       ShowToggleStatus="true"
+                                       ShowDelete="true"
+                                       IsActive="@item.IsActive"
+                                       OnEdit="@(() => EditCustomer(item))"
+                                       OnAuditLog="@(() => ViewCustomerAuditLog(item))"
+                                       OnToggleStatus="@(() => ToggleCustomerStatus(item))"
+                                       OnDelete="@(() => DeleteCustomer(item))" />
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_customers.Any() ? 
+                            TranslationService.GetTranslation("customer.noMatchFilters", "Nessun cliente corrisponde ai filtri applicati") : 
+                            TranslationService.GetTranslation("customer.noFound", "Nessun cliente trovato"))
+                    </MudText>
+                    @if (_customers.Any())
+                    {
+                        <MudButton Variant="Variant.Text" 
+                                   Color="Color.Primary" 
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("customer.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
+
+@code {
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingCustomers = false;
+
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
+
+    // Data collections
+    private List<BusinessPartyDto> _customers = new();
+    private HashSet<BusinessPartyDto> _selectedCustomers = new();
+
+    // EFTable reference
+    private EFTable<BusinessPartyDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "VatNumber", DisplayName = "P.IVA", IsVisible = true, Order = 1 },
+        new() { PropertyName = "TaxCode", DisplayName = "C.F.", IsVisible = true, Order = 2 },
+        new() { PropertyName = "City", DisplayName = "Località", IsVisible = true, Order = 3 },
+        new() { PropertyName = "Province", DisplayName = "Provincia", IsVisible = true, Order = 4 },
+        new() { PropertyName = "Country", DisplayName = "Nazione", IsVisible = true, Order = 5 },
+        new() { PropertyName = "Contacts", DisplayName = "Contatti", IsVisible = true, Order = 6 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<BusinessPartyDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Clienti",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.People,
+            Color = "primary",
+            Description = "Numero totale di clienti",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Clienti Attivi",
+            Type = MetricType.Count,
+            Filter = c => c.IsActive,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Clienti attivi",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Con P.IVA",
+            Type = MetricType.Count,
+            Filter = c => !string.IsNullOrEmpty(c.VatNumber),
+            Icon = Icons.Material.Outlined.Badge,
+            Color = "info",
+            Description = "Clienti con partita IVA",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Ultimi Aggiunti",
+            Type = MetricType.Count,
+            Filter = c => c.CreatedAt >= DateTime.Now.AddDays(-30),
+            Icon = Icons.Material.Outlined.NewReleases,
+            Color = "warning",
+            Description = "Clienti aggiunti negli ultimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<BusinessPartyDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<BusinessPartyDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered customers based on search criteria.
+    /// </summary>
+    private IEnumerable<BusinessPartyDto> _filteredCustomers => 
+        _customers.Where(c => 
+            // Search filter: check name, VAT number, or tax code
+            string.IsNullOrEmpty(_searchTerm) || 
+            c.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            (c.VatNumber != null && c.VatNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+            (c.TaxCode != null && c.TaxCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<BusinessPartyDto> items)
+    {
+        _selectedCustomers = items;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // Load customers
+            await LoadCustomersAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("customer.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading customers page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads customer data (Cliente and ClienteFornitore types).
+    /// </summary>
+    private async Task LoadCustomersAsync()
+    {
+        try
+        {
+            _isLoadingCustomers = true;
+            
+            // Get customers (Cliente type)
+            var customers = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Cliente);
+            
+            // Get both types (Cliente/Fornitore)
+            var both = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Both);
+            
+            // Combine and sort
+            _customers = customers.Concat(both).OrderBy(c => c.Name).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("customer.loadingError", "Errore nel caricamento dei clienti: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading customers");
+        }
+        finally
+        {
+            _isLoadingCustomers = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
+    }
+
+    private void CreateCustomer()
+    {
+        NavigationManager.NavigateTo("/business/customers/new");
+    }
+
+    private void EditCustomer(BusinessPartyDto customer)
+    {
+        NavigationManager.NavigateTo($"/business/customers/{customer.Id}");
+    }
+
+    private async Task DeleteCustomer(BusinessPartyDto customer)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("customer.confirmDelete", 
+            "Sei sicuro di voler eliminare il cliente '{0}'? Questa azione non può essere annullata.", 
+            customer.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await BusinessPartyService.DeleteBusinessPartyAsync(customer.Id);
+                _customers.Remove(customer);
+                Snackbar.Add(TranslationService.GetTranslation("customer.deleted", "Cliente eliminato con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("customer.deleteError", 
+                    "Errore nell'eliminazione del cliente: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting customer {CustomerId}", customer.Id);
+            }
+        }
+    }
+
+    private string GetContactIcon(ContactType contactType)
+    {
+        return contactType switch
+        {
+            ContactType.Email => Icons.Material.Outlined.Email,
+            ContactType.Phone => Icons.Material.Outlined.Phone,
+            ContactType.Fax => Icons.Material.Outlined.Print,
+            ContactType.PEC => Icons.Material.Outlined.Email,
+            _ => Icons.Material.Outlined.ContactPage
+        };
+    }
+
+    /// <summary>
+    /// Opens the audit log drawer for a customer.
+    /// </summary>
+    private async Task ViewCustomerAuditLog(BusinessPartyDto customer)
+    {
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "BusinessParty" },
+            { x => x.EntityId, customer.Id },
+            { x => x.EntityName, customer.Name }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
+    }
+
+    /// <summary>
+    /// Toggles the active status of a customer.
+    /// </summary>
+    private async Task ToggleCustomerStatus(BusinessPartyDto customer)
+    {
+        var actionText = customer.IsActive ? 
+            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
+            TranslationService.GetTranslation("common.activate", "attivare");
+            
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("customer.confirmStatusChange", 
+            "Sei sicuro di voler {0} il cliente '{1}'?", 
+            actionText, customer.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                // Toggle the status locally (in a real implementation, you would call a service method)
+                customer.IsActive = !customer.IsActive;
+                
+                var statusMessage = customer.IsActive ?
+                    TranslationService.GetTranslation("customer.activated", "Cliente attivato con successo!") :
+                    TranslationService.GetTranslation("customer.deactivated", "Cliente disattivato con successo!");
+                
+                Snackbar.Add(statusMessage, Severity.Success);
+                StateHasChanged();
+                
+                // Note: In a real implementation, you would call:
+                // await BusinessPartyService.ToggleBusinessPartyStatusAsync(customer.Id, customer.IsActive);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("customer.statusChangeError", 
+                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error toggling customer status {CustomerId}", customer.Id);
+                // Revert the change on error
+                customer.IsActive = !customer.IsActive;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes all selected customers.
+    /// </summary>
+    private async Task DeleteSelectedCustomers()
+    {
+        if (_selectedCustomers.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("customer.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} clienti selezionati? Questa azione non può essere annullata.", 
+            _selectedCustomers.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var customer in _selectedCustomers.ToList())
+                {
+                    try
+                    {
+                        await BusinessPartyService.DeleteBusinessPartyAsync(customer.Id);
+                        _customers.Remove(customer);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting customer {CustomerId}", customer.Id);
+                    }
+                }
+                
+                _selectedCustomers.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("customer.deletedMultiple", 
+                        "{0} clienti eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("customer.deletedMultiplePartial", 
+                        "{0} clienti eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslationFormatted("customer.deleteError", 
+                    "Errore nell'eliminazione dei clienti: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected customers");
+            }
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
+        }
+    }
+}
