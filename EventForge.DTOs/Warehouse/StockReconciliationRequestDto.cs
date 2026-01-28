@@ -53,5 +53,11 @@ namespace EventForge.DTOs.Warehouse
         /// </summary>
         [Range(0, double.MaxValue)]
         public decimal? StartingQuantity { get; set; }
+
+        /// <summary>
+        /// Threshold percentage for major discrepancies (default: 10%)
+        /// </summary>
+        [Range(0, 100)]
+        public decimal DiscrepancyThreshold { get; set; } = 10m;
     }
 }

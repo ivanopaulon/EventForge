@@ -1,6 +1,7 @@
 @page "/warehouse/stock-reconciliation"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Products
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs
 @using static EventForge.Client.Shared.Components.Dialogs.StockReconciliationConfirmDialog
@@ -68,14 +69,45 @@
                                Label="@TranslationService.GetTranslation("field.location", "Location")"
                                Variant="Variant.Outlined"
                                Clearable="true"
-                               Disabled="@(!_selectedWarehouseId.HasValue)"
-                               AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                               Disabled="@(!_selectedWarehouseId.HasValue || _isLoadingLocations)"
+                               AdornmentIcon="@(_isLoadingLocations ? Icons.Material.Outlined.HourglassEmpty : Icons.Material.Outlined.LocationOn)"
                                Adornment="Adornment.Start">
-                        @foreach (var location in _locations)
+                        @if (_isLoadingLocations)
                         {
-                            <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="null" Disabled="true">
+                                @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                            </MudSelectItem>
+                        }
+                        else
+                        {
+                            @foreach (var location in _locations)
+                            {
+                                <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
+                            }
                         }
                     </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <UnifiedProductScanner @bind-SelectedProduct="_selectedProduct"
+                                           Title="@null"
+                                           Placeholder="@TranslationService.GetTranslation("stockReconciliation.searchProduct", "Cerca prodotto...")"
+                                           ShowProductInfo="false"
+                                           SearchMode="ProductSearchMode.Description"
+                                           AllowClear="true"
+                                           Dense="true"
+                                           AutoFocus="false" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_discrepancyThreshold"
+                                     Label="@TranslationService.GetTranslation("stockReconciliation.discrepancyThreshold", "Soglia Discrepanza Maggiore (%)")"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Max="100"
+                                     Step="1"
+                                     Adornment="Adornment.End"
+                                     AdornmentText="%"
+                                     HelperText="@TranslationService.GetTranslation("stockReconciliation.discrepancyThresholdHelp", "Differenze superiori a questa soglia saranno marcate come discrepanze maggiori")"
+                                     Clearable="false" />
                 </MudItem>
                 
                 <!-- Switches on a separate row -->
@@ -385,15 +417,18 @@
     private bool _isCalculating = false;
     private bool _isApplying = false;
     private bool _isExporting = false;
+    private bool _isLoadingLocations = false;
 
     // Filters
     private DateTime? _fromDate = null;
     private DateTime? _toDate = null;
     private Guid? _selectedWarehouseId = null;
     private Guid? _selectedLocationId = null;
+    private ProductDto? _selectedProduct = null;
     private bool _includeDocuments = true;
     private bool _includeInventories = true;
     private bool _onlyWithDiscrepancies = false;
+    private decimal _discrepancyThreshold = 10m;
 
     // Data
     private List<StorageFacilityDto> _warehouses = new();
@@ -406,7 +441,12 @@
     {
         try
         {
-            await LoadWarehousesAsync();
+            // Preload dates: start of current year and today
+            var today = DateTime.Today;
+            _fromDate = new DateTime(today.Year, 1, 1);
+            _toDate = today;
+
+            await LoadAllWarehousesAsync();
         }
         catch (Exception ex)
         {
@@ -419,10 +459,35 @@
         }
     }
 
-    private async Task LoadWarehousesAsync()
+    private async Task LoadAllWarehousesAsync()
     {
-        var warehouses = await WarehouseService.GetStorageFacilitiesAsync(page: 1, pageSize: 1000);
-        _warehouses = warehouses?.Items?.ToList() ?? new();
+        try
+        {
+            var allWarehouses = new List<StorageFacilityDto>();
+            var page = 1;
+            var pageSize = 100;
+            PagedResult<StorageFacilityDto>? result;
+            
+            do
+            {
+                result = await WarehouseService.GetStorageFacilitiesAsync(page, pageSize);
+                if (result?.Items != null)
+                {
+                    allWarehouses.AddRange(result.Items);
+                }
+                page++;
+            } while (result?.HasNextPage == true);
+            
+            _warehouses = allWarehouses;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading warehouses");
+            Snackbar.Add(
+                TranslationService.GetTranslation("messages.warehousesLoadFailed", "Errore nel caricamento dei magazzini"),
+                Severity.Error);
+            _warehouses = new();
+        }
     }
 
     private async Task OnWarehouseChanged()
@@ -432,13 +497,54 @@
 
         if (_selectedWarehouseId.HasValue)
         {
-            var locations = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_selectedWarehouseId.Value, page: 1, pageSize: 1000);
-            _locations = locations?.Items?.ToList() ?? new();
+            _isLoadingLocations = true;
+            try
+            {
+                var allLocations = new List<StorageLocationDto>();
+                var page = 1;
+                var pageSize = 100;
+                PagedResult<StorageLocationDto>? result;
+                
+                do
+                {
+                    result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(
+                        _selectedWarehouseId.Value, page, pageSize);
+                    if (result?.Items != null)
+                    {
+                        allLocations.AddRange(result.Items);
+                    }
+                    page++;
+                } while (result?.HasNextPage == true);
+                
+                _locations = allLocations;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _selectedWarehouseId);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("messages.locationsLoadFailed", "Errore nel caricamento delle ubicazioni"),
+                    Severity.Error);
+                _locations = new();
+            }
+            finally
+            {
+                _isLoadingLocations = false;
+            }
         }
     }
 
     private async Task CalculatePreviewAsync()
     {
+        // Validate dates
+        if (_fromDate.HasValue && _toDate.HasValue && _fromDate > _toDate)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("stockReconciliation.error.invalidDateRange", 
+                    "La data 'Da' non può essere successiva alla data 'A'"),
+                Severity.Warning);
+            return;
+        }
+
         _isCalculating = true;
         try
         {
@@ -448,9 +554,11 @@
                 ToDate = _toDate,
                 WarehouseId = _selectedWarehouseId,
                 LocationId = _selectedLocationId,
+                ProductId = _selectedProduct?.Id,
                 IncludeDocuments = _includeDocuments,
                 IncludeInventories = _includeInventories,
-                OnlyWithDiscrepancies = _onlyWithDiscrepancies
+                OnlyWithDiscrepancies = _onlyWithDiscrepancies,
+                DiscrepancyThreshold = _discrepancyThreshold
             };
 
             _reconciliationResult = await StockReconciliationService.CalculateReconciliationAsync(request);
