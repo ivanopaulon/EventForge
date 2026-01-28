@@ -37,6 +37,7 @@ public class AddBusinessPartyToGroupDto
     public required Guid BusinessPartyId { get; init; }
     public DateTime? MemberSince { get; init; }
     public DateTime? MemberUntil { get; init; }
+    public BusinessPartyGroupMemberStatus Status { get; init; } = BusinessPartyGroupMemberStatus.Active;
     public int? OverridePriority { get; init; }
     public string? Notes { get; init; }
     public bool IsFeatured { get; init; } = false;
@@ -48,6 +49,10 @@ public class BulkAddMembersDto
     public required List<Guid> BusinessPartyIds { get; init; }
     public DateTime? MemberSince { get; init; }
     public DateTime? MemberUntil { get; init; }
+    public BusinessPartyGroupMemberStatus Status { get; init; } = BusinessPartyGroupMemberStatus.Active;
+    public bool IsFeatured { get; init; }
+    public int? OverridePriority { get; init; }
+    public string? Notes { get; init; }
 }
 
 public class UpdateBusinessPartyGroupMemberDto

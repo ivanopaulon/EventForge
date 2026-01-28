@@ -149,20 +149,12 @@
                                             Esporta CSV
                                         </MudButton>
                                         
-                                        <MudButton Variant="Variant.Outlined"
+                                        <MudButton Variant="Variant.Filled"
                                                    Color="Color.Primary"
                                                    StartIcon="@Icons.Material.Filled.GroupAdd"
                                                    Size="Size.Small"
-                                                   OnClick="@OpenBulkAddDialog">
-                                            Aggiungi Multipli
-                                        </MudButton>
-                                        
-                                        <MudButton Variant="Variant.Filled"
-                                                   Color="Color.Primary"
-                                                   StartIcon="@Icons.Material.Filled.Add"
-                                                   Size="Size.Small"
-                                                   OnClick="@OpenAddMemberDialog">
-                                            Aggiungi Membro
+                                                   OnClick="@OpenManageMembersDialog">
+                                            Gestisci Membri
                                         </MudButton>
                                     </MudStack>
                                 </div>
@@ -343,6 +335,9 @@
                 _colorHex = _group.ColorHex;
 
                 await LoadMembersAsync();
+                
+                // Fix: forza il re-render per mostrare l'anteprima del colore
+                StateHasChanged();
             }
         }
         catch (Exception ex)
@@ -436,41 +431,11 @@
         }
     }
 
-    private async Task OpenAddMemberDialog()
+    private async Task OpenManageMembersDialog()
     {
         if (_group == null) return;
         
-        var parameters = new DialogParameters<AddGroupMemberDialog>
-        {
-            { x => x.GroupId, _group.Id },
-            { x => x.GroupType, _group.GroupType },
-            { x => x.ExistingMemberIds, _members?.Select(m => m.BusinessPartyId).ToList() }
-        };
-        
-        var options = new DialogOptions 
-        { 
-            CloseButton = true, 
-            MaxWidth = MaxWidth.Medium, 
-            FullWidth = true 
-        };
-        
-        var dialog = await DialogService.ShowAsync<AddGroupMemberDialog>(
-            "Aggiungi Membro al Gruppo",
-            parameters,
-            options);
-        
-        var result = await dialog.Result;
-        if (!result.Canceled)
-        {
-            await LoadMembersAsync();
-        }
-    }
-
-    private async Task OpenBulkAddDialog()
-    {
-        if (_group == null) return;
-        
-        var parameters = new DialogParameters<BulkAddGroupMembersDialog>
+        var parameters = new DialogParameters<ManageGroupMembersDialog>
         {
             { x => x.GroupId, _group.Id },
             { x => x.GroupType, _group.GroupType },
@@ -484,15 +449,14 @@
             FullWidth = true 
         };
         
-        var dialog = await DialogService.ShowAsync<BulkAddGroupMembersDialog>(
-            "Aggiungi Multipli Membri",
+        var dialog = await DialogService.ShowAsync<ManageGroupMembersDialog>(
+            "Gestione Membri Gruppo",
             parameters,
             options);
         
         var result = await dialog.Result;
         if (!result.Canceled && result.Data is int count && count > 0)
         {
-            Snackbar.Add($"{count} membri aggiunti con successo", Severity.Success);
             await LoadMembersAsync();
         }
     }

@@ -4,13 +4,20 @@
 @inject IBusinessPartyService BusinessPartyService
 @inject IBusinessPartyGroupService GroupService
 @inject ISnackbar Snackbar
-@inject ILogger<BulkAddGroupMembersDialog> Logger
+@inject ILogger<ManageGroupMembersDialog> Logger
+@inject IJSRuntime JSRuntime
 
 <MudDialog>
     <TitleContent>
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudIcon Icon="@Icons.Material.Filled.GroupAdd" />
-            <MudText Typo="Typo.h6">Aggiungi Multipli Membri</MudText>
+            <MudText Typo="Typo.h6">Gestione Membri Gruppo</MudText>
+            @if (GetValidBusinessParties().Any())
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                    @GetValidBusinessParties().Count() @(GetValidBusinessParties().Count() == 1 ? "nuovo" : "nuovi")
+                </MudChip>
+            }
         </MudStack>
     </TitleContent>
     
@@ -21,17 +28,18 @@
                 <MudTabPanel Text="Selezione Manuale" Icon="@Icons.Material.Filled.Checklist">
                     <MudStack Spacing="2" Class="pa-3">
                         <MudAutocomplete T="BusinessPartyDto"
-                                         @bind-Value="_currentSearchSelection"
+                                         Value="_currentSearchSelection"
                                          SearchFunc="@SearchBusinessPartiesAsync"
                                          ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
-                                         Label="Cerca Business Party"
+                                         Label="Cerca e aggiungi Business Party"
                                          Variant="Variant.Outlined"
                                          Clearable="true"
                                          ResetValueOnEmptyText="true"
                                          CoerceText="false"
                                          Placeholder="Digita per cercare..."
                                          AdornmentIcon="@Icons.Material.Filled.Search"
-                                         Adornment="Adornment.Start">
+                                         Adornment="Adornment.Start"
+                                         ValueChanged="@OnBusinessPartySelected">
                             <ItemTemplate Context="bp">
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
                                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
@@ -50,17 +58,6 @@
                             </ItemTemplate>
                         </MudAutocomplete>
                         
-                        @if (_currentSearchSelection != null)
-                        {
-                            <MudButton OnClick="AddToSelection" 
-                                       Color="Color.Primary" 
-                                       Variant="Variant.Filled"
-                                       StartIcon="@Icons.Material.Filled.Add"
-                                       FullWidth="true">
-                                Aggiungi alla Selezione
-                            </MudButton>
-                        }
-                        
                         <MudDivider />
                         
                         <!-- Lista selezionati -->
@@ -77,6 +74,10 @@
                                                  Color="@(isAlreadyMember ? Color.Warning : Color.Primary)"
                                                  Variant="Variant.Filled"
                                                  Size="Size.Small">
+                                            @if (isAlreadyMember)
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Class="mr-1" />
+                                            }
                                             @bp.Name
                                             @if (isAlreadyMember)
                                             {
@@ -186,31 +187,61 @@
             
             <MudDivider />
             
-            <!-- Impostazioni Batch -->
+            <!-- Impostazioni comuni per tutti i membri -->
             <MudPaper Outlined="true" Class="pa-3">
-                <MudText Typo="Typo.h6" Class="mb-3">Impostazioni per tutti i membri</MudText>
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+                    Impostazioni per tutti i membri
+                </MudText>
                 
                 <MudStack Spacing="2">
-                    <MudDatePicker @bind-Date="_batchMemberSince" 
+                    <MudDatePicker @bind-Date="_memberSince" 
                                    Label="Membro Dal" 
                                    Required="true"
-                                   Variant="Variant.Outlined" />
+                                   Variant="Variant.Outlined"
+                                   HelperText="Data di inizio appartenenza al gruppo" />
                     
-                    <MudDatePicker @bind-Date="_batchMemberUntil" 
+                    <MudDatePicker @bind-Date="_memberUntil" 
                                    Label="Membro Fino"
                                    Clearable="true"
-                                   Variant="Variant.Outlined" />
+                                   Variant="Variant.Outlined"
+                                   HelperText="Data di fine appartenenza (opzionale)"
+                                   MinDate="_memberSince" />
                     
-                    <MudSelect @bind-Value="_batchStatus" 
+                    @if (HasInvalidDateRange)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            La data "Membro Fino" non può essere precedente alla data "Membro Dal"
+                        </MudAlert>
+                    }
+                    
+                    <MudSelect @bind-Value="_status" 
                                Label="Stato"
                                Variant="Variant.Outlined">
                         <MudSelectItem Value="BusinessPartyGroupMemberStatus.Active">Attivo</MudSelectItem>
                         <MudSelectItem Value="BusinessPartyGroupMemberStatus.Suspended">Sospeso</MudSelectItem>
                     </MudSelect>
                     
-                    <MudSwitch @bind-Value="_batchIsFeatured" 
-                               Label="Tutti in Evidenza"
-                               Color="Color.Primary" />
+                    <MudSwitch @bind-Value="_isFeatured" 
+                               Label="In Evidenza"
+                               Color="Color.Primary">
+                        <MudText Typo="Typo.body2">Evidenzia questi membri</MudText>
+                    </MudSwitch>
+                    
+                    <MudNumericField @bind-Value="_overridePriority" 
+                                     Label="Priorità" 
+                                     Min="0" 
+                                     Max="100"
+                                     Variant="Variant.Outlined"
+                                     HelperText="Priorità personalizzata per questi membri (0-100)" />
+                    
+                    <MudTextField @bind-Value="_notes" 
+                                  Label="Note" 
+                                  Lines="3" 
+                                  MaxLength="500"
+                                  Counter="500"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Note aggiuntive sull'appartenenza al gruppo" />
                 </MudStack>
             </MudPaper>
         </MudStack>
@@ -222,11 +253,11 @@
             Annulla
         </MudButton>
         <MudButton Color="Color.Primary" 
-                   OnClick="SubmitBulk" 
-                   Disabled="@(!GetValidBusinessParties().Any())"
+                   OnClick="Submit" 
+                   Disabled="@(!CanSubmit)"
                    Variant="Variant.Filled"
                    StartIcon="@Icons.Material.Filled.GroupAdd">
-            Aggiungi @GetValidBusinessParties().Count() Membri
+            Aggiungi @GetValidBusinessParties().Count() @(GetValidBusinessParties().Count() == 1 ? "Membro" : "Membri")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -254,11 +285,113 @@
     private List<BusinessPartyDto> _csvParsedBusinessParties = new();
     private string? _csvFileName;
     
-    // Batch settings
-    private DateTime? _batchMemberSince = DateTime.UtcNow.Date;
-    private DateTime? _batchMemberUntil;
-    private BusinessPartyGroupMemberStatus _batchStatus = BusinessPartyGroupMemberStatus.Active;
-    private bool _batchIsFeatured;
+    // Common settings
+    private DateTime? _memberSince = DateTime.UtcNow.Date;
+    private DateTime? _memberUntil;
+    private BusinessPartyGroupMemberStatus _status = BusinessPartyGroupMemberStatus.Active;
+    private bool _isFeatured;
+    private int? _overridePriority;
+    private string? _notes;
+    
+    private bool HasInvalidDateRange => _memberUntil.HasValue && _memberSince.HasValue && _memberUntil.Value < _memberSince.Value;
+    
+    private bool CanSubmit => GetValidBusinessParties().Any() && !HasInvalidDateRange;
+    
+    private void OnBusinessPartySelected(BusinessPartyDto? bp)
+    {
+        if (bp == null) return;
+        
+        // Check if already selected
+        if (_selectedBusinessParties.Any(x => x.Id == bp.Id))
+        {
+            Snackbar.Add("Business Party già nella selezione", Severity.Warning);
+            _currentSearchSelection = null;
+            return;
+        }
+        
+        _selectedBusinessParties.Add(bp);
+        _currentSearchSelection = null;
+    }
+    
+    private void RemoveFromSelection(BusinessPartyDto bp)
+    {
+        _selectedBusinessParties.Remove(bp);
+    }
+    
+    private IEnumerable<BusinessPartyDto> GetValidBusinessParties()
+    {
+        var allBPs = _activeTab == 0 ? _selectedBusinessParties : _csvParsedBusinessParties;
+        
+        // Filter out business parties that are already members
+        return allBPs.Where(bp => ExistingMemberIds?.Contains(bp.Id) != true);
+    }
+    
+    private async Task Submit()
+    {
+        var validBPs = GetValidBusinessParties().ToList();
+        
+        if (!validBPs.Any())
+        {
+            Snackbar.Add("Nessun nuovo membro da aggiungere", Severity.Warning);
+            return;
+        }
+        
+        try
+        {
+            // Se è un solo membro, usa AddMemberAsync
+            if (validBPs.Count == 1)
+            {
+                var createDto = new AddBusinessPartyToGroupDto
+                {
+                    BusinessPartyId = validBPs[0].Id,
+                    MemberSince = _memberSince,
+                    MemberUntil = _memberUntil,
+                    Status = _status,
+                    OverridePriority = _overridePriority,
+                    IsFeatured = _isFeatured,
+                    Notes = _notes
+                };
+                
+                await GroupService.AddMemberAsync(GroupId, createDto);
+                Snackbar.Add($"Membro '{validBPs[0].Name}' aggiunto con successo", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(1));
+            }
+            else
+            {
+                // Altrimenti usa bulk
+                var bulkDto = new BulkAddMembersDto
+                {
+                    BusinessPartyGroupId = GroupId,
+                    BusinessPartyIds = validBPs.Select(bp => bp.Id).ToList(),
+                    MemberSince = _memberSince,
+                    MemberUntil = _memberUntil,
+                    Status = _status,
+                    IsFeatured = _isFeatured,
+                    OverridePriority = _overridePriority,
+                    Notes = _notes
+                };
+                
+                var result = await GroupService.AddMembersBulkAsync(bulkDto);
+                
+                if (result.SuccessCount > 0)
+                {
+                    Snackbar.Add($"{result.SuccessCount} membri aggiunti con successo", Severity.Success);
+                }
+                
+                if (result.FailureCount > 0)
+                {
+                    Snackbar.Add($"{result.FailureCount} membri non aggiunti", Severity.Warning);
+                }
+                
+                MudDialog.Close(DialogResult.Ok(result.SuccessCount));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding members to group {GroupId}", GroupId);
+            Snackbar.Add("Errore durante l'aggiunta dei membri", Severity.Error);
+        }
+    }
     
     private async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, CancellationToken cancellationToken)
     {
@@ -290,26 +423,6 @@
         };
     }
     
-    private void AddToSelection()
-    {
-        if (_currentSearchSelection == null) return;
-        
-        // Check if already selected
-        if (_selectedBusinessParties.Any(bp => bp.Id == _currentSearchSelection.Id))
-        {
-            Snackbar.Add("Business Party già nella selezione", Severity.Warning);
-            return;
-        }
-        
-        _selectedBusinessParties.Add(_currentSearchSelection);
-        _currentSearchSelection = null;
-    }
-    
-    private void RemoveFromSelection(BusinessPartyDto bp)
-    {
-        _selectedBusinessParties.Remove(bp);
-    }
-    
     private async Task ParseCsvFile(InputFileChangeEventArgs e)
     {
         _csvParsedBusinessParties.Clear();
@@ -328,7 +441,8 @@
             using var reader = new StreamReader(e.File.OpenReadStream(maxFileSize));
             var csvContent = await reader.ReadToEndAsync();
             
-            var lines = csvContent.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1); // Skip header
+            // Handle both Unix (\n) and Windows (\r\n) line endings
+            var lines = csvContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries).Skip(1); // Skip header
             
             foreach (var line in lines)
             {
@@ -372,59 +486,21 @@
         }
     }
     
-    private void DownloadCsvTemplate()
+    private async Task DownloadCsvTemplate()
     {
-        // Display template format as guidance
-        // For actual file download, JSInterop would be needed which is out of scope for this implementation
-        Snackbar.Add("Formato template: Nome,P.IVA,CodiceFiscale (esempio: Acme Corp,12345678901,)", Severity.Info);
-    }
-    
-    private IEnumerable<BusinessPartyDto> GetValidBusinessParties()
-    {
-        var allBPs = _activeTab == 0 ? _selectedBusinessParties : _csvParsedBusinessParties;
-        
-        // Filter out business parties that are already members
-        return allBPs.Where(bp => ExistingMemberIds?.Contains(bp.Id) != true);
-    }
-    
-    private async Task SubmitBulk()
-    {
-        var validBPs = GetValidBusinessParties().ToList();
-        
-        if (!validBPs.Any())
-        {
-            Snackbar.Add("Nessun nuovo membro da aggiungere", Severity.Warning);
-            return;
-        }
-        
         try
         {
-            var bulkDto = new BulkAddMembersDto
-            {
-                BusinessPartyGroupId = GroupId,
-                BusinessPartyIds = validBPs.Select(bp => bp.Id).ToList(),
-                MemberSince = _batchMemberSince,
-                MemberUntil = _batchMemberUntil
-            };
+            var csv = "Nome,P.IVA,CodiceFiscale\n";
+            csv += "Acme Corp,12345678901\n";
+            csv += "Example SRL,,EXMPLS80A01H501X\n";
             
-            var result = await GroupService.AddMembersBulkAsync(bulkDto);
-            
-            if (result.SuccessCount > 0)
-            {
-                Snackbar.Add($"{result.SuccessCount} membri aggiunti con successo", Severity.Success);
-            }
-            
-            if (result.FailureCount > 0)
-            {
-                Snackbar.Add($"{result.FailureCount} membri non aggiunti", Severity.Warning);
-            }
-            
-            MudDialog.Close(DialogResult.Ok(result.SuccessCount));
+            await JSRuntime.InvokeVoidAsync("downloadFile", "template_membri_gruppo.csv", "text/csv", csv);
+            Snackbar.Add("Template CSV scaricato", Severity.Success);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error bulk adding members to group {GroupId}", GroupId);
-            Snackbar.Add("Errore durante l'aggiunta dei membri", Severity.Error);
+            Logger.LogWarning(ex, "Error downloading CSV template");
+            Snackbar.Add("Formato template: Nome,P.IVA,CodiceFiscale (esempio: Acme Corp,12345678901,)", Severity.Info);
         }
     }
     
