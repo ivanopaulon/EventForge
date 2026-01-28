@@ -1,7 +1,10 @@
+using EventForge.DTOs.Common;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Events;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -27,48 +30,131 @@ public class EventsController : BaseApiController
     #region Event CRUD Operations
 
     /// <summary>
-    /// Gets all events with optional pagination.
+    /// Gets all events with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
-    /// <param name="deleted">Filter for soft-deleted items: 'false' (default), 'true', or 'all'</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of events</returns>
-    /// <response code="200">Returns the paginated list of events</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved events with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
-    [SoftDeleteFilter]
     [ProducesResponseType(typeof(PagedResult<EventDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<EventDto>>> GetEvents(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
-        [FromQuery] string deleted = "false",
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        if (!ModelState.IsValid)
-        {
-            return CreateValidationProblemDetails();
-        }
-
-        // Validate pagination parameters using helper
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
-        // Validate tenant access
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _eventService.GetEventsAsync(page, pageSize, cancellationToken);
+            var result = await _eventService.GetEventsAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
             return Ok(result);
         }
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while retrieving events.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves events within date range
+    /// </summary>
+    /// <param name="startDate">Start date</param>
+    /// <param name="endDate">End date (optional, defaults to 1 year from start)</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of events within the specified date range</returns>
+    /// <response code="200">Successfully retrieved events with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("date-range")]
+    [ProducesResponseType(typeof(PagedResult<EventDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<EventDto>>> GetEventsByDate(
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _eventService.GetEventsByDateAsync(startDate, endDate, pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving events by date.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves upcoming events (from now onwards)
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of upcoming events</returns>
+    /// <response code="200">Successfully retrieved upcoming events with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("upcoming")]
+    [ProducesResponseType(typeof(PagedResult<EventDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<EventDto>>> GetUpcomingEvents(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _eventService.GetUpcomingEventsAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving upcoming events.", ex);
         }
     }
 
