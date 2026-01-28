@@ -2451,6 +2451,7 @@
     "printInProgress": "Preparing {0} labels for printing...",
     "printSuccess": "Labels ready for printing",
     "printError": "Error during print preparation",
+    "updateErrorWithDetails": "Update error: {0}",
     "validation": {
       "noItemSelected": "No item selected",
       "negativeQuantity": "Quantity cannot be negative",

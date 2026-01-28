@@ -2454,6 +2454,7 @@
     "printInProgress": "Preparazione stampa di {0} etichette...",
     "printSuccess": "Etichette pronte per la stampa",
     "printError": "Errore durante la preparazione stampa",
+    "updateErrorWithDetails": "Errore nell'aggiornamento: {0}",
     "validation": {
       "noItemSelected": "Nessun elemento selezionato",
       "negativeQuantity": "La quantità non può essere negativa",

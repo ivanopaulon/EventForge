@@ -518,6 +518,7 @@
                     </MudSelect>
 
                     <MudSelect @bind-Value="_editingLocationId"
+                               @bind-Value:after="UpdateEditingValidation"
                                Label="@TranslationService.GetTranslation("stock.location", "Ubicazione")"
                                Variant="Variant.Outlined"
                                Required="true"
@@ -541,6 +542,7 @@
                 }
 
                 <MudNumericField @bind-Value="_editingNewQuantity"
+                                 @bind-Value:after="UpdateEditingValidation"
                                  Label="@TranslationService.GetTranslation("field.newQuantity", "Nuova Quantità")"
                                  Variant="Variant.Outlined"
                                  Min="0"
@@ -589,6 +591,7 @@
                 </MudSelect>
 
                 <MudTextField @bind-Value="_editingNotes"
+                              @bind-Value:after="UpdateEditingValidation"
                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
                               Variant="Variant.Outlined"
                               Lines="3"
@@ -604,15 +607,15 @@
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                OnClick="@SaveFullEdit"
-                               Disabled="@(ValidateFullEdit() != null)">
+                               Disabled="@(_editingValidationError != null)">
                         @TranslationService.GetTranslation("common.save", "Salva")
                     </MudButton>
                 </div>
                 
-                @if (ValidateFullEdit() != null)
+                @if (_editingValidationError != null)
                 {
                     <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-2">
-                        @ValidateFullEdit()
+                        @_editingValidationError
                     </MudText>
                 }
             }
@@ -668,6 +671,7 @@
     private Guid? _editingWarehouseId = null;
     private Guid? _editingLocationId = null;
     private List<StorageLocationDto> _editingLocations = new();
+    private string? _editingValidationError = null;
 
     // Data collections
     private List<StockLocationDetail> _stockItems = new();
@@ -1223,6 +1227,7 @@
             }
         }
         
+        UpdateEditingValidation();
         _isPopoverOpen = true;
         StateHasChanged();
     }
@@ -1240,6 +1245,7 @@
         _editingWarehouseId = null;
         _editingLocationId = null;
         _editingLocations = new();
+        _editingValidationError = null;
         StateHasChanged();
     }
 
@@ -1267,6 +1273,7 @@
             }
         }
         
+        UpdateEditingValidation();
         StateHasChanged();
     }
 
@@ -1292,24 +1299,11 @@
             // Handle creation of stock if it doesn't exist
             if (_editingItem.StockId == Guid.Empty)
             {
-                // Validate that warehouse and location are selected
-                if (!_editingWarehouseId.HasValue)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("stock.warehouseRequired", "Seleziona un magazzino"), Severity.Warning);
-                    return;
-                }
-                
-                if (!_editingLocationId.HasValue)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("stock.locationRequired", "Seleziona un'ubicazione"), Severity.Warning);
-                    return;
-                }
-                
                 // Create a new stock record instead of adjusting
                 var createStockDto = new CreateStockDto
                 {
                     ProductId = _editingItem.ProductId,
-                    StorageLocationId = _editingLocationId.Value,
+                    StorageLocationId = _editingLocationId!.Value,
                     Quantity = _editingNewQuantity,
                     ReservedQuantity = 0,
                     Notes = _editingNotes
@@ -1361,7 +1355,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving stock adjustment");
-            Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento: {0}", ex.Message), Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslationFormatted("stock.updateErrorWithDetails", "Errore nell'aggiornamento: {0}", ex.Message), Severity.Error);
         }
         finally
         {
@@ -1449,6 +1443,14 @@
             return TranslationService.GetTranslation("stock.validation.notesTooLong", "Le note non possono superare 500 caratteri");
         
         return null;
+    }
+
+    /// <summary>
+    /// Updates the cached validation error to avoid multiple validation calls during render.
+    /// </summary>
+    private void UpdateEditingValidation()
+    {
+        _editingValidationError = ValidateFullEdit();
     }
 
     /// <summary>

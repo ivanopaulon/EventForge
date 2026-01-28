@@ -1,11 +1,14 @@
 @using EventForge.DTOs.Warehouse
 @inject ITranslationService TranslationService
+@inject IStorageLocationService StorageLocationService
+@inject ILogger<StockFiltersDialog> Logger
 
 <MudDialog>
     <DialogContent>
         <MudGrid>
             <MudItem xs="12" md="6">
                 <MudSelect @bind-Value="Filters.WarehouseId"
+                           @bind-Value:after="OnWarehouseChanged"
                            Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
                            Variant="Variant.Outlined"
                            Clearable="true"
@@ -24,7 +27,7 @@
                            Clearable="true"
                            Disabled="@(!Filters.WarehouseId.HasValue)"
                            Class="mb-3">
-                    @foreach (var location in Locations)
+                    @foreach (var location in _locations)
                     {
                         <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
                     }
@@ -88,15 +91,53 @@
     [Parameter] public List<StorageFacilityDto> Warehouses { get; set; } = new();
     [Parameter] public List<StorageLocationDto> Locations { get; set; } = new();
     
+    private List<StorageLocationDto> _locations = new();
+    
+    protected override void OnInitialized()
+    {
+        _locations = Locations.ToList();
+    }
+    
+    private async Task OnWarehouseChanged()
+    {
+        // Reset location when warehouse changes
+        Filters.LocationId = null;
+        
+        // Load locations for selected warehouse
+        if (Filters.WarehouseId.HasValue)
+        {
+            try
+            {
+                var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(Filters.WarehouseId.Value);
+                if (result != null)
+                {
+                    _locations = result.Items.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", Filters.WarehouseId);
+                _locations.Clear();
+            }
+        }
+        else
+        {
+            _locations.Clear();
+        }
+    }
+    
     private void Cancel() => MudDialog.Cancel();
     
     private void ClearFilters()
     {
+        Filters.WarehouseId = null;
+        Filters.LocationId = null;
         Filters.ShowOnlyLowStock = false;
         Filters.ShowOnlyCritical = false;
         Filters.ShowOnlyOutOfStock = false;
         Filters.ShowOnlyInStock = false;
         Filters.ShowAllProducts = false;
+        _locations.Clear();
     }
     
     private void Apply() => MudDialog.Close(DialogResult.Ok(Filters));

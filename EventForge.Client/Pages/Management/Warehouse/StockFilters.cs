@@ -29,14 +29,13 @@ public class StockFilters
         ShowAllProducts;
     
     /// <summary>
-    /// Returns count of active filters for UI badge
+    /// Returns count of active filters for UI badge (excludes SearchTerm as it's shown separately)
     /// </summary>
     public int ActiveFilterCount
     {
         get
         {
             int count = 0;
-            if (!string.IsNullOrWhiteSpace(SearchTerm)) count++;
             if (WarehouseId.HasValue) count++;
             if (LocationId.HasValue) count++;
             if (ShowOnlyLowStock) count++;
@@ -49,7 +48,7 @@ public class StockFilters
     }
     
     /// <summary>
-    /// Clears all filters to default state
+    /// Clears all filters to default state (preserves view mode preference)
     /// </summary>
     public void Clear()
     {
@@ -61,6 +60,6 @@ public class StockFilters
         ShowOnlyOutOfStock = false;
         ShowOnlyInStock = false;
         ShowAllProducts = false;
-        DetailedView = true;
+        // DetailedView is intentionally NOT reset - it's a view preference, not a filter
     }
 }
