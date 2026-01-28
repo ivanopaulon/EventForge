@@ -131,4 +131,24 @@ public interface ITenantService
     /// <param name="tenantId">Tenant ID</param>
     /// <param name="reason">Reason for deletion</param>
     Task SoftDeleteTenantAsync(Guid tenantId, string reason);
+
+    /// <summary>
+    /// Gets all tenants with pagination (SuperAdmin only).
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated tenants</returns>
+    Task<PagedResult<TenantResponseDto>> GetTenantsAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets all active tenants with pagination (SuperAdmin only).
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated active tenants</returns>
+    Task<PagedResult<TenantResponseDto>> GetActiveTenantsAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default);
 }

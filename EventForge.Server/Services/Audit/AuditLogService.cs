@@ -486,4 +486,173 @@ public class AuditLogService : IAuditLogService
 
         return exportResult;
     }
+
+    /// <summary>
+    /// Gets all audit logs with pagination.
+    /// </summary>
+    public async Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        var query = _context.EntityChangeLogs.AsQueryable();
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<EntityChangeLogDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
+    }
+
+    /// <summary>
+    /// Gets audit logs for a specific entity type with pagination.
+    /// </summary>
+    public async Task<PagedResult<EntityChangeLogDto>> GetLogsByEntityAsync(
+        string entityType,
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        var query = _context.EntityChangeLogs
+            .Where(log => log.EntityName == entityType);
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<EntityChangeLogDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
+    }
+
+    /// <summary>
+    /// Gets audit logs for a specific user with pagination.
+    /// </summary>
+    public async Task<PagedResult<EntityChangeLogDto>> GetLogsByUserAsync(
+        Guid userId,
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        // Note: EntityChangeLog stores ChangedBy as string (username), not Guid
+        // We need to join with Users table to filter by userId
+        var query = from log in _context.EntityChangeLogs
+                    join user in _context.Users on log.ChangedBy equals user.Username
+                    where user.Id == userId
+                    select log;
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<EntityChangeLogDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
+    }
+
+    /// <summary>
+    /// Gets audit logs within a date range with pagination.
+    /// </summary>
+    public async Task<PagedResult<EntityChangeLogDto>> GetLogsByDateRangeAsync(
+        DateTime startDate,
+        DateTime? endDate,
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        var end = endDate ?? DateTime.UtcNow;
+
+        var query = _context.EntityChangeLogs
+            .Where(log => log.ChangedAt >= startDate && log.ChangedAt <= end);
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<EntityChangeLogDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
+    }
 }

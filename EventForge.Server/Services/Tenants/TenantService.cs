@@ -1200,4 +1200,95 @@ public class TenantService : ITenantService
             _ = await _context.SaveChangesAsync();
         }
     }
+
+    /// <summary>
+    /// Gets all tenants with pagination (SuperAdmin only).
+    /// </summary>
+    public async Task<PagedResult<TenantResponseDto>> GetTenantsAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        // NOTE: No tenant filter - SuperAdmin sees all tenants
+        var query = _context.Tenants
+            .Where(t => !t.IsDeleted);
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderBy(t => t.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(t => new TenantResponseDto
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Code = t.Code,
+                DisplayName = t.DisplayName,
+                Description = t.Description,
+                Domain = t.Domain,
+                ContactEmail = t.ContactEmail,
+                MaxUsers = t.MaxUsers,
+                IsActive = t.IsActive,
+                SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+                CreatedAt = t.CreatedAt,
+                UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
+                CreatedBy = t.CreatedBy,
+                ModifiedAt = t.ModifiedAt,
+                ModifiedBy = t.ModifiedBy
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<TenantResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
+    }
+
+    /// <summary>
+    /// Gets all active tenants with pagination (SuperAdmin only).
+    /// </summary>
+    public async Task<PagedResult<TenantResponseDto>> GetActiveTenantsAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        var query = _context.Tenants
+            .Where(t => !t.IsDeleted && t.IsActive);
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderBy(t => t.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(t => new TenantResponseDto
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Code = t.Code,
+                DisplayName = t.DisplayName,
+                Description = t.Description,
+                Domain = t.Domain,
+                ContactEmail = t.ContactEmail,
+                MaxUsers = t.MaxUsers,
+                IsActive = t.IsActive,
+                SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+                CreatedAt = t.CreatedAt,
+                UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
+                CreatedBy = t.CreatedBy,
+                ModifiedAt = t.ModifiedAt,
+                ModifiedBy = t.ModifiedBy
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<TenantResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
+    }
 }
