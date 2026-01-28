@@ -399,7 +399,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 BusinessPartyId = dto.BusinessPartyId,
                 MemberSince = dto.MemberSince ?? DateTime.UtcNow,
                 MemberUntil = dto.MemberUntil,
-                Status = BusinessPartyGroupMemberStatus.Active,
+                Status = dto.Status,
                 OverridePriority = dto.OverridePriority,
                 Notes = dto.Notes,
                 IsFeatured = dto.IsFeatured,
@@ -492,7 +492,10 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                         BusinessPartyId = businessPartyId,
                         MemberSince = dto.MemberSince ?? DateTime.UtcNow,
                         MemberUntil = dto.MemberUntil,
-                        Status = BusinessPartyGroupMemberStatus.Active,
+                        Status = dto.Status,
+                        OverridePriority = dto.OverridePriority,
+                        Notes = dto.Notes,
+                        IsFeatured = dto.IsFeatured,
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = currentUser
                     };
