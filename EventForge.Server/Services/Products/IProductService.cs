@@ -365,4 +365,11 @@ public interface IProductService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Search result DTO with exact match and/or text search results</returns>
     Task<ProductSearchResultDto> SearchProductsAsync(string query, int maxResults = 20, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get products for export with batch processing support
+    /// </summary>
+    Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default);
 }

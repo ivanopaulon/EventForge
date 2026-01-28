@@ -152,4 +152,11 @@ public interface IStockMovementService
     /// Executes a planned movement.
     /// </summary>
     Task<StockMovementDto> ExecutePlannedMovementAsync(Guid movementPlanId, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get inventory movements for export with batch processing support
+    /// </summary>
+    Task<IEnumerable<EventForge.DTOs.Export.InventoryExportDto>> GetInventoryForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default);
 }

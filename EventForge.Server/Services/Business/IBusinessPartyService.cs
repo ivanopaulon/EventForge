@@ -193,4 +193,11 @@ public interface IBusinessPartyService
         string? sortBy = null,
         bool sortDescending = true,
         CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Get business parties for export with batch processing support
+    /// </summary>
+    Task<IEnumerable<EventForge.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default);
 }

@@ -217,4 +217,11 @@ public interface IDocumentHeaderService
     /// <param name="documentId">Document ID</param>
     /// <returns>Lock information or null if document not found</returns>
     Task<DocumentLockInfo?> GetLockInfoAsync(Guid documentId);
+
+    /// <summary>
+    /// Get documents for export with batch processing support
+    /// </summary>
+    Task<IEnumerable<EventForge.DTOs.Export.DocumentExportDto>> GetDocumentsForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default);
 }

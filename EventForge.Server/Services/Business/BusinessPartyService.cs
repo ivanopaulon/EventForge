@@ -1278,4 +1278,105 @@ public class BusinessPartyService : IBusinessPartyService
     }
 
     #endregion
+
+    #region Export Operations
+
+    public async Task<IEnumerable<EventForge.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for business party operations.");
+        }
+
+        var query = _context.BusinessParties
+            .Include(bp => bp.Addresses)
+            .Include(bp => bp.Contacts)
+            .Where(bp => !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
+            .OrderBy(bp => bp.Name);
+        
+        var totalCount = await query.CountAsync(ct);
+        
+        _logger.LogInformation("Export requested for {Count} business parties", totalCount);
+        
+        // Use batch processing for large datasets
+        if (totalCount > 10000)
+        {
+            _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            return await GetBusinessPartiesInBatchesAsync(query, ct);
+        }
+        
+        // Standard export for smaller datasets
+        var items = await query
+            .Take(pagination.PageSize)
+            .ToListAsync(ct);
+        
+        return items.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
+        {
+            Id = bp.Id,
+            Code = bp.TaxCode ?? string.Empty,
+            Name = bp.Name,
+            PartyType = bp.PartyType.ToString(),
+            VatNumber = bp.VatNumber,
+            FiscalCode = bp.TaxCode,
+            Email = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Email)?.Value,
+            Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Phone)?.Value,
+            Address = bp.Addresses.FirstOrDefault()?.Street,
+            City = bp.Addresses.FirstOrDefault()?.City,
+            PostalCode = bp.Addresses.FirstOrDefault()?.ZipCode,
+            Country = bp.Addresses.FirstOrDefault()?.Country,
+            IsActive = bp.IsActive,
+            CreatedAt = bp.CreatedAt
+        });
+    }
+
+    private async Task<IEnumerable<EventForge.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesInBatchesAsync(
+        IQueryable<BusinessParty> query,
+        CancellationToken ct)
+    {
+        const int batchSize = 5000;
+        var results = new List<EventForge.DTOs.Export.BusinessPartyExportDto>();
+        var skip = 0;
+        
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            
+            var batch = await query
+                .Skip(skip)
+                .Take(batchSize)
+                .ToListAsync(ct);
+            
+            if (batch.Count == 0) break;
+            
+            results.AddRange(batch.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
+            {
+                Id = bp.Id,
+                Code = bp.TaxCode ?? string.Empty,
+                Name = bp.Name,
+                PartyType = bp.PartyType.ToString(),
+                VatNumber = bp.VatNumber,
+                FiscalCode = bp.TaxCode,
+                Email = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Email)?.Value,
+                Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Phone)?.Value,
+                Address = bp.Addresses.FirstOrDefault()?.Street,
+                City = bp.Addresses.FirstOrDefault()?.City,
+                PostalCode = bp.Addresses.FirstOrDefault()?.ZipCode,
+                Country = bp.Addresses.FirstOrDefault()?.Country,
+                IsActive = bp.IsActive,
+                CreatedAt = bp.CreatedAt
+            }));
+            
+            skip += batchSize;
+            
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+                Math.Min(skip, results.Count), results.Count);
+        }
+        
+        return results;
+    }
+
+    #endregion
 }
