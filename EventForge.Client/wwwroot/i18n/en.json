@@ -2979,6 +2979,8 @@
     "fontSize": "Font Size",
     "extendedFonts": "Enable Extended Multilingual Fonts",
     "useSystem": "Use System Fonts (Performance)",
-    "preview": "Preview"
+    "preview": "Preview",
+    "recommended": "Recommended",
+    "systemFont": "System Font"
   }
 }

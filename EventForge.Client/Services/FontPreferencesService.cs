@@ -133,14 +133,8 @@ public class FontPreferencesService : IFontPreferencesService
 
             var fontSize = $"{_currentPreferences.BaseFontSize}px";
 
-            // Applica tramite JavaScript - escape delle stringhe per evitare problemi
-            var script = $@"
-                document.documentElement.style.setProperty('--font-family-primary', ""{fontFamily}"");
-                document.documentElement.style.setProperty('--font-family-monospace', ""{monoFamily}"");
-                document.documentElement.style.fontSize = '{fontSize}';
-            ";
-
-            await _jsRuntime.InvokeVoidAsync("eval", script);
+            // Apply CSS properties safely using dedicated JavaScript helper function
+            await _jsRuntime.InvokeVoidAsync("EventForge.setFontPreferences", fontFamily, monoFamily, fontSize);
         }
         catch (Exception ex)
         {

@@ -10,16 +10,16 @@
                        @bind-Value="_preferences.PrimaryFontFamily"
                        Label="@TranslationService.GetTranslation("fontPreferences.primaryFont", "Font Principale")"
                        Variant="Variant.Outlined">
-                <MudSelectItem Value="@("Noto Sans")">Noto Sans (Consigliato)</MudSelectItem>
+                <MudSelectItem Value="@("Noto Sans")">Noto Sans (@TranslationService.GetTranslation("fontPreferences.recommended", "Recommended"))</MudSelectItem>
                 <MudSelectItem Value="@("Noto Serif")">Noto Serif</MudSelectItem>
-                <MudSelectItem Value="@("System")">Font di Sistema</MudSelectItem>
+                <MudSelectItem Value="@("System")">@TranslationService.GetTranslation("fontPreferences.systemFont", "System Font")</MudSelectItem>
             </MudSelect>
 
             <MudSelect T="string" 
                        @bind-Value="_preferences.MonospaceFontFamily"
                        Label="@TranslationService.GetTranslation("fontPreferences.monoFont", "Font Monospace")"
                        Variant="Variant.Outlined">
-                <MudSelectItem Value="@("Noto Sans Mono")">Noto Sans Mono (Consigliato)</MudSelectItem>
+                <MudSelectItem Value="@("Noto Sans Mono")">Noto Sans Mono (@TranslationService.GetTranslation("fontPreferences.recommended", "Recommended"))</MudSelectItem>
                 <MudSelectItem Value="@("Courier New")">Courier New</MudSelectItem>
             </MudSelect>
 
