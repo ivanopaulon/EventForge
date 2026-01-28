@@ -48,7 +48,7 @@
         else
         {
             <MudAlert Severity="Severity.Error">
-                Errore nel caricamento del listino
+                @(_errorMessage ?? "Errore nel caricamento del listino")
             </MudAlert>
         }
     </DialogContent>
@@ -74,12 +74,21 @@
     
     private bool _isLoading = true;
     private PriceListDto? _priceList;
+    private string? _errorMessage;
     
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _priceList = await PriceListService.GetByIdAsync(PriceListId, CancellationToken.None);
+            if (_priceList == null)
+            {
+                _errorMessage = "Listino non trovato";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Errore nel caricamento del listino";
         }
         finally
         {

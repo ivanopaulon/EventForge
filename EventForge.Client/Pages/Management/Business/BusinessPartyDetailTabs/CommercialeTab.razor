@@ -178,12 +178,19 @@
             options);
     }
     
-    private void OpenPriceListInNewTab(Guid priceListId)
+    private async Task OpenPriceListInNewTab(Guid priceListId)
     {
-        var returnUrl = $"/business/parties/{BusinessPartyId}";
-        var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
-        var url = $"/management/pricelists/{priceListId}?returnTo={encodedReturnUrl}&returnContext=businessparty";
-        
-        JSRuntime.InvokeVoidAsync("open", url, "_blank");
+        try
+        {
+            var returnUrl = $"/business/parties/{BusinessPartyId}";
+            var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
+            var url = $"/management/pricelists/{priceListId}?returnTo={encodedReturnUrl}&returnContext=businessparty";
+            
+            await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening price list {PriceListId} in new tab", priceListId);
+        }
     }
 }

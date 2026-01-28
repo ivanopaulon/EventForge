@@ -452,7 +452,7 @@ public class PriceListService : IPriceListService
             _logger.LogError(ex, 
                 "Error fetching price lists for business party {BusinessPartyId}", 
                 businessPartyId);
-            throw;
+            return Enumerable.Empty<PriceListDto>();
         }
     }
 }
