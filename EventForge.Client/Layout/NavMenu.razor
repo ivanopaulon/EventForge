@@ -187,15 +187,20 @@
             <MudNavGroup title="@TranslationService.GetTranslation("nav.businessPartners", "Partner Commerciali")" 
                          Icon="@Icons.Material.Outlined.Handshake" 
                          Expanded="false">
-                <MudNavLink Href="/business/suppliers"
+                <MudNavLink Href="/business/parties"
                             Icon="@Icons.Material.Outlined.Business" 
                             Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.supplierManagement", "Fornitori")
+                    @TranslationService.GetTranslation("nav.businessPartyManagement", "Business Party")
                 </MudNavLink>
-                <MudNavLink Href="/business/customers"
+                <MudNavLink Href="/business/parties/customers"
                             Icon="@Icons.Material.Outlined.People" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.customerManagement", "Clienti")
+                </MudNavLink>
+                <MudNavLink Href="/business/parties/suppliers"
+                            Icon="@Icons.Material.Outlined.LocalShipping" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.supplierManagement", "Fornitori")
                 </MudNavLink>
                 <MudNavLink Href="/business/groups"
                             Icon="@Icons.Material.Outlined.Group" 
