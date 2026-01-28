@@ -1,4 +1,5 @@
 using EventForge.DTOs.Chat;
+using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -543,6 +544,117 @@ public class ChatService : IChatService
             Items = messageDtos,
             Page = searchDto.PageNumber,
             PageSize = searchDto.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    /// <summary>
+    /// Retrieves all chat messages with pagination.
+    /// </summary>
+    public async Task<PagedResult<ChatMessageDto>> GetMessagesAsync(
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving all messages - Page {Page}", pagination.Page);
+
+        var query = _context.ChatMessages
+            .Where(m => !m.IsDeleted)
+            .Include(m => m.ChatThread)
+            .Include(m => m.Attachments)
+            .Include(m => m.ReadReceipts);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var messages = await query
+            .OrderByDescending(m => m.SentAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+
+        return new PagedResult<ChatMessageDto>
+        {
+            Items = messageDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    /// <summary>
+    /// Retrieves messages for a specific conversation with pagination.
+    /// </summary>
+    public async Task<PagedResult<ChatMessageDto>> GetMessagesByConversationAsync(
+        Guid conversationId,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Retrieving messages for conversation {ConversationId} - Page {Page}",
+            conversationId, pagination.Page);
+
+        var query = _context.ChatMessages
+            .Where(m => !m.IsDeleted && m.ChatThreadId == conversationId)
+            .Include(m => m.Attachments)
+            .Include(m => m.ReadReceipts);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var messages = await query
+            .OrderBy(m => m.SentAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+
+        return new PagedResult<ChatMessageDto>
+        {
+            Items = messageDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    /// <summary>
+    /// Retrieves unread messages for the current user with pagination.
+    /// NOTE: Requires current user context to be passed from controller
+    /// </summary>
+    public async Task<PagedResult<ChatMessageDto>> GetUnreadMessagesAsync(
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving unread messages - Page {Page}", pagination.Page);
+
+        // NOTE: This is a simplified implementation.
+        // In a full implementation, you would need to:
+        // 1. Get current user ID from context (e.g., IHttpContextAccessor or parameter)
+        // 2. Query messages where ReadReceipts don't contain current user's read receipt
+        // For now, we'll return messages with no read receipts
+        
+        var query = _context.ChatMessages
+            .Where(m => !m.IsDeleted && m.ReadAt == null)
+            .Include(m => m.ChatThread)
+            .Include(m => m.Attachments)
+            .Include(m => m.ReadReceipts);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var messages = await query
+            .OrderByDescending(m => m.SentAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+
+        return new PagedResult<ChatMessageDto>
+        {
+            Items = messageDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
             TotalCount = totalCount
         };
     }

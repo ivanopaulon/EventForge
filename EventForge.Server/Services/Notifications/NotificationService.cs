@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Notifications;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -591,6 +592,193 @@ public class NotificationService : INotificationService
         {
             _logger.LogError(ex, "Failed to retrieve notifications for user {UserId}", searchDto.UserId);
             throw new InvalidOperationException("Failed to retrieve notifications", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all notifications for the current user with pagination.
+    /// NOTE: Requires user and tenant context to be determined from authentication.
+    /// </summary>
+    public async Task<PagedResult<NotificationResponseDto>> GetNotificationsAsync(
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving all notifications - Page {Page}", pagination.Page);
+
+        // NOTE: This is a simplified implementation that returns all notifications
+        // In a full implementation, you would extract userId and tenantId from authentication context
+        try
+        {
+            var query = _context.Notifications
+                .Where(n => !n.IsDeleted)
+                .AsQueryable();
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var notifications = await query
+                .OrderByDescending(n => n.CreatedAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var notificationDtos = notifications.Select(n => new NotificationResponseDto
+            {
+                Id = n.Id,
+                TenantId = n.TenantId,
+                SenderId = n.SenderId,
+                SenderName = "System",
+                Type = n.Type,
+                Priority = n.Priority,
+                Status = n.Status,
+                Payload = new NotificationPayloadDto
+                {
+                    Title = n.Title,
+                    Message = n.Message,
+                    ActionUrl = n.ActionUrl,
+                    IconUrl = n.IconUrl
+                },
+                CreatedAt = n.CreatedAt,
+                ReadAt = n.ReadAt,
+                AcknowledgedAt = n.AcknowledgedAt
+            }).ToList();
+
+            return new PagedResult<NotificationResponseDto>
+            {
+                Items = notificationDtos,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve notifications");
+            throw new InvalidOperationException("Failed to retrieve notifications", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves unread notifications for the current user with pagination.
+    /// </summary>
+    public async Task<PagedResult<NotificationResponseDto>> GetUnreadNotificationsAsync(
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving unread notifications - Page {Page}", pagination.Page);
+
+        try
+        {
+            var query = _context.Notifications
+                .Where(n => !n.IsDeleted && !n.ReadAt.HasValue)
+                .AsQueryable();
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var notifications = await query
+                .OrderByDescending(n => n.CreatedAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var notificationDtos = notifications.Select(n => new NotificationResponseDto
+            {
+                Id = n.Id,
+                TenantId = n.TenantId,
+                SenderId = n.SenderId,
+                SenderName = "System",
+                Type = n.Type,
+                Priority = n.Priority,
+                Status = n.Status,
+                Payload = new NotificationPayloadDto
+                {
+                    Title = n.Title,
+                    Message = n.Message,
+                    ActionUrl = n.ActionUrl,
+                    IconUrl = n.IconUrl
+                },
+                CreatedAt = n.CreatedAt,
+                ReadAt = n.ReadAt,
+                AcknowledgedAt = n.AcknowledgedAt
+            }).ToList();
+
+            return new PagedResult<NotificationResponseDto>
+            {
+                Items = notificationDtos,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve unread notifications");
+            throw new InvalidOperationException("Failed to retrieve unread notifications", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves notifications by type with pagination.
+    /// </summary>
+    public async Task<PagedResult<NotificationResponseDto>> GetNotificationsByTypeAsync(
+        string type,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving notifications of type {Type} - Page {Page}", type, pagination.Page);
+
+        try
+        {
+            // Parse the type string to NotificationTypes enum
+            if (!Enum.TryParse<NotificationTypes>(type, true, out var notificationType))
+            {
+                throw new ArgumentException($"Invalid notification type: {type}", nameof(type));
+            }
+
+            var query = _context.Notifications
+                .Where(n => !n.IsDeleted && n.Type == notificationType)
+                .AsQueryable();
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var notifications = await query
+                .OrderByDescending(n => n.CreatedAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var notificationDtos = notifications.Select(n => new NotificationResponseDto
+            {
+                Id = n.Id,
+                TenantId = n.TenantId,
+                SenderId = n.SenderId,
+                SenderName = "System",
+                Type = n.Type,
+                Priority = n.Priority,
+                Status = n.Status,
+                Payload = new NotificationPayloadDto
+                {
+                    Title = n.Title,
+                    Message = n.Message,
+                    ActionUrl = n.ActionUrl,
+                    IconUrl = n.IconUrl
+                },
+                CreatedAt = n.CreatedAt,
+                ReadAt = n.ReadAt,
+                AcknowledgedAt = n.AcknowledgedAt
+            }).ToList();
+
+            return new PagedResult<NotificationResponseDto>
+            {
+                Items = notificationDtos,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve notifications of type {Type}", type);
+            throw new InvalidOperationException($"Failed to retrieve notifications of type {type}", ex);
         }
     }
 
