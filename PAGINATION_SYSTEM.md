@@ -102,8 +102,8 @@ The pagination system applies limits in the following priority order (highest to
 
 1. **Endpoint Override (Exact Match)**: `/api/v1/stock/overview` → 5000
 2. **Endpoint Override (Wildcard)**: `/api/v1/export/*` → 10000
-3. **Role-Based Limit**: User (1000), Admin (5000), SuperAdmin (10000)
-4. **Export Header**: `X-Export-Operation: true` → MaxExportPageSize (10000)
+3. **Export Header**: `X-Export-Operation: true` → MaxExportPageSize (10000)
+4. **Role-Based Limit**: User (1000), Admin (5000), SuperAdmin (10000)
 5. **Default**: MaxPageSize (1000)
 
 ### Priority Examples
@@ -136,11 +136,12 @@ When a requested page size exceeds the allowed limit, the system:
 ## Testing
 
 ### Unit Tests
-- 15+ unit tests in `EventForge.Tests/ModelBinders/PaginationModelBinderTests.cs`
-- Tests cover all scenarios: defaults, capping, role-based limits, endpoint overrides, wildcards
+- 16 unit test methods in `EventForge.Tests/ModelBinders/PaginationModelBinderTests.cs`
+- Multiple test cases per Theory test (33 total test executions)
+- Tests cover all scenarios: defaults, capping, role-based limits, endpoint overrides, wildcards, invalid inputs, export headers
 
 ### Integration Tests
-- 8+ integration tests in `EventForge.Tests/Integration/PaginationIntegrationTests.cs`
+- 8 integration tests in `EventForge.Tests/Integration/PaginationIntegrationTests.cs`
 - Tests verify configuration loading, JSON serialization, and end-to-end behavior
 
 ## Logging

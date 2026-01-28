@@ -78,8 +78,8 @@ public class PaginationModelBinderTests
         Assert.True(bindingContext.Result.IsModelSet);
         var result = bindingContext.Result.Model as PaginationParameters;
         Assert.NotNull(result);
-        Assert.Equal(20, result.Page); // DefaultPageSize used as page
-        Assert.Equal(20, result.PageSize); // DefaultPageSize
+        Assert.Equal(1, result.Page); // Page defaults to 1
+        Assert.Equal(20, result.PageSize); // PageSize defaults to DefaultPageSize
         Assert.False(result.WasCapped);
     }
 
@@ -247,6 +247,49 @@ public class PaginationModelBinderTests
         Assert.NotNull(result);
         Assert.Equal(10000, result.PageSize); // Export header allows MaxExportPageSize
         Assert.True(result.WasCapped);
+    }
+
+    [Fact]
+    public async Task BindModelAsync_WithExportHeaderAndUserRole_UsesExportLimit()
+    {
+        // Arrange - Export header should take priority over role-based limit
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, "user@test.com"),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var (binder, bindingContext) = CreateBinder("1", "15000", claims, "/api/v1/test", true);
+
+        // Act
+        await binder.BindModelAsync(bindingContext);
+
+        // Assert
+        Assert.True(bindingContext.Result.IsModelSet);
+        var result = bindingContext.Result.Model as PaginationParameters;
+        Assert.NotNull(result);
+        Assert.Equal(10000, result.PageSize); // Export header takes priority over User role limit
+        Assert.True(result.WasCapped);
+    }
+
+    [Theory]
+    [InlineData("abc", "xyz", 1, 20)]  // Non-numeric values
+    [InlineData("1.5", "2.7", 1, 20)]  // Decimal values
+    [InlineData("0", "-5", 1, 1)]      // Zero and negative values
+    public async Task BindModelAsync_WithInvalidParameters_UsesDefaults(
+        string pageValue, string pageSizeValue, int expectedPage, int expectedPageSize)
+    {
+        // Arrange
+        var (binder, bindingContext) = CreateBinder(pageValue, pageSizeValue);
+
+        // Act
+        await binder.BindModelAsync(bindingContext);
+
+        // Assert
+        Assert.True(bindingContext.Result.IsModelSet);
+        var result = bindingContext.Result.Model as PaginationParameters;
+        Assert.NotNull(result);
+        Assert.Equal(expectedPage, result.Page);
+        Assert.Equal(expectedPageSize, result.PageSize);
     }
 
     [Fact]

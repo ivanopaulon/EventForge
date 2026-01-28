@@ -40,7 +40,7 @@ public class PaginationModelBinder : IModelBinder
         var pageValue = bindingContext.ValueProvider.GetValue("page").FirstValue;
         var pageSizeValue = bindingContext.ValueProvider.GetValue("pageSize").FirstValue;
 
-        var page = ParseInt(pageValue, _settings.DefaultPageSize, 1);
+        var page = ParseInt(pageValue, 1, 1);  // Page defaults to 1
         var requestedPageSize = ParseInt(pageSizeValue, _settings.DefaultPageSize, 1);
 
         // Determine max page size based on context
@@ -106,7 +106,14 @@ public class PaginationModelBinder : IModelBinder
             }
         }
 
-        // Priority 3: Role-based (highest if multiple roles)
+        // Priority 3: Export header
+        if (httpContext.Request.Headers.TryGetValue("X-Export-Operation", out var exportHeader) &&
+            exportHeader == "true")
+        {
+            return _settings.MaxExportPageSize;
+        }
+
+        // Priority 4: Role-based (highest if multiple roles)
         if (user?.Identity?.IsAuthenticated == true)
         {
             foreach (var (role, maxSize) in _settings.RoleBasedLimits.OrderByDescending(x => x.Value))
@@ -116,13 +123,6 @@ public class PaginationModelBinder : IModelBinder
                     return maxSize;
                 }
             }
-        }
-
-        // Priority 4: Export header
-        if (httpContext.Request.Headers.TryGetValue("X-Export-Operation", out var exportHeader) &&
-            exportHeader == "true")
-        {
-            return _settings.MaxExportPageSize;
         }
 
         // Priority 5: Default
