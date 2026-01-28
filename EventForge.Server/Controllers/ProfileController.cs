@@ -785,13 +785,13 @@ public class ProfileController : BaseApiController
                 
                 if (displayPrefs != null)
                 {
-                    // Backward compatibility: assicura default per nuovi campi
+                    // Backward compatibility: ensure defaults for new fields
                     if (string.IsNullOrEmpty(displayPrefs.HeadingsFont))
                         displayPrefs.HeadingsFont = "Noto Sans Display";
                     
                     if (string.IsNullOrEmpty(displayPrefs.BodyFont))
                     {
-                        // Migra da PrimaryFontFamily se presente
+                        // Migrate from PrimaryFontFamily if present
                         displayPrefs.BodyFont = !string.IsNullOrEmpty(displayPrefs.PrimaryFontFamily) 
                             ? displayPrefs.PrimaryFontFamily 
                             : "Noto Sans";
@@ -802,7 +802,7 @@ public class ProfileController : BaseApiController
                     
                     if (string.IsNullOrEmpty(displayPrefs.MonospaceFont))
                     {
-                        // Migra da MonospaceFontFamily se presente
+                        // Migrate from MonospaceFontFamily if present
                         displayPrefs.MonospaceFont = !string.IsNullOrEmpty(displayPrefs.MonospaceFontFamily)
                             ? displayPrefs.MonospaceFontFamily
                             : "Noto Sans Mono";

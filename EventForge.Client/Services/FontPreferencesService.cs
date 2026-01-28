@@ -135,7 +135,7 @@ public class FontPreferencesService : IFontPreferencesService
             
             var monoFamily = _currentPreferences.UseSystemFonts
                 ? "'Courier New', Consolas, monospace"
-                : "'Noto Sans Mono', 'Courier New', monospace";
+                : $"'{_currentPreferences.MonospaceFont}', 'Courier New', monospace";
             
             var contentFamily = _currentPreferences.UseSystemFonts
                 ? "var(--font-family-system)"

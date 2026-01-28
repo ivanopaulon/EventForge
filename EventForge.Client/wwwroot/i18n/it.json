@@ -3005,7 +3005,6 @@
       "editorial.desc": "Elegante, mix serif"
     },
     "primaryFont": "Font Principale",
-    "monoFont": "Font Monospace",
     "extendedFonts": "Abilita Font Multilingua Estesi",
     "useSystem": "Usa Font di Sistema (Performance)",
     "recommended": "Consigliato",
