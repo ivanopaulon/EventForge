@@ -79,8 +79,15 @@
 
         <!-- Tabs Section -->
         <MudPaper Elevation="2" Class="pa-2">
-            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
-                <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
+            <MudTabs Elevation="0" 
+                     Rounded="false" 
+                     PanelClass="pa-4" 
+                     @bind-ActivePanelIndex="_activeTab" 
+                     Color="Color.Primary">
+                
+                <!-- ========== TAB 1: GENERALE (Fase 1 - già implementata) ========== -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.general", "Generale")" 
+                             Icon="@Icons.Material.Filled.Info">
                     <GeneralInfoTab Party="@_party" 
                                     IsEditMode="@_isEditMode" 
                                     IsNewParty="@_isCreateMode" 
@@ -89,46 +96,38 @@
                                     OnManageGroupsClicked="@OnManageGroupsClicked"
                                     OnRemoveGroup="@OnRemoveGroup" />
                 </MudTabPanel>
-
+                
                 @if (!_isCreateMode && _party != null)
                 {
-                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.addresses", "Indirizzi")" Icon="@Icons.Material.Filled.LocationOn" BadgeData="@_party.AddressCount" BadgeDot="@(_party.AddressCount > 0)">
-                        <AddressesTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
+                    <!-- ========== TAB 2: RECAPITI (Fase 2 - NUOVO consolidato) ========== -->
+                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.recapiti", "Recapiti")" 
+                                 Icon="@Icons.Material.Filled.ContactPhone"
+                                 BadgeData="@(_party.AddressCount + _party.ContactCount + _party.ReferenceCount)"
+                                 BadgeDot="@(_party.AddressCount > 0 || _party.ContactCount > 0 || _party.ReferenceCount > 0)">
+                        <RecapitiTab Party="@_party" 
+                                     IsEditMode="@_isEditMode" 
+                                     OnPartyUpdated="@HandlePartyLocallyChanged" />
                     </MudTabPanel>
-
-                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.contacts", "Contatti")" Icon="@Icons.Material.Filled.ContactPhone" BadgeData="@_party.ContactCount" BadgeDot="@(_party.ContactCount > 0)">
-                        <ContactsTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
+                    
+                    <!-- ========== TAB 3: OPERATIVO (Fase 2 - NUOVO consolidato) ========== -->
+                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.operativo", "Operativo")" 
+                                 Icon="@Icons.Material.Filled.Inventory">
+                        <OperativoTab BusinessPartyId="@_party.Id" 
+                                      PartyType="@_party.PartyType" />
                     </MudTabPanel>
-
-                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.references", "Riferimenti")" Icon="@Icons.Material.Filled.People" BadgeData="@_party.ReferenceCount" BadgeDot="@(_party.ReferenceCount > 0)">
-                        <ReferencesTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
-                    </MudTabPanel>
-
+                    
+                    <!-- ========== TAB 4: CONTABILITÀ (invariata) ========== -->
                     @if (_party.HasAccountingData)
                     {
-                        <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.accounting", "Dati Contabili")" Icon="@Icons.Material.Filled.AccountBalance">
-                            <AccountingTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
-                        </MudTabPanel>
-                    }
-
-                    <!-- Documents Tab -->
-                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.documents", "Documenti")" Icon="@Icons.Material.Filled.Description">
-                        <BusinessPartyDocumentsTab BusinessPartyId="@_party.Id" />
-                    </MudTabPanel>
-
-                    <!-- Products Analysis Tab -->
-                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.products", "Prodotti")" Icon="@Icons.Material.Filled.Inventory">
-                        <BusinessPartyProductsTab BusinessPartyId="@_party.Id" />
-                    </MudTabPanel>
-
-                    <!-- Supplied Products Tab (only for suppliers) -->
-                    @if (_party.PartyType == BusinessPartyType.Supplier || _party.PartyType == BusinessPartyType.Both)
-                    {
-                        <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.suppliedProducts", "Prodotti Forniti")" Icon="@Icons.Material.Filled.LocalShipping">
-                            <BusinessPartySuppliedProductsTab BusinessPartyId="@_party.Id" />
+                        <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.accounting", "Dati Contabili")" 
+                                     Icon="@Icons.Material.Filled.AccountBalance">
+                            <AccountingTab Party="@_party" 
+                                           IsEditMode="@_isEditMode" 
+                                           OnPartyUpdated="@HandlePartyLocallyChanged" />
                         </MudTabPanel>
                     }
                 }
+                
             </MudTabs>
         </MudPaper>
     }
@@ -156,21 +155,17 @@
     // Determine if we're in supplier or customer mode based on route
     private bool _isSupplierMode => NavigationManager.Uri.Contains("/suppliers");
     
-    // ========== LAZY LOADING INFRASTRUCTURE (NUOVO) ==========
+    // ========== LAZY LOADING INFRASTRUCTURE (AGGIORNATO FASE 2) ==========
     
     /// <summary>
     /// Stato di caricamento per ogni tab
     /// </summary>
     private readonly Dictionary<string, TabLoadState> _tabLoadStates = new()
     {
-        { "General", TabLoadState.Loaded },      // Caricato all'init
-        { "Addresses", TabLoadState.NotLoaded },
-        { "Contacts", TabLoadState.NotLoaded },
-        { "References", TabLoadState.NotLoaded },
-        { "Accounting", TabLoadState.NotLoaded },
-        { "Documents", TabLoadState.NotLoaded },
-        { "Products", TabLoadState.NotLoaded },
-        { "SuppliedProducts", TabLoadState.NotLoaded }
+        { "General", TabLoadState.Loaded },       // Caricato all'init
+        { "Recapiti", TabLoadState.NotLoaded },   // NUOVO (consolidato Indirizzi+Contatti+Riferimenti)
+        { "Operativo", TabLoadState.NotLoaded },  // NUOVO (consolidato Documenti+Prodotti+Forniti)
+        { "Contabilita", TabLoadState.NotLoaded } // Invariato
     };
 
     protected override async Task OnInitializedAsync()
