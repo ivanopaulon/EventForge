@@ -55,6 +55,11 @@ namespace EventForge.DTOs.Documents
         public string? Notes { get; set; }
 
         /// <summary>
+        /// Indicates if this document type represents a physical inventory count
+        /// </summary>
+        public bool IsInventoryDocument { get; set; }
+
+        /// <summary>
         /// Date and time when the document type was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

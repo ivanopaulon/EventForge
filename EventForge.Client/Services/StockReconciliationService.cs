@@ -67,6 +67,7 @@ public class StockReconciliationService : IStockReconciliationService
             queryParams.Add($"includeDocuments={request.IncludeDocuments.ToString().ToLower()}");
             queryParams.Add($"includeInventories={request.IncludeInventories.ToString().ToLower()}");
             queryParams.Add($"onlyWithDiscrepancies={request.OnlyWithDiscrepancies.ToString().ToLower()}");
+            queryParams.Add($"discrepancyThreshold={request.DiscrepancyThreshold}");
 
             var query = string.Join("&", queryParams);
             var url = queryParams.Count > 0 ? $"{BaseUrl}/export?{query}" : $"{BaseUrl}/export";

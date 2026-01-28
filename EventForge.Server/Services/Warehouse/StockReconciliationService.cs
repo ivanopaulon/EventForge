@@ -251,7 +251,7 @@ public class StockReconciliationService : IStockReconciliationService
         CancellationToken cancellationToken)
     {
         // Query for the last finalized inventory document within the date range
-        // We check for common inventory document type codes: "INVENTORY", "INV-COUNT", "STOCK-COUNT", "INVENT"
+        // Uses IsInventoryDocument property to identify inventory document types
         var query = _context.DocumentRows
             .AsNoTracking()
             .Include(dr => dr.DocumentHeader)
@@ -262,11 +262,7 @@ public class StockReconciliationService : IStockReconciliationService
                         dr.LocationId == locationId &&
                         dr.DocumentHeader != null &&
                         dr.DocumentHeader.DocumentType != null &&
-                        // Check for common inventory document type codes
-                        (dr.DocumentHeader.DocumentType.Code == "INVENTORY" ||
-                         dr.DocumentHeader.DocumentType.Code == "INV-COUNT" ||
-                         dr.DocumentHeader.DocumentType.Code == "STOCK-COUNT" ||
-                         dr.DocumentHeader.DocumentType.Code == "INVENT") &&
+                        dr.DocumentHeader.DocumentType.IsInventoryDocument &&
                         dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed);
 
         // Apply date filters

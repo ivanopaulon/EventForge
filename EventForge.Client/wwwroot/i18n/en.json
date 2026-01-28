@@ -1007,6 +1007,8 @@
     "featureNotImplemented": "Feature not yet implemented",
     "exportInProgress": "Export in progress...",
     "importInProgress": "Import in progress...",
+    "warehousesLoadFailed": "Error loading warehouses",
+    "locationsLoadFailed": "Error loading locations",
     "deleteFailed": "[FROM IT] Errore durante l'eliminazione",
     "deleteSuccessful": "[FROM IT] Eliminazione completata con successo",
     "initializationError": "[FROM IT] Errore durante l'inizializzazione",
@@ -2881,6 +2883,9 @@
     "actions": "Actions",
     "expandDetails": "Expand details",
     "collapseDetails": "Collapse details",
+    "searchProduct": "Search product...",
+    "discrepancyThreshold": "Major Discrepancy Threshold (%)",
+    "discrepancyThresholdHelp": "Differences above this percentage threshold will be marked as major discrepancies",
     "severity": {
       "correct": "Correct",
       "minor": "Minor Discrepancy",
@@ -2917,7 +2922,8 @@
     "error": {
       "calculationFailed": "Error during reconciliation calculation",
       "applyFailed": "Error applying reconciliation",
-      "exportFailed": "Error exporting report"
+      "exportFailed": "Error exporting report",
+      "invalidDateRange": "The 'From' date cannot be later than the 'To' date"
     }
   },
   "priceList": {

@@ -23,6 +23,7 @@ public static class DocumentTypeMapper
             IsFiscal = documentType.IsFiscal,
             RequiredPartyType = (EventForge.DTOs.Common.BusinessPartyType)documentType.RequiredPartyType,
             Notes = documentType.Notes,
+            IsInventoryDocument = documentType.IsInventoryDocument,
             CreatedAt = documentType.CreatedAt,
             CreatedBy = documentType.CreatedBy,
             ModifiedAt = documentType.ModifiedAt,
