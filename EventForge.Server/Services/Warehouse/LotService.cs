@@ -617,9 +617,9 @@ public class LotService : ILotService
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            // Note: Lots are linked to warehouses through inventory/stock records
-            // For now, we return all lots for the tenant since the direct relationship
-            // through StorageLocation would require joining through inventory items
+            // Note: Lots don't have a direct StorageLocation relationship
+            // This returns all lots for the tenant as the warehouse filter
+            // would require joining through inventory/stock records
             var query = _context.Lots
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)

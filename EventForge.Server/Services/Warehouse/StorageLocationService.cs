@@ -30,6 +30,7 @@ public class StorageLocationService : IStorageLocationService
 
             var query = _context.StorageLocations
                 .Include(sl => sl.Warehouse)
+                .Where(sl => !sl.IsDeleted)
                 .AsQueryable();
 
             if (warehouseId.HasValue)
@@ -40,6 +41,9 @@ public class StorageLocationService : IStorageLocationService
             var totalCount = await query.CountAsync(cancellationToken);
 
             var items = await query
+                .OrderBy(sl => sl.Warehouse != null ? sl.Warehouse.Name : string.Empty)
+                .ThenBy(sl => sl.Zone)
+                .ThenBy(sl => sl.Code)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
                 .Select(sl => new StorageLocationDto
@@ -568,7 +572,7 @@ public class StorageLocationService : IStorageLocationService
             var totalCount = await query.CountAsync(cancellationToken);
 
             var items = await query
-                .OrderBy(sl => sl.Warehouse!.Name)
+                .OrderBy(sl => sl.Warehouse != null ? sl.Warehouse.Name : string.Empty)
                 .ThenBy(sl => sl.Code)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
