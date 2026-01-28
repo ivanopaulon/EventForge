@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
@@ -27,8 +28,7 @@ public class LotService : ILotService
     }
 
     public async Task<PagedResult<LotDto>> GetLotsAsync(
-        int page = 1,
-        int pageSize = 20,
+        PaginationParameters pagination,
         Guid? productId = null,
         string? status = null,
         bool? expiringSoon = null,
@@ -70,8 +70,8 @@ public class LotService : ILotService
             // Apply pagination and ordering
             var lots = await query
                 .OrderByDescending(l => l.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var lotDtos = lots.Select(LotMapper.ToDto).ToList();
@@ -79,8 +79,8 @@ public class LotService : ILotService
             return new PagedResult<LotDto>
             {
                 Items = lotDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

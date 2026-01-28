@@ -354,7 +354,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _storageFacilityService.GetStorageFacilitiesAsync(pagination.Page, pagination.PageSize, cancellationToken);
+            var result = await _storageFacilityService.GetStorageFacilitiesAsync(pagination, cancellationToken);
             
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -486,7 +486,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _storageLocationService.GetStorageLocationsAsync(pagination.Page, pagination.PageSize, facilityId, cancellationToken);
+            var result = await _storageLocationService.GetStorageLocationsAsync(pagination, facilityId, cancellationToken);
             
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -614,7 +614,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.GetLotsAsync(pagination.Page, pagination.PageSize, productId, status, expiringSoon, cancellationToken);
+            var result = await _lotService.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
             
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());

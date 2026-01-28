@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,11 +22,11 @@ public class StorageLocationService : IStorageLocationService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<StorageLocationDto>> GetStorageLocationsAsync(int page = 1, int pageSize = 20, Guid? warehouseId = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<StorageLocationDto>> GetStorageLocationsAsync(PaginationParameters pagination, Guid? warehouseId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("Getting storage locations: page={Page}, pageSize={PageSize}, warehouseId={WarehouseId}", page, pageSize, warehouseId);
+            _logger.LogDebug("Getting storage locations: page={Page}, pageSize={PageSize}, warehouseId={WarehouseId}", pagination.Page, pagination.PageSize, warehouseId);
 
             var query = _context.StorageLocations
                 .Include(sl => sl.Warehouse)
@@ -37,11 +38,10 @@ public class StorageLocationService : IStorageLocationService
             }
 
             var totalCount = await query.CountAsync(cancellationToken);
-            var skip = (page - 1) * pageSize;
 
             var items = await query
-                .Skip(skip)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .Select(sl => new StorageLocationDto
                 {
                     Id = sl.Id,
@@ -71,8 +71,8 @@ public class StorageLocationService : IStorageLocationService
             {
                 Items = items,
                 TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
             };
         }
         catch (Exception ex)
