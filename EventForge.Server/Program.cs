@@ -27,8 +27,20 @@ builder.Services.AddAuthorization(builder.Configuration);
 // Add Health Checks
 builder.Services.AddHealthChecks(builder.Configuration);
 
+// Configure Pagination Settings
+builder.Services.Configure<EventForge.Server.Configuration.PaginationSettings>(
+    builder.Configuration.GetSection(EventForge.Server.Configuration.PaginationSettings.SectionName));
+
 // Add API Controllers support
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.ModelBinderProviders.Insert(0, new EventForge.Server.ModelBinders.PaginationModelBinderProvider());
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.DefaultIgnoreCondition = 
+        System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+});
 
 // Configure Memory Cache for performance optimizations with size limits
 builder.Services.AddMemoryCache(options =>
