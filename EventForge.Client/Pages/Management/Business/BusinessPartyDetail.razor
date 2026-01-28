@@ -82,7 +82,8 @@
             <MudTabs Elevation="0" 
                      Rounded="false" 
                      PanelClass="pa-4" 
-                     @bind-ActivePanelIndex="_activeTab" 
+                     ActivePanelIndex="_activeTab"
+                     ActivePanelIndexChanged="OnTabChanged"
                      Color="Color.Primary">
                 
                 <!-- ========== TAB 1: GENERALE (Fase 1 - già implementata) ========== -->
@@ -116,7 +117,19 @@
                                       PartyType="@_party.PartyType" />
                     </MudTabPanel>
                     
-                    <!-- ========== TAB 4: CONTABILITÀ (invariata) ========== -->
+                    <!-- ========== TAB 4: COMMERCIALE (Fase 3 - NUOVO) ========== -->
+                    <MudTabPanel Text="Commerciale" 
+                                 Icon="@Icons.Material.Filled.ShoppingCart"
+                                 BadgeData="@_priceListsCount"
+                                 BadgeDot="@(_priceListsCount > 0)">
+                        @if (_tabStates["Commerciale"] == TabLoadState.Loaded)
+                        {
+                            <CommercialeTab BusinessPartyId="@_party.Id" 
+                                            PartyType="@_party.PartyType" />
+                        }
+                    </MudTabPanel>
+                    
+                    <!-- ========== TAB 5: CONTABILITÀ (invariata) ========== -->
                     @if (_party.HasAccountingData)
                     {
                         <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.accounting", "Dati Contabili")" 
@@ -155,16 +168,19 @@
     // Determine if we're in supplier or customer mode based on route
     private bool _isSupplierMode => NavigationManager.Uri.Contains("/suppliers");
     
-    // ========== LAZY LOADING INFRASTRUCTURE (AGGIORNATO FASE 2) ==========
+    private int _priceListsCount = 0;
+    
+    // ========== LAZY LOADING INFRASTRUCTURE (AGGIORNATO FASE 3) ==========
     
     /// <summary>
     /// Stato di caricamento per ogni tab
     /// </summary>
-    private readonly Dictionary<string, TabLoadState> _tabLoadStates = new()
+    private readonly Dictionary<string, TabLoadState> _tabStates = new()
     {
         { "General", TabLoadState.Loaded },       // Caricato all'init
         { "Recapiti", TabLoadState.NotLoaded },   // NUOVO (consolidato Indirizzi+Contatti+Riferimenti)
         { "Operativo", TabLoadState.NotLoaded },  // NUOVO (consolidato Documenti+Prodotti+Forniti)
+        { "Commerciale", TabLoadState.NotLoaded }, // NUOVO (Fase 3)
         { "Contabilita", TabLoadState.NotLoaded } // Invariato
     };
 
@@ -376,6 +392,30 @@
                 StateHasChanged();
                 Snackbar.Add($"Gruppo '{group.Name}' rimosso (solo UI - backend non implementato)", Severity.Warning);
             }
+        }
+    }
+    
+    /// <summary>
+    /// Gestisce il cambio di tab per implementare lazy loading
+    /// </summary>
+    private void OnTabChanged(int index)
+    {
+        _activeTab = index;
+        
+        var tabName = index switch
+        {
+            0 => "General",
+            1 => "Recapiti",
+            2 => "Operativo",
+            3 => "Commerciale",  // NUOVO (Fase 3)
+            4 => "Contabilita",
+            _ => null
+        };
+
+        if (tabName != null && _tabStates.ContainsKey(tabName) && _tabStates[tabName] == TabLoadState.NotLoaded)
+        {
+            _tabStates[tabName] = TabLoadState.Loaded;
+            StateHasChanged();
         }
     }
 }

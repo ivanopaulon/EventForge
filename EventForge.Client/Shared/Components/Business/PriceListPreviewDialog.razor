@@ -1,0 +1,103 @@
+@using EventForge.DTOs.PriceLists
+@using EventForge.Client.Services
+@using MudBlazor
+@inject IPriceListService PriceListService
+
+<MudDialog>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_priceList != null)
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h5">@_priceList.Name</MudText>
+                
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tipo</MudText>
+                        <MudText>@_priceList.Type</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Codice</MudText>
+                        <MudText>@(_priceList.Code ?? "N/A")</MudText>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Validità</MudText>
+                        <MudText>
+                            @(_priceList.ValidFrom?.ToString("dd/MM/yyyy") ?? "∞") - 
+                            @(_priceList.ValidTo?.ToString("dd/MM/yyyy") ?? "∞")
+                        </MudText>
+                    </MudItem>
+                    @if (!string.IsNullOrEmpty(_priceList.Description))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Descrizione</MudText>
+                            <MudText>@_priceList.Description</MudText>
+                        </MudItem>
+                    }
+                </MudGrid>
+                
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    Questa è un'anteprima rapida. Per visualizzare i prezzi e gestire il listino, 
+                    clicca "Vai al Dettaglio Completo".
+                </MudAlert>
+            </MudStack>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Error">
+                @(_errorMessage ?? "Errore nel caricamento del listino")
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Close())">
+            Chiudi
+        </MudButton>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Outlined.OpenInNew"
+                   OnClick="@OpenFullDetail">
+            Vai al Dettaglio Completo
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter, EditorRequired]
+    public Guid PriceListId { get; set; }
+    
+    private bool _isLoading = true;
+    private PriceListDto? _priceList;
+    private string? _errorMessage;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _priceList = await PriceListService.GetByIdAsync(PriceListId, CancellationToken.None);
+            if (_priceList == null)
+            {
+                _errorMessage = "Listino non trovato";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Errore nel caricamento del listino";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+    
+    private void OpenFullDetail()
+    {
+        MudDialog.Close(DialogResult.Ok(PriceListId));
+    }
+}
