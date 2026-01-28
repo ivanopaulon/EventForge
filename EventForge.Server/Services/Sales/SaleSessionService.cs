@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
@@ -755,6 +756,193 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error closing sale session {SessionId}.", sessionId);
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<SaleSessionDto>> GetPOSSessionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+            }
+
+            var query = _context.SaleSessions
+                .Include(s => s.Items)
+                .Include(s => s.Payments)
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var sessions = await query
+                .OrderByDescending(s => s.CreatedAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var dtos = new List<SaleSessionDto>();
+            foreach (var session in sessions)
+            {
+                dtos.Add(await MapToDtoAsync(session, cancellationToken));
+            }
+
+            return new PagedResult<SaleSessionDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving POS sessions.");
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<SaleSessionDto>> GetSessionsByOperatorAsync(Guid operatorId, PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+            }
+
+            var query = _context.SaleSessions
+                .Include(s => s.Items)
+                .Include(s => s.Payments)
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted && s.OperatorId == operatorId);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var sessions = await query
+                .OrderByDescending(s => s.CreatedAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var dtos = new List<SaleSessionDto>();
+            foreach (var session in sessions)
+            {
+                dtos.Add(await MapToDtoAsync(session, cancellationToken));
+            }
+
+            return new PagedResult<SaleSessionDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving sale sessions for operator {OperatorId}.", operatorId);
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<SaleSessionDto>> GetSessionsByDateAsync(DateTime startDate, DateTime? endDate, PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+            }
+
+            var end = endDate ?? DateTime.UtcNow;
+
+            var query = _context.SaleSessions
+                .Include(s => s.Items)
+                .Include(s => s.Payments)
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                .Where(s => s.TenantId == currentTenantId.Value 
+                    && !s.IsDeleted 
+                    && s.CreatedAt >= startDate 
+                    && s.CreatedAt <= end);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var sessions = await query
+                .OrderByDescending(s => s.CreatedAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var dtos = new List<SaleSessionDto>();
+            foreach (var session in sessions)
+            {
+                dtos.Add(await MapToDtoAsync(session, cancellationToken));
+            }
+
+            return new PagedResult<SaleSessionDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving sale sessions by date range.");
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<SaleSessionDto>> GetOpenSessionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+            }
+
+            var query = _context.SaleSessions
+                .Include(s => s.Items)
+                .Include(s => s.Payments)
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                .Where(s => s.TenantId == currentTenantId.Value 
+                    && !s.IsDeleted 
+                    && !s.ClosedAt.HasValue); // Session still open
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var sessions = await query
+                .OrderByDescending(s => s.CreatedAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var dtos = new List<SaleSessionDto>();
+            foreach (var session in sessions)
+            {
+                dtos.Add(await MapToDtoAsync(session, cancellationToken));
+            }
+
+            return new PagedResult<SaleSessionDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving open POS sessions.");
             throw;
         }
     }

@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 
 namespace EventForge.Server.Services.Sales;
@@ -9,19 +10,46 @@ public interface ITableManagementService
 {
     // Table Management
     /// <summary>
-    /// Gets all tables for the current tenant.
+    /// Gets all tables with pagination.
     /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of tables</returns>
+    Task<PagedResult<TableSessionDto>> GetTablesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets tables for specific zone with pagination.
+    /// </summary>
+    /// <param name="zone">Zone name</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of tables in zone</returns>
+    Task<PagedResult<TableSessionDto>> GetTablesByZoneAsync(string zone, PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available tables with pagination.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of available tables</returns>
+    Task<PagedResult<TableSessionDto>> GetAvailableTablesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available tables for the current tenant (deprecated - use GetAvailableTablesAsync with pagination).
+    /// </summary>
+    [Obsolete("Use GetAvailableTablesAsync with pagination instead")]
+    Task<List<TableSessionDto>> GetAllAvailableTablesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all tables for the current tenant (deprecated - use GetTablesAsync).
+    /// </summary>
+    [Obsolete("Use GetTablesAsync with pagination instead")]
     Task<List<TableSessionDto>> GetAllTablesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a specific table by ID.
     /// </summary>
     Task<TableSessionDto?> GetTableAsync(Guid tableId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets all available tables (not occupied, reserved, or out of service).
-    /// </summary>
-    Task<List<TableSessionDto>> GetAvailableTablesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new table.
