@@ -1,0 +1,189 @@
+@using EventForge.DTOs.PriceLists
+@using EventForge.DTOs.Common
+@using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Business
+@inject IPriceListService PriceListService
+@inject IDialogService DialogService
+@inject IJSRuntime JSRuntime
+@inject ILogger<CommercialeTab> Logger
+
+<MudGrid Spacing="4">
+    
+    <!-- ========== SEZIONE LISTINI PREZZI ========== -->
+    <MudItem xs="12">
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.PriceCheck" Class="mr-2" />
+                    Listini Prezzi Assegnati
+                </MudText>
+            </MudStack>
+            
+            @if (_isLoadingPriceLists)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else
+            {
+                <MudGrid Spacing="3">
+                    
+                    <!-- Colonna LISTINI VENDITA -->
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Sell" Color="Color.Primary" Size="Size.Small" />
+                            Listini Vendita
+                        </MudText>
+                        
+                        @if (_salesPriceLists.Any())
+                        {
+                            <MudStack Spacing="2">
+                                @foreach (var pl in _salesPriceLists)
+                                {
+                                    <PriceListAssignmentCard PriceList="@pl"
+                                                             OnPreview="@(() => PreviewPriceList(pl.Id))"
+                                                             OnOpenDetail="@(() => OpenPriceListInNewTab(pl.Id))" />
+                                }
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Text">
+                                Nessun listino vendita assegnato
+                            </MudAlert>
+                        }
+                    </MudItem>
+                    
+                    <!-- Colonna LISTINI ACQUISTO -->
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.LocalShipping" Color="Color.Secondary" Size="Size.Small" />
+                            Listini Acquisto
+                        </MudText>
+                        
+                        @if (_purchasePriceLists.Any())
+                        {
+                            <MudStack Spacing="2">
+                                @foreach (var pl in _purchasePriceLists)
+                                {
+                                    <PriceListAssignmentCard PriceList="@pl"
+                                                             OnPreview="@(() => PreviewPriceList(pl.Id))"
+                                                             OnOpenDetail="@(() => OpenPriceListInNewTab(pl.Id))" />
+                                }
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Text">
+                                Nessun listino acquisto assegnato
+                            </MudAlert>
+                        }
+                    </MudItem>
+                    
+                </MudGrid>
+            }
+        </MudPaper>
+    </MudItem>
+    
+    <!-- ========== SEZIONE FIDELITY (Placeholder Fase 4) ========== -->
+    <MudItem xs="12">
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.CardMembership" Class="mr-2" />
+                    Card Fedeltà
+                </MudText>
+                <MudTooltip Text="Funzionalità in sviluppo">
+                    <MudButton Variant="Variant.Outlined" 
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.Add"
+                               Disabled="true">
+                        Nuova Card
+                    </MudButton>
+                </MudTooltip>
+            </MudStack>
+            
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                        🚧 Funzionalità in Fase di Progettazione
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        La gestione delle card fedeltà sarà disponibile in Fase 4
+                    </MudText>
+                </MudStack>
+            </MudAlert>
+        </MudPaper>
+    </MudItem>
+    
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BusinessPartyId { get; set; }
+    
+    [Parameter, EditorRequired]
+    public BusinessPartyType PartyType { get; set; }
+    
+    private bool _isLoadingPriceLists = true;
+    private List<PriceListDto> _allPriceLists = new();
+    
+    private List<PriceListDto> _salesPriceLists => 
+        _allPriceLists.Where(pl => pl.Type == PriceListType.Sales).ToList();
+    
+    private List<PriceListDto> _purchasePriceLists => 
+        _allPriceLists.Where(pl => pl.Type == PriceListType.Purchase).ToList();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPriceListsAsync();
+    }
+    
+    private async Task LoadPriceListsAsync()
+    {
+        _isLoadingPriceLists = true;
+        
+        try
+        {
+            var priceLists = await PriceListService.GetPriceListsByBusinessPartyAsync(BusinessPartyId, type: null);
+            _allPriceLists = priceLists.ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading price lists for business party {BusinessPartyId}", BusinessPartyId);
+            _allPriceLists = new List<PriceListDto>();
+        }
+        finally
+        {
+            _isLoadingPriceLists = false;
+        }
+    }
+    
+    private async Task PreviewPriceList(Guid priceListId)
+    {
+        var parameters = new DialogParameters
+        {
+            { "PriceListId", priceListId }
+        };
+        
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        await DialogService.ShowAsync<PriceListPreviewDialog>(
+            "Anteprima Listino",
+            parameters,
+            options);
+    }
+    
+    private void OpenPriceListInNewTab(Guid priceListId)
+    {
+        var returnUrl = $"/business/parties/{BusinessPartyId}";
+        var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
+        var url = $"/management/pricelists/{priceListId}?returnTo={encodedReturnUrl}&returnContext=businessparty";
+        
+        JSRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+}

@@ -216,4 +216,16 @@ public interface IPriceListService
     /// <param name="ct">Cancellation token</param>
     /// <returns>List of active price lists for the specified direction</returns>
     Task<List<PriceListDto>> GetActivePriceListsAsync(PriceListDirection direction, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets all price lists assigned to a specific business party.
+    /// </summary>
+    /// <param name="businessPartyId">Business party ID</param>
+    /// <param name="type">Optional filter by price list type (Sales/Purchase)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of assigned price lists</returns>
+    Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(
+        Guid businessPartyId, 
+        PriceListType? type = null, 
+        CancellationToken ct = default);
 }

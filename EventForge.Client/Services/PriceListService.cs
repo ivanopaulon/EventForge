@@ -426,4 +426,33 @@ public class PriceListService : IPriceListService
             return new List<PriceListDto>();
         }
     }
+
+    public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(
+        Guid businessPartyId, 
+        PriceListType? type = null, 
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var queryParams = new List<string>();
+            if (type.HasValue)
+                queryParams.Add($"type={type.Value}");
+            
+            var queryString = queryParams.Any() 
+                ? "?" + string.Join("&", queryParams) 
+                : string.Empty;
+            
+            var url = $"api/v1/product-management/business-parties/{businessPartyId}/price-lists{queryString}";
+            
+            var result = await _httpClientService.GetAsync<IEnumerable<PriceListDto>>(url, ct);
+            return result ?? Enumerable.Empty<PriceListDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, 
+                "Error fetching price lists for business party {BusinessPartyId}", 
+                businessPartyId);
+            throw;
+        }
+    }
 }
