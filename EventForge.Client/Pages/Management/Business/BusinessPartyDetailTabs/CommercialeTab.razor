@@ -1,9 +1,14 @@
 @using EventForge.DTOs.PriceLists
 @using EventForge.DTOs.Common
 @using EventForge.Client.Services
+@using EventForge.Client.Services.Mock
 @using EventForge.Client.Shared.Components.Business
+@using EventForge.Client.Shared.Components.Fidelity
+@using EventForge.Client.Models.Fidelity
 @inject IPriceListService PriceListService
+@inject IMockFidelityService FidelityService
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
 @inject ILogger<CommercialeTab> Logger
 
@@ -84,34 +89,47 @@
         </MudPaper>
     </MudItem>
     
-    <!-- ========== SEZIONE FIDELITY (Placeholder Fase 4) ========== -->
+    <!-- ========== SEZIONE FIDELITY ========== -->
     <MudItem xs="12">
         <MudPaper Elevation="1" Class="pa-4">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
                 <MudText Typo="Typo.h6">
                     <MudIcon Icon="@Icons.Material.Outlined.CardMembership" Class="mr-2" />
                     Card Fedeltà
                 </MudText>
-                <MudTooltip Text="Funzionalità in sviluppo">
-                    <MudButton Variant="Variant.Outlined" 
-                               Size="Size.Small"
-                               StartIcon="@Icons.Material.Outlined.Add"
-                               Disabled="true">
-                        Nuova Card
-                    </MudButton>
-                </MudTooltip>
+                <MudButton Variant="Variant.Outlined" 
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Outlined.Add"
+                           Color="Color.Primary"
+                           OnClick="@CreateNewCard">
+                    Nuova Card
+                </MudButton>
             </MudStack>
             
-            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                <MudStack Spacing="1">
+            <!-- Alert Modalità Demo -->
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
                     <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                        🚧 Funzionalità in Fase di Progettazione
-                    </MudText>
-                    <MudText Typo="Typo.body2">
-                        La gestione delle card fedeltà sarà disponibile in Fase 4
+                        MODALITÀ DEMO - Sistema mock client-side - I dati verranno persi al refresh della pagina
                     </MudText>
                 </MudStack>
             </MudAlert>
+            
+            @if (_isLoadingFidelityCards)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else
+            {
+                <FidelityCardList Cards="@_fidelityCards"
+                                  OnViewHistory="@ViewHistory"
+                                  OnManagePoints="@ManagePoints"
+                                  OnEdit="@EditCard"
+                                  OnSuspend="@SuspendCard"
+                                  OnActivate="@ActivateCard"
+                                  OnRevoke="@RevokeCard" />
+            }
         </MudPaper>
     </MudItem>
     
@@ -133,9 +151,16 @@
     private List<PriceListDto> _purchasePriceLists => 
         _allPriceLists.Where(pl => pl.Type == PriceListType.Purchase).ToList();
     
+    // Fidelity cards state
+    private bool _isLoadingFidelityCards = true;
+    private List<FidelityCardViewModel> _fidelityCards = new();
+    
     protected override async Task OnInitializedAsync()
     {
-        await LoadPriceListsAsync();
+        await Task.WhenAll(
+            LoadPriceListsAsync(),
+            LoadFidelityCardsAsync()
+        );
     }
     
     private async Task LoadPriceListsAsync()
@@ -155,6 +180,26 @@
         finally
         {
             _isLoadingPriceLists = false;
+        }
+    }
+    
+    private async Task LoadFidelityCardsAsync()
+    {
+        _isLoadingFidelityCards = true;
+        
+        try
+        {
+            var cards = await FidelityService.GetAllCardsAsync();
+            _fidelityCards = cards.ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading fidelity cards");
+            _fidelityCards = new List<FidelityCardViewModel>();
+        }
+        finally
+        {
+            _isLoadingFidelityCards = false;
         }
     }
     
@@ -191,6 +236,198 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening price list {PriceListId} in new tab", priceListId);
+        }
+    }
+    
+    // ========== FIDELITY CARD HANDLERS ==========
+    
+    private async Task CreateNewCard()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<CreateFidelityCardDialog>(
+            "Nuova Card Fedeltà",
+            options);
+        
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is FidelityCardViewModel newCard)
+        {
+            try
+            {
+                var createdCard = await FidelityService.CreateCardAsync(newCard);
+                await LoadFidelityCardsAsync();
+                Snackbar.Add("Card fedeltà creata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error creating fidelity card");
+                Snackbar.Add("Errore durante la creazione della card", Severity.Error);
+            }
+        }
+    }
+    
+    private async Task EditCard(FidelityCardViewModel card)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Card", card }
+        };
+        
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<EditFidelityCardDialog>(
+            "Modifica Card Fedeltà",
+            parameters,
+            options);
+        
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is FidelityCardViewModel updatedCard)
+        {
+            try
+            {
+                await FidelityService.UpdateCardAsync(updatedCard);
+                await LoadFidelityCardsAsync();
+                Snackbar.Add("Card fedeltà aggiornata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating fidelity card");
+                Snackbar.Add("Errore durante l'aggiornamento della card", Severity.Error);
+            }
+        }
+    }
+    
+    private async Task ViewHistory(FidelityCardViewModel card)
+    {
+        try
+        {
+            var transactions = await FidelityService.GetTransactionHistoryAsync(card.Id);
+            
+            var parameters = new DialogParameters
+            {
+                { "Card", card },
+                { "Transactions", transactions }
+            };
+            
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+            
+            await DialogService.ShowAsync<FidelityPointsHistoryDialog>(
+                "Storico Transazioni",
+                parameters,
+                options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading transaction history");
+            Snackbar.Add("Errore durante il caricamento dello storico", Severity.Error);
+        }
+    }
+    
+    private async Task ManagePoints(FidelityCardViewModel card)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Card", card }
+        };
+        
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<ManageFidelityPointsDialog>(
+            "Gestisci Punti",
+            parameters,
+            options);
+        
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is ManageFidelityPointsDialog.PointsOperationResult operation)
+        {
+            try
+            {
+                if (operation.OperationType == ManageFidelityPointsDialog.PointsOperationType.Add)
+                {
+                    await FidelityService.AddPointsAsync(card.Id, operation.Points, operation.Description);
+                    Snackbar.Add($"Aggiunti {operation.Points} punti", Severity.Success);
+                }
+                else
+                {
+                    await FidelityService.RedeemPointsAsync(card.Id, operation.Points, operation.Description);
+                    Snackbar.Add($"Riscattati {operation.Points} punti", Severity.Success);
+                }
+                
+                await LoadFidelityCardsAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error managing points");
+                Snackbar.Add("Errore durante la gestione dei punti", Severity.Error);
+            }
+        }
+    }
+    
+    private async Task SuspendCard(FidelityCardViewModel card)
+    {
+        try
+        {
+            await FidelityService.SuspendCardAsync(card.Id);
+            await LoadFidelityCardsAsync();
+            Snackbar.Add("Card sospesa con successo", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error suspending card");
+            Snackbar.Add("Errore durante la sospensione della card", Severity.Error);
+        }
+    }
+    
+    private async Task ActivateCard(FidelityCardViewModel card)
+    {
+        try
+        {
+            await FidelityService.ActivateCardAsync(card.Id);
+            await LoadFidelityCardsAsync();
+            Snackbar.Add("Card riattivata con successo", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error activating card");
+            Snackbar.Add("Errore durante la riattivazione della card", Severity.Error);
+        }
+    }
+    
+    private async Task RevokeCard(FidelityCardViewModel card)
+    {
+        try
+        {
+            await FidelityService.RevokeCardAsync(card.Id);
+            await LoadFidelityCardsAsync();
+            Snackbar.Add("Card revocata con successo", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error revoking card");
+            Snackbar.Add("Errore durante la revoca della card", Severity.Error);
         }
     }
 }

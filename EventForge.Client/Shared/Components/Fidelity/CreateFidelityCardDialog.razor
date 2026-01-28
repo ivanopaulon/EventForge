@@ -1,0 +1,171 @@
+@using EventForge.Client.Models.Fidelity
+
+<MudDialog>
+    <DialogContent>
+        
+        <!-- Alert Modalità Demo -->
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Outlined.Info" />
+                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                    MODALITÀ DEMO - I dati verranno persi al refresh della pagina
+                </MudText>
+            </MudStack>
+        </MudAlert>
+        
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_type"
+                              Label="Tipo Card *"
+                              Variant="Variant.Outlined"
+                              Required="true">
+                        <MudSelectItem Value="@FidelityCardType.Bronze">Bronze</MudSelectItem>
+                        <MudSelectItem Value="@FidelityCardType.Silver">Silver</MudSelectItem>
+                        <MudSelectItem Value="@FidelityCardType.Gold">Gold</MudSelectItem>
+                        <MudSelectItem Value="@FidelityCardType.Platinum">Platinum</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_status"
+                              Label="Status *"
+                              Variant="Variant.Outlined"
+                              Required="true">
+                        <MudSelectItem Value="@FidelityCardStatus.Active">Attiva</MudSelectItem>
+                        <MudSelectItem Value="@FidelityCardStatus.Suspended">Sospesa</MudSelectItem>
+                        <MudSelectItem Value="@FidelityCardStatus.Expired">Scaduta</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_validFrom"
+                                   Label="Valida da *"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   Editable="true" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_validTo"
+                                   Label="Valida fino a *"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   Editable="true" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_currentPoints"
+                                     Label="Punti Iniziali"
+                                     Variant="Variant.Outlined"
+                                     Min="0" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_discountPercentage"
+                                     Label="Sconto %"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Max="100" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <!-- Spacer for alignment -->
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudSwitch @bind-Value="_hasPriorityAccess"
+                              Label="Priority Access"
+                              Color="Color.Primary" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudSwitch @bind-Value="_hasBirthdayBonus"
+                              Label="Birthday Bonus"
+                              Color="Color.Primary" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <!-- Spacer for alignment -->
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_notes"
+                                 Label="Note"
+                                 Variant="Variant.Outlined"
+                                 Lines="3"
+                                 MaxLength="500" />
+                </MudItem>
+                
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit" 
+                   Disabled="@(!_isValid || _isProcessing)">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <text>Crea Card</text>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isProcessing;
+    
+    private FidelityCardType _type = FidelityCardType.Bronze;
+    private FidelityCardStatus _status = FidelityCardStatus.Active;
+    private DateTime? _validFrom = DateTime.Now;
+    private DateTime? _validTo = DateTime.Now.AddYears(1);
+    private int _currentPoints = 0;
+    private decimal _discountPercentage = 0;
+    private bool _hasPriorityAccess = false;
+    private bool _hasBirthdayBonus = false;
+    private string? _notes;
+    
+    private async Task Submit()
+    {
+        if (!_isValid) return;
+        
+        try
+        {
+            _isProcessing = true;
+            
+            var newCard = new FidelityCardViewModel
+            {
+                Type = _type,
+                Status = _status,
+                ValidFrom = _validFrom ?? DateTime.Now,
+                ValidTo = _validTo ?? DateTime.Now.AddYears(1),
+                CurrentPoints = _currentPoints,
+                TotalPointsEarned = _currentPoints, // I punti iniziali contano come guadagnati
+                DiscountPercentage = _discountPercentage,
+                HasPriorityAccess = _hasPriorityAccess,
+                HasBirthdayBonus = _hasBirthdayBonus,
+                Notes = _notes
+            };
+            
+            MudDialog.Close(DialogResult.Ok(newCard));
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+}

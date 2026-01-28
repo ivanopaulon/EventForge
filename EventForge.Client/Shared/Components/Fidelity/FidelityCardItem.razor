@@ -1,0 +1,215 @@
+@using EventForge.Client.Models.Fidelity
+
+<MudPaper Elevation="2" Class="pa-4" Style="@GetCardStyle()">
+    <MudStack Spacing="3">
+        
+        <!-- Header: Tipo Card + Badge Status -->
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@GetCardIcon()" Size="Size.Medium" Style="color: white;" />
+                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">
+                    @Card.Type
+                </MudText>
+            </MudStack>
+            <MudChip T="string" 
+                     Size="Size.Small" 
+                     Color="@GetStatusColor()" 
+                     Style="font-weight: 600;">
+                @GetStatusText()
+            </MudChip>
+        </MudStack>
+        
+        <!-- Numero Card -->
+        <MudText Typo="Typo.body2" Style="font-family: monospace; color: rgba(255,255,255,0.9); letter-spacing: 2px;">
+            @Card.CardNumber
+        </MudText>
+        
+        <!-- Validità -->
+        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">
+            Validità: @Card.ValidFrom.ToString("dd/MM/yyyy") - @Card.ValidTo.ToString("dd/MM/yyyy")
+        </MudText>
+        
+        <MudDivider Style="background: rgba(255,255,255,0.3);" />
+        
+        <!-- Contatori Punti -->
+        <MudGrid Spacing="2">
+            <MudItem xs="4">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7);">Punti Attuali</MudText>
+                    <MudText Typo="Typo.h5" Style="color: white; font-weight: 700;">@Card.CurrentPoints</MudText>
+                </MudStack>
+            </MudItem>
+            <MudItem xs="4">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7);">Tot. Guadagnati</MudText>
+                    <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.9);">@Card.TotalPointsEarned</MudText>
+                </MudStack>
+            </MudItem>
+            <MudItem xs="4">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7);">Tot. Utilizzati</MudText>
+                    <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.9);">@Card.TotalPointsRedeemed</MudText>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+        
+        <!-- Vantaggi -->
+        <MudStack Row="true" Spacing="1" Style="flex-wrap: wrap;">
+            @if (Card.DiscountPercentage > 0)
+            {
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Discount"
+                         Style="background: rgba(255,255,255,0.2); color: white;">
+                    Sconto @Card.DiscountPercentage%
+                </MudChip>
+            }
+            @if (Card.HasPriorityAccess)
+            {
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Star"
+                         Style="background: rgba(255,255,255,0.2); color: white;">
+                    Priority Access
+                </MudChip>
+            }
+            @if (Card.HasBirthdayBonus)
+            {
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Cake"
+                         Style="background: rgba(255,255,255,0.2); color: white;">
+                    Birthday Bonus
+                </MudChip>
+            }
+        </MudStack>
+        
+        <!-- Azioni -->
+        <MudStack Row="true" Spacing="1" Style="flex-wrap: wrap;">
+            <MudIconButton Icon="@Icons.Material.Outlined.History"
+                           Color="Color.Default"
+                           Size="Size.Small"
+                           OnClick="@(() => OnViewHistory.InvokeAsync(Card))"
+                           title="Storico transazioni"
+                           Style="color: white;" />
+            
+            @if (Card.Status == FidelityCardStatus.Active)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.AddCircle"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnManagePoints.InvokeAsync(Card))"
+                               title="Gestisci punti"
+                               Style="color: white;" />
+            }
+            
+            @if (Card.Status != FidelityCardStatus.Revoked)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnEdit.InvokeAsync(Card))"
+                               title="Modifica card"
+                               Style="color: white;" />
+            }
+            
+            @if (Card.Status == FidelityCardStatus.Active)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.Pause"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnSuspend.InvokeAsync(Card))"
+                               title="Sospendi card"
+                               Style="color: white;" />
+            }
+            
+            @if (Card.Status == FidelityCardStatus.Suspended)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.PlayArrow"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnActivate.InvokeAsync(Card))"
+                               title="Riattiva card"
+                               Style="color: white;" />
+            }
+            
+            @if (Card.Status != FidelityCardStatus.Revoked)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.Block"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnRevoke.InvokeAsync(Card))"
+                               title="Revoca card"
+                               Style="color: white;" />
+            }
+        </MudStack>
+        
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public FidelityCardViewModel Card { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnViewHistory { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnManagePoints { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnEdit { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnSuspend { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnActivate { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnRevoke { get; set; }
+    
+    private string GetCardStyle()
+    {
+        var gradient = Card.Type switch
+        {
+            FidelityCardType.Platinum => "linear-gradient(135deg, #E5E4E2 0%, #C0C0C0 100%)",
+            FidelityCardType.Gold => "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+            FidelityCardType.Silver => "linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%)",
+            FidelityCardType.Bronze => "linear-gradient(135deg, #CD7F32 0%, #B87333 100%)",
+            _ => "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        };
+        
+        return $"background: {gradient}; border-radius: 12px; min-height: 200px;";
+    }
+    
+    private string GetCardIcon()
+    {
+        return Card.Type switch
+        {
+            FidelityCardType.Platinum => Icons.Material.Outlined.Diamond,
+            FidelityCardType.Gold => Icons.Material.Outlined.Star,
+            FidelityCardType.Silver => Icons.Material.Outlined.Grade,
+            FidelityCardType.Bronze => Icons.Material.Outlined.Circle,
+            _ => Icons.Material.Outlined.CardMembership
+        };
+    }
+    
+    private Color GetStatusColor()
+    {
+        return Card.Status switch
+        {
+            FidelityCardStatus.Active => Color.Success,
+            FidelityCardStatus.Suspended => Color.Warning,
+            FidelityCardStatus.Expired => Color.Default,
+            FidelityCardStatus.Revoked => Color.Error,
+            _ => Color.Default
+        };
+    }
+    
+    private string GetStatusText()
+    {
+        return Card.Status switch
+        {
+            FidelityCardStatus.Active => "Attiva",
+            FidelityCardStatus.Suspended => "Sospesa",
+            FidelityCardStatus.Expired => "Scaduta",
+            FidelityCardStatus.Revoked => "Revocata",
+            _ => "Sconosciuto"
+        };
+    }
+}
