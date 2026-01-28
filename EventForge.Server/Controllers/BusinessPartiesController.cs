@@ -4,6 +4,7 @@ using EventForge.DTOs.Products;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Business;
+using EventForge.Server.Services.Export;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,17 +25,23 @@ public class BusinessPartiesController : BaseApiController
     private readonly ISupplierProductBulkService _supplierProductBulkService;
     private readonly ISupplierProductCsvImportService _csvImportService;
     private readonly ITenantContext _tenantContext;
+    private readonly IExportService _exportService;
+    private readonly ILogger<BusinessPartiesController> _logger;
 
     public BusinessPartiesController(
         IBusinessPartyService businessPartyService,
         ISupplierProductBulkService supplierProductBulkService,
         ISupplierProductCsvImportService csvImportService,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        IExportService exportService,
+        ILogger<BusinessPartiesController> logger)
     {
         _businessPartyService = businessPartyService ?? throw new ArgumentNullException(nameof(businessPartyService));
         _supplierProductBulkService = supplierProductBulkService ?? throw new ArgumentNullException(nameof(supplierProductBulkService));
         _csvImportService = csvImportService ?? throw new ArgumentNullException(nameof(csvImportService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region BusinessParty Endpoints
@@ -914,6 +921,62 @@ public class BusinessPartiesController : BaseApiController
         {
             return CreateInternalServerErrorProblem("An error occurred while importing CSV file.", ex);
         }
+    }
+
+    /// <summary>
+    /// Export all business parties to Excel or CSV (Admin/SuperAdmin only)
+    /// </summary>
+    /// <param name="format">Export format: excel or csv (default: excel)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>File download (Excel or CSV)</returns>
+    /// <response code="200">File ready for download</response>
+    /// <response code="403">User not authorized for export operations</response>
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportBusinessParties(
+        [FromQuery] string format = "excel",
+        CancellationToken ct = default)
+    {
+        _logger.LogInformation(
+            "Export operation started by {User} for BusinessParties (format: {Format})",
+            User.Identity?.Name ?? "Unknown", format);
+        
+        // Use high page size for export (configured in appsettings.json)
+        var pagination = new PaginationParameters 
+        { 
+            Page = 1, 
+            PageSize = 50000 // Will be capped to MaxExportPageSize
+        };
+        
+        var data = await _businessPartyService.GetBusinessPartiesForExportAsync(pagination, ct);
+        
+        byte[] fileBytes;
+        string contentType;
+        string fileName;
+        
+        switch (format.ToLowerInvariant())
+        {
+            case "csv":
+                fileBytes = await _exportService.ExportToCsvAsync(data, ct);
+                contentType = "text/csv";
+                fileName = $"BusinessParties_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+                break;
+            
+            case "excel":
+            default:
+                fileBytes = await _exportService.ExportToExcelAsync(data, "Business Parties", ct);
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                fileName = $"BusinessParties_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+                break;
+        }
+        
+        _logger.LogInformation(
+            "Export completed: {FileName}, {Size} bytes, {Records} records",
+            fileName, fileBytes.Length, data.Count());
+        
+        return File(fileBytes, contentType, fileName);
     }
 
     #endregion
