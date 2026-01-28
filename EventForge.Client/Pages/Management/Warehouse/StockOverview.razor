@@ -16,6 +16,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<StockOverview> Logger
+@implements IDisposable
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingStock"
                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -55,14 +56,7 @@
 
         <div class="eftable-wrapper">
             @* Filter active indicator *@
-            @if (!string.IsNullOrWhiteSpace(_searchTerm) || 
-                 _selectedWarehouseId.HasValue || 
-                 _selectedLocationId.HasValue ||
-                 _showOnlyLowStock || 
-                 _showOnlyCritical || 
-                 _showOnlyOutOfStock ||
-                 _showOnlyInStock ||
-                 _showAllProducts)
+            @if (_filters.HasActiveFilters)
             {
                 <div class="pa-2">
                     <MudAlert Severity="Severity.Info" Dense="true" Class="mb-0">
@@ -125,7 +119,7 @@
                     @TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")
                 </MudText>
                 <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
+                <MudTextField @bind-Value="_filters.SearchTerm"
                               @bind-Value:after="OnSearchChanged"
                               Label="@TranslationService.GetTranslation("stock.search", "Cerca prodotti")"
                               Placeholder="@TranslationService.GetTranslation("stock.searchPlaceholder", "Inserisci nome o codice prodotto...")"
@@ -134,7 +128,7 @@
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
                               Class="ef-input" />
-                <MudSelect @bind-Value="_selectedWarehouseId"
+                <MudSelect @bind-Value="_filters.WarehouseId"
                            @bind-Value:after="OnWarehouseChanged"
                            Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
                            Variant="Variant.Outlined"
@@ -146,12 +140,12 @@
                         <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect @bind-Value="_selectedLocationId"
+                <MudSelect @bind-Value="_filters.LocationId"
                            @bind-Value:after="OnFilterChanged"
                            Label="@TranslationService.GetTranslation("stock.location", "Ubicazione")"
                            Variant="Variant.Outlined"
                            Clearable="true"
-                           Disabled="@(!_selectedWarehouseId.HasValue)"
+                           Disabled="@(!_filters.WarehouseId.HasValue)"
                            Class="ef-input ml-2"
                            Style="min-width:200px;">
                     @foreach (var location in _locations)
@@ -159,36 +153,36 @@
                         <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSwitch @bind-Value="_showOnlyLowStock"
+                <MudSwitch @bind-Value="_filters.ShowOnlyLowStock"
                            @bind-Value:after="OnFilterChanged"
                            Label="@TranslationService.GetTranslation("stock.onlyLowStock", "Solo sotto riordino")"
                            Color="Color.Warning"
                            Class="ml-2" />
-                <MudSwitch @bind-Value="_showOnlyCritical"
+                <MudSwitch @bind-Value="_filters.ShowOnlyCritical"
                            @bind-Value:after="OnFilterChanged"
                            Label="@TranslationService.GetTranslation("stock.onlyCritical", "Solo critici")"
                            Color="Color.Error"
                            Class="ml-2" />
-                <MudSwitch @bind-Value="_showOnlyOutOfStock"
+                <MudSwitch @bind-Value="_filters.ShowOnlyOutOfStock"
                            @bind-Value:after="OnFilterChanged"
                            Label="@TranslationService.GetTranslation("stock.onlyOutOfStock", "Solo esauriti")"
                            Color="Color.Dark"
                            Class="ml-2" />
-                <MudSwitch @bind-Value="_showOnlyInStock"
+                <MudSwitch @bind-Value="_filters.ShowOnlyInStock"
                            @bind-Value:after="OnFilterChanged"
                            Label="@TranslationService.GetTranslation("stock.onlyInStock", "Solo con giacenza")"
                            Color="Color.Success"
                            Class="ml-2" />
                 <MudTooltip Text="@TranslationService.GetTranslation("stock.includeProductsWithoutStockTooltip", "Include prodotti che non hanno giacenza registrata")">
-                    <MudSwitch @bind-Value="_showAllProducts"
+                    <MudSwitch @bind-Value="_filters.ShowAllProducts"
                                @bind-Value:after="OnFilterChanged"
                                Label="@TranslationService.GetTranslation("stock.includeProductsWithoutStock", "Includi prodotti senza giacenza")"
                                Color="Color.Info"
                                Class="ml-2" />
                 </MudTooltip>
-                <MudSwitch @bind-Value="_detailedView"
+                <MudSwitch @bind-Value="_filters.DetailedView"
                            @bind-Value:after="OnViewChanged"
-                           Label="@(_detailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
+                           Label="@(_filters.DetailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
                            Color="Color.Info"
                            Class="ml-2" />
                 <ManagementTableToolbar ShowSelectionBadge="true"
@@ -504,6 +498,9 @@
                 AnchorOrigin="Origin.CenterCenter" 
                 TransformOrigin="Origin.CenterCenter"
                 Style="width:400px;">
+        <MudOverlay Visible="@_isSavingEdit" DarkBackground="true">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </MudOverlay>
         <div class="pa-4">
             <MudText Typo="Typo.h6" Class="mb-4">
                 @TranslationService.GetTranslation("stock.editQuantity", "Modifica Quantità")
@@ -622,10 +619,17 @@
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                OnClick="@SaveFullEdit"
-                               Disabled="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference && string.IsNullOrWhiteSpace(_editingNotes))">
+                               Disabled="@(ValidateFullEdit() != null)">
                         @TranslationService.GetTranslation("common.save", "Salva")
                     </MudButton>
                 </div>
+                
+                @if (ValidateFullEdit() != null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-2">
+                        @ValidateFullEdit()
+                    </MudText>
+                }
             }
         </div>
     </MudPopover>
@@ -656,15 +660,7 @@
     private bool _isLoadingStock = false;
 
     // Filter and search state
-    private string _searchTerm = string.Empty;
-    private Guid? _selectedWarehouseId = null;
-    private Guid? _selectedLocationId = null;
-    private bool _showOnlyLowStock = false;
-    private bool _showOnlyCritical = false;
-    private bool _showOnlyOutOfStock = false;
-    private bool _showOnlyInStock = false;
-    private bool _showAllProducts = false;
-    private bool _detailedView = true;
+    private StockFilters _filters = new();
     private CancellationTokenSource? _searchDebounceCts;
     
     // Pagination state
@@ -680,6 +676,7 @@
 
     // Full edit popover state
     private bool _isPopoverOpen = false;
+    private bool _isSavingEdit = false;
     private StockLocationDetail? _editingItem = null;
     private StockAdjustmentReason _editingReason = StockAdjustmentReason.ManualCorrection;
     private string _editingNotes = string.Empty;
@@ -739,11 +736,11 @@
             InitializeDashboardMetrics();
 
             // Clear filters before initial load to show all data
-            _showOnlyLowStock = false;
-            _showOnlyCritical = false;
-            _showOnlyOutOfStock = false;
-            _showOnlyInStock = false;
-            _detailedView = true; // Default to detailed view
+            _filters.ShowOnlyLowStock = false;
+            _filters.ShowOnlyCritical = false;
+            _filters.ShowOnlyOutOfStock = false;
+            _filters.ShowOnlyInStock = false;
+            _filters.DetailedView = true; // Default to detailed view
 
             // Check authentication
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
@@ -877,15 +874,15 @@
             var result = await StockService.GetStockOverviewAsync(
                 page: _currentPage,
                 pageSize: _pageSize,
-                searchTerm: string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
-                warehouseId: _selectedWarehouseId,
-                locationId: _selectedLocationId,
-                lowStock: _showOnlyLowStock ? true : null,
-                criticalStock: _showOnlyCritical ? true : null,
-                outOfStock: _showOnlyOutOfStock ? true : null,
-                inStockOnly: _showOnlyInStock ? true : null,
-                showAllProducts: _showAllProducts ? true : null,
-                detailedView: _detailedView
+                searchTerm: string.IsNullOrWhiteSpace(_filters.SearchTerm) ? null : _filters.SearchTerm,
+                warehouseId: _filters.WarehouseId,
+                locationId: _filters.LocationId,
+                lowStock: _filters.ShowOnlyLowStock ? true : null,
+                criticalStock: _filters.ShowOnlyCritical ? true : null,
+                outOfStock: _filters.ShowOnlyOutOfStock ? true : null,
+                inStockOnly: _filters.ShowOnlyInStock ? true : null,
+                showAllProducts: _filters.ShowAllProducts ? true : null,
+                detailedView: _filters.DetailedView
             );
 
             // Add null safety
@@ -914,14 +911,7 @@
     /// </summary>
     private async Task ClearFiltersAndReload()
     {
-        _searchTerm = string.Empty;
-        _selectedWarehouseId = null;
-        _selectedLocationId = null;
-        _showOnlyLowStock = false;
-        _showOnlyCritical = false;
-        _showOnlyOutOfStock = false;
-        _showOnlyInStock = false;
-        _showAllProducts = false;
+        _filters.Clear();
         _currentPage = 1; // Reset to first page
         await LoadStockOverviewAsync();
     }
@@ -966,14 +956,14 @@
     private async Task OnWarehouseChanged()
     {
         // Reset location when warehouse changes
-        _selectedLocationId = null;
+        _filters.LocationId = null;
         
         // Load locations for selected warehouse
-        if (_selectedWarehouseId.HasValue)
+        if (_filters.WarehouseId.HasValue)
         {
             try
             {
-                var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_selectedWarehouseId.Value);
+                var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_filters.WarehouseId.Value);
                 if (result != null)
                 {
                     _locations = result.Items.ToList();
@@ -981,7 +971,7 @@
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _selectedWarehouseId);
+                Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _filters.WarehouseId);
                 Snackbar.Add(TranslationService.GetTranslation("stock.loadingLocationsError", "Errore nel caricamento delle ubicazioni"), Severity.Error);
             }
         }
@@ -1206,10 +1196,20 @@
     /// </summary>
     private async Task SaveFullEdit()
     {
+        var validationError = ValidateFullEdit();
+        if (validationError != null)
+        {
+            Snackbar.Add(validationError, Severity.Warning);
+            return;
+        }
+
         if (_editingItem == null) return;
 
         try
         {
+            _isSavingEdit = true;
+            StateHasChanged();
+            
             // Handle creation of stock if it doesn't exist
             if (_editingItem.StockId == Guid.Empty)
             {
@@ -1281,8 +1281,12 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error saving full edit for stock {StockId}", _editingItem.StockId);
+            Logger.LogError(ex, "Error saving stock adjustment");
             Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isSavingEdit = false;
         }
     }
 
@@ -1332,4 +1336,63 @@
         StockStatus.OutOfStock => Color.Dark,
         _ => Color.Default
     };
+
+    /// <summary>
+    /// Validates full edit form.
+    /// </summary>
+    private string? ValidateFullEdit()
+    {
+        if (_editingItem == null) 
+            return TranslationService.GetTranslation("stock.validation.noItemSelected", "Nessun elemento selezionato");
+        
+        if (_editingNewQuantity < 0)
+            return TranslationService.GetTranslation("stock.validation.negativeQuantity", "La quantità non può essere negativa");
+        
+        if (_editingNewQuantity > MaxQuantityValue)
+            return TranslationService.GetTranslationFormatted("stock.validation.maxQuantity", "La quantità massima è {0}", MaxQuantityValue);
+        
+        // Validazione per creazione nuova giacenza
+        if (_editingItem.StockId == Guid.Empty)
+        {
+            if (!_editingWarehouseId.HasValue)
+                return TranslationService.GetTranslation("stock.validation.warehouseRequired", "Seleziona un magazzino");
+            
+            if (!_editingLocationId.HasValue)
+                return TranslationService.GetTranslation("stock.validation.locationRequired", "Seleziona un'ubicazione");
+        }
+        
+        var difference = Math.Abs(_editingNewQuantity - _editingItem.Quantity);
+        if (difference > FullEditNotesRequiredDifference && string.IsNullOrWhiteSpace(_editingNotes))
+            return TranslationService.GetTranslationFormatted("stock.validation.notesRequired", 
+                "Note obbligatorie per variazioni superiori a {0}", FullEditNotesRequiredDifference);
+        
+        if (!string.IsNullOrWhiteSpace(_editingNotes) && _editingNotes.Length > 500)
+            return TranslationService.GetTranslation("stock.validation.notesTooLong", "Le note non possono superare 500 caratteri");
+        
+        return null;
+    }
+
+    /// <summary>
+    /// Gets a tooltip for stock status.
+    /// </summary>
+    private string GetStatusTooltip(StockStatus status)
+    {
+        return status switch
+        {
+            StockStatus.Critical => TranslationService.GetTranslation("stock.status.criticalTooltip", "Giacenza sotto la scorta di sicurezza - ordinare urgentemente"),
+            StockStatus.LowStock => TranslationService.GetTranslation("stock.status.lowStockTooltip", "Giacenza sotto il punto di riordino - considerare riordino"),
+            StockStatus.OutOfStock => TranslationService.GetTranslation("stock.status.outOfStockTooltip", "Prodotto esaurito - nessuna giacenza disponibile"),
+            StockStatus.OK => TranslationService.GetTranslation("stock.status.normalTooltip", "Livello giacenza nella norma"),
+            _ => status.ToString()
+        };
+    }
+
+    /// <summary>
+    /// Disposes resources used by the component.
+    /// </summary>
+    public void Dispose()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+    }
 }

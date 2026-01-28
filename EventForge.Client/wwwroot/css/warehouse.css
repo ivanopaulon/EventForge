@@ -18,6 +18,18 @@
     padding: 8px 12px;
 }
 
+/* Row highlighting during quick edit */
+.editing-row-highlight {
+    background-color: rgba(var(--mud-palette-primary-rgb), 0.08);
+    transition: background-color 0.3s ease;
+    animation: pulse-highlight 1s ease-in-out;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% { background-color: rgba(var(--mud-palette-primary-rgb), 0.08); }
+    50% { background-color: rgba(var(--mud-palette-primary-rgb), 0.15); }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .warehouse-page-root {
