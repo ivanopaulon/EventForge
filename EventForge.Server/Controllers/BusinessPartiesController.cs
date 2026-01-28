@@ -1,10 +1,13 @@
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Business;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -37,35 +40,42 @@ public class BusinessPartiesController : BaseApiController
     #region BusinessParty Endpoints
 
     /// <summary>
-    /// Gets all business parties with optional pagination.
+    /// Retrieves all business parties with pagination
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business parties</returns>
-    /// <response code="200">Returns the paginated list of business parties</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved business parties with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<BusinessPartyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BusinessPartyDto>>> GetBusinessParties(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        // Validate pagination parameters
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         // Validate tenant access
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _businessPartyService.GetBusinessPartiesAsync(page, pageSize, cancellationToken);
+            var result = await _businessPartyService.GetBusinessPartiesAsync(pagination, cancellationToken);
+            
+            // Add pagination metadata headers
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -330,33 +340,41 @@ public class BusinessPartiesController : BaseApiController
     #region BusinessPartyAccounting Endpoints
 
     /// <summary>
-    /// Gets all business party accounting records with optional pagination.
+    /// Retrieves all business party accounting records with pagination
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business party accounting records</returns>
-    /// <response code="200">Returns the paginated list of business party accounting records</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved business party accounting records with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("accounting")]
     [ProducesResponseType(typeof(PagedResult<BusinessPartyAccountingDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BusinessPartyAccountingDto>>> GetBusinessPartyAccounting(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _businessPartyService.GetBusinessPartyAccountingAsync(page, pageSize, cancellationToken);
+            var result = await _businessPartyService.GetBusinessPartyAccountingAsync(pagination, cancellationToken);
+            
+            // Add pagination metadata headers
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -556,7 +574,7 @@ public class BusinessPartiesController : BaseApiController
     #region BusinessParty Documents Endpoints
 
     /// <summary>
-    /// Gets documents for a specific business party with optional filters and pagination.
+    /// Retrieves documents for a specific business party with pagination
     /// </summary>
     /// <param name="businessPartyId">Business party ID</param>
     /// <param name="fromDate">Optional start date filter</param>
@@ -564,12 +582,11 @@ public class BusinessPartiesController : BaseApiController
     /// <param name="documentTypeId">Optional document type filter</param>
     /// <param name="searchNumber">Optional number/series search</param>
     /// <param name="approvalStatus">Optional approval status filter</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of document headers</returns>
-    /// <response code="200">Returns the paginated list of documents</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved documents with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the business party is not found</response>
     [HttpGet("{businessPartyId:guid}/documents")]
@@ -584,13 +601,9 @@ public class BusinessPartiesController : BaseApiController
         [FromQuery] Guid? documentTypeId = null,
         [FromQuery] string? searchNumber = null,
         [FromQuery] DTOs.Common.ApprovalStatus? approvalStatus = null,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
@@ -604,7 +617,19 @@ public class BusinessPartiesController : BaseApiController
             }
 
             var result = await _businessPartyService.GetBusinessPartyDocumentsAsync(
-                businessPartyId, fromDate, toDate, documentTypeId, searchNumber, approvalStatus, page, pageSize, cancellationToken);
+                businessPartyId, fromDate, toDate, documentTypeId, searchNumber, approvalStatus, pagination, cancellationToken);
+
+            // Add pagination metadata headers
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
 
             return Ok(result);
         }
@@ -615,21 +640,20 @@ public class BusinessPartiesController : BaseApiController
     }
 
     /// <summary>
-    /// Gets product analysis data for a specific business party.
+    /// Retrieves product analysis data for a specific business party with pagination
     /// </summary>
     /// <param name="businessPartyId">Business party ID</param>
     /// <param name="fromDate">Optional start date filter</param>
     /// <param name="toDate">Optional end date filter</param>
     /// <param name="type">Filter by transaction type: 'purchase', 'sale', or null for both</param>
     /// <param name="topN">Limit results to top N by value</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="sortBy">Sort field (default: ValuePurchased)</param>
     /// <param name="sortDescending">Sort direction (default: true)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of product analysis data</returns>
-    /// <response code="200">Returns the product analysis data</response>
-    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="200">Successfully retrieved product analysis data with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the business party is not found</response>
     [HttpGet("{businessPartyId:guid}/product-analysis")]
@@ -643,15 +667,11 @@ public class BusinessPartiesController : BaseApiController
         [FromQuery] DateTime? toDate = null,
         [FromQuery] string? type = null,
         [FromQuery] int? topN = null,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination = default!,
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDescending = true,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
@@ -665,7 +685,19 @@ public class BusinessPartiesController : BaseApiController
             }
 
             var result = await _businessPartyService.GetBusinessPartyProductAnalysisAsync(
-                businessPartyId, fromDate, toDate, type, topN, page, pageSize, sortBy, sortDescending, cancellationToken);
+                businessPartyId, fromDate, toDate, type, topN, pagination, sortBy, sortDescending, cancellationToken);
+
+            // Add pagination metadata headers
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
 
             return Ok(result);
         }

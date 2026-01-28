@@ -1,4 +1,5 @@
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Business;
 
@@ -10,13 +11,12 @@ public interface IBusinessPartyService
     // BusinessParty CRUD operations
 
     /// <summary>
-    /// Gets all business parties with optional pagination.
+    /// Gets all business parties with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business parties</returns>
-    Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a business party by ID.
@@ -89,13 +89,12 @@ public interface IBusinessPartyService
     // BusinessPartyAccounting CRUD operations
 
     /// <summary>
-    /// Gets all business party accounting records with optional pagination.
+    /// Gets all business party accounting records with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business party accounting records</returns>
-    Task<PagedResult<BusinessPartyAccountingDto>> GetBusinessPartyAccountingAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<BusinessPartyAccountingDto>> GetBusinessPartyAccountingAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a business party accounting record by ID.
@@ -158,8 +157,7 @@ public interface IBusinessPartyService
     /// <param name="documentTypeId">Optional document type filter</param>
     /// <param name="searchNumber">Optional number/series search</param>
     /// <param name="approvalStatus">Optional approval status filter</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of document headers</returns>
     Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>> GetBusinessPartyDocumentsAsync(
@@ -169,8 +167,7 @@ public interface IBusinessPartyService
         Guid? documentTypeId = null,
         string? searchNumber = null,
         DTOs.Common.ApprovalStatus? approvalStatus = null,
-        int page = 1,
-        int pageSize = 20,
+        PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -181,8 +178,7 @@ public interface IBusinessPartyService
     /// <param name="toDate">Optional end date filter</param>
     /// <param name="type">Filter by transaction type: 'purchase', 'sale', or null for both</param>
     /// <param name="topN">Limit results to top N by value</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="sortBy">Sort field (default: ValuePurchased)</param>
     /// <param name="sortDescending">Sort direction</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -193,8 +189,7 @@ public interface IBusinessPartyService
         DateTime? toDate = null,
         string? type = null,
         int? topN = null,
-        int page = 1,
-        int pageSize = 20,
+        PaginationParameters pagination = default!,
         string? sortBy = null,
         bool sortDescending = true,
         CancellationToken cancellationToken = default);
