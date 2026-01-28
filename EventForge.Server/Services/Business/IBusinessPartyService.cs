@@ -78,7 +78,7 @@ public interface IBusinessPartyService
     /// Ottimizzazione FASE 5 per ridurre N+1 queries.
     /// </summary>
     /// <param name="id">BusinessParty ID</param>
-    /// <param name="includeInactive">Se true, include anche contatti/indirizzi con IsDeleted=false ma inattivi</param>
+    /// <param name="includeInactive">Se true, include anche contatti/indirizzi soft-deleted (IsDeleted=true)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>DTO aggregato con tutti i dati, null se non trovato</returns>
     Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(

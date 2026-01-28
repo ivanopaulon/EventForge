@@ -1078,6 +1078,9 @@ public class BusinessPartyService : IBusinessPartyService
                             && !plbp.PriceList.IsDeleted
                             && plbp.PriceList.Status == Data.Entities.PriceList.PriceListStatus.Active)
                 .Include(plbp => plbp.PriceList)
+                    .ThenInclude(pl => pl.Event)
+                .Include(plbp => plbp.PriceList)
+                    .ThenInclude(pl => pl.ProductPrices)
                 .ToListAsync(cancellationToken);
             
             // Map a DTO aggregato
@@ -1160,13 +1163,13 @@ public class BusinessPartyService : IBusinessPartyService
         
         return new BusinessPartyStatisticsDto
         {
-            TotalContacts = await contactsTask,
-            TotalAddresses = await addressesTask,
-            TotalPriceLists = await priceListsTask,
+            TotalContacts = contactsTask.Result,
+            TotalAddresses = addressesTask.Result,
+            TotalPriceLists = priceListsTask.Result,
             ActiveFidelityCards = 0, // TODO: implementare quando backend fidelity sarà pronto
-            TotalDocuments = await documentsTask,
-            LastOrderDate = await lastOrderTask,
-            TotalRevenueYTD = await revenueTask ?? 0m
+            TotalDocuments = documentsTask.Result,
+            LastOrderDate = lastOrderTask.Result,
+            TotalRevenueYTD = revenueTask.Result ?? 0m
         };
     }
 
