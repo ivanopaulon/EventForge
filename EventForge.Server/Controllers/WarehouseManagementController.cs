@@ -1,12 +1,15 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Controllers;
@@ -330,10 +333,9 @@ public class WarehouseManagementController : BaseApiController
     #region Storage Facilities Management
 
     /// <summary>
-    /// Gets all storage facilities with optional pagination.
+    /// Gets all storage facilities with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of storage facilities</returns>
     /// <response code="200">Returns the paginated list of storage facilities</response>
@@ -344,19 +346,27 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<StorageFacilityDto>>> GetStorageFacilities(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _storageFacilityService.GetStorageFacilitiesAsync(page, pageSize, cancellationToken);
+            var result = await _storageFacilityService.GetStorageFacilitiesAsync(pagination.Page, pagination.PageSize, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -445,10 +455,9 @@ public class WarehouseManagementController : BaseApiController
     #region Storage Locations Management
 
     /// <summary>
-    /// Gets all storage locations with optional pagination and facility filtering.
+    /// Gets all storage locations with pagination and facility filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="facilityId">Optional facility ID to filter locations</param>
     /// <param name="deleted">Filter for soft-deleted items: 'false' (default), 'true', or 'all'</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -462,8 +471,7 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<StorageLocationDto>>> GetStorageLocations(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] Guid? facilityId = null,
         [FromQuery] string deleted = "false",
         CancellationToken cancellationToken = default)
@@ -473,15 +481,24 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _storageLocationService.GetStorageLocationsAsync(page, pageSize, facilityId, cancellationToken);
+            var result = await _storageLocationService.GetStorageLocationsAsync(pagination.Page, pagination.PageSize, facilityId, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -570,10 +587,9 @@ public class WarehouseManagementController : BaseApiController
     #region Lot Management
 
     /// <summary>
-    /// Gets all lots with optional filtering and pagination.
+    /// Gets all lots with filtering and pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="productId">Optional product ID filter</param>
     /// <param name="status">Optional status filter</param>
     /// <param name="expiringSoon">Optional filter for lots expiring soon</param>
@@ -587,22 +603,30 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<LotDto>>> GetLots(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] Guid? productId = null,
         [FromQuery] string? status = null,
         [FromQuery] bool? expiringSoon = null,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _lotService.GetLotsAsync(page, pageSize, productId, status, expiringSoon, cancellationToken);
+            var result = await _lotService.GetLotsAsync(pagination.Page, pagination.PageSize, productId, status, expiringSoon, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -952,10 +976,9 @@ public class WarehouseManagementController : BaseApiController
     #region Stock Management
 
     /// <summary>
-    /// Gets all stock entries with optional pagination and filtering.
+    /// Gets all stock entries with pagination and filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="productId">Optional product ID filter</param>
     /// <param name="locationId">Optional location ID filter</param>
     /// <param name="lotId">Optional lot ID filter</param>
@@ -970,23 +993,31 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetStock(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] Guid? productId = null,
         [FromQuery] Guid? locationId = null,
         [FromQuery] Guid? lotId = null,
         [FromQuery] bool? lowStock = null,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _stockService.GetStockAsync(page, pageSize, productId, locationId, lotId, lowStock, cancellationToken);
+            var result = await _stockService.GetStockAsync(pagination.Page, pagination.PageSize, productId, locationId, lotId, lowStock, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -1187,8 +1218,7 @@ public class WarehouseManagementController : BaseApiController
     /// <summary>
     /// Gets stock overview with advanced filtering and aggregation options.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="search">Search term for product name or code</param>
     /// <param name="warehouseId">Optional warehouse ID filter</param>
     /// <param name="locationId">Optional location ID filter</param>
@@ -1209,8 +1239,7 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetStockOverview(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] string? search = null,
         [FromQuery] Guid? warehouseId = null,
         [FromQuery] Guid? locationId = null,
@@ -1223,18 +1252,27 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool detailedView = false,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var result = await _stockService.GetStockOverviewAsync(
-                page, pageSize, search, warehouseId, locationId, lotId,
+                pagination.Page, pagination.PageSize, search, warehouseId, locationId, lotId,
                 lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView,
                 cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -1286,10 +1324,9 @@ public class WarehouseManagementController : BaseApiController
     #region Serial Management
 
     /// <summary>
-    /// Gets all serials with optional pagination and filtering.
+    /// Gets all serials with pagination and filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="productId">Optional product ID filter</param>
     /// <param name="lotId">Optional lot ID filter</param>
     /// <param name="locationId">Optional location ID filter</param>
@@ -1302,8 +1339,7 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetSerials(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] Guid? productId = null,
         [FromQuery] Guid? lotId = null,
         [FromQuery] Guid? locationId = null,
@@ -1311,15 +1347,24 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _serialService.GetSerialsAsync(page, pageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
+            var result = await _serialService.GetSerialsAsync(pagination.Page, pagination.PageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -1444,10 +1489,9 @@ public class WarehouseManagementController : BaseApiController
     #region Inventory
 
     /// <summary>
-    /// Gets all inventory entries with optional pagination.
+    /// Gets all inventory entries with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of inventory entries</returns>
     /// <response code="200">Returns the paginated list of inventory entries</response>
@@ -1458,19 +1502,15 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<InventoryEntryDto>>> GetInventoryEntries(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var stockResult = await _stockService.GetStockAsync(page, pageSize, null, null, null, null, cancellationToken);
+            var stockResult = await _stockService.GetStockAsync(pagination.Page, pagination.PageSize, null, null, null, null, cancellationToken);
 
             // Convert StockDto to InventoryEntryDto
             var inventoryEntries = stockResult.Items.Select(stock => new InventoryEntryDto
@@ -1496,6 +1536,17 @@ public class WarehouseManagementController : BaseApiController
                 Page = stockResult.Page,
                 PageSize = stockResult.PageSize
             };
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
 
             return Ok(result);
         }
@@ -1624,10 +1675,9 @@ public class WarehouseManagementController : BaseApiController
     #region Inventory Document Management
 
     /// <summary>
-    /// Gets all inventory documents with optional pagination and filtering.
+    /// Gets all inventory documents with pagination and filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="status">Filter by document status (Draft, Closed, etc.)</param>
     /// <param name="fromDate">Filter documents from this date</param>
     /// <param name="toDate">Filter documents to this date</param>
@@ -1642,17 +1692,13 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<InventoryDocumentDto>>> GetInventoryDocuments(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] string? status = null,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
         [FromQuery] bool includeRows = false,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
@@ -1666,8 +1712,8 @@ public class WarehouseManagementController : BaseApiController
             // Build query parameters to filter inventory documents
             var queryParams = new DocumentHeaderQueryParameters
             {
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 DocumentTypeId = inventoryDocType.Id,
                 IncludeRows = includeRows, // Controlled by parameter - default false for performance
                 SortBy = "Date",
@@ -1728,6 +1774,17 @@ public class WarehouseManagementController : BaseApiController
                 Page = documentsResult.Page,
                 PageSize = documentsResult.PageSize
             };
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
 
             return Ok(result);
         }
@@ -3234,8 +3291,7 @@ public class WarehouseManagementController : BaseApiController
     /// Useful for loading large documents incrementally without timeouts.
     /// </summary>
     /// <param name="documentId">Inventory document ID</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of rows per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of inventory document rows</returns>
     /// <response code="200">Returns the paginated rows</response>
@@ -3249,19 +3305,15 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetInventoryDocumentRows(
         Guid documentId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            _logger.LogInformation("Fetching page {Page} of inventory document {DocumentId} rows", page, documentId);
+            _logger.LogInformation("Fetching page {Page} of inventory document {DocumentId} rows", pagination.Page, documentId);
 
             // 1. Verify document exists
             var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
@@ -3282,13 +3334,13 @@ public class WarehouseManagementController : BaseApiController
                 .CountAsync(cancellationToken);
 
             // 3. Fetch only the requested page of rows
-            var skip = (page - 1) * pageSize;
+            var skip = (pagination.Page - 1) * pagination.PageSize;
             var documentRows = await _context.DocumentRows
                 .AsNoTracking()
                 .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
                 .OrderBy(r => r.CreatedAt)
                 .Skip(skip)
-                .Take(pageSize)
+                .Take(pagination.PageSize)
                 .Select(r => new DocumentRowDto
                 {
                     Id = r.Id,
@@ -3311,13 +3363,24 @@ public class WarehouseManagementController : BaseApiController
             {
                 Items = enrichedRows,
                 TotalCount = totalRows,
-                Page = page,
-                PageSize = pageSize
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
             };
 
             _logger.LogInformation(
                 "Returned page {Page} with {Count} rows for document {DocumentId} (total: {TotalRows})",
-                page, enrichedRows.Count, documentId, totalRows);
+                pagination.Page, enrichedRows.Count, documentId, totalRows);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
 
             return Ok(result);
         }
