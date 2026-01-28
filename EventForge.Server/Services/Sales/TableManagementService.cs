@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,84 @@ public class TableManagementService : ITableManagementService
             throw new InvalidOperationException("Tenant context is required for table management operations.");
         }
         return tenantId.Value;
+    }
+
+    public async Task<PagedResult<TableSessionDto>> GetTablesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetTenantId();
+        _logger.LogInformation("Getting tables with pagination for tenant {TenantId}", tenantId);
+
+        var query = _context.Set<TableSession>()
+            .Where(t => t.TenantId == tenantId && !t.IsDeleted);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var tables = await query
+            .OrderBy(t => t.Area)
+            .ThenBy(t => t.TableNumber)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<TableSessionDto>
+        {
+            Items = tables.Select(MapToDto),
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
+    }
+
+    public async Task<PagedResult<TableSessionDto>> GetTablesByZoneAsync(string zone, PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetTenantId();
+        _logger.LogInformation("Getting tables by zone {Zone} with pagination for tenant {TenantId}", zone, tenantId);
+
+        var query = _context.Set<TableSession>()
+            .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.Area == zone);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var tables = await query
+            .OrderBy(t => t.TableNumber)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<TableSessionDto>
+        {
+            Items = tables.Select(MapToDto),
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
+    }
+
+    public async Task<PagedResult<TableSessionDto>> GetAvailableTablesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetTenantId();
+        _logger.LogInformation("Getting available tables with pagination for tenant {TenantId}", tenantId);
+
+        var query = _context.Set<TableSession>()
+            .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.IsActive && t.Status == TableStatus.Available);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var tables = await query
+            .OrderBy(t => t.Area)
+            .ThenBy(t => t.Capacity)
+            .ThenBy(t => t.TableNumber)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<TableSessionDto>
+        {
+            Items = tables.Select(MapToDto),
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     public async Task<List<TableSessionDto>> GetAllTablesAsync(CancellationToken cancellationToken = default)

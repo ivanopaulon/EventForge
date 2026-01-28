@@ -1,8 +1,11 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -196,6 +199,7 @@ public class SalesController : BaseApiController
     [HttpGet("sessions")]
     [ProducesResponseType(typeof(List<SaleSessionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [Obsolete("Use GetOpenSessions or GetPOSSessions with pagination instead")]
     public async Task<ActionResult<List<SaleSessionDto>>> GetActiveSessions(
         CancellationToken cancellationToken = default)
     {
@@ -204,7 +208,9 @@ public class SalesController : BaseApiController
 
         try
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var sessions = await _saleSessionService.GetActiveSessionsAsync(cancellationToken);
+#pragma warning restore CS0618 // Type or member is obsolete
             return Ok(sessions);
         }
         catch (Exception ex)
@@ -225,6 +231,7 @@ public class SalesController : BaseApiController
     [HttpGet("sessions/operator/{operatorId:guid}")]
     [ProducesResponseType(typeof(List<SaleSessionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [Obsolete("Use GetSessionsByOperator with pagination instead")]
     public async Task<ActionResult<List<SaleSessionDto>>> GetOperatorSessions(
         Guid operatorId,
         CancellationToken cancellationToken = default)
@@ -234,13 +241,178 @@ public class SalesController : BaseApiController
 
         try
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var sessions = await _saleSessionService.GetOperatorSessionsAsync(operatorId, cancellationToken);
+#pragma warning restore CS0618 // Type or member is obsolete
             return Ok(sessions);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while retrieving sale sessions for operator {OperatorId}.", operatorId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving operator sale sessions.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all POS sessions with pagination
+    /// </summary>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of POS sessions</returns>
+    /// <response code="200">Successfully retrieved POS sessions with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("pos-sessions")]
+    [ProducesResponseType(typeof(PagedResult<SaleSessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<SaleSessionDto>>> GetPOSSessions(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _saleSessionService.GetPOSSessionsAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving POS sessions.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving POS sessions.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves POS sessions for specific operator
+    /// </summary>
+    /// <param name="operatorId">Operator ID</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("pos-sessions/operator/{operatorId}")]
+    [ProducesResponseType(typeof(PagedResult<SaleSessionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<SaleSessionDto>>> GetSessionsByOperator(
+        Guid operatorId,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _saleSessionService.GetSessionsByOperatorAsync(operatorId, pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving sale sessions for operator {OperatorId}.", operatorId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving operator sale sessions.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves POS sessions within date range
+    /// </summary>
+    /// <param name="startDate">Start date</param>
+    /// <param name="endDate">End date (optional, defaults to now)</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("pos-sessions/date-range")]
+    [ProducesResponseType(typeof(PagedResult<SaleSessionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<SaleSessionDto>>> GetSessionsByDate(
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _saleSessionService.GetSessionsByDateAsync(startDate, endDate, pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving sale sessions by date range.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving sale sessions by date.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves currently open POS sessions (real-time data)
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <response code="200">Successfully retrieved open sessions</response>
+    [HttpGet("pos-sessions/open")]
+    [ProducesResponseType(typeof(PagedResult<SaleSessionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<SaleSessionDto>>> GetOpenSessions(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _saleSessionService.GetOpenSessionsAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving open POS sessions.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving open sessions.", ex);
         }
     }
 

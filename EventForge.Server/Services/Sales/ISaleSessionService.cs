@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 
 namespace EventForge.Server.Services.Sales;
@@ -122,18 +123,55 @@ public interface ISaleSessionService
     Task<SaleSessionDto?> CloseSessionAsync(Guid sessionId, string currentUser, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all active sale sessions for the current tenant.
+    /// Gets all POS sessions with pagination.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of POS sessions</returns>
+    Task<PagedResult<SaleSessionDto>> GetPOSSessionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all sale sessions for a specific operator with pagination.
+    /// </summary>
+    /// <param name="operatorId">Operator ID</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of operator's sale sessions</returns>
+    Task<PagedResult<SaleSessionDto>> GetSessionsByOperatorAsync(Guid operatorId, PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets sale sessions within date range with pagination.
+    /// </summary>
+    /// <param name="startDate">Start date</param>
+    /// <param name="endDate">End date (optional, defaults to now)</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of sale sessions within date range</returns>
+    Task<PagedResult<SaleSessionDto>> GetSessionsByDateAsync(DateTime startDate, DateTime? endDate, PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets currently open POS sessions with pagination.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of open POS sessions</returns>
+    Task<PagedResult<SaleSessionDto>> GetOpenSessionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all active sale sessions for the current tenant (deprecated - use GetOpenSessionsAsync).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of active sale sessions</returns>
+    [Obsolete("Use GetOpenSessionsAsync with pagination instead")]
     Task<List<SaleSessionDto>> GetActiveSessionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all sale sessions for a specific operator.
+    /// Gets all sale sessions for a specific operator (deprecated - use GetSessionsByOperatorAsync).
     /// </summary>
     /// <param name="operatorId">Operator ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of operator's sale sessions</returns>
+    [Obsolete("Use GetSessionsByOperatorAsync with pagination instead")]
     Task<List<SaleSessionDto>> GetOperatorSessionsAsync(Guid operatorId, CancellationToken cancellationToken = default);
 
     /// <summary>

@@ -1,8 +1,11 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -31,19 +34,61 @@ public class TableManagementController : BaseApiController
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<TableSessionDto>), StatusCodes.Status200OK)]
+    [Obsolete("Use GetTables with pagination instead")]
     public async Task<ActionResult<List<TableSessionDto>>> GetAllTables(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting all tables");
 
         try
         {
-            var tables = await _tableService.GetAllTablesAsync(cancellationToken);
+#pragma warning disable CS0618 // Type or member is obsolete
+            var tables = await ((ITableManagementService)_tableService).GetAllTablesAsync(cancellationToken);
+#pragma warning restore CS0618 // Type or member is obsolete
             return Ok(tables);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting all tables");
             return StatusCode(500, new { error = "An error occurred while getting tables." });
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all tables with pagination
+    /// </summary>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of tables</returns>
+    [HttpGet("paginated")]
+    [ProducesResponseType(typeof(PagedResult<TableSessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<TableSessionDto>>> GetTables(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Getting tables with pagination");
+
+        try
+        {
+            var result = await _tableService.GetTablesAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting tables with pagination");
+            return CreateInternalServerErrorProblem("An error occurred while getting tables.", ex);
         }
     }
 
@@ -79,19 +124,100 @@ public class TableManagementController : BaseApiController
     /// </summary>
     [HttpGet("available")]
     [ProducesResponseType(typeof(List<TableSessionDto>), StatusCodes.Status200OK)]
+    [Obsolete("Use GetAvailableTablesPaginated with pagination instead")]
     public async Task<ActionResult<List<TableSessionDto>>> GetAvailableTables(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting available tables");
 
         try
         {
-            var tables = await _tableService.GetAvailableTablesAsync(cancellationToken);
+            // Call the obsolete non-paginated version
+            var tables = await _tableService.GetAllTablesAsync(cancellationToken);
+            // Filter to available only for this endpoint
+            tables = tables.Where(t => t.IsActive && t.Status == "Available").ToList();
             return Ok(tables);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting available tables");
             return StatusCode(500, new { error = "An error occurred while getting available tables." });
+        }
+    }
+
+    /// <summary>
+    /// Retrieves currently available tables (real-time availability)
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <response code="200">Successfully retrieved available tables</response>
+    [HttpGet("available/paginated")]
+    [ProducesResponseType(typeof(PagedResult<TableSessionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<TableSessionDto>>> GetAvailableTablesPaginated(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Getting available tables with pagination");
+
+        try
+        {
+            var result = await _tableService.GetAvailableTablesAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available tables with pagination");
+            return CreateInternalServerErrorProblem("An error occurred while getting available tables.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves tables for specific zone (e.g., "Sala Principale", "Terrazza", "Bar")
+    /// </summary>
+    /// <param name="zone">Zone name</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("zone/{zone}")]
+    [ProducesResponseType(typeof(PagedResult<TableSessionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<TableSessionDto>>> GetTablesByZone(
+        string zone,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Getting tables by zone {Zone} with pagination", zone);
+
+        try
+        {
+            var result = await _tableService.GetTablesByZoneAsync(zone, pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting tables by zone {Zone}", zone);
+            return CreateInternalServerErrorProblem("An error occurred while getting tables by zone.", ex);
         }
     }
 
