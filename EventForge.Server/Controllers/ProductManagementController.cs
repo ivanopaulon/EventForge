@@ -1,9 +1,11 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Promotions;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.PriceLists;
@@ -13,6 +15,7 @@ using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -81,10 +84,9 @@ public class ProductManagementController : BaseApiController
     #region Product CRUD Operations
 
     /// <summary>
-    /// Gets all products with optional pagination.
+    /// Gets all products with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
@@ -96,20 +98,28 @@ public class ProductManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<ProductDto>>> GetProducts(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _productService.GetProductsAsync(page, pageSize, searchTerm, cancellationToken);
+            var result = await _productService.GetProductsAsync(pagination, searchTerm, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -857,10 +867,9 @@ public class ProductManagementController : BaseApiController
     #region Unit of Measures Management
 
     /// <summary>
-    /// Gets all units of measure with optional pagination.
+    /// Gets all units of measure with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of units of measure</returns>
     /// <response code="200">Returns the paginated list of units of measure</response>
@@ -871,19 +880,27 @@ public class ProductManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<UMDto>>> GetUnitOfMeasures(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _umService.GetUMsAsync(page, pageSize, cancellationToken);
+            var result = await _umService.GetUMsAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -1058,10 +1075,9 @@ public class ProductManagementController : BaseApiController
     #region Price Lists Management
 
     /// <summary>
-    /// Gets all price lists with optional pagination and filtering.
+    /// Gets all price lists with pagination and optional filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="direction">Optional filter by direction (Input/Output)</param>
     /// <param name="status">Optional filter by status (Active/Suspended/Deleted)</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -1074,24 +1090,29 @@ public class ProductManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<PriceListDto>>> GetPriceLists(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] PriceListDirection? direction = null,
         [FromQuery] DTOs.Common.PriceListStatus? status = null,
         CancellationToken cancellationToken = default)
     {
-        var validationResult = ValidatePaginationParameters(page, pageSize);
-        if (validationResult != null)
-            return validationResult;
-
         var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantValidation != null)
             return tenantValidation;
 
         try
         {
-            // Pass filters to service for server-side filtering before pagination
-            var result = await _priceListService.GetPriceListsAsync(page, pageSize, direction, status, cancellationToken);
+            var result = await _priceListService.GetPriceListsAsync(pagination, direction, status, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
             
             return Ok(result);
         }
@@ -1654,10 +1675,9 @@ public class ProductManagementController : BaseApiController
     #region Promotions Management
 
     /// <summary>
-    /// Gets all promotions with optional pagination.
+    /// Gets all promotions with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of promotions</returns>
     /// <response code="200">Returns the paginated list of promotions</response>
@@ -1668,21 +1688,28 @@ public class ProductManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<PromotionDto>>> GetPromotions(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var validationResult = ValidatePaginationParameters(page, pageSize);
-        if (validationResult != null)
-            return validationResult;
-
         var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantValidation != null)
             return tenantValidation;
 
         try
         {
-            var result = await _promotionService.GetPromotionsAsync(page, pageSize, cancellationToken);
+            var result = await _promotionService.GetPromotionsAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -1905,10 +1932,9 @@ public class ProductManagementController : BaseApiController
     #region Brands Management
 
     /// <summary>
-    /// Gets all brands with optional pagination.
+    /// Gets all brands with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of brands</returns>
     /// <response code="200">Returns the paginated list of brands</response>
@@ -1919,19 +1945,27 @@ public class ProductManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BrandDto>>> GetBrands(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _brandService.GetBrandsAsync(page, pageSize, cancellationToken);
+            var result = await _brandService.GetBrandsAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -2106,10 +2140,9 @@ public class ProductManagementController : BaseApiController
     #region Models Management
 
     /// <summary>
-    /// Gets all models with optional pagination.
+    /// Gets all models with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="brandId">Optional brand ID to filter by</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of models</returns>
@@ -2121,22 +2154,30 @@ public class ProductManagementController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<ModelDto>>> GetModels(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] Guid? brandId = null,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var result = brandId.HasValue
-                ? await _modelService.GetModelsByBrandIdAsync(brandId.Value, page, pageSize, cancellationToken)
-                : await _modelService.GetModelsAsync(page, pageSize, cancellationToken);
+                ? await _modelService.GetModelsByBrandIdAsync(brandId.Value, pagination, cancellationToken)
+                : await _modelService.GetModelsAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -2575,8 +2616,7 @@ public class ProductManagementController : BaseApiController
     /// Gets products by supplier with pagination, enriched with latest purchase data.
     /// </summary>
     /// <param name="supplierId">Supplier ID</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of product suppliers</returns>
     /// <response code="200">Returns the paginated list of products</response>
@@ -2590,8 +2630,7 @@ public class ProductManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<ProductSupplierDto>>> GetProductsBySupplier(
         Guid supplierId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -2599,7 +2638,19 @@ public class ProductManagementController : BaseApiController
 
         try
         {
-            var result = await _productService.GetProductsBySupplierAsync(supplierId, page, pageSize, cancellationToken);
+            var result = await _productService.GetProductsBySupplierAsync(supplierId, pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
             return Ok(result);
         }
         catch (Exception ex)
@@ -2618,8 +2669,7 @@ public class ProductManagementController : BaseApiController
     /// <param name="fromDate">Optional filter: start date</param>
     /// <param name="toDate">Optional filter: end date</param>
     /// <param name="businessPartyName">Optional filter: customer/supplier name</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of product document movements</returns>
     /// <response code="200">Returns the paginated list of movements</response>
@@ -2636,13 +2686,9 @@ public class ProductManagementController : BaseApiController
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
         [FromQuery] string? businessPartyName = null,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination = null!,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
@@ -2656,8 +2702,8 @@ public class ProductManagementController : BaseApiController
             // Get document movements using DocumentHeaderService
             var queryParameters = new EventForge.DTOs.Documents.DocumentHeaderQueryParameters
             {
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 ProductId = id,
                 FromDate = fromDate,
                 ToDate = toDate,
@@ -2702,13 +2748,26 @@ public class ProductManagementController : BaseApiController
                 }
             }
 
-            return Ok(new PagedResult<ProductDocumentMovementDto>
+            var result = new PagedResult<ProductDocumentMovementDto>
             {
                 Items = movements,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = documentsResult.TotalCount
-            });
+            };
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
+            return Ok(result);
         }
         catch (Exception ex)
         {

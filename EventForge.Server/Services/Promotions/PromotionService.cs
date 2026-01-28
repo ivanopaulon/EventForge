@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Promotions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -24,7 +25,7 @@ public class PromotionService : IPromotionService
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
-    public async Task<PagedResult<PromotionDto>> GetPromotionsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<PromotionDto>> GetPromotionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -42,8 +43,8 @@ public class PromotionService : IPromotionService
             var totalCount = await query.CountAsync(cancellationToken);
             var promotions = await query
                 .OrderBy(p => p.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var promotionDtos = promotions.Select(MapToPromotionDto);
@@ -51,8 +52,8 @@ public class PromotionService : IPromotionService
             return new PagedResult<PromotionDto>
             {
                 Items = promotionDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

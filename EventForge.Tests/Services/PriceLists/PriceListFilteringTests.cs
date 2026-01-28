@@ -68,8 +68,7 @@ public class PriceListFilteringTests : IDisposable
 
         // Act: Filter by Output direction
         var result = await _service.GetPriceListsAsync(
-            page: 1,
-            pageSize: 10,
+            new PaginationParameters { Page = 1, PageSize = 10 },
             direction: PriceListDirection.Output,
             status: null);
 
@@ -88,8 +87,7 @@ public class PriceListFilteringTests : IDisposable
 
         // Act: Filter by Active status
         var result = await _service.GetPriceListsAsync(
-            page: 1,
-            pageSize: 10,
+            new PaginationParameters { Page = 1, PageSize = 10 },
             direction: null,
             status: DtoPriceListStatus.Active);
 
@@ -108,8 +106,7 @@ public class PriceListFilteringTests : IDisposable
 
         // Act: Filter by Output direction AND Active status
         var result = await _service.GetPriceListsAsync(
-            page: 1,
-            pageSize: 10,
+            new PaginationParameters { Page = 1, PageSize = 10 },
             direction: PriceListDirection.Output,
             status: DtoPriceListStatus.Active);
 
@@ -132,14 +129,12 @@ public class PriceListFilteringTests : IDisposable
 
         // Act: Get page 1 with pageSize 2, filtering by Output
         var page1 = await _service.GetPriceListsAsync(
-            page: 1,
-            pageSize: 2,
+            new PaginationParameters { Page = 1, PageSize = 2 },
             direction: PriceListDirection.Output,
             status: null);
 
         var page2 = await _service.GetPriceListsAsync(
-            page: 2,
-            pageSize: 2,
+            new PaginationParameters { Page = 2, PageSize = 2 },
             direction: PriceListDirection.Output,
             status: null);
 
@@ -161,8 +156,7 @@ public class PriceListFilteringTests : IDisposable
 
         // Act: No filters
         var result = await _service.GetPriceListsAsync(
-            page: 1,
-            pageSize: 20,
+            new PaginationParameters { Page = 1, PageSize = 20 },
             direction: null,
             status: null);
 
@@ -180,8 +174,7 @@ public class PriceListFilteringTests : IDisposable
 
         // Act: Filter that matches only 1 price list
         var result = await _service.GetPriceListsAsync(
-            page: 1,
-            pageSize: 10,
+            new PaginationParameters { Page = 1, PageSize = 10 },
             direction: PriceListDirection.Input,
             status: DtoPriceListStatus.Suspended);
 

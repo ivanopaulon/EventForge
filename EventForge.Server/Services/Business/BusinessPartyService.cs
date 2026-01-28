@@ -1,4 +1,5 @@
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;
@@ -23,7 +24,7 @@ public class BusinessPartyService : IBusinessPartyService
 
     #region BusinessParty Operations
 
-    public async Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -40,8 +41,8 @@ public class BusinessPartyService : IBusinessPartyService
             var totalCount = await query.CountAsync(cancellationToken);
             var businessParties = await query
                 .OrderBy(bp => bp.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var businessPartyDtos = new List<BusinessPartyDto>();
@@ -75,8 +76,8 @@ public class BusinessPartyService : IBusinessPartyService
             return new PagedResult<BusinessPartyDto>
             {
                 Items = businessPartyDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }
@@ -425,7 +426,7 @@ public class BusinessPartyService : IBusinessPartyService
 
     #region BusinessPartyAccounting Operations
 
-    public async Task<PagedResult<BusinessPartyAccountingDto>> GetBusinessPartyAccountingAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<BusinessPartyAccountingDto>> GetBusinessPartyAccountingAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -437,8 +438,8 @@ public class BusinessPartyService : IBusinessPartyService
             var totalCount = await query.CountAsync(cancellationToken);
             var businessPartyAccountings = await query
                 .OrderBy(bpa => bpa.BusinessPartyId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var businessPartyAccountingDtos = new List<BusinessPartyAccountingDto>();
@@ -455,8 +456,8 @@ public class BusinessPartyService : IBusinessPartyService
             return new PagedResult<BusinessPartyAccountingDto>
             {
                 Items = businessPartyAccountingDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }
@@ -751,8 +752,7 @@ public class BusinessPartyService : IBusinessPartyService
         Guid? documentTypeId = null,
         string? searchNumber = null,
         DTOs.Common.ApprovalStatus? approvalStatus = null,
-        int page = 1,
-        int pageSize = 20,
+        PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default)
     {
         try
@@ -800,8 +800,8 @@ public class BusinessPartyService : IBusinessPartyService
             var documents = await query
                 .OrderByDescending(dh => dh.Date)
                 .ThenByDescending(dh => dh.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .Select(dh => new EventForge.DTOs.Documents.DocumentHeaderDto
                 {
                     Id = dh.Id,
@@ -827,8 +827,8 @@ public class BusinessPartyService : IBusinessPartyService
             return new PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>
             {
                 Items = documents,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }
@@ -849,8 +849,7 @@ public class BusinessPartyService : IBusinessPartyService
         DateTime? toDate = null,
         string? type = null,
         int? topN = null,
-        int page = 1,
-        int pageSize = 20,
+        PaginationParameters pagination = default!,
         string? sortBy = null,
         bool sortDescending = true,
         CancellationToken cancellationToken = default)
@@ -973,15 +972,15 @@ public class BusinessPartyService : IBusinessPartyService
 
             // Apply pagination
             var pagedResults = analysisResults
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToList();
 
             return new PagedResult<BusinessPartyProductAnalysisDto>
             {
                 Items = pagedResults,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -8,14 +9,13 @@ namespace EventForge.Server.Services.Warehouse;
 public interface IStorageLocationService
 {
     /// <summary>
-    /// Gets all storage locations with optional pagination and warehouse filtering.
+    /// Gets all storage locations with pagination and warehouse filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Items per page</param>
+    /// <param name="pagination">Pagination parameters (page number and page size)</param>
     /// <param name="warehouseId">Optional warehouse ID to filter locations</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of storage locations</returns>
-    Task<PagedResult<StorageLocationDto>> GetStorageLocationsAsync(int page = 1, int pageSize = 20, Guid? warehouseId = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<StorageLocationDto>> GetStorageLocationsAsync(PaginationParameters pagination, Guid? warehouseId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a storage location by ID.

@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -8,9 +9,12 @@ namespace EventForge.Server.Services.Warehouse;
 public interface IStorageFacilityService
 {
     /// <summary>
-    /// Gets all storage facilities with optional pagination.
+    /// Gets all storage facilities with pagination.
     /// </summary>
-    Task<PagedResult<StorageFacilityDto>> GetStorageFacilitiesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    /// <param name="pagination">Pagination parameters (page number and page size)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of storage facilities</returns>
+    Task<PagedResult<StorageFacilityDto>> GetStorageFacilitiesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a storage facility by ID.

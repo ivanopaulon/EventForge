@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 
 namespace EventForge.Server.Services.Products;
@@ -8,13 +9,12 @@ namespace EventForge.Server.Services.Products;
 public interface IBrandService
 {
     /// <summary>
-    /// Gets all brands with optional pagination.
+    /// Gets all brands with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of brands</returns>
-    Task<PagedResult<BrandDto>> GetBrandsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<BrandDto>> GetBrandsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a brand by ID.

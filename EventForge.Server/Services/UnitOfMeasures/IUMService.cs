@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.UnitOfMeasures;
 
 namespace EventForge.Server.Services.UnitOfMeasures;
@@ -8,13 +9,12 @@ namespace EventForge.Server.Services.UnitOfMeasures;
 public interface IUMService
 {
     /// <summary>
-    /// Gets all units of measure with optional pagination.
+    /// Gets all units of measure with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of units of measure</returns>
-    Task<PagedResult<UMDto>> GetUMsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<UMDto>> GetUMsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a unit of measure by ID.

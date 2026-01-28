@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
@@ -31,7 +32,7 @@ public class StorageFacilityService : IStorageFacilityService
         _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
-    public async Task<PagedResult<StorageFacilityDto>> GetStorageFacilitiesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<StorageFacilityDto>> GetStorageFacilitiesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -63,15 +64,15 @@ public class StorageFacilityService : IStorageFacilityService
             // Note: If a tenant has a very large number of facilities, consider per-page caching
             var totalCount = allFacilities.Count;
             var items = allFacilities
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToList();
 
             return new PagedResult<StorageFacilityDto>
             {
                 Items = items,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

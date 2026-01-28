@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,7 +26,7 @@ public class ModelService : IModelService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<ModelDto>> GetModelsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ModelDto>> GetModelsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -43,8 +44,8 @@ public class ModelService : IModelService
             var modelDtos = await query
                 .OrderBy(m => m.Brand!.Name)
                 .ThenBy(m => m.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .Select(m => new ModelDto
                 {
                     Id = m.Id,
@@ -61,8 +62,8 @@ public class ModelService : IModelService
             return new PagedResult<ModelDto>
             {
                 Items = modelDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }
@@ -73,7 +74,7 @@ public class ModelService : IModelService
         }
     }
 
-    public async Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -91,8 +92,8 @@ public class ModelService : IModelService
             var totalCount = await query.CountAsync(cancellationToken);
             var modelDtos = await query
                 .OrderBy(m => m.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .Select(m => new ModelDto
                 {
                     Id = m.Id,
@@ -109,8 +110,8 @@ public class ModelService : IModelService
             return new PagedResult<ModelDto>
             {
                 Items = modelDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }
