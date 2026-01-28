@@ -1019,7 +1019,9 @@
     "noBundleItems": "Nessun componente disponibile",
     "featureNotImplemented": "Funzionalità non ancora implementata",
     "exportInProgress": "Esportazione in corso...",
-    "importInProgress": "Importazione in corso..."
+    "importInProgress": "Importazione in corso...",
+    "warehousesLoadFailed": "Errore nel caricamento dei magazzini",
+    "locationsLoadFailed": "Errore nel caricamento delle ubicazioni"
   },
   "mobileBadge": {
     "activities": "Attività",
@@ -2881,6 +2883,9 @@
     "actions": "Azioni",
     "expandDetails": "Espandi dettagli",
     "collapseDetails": "Comprimi dettagli",
+    "searchProduct": "Cerca prodotto...",
+    "discrepancyThreshold": "Soglia Discrepanza Maggiore (%)",
+    "discrepancyThresholdHelp": "Le differenze superiori a questa soglia percentuale saranno marcate come discrepanze maggiori",
     "severity": {
       "correct": "Corretto",
       "minor": "Discrepanza Minore",
@@ -2917,7 +2922,8 @@
     "error": {
       "calculationFailed": "Errore durante il calcolo della riconciliazione",
       "applyFailed": "Errore durante l'applicazione della riconciliazione",
-      "exportFailed": "Errore durante l'esportazione del report"
+      "exportFailed": "Errore durante l'esportazione del report",
+      "invalidDateRange": "La data 'Da' non può essere successiva alla data 'A'"
     }
   },
   "priceList": {

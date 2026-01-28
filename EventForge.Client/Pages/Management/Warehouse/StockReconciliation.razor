@@ -683,6 +683,8 @@
                 ToDate = _toDate,
                 WarehouseId = _selectedWarehouseId,
                 LocationId = _selectedLocationId,
+                ProductId = _selectedProduct?.Id,
+                DiscrepancyThreshold = _discrepancyThreshold,
                 IncludeDocuments = _includeDocuments,
                 IncludeInventories = _includeInventories,
                 OnlyWithDiscrepancies = _onlyWithDiscrepancies
@@ -736,10 +738,15 @@
 
     private void ClearFilters()
     {
-        _fromDate = null;
-        _toDate = null;
+        // Reset dates to default values (start of year + today)
+        var today = DateTime.Today;
+        _fromDate = new DateTime(today.Year, 1, 1);
+        _toDate = today;
+        
         _selectedWarehouseId = null;
         _selectedLocationId = null;
+        _selectedProduct = null; // Reset product filter
+        _discrepancyThreshold = 10m; // Reset threshold to default
         _includeDocuments = true;
         _includeInventories = true;
         _onlyWithDiscrepancies = false;

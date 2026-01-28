@@ -60,4 +60,11 @@ public class DocumentType : AuditableEntity
     [StringLength(200, ErrorMessage = "The notes cannot exceed 200 characters.")]
     [Display(Name = "Notes", Description = "Additional notes or description.")]
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Indicates if this document type represents a physical inventory count.
+    /// When true, the document is used for stock reconciliation calculations.
+    /// </summary>
+    [Display(Name = "Is Inventory Document", Description = "Indicates if this is an inventory counting document")]
+    public bool IsInventoryDocument { get; set; } = false;
 }
