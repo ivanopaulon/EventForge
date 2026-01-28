@@ -1025,4 +1025,258 @@ public class BusinessPartyService : IBusinessPartyService
     }
 
     #endregion
+
+    #region Full Detail Aggregated Query
+
+    /// <summary>
+    /// Recupera tutti i dettagli completi di un BusinessParty in una singola query ottimizzata.
+    /// Ottimizzazione FASE 5: riduce N+1 queries.
+    /// </summary>
+    public async Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(
+        Guid id, 
+        bool includeInactive = false, 
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching full detail for BusinessParty {Id} (includeInactive: {IncludeInactive})", id, includeInactive);
+            
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for business party operations.");
+            }
+
+            // ⚡ Single query con eager loading ottimizzato
+            var businessParty = await _context.BusinessParties
+                .Where(bp => bp.Id == id && !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
+                .Include(bp => bp.Contacts)
+                .Include(bp => bp.Addresses)
+                .AsSplitQuery() // ⭐ CRITICO: evita cartesian explosion con multiple includes
+                .FirstOrDefaultAsync(cancellationToken);
+            
+            if (businessParty == null)
+            {
+                _logger.LogWarning("BusinessParty {Id} not found", id);
+                return null;
+            }
+
+            // Filter contacts and addresses based on includeInactive parameter
+            var filteredContacts = includeInactive 
+                ? businessParty.Contacts.Where(c => c.TenantId == currentTenantId.Value).ToList()
+                : businessParty.Contacts.Where(c => c.TenantId == currentTenantId.Value && !c.IsDeleted).ToList();
+
+            var filteredAddresses = includeInactive
+                ? businessParty.Addresses.Where(a => a.TenantId == currentTenantId.Value).ToList()
+                : businessParty.Addresses.Where(a => a.TenantId == currentTenantId.Value && !a.IsDeleted).ToList();
+
+            // ⚡ Carica i listini prezzi associati separatamente per evitare problemi con Include filtrati
+            var priceListsQuery = await _context.PriceListBusinessParties
+                .Where(plbp => plbp.BusinessPartyId == id 
+                            && !plbp.IsDeleted 
+                            && plbp.TenantId == currentTenantId.Value
+                            && !plbp.PriceList.IsDeleted
+                            && plbp.PriceList.Status == Data.Entities.PriceList.PriceListStatus.Active)
+                .Include(plbp => plbp.PriceList)
+                    .ThenInclude(pl => pl.Event)
+                .Include(plbp => plbp.PriceList)
+                    .ThenInclude(pl => pl.ProductPrices)
+                .ToListAsync(cancellationToken);
+            
+            // Map a DTO aggregato
+            var result = new BusinessPartyFullDetailDto
+            {
+                BusinessParty = MapToBusinessPartyDtoSimple(businessParty),
+                
+                Contacts = filteredContacts
+                    .Select(MapToContactDto)
+                    .OrderByDescending(c => c.IsPrimary)
+                    .ThenBy(c => c.ContactType)
+                    .ToList(),
+                
+                Addresses = filteredAddresses
+                    .Select(MapToAddressDto)
+                    .OrderBy(a => a.AddressType)
+                    .ToList(),
+                
+                AssignedPriceLists = priceListsQuery
+                    .Select(plbp => MapToPriceListDto(plbp.PriceList))
+                    .OrderByDescending(pl => pl.IsDefault)
+                    .ThenBy(pl => pl.Priority)
+                    .ToList(),
+                
+                Statistics = await CalculateStatisticsAsync(id, currentTenantId.Value, cancellationToken)
+            };
+            
+            _logger.LogInformation(
+                "Full detail loaded for BusinessParty {Id}: {ContactCount} contacts, {AddressCount} addresses, {PriceListCount} price lists",
+                id, result.Contacts.Count, result.Addresses.Count, result.AssignedPriceLists.Count);
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving full detail for BusinessParty {Id}", id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Calcola statistiche aggregate per BusinessParty (query parallele ottimizzate)
+    /// </summary>
+    private async Task<BusinessPartyStatisticsDto> CalculateStatisticsAsync(
+        Guid businessPartyId, 
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        var currentYear = DateTime.UtcNow.Year;
+        
+        // ⚡ Query parallele per performance ottimali
+        var contactsTask = _context.Contacts
+            .CountAsync(c => c.OwnerId == businessPartyId && c.OwnerType == "BusinessParty" && !c.IsDeleted && c.TenantId == tenantId, cancellationToken);
+        
+        var addressesTask = _context.Addresses
+            .CountAsync(a => a.OwnerId == businessPartyId && a.OwnerType == "BusinessParty" && !a.IsDeleted && a.TenantId == tenantId, cancellationToken);
+        
+        var priceListsTask = _context.PriceListBusinessParties
+            .CountAsync(plbp => plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted && !plbp.PriceList.IsDeleted && plbp.TenantId == tenantId, cancellationToken);
+        
+        var documentsTask = _context.DocumentHeaders
+            .CountAsync(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId, cancellationToken);
+        
+        var lastOrderTask = _context.DocumentHeaders
+            .Where(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId)
+            .OrderByDescending(d => d.Date)
+            .Select(d => (DateTime?)d.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+        
+        var revenueTask = _context.DocumentHeaders
+            .Where(d => d.BusinessPartyId == businessPartyId 
+                     && !d.IsDeleted 
+                     && d.TenantId == tenantId
+                     && d.Date.Year == currentYear
+                     && d.DocumentType != null
+                     && !d.DocumentType.IsStockIncrease) // Solo vendite (non acquisti)
+            .SumAsync(d => (decimal?)d.TotalGrossAmount, cancellationToken);
+        
+        await Task.WhenAll(contactsTask, addressesTask, priceListsTask, documentsTask, lastOrderTask, revenueTask);
+        
+        return new BusinessPartyStatisticsDto
+        {
+            TotalContacts = contactsTask.Result,
+            TotalAddresses = addressesTask.Result,
+            TotalPriceLists = priceListsTask.Result,
+            ActiveFidelityCards = 0, // TODO: implementare quando backend fidelity sarà pronto
+            TotalDocuments = documentsTask.Result,
+            LastOrderDate = lastOrderTask.Result,
+            TotalRevenueYTD = revenueTask.Result ?? 0m
+        };
+    }
+
+    /// <summary>
+    /// Maps BusinessParty entity to DTO (simplified version without counts)
+    /// </summary>
+    private static BusinessPartyDto MapToBusinessPartyDtoSimple(Data.Entities.Business.BusinessParty businessParty)
+    {
+        return new BusinessPartyDto
+        {
+            Id = businessParty.Id,
+            PartyType = (EventForge.DTOs.Common.BusinessPartyType)businessParty.PartyType,
+            Name = businessParty.Name,
+            TaxCode = businessParty.TaxCode,
+            VatNumber = businessParty.VatNumber,
+            SdiCode = businessParty.SdiCode,
+            Pec = businessParty.Pec,
+            Notes = businessParty.Notes,
+            AddressCount = 0, // Populated separately in Statistics
+            ContactCount = 0, // Populated separately in Statistics
+            ReferenceCount = 0,
+            HasAccountingData = false,
+            IsActive = businessParty.IsActive,
+            CreatedAt = businessParty.CreatedAt,
+            CreatedBy = businessParty.CreatedBy,
+            ModifiedAt = businessParty.ModifiedAt,
+            ModifiedBy = businessParty.ModifiedBy,
+            DefaultSalesPriceListId = businessParty.DefaultSalesPriceListId,
+            DefaultPurchasePriceListId = businessParty.DefaultPurchasePriceListId
+        };
+    }
+
+    /// <summary>
+    /// Maps Contact entity to DTO
+    /// </summary>
+    private static EventForge.DTOs.Common.ContactDto MapToContactDto(Data.Entities.Common.Contact contact)
+    {
+        return new EventForge.DTOs.Common.ContactDto
+        {
+            Id = contact.Id,
+            OwnerId = contact.OwnerId,
+            OwnerType = contact.OwnerType,
+            ContactType = contact.ContactType.ToDto(),
+            Value = contact.Value,
+            Purpose = contact.Purpose,
+            Relationship = contact.Relationship,
+            IsPrimary = contact.IsPrimary,
+            Notes = contact.Notes,
+            CreatedAt = contact.CreatedAt,
+            CreatedBy = contact.CreatedBy,
+            ModifiedAt = contact.ModifiedAt,
+            ModifiedBy = contact.ModifiedBy
+        };
+    }
+
+    /// <summary>
+    /// Maps Address entity to DTO
+    /// </summary>
+    private static EventForge.DTOs.Common.AddressDto MapToAddressDto(Data.Entities.Common.Address address)
+    {
+        return new EventForge.DTOs.Common.AddressDto
+        {
+            Id = address.Id,
+            OwnerId = address.OwnerId,
+            OwnerType = address.OwnerType,
+            AddressType = address.AddressType.ToDto(),
+            Street = address.Street,
+            City = address.City,
+            ZipCode = address.ZipCode,
+            Province = address.Province,
+            Country = address.Country,
+            Notes = address.Notes,
+            CreatedAt = address.CreatedAt,
+            CreatedBy = address.CreatedBy,
+            ModifiedAt = address.ModifiedAt,
+            ModifiedBy = address.ModifiedBy
+        };
+    }
+
+    /// <summary>
+    /// Maps PriceList entity to DTO
+    /// </summary>
+    private static EventForge.DTOs.PriceLists.PriceListDto MapToPriceListDto(Data.Entities.PriceList.PriceList priceList)
+    {
+        return new EventForge.DTOs.PriceLists.PriceListDto
+        {
+            Id = priceList.Id,
+            Name = priceList.Name,
+            Code = priceList.Code,
+            Description = priceList.Description,
+            Type = priceList.Type,
+            Direction = priceList.Direction,
+            ValidFrom = priceList.ValidFrom,
+            ValidTo = priceList.ValidTo,
+            Notes = priceList.Notes,
+            Status = (EventForge.DTOs.Common.PriceListStatus)priceList.Status,
+            IsDefault = priceList.IsDefault,
+            Priority = priceList.Priority,
+            EventId = priceList.EventId,
+            EventName = priceList.Event?.Name,
+            EntryCount = priceList.ProductPrices?.Count(ple => !ple.IsDeleted) ?? 0,
+            CreatedAt = priceList.CreatedAt,
+            CreatedBy = priceList.CreatedBy,
+            ModifiedAt = priceList.ModifiedAt,
+            ModifiedBy = priceList.ModifiedBy
+        };
+    }
+
+    #endregion
 }

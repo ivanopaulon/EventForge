@@ -72,6 +72,20 @@ public interface IBusinessPartyService
     /// <returns>True if deleted, false if not found</returns>
     Task<bool> DeleteBusinessPartyAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Recupera tutti i dettagli completi di un BusinessParty in una singola query ottimizzata.
+    /// Include: dati base, contatti, indirizzi, listini, statistiche aggregate.
+    /// Ottimizzazione FASE 5 per ridurre N+1 queries.
+    /// </summary>
+    /// <param name="id">BusinessParty ID</param>
+    /// <param name="includeInactive">Se true, include anche contatti/indirizzi soft-deleted (IsDeleted=true)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>DTO aggregato con tutti i dati, null se non trovato</returns>
+    Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(
+        Guid id, 
+        bool includeInactive = false, 
+        CancellationToken cancellationToken = default);
+
     // BusinessPartyAccounting CRUD operations
 
     /// <summary>

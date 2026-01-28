@@ -110,6 +110,46 @@ public class BusinessPartiesController : BaseApiController
     }
 
     /// <summary>
+    /// Recupera tutti i dettagli completi di un BusinessParty in una singola chiamata ottimizzata.
+    /// Endpoint FASE 5: riduce N+1 queries da 6+ a 1 sola chiamata HTTP.
+    /// </summary>
+    /// <param name="id">BusinessParty ID</param>
+    /// <param name="includeInactive">Include contatti/indirizzi inattivi (default: false)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>DTO aggregato con BusinessParty, contatti, indirizzi, listini, statistiche</returns>
+    /// <response code="200">Returns the complete business party details</response>
+    /// <response code="404">If the business party is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("{id:guid}/full-detail")]
+    [ProducesResponseType(typeof(BusinessPartyFullDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BusinessPartyFullDetailDto>> GetFullDetail(
+        Guid id, 
+        [FromQuery] bool includeInactive = false,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _businessPartyService.GetFullDetailAsync(id, includeInactive, cancellationToken);
+            
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"Business party with ID {id} not found.");
+            }
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving business party details.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets business parties by type.
     /// </summary>
     /// <param name="partyType">Business party type</param>
