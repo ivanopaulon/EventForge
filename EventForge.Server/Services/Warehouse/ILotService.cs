@@ -40,9 +40,36 @@ public interface ILotService
     Task<IEnumerable<LotDto>> GetLotsByProductIdAsync(Guid productId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets lots by product ID with pagination.
+    /// </summary>
+    /// <param name="productId">Product ID to filter lots</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of lots for the product</returns>
+    Task<PagedResult<LotDto>> GetLotsByProductAsync(Guid productId, PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets lots by warehouse ID with pagination.
+    /// </summary>
+    /// <param name="warehouseId">Warehouse ID to filter lots</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of lots in the warehouse</returns>
+    Task<PagedResult<LotDto>> GetLotsByWarehouseAsync(Guid warehouseId, PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets lots that are expiring within the specified number of days.
     /// </summary>
     Task<IEnumerable<LotDto>> GetExpiringLotsAsync(int daysAhead = 30, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets expired or expiring lots with pagination.
+    /// </summary>
+    /// <param name="threshold">Optional threshold date. If null, uses DateTime.UtcNow</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of expired/expiring lots</returns>
+    Task<PagedResult<LotDto>> GetExpiredLotsAsync(DateTime? threshold, PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new lot.

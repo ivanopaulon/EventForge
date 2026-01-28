@@ -489,4 +489,126 @@ public class StorageLocationService : IStorageLocationService
             throw;
         }
     }
+
+    public async Task<PagedResult<StorageLocationDto>> GetLocationsByWarehouseAsync(
+        Guid warehouseId,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("Getting storage locations for warehouse {WarehouseId} with pagination: page={Page}, pageSize={PageSize}", 
+                warehouseId, pagination.Page, pagination.PageSize);
+
+            var query = _context.StorageLocations
+                .Include(sl => sl.Warehouse)
+                .Where(sl => !sl.IsDeleted && sl.WarehouseId == warehouseId);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderBy(sl => sl.Zone)
+                .ThenBy(sl => sl.Code)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .Select(sl => new StorageLocationDto
+                {
+                    Id = sl.Id,
+                    Code = sl.Code,
+                    Description = sl.Description,
+                    WarehouseId = sl.WarehouseId,
+                    WarehouseName = sl.Warehouse != null ? sl.Warehouse.Name : null,
+                    Capacity = sl.Capacity,
+                    Occupancy = sl.Occupancy,
+                    LastInventoryDate = sl.LastInventoryDate,
+                    IsRefrigerated = sl.IsRefrigerated,
+                    Notes = sl.Notes,
+                    Zone = sl.Zone,
+                    Floor = sl.Floor,
+                    Row = sl.Row,
+                    Column = sl.Column,
+                    Level = sl.Level,
+                    IsActive = sl.IsActive,
+                    CreatedAt = sl.CreatedAt,
+                    CreatedBy = sl.CreatedBy,
+                    ModifiedAt = sl.ModifiedAt,
+                    ModifiedBy = sl.ModifiedBy
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<StorageLocationDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}.", warehouseId);
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<StorageLocationDto>> GetLocationsByZoneAsync(
+        string zone,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("Getting storage locations for zone {Zone} with pagination: page={Page}, pageSize={PageSize}", 
+                zone, pagination.Page, pagination.PageSize);
+
+            var query = _context.StorageLocations
+                .Include(sl => sl.Warehouse)
+                .Where(sl => !sl.IsDeleted && sl.Zone == zone);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderBy(sl => sl.Warehouse!.Name)
+                .ThenBy(sl => sl.Code)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .Select(sl => new StorageLocationDto
+                {
+                    Id = sl.Id,
+                    Code = sl.Code,
+                    Description = sl.Description,
+                    WarehouseId = sl.WarehouseId,
+                    WarehouseName = sl.Warehouse != null ? sl.Warehouse.Name : null,
+                    Capacity = sl.Capacity,
+                    Occupancy = sl.Occupancy,
+                    LastInventoryDate = sl.LastInventoryDate,
+                    IsRefrigerated = sl.IsRefrigerated,
+                    Notes = sl.Notes,
+                    Zone = sl.Zone,
+                    Floor = sl.Floor,
+                    Row = sl.Row,
+                    Column = sl.Column,
+                    Level = sl.Level,
+                    IsActive = sl.IsActive,
+                    CreatedAt = sl.CreatedAt,
+                    CreatedBy = sl.CreatedBy,
+                    ModifiedAt = sl.ModifiedAt,
+                    ModifiedBy = sl.ModifiedBy
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<StorageLocationDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving storage locations for zone {Zone}.", zone);
+            throw;
+        }
+    }
 }

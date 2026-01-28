@@ -17,6 +17,14 @@ public interface IBrandService
     Task<PagedResult<BrandDto>> GetBrandsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all active brands with pagination.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of active brands</returns>
+    Task<PagedResult<BrandDto>> GetActiveBrandsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a brand by ID.
     /// </summary>
     /// <param name="id">Brand ID</param>

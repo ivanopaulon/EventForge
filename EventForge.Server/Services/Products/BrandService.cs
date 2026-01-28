@@ -261,4 +261,50 @@ public class BrandService : IBrandService
             CreatedBy = brand.CreatedBy
         };
     }
+
+    public async Task<PagedResult<BrandDto>> GetActiveBrandsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for brand operations.");
+            }
+
+            var query = _context.Brands
+                .WhereActiveTenant(currentTenantId.Value)
+                .Where(b => b.IsActive);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+            var brandDtos = await query
+                .OrderBy(b => b.Name)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .Select(b => new BrandDto
+                {
+                    Id = b.Id,
+                    Name = b.Name,
+                    Description = b.Description,
+                    Website = b.Website,
+                    Country = b.Country,
+                    CreatedAt = b.CreatedAt,
+                    CreatedBy = b.CreatedBy
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<BrandDto>
+            {
+                Items = brandDtos,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving active brands.");
+            throw;
+        }
+    }
 }
