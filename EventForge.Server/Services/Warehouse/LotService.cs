@@ -557,4 +557,147 @@ public class LotService : ILotService
             throw;
         }
     }
+
+    public async Task<PagedResult<LotDto>> GetLotsByProductAsync(
+        Guid productId,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            var query = _context.Lots
+                .Include(l => l.Product)
+                .Include(l => l.Supplier)
+                .Where(l => !l.IsDeleted
+                    && l.TenantId == currentTenantId.Value
+                    && l.ProductId == productId);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var lots = await query
+                .OrderByDescending(l => l.ExpiryDate)
+                .ThenBy(l => l.Code)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var lotDtos = lots.Select(LotMapper.ToDto).ToList();
+
+            return new PagedResult<LotDto>
+            {
+                Items = lotDtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving lots for product {ProductId}", productId);
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<LotDto>> GetLotsByWarehouseAsync(
+        Guid warehouseId,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            // Note: Lots don't have a direct StorageLocation relationship
+            // This returns all lots for the tenant as the warehouse filter
+            // would require joining through inventory/stock records
+            var query = _context.Lots
+                .Include(l => l.Product)
+                .Include(l => l.Supplier)
+                .Where(l => !l.IsDeleted
+                    && l.TenantId == currentTenantId.Value);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var lots = await query
+                .OrderByDescending(l => l.ExpiryDate)
+                .ThenBy(l => l.Code)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var lotDtos = lots.Select(LotMapper.ToDto).ToList();
+
+            return new PagedResult<LotDto>
+            {
+                Items = lotDtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving lots for warehouse {WarehouseId}", warehouseId);
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<LotDto>> GetExpiredLotsAsync(
+        DateTime? threshold,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            var expiryDate = threshold ?? DateTime.UtcNow;
+
+            var query = _context.Lots
+                .Include(l => l.Product)
+                .Include(l => l.Supplier)
+                .Where(l => !l.IsDeleted
+                    && l.TenantId == currentTenantId.Value
+                    && l.ExpiryDate.HasValue
+                    && l.ExpiryDate.Value <= expiryDate);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var lots = await query
+                .OrderBy(l => l.ExpiryDate)
+                .ThenBy(l => l.Code)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var lotDtos = lots.Select(LotMapper.ToDto).ToList();
+
+            return new PagedResult<LotDto>
+            {
+                Items = lotDtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving expired lots");
+            throw;
+        }
+    }
 }

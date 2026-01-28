@@ -34,6 +34,24 @@ public interface IStorageLocationService
     Task<IEnumerable<StorageLocationDto>> GetLocationsByWarehouseAsync(Guid warehouseId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all storage locations for a specific warehouse with pagination.
+    /// </summary>
+    /// <param name="warehouseId">Warehouse ID to filter locations</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of storage locations for the warehouse</returns>
+    Task<PagedResult<StorageLocationDto>> GetLocationsByWarehouseAsync(Guid warehouseId, PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all storage locations for a specific zone with pagination.
+    /// </summary>
+    /// <param name="zone">Zone to filter locations</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of storage locations in the zone</returns>
+    Task<PagedResult<StorageLocationDto>> GetLocationsByZoneAsync(string zone, PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets available storage locations (with remaining capacity).
     /// </summary>
     /// <param name="warehouseId">Optional warehouse ID to filter</param>
