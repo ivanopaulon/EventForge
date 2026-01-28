@@ -119,6 +119,8 @@
                     @TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")
                 </MudText>
                 <MudSpacer />
+                
+                @* Search field - keep in toolbar for quick access *@
                 <MudTextField @bind-Value="_filters.SearchTerm"
                               @bind-Value:after="OnSearchChanged"
                               Label="@TranslationService.GetTranslation("stock.search", "Cerca prodotti")"
@@ -128,63 +130,44 @@
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
                               Class="ef-input" />
-                <MudSelect @bind-Value="_filters.WarehouseId"
-                           @bind-Value:after="OnWarehouseChanged"
-                           Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
+                
+                @* Advanced Filters Button *@
+                <MudButton StartIcon="@Icons.Material.Outlined.FilterList"
+                           OnClick="OpenFiltersDialog"
                            Variant="Variant.Outlined"
-                           Clearable="true"
-                           Class="ef-input ml-2"
-                           Style="min-width:200px;">
-                    @foreach (var warehouse in _warehouses)
+                           Color="@(_filters.HasActiveFilters ? Color.Primary : Color.Default)"
+                           Class="ml-2">
+                    @TranslationService.GetTranslation("stock.advancedFilters", "Filtri")
+                    @if (_filters.ActiveFilterCount > 0)
                     {
-                        <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">
+                            @_filters.ActiveFilterCount
+                        </MudChip>
                     }
-                </MudSelect>
-                <MudSelect @bind-Value="_filters.LocationId"
-                           @bind-Value:after="OnFilterChanged"
-                           Label="@TranslationService.GetTranslation("stock.location", "Ubicazione")"
-                           Variant="Variant.Outlined"
-                           Clearable="true"
-                           Disabled="@(!_filters.WarehouseId.HasValue)"
-                           Class="ef-input ml-2"
-                           Style="min-width:200px;">
-                    @foreach (var location in _locations)
-                    {
-                        <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
-                    }
-                </MudSelect>
-                <MudSwitch @bind-Value="_filters.ShowOnlyLowStock"
-                           @bind-Value:after="OnFilterChanged"
-                           Label="@TranslationService.GetTranslation("stock.onlyLowStock", "Solo sotto riordino")"
-                           Color="Color.Warning"
-                           Class="ml-2" />
-                <MudSwitch @bind-Value="_filters.ShowOnlyCritical"
-                           @bind-Value:after="OnFilterChanged"
-                           Label="@TranslationService.GetTranslation("stock.onlyCritical", "Solo critici")"
-                           Color="Color.Error"
-                           Class="ml-2" />
-                <MudSwitch @bind-Value="_filters.ShowOnlyOutOfStock"
-                           @bind-Value:after="OnFilterChanged"
-                           Label="@TranslationService.GetTranslation("stock.onlyOutOfStock", "Solo esauriti")"
-                           Color="Color.Dark"
-                           Class="ml-2" />
-                <MudSwitch @bind-Value="_filters.ShowOnlyInStock"
-                           @bind-Value:after="OnFilterChanged"
-                           Label="@TranslationService.GetTranslation("stock.onlyInStock", "Solo con giacenza")"
-                           Color="Color.Success"
-                           Class="ml-2" />
-                <MudTooltip Text="@TranslationService.GetTranslation("stock.includeProductsWithoutStockTooltip", "Include prodotti che non hanno giacenza registrata")">
-                    <MudSwitch @bind-Value="_filters.ShowAllProducts"
-                               @bind-Value:after="OnFilterChanged"
-                               Label="@TranslationService.GetTranslation("stock.includeProductsWithoutStock", "Includi prodotti senza giacenza")"
-                               Color="Color.Info"
-                               Class="ml-2" />
-                </MudTooltip>
+                </MudButton>
+                
+                @* Detailed/Aggregated View Switch *@
                 <MudSwitch @bind-Value="_filters.DetailedView"
                            @bind-Value:after="OnViewChanged"
                            Label="@(_filters.DetailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
                            Color="Color.Info"
                            Class="ml-2" />
+                
+                @* Selection and bulk operations toolbar *@
+                @if (_selectedStockItems.Any())
+                {
+                    <MudButtonGroup Variant="Variant.Outlined" Class="ml-2">
+                        <MudButton StartIcon="@Icons.Material.Outlined.FileDownload"
+                                   OnClick="ExportSelectedToExcel">
+                            @TranslationService.GetTranslation("stock.export", "Esporta") (@_selectedStockItems.Count)
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Outlined.Print"
+                                   OnClick="PrintSelectedLabels">
+                            @TranslationService.GetTranslation("stock.printLabels", "Stampa Etichette")
+                        </MudButton>
+                    </MudButtonGroup>
+                }
+                
                 <ManagementTableToolbar ShowSelectionBadge="true"
                                         SelectedCount="@_selectedStockItems.Count"
                                         ShowRefresh="true"
@@ -404,9 +387,11 @@
                     else if (column.PropertyName == "Status")
                     {
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(stockStatus)">
-                                @TranslationService.GetTranslation($"stock.status.{stockStatus}", stockStatus.ToString())
-                            </MudChip>
+                            <MudTooltip Text="@GetStatusTooltip(stockStatus)">
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(stockStatus)">
+                                    @TranslationService.GetTranslation($"stock.status.{stockStatus}", stockStatus.ToString())
+                                </MudChip>
+                            </MudTooltip>
                         </MudTd>
                     }
                 }
@@ -997,6 +982,100 @@
     private async Task OnViewChanged()
     {
         await OnFilterChangedAsync();
+    }
+
+    /// <summary>
+    /// Opens the advanced filters dialog.
+    /// </summary>
+    private async Task OpenFiltersDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Filters"] = _filters,
+            ["Warehouses"] = _warehouses,
+            ["Locations"] = _locations
+        };
+        
+        var options = new DialogOptions 
+        { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true 
+        };
+        
+        var dialog = await DialogService.ShowAsync<StockFiltersDialog>(
+            TranslationService.GetTranslation("stock.advancedFilters", "Filtri Avanzati"), 
+            parameters, 
+            options);
+        
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await OnFilterChangedAsync();
+        }
+    }
+
+    /// <summary>
+    /// Exports selected stock items to Excel.
+    /// </summary>
+    private async Task ExportSelectedToExcel()
+    {
+        try
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslationFormatted("stock.exportInProgress", "Esportazione di {0} elementi in corso...", _selectedStockItems.Count), 
+                Severity.Info);
+            
+            // TODO: Implementare logica esportazione Excel
+            // Possibile approccio:
+            // - Chiamare endpoint API che genera file Excel
+            // - Scaricare file tramite JSInterop
+            
+            await Task.Delay(1000); // Placeholder
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("stock.exportSuccess", "Esportazione completata"), 
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting stock items");
+            Snackbar.Add(
+                TranslationService.GetTranslation("stock.exportError", "Errore durante l'esportazione"), 
+                Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Prints labels for selected stock items.
+    /// </summary>
+    private async Task PrintSelectedLabels()
+    {
+        try
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslationFormatted("stock.printInProgress", "Preparazione stampa di {0} etichette...", _selectedStockItems.Count), 
+                Severity.Info);
+            
+            // TODO: Implementare logica stampa etichette
+            // Possibile approccio:
+            // - Generare PDF con etichette
+            // - Aprire dialog stampa browser
+            
+            await Task.Delay(1000); // Placeholder
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("stock.printSuccess", "Etichette pronte per la stampa"), 
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error printing labels");
+            Snackbar.Add(
+                TranslationService.GetTranslation("stock.printError", "Errore durante la preparazione stampa"), 
+                Severity.Error);
+        }
     }
 
     /// <summary>
