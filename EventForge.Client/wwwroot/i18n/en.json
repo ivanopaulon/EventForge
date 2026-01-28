@@ -2439,7 +2439,34 @@
     "totalProductsMonitored": "Products Monitored",
     "lowStockItems": "Low Stock",
     "criticalItems": "Critical",
-    "outOfStockItems": "Out of Stock"
+    "outOfStockItems": "Out of Stock",
+    "advancedFilters": "Advanced Filters",
+    "stockLevelFilters": "Stock Level Filters",
+    "onlyLowStock": "Only below reorder point",
+    "export": "Export",
+    "printLabels": "Print Labels",
+    "exportInProgress": "Exporting {0} items...",
+    "exportSuccess": "Export completed",
+    "exportError": "Error during export",
+    "printInProgress": "Preparing {0} labels for printing...",
+    "printSuccess": "Labels ready for printing",
+    "printError": "Error during print preparation",
+    "updateErrorWithDetails": "Update error: {0}",
+    "validation": {
+      "noItemSelected": "No item selected",
+      "negativeQuantity": "Quantity cannot be negative",
+      "maxQuantity": "Maximum quantity is {0}",
+      "warehouseRequired": "Select a warehouse",
+      "locationRequired": "Select a location",
+      "notesRequired": "Notes required for changes greater than {0}",
+      "notesTooLong": "Notes cannot exceed 500 characters"
+    },
+    "status": {
+      "criticalTooltip": "Stock below safety level - order urgently",
+      "lowStockTooltip": "Stock below reorder point - consider reordering",
+      "outOfStockTooltip": "Product out of stock - no inventory available",
+      "normalTooltip": "Stock level is normal"
+    }
   },
   "nav": {
     "stockManagement": "Stock",

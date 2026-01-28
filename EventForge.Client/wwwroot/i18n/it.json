@@ -2442,7 +2442,34 @@
     "totalProductsMonitored": "Prodotti Monitorati",
     "lowStockItems": "Sotto Riordino",
     "criticalItems": "Critici",
-    "outOfStockItems": "Esauriti"
+    "outOfStockItems": "Esauriti",
+    "advancedFilters": "Filtri Avanzati",
+    "stockLevelFilters": "Filtri Livello Giacenza",
+    "onlyLowStock": "Solo sotto riordino",
+    "export": "Esporta",
+    "printLabels": "Stampa Etichette",
+    "exportInProgress": "Esportazione di {0} elementi in corso...",
+    "exportSuccess": "Esportazione completata",
+    "exportError": "Errore durante l'esportazione",
+    "printInProgress": "Preparazione stampa di {0} etichette...",
+    "printSuccess": "Etichette pronte per la stampa",
+    "printError": "Errore durante la preparazione stampa",
+    "updateErrorWithDetails": "Errore nell'aggiornamento: {0}",
+    "validation": {
+      "noItemSelected": "Nessun elemento selezionato",
+      "negativeQuantity": "La quantità non può essere negativa",
+      "maxQuantity": "La quantità massima è {0}",
+      "warehouseRequired": "Seleziona un magazzino",
+      "locationRequired": "Seleziona un'ubicazione",
+      "notesRequired": "Note obbligatorie per variazioni superiori a {0}",
+      "notesTooLong": "Le note non possono superare 500 caratteri"
+    },
+    "status": {
+      "criticalTooltip": "Giacenza sotto la scorta di sicurezza - ordinare urgentemente",
+      "lowStockTooltip": "Giacenza sotto il punto di riordino - considerare riordino",
+      "outOfStockTooltip": "Prodotto esaurito - nessuna giacenza disponibile",
+      "normalTooltip": "Livello giacenza nella norma"
+    }
   },
   "nav": {
     "stockManagement": "Giacenze",

@@ -1,0 +1,144 @@
+@using EventForge.DTOs.Warehouse
+@inject ITranslationService TranslationService
+@inject IStorageLocationService StorageLocationService
+@inject ILogger<StockFiltersDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="Filters.WarehouseId"
+                           @bind-Value:after="OnWarehouseChanged"
+                           Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           Class="mb-3">
+                    @foreach (var warehouse in Warehouses)
+                    {
+                        <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="Filters.LocationId"
+                           Label="@TranslationService.GetTranslation("stock.location", "Ubicazione")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           Disabled="@(!Filters.WarehouseId.HasValue)"
+                           Class="mb-3">
+                    @foreach (var location in _locations)
+                    {
+                        <MudSelectItem T="Guid?" Value="@location.Id">@location.Code - @location.Description</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                    @TranslationService.GetTranslation("stock.stockLevelFilters", "Filtri Livello Giacenza")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6">
+                <MudSwitch @bind-Value="Filters.ShowOnlyLowStock"
+                           Label="@TranslationService.GetTranslation("stock.onlyLowStock", "Solo sotto riordino")"
+                           Color="Color.Warning" />
+            </MudItem>
+            
+            <MudItem xs="12" sm="6">
+                <MudSwitch @bind-Value="Filters.ShowOnlyCritical"
+                           Label="@TranslationService.GetTranslation("stock.onlyCritical", "Solo critici")"
+                           Color="Color.Error" />
+            </MudItem>
+            
+            <MudItem xs="12" sm="6">
+                <MudSwitch @bind-Value="Filters.ShowOnlyOutOfStock"
+                           Label="@TranslationService.GetTranslation("stock.onlyOutOfStock", "Solo esauriti")"
+                           Color="Color.Dark" />
+            </MudItem>
+            
+            <MudItem xs="12" sm="6">
+                <MudSwitch @bind-Value="Filters.ShowOnlyInStock"
+                           Label="@TranslationService.GetTranslation("stock.onlyInStock", "Solo con giacenza")"
+                           Color="Color.Success" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudSwitch @bind-Value="Filters.ShowAllProducts"
+                           Label="@TranslationService.GetTranslation("stock.includeProductsWithoutStock", "Includi prodotti senza giacenza")"
+                           Color="Color.Info" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Secondary" OnClick="ClearFilters">
+            @TranslationService.GetTranslation("common.clearFilters", "Cancella Filtri")
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Apply">
+            @TranslationService.GetTranslation("common.apply", "Applica")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public StockFilters Filters { get; set; } = new();
+    [Parameter] public List<StorageFacilityDto> Warehouses { get; set; } = new();
+    [Parameter] public List<StorageLocationDto> Locations { get; set; } = new();
+    
+    private List<StorageLocationDto> _locations = new();
+    
+    protected override void OnInitialized()
+    {
+        _locations = Locations.ToList();
+    }
+    
+    private async Task OnWarehouseChanged()
+    {
+        // Reset location when warehouse changes
+        Filters.LocationId = null;
+        
+        // Load locations for selected warehouse
+        if (Filters.WarehouseId.HasValue)
+        {
+            try
+            {
+                var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(Filters.WarehouseId.Value);
+                if (result != null)
+                {
+                    _locations = result.Items.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", Filters.WarehouseId);
+                _locations.Clear();
+            }
+        }
+        else
+        {
+            _locations.Clear();
+        }
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+    
+    private void ClearFilters()
+    {
+        Filters.WarehouseId = null;
+        Filters.LocationId = null;
+        Filters.ShowOnlyLowStock = false;
+        Filters.ShowOnlyCritical = false;
+        Filters.ShowOnlyOutOfStock = false;
+        Filters.ShowOnlyInStock = false;
+        Filters.ShowAllProducts = false;
+        _locations.Clear();
+    }
+    
+    private void Apply() => MudDialog.Close(DialogResult.Ok(Filters));
+}
