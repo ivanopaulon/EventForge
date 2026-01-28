@@ -198,11 +198,18 @@ public class StockReconciliationService : IStockReconciliationService
         // Set calculated values
         item.CalculatedQuantity = calculatedQuantity;
         item.Difference = calculatedQuantity - stock.Quantity;
-        item.DifferencePercentage = calculatedQuantity != 0
-            ? Math.Abs(item.Difference) / Math.Abs(calculatedQuantity) * 100
+        
+        // Fix percentage calculation: use the larger of current or calculated as base
+        var baseValue = Math.Max(Math.Abs(item.CurrentQuantity), Math.Abs(calculatedQuantity));
+        item.DifferencePercentage = baseValue != 0
+            ? Math.Abs(item.Difference) / baseValue * 100
             : 0;
 
-        item.Severity = DetermineSeverity(item.CurrentQuantity, item.CalculatedQuantity, item.DifferencePercentage);
+        item.Severity = DetermineSeverity(
+            item.CurrentQuantity, 
+            item.CalculatedQuantity, 
+            item.DifferencePercentage,
+            request.DiscrepancyThreshold);
         item.SourceMovements = sourceMovements.OrderBy(m => m.Date).ToList();
 
         return item;
@@ -258,11 +265,42 @@ public class StockReconciliationService : IStockReconciliationService
         Guid tenantId,
         CancellationToken cancellationToken)
     {
-        // TODO: Implement inventory movement retrieval when inventory data model is clarified
-        // The inventory document structure needs to be reviewed to properly integrate with reconciliation
-        // For now, this method returns null, meaning inventories are not included in the calculation
-        await Task.CompletedTask;
-        return null;
+        // Query for the last finalized inventory document
+        // We check for common inventory document type codes: "INVENTORY", "INV-COUNT", "STOCK-COUNT", "INVENT"
+        var lastInventoryRow = await _context.DocumentRows
+            .AsNoTracking()
+            .Include(dr => dr.DocumentHeader)
+                .ThenInclude(dh => dh!.DocumentType)
+            .Where(dr => dr.TenantId == tenantId &&
+                        !dr.IsDeleted &&
+                        dr.ProductId == productId &&
+                        dr.LocationId == locationId &&
+                        dr.DocumentHeader != null &&
+                        dr.DocumentHeader.DocumentType != null &&
+                        // Check for common inventory document type codes
+                        (dr.DocumentHeader.DocumentType.Code == "INVENTORY" ||
+                         dr.DocumentHeader.DocumentType.Code == "INV-COUNT" ||
+                         dr.DocumentHeader.DocumentType.Code == "STOCK-COUNT" ||
+                         dr.DocumentHeader.DocumentType.Code == "INVENT") &&
+                        dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed)
+            .OrderByDescending(dr => dr.DocumentHeader!.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (lastInventoryRow == null)
+            return null;
+
+        // Verify the inventory is within the date range
+        if (toDate.HasValue && lastInventoryRow.DocumentHeader!.Date > toDate.Value)
+            return null;
+
+        return new StockMovementSourceDto
+        {
+            Type = "Inventory",
+            Reference = $"{lastInventoryRow.DocumentHeader!.DocumentType!.Code}-{lastInventoryRow.DocumentHeader.Number}",
+            Quantity = lastInventoryRow.Quantity, // Counted quantity
+            Date = lastInventoryRow.DocumentHeader.Date,
+            IsReplacement = true // Indicates this replaces the stock quantity
+        };
     }
 
     private async Task<List<StockMovementSourceDto>> GetManualMovementsAsync(
@@ -305,7 +343,8 @@ public class StockReconciliationService : IStockReconciliationService
     private static ReconciliationSeverity DetermineSeverity(
         decimal currentQuantity,
         decimal calculatedQuantity,
-        decimal differencePercentage)
+        decimal differencePercentage,
+        decimal threshold)
     {
         // Missing: Current is 0 but calculated is > 0
         if (currentQuantity == 0 && calculatedQuantity > 0)
@@ -319,13 +358,13 @@ public class StockReconciliationService : IStockReconciliationService
             return ReconciliationSeverity.Correct;
         }
 
-        // Major: Difference > 10%
-        if (differencePercentage > 10)
+        // Major: Difference > threshold
+        if (differencePercentage > threshold)
         {
             return ReconciliationSeverity.Major;
         }
 
-        // Minor: Difference < 10%
+        // Minor: Difference <= threshold
         return ReconciliationSeverity.Minor;
     }
 
