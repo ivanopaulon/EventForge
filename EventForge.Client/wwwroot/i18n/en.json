@@ -2971,5 +2971,14 @@
       "GeneralList": "Active general price list",
       "DefaultPrice": "Product default price"
     }
+  },
+  "fontPreferences": {
+    "title": "Font Preferences",
+    "primaryFont": "Primary Font",
+    "monoFont": "Monospace Font",
+    "fontSize": "Font Size",
+    "extendedFonts": "Enable Extended Multilingual Fonts",
+    "useSystem": "Use System Fonts (Performance)",
+    "preview": "Preview"
   }
 }

@@ -65,6 +65,31 @@ public class ProfileController : BaseApiController
             }
 
             var profileDto = MapToProfileDto(user);
+            
+            // Carica DisplayPreferences da MetadataJson
+            if (!string.IsNullOrEmpty(user.MetadataJson))
+            {
+                try
+                {
+                    var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(user.MetadataJson);
+                    
+                    if (metadata?.ContainsKey("DisplayPreferences") == true)
+                    {
+                        var displayPrefs = System.Text.Json.JsonSerializer.Deserialize<UserDisplayPreferencesDto>(
+                            metadata["DisplayPreferences"].GetRawText());
+                        
+                        if (displayPrefs != null)
+                        {
+                            profileDto.DisplayPreferences = displayPrefs;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse DisplayPreferences from user metadata for user {UserId}", userId);
+                }
+            }
+            
             return Ok(profileDto);
         }
         catch (Exception ex)
@@ -126,11 +151,64 @@ public class ProfileController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = user.Username;
 
+            // Salva DisplayPreferences in MetadataJson
+            if (updateDto.DisplayPreferences != null)
+            {
+                Dictionary<string, object> metadata;
+                
+                if (string.IsNullOrEmpty(user.MetadataJson))
+                {
+                    metadata = new Dictionary<string, object>();
+                }
+                else
+                {
+                    try
+                    {
+                        metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(user.MetadataJson) 
+                                   ?? new Dictionary<string, object>();
+                    }
+                    catch
+                    {
+                        metadata = new Dictionary<string, object>();
+                    }
+                }
+
+                metadata["DisplayPreferences"] = updateDto.DisplayPreferences;
+                user.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+                
+                _logger.LogInformation("Updated DisplayPreferences for user {UserId}", userId);
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("User {UserId} updated their profile", userId.Value);
 
             var profileDto = MapToProfileDto(user);
+            
+            // Carica DisplayPreferences da MetadataJson per il ritorno
+            if (!string.IsNullOrEmpty(user.MetadataJson))
+            {
+                try
+                {
+                    var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(user.MetadataJson);
+                    
+                    if (metadata?.ContainsKey("DisplayPreferences") == true)
+                    {
+                        var displayPrefs = System.Text.Json.JsonSerializer.Deserialize<UserDisplayPreferencesDto>(
+                            metadata["DisplayPreferences"].GetRawText());
+                        
+                        if (displayPrefs != null)
+                        {
+                            profileDto.DisplayPreferences = displayPrefs;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse DisplayPreferences from user metadata for user {UserId}", userId);
+                }
+            }
+            
             return Ok(profileDto);
         }
         catch (Exception ex)

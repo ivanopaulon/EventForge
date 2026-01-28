@@ -1,0 +1,101 @@
+@using EventForge.DTOs.Profile
+@inject IFontPreferencesService FontPreferencesService
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="4">
+            <MudSelect T="string" 
+                       @bind-Value="_preferences.PrimaryFontFamily"
+                       Label="@TranslationService.GetTranslation("fontPreferences.primaryFont", "Font Principale")"
+                       Variant="Variant.Outlined">
+                <MudSelectItem Value="@("Noto Sans")">Noto Sans (Consigliato)</MudSelectItem>
+                <MudSelectItem Value="@("Noto Serif")">Noto Serif</MudSelectItem>
+                <MudSelectItem Value="@("System")">Font di Sistema</MudSelectItem>
+            </MudSelect>
+
+            <MudSelect T="string" 
+                       @bind-Value="_preferences.MonospaceFontFamily"
+                       Label="@TranslationService.GetTranslation("fontPreferences.monoFont", "Font Monospace")"
+                       Variant="Variant.Outlined">
+                <MudSelectItem Value="@("Noto Sans Mono")">Noto Sans Mono (Consigliato)</MudSelectItem>
+                <MudSelectItem Value="@("Courier New")">Courier New</MudSelectItem>
+            </MudSelect>
+
+            <MudSlider @bind-Value="_preferences.BaseFontSize" 
+                       Min="12" 
+                       Max="24" 
+                       Step="1"
+                       Color="Color.Primary">
+                @TranslationService.GetTranslation("fontPreferences.fontSize", "Dimensione Font"): @_preferences.BaseFontSize px
+            </MudSlider>
+
+            <MudSwitch @bind-Value="_preferences.EnableExtendedFonts"
+                       Label="@TranslationService.GetTranslation("fontPreferences.extendedFonts", "Abilita Font Multilingua Estesi")"
+                       Color="Color.Primary" />
+
+            <MudSwitch @bind-Value="_preferences.UseSystemFonts"
+                       Label="@TranslationService.GetTranslation("fontPreferences.useSystem", "Usa Font di Sistema (Performance)")"
+                       Color="Color.Secondary" />
+
+            <MudPaper Class="pa-4" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">
+                    @TranslationService.GetTranslation("fontPreferences.preview", "Anteprima"):
+                </MudText>
+                <MudText Typo="Typo.body1" Style="@GetPreviewStyle()">
+                    EventForge ABC 123 - àèéìòù
+                </MudText>
+            </MudPaper>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+
+    private UserDisplayPreferencesDto _preferences = new();
+
+    protected override void OnInitialized()
+    {
+        _preferences = new UserDisplayPreferencesDto
+        {
+            PrimaryFontFamily = FontPreferencesService.CurrentPreferences.PrimaryFontFamily,
+            MonospaceFontFamily = FontPreferencesService.CurrentPreferences.MonospaceFontFamily,
+            BaseFontSize = FontPreferencesService.CurrentPreferences.BaseFontSize,
+            EnableExtendedFonts = FontPreferencesService.CurrentPreferences.EnableExtendedFonts,
+            UseSystemFonts = FontPreferencesService.CurrentPreferences.UseSystemFonts
+        };
+    }
+
+    private async Task Save()
+    {
+        await FontPreferencesService.UpdatePreferencesAsync(_preferences);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string GetFontFamilyCss(string fontName)
+    {
+        return fontName switch
+        {
+            "Noto Sans" => "'Noto Sans', sans-serif",
+            "Noto Serif" => "'Noto Serif', serif",
+            "System" => "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            _ => "'Noto Sans', sans-serif"
+        };
+    }
+
+    private string GetPreviewStyle()
+    {
+        var fontFamily = GetFontFamilyCss(_preferences.PrimaryFontFamily);
+        var fontSize = $"{_preferences.BaseFontSize}px";
+        return $"font-family: {fontFamily}; font-size: {fontSize};";
+    }
+}
