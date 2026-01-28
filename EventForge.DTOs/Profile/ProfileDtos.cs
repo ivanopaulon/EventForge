@@ -29,6 +29,11 @@ public class UserProfileDto
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public DateTime? PasswordChangedAt { get; set; }
+    
+    /// <summary>
+    /// Preferenze di visualizzazione dell'utente
+    /// </summary>
+    public UserDisplayPreferencesDto? DisplayPreferences { get; set; }
 }
 
 /// <summary>
@@ -57,6 +62,11 @@ public class UpdateProfileDto
 
     [MaxLength(50)]
     public string? TimeZone { get; set; }
+    
+    /// <summary>
+    /// Preferenze di visualizzazione
+    /// </summary>
+    public UserDisplayPreferencesDto? DisplayPreferences { get; set; }
 }
 
 /// <summary>

@@ -1,5 +1,5 @@
-/* EventForge Application Styles
-   =============================
+/* EventForge Application Styles - Font Configuration
+   ==================================================
    
    This file contains application-specific styles that work with the custom theme.
    Color variables are defined in custom-theme.css.
@@ -21,6 +21,16 @@
    
    NOTE: Avoid defining colors directly here - use custom theme variables instead.
 */
+
+:root {
+    /* Font Family Variables */
+    --font-family-primary: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    --font-family-monospace: 'Noto Sans Mono', 'Courier New', Consolas, Monaco, monospace;
+    --font-family-serif: 'Noto Serif', Georgia, 'Times New Roman', serif;
+    
+    /* Fallback per compatibilità */
+    --font-family-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 
 
 
@@ -87,7 +97,34 @@ body {
 
 
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--font-family-primary);
+}
+
+/* Elementi monospaced */
+code, kbd, pre, samp {
+    font-family: var(--font-family-monospace);
+}
+
+/* Elementi serif (opzionale per contenuti lunghi) */
+.text-serif {
+    font-family: var(--font-family-serif);
+}
+
+/* Utility classes per font switching */
+.font-noto-sans {
+    font-family: var(--font-family-primary);
+}
+
+.font-noto-mono {
+    font-family: var(--font-family-monospace);
+}
+
+.font-noto-serif {
+    font-family: var(--font-family-serif);
+}
+
+.font-system {
+    font-family: var(--font-family-system);
 }
 
 h1:focus {

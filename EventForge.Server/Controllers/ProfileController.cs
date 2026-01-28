@@ -65,6 +65,10 @@ public class ProfileController : BaseApiController
             }
 
             var profileDto = MapToProfileDto(user);
+            
+            // Load DisplayPreferences from MetadataJson
+            profileDto.DisplayPreferences = LoadDisplayPreferencesFromMetadata(user);
+            
             return Ok(profileDto);
         }
         catch (Exception ex)
@@ -126,11 +130,43 @@ public class ProfileController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = user.Username;
 
+            // Salva DisplayPreferences in MetadataJson
+            if (updateDto.DisplayPreferences != null)
+            {
+                Dictionary<string, object> metadata;
+                
+                if (string.IsNullOrEmpty(user.MetadataJson))
+                {
+                    metadata = new Dictionary<string, object>();
+                }
+                else
+                {
+                    try
+                    {
+                        metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(user.MetadataJson) 
+                                   ?? new Dictionary<string, object>();
+                    }
+                    catch
+                    {
+                        metadata = new Dictionary<string, object>();
+                    }
+                }
+
+                metadata["DisplayPreferences"] = updateDto.DisplayPreferences;
+                user.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+                
+                _logger.LogInformation("Updated DisplayPreferences for user {UserId}", userId);
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("User {UserId} updated their profile", userId.Value);
 
             var profileDto = MapToProfileDto(user);
+            
+            // Load DisplayPreferences from MetadataJson for the return value
+            profileDto.DisplayPreferences = LoadDisplayPreferencesFromMetadata(user);
+            
             return Ok(profileDto);
         }
         catch (Exception ex)
@@ -725,6 +761,38 @@ public class ProfileController : BaseApiController
     }
 
     #region Private Helper Methods
+
+    /// <summary>
+    /// Loads DisplayPreferences from user metadata JSON.
+    /// </summary>
+    /// <param name="user">The user entity</param>
+    /// <returns>UserDisplayPreferencesDto if found and valid, null otherwise</returns>
+    private UserDisplayPreferencesDto? LoadDisplayPreferencesFromMetadata(User user)
+    {
+        if (string.IsNullOrEmpty(user.MetadataJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(user.MetadataJson);
+            
+            if (metadata?.ContainsKey("DisplayPreferences") == true)
+            {
+                var displayPrefs = System.Text.Json.JsonSerializer.Deserialize<UserDisplayPreferencesDto>(
+                    metadata["DisplayPreferences"].GetRawText());
+                
+                return displayPrefs;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse DisplayPreferences from user metadata for user {UserId}", user.Id);
+        }
+
+        return null;
+    }
 
     private UserProfileDto MapToProfileDto(User user)
     {

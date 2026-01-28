@@ -2971,5 +2971,16 @@
       "GeneralList": "Listino generale attivo",
       "DefaultPrice": "Prezzo predefinito prodotto"
     }
+  },
+  "fontPreferences": {
+    "title": "Preferenze Font",
+    "primaryFont": "Font Principale",
+    "monoFont": "Font Monospace",
+    "fontSize": "Dimensione Font",
+    "extendedFonts": "Abilita Font Multilingua Estesi",
+    "useSystem": "Usa Font di Sistema (Performance)",
+    "preview": "Anteprima",
+    "recommended": "Consigliato",
+    "systemFont": "Font di Sistema"
   }
 }

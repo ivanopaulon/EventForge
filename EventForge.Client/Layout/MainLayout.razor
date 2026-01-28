@@ -4,11 +4,13 @@
 @inject IAuthService AuthService
 @inject ISessionKeepaliveService SessionKeepaliveService
 @inject IThemeService ThemeService
+@inject IFontPreferencesService FontPreferencesService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject ILogger<MainLayout> Logger
+@inject IDialogService DialogService
 @implements IDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
@@ -31,6 +33,15 @@
         
         @if (_isAuthenticated)
         {
+            <!-- Font Preferences Button -->
+            <MudTooltip Text="@TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font")">
+                <MudIconButton Icon="@Icons.Material.Filled.FontDownload"
+                               Color="Color.Inherit"
+                               OnClick="OpenFontPreferences"
+                               Size="Size.Small"
+                               aria-label="@TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font")" />
+            </MudTooltip>
+            
             <UserAccountMenu OnLogout="@HandleLogout" />
         }
         else
@@ -81,6 +92,7 @@
     {
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
         ThemeService.OnThemeChanged += OnThemeChanged;
+        FontPreferencesService.OnPreferencesChanged += OnFontPreferencesChanged;
         TranslationService.LanguageChanged += OnLanguageChanged;
         NavigationManager.LocationChanged += OnLocationChanged;
         
@@ -89,6 +101,7 @@
         SessionKeepaliveService.OnRefreshFailure += OnSessionRefreshFailure;
         
         await ThemeService.InitializeAsync();
+        await FontPreferencesService.InitializeAsync();
         await CheckAuthenticationState();
         
         UpdateTheme();
@@ -98,6 +111,25 @@
     {
         UpdateTheme();
         InvokeAsync(StateHasChanged);
+    }
+
+    private void OnFontPreferencesChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OpenFontPreferences()
+    {
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true, 
+            MaxWidth = MaxWidth.Small, 
+            FullWidth = true 
+        };
+        
+        await DialogService.ShowAsync<EventForge.Client.Shared.Components.Dialogs.FontPreferencesDialog>(
+            TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font"),
+            options);
     }
 
     private void OnLanguageChanged(object? sender, string newLanguage)
@@ -334,6 +366,7 @@
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
         ThemeService.OnThemeChanged -= OnThemeChanged;
+        FontPreferencesService.OnPreferencesChanged -= OnFontPreferencesChanged;
         TranslationService.LanguageChanged -= OnLanguageChanged;
         NavigationManager.LocationChanged -= OnLocationChanged;
         SessionKeepaliveService.OnRefreshSuccess -= OnSessionRefreshSuccess;
