@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,43 @@ public class NoteFlagService : INoteFlagService
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public async Task<PagedResult<NoteFlagDto>> GetNoteFlagsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for note flag operations.");
+            }
+
+            var query = _context.NoteFlags
+                .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var noteFlags = await query
+                .OrderBy(nf => nf.DisplayOrder)
+                .ThenBy(nf => nf.Name)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<NoteFlagDto>
+            {
+                Items = noteFlags.Select(MapToDto),
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving note flags.");
+            throw;
+        }
     }
 
     public async Task<List<NoteFlagDto>> GetAllAsync(CancellationToken cancellationToken = default)

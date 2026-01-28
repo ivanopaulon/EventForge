@@ -1,8 +1,11 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -30,16 +33,20 @@ public class NoteFlagsController : BaseApiController
     }
 
     /// <summary>
-    /// Gets all note flags.
+    /// Gets all note flags with pagination.
     /// </summary>
+    /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of note flags</returns>
-    /// <response code="200">Returns the list of note flags</response>
+    /// <returns>Paginated list of note flags</returns>
+    /// <response code="200">Successfully retrieved note flags with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
-    [ProducesResponseType(typeof(List<NoteFlagDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<NoteFlagDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<List<NoteFlagDto>>> GetAll(
+    public async Task<ActionResult<PagedResult<NoteFlagDto>>> GetAll(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -47,8 +54,20 @@ public class NoteFlagsController : BaseApiController
 
         try
         {
-            var noteFlags = await _noteFlagService.GetAllAsync(cancellationToken);
-            return Ok(noteFlags);
+            var result = await _noteFlagService.GetNoteFlagsAsync(pagination, cancellationToken);
+            
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+            
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+            
+            return Ok(result);
         }
         catch (Exception ex)
         {

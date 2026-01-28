@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 
 namespace EventForge.Server.Services.Sales;
@@ -8,20 +9,20 @@ namespace EventForge.Server.Services.Sales;
 public interface IPaymentMethodService
 {
     /// <summary>
-    /// Gets all payment methods with optional pagination.
+    /// Gets all payment methods with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of payment methods</returns>
-    Task<PagedResult<PaymentMethodDto>> GetPaymentMethodsAsync(int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
+    Task<PagedResult<PaymentMethodDto>> GetPaymentMethodsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets only active payment methods (for POS UI).
+    /// Gets only active payment methods with pagination.
     /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of active payment methods ordered by display order</returns>
-    Task<List<PaymentMethodDto>> GetActivePaymentMethodsAsync(CancellationToken cancellationToken = default);
+    /// <returns>Paginated list of active payment methods</returns>
+    Task<PagedResult<PaymentMethodDto>> GetActivePaymentMethodsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a payment method by ID.

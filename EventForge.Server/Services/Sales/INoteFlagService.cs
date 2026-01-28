@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 
 namespace EventForge.Server.Services.Sales;
@@ -7,6 +8,14 @@ namespace EventForge.Server.Services.Sales;
 /// </summary>
 public interface INoteFlagService
 {
+    /// <summary>
+    /// Gets all note flags with pagination.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of note flags</returns>
+    Task<PagedResult<NoteFlagDto>> GetNoteFlagsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Gets all note flags.
     /// </summary>
