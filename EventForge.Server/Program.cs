@@ -2,6 +2,7 @@ using EventForge.Server.Middleware;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
+using StackExchange.Profiling;
 using System.Reflection;
 
 // NOTE: Using Swashbuckle.AspNetCore 6.x with Microsoft.OpenApi 1.x for compatibility.
@@ -153,6 +154,27 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+// Add MiniProfiler for performance profiling
+builder.Services.AddMiniProfiler(options =>
+{
+    // UI configuration
+    options.RouteBasePath = "/profiler";
+    options.PopupRenderPosition = StackExchange.Profiling.RenderPosition.BottomLeft;
+    options.PopupShowTimeWithChildren = true;
+    options.PopupShowTrivial = true;
+    
+    // Performance
+    options.EnableServerTimingHeader = true;
+    options.TrackConnectionOpenClose = true;
+    
+    // Storage uses default in-memory cache
+    // options.Storage is set automatically to use memory cache
+    
+    // Ignore paths
+    options.IgnoredPaths.Add("/swagger");
+    options.IgnoredPaths.Add("/health");
+}).AddEntityFramework();
+
 var app = builder.Build();
 
 // Add middleware early in the pipeline
@@ -203,6 +225,12 @@ app.UseHttpsRedirection();
 
 // Enable routing BEFORE static files
 app.UseRouting();
+
+// Add MiniProfiler middleware for performance profiling
+app.UseMiniProfiler();
+
+// Add performance telemetry middleware
+app.UsePerformanceTelemetry();
 
 // Enable rate limiting
 app.UseRateLimiter();

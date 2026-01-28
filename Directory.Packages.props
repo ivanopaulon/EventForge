@@ -70,5 +70,8 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <!-- System.CommandLine: Latest available version (stable 2.0.0 not yet released) -->
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <!-- FASE 6 - Performance Monitoring -->
+    <PackageVersion Include="MiniProfiler.AspNetCore.Mvc" Version="4.5.4" />
+    <PackageVersion Include="MiniProfiler.EntityFrameworkCore" Version="4.5.4" />
   </ItemGroup>
 </Project>
