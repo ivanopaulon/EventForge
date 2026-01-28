@@ -133,7 +133,7 @@ public class TableManagementService : ITableManagementService
         return table != null ? MapToDto(table) : null;
     }
 
-    public async Task<List<TableSessionDto>> GetAvailableTablesAsync(CancellationToken cancellationToken = default)
+    public async Task<List<TableSessionDto>> GetAllAvailableTablesAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
         _logger.LogInformation("Getting available tables for tenant {TenantId}", tenantId);

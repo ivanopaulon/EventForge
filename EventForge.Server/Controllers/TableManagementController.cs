@@ -30,6 +30,23 @@ public class TableManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Adds pagination headers to the response.
+    /// </summary>
+    private void AddPaginationHeaders<T>(PagedResult<T> result, PaginationParameters pagination)
+    {
+        Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+        Response.Headers.Append("X-Page", result.Page.ToString());
+        Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+        Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+        if (pagination.WasCapped)
+        {
+            Response.Headers.Append("X-Pagination-Capped", "true");
+            Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+        }
+    }
+
+    /// <summary>
     /// Gets all tables.
     /// </summary>
     [HttpGet]
@@ -42,7 +59,7 @@ public class TableManagementController : BaseApiController
         try
         {
 #pragma warning disable CS0618 // Type or member is obsolete
-            var tables = await ((ITableManagementService)_tableService).GetAllTablesAsync(cancellationToken);
+            var tables = await _tableService.GetAllTablesAsync(cancellationToken);
 #pragma warning restore CS0618 // Type or member is obsolete
             return Ok(tables);
         }
@@ -71,18 +88,7 @@ public class TableManagementController : BaseApiController
         try
         {
             var result = await _tableService.GetTablesAsync(pagination, cancellationToken);
-
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
-
+            AddPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -132,9 +138,7 @@ public class TableManagementController : BaseApiController
         try
         {
             // Call the obsolete non-paginated version
-            var tables = await _tableService.GetAllTablesAsync(cancellationToken);
-            // Filter to available only for this endpoint
-            tables = tables.Where(t => t.IsActive && t.Status == "Available").ToList();
+            var tables = await _tableService.GetAllAvailableTablesAsync(cancellationToken);
             return Ok(tables);
         }
         catch (Exception ex)
@@ -161,18 +165,7 @@ public class TableManagementController : BaseApiController
         try
         {
             var result = await _tableService.GetAvailableTablesAsync(pagination, cancellationToken);
-
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
-
+            AddPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -200,18 +193,7 @@ public class TableManagementController : BaseApiController
         try
         {
             var result = await _tableService.GetTablesByZoneAsync(zone, pagination, cancellationToken);
-
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
-
+            AddPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)

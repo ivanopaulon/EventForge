@@ -27,12 +27,18 @@ public interface ITableManagementService
     Task<PagedResult<TableSessionDto>> GetTablesByZoneAsync(string zone, PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all available tables with pagination (not occupied, reserved, or out of service).
+    /// Gets all available tables with pagination.
     /// </summary>
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of available tables</returns>
     Task<PagedResult<TableSessionDto>> GetAvailableTablesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available tables for the current tenant (deprecated - use GetAvailableTablesAsync with pagination).
+    /// </summary>
+    [Obsolete("Use GetAvailableTablesAsync with pagination instead")]
+    Task<List<TableSessionDto>> GetAllAvailableTablesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all tables for the current tenant (deprecated - use GetTablesAsync).
