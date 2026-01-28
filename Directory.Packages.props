@@ -48,6 +48,10 @@
     <!-- Document Export packages -->
     <PackageVersion Include="QuestPDF" Version="2025.7.4" />
     <PackageVersion Include="ClosedXML" Version="0.104.2" />
+    <!-- FluentValidation packages -->
+    <PackageVersion Include="FluentValidation" Version="11.11.0" />
+    <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
     <!-- Test packages -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />

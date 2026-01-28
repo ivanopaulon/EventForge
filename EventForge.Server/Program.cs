@@ -1,4 +1,5 @@
 using EventForge.Server.Middleware;
+using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -35,12 +36,17 @@ builder.Services.Configure<EventForge.Server.Configuration.PaginationSettings>(
 builder.Services.AddControllers(options =>
 {
     options.ModelBinderProviders.Insert(0, new EventForge.Server.ModelBinders.PaginationModelBinderProvider());
+    // Add FluentValidation filter
+    options.Filters.Add<EventForge.Server.Filters.FluentValidationFilter>();
 })
 .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.DefaultIgnoreCondition = 
         System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
 });
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // Configure Memory Cache for performance optimizations with size limits
 builder.Services.AddMemoryCache(options =>
@@ -184,13 +190,13 @@ else
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())
 {
-    // Use our custom ProblemDetails middleware instead
-    _ = app.UseProblemDetails();
+    // Use global exception handler middleware for centralized exception handling
+    _ = app.UseGlobalExceptionHandler();
     _ = app.UseHsts();
 }
 else
 {
-    _ = app.UseProblemDetails(); // Use our middleware in all environments
+    _ = app.UseGlobalExceptionHandler(); // Use global exception handler in all environments
 }
 
 app.UseHttpsRedirection();
