@@ -18,6 +18,17 @@ namespace EventForge.Client.Services
         // BusinessPartyAccounting Management
         Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId);
 
+        // Full Detail Aggregated Query (FASE 5)
+        /// <summary>
+        /// Recupera tutti i dettagli completi di un BusinessParty in una singola chiamata.
+        /// Ottimizzazione FASE 5: riduce latency e N+1 queries.
+        /// </summary>
+        /// <param name="id">BusinessParty ID</param>
+        /// <param name="includeInactive">Include contatti/indirizzi inattivi</param>
+        /// <param name="ct">Cancellation token</param>
+        /// <returns>DTO aggregato con tutti i dati, null se non trovato</returns>
+        Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(Guid id, bool includeInactive = false, CancellationToken ct = default);
+
         // BusinessParty Documents
         Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>?> GetBusinessPartyDocumentsAsync(
             Guid businessPartyId,
@@ -118,6 +129,25 @@ namespace EventForge.Client.Services
         public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId)
         {
             return await _httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting");
+        }
+
+        public async Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(
+            Guid id, 
+            bool includeInactive = false, 
+            CancellationToken ct = default)
+        {
+            try
+            {
+                var url = $"api/v1/businessparties/{id}/full-detail?includeInactive={includeInactive}";
+                _logger.LogInformation("Fetching full detail for BusinessParty {Id} from {Url}", id, url);
+                
+                return await _httpClientService.GetAsync<BusinessPartyFullDetailDto>(url, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving full detail for BusinessParty {Id}", id);
+                throw;
+            }
         }
 
         #endregion
