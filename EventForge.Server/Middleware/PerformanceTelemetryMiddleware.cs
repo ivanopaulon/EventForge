@@ -40,25 +40,25 @@ public class PerformanceTelemetryMiddleware
             context.Response.Headers.TryAdd("X-Response-Time-Ms", elapsed.ToString());
             
             // Log slow requests
-            if (elapsed > _slowRequestThresholdMs)
+            if (elapsed > _slowRequestThresholdMs * 2)
             {
+                // Very slow requests (>400ms by default)
+                _logger.LogError(
+                    "Very Slow Request: {Method} {Path} took {Elapsed}ms - Status: {StatusCode}",
+                    method,
+                    path,
+                    elapsed,
+                    context.Response.StatusCode);
+            }
+            else if (elapsed > _slowRequestThresholdMs)
+            {
+                // Slow requests (>200ms by default)
                 _logger.LogWarning(
                     "Slow Request: {Method} {Path} took {Elapsed}ms (threshold: {Threshold}ms) - Status: {StatusCode}",
                     method,
                     path,
                     elapsed,
                     _slowRequestThresholdMs,
-                    context.Response.StatusCode);
-            }
-            
-            // Log very slow requests as error
-            if (elapsed > _slowRequestThresholdMs * 2)
-            {
-                _logger.LogError(
-                    "Very Slow Request: {Method} {Path} took {Elapsed}ms - Status: {StatusCode}",
-                    method,
-                    path,
-                    elapsed,
                     context.Response.StatusCode);
             }
         }

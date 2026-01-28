@@ -71,7 +71,7 @@ public class PaginationPerformanceBenchmark
     [BenchmarkCategory("POS")]
     public async Task GetOpenPOSSessions_Page1_PageSize20()
     {
-        var response = await _client.GetAsync("/api/v1/pos/sessions/open?page=1&pageSize=20");
+        var response = await _client.GetAsync("/api/v1/sales/pos-sessions/open?page=1&pageSize=20");
         response.EnsureSuccessStatusCode();
     }
 
@@ -79,7 +79,7 @@ public class PaginationPerformanceBenchmark
     [BenchmarkCategory("Tables")]
     public async Task GetAvailableTables_Page1_PageSize20()
     {
-        var response = await _client.GetAsync("/api/v1/tables/available?page=1&pageSize=20");
+        var response = await _client.GetAsync("/api/v1/tables/available/paginated?page=1&pageSize=20");
         response.EnsureSuccessStatusCode();
     }
 
