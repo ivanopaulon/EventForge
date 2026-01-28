@@ -1,5 +1,5 @@
 using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
+using EventForge.DTOs.Logging;
 
 namespace EventForge.Server.Services.Logging;
 
@@ -14,7 +14,7 @@ public interface IApplicationLogService
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Paginated application logs</returns>
-    Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(
+    Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetApplicationLogsAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
 
@@ -25,7 +25,7 @@ public interface IApplicationLogService
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Paginated application logs for the log level</returns>
-    Task<PagedResult<ApplicationLogDto>> GetLogsByLevelAsync(
+    Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetLogsByLevelAsync(
         string level,
         PaginationParameters pagination,
         CancellationToken ct = default);
@@ -38,7 +38,7 @@ public interface IApplicationLogService
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Paginated application logs within the date range</returns>
-    Task<PagedResult<ApplicationLogDto>> GetLogsByDateRangeAsync(
+    Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetLogsByDateRangeAsync(
         DateTime startDate,
         DateTime? endDate,
         PaginationParameters pagination,

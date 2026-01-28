@@ -23,7 +23,7 @@ public class ApplicationLogService : IApplicationLogService
     /// <summary>
     /// Gets all application logs with pagination.
     /// </summary>
-    public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(
+    public async Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetApplicationLogsAsync(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
@@ -35,7 +35,7 @@ public class ApplicationLogService : IApplicationLogService
             .OrderByDescending(log => log.TimeStamp)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .Select(log => new ApplicationLogDto
+            .Select(log => new DTOs.Logging.ApplicationLogDto
             {
                 Id = log.Id,
                 TimeStamp = log.TimeStamp,
@@ -47,7 +47,7 @@ public class ApplicationLogService : IApplicationLogService
             })
             .ToListAsync(ct);
 
-        return new PagedResult<ApplicationLogDto>
+        return new PagedResult<DTOs.Logging.ApplicationLogDto>
         {
             Items = items,
             TotalCount = totalCount,
@@ -59,7 +59,7 @@ public class ApplicationLogService : IApplicationLogService
     /// <summary>
     /// Gets application logs for a specific log level with pagination.
     /// </summary>
-    public async Task<PagedResult<ApplicationLogDto>> GetLogsByLevelAsync(
+    public async Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetLogsByLevelAsync(
         string level,
         PaginationParameters pagination,
         CancellationToken ct = default)
@@ -73,7 +73,7 @@ public class ApplicationLogService : IApplicationLogService
             .OrderByDescending(log => log.TimeStamp)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .Select(log => new ApplicationLogDto
+            .Select(log => new DTOs.Logging.ApplicationLogDto
             {
                 Id = log.Id,
                 TimeStamp = log.TimeStamp,
@@ -85,7 +85,7 @@ public class ApplicationLogService : IApplicationLogService
             })
             .ToListAsync(ct);
 
-        return new PagedResult<ApplicationLogDto>
+        return new PagedResult<DTOs.Logging.ApplicationLogDto>
         {
             Items = items,
             TotalCount = totalCount,
@@ -97,7 +97,7 @@ public class ApplicationLogService : IApplicationLogService
     /// <summary>
     /// Gets application logs within a date range with pagination.
     /// </summary>
-    public async Task<PagedResult<ApplicationLogDto>> GetLogsByDateRangeAsync(
+    public async Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetLogsByDateRangeAsync(
         DateTime startDate,
         DateTime? endDate,
         PaginationParameters pagination,
@@ -114,7 +114,7 @@ public class ApplicationLogService : IApplicationLogService
             .OrderByDescending(log => log.TimeStamp)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .Select(log => new ApplicationLogDto
+            .Select(log => new DTOs.Logging.ApplicationLogDto
             {
                 Id = log.Id,
                 TimeStamp = log.TimeStamp,
@@ -126,7 +126,7 @@ public class ApplicationLogService : IApplicationLogService
             })
             .ToListAsync(ct);
 
-        return new PagedResult<ApplicationLogDto>
+        return new PagedResult<DTOs.Logging.ApplicationLogDto>
         {
             Items = items,
             TotalCount = totalCount,

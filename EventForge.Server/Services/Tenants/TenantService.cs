@@ -1231,7 +1231,7 @@ public class TenantService : ITenantService
                 IsActive = t.IsActive,
                 SubscriptionExpiresAt = t.SubscriptionExpiresAt,
                 CreatedAt = t.CreatedAt,
-                UpdatedAt = t.UpdatedAt,
+                UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
                 CreatedBy = t.CreatedBy,
                 ModifiedAt = t.ModifiedAt,
                 ModifiedBy = t.ModifiedBy
@@ -1276,7 +1276,7 @@ public class TenantService : ITenantService
                 IsActive = t.IsActive,
                 SubscriptionExpiresAt = t.SubscriptionExpiresAt,
                 CreatedAt = t.CreatedAt,
-                UpdatedAt = t.UpdatedAt,
+                UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
                 CreatedBy = t.CreatedBy,
                 ModifiedAt = t.ModifiedAt,
                 ModifiedBy = t.ModifiedBy

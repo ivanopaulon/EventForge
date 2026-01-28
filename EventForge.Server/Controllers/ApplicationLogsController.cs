@@ -37,10 +37,10 @@ public class ApplicationLogsController : BaseApiController
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">User not authorized to view application logs</response>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<ApplicationLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<DTOs.Logging.ApplicationLogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<PagedResult<ApplicationLogDto>>> GetApplicationLogs(
+    public async Task<ActionResult<PagedResult<DTOs.Logging.ApplicationLogDto>>> GetApplicationLogs(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
@@ -79,10 +79,10 @@ public class ApplicationLogsController : BaseApiController
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">User not authorized to view application logs</response>
     [HttpGet("level/{level}")]
-    [ProducesResponseType(typeof(PagedResult<ApplicationLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<DTOs.Logging.ApplicationLogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<PagedResult<ApplicationLogDto>>> GetLogsByLevel(
+    public async Task<ActionResult<PagedResult<DTOs.Logging.ApplicationLogDto>>> GetLogsByLevel(
         string level,
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
@@ -123,10 +123,10 @@ public class ApplicationLogsController : BaseApiController
     /// <response code="400">Invalid pagination parameters or date range</response>
     /// <response code="403">User not authorized to view application logs</response>
     [HttpGet("date-range")]
-    [ProducesResponseType(typeof(PagedResult<ApplicationLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<DTOs.Logging.ApplicationLogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<PagedResult<ApplicationLogDto>>> GetLogsByDateRange(
+    public async Task<ActionResult<PagedResult<DTOs.Logging.ApplicationLogDto>>> GetLogsByDateRange(
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime? endDate,
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,

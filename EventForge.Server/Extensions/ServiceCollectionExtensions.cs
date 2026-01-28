@@ -199,8 +199,8 @@ public static class ServiceCollectionExtensions
         // Register audit services
         _ = services.AddScoped<IAuditLogService, AuditLogService>();
 
-        // Register application log services
-        _ = services.AddScoped<IApplicationLogService, ApplicationLogService>();
+        // Register application log services (Logs namespace - Serilog-based service)
+        _ = services.AddScoped<EventForge.Server.Services.Logs.IApplicationLogService, EventForge.Server.Services.Logs.ApplicationLogService>();
 
         // Register log sanitization service for public log viewing
         _ = services.AddScoped<ILogSanitizationService, LogSanitizationService>();
