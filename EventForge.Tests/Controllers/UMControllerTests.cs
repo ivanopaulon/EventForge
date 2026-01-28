@@ -56,7 +56,7 @@ public class UMControllerTests
     }
 
     [Fact]
-    public async Task GetUnitOfMeasures_WithPagination_ReturnsCorrectHeaders()
+    public async Task GetUnitsOfMeasure_WithPagination_ReturnsCorrectHeaders()
     {
         // Arrange
         var pagination = new PaginationParameters { Page = 1, PageSize = 20 };
@@ -71,7 +71,7 @@ public class UMControllerTests
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitOfMeasures(pagination, CancellationToken.None);
+        var result = await _controller.GetUnitsOfMeasure(pagination, CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -86,7 +86,7 @@ public class UMControllerTests
     }
 
     [Fact]
-    public async Task GetUnitOfMeasures_WithLargePageSize_ReturnsCappedHeader()
+    public async Task GetUnitsOfMeasure_WithLargePageSize_ReturnsCappedHeader()
     {
         // Arrange
         var pagination = new PaginationParameters 
@@ -107,7 +107,7 @@ public class UMControllerTests
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitOfMeasures(pagination, CancellationToken.None);
+        var result = await _controller.GetUnitsOfMeasure(pagination, CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -118,7 +118,7 @@ public class UMControllerTests
     }
 
     [Fact]
-    public async Task GetUnitOfMeasures_CallsServiceWithCorrectParameters()
+    public async Task GetUnitsOfMeasure_CallsServiceWithCorrectParameters()
     {
         // Arrange
         var pagination = new PaginationParameters { Page = 2, PageSize = 50 };
@@ -133,14 +133,14 @@ public class UMControllerTests
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitOfMeasures(pagination, CancellationToken.None);
+        var result = await _controller.GetUnitsOfMeasure(pagination, CancellationToken.None);
 
         // Assert
         _mockService.Verify(s => s.GetUMsAsync(pagination, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task GetUnitOfMeasures_ReturnsPagedResult()
+    public async Task GetUnitsOfMeasure_ReturnsPagedResult()
     {
         // Arrange
         var pagination = new PaginationParameters { Page = 1, PageSize = 20 };
@@ -160,7 +160,7 @@ public class UMControllerTests
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitOfMeasures(pagination, CancellationToken.None);
+        var result = await _controller.GetUnitsOfMeasure(pagination, CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -170,7 +170,7 @@ public class UMControllerTests
     }
 
     [Fact]
-    public async Task GetUnitOfMeasures_PassesCancellationToken()
+    public async Task GetUnitsOfMeasure_PassesCancellationToken()
     {
         // Arrange
         var pagination = new PaginationParameters { Page = 1, PageSize = 20 };
@@ -186,7 +186,7 @@ public class UMControllerTests
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitOfMeasures(pagination, cancellationToken);
+        var result = await _controller.GetUnitsOfMeasure(pagination, cancellationToken);
 
         // Assert
         _mockService.Verify(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), cancellationToken), Times.Once);

@@ -13,7 +13,7 @@ namespace EventForge.Server.Controllers;
 /// REST API controller for unit of measure management with multi-tenant support.
 /// Provides CRUD operations for units of measure.
 /// </summary>
-[Route("api/v1/unit-of-measures")]
+[Route("api/v1/product-management/units")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("ProductManagement")]
 public class UMController : BaseApiController
@@ -33,19 +33,19 @@ public class UMController : BaseApiController
     }
 
     /// <summary>
-    /// Retrieves all unit of measures with pagination
+    /// Retrieves all units of measure with pagination
     /// </summary>
     /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Paginated list of unit of measures</returns>
-    /// <response code="200">Successfully retrieved unit of measures with pagination metadata in headers</response>
+    /// <returns>Paginated list of units of measure</returns>
+    /// <response code="200">Successfully retrieved units of measure with pagination metadata in headers</response>
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<UMDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<PagedResult<UMDto>>> GetUnitOfMeasures(
+    public async Task<ActionResult<PagedResult<UMDto>>> GetUnitsOfMeasure(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
@@ -71,8 +71,8 @@ public class UMController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving unit of measures.");
-            return CreateInternalServerErrorProblem("An error occurred while retrieving unit of measures.", ex);
+            _logger.LogError(ex, "An error occurred while retrieving units of measure.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving units of measure.", ex);
         }
     }
 
