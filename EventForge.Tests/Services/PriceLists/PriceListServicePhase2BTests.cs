@@ -110,6 +110,62 @@ public class PriceListServicePhase2BTests
         {
             return Task.FromResult<ExportResultDto?>(null);
         }
+
+        public Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(
+            PaginationParameters pagination,
+            CancellationToken ct = default)
+        {
+            return Task.FromResult(new PagedResult<EntityChangeLogDto>
+            {
+                Items = new List<EntityChangeLogDto>(),
+                TotalCount = 0,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+            });
+        }
+
+        public Task<PagedResult<EntityChangeLogDto>> GetLogsByEntityAsync(
+            string entityType,
+            PaginationParameters pagination,
+            CancellationToken ct = default)
+        {
+            return Task.FromResult(new PagedResult<EntityChangeLogDto>
+            {
+                Items = new List<EntityChangeLogDto>(),
+                TotalCount = 0,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+            });
+        }
+
+        public Task<PagedResult<EntityChangeLogDto>> GetLogsByUserAsync(
+            Guid userId,
+            PaginationParameters pagination,
+            CancellationToken ct = default)
+        {
+            return Task.FromResult(new PagedResult<EntityChangeLogDto>
+            {
+                Items = new List<EntityChangeLogDto>(),
+                TotalCount = 0,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+            });
+        }
+
+        public Task<PagedResult<EntityChangeLogDto>> GetLogsByDateRangeAsync(
+            DateTime startDate,
+            DateTime? endDate,
+            PaginationParameters pagination,
+            CancellationToken ct = default)
+        {
+            return Task.FromResult(new PagedResult<EntityChangeLogDto>
+            {
+                Items = new List<EntityChangeLogDto>(),
+                TotalCount = 0,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+            });
+        }
     }
 
     [Fact]
