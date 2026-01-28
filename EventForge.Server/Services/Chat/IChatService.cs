@@ -1,4 +1,5 @@
 using EventForge.DTOs.Chat;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Chat;
 
@@ -136,6 +137,38 @@ public interface IChatService
     /// <returns>Paginated message results with context information</returns>
     Task<PagedResult<ChatMessageDto>> GetMessagesAsync(
         MessageSearchDto searchDto,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves all chat messages with pagination.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of chat messages</returns>
+    Task<PagedResult<ChatMessageDto>> GetMessagesAsync(
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves messages for a specific conversation.
+    /// </summary>
+    /// <param name="conversationId">Conversation/Chat thread ID</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of messages for the conversation</returns>
+    Task<PagedResult<ChatMessageDto>> GetMessagesByConversationAsync(
+        Guid conversationId,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves unread messages for the current user.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of unread messages</returns>
+    Task<PagedResult<ChatMessageDto>> GetUnreadMessagesAsync(
+        PaginationParameters pagination,
         CancellationToken cancellationToken = default);
 
     /// <summary>
