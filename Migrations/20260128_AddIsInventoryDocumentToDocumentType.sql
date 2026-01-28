@@ -28,6 +28,9 @@ GO
 
 -- Update existing inventory document types to set IsInventoryDocument = 1
 -- This covers common inventory document type codes
+-- Note: 'INV' and 'INVFIS' are included but are quite generic.
+-- Review your existing document types before running this migration to ensure these codes
+-- represent actual inventory documents in your system.
 UPDATE [dbo].[DocumentTypes]
 SET [IsInventoryDocument] = 1
 WHERE [Code] IN ('INVENTORY', 'INV-COUNT', 'STOCK-COUNT', 'INVENT', 'INV', 'INVFIS', 'PHY-INV')
