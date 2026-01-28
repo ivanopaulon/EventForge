@@ -1,7 +1,5 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
+using EventForge.DTOs.Auth;
 using EventForge.DTOs.Common;
-using EventForge.DTOs.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Users;
@@ -14,18 +12,15 @@ public class UserService : IUserService
     private readonly EventForgeDbContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<UserService> _logger;
-    private readonly IMapper _mapper;
 
     public UserService(
         EventForgeDbContext context,
         ITenantContext tenantContext,
-        ILogger<UserService> logger,
-        IMapper mapper)
+        ILogger<UserService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     /// <summary>
@@ -54,11 +49,8 @@ public class UserService : IUserService
                 Email = u.Email,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
-                FullName = u.FullName,
                 IsActive = u.IsActive,
-                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
-                CreatedAt = u.CreatedAt,
-                LastLoginAt = u.LastLoginAt
+                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
             })
             .ToListAsync(ct);
 
@@ -100,11 +92,8 @@ public class UserService : IUserService
                 Email = u.Email,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
-                FullName = u.FullName,
                 IsActive = u.IsActive,
-                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
-                CreatedAt = u.CreatedAt,
-                LastLoginAt = u.LastLoginAt
+                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
             })
             .ToListAsync(ct);
 
@@ -145,11 +134,8 @@ public class UserService : IUserService
                 Email = u.Email,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
-                FullName = u.FullName,
                 IsActive = u.IsActive,
-                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
-                CreatedAt = u.CreatedAt,
-                LastLoginAt = u.LastLoginAt
+                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
             })
             .ToListAsync(ct);
 

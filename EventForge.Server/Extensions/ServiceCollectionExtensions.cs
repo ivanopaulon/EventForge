@@ -212,6 +212,9 @@ public static class ServiceCollectionExtensions
         _ = services.AddSingleton<LogIngestionService>();
         _ = services.AddSingleton<ILogIngestionService>(sp => sp.GetRequiredService<LogIngestionService>());
         _ = services.AddHostedService<LogIngestionBackgroundService>();
+        
+        // Register user services
+        _ = services.AddScoped<EventForge.Server.Services.Users.IUserService, EventForge.Server.Services.Users.UserService>();
 
         // Register notification and chat services - Step 3 SignalR Implementation
         _ = services.AddScoped<INotificationService, NotificationService>();

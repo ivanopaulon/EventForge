@@ -1,5 +1,5 @@
 using EventForge.DTOs.Common;
-using EventForge.DTOs.Users;
+using EventForge.DTOs.Auth;
 
 namespace EventForge.Server.Services.Users;
 

@@ -1,5 +1,3 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -13,16 +11,13 @@ public class AuditLogService : IAuditLogService
 {
     private readonly EventForgeDbContext _context;
     private readonly ILogger<AuditLogService> _logger;
-    private readonly IMapper _mapper;
 
     public AuditLogService(
         EventForgeDbContext context,
-        ILogger<AuditLogService> logger,
-        IMapper mapper)
+        ILogger<AuditLogService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     /// <summary>
@@ -507,7 +502,19 @@ public class AuditLogService : IAuditLogService
             .OrderByDescending(log => log.ChangedAt)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .ProjectTo<EntityChangeLogDto>(_mapper.ConfigurationProvider)
+            .Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
             .ToListAsync(ct);
 
         return new PagedResult<EntityChangeLogDto>
@@ -536,7 +543,19 @@ public class AuditLogService : IAuditLogService
             .OrderByDescending(log => log.ChangedAt)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .ProjectTo<EntityChangeLogDto>(_mapper.ConfigurationProvider)
+            .Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
             .ToListAsync(ct);
 
         return new PagedResult<EntityChangeLogDto>
@@ -569,7 +588,19 @@ public class AuditLogService : IAuditLogService
             .OrderByDescending(log => log.ChangedAt)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .ProjectTo<EntityChangeLogDto>(_mapper.ConfigurationProvider)
+            .Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
             .ToListAsync(ct);
 
         return new PagedResult<EntityChangeLogDto>
@@ -601,7 +632,19 @@ public class AuditLogService : IAuditLogService
             .OrderByDescending(log => log.ChangedAt)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .ProjectTo<EntityChangeLogDto>(_mapper.ConfigurationProvider)
+            .Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
             .ToListAsync(ct);
 
         return new PagedResult<EntityChangeLogDto>

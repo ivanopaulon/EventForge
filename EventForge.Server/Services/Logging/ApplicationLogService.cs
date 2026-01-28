@@ -1,5 +1,3 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Logging;
 using Microsoft.EntityFrameworkCore;
@@ -13,16 +11,13 @@ public class ApplicationLogService : IApplicationLogService
 {
     private readonly EventForgeDbContext _context;
     private readonly ILogger<ApplicationLogService> _logger;
-    private readonly IMapper _mapper;
 
     public ApplicationLogService(
         EventForgeDbContext context,
-        ILogger<ApplicationLogService> logger,
-        IMapper mapper)
+        ILogger<ApplicationLogService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     /// <summary>
@@ -40,7 +35,16 @@ public class ApplicationLogService : IApplicationLogService
             .OrderByDescending(log => log.TimeStamp)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .ProjectTo<ApplicationLogDto>(_mapper.ConfigurationProvider)
+            .Select(log => new ApplicationLogDto
+            {
+                Id = log.Id,
+                TimeStamp = log.TimeStamp,
+                Level = log.Level,
+                Message = log.Message,
+                Exception = log.Exception,
+                MachineName = log.MachineName,
+                UserName = log.UserName
+            })
             .ToListAsync(ct);
 
         return new PagedResult<ApplicationLogDto>
@@ -69,7 +73,16 @@ public class ApplicationLogService : IApplicationLogService
             .OrderByDescending(log => log.TimeStamp)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .ProjectTo<ApplicationLogDto>(_mapper.ConfigurationProvider)
+            .Select(log => new ApplicationLogDto
+            {
+                Id = log.Id,
+                TimeStamp = log.TimeStamp,
+                Level = log.Level,
+                Message = log.Message,
+                Exception = log.Exception,
+                MachineName = log.MachineName,
+                UserName = log.UserName
+            })
             .ToListAsync(ct);
 
         return new PagedResult<ApplicationLogDto>
@@ -101,7 +114,16 @@ public class ApplicationLogService : IApplicationLogService
             .OrderByDescending(log => log.TimeStamp)
             .Skip(pagination.CalculateSkip())
             .Take(pagination.PageSize)
-            .ProjectTo<ApplicationLogDto>(_mapper.ConfigurationProvider)
+            .Select(log => new ApplicationLogDto
+            {
+                Id = log.Id,
+                TimeStamp = log.TimeStamp,
+                Level = log.Level,
+                Message = log.Message,
+                Exception = log.Exception,
+                MachineName = log.MachineName,
+                UserName = log.UserName
+            })
             .ToListAsync(ct);
 
         return new PagedResult<ApplicationLogDto>

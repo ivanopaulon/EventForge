@@ -1,5 +1,5 @@
 using EventForge.DTOs.Common;
-using EventForge.DTOs.Logging;
+using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Services.Logging;
 
