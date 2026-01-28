@@ -73,12 +73,14 @@ public class EventService : IEventService
             }
 
             var query = _context.Events
-                .Where(e => !e.IsDeleted && e.TenantId == currentTenantId.Value);
+                .Where(e => !e.IsDeleted && e.TenantId == currentTenantId.Value)
+                .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value));
 
             var totalCount = await query.CountAsync(cancellationToken);
 
             var events = await query
-                .OrderByDescending(e => e.StartDate)
+                .OrderBy(e => e.StartDate)
+                .ThenBy(e => e.Name)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);

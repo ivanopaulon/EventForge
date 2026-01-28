@@ -149,18 +149,7 @@ public class NotificationsController : BaseApiController
         try
         {
             var result = await _notificationService.GetNotificationsAsync(pagination, cancellationToken);
-
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
-
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -188,18 +177,7 @@ public class NotificationsController : BaseApiController
         try
         {
             var result = await _notificationService.GetUnreadNotificationsAsync(pagination, cancellationToken);
-
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
-
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -229,18 +207,7 @@ public class NotificationsController : BaseApiController
         try
         {
             var result = await _notificationService.GetNotificationsByTypeAsync(type, pagination, cancellationToken);
-
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
-
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (ArgumentException ex)
