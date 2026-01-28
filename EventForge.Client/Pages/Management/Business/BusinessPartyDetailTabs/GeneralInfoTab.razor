@@ -3,21 +3,25 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Services
 @using EventForge.Client.Services.External
+@using EventForge.Client.Shared.Atoms
 @inject ITranslationService TranslationService
 @inject IVatLookupService VatLookupService
 @inject IEntityManagementService EntityManagementService
 @inject ISnackbar Snackbar
 @inject ILogger<GeneralInfoTab> Logger
 
-<MudStack Spacing="3">
-    <MudPaper Elevation="1" Class="pa-4">
-        <MudText Typo="Typo.h6" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
-            @TranslationService.GetTranslation("businessParty.basicInfo", "Informazioni di Base")
-        </MudText>
-        <MudGrid Spacing="3">
-            <!-- Party Type -->
-            <MudItem xs="12" md="6">
+<MudGrid Spacing="4">
+    
+    <!-- ========== SEZIONE 1: DATI ANAGRAFICI ========== -->
+    <MudItem xs="12">
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
+                @TranslationService.GetTranslation("businessParty.masterData", "Dati Anagrafici")
+            </MudText>
+            <MudGrid Spacing="3">
+                <!-- Party Type -->
+                <MudItem xs="12" md="6">
                 <MudSelect @bind-Value="Party.PartyType"
                            Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo")} *")"
                            Variant="Variant.Outlined"
@@ -167,57 +171,149 @@
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Notes"
                               @bind-Value:after="NotifyUpdated" />
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+    
+    <!-- ========== SEZIONE 2: GRUPPI (NUOVA) ========== -->
+    <MudItem xs="12">
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.Group" Class="mr-2" />
+                    @TranslationService.GetTranslation("businessParty.groups", "Gruppi Business Party")
+                </MudText>
+                @if (IsEditMode)
+                {
+                    <MudButton Variant="Variant.Outlined" 
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.Edit"
+                               OnClick="@OnManageGroupsClicked">
+                        @TranslationService.GetTranslation("action.manageGroups", "Gestisci Gruppi")
+                    </MudButton>
+                }
+            </MudStack>
+            
+            @if (Party.Groups != null && Party.Groups.Any())
+            {
+                <MudStack Row Spacing="2" Wrap="Wrap.Wrap">
+                    @foreach (var group in Party.Groups.OrderByDescending(g => g.Priority))
+                    {
+                        <GroupBadge Group="@group" 
+                                    ShowPriority="true"
+                                    OnRemove="@(IsEditMode ? OnRemoveGroup : default)" />
+                    }
+                </MudStack>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense Variant="Variant.Text">
+                    <MudText Typo="Typo.body2">
+                        @TranslationService.GetTranslation("businessParty.noGroups", "Nessun gruppo assegnato. I gruppi permettono di organizzare i business party per applicare listini, sconti o promozioni personalizzate.")
+                    </MudText>
+                </MudAlert>
+            }
+        </MudPaper>
+    </MudItem>
+    
+    <!-- ========== SEZIONE 3: CATEGORIE/TAG (PLACEHOLDER) ========== -->
+    <MudItem xs="12">
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
+                    @TranslationService.GetTranslation("businessParty.categories", "Categorie e Tag")
+                </MudText>
+                <MudTooltip Text="@TranslationService.GetTranslation("info.featureInDevelopment", "Funzionalità in sviluppo")">
+                    <MudButton Variant="Variant.Outlined" 
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.Edit"
+                               Disabled="true">
+                        @TranslationService.GetTranslation("action.manageCategories", "Gestisci Categorie")
+                    </MudButton>
+                </MudTooltip>
+            </MudStack>
+            
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense>
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                        🚧 @TranslationService.GetTranslation("info.featureInDesign", "Funzionalità in Fase di Progettazione")
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        @TranslationService.GetTranslation("businessParty.categoriesPlaceholder", "La classificazione dei business party tramite categorie gerarchiche sarà disponibile prossimamente. Permetterà di organizzare clienti e fornitori in tassonomie personalizzate.")
+                    </MudText>
+                </MudStack>
+            </MudAlert>
+        </MudPaper>
+    </MudItem>
 
+    
     @if (!IsNewParty)
     {
         <!-- Audit Information -->
-        <MudPaper Elevation="1" Class="pa-4">
-            <MudText Typo="Typo.h6" Class="mb-3">
-                <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
-                @TranslationService.GetTranslation("common.auditInfo", "Informazioni di Sistema")
-            </MudText>
-            <MudGrid Spacing="3">
-                <MudItem xs="12" md="6">
-                    <MudTextField Value="@Party.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                  Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
-                                  Variant="Variant.Outlined"
-                                  ReadOnly="true" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField Value="@Party.CreatedBy"
-                                  Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
-                                  Variant="Variant.Outlined"
-                                  ReadOnly="true" />
-                </MudItem>
-                @if (Party.ModifiedAt.HasValue)
-                {
+        <MudItem xs="12">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
+                    @TranslationService.GetTranslation("common.auditInfo", "Informazioni di Sistema")
+                </MudText>
+                <MudGrid Spacing="3">
                     <MudItem xs="12" md="6">
-                        <MudTextField Value="@Party.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
-                                      Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                        <MudTextField Value="@Party.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                      Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
                                       Variant="Variant.Outlined"
                                       ReadOnly="true" />
                     </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudTextField Value="@Party.ModifiedBy"
-                                      Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                        <MudTextField Value="@Party.CreatedBy"
+                                      Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
                                       Variant="Variant.Outlined"
                                       ReadOnly="true" />
                     </MudItem>
-                }
-            </MudGrid>
-        </MudPaper>
+                    @if (Party.ModifiedAt.HasValue)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@Party.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
+                                          Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@Party.ModifiedBy"
+                                          Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
     }
-</MudStack>
+    
+</MudGrid>
 
 @code {
-    [Parameter] public BusinessPartyDto Party { get; set; } = new();
-    [Parameter] public bool IsEditMode { get; set; } = true;
-    [Parameter] public bool IsNewParty { get; set; } = false;
-    [Parameter] public EventCallback OnPartyUpdated { get; set; }
-    [Parameter] public EventCallback OnAddressCreated { get; set; }
+    [Parameter, EditorRequired] 
+    public BusinessPartyDto Party { get; set; } = null!;
+    
+    [Parameter] 
+    public bool IsEditMode { get; set; } = true;
+    
+    [Parameter] 
+    public bool IsNewParty { get; set; } = false;
+    
+    [Parameter] 
+    public EventCallback OnPartyUpdated { get; set; }
+    
+    [Parameter] 
+    public EventCallback OnAddressCreated { get; set; }
+    
+    [Parameter] 
+    public EventCallback OnManageGroupsClicked { get; set; }
+    
+    [Parameter] 
+    public EventCallback<Guid> OnRemoveGroup { get; set; }
 
     // VAT lookup fields
     private bool _isLookingUp = false;
