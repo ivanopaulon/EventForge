@@ -365,7 +365,7 @@
         {
             try
             {
-                if (operation.OperationType == ManageFidelityPointsDialog.PointsOperationTypePublic.Add)
+                if (operation.OperationType == ManageFidelityPointsDialog.PointsOperationType.Add)
                 {
                     await FidelityService.AddPointsAsync(card.Id, operation.Points, operation.Description);
                     Snackbar.Add($"Aggiunti {operation.Points} punti", Severity.Success);

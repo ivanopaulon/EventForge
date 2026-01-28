@@ -10,6 +10,7 @@ public class MockFidelityService : IMockFidelityService
 {
     private readonly List<FidelityCardViewModel> _cards = new();
     private readonly List<FidelityPointsTransactionViewModel> _transactions = new();
+    private readonly Random _random = Random.Shared; // Thread-safe shared random
     
     public MockFidelityService()
     {
@@ -107,11 +108,10 @@ public class MockFidelityService : IMockFidelityService
     
     private string GenerateCardNumber()
     {
-        var random = new Random();
         var parts = new List<string>();
         for (int i = 0; i < 4; i++)
         {
-            parts.Add(random.Next(1000, 9999).ToString());
+            parts.Add(_random.Next(1000, 9999).ToString());
         }
         return string.Join("-", parts);
     }

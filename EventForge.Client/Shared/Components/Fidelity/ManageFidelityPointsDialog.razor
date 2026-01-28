@@ -30,13 +30,13 @@
                 
                 <MudItem xs="12">
                     <MudRadioGroup @bind-Value="_operationType">
-                        <MudRadio Value="@OperationType.Add" Color="Color.Success">
+                        <MudRadio Value="@PointsOperationType.Add" Color="Color.Success">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                 <MudIcon Icon="@Icons.Material.Outlined.Add" Size="Size.Small" />
                                 <MudText>Aggiungi Punti</MudText>
                             </MudStack>
                         </MudRadio>
-                        <MudRadio Value="@OperationType.Redeem" Color="Color.Warning">
+                        <MudRadio Value="@PointsOperationType.Redeem" Color="Color.Warning">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                 <MudIcon Icon="@Icons.Material.Outlined.Remove" Size="Size.Small" />
                                 <MudText>Riscatta Punti</MudText>
@@ -51,7 +51,7 @@
                                      Variant="Variant.Outlined"
                                      Required="true"
                                      Min="1"
-                                     Max="@(_operationType == OperationType.Redeem ? Card.CurrentPoints : 999999)" />
+                                     Max="@(_operationType == PointsOperationType.Redeem ? Card.CurrentPoints : 999999)" />
                 </MudItem>
                 
                 <MudItem xs="12">
@@ -63,7 +63,7 @@
                                  Lines="2" />
                 </MudItem>
                 
-                @if (_operationType == OperationType.Redeem && _points > Card.CurrentPoints)
+                @if (_operationType == PointsOperationType.Redeem && _points > Card.CurrentPoints)
                 {
                     <MudItem xs="12">
                         <MudAlert Severity="Severity.Error" Dense="true">
@@ -77,17 +77,17 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
-        <MudButton Color="@(_operationType == OperationType.Add ? Color.Success : Color.Warning)" 
+        <MudButton Color="@(_operationType == PointsOperationType.Add ? Color.Success : Color.Warning)" 
                    Variant="Variant.Filled" 
                    OnClick="Submit" 
-                   Disabled="@(!_isValid || _isProcessing || (_operationType == OperationType.Redeem && _points > Card.CurrentPoints))">
+                   Disabled="@(!_isValid || _isProcessing || (_operationType == PointsOperationType.Redeem && _points > Card.CurrentPoints))">
             @if (_isProcessing)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" />
             }
             else
             {
-                <text>@(_operationType == OperationType.Add ? "Aggiungi" : "Riscatta")</text>
+                <text>@(_operationType == PointsOperationType.Add ? "Aggiungi" : "Riscatta")</text>
             }
         </MudButton>
     </DialogActions>
@@ -104,17 +104,11 @@
     private bool _isValid;
     private bool _isProcessing;
     
-    private OperationType _operationType = OperationType.Add;
+    private PointsOperationType _operationType = PointsOperationType.Add;
     private int _points = 0;
     private string _description = string.Empty;
     
-    private enum OperationType
-    {
-        Add,
-        Redeem
-    }
-    
-    public enum PointsOperationTypePublic
+    public enum PointsOperationType
     {
         Add,
         Redeem
@@ -124,7 +118,7 @@
     {
         if (!_isValid) return;
         
-        if (_operationType == OperationType.Redeem && _points > Card.CurrentPoints)
+        if (_operationType == PointsOperationType.Redeem && _points > Card.CurrentPoints)
             return;
         
         try
@@ -133,7 +127,7 @@
             
             var result = new PointsOperationResult
             {
-                OperationType = _operationType == OperationType.Add ? PointsOperationTypePublic.Add : PointsOperationTypePublic.Redeem,
+                OperationType = _operationType,
                 Points = _points,
                 Description = _description
             };
@@ -150,7 +144,7 @@
     
     public class PointsOperationResult
     {
-        public PointsOperationTypePublic OperationType { get; set; }
+        public PointsOperationType OperationType { get; set; }
         public int Points { get; set; }
         public string Description { get; set; } = string.Empty;
     }
