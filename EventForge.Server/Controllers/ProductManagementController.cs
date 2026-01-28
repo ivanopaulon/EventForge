@@ -7,6 +7,7 @@ using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Export;
 using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.Products;
@@ -46,6 +47,7 @@ public class ProductManagementController : BaseApiController
     private readonly IStockMovementService _stockMovementService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<ProductManagementController> _logger;
+    private readonly IExportService _exportService;
 
     public ProductManagementController(
         IProductService productService,
@@ -62,7 +64,8 @@ public class ProductManagementController : BaseApiController
         IDocumentHeaderService documentHeaderService,
         IStockMovementService stockMovementService,
         ITenantContext tenantContext,
-        ILogger<ProductManagementController> logger)
+        ILogger<ProductManagementController> logger,
+        IExportService exportService)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _brandService = brandService ?? throw new ArgumentNullException(nameof(brandService));
@@ -79,6 +82,7 @@ public class ProductManagementController : BaseApiController
         _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
     }
 
     #region Product CRUD Operations
@@ -3244,6 +3248,65 @@ public class ProductManagementController : BaseApiController
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    #endregion
+
+    #region Export Operations
+
+    /// <summary>
+    /// Export all products to Excel or CSV (Admin/SuperAdmin only)
+    /// </summary>
+    /// <param name="format">Export format: excel or csv (default: excel)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>File download (Excel or CSV)</returns>
+    /// <response code="200">File ready for download</response>
+    /// <response code="403">User not authorized for export operations</response>
+    [HttpGet("products/export")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportProducts(
+        [FromQuery] string format = "excel",
+        CancellationToken ct = default)
+    {
+        _logger.LogInformation(
+            "Export operation started by {User} for Products (format: {Format})",
+            User.Identity?.Name ?? "Unknown", format);
+        
+        var pagination = new PaginationParameters 
+        { 
+            Page = 1, 
+            PageSize = 50000
+        };
+        
+        var data = await _productService.GetProductsForExportAsync(pagination, ct);
+        
+        byte[] fileBytes;
+        string contentType;
+        string fileName;
+        
+        switch (format.ToLowerInvariant())
+        {
+            case "csv":
+                fileBytes = await _exportService.ExportToCsvAsync(data, ct);
+                contentType = "text/csv";
+                fileName = $"Products_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+                break;
+            
+            case "excel":
+            default:
+                fileBytes = await _exportService.ExportToExcelAsync(data, "Products", ct);
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                fileName = $"Products_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+                break;
+        }
+        
+        _logger.LogInformation(
+            "Export completed: {FileName}, {Size} bytes, {Records} records",
+            fileName, fileBytes.Length, data.Count());
+        
+        return File(fileBytes, contentType, fileName);
     }
 
     #endregion

@@ -675,4 +675,98 @@ public class StockMovementService : IStockMovementService
             }
         }
     }
+
+    #region Export Operations
+
+    public async Task<IEnumerable<EventForge.DTOs.Export.InventoryExportDto>> GetInventoryForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for inventory operations.");
+        }
+
+        var query = _context.StockMovements
+            .Include(sm => sm.Product)
+                .ThenInclude(p => p!.UnitOfMeasure)
+            .Include(sm => sm.FromLocation)
+                .ThenInclude(loc => loc!.Warehouse)
+            .Include(sm => sm.ToLocation)
+                .ThenInclude(loc => loc!.Warehouse)
+            .Where(sm => !sm.IsDeleted && sm.TenantId == currentTenantId.Value)
+            .OrderBy(sm => sm.MovementDate);
+        
+        var totalCount = await query.CountAsync(ct);
+        
+        _logger.LogInformation("Export requested for {Count} inventory movements", totalCount);
+        
+        // Use batch processing for large datasets
+        if (totalCount > 10000)
+        {
+            _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            return await GetInventoryInBatchesAsync(query, ct);
+        }
+        
+        // Standard export for smaller datasets
+        var items = await query
+            .Take(pagination.PageSize)
+            .ToListAsync(ct);
+        
+        return items.Select(MapToInventoryExportDto);
+    }
+
+    private async Task<IEnumerable<EventForge.DTOs.Export.InventoryExportDto>> GetInventoryInBatchesAsync(
+        IQueryable<StockMovement> query,
+        CancellationToken ct)
+    {
+        const int batchSize = 5000;
+        var results = new List<EventForge.DTOs.Export.InventoryExportDto>();
+        var skip = 0;
+        
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            
+            var batch = await query
+                .Skip(skip)
+                .Take(batchSize)
+                .ToListAsync(ct);
+            
+            if (batch.Count == 0) break;
+            
+            results.AddRange(batch.Select(MapToInventoryExportDto));
+            
+            skip += batchSize;
+            
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+                Math.Min(skip, results.Count), results.Count);
+        }
+        
+        return results;
+    }
+
+    private static EventForge.DTOs.Export.InventoryExportDto MapToInventoryExportDto(StockMovement sm)
+    {
+        var warehouse = sm.ToLocation?.Warehouse ?? sm.FromLocation?.Warehouse;
+        var location = sm.ToLocation ?? sm.FromLocation;
+        
+        return new EventForge.DTOs.Export.InventoryExportDto
+        {
+            Id = sm.Id,
+            MovementDate = sm.MovementDate,
+            Product = sm.Product?.Name ?? string.Empty,
+            Warehouse = warehouse?.Name ?? string.Empty,
+            StorageLocation = location?.Code ?? string.Empty,
+            MovementType = sm.MovementType.ToString(),
+            Quantity = sm.Quantity,
+            UnitOfMeasure = sm.Product?.UnitOfMeasure?.Symbol ?? string.Empty,
+            DocumentReference = sm.DocumentHeaderId?.ToString(),
+            Notes = sm.Notes,
+            CreatedAt = sm.CreatedAt
+        };
+    }
+
+    #endregion
 }

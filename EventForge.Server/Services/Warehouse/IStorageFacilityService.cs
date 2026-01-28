@@ -40,4 +40,11 @@ public interface IStorageFacilityService
     /// Checks if a storage facility exists.
     /// </summary>
     Task<bool> StorageFacilityExistsAsync(Guid facilityId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get storage facilities (warehouses) for export with batch processing support
+    /// </summary>
+    Task<IEnumerable<EventForge.DTOs.Export.WarehouseExportDto>> GetWarehousesForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default);
 }

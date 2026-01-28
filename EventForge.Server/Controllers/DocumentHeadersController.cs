@@ -1,6 +1,8 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Export;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,11 +19,19 @@ public class DocumentHeadersController : BaseApiController
 {
     private readonly IDocumentHeaderService _documentHeaderService;
     private readonly ITenantContext _tenantContext;
+    private readonly IExportService _exportService;
+    private readonly ILogger<DocumentHeadersController> _logger;
 
-    public DocumentHeadersController(IDocumentHeaderService documentHeaderService, ITenantContext tenantContext)
+    public DocumentHeadersController(
+        IDocumentHeaderService documentHeaderService, 
+        ITenantContext tenantContext,
+        IExportService exportService,
+        ILogger<DocumentHeadersController> logger)
     {
         _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -385,4 +395,58 @@ public class DocumentHeadersController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Export all documents to Excel or CSV (Admin/SuperAdmin only)
+    /// </summary>
+    /// <param name="format">Export format: excel or csv (default: excel)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>File download (Excel or CSV)</returns>
+    /// <response code="200">File ready for download</response>
+    /// <response code="403">User not authorized for export operations</response>
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportDocuments(
+        [FromQuery] string format = "excel",
+        CancellationToken ct = default)
+    {
+        _logger.LogInformation(
+            "Export operation started by {User} for Documents (format: {Format})",
+            User.Identity?.Name ?? "Unknown", format);
+        
+        var pagination = new PaginationParameters 
+        { 
+            Page = 1, 
+            PageSize = 50000
+        };
+        
+        var data = await _documentHeaderService.GetDocumentsForExportAsync(pagination, ct);
+        
+        byte[] fileBytes;
+        string contentType;
+        string fileName;
+        
+        switch (format.ToLowerInvariant())
+        {
+            case "csv":
+                fileBytes = await _exportService.ExportToCsvAsync(data, ct);
+                contentType = "text/csv";
+                fileName = $"Documents_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+                break;
+            
+            case "excel":
+            default:
+                fileBytes = await _exportService.ExportToExcelAsync(data, "Documents", ct);
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                fileName = $"Documents_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+                break;
+        }
+        
+        _logger.LogInformation(
+            "Export completed: {FileName}, {Size} bytes, {Records} records",
+            fileName, fileBytes.Length, data.Count());
+        
+        return File(fileBytes, contentType, fileName);
+    }
 }

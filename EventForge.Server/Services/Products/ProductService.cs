@@ -2453,4 +2453,105 @@ public class ProductService : IProductService
             throw;
         }
     }
+
+    #region Export Operations
+
+    public async Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product operations.");
+        }
+
+        var query = _context.Products
+            .Include(p => p.Brand)
+            .Include(p => p.Model)
+            .Include(p => p.UnitOfMeasure)
+            .Include(p => p.CategoryNode)
+            .Where(p => !p.IsDeleted && p.TenantId == currentTenantId.Value)
+            .OrderBy(p => p.Name);
+        
+        var totalCount = await query.CountAsync(ct);
+        
+        _logger.LogInformation("Export requested for {Count} products", totalCount);
+        
+        // Use batch processing for large datasets
+        if (totalCount > 10000)
+        {
+            _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            return await GetProductsInBatchesAsync(query, ct);
+        }
+        
+        // Standard export for smaller datasets
+        var items = await query
+            .Take(pagination.PageSize)
+            .ToListAsync(ct);
+        
+        return items.Select(p => new EventForge.DTOs.Export.ProductExportDto
+        {
+            Id = p.Id,
+            Code = p.Code,
+            Name = p.Name,
+            Description = p.Description,
+            Category = p.CategoryNode?.Name ?? string.Empty,
+            UnitOfMeasure = p.UnitOfMeasure?.Symbol ?? string.Empty,
+            Price = p.DefaultPrice ?? 0,
+            Cost = 0, // Not available in Product entity
+            StockQuantity = 0, // Not available in Product entity
+            Brand = p.Brand?.Name,
+            Model = p.Model?.Name,
+            IsActive = p.Status == EntityProductStatus.Active,
+            CreatedAt = p.CreatedAt
+        });
+    }
+
+    private async Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsInBatchesAsync(
+        IQueryable<Product> query,
+        CancellationToken ct)
+    {
+        const int batchSize = 5000;
+        var results = new List<EventForge.DTOs.Export.ProductExportDto>();
+        var skip = 0;
+        
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            
+            var batch = await query
+                .Skip(skip)
+                .Take(batchSize)
+                .ToListAsync(ct);
+            
+            if (batch.Count == 0) break;
+            
+            results.AddRange(batch.Select(p => new EventForge.DTOs.Export.ProductExportDto
+            {
+                Id = p.Id,
+                Code = p.Code,
+                Name = p.Name,
+                Description = p.Description,
+                Category = p.CategoryNode?.Name ?? string.Empty,
+                UnitOfMeasure = p.UnitOfMeasure?.Symbol ?? string.Empty,
+                Price = p.DefaultPrice ?? 0,
+                Cost = 0, // Not available in Product entity
+                StockQuantity = 0, // Not available in Product entity
+                Brand = p.Brand?.Name,
+                Model = p.Model?.Name,
+                IsActive = p.Status == EntityProductStatus.Active,
+                CreatedAt = p.CreatedAt
+            }));
+            
+            skip += batchSize;
+            
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+                Math.Min(skip, results.Count), results.Count);
+        }
+        
+        return results;
+    }
+
+    #endregion
 }

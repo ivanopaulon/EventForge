@@ -286,4 +286,107 @@ public class StorageFacilityService : IStorageFacilityService
             ModifiedBy = facility.ModifiedBy
         };
     }
+
+    #region Export Operations
+
+    public async Task<IEnumerable<EventForge.DTOs.Export.WarehouseExportDto>> GetWarehousesForExportAsync(
+        PaginationParameters pagination,
+        CancellationToken ct = default)
+    {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+        }
+
+        var query = _context.StorageFacilities
+            .Where(sf => !sf.IsDeleted && sf.TenantId == currentTenantId.Value)
+            .OrderBy(sf => sf.Name);
+        
+        var totalCount = await query.CountAsync(ct);
+        
+        _logger.LogInformation("Export requested for {Count} storage facilities", totalCount);
+        
+        // Use batch processing for large datasets
+        if (totalCount > 10000)
+        {
+            _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            return await GetWarehousesInBatchesAsync(query, ct);
+        }
+        
+        // Standard export for smaller datasets
+        var items = await query
+            .Take(pagination.PageSize)
+            .ToListAsync(ct);
+        
+        return items.Select(sf => new EventForge.DTOs.Export.WarehouseExportDto
+        {
+            Id = sf.Id,
+            Code = sf.Code,
+            Name = sf.Name,
+            Type = sf.IsFiscal ? "Fiscal" : "Standard",
+            Address = sf.Address,
+            City = ExtractCityFromAddress(sf.Address),
+            IsActive = sf.IsActive,
+            TotalStorageLocations = sf.TotalLocations,
+            CreatedAt = sf.CreatedAt
+        });
+    }
+
+    private async Task<IEnumerable<EventForge.DTOs.Export.WarehouseExportDto>> GetWarehousesInBatchesAsync(
+        IQueryable<StorageFacility> query,
+        CancellationToken ct)
+    {
+        const int batchSize = 5000;
+        var results = new List<EventForge.DTOs.Export.WarehouseExportDto>();
+        var skip = 0;
+        
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            
+            var batch = await query
+                .Skip(skip)
+                .Take(batchSize)
+                .ToListAsync(ct);
+            
+            if (batch.Count == 0) break;
+            
+            results.AddRange(batch.Select(sf => new EventForge.DTOs.Export.WarehouseExportDto
+            {
+                Id = sf.Id,
+                Code = sf.Code,
+                Name = sf.Name,
+                Type = sf.IsFiscal ? "Fiscal" : "Standard",
+                Address = sf.Address,
+                City = ExtractCityFromAddress(sf.Address),
+                IsActive = sf.IsActive,
+                TotalStorageLocations = sf.TotalLocations,
+                CreatedAt = sf.CreatedAt
+            }));
+            
+            skip += batchSize;
+            
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+                Math.Min(skip, results.Count), results.Count);
+        }
+        
+        return results;
+    }
+
+    private static string? ExtractCityFromAddress(string? address)
+    {
+        if (string.IsNullOrEmpty(address)) return null;
+        
+        // Try to extract city from address (simple heuristic - take last part before postal code if exists)
+        var parts = address.Split(',');
+        if (parts.Length > 1)
+        {
+            return parts[^2].Trim(); // Second to last part often contains city
+        }
+        
+        return null;
+    }
+
+    #endregion
 }
