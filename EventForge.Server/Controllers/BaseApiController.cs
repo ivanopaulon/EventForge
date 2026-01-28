@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
@@ -239,5 +240,25 @@ public abstract class BaseApiController : ControllerBase
         }
 
         return !ModelState.IsValid ? CreateValidationProblemDetails() : null;
+    }
+
+    /// <summary>
+    /// Sets pagination response headers for a paged result.
+    /// </summary>
+    /// <typeparam name="T">Type of items in the paged result</typeparam>
+    /// <param name="result">The paged result containing items and pagination metadata</param>
+    /// <param name="pagination">Pagination parameters used for the request</param>
+    protected void SetPaginationHeaders<T>(PagedResult<T> result, PaginationParameters pagination)
+    {
+        Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+        Response.Headers.Append("X-Page", result.Page.ToString());
+        Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+        Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+        if (pagination.WasCapped)
+        {
+            Response.Headers.Append("X-Pagination-Capped", "true");
+            Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+        }
     }
 }

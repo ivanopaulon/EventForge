@@ -17,6 +17,32 @@ public interface IEventService
     Task<PagedResult<EventDto>> GetEventsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all events with pagination parameters.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of events</returns>
+    Task<PagedResult<EventDto>> GetEventsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets events within a date range.
+    /// </summary>
+    /// <param name="startDate">Start date</param>
+    /// <param name="endDate">End date (optional, defaults to 1 year from start)</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of events</returns>
+    Task<PagedResult<EventDto>> GetEventsByDateAsync(DateTime startDate, DateTime? endDate, PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets upcoming events (from now onwards).
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of upcoming events</returns>
+    Task<PagedResult<EventDto>> GetUpcomingEventsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets an event by ID.
     /// </summary>
     /// <param name="id">Event ID</param>

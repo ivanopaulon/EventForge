@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Notifications;
 
 namespace EventForge.Server.Services.Notifications;
@@ -61,6 +62,38 @@ public interface INotificationService
     /// <returns>Paginated notification results with metadata</returns>
     Task<PagedResult<NotificationResponseDto>> GetNotificationsAsync(
         NotificationSearchDto searchDto,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves all notifications for the current user with pagination.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of notifications</returns>
+    Task<PagedResult<NotificationResponseDto>> GetNotificationsAsync(
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves unread notifications for the current user.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of unread notifications</returns>
+    Task<PagedResult<NotificationResponseDto>> GetUnreadNotificationsAsync(
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves notifications by type (Info, Warning, Error, Success).
+    /// </summary>
+    /// <param name="type">Notification type</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of notifications of the specified type</returns>
+    Task<PagedResult<NotificationResponseDto>> GetNotificationsByTypeAsync(
+        string type,
+        PaginationParameters pagination,
         CancellationToken cancellationToken = default);
 
     /// <summary>

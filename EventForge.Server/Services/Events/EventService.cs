@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Teams;
 using Microsoft.EntityFrameworkCore;
 
@@ -57,6 +58,137 @@ public class EventService : IEventService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il recupero degli eventi.");
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<EventDto>> GetEventsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for event operations.");
+            }
+
+            var query = _context.Events
+                .Where(e => !e.IsDeleted && e.TenantId == currentTenantId.Value)
+                .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value));
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var events = await query
+                .OrderBy(e => e.StartDate)
+                .ThenBy(e => e.Name)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var eventDtos = events.Select(MapToEventDto);
+
+            return new PagedResult<EventDto>
+            {
+                Items = eventDtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero degli eventi.");
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<EventDto>> GetEventsByDateAsync(
+        DateTime startDate,
+        DateTime? endDate,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for event operations.");
+            }
+
+            var end = endDate ?? startDate.AddYears(1);
+
+            var query = _context.Events
+                .Where(e => !e.IsDeleted 
+                    && e.TenantId == currentTenantId.Value
+                    && e.StartDate >= startDate
+                    && e.StartDate <= end);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var events = await query
+                .OrderBy(e => e.StartDate)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var eventDtos = events.Select(MapToEventDto);
+
+            return new PagedResult<EventDto>
+            {
+                Items = eventDtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero degli eventi per intervallo date.");
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<EventDto>> GetUpcomingEventsAsync(
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for event operations.");
+            }
+
+            var now = DateTime.UtcNow;
+
+            var query = _context.Events
+                .Where(e => !e.IsDeleted 
+                    && e.TenantId == currentTenantId.Value
+                    && e.StartDate >= now);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var events = await query
+                .OrderBy(e => e.StartDate)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var eventDtos = events.Select(MapToEventDto);
+
+            return new PagedResult<EventDto>
+            {
+                Items = eventDtos,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero degli eventi futuri.");
             throw;
         }
     }

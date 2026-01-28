@@ -1,8 +1,11 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Notifications;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Controllers;
@@ -129,33 +132,93 @@ public class NotificationsController : BaseApiController
     }
 
     /// <summary>
-    /// Retrieves notifications with advanced filtering, pagination, and search capabilities.
-    /// Supports tenant-aware filtering, full-text search, and comprehensive sorting options.
+    /// Retrieves all notifications for current user with pagination
     /// </summary>
-    /// <param name="searchDto">Search and filtering criteria</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Paginated notification results with metadata</returns>
-    /// <response code="200">Notifications retrieved successfully</response>
+    /// <returns>Paginated list of notifications</returns>
+    /// <response code="200">Successfully retrieved notifications with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<NotificationResponseDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<NotificationResponseDto>>> GetNotificationsAsync(
-        [FromQuery] NotificationSearchDto searchDto,
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<NotificationResponseDto>>> GetNotifications(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug(
-                "Retrieving notifications for user {UserId} in tenant {TenantId} - Page {Page}",
-                searchDto.UserId, searchDto.TenantId, searchDto.PageNumber);
-
-            var result = await _notificationService.GetNotificationsAsync(searchDto, cancellationToken);
+            var result = await _notificationService.GetNotificationsAsync(pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve notifications");
-            return CreateValidationProblemDetails("An error occurred while retrieving notifications"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving notifications.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves unread notifications for current user
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of unread notifications</returns>
+    /// <response code="200">Successfully retrieved unread notifications with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("unread")]
+    [ProducesResponseType(typeof(PagedResult<NotificationResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<NotificationResponseDto>>> GetUnreadNotifications(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _notificationService.GetUnreadNotificationsAsync(pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve unread notifications");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving unread notifications.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves notifications by type (Info, Warning, Error, Success)
+    /// </summary>
+    /// <param name="type">Notification type</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of notifications of the specified type</returns>
+    /// <response code="200">Successfully retrieved notifications with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters or notification type</response>
+    [HttpGet("type/{type}")]
+    [ProducesResponseType(typeof(PagedResult<NotificationResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<NotificationResponseDto>>> GetNotificationsByType(
+        string type,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _notificationService.GetNotificationsByTypeAsync(type, pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid notification type: {Type}", type);
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve notifications of type {Type}", type);
+            return CreateInternalServerErrorProblem($"An error occurred while retrieving notifications of type {type}.", ex);
         }
     }
 
