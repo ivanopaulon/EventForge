@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,7 +26,7 @@ public class BrandService : IBrandService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<BrandDto>> GetBrandsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<BrandDto>> GetBrandsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -41,8 +42,8 @@ public class BrandService : IBrandService
             var totalCount = await query.CountAsync(cancellationToken);
             var brandDtos = await query
                 .OrderBy(b => b.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .Select(b => new BrandDto
                 {
                     Id = b.Id,
@@ -58,8 +59,8 @@ public class BrandService : IBrandService
             return new PagedResult<BrandDto>
             {
                 Items = brandDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

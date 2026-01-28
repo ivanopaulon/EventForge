@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 
 namespace EventForge.Server.Services.Products;
@@ -8,23 +9,21 @@ namespace EventForge.Server.Services.Products;
 public interface IModelService
 {
     /// <summary>
-    /// Gets all models with optional pagination.
+    /// Gets all models with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of models</returns>
-    Task<PagedResult<ModelDto>> GetModelsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<ModelDto>> GetModelsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets models by brand ID with optional pagination.
+    /// Gets models by brand ID with pagination.
     /// </summary>
     /// <param name="brandId">Brand ID to filter by</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of models for the brand</returns>
-    Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a model by ID.

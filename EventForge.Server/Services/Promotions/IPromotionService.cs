@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Promotions;
 
 namespace EventForge.Server.Services.Promotions;
@@ -8,9 +9,9 @@ namespace EventForge.Server.Services.Promotions;
 public interface IPromotionService
 {
     /// <summary>
-    /// Gets all promotions with optional pagination.
+    /// Gets all promotions with pagination.
     /// </summary>
-    Task<PagedResult<PromotionDto>> GetPromotionsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<PromotionDto>> GetPromotionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a promotion by ID.

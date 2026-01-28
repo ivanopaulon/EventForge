@@ -47,7 +47,7 @@ public class PriceListService : IPriceListService
         _bulkOperationsService = bulkOperationsService ?? throw new ArgumentNullException(nameof(bulkOperationsService));
     }
 
-    public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(int page = 1, int pageSize = 20, PriceListDirection? direction = null, DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(PaginationParameters pagination, PriceListDirection? direction = null, DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -83,8 +83,8 @@ public class PriceListService : IPriceListService
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .OrderBy(pl => pl.Priority)
                 .ThenBy(pl => pl.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var priceListDtos = priceLists.Select(MapToPriceListDto);
@@ -92,8 +92,8 @@ public class PriceListService : IPriceListService
             return new PagedResult<PriceListDto>
             {
                 Items = priceListDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

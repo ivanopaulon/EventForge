@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceHistory;
 using EventForge.DTOs.Products;
 using EventForge.Server.Services.CodeGeneration;
@@ -46,7 +47,7 @@ public class ProductService : IProductService
 
     // Product CRUD operations
 
-    public async Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -77,8 +78,8 @@ public class ProductService : IProductService
             var totalCount = await query.CountAsync(cancellationToken);
             var products = await query
                 .OrderBy(p => p.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             var productDtos = products.Select(MapToProductDto);
@@ -86,8 +87,8 @@ public class ProductService : IProductService
             return new PagedResult<ProductDto>
             {
                 Items = productDtos,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }
@@ -2152,8 +2153,7 @@ public class ProductService : IProductService
 
     public async Task<PagedResult<ProductSupplierDto>> GetProductsBySupplierAsync(
         Guid supplierId,
-        int page = 1,
-        int pageSize = 20,
+        PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
         var currentTenantId = _tenantContext.CurrentTenantId;
@@ -2175,11 +2175,10 @@ public class ProductService : IProductService
                 .ThenBy(ps => ps.Product!.Name);
 
             var totalCount = await query.CountAsync(cancellationToken);
-            var skip = (page - 1) * pageSize;
 
             var productSuppliers = await query
-                .Skip(skip)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
             // Get product IDs to fetch latest purchase data
@@ -2251,8 +2250,8 @@ public class ProductService : IProductService
             return new PagedResult<ProductSupplierDto>
             {
                 Items = items,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }

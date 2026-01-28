@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 
 namespace EventForge.Server.Services.Products;
@@ -10,14 +11,13 @@ public interface IProductService
     // Product CRUD operations
 
     /// <summary>
-    /// Gets all products with optional pagination.
+    /// Gets all products with pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
-    Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a product by ID.
@@ -339,11 +339,10 @@ public interface IProductService
     /// Gets products by supplier with pagination, enriched with latest purchase data.
     /// </summary>
     /// <param name="supplierId">Supplier ID</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of product suppliers with enriched data</returns>
-    Task<PagedResult<ProductSupplierDto>> GetProductsBySupplierAsync(Guid supplierId, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<PagedResult<ProductSupplierDto>> GetProductsBySupplierAsync(Guid supplierId, PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets recent product transactions (purchases or sales) for price suggestions.
