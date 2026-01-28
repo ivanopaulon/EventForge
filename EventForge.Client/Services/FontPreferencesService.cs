@@ -62,12 +62,14 @@ public class FontPreferencesService : IFontPreferencesService
                 // 3. Default preferences
                 _currentPreferences = new UserDisplayPreferencesDto
                 {
-                    PrimaryFontFamily = "Noto Sans",
-                    MonospaceFontFamily = "Noto Sans Mono",
+                    BodyFont = "Noto Sans",
+                    HeadingsFont = "Noto Sans Display",
+                    MonospaceFont = "Noto Sans Mono",
+                    ContentFont = "Noto Serif",
                     BaseFontSize = 16,
-                    PreferredTheme = "carbon-neon-light",
-                    EnableExtendedFonts = true,
-                    UseSystemFonts = false
+                    UseSystemFonts = false,
+                    EnableExtendedScripts = false,
+                    EnabledScripts = new()
                 };
             }
 
@@ -123,18 +125,32 @@ public class FontPreferencesService : IFontPreferencesService
     {
         try
         {
-            var fontFamily = _currentPreferences.UseSystemFonts 
+            var bodyFamily = _currentPreferences.UseSystemFonts 
                 ? "var(--font-family-system)" 
-                : $"'{_currentPreferences.PrimaryFontFamily}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+                : $"'{_currentPreferences.BodyFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+            
+            var headingsFamily = _currentPreferences.UseSystemFonts
+                ? "var(--font-family-system)"
+                : $"'{_currentPreferences.HeadingsFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
             
             var monoFamily = _currentPreferences.UseSystemFonts
                 ? "'Courier New', Consolas, monospace"
-                : $"'{_currentPreferences.MonospaceFontFamily}', 'Courier New', monospace";
+                : "'Noto Sans Mono', 'Courier New', monospace";
+            
+            var contentFamily = _currentPreferences.UseSystemFonts
+                ? "var(--font-family-system)"
+                : $"'{_currentPreferences.ContentFont}', Georgia, serif";
 
             var fontSize = $"{_currentPreferences.BaseFontSize}px";
 
-            // Apply CSS properties safely using dedicated JavaScript helper function
-            await _jsRuntime.InvokeVoidAsync("EventForge.setFontPreferences", fontFamily, monoFamily, fontSize);
+            // Apply CSS properties using the new multi-context function
+            await _jsRuntime.InvokeVoidAsync("EventForge.setFontPreferences", 
+                bodyFamily, headingsFamily, monoFamily, contentFamily, fontSize);
+            
+            _logger.LogInformation("Applied font preferences: Body={Body}, Headings={Headings}, Size={Size}px", 
+                _currentPreferences.BodyFont, 
+                _currentPreferences.HeadingsFont, 
+                _currentPreferences.BaseFontSize);
         }
         catch (Exception ex)
         {
