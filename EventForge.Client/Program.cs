@@ -179,6 +179,9 @@ builder.Services.AddScoped<EventForge.Client.Services.Sales.IPaymentMethodServic
 builder.Services.AddScoped<EventForge.Client.Services.Sales.INoteFlagService, EventForge.Client.Services.Sales.NoteFlagService>();
 builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementService, EventForge.Client.Services.Sales.TableManagementService>();
 
+// Add Mock services (client-side only, no backend)
+builder.Services.AddSingleton<EventForge.Client.Services.Mock.IMockFidelityService, EventForge.Client.Services.Mock.MockFidelityService>();
+
 // Register AuthenticatedHttpClientHandler for Store services
 builder.Services.AddTransient<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 // Register authenticated HTTP client handler for Store services

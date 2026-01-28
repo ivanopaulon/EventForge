@@ -1,0 +1,157 @@
+@using EventForge.Client.Models.Fidelity
+
+<MudDialog>
+    <DialogContent>
+        
+        <!-- Alert Modalità Demo -->
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Outlined.Info" />
+                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                    MODALITÀ DEMO - I dati verranno persi al refresh della pagina
+                </MudText>
+            </MudStack>
+        </MudAlert>
+        
+        <!-- Informazioni Card -->
+        <MudPaper Outlined="true" Class="pa-3 mb-4">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                    Card @Card.Type - @Card.CardNumber
+                </MudText>
+                <MudText Typo="Typo.h5" Color="Color.Primary">
+                    Punti Attuali: @Card.CurrentPoints
+                </MudText>
+            </MudStack>
+        </MudPaper>
+        
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                
+                <MudItem xs="12">
+                    <MudRadioGroup @bind-Value="_operationType">
+                        <MudRadio Value="@OperationType.Add" Color="Color.Success">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Outlined.Add" Size="Size.Small" />
+                                <MudText>Aggiungi Punti</MudText>
+                            </MudStack>
+                        </MudRadio>
+                        <MudRadio Value="@OperationType.Redeem" Color="Color.Warning">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Outlined.Remove" Size="Size.Small" />
+                                <MudText>Riscatta Punti</MudText>
+                            </MudStack>
+                        </MudRadio>
+                    </MudRadioGroup>
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudNumericField @bind-Value="_points"
+                                     Label="Punti *"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Min="1"
+                                     Max="@(_operationType == OperationType.Redeem ? Card.CurrentPoints : 999999)" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_description"
+                                 Label="Descrizione *"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 MaxLength="200"
+                                 Lines="2" />
+                </MudItem>
+                
+                @if (_operationType == OperationType.Redeem && _points > Card.CurrentPoints)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Error" Dense="true">
+                            Punti insufficienti. Disponibili: @Card.CurrentPoints
+                        </MudAlert>
+                    </MudItem>
+                }
+                
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="@(_operationType == OperationType.Add ? Color.Success : Color.Warning)" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit" 
+                   Disabled="@(!_isValid || _isProcessing || (_operationType == OperationType.Redeem && _points > Card.CurrentPoints))">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <text>@(_operationType == OperationType.Add ? "Aggiungi" : "Riscatta")</text>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter, EditorRequired]
+    public FidelityCardViewModel Card { get; set; } = null!;
+    
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isProcessing;
+    
+    private OperationType _operationType = OperationType.Add;
+    private int _points = 0;
+    private string _description = string.Empty;
+    
+    private enum OperationType
+    {
+        Add,
+        Redeem
+    }
+    
+    public enum PointsOperationTypePublic
+    {
+        Add,
+        Redeem
+    }
+    
+    private async Task Submit()
+    {
+        if (!_isValid) return;
+        
+        if (_operationType == OperationType.Redeem && _points > Card.CurrentPoints)
+            return;
+        
+        try
+        {
+            _isProcessing = true;
+            
+            var result = new PointsOperationResult
+            {
+                OperationType = _operationType == OperationType.Add ? PointsOperationTypePublic.Add : PointsOperationTypePublic.Redeem,
+                Points = _points,
+                Description = _description
+            };
+            
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+    
+    public class PointsOperationResult
+    {
+        public PointsOperationTypePublic OperationType { get; set; }
+        public int Points { get; set; }
+        public string Description { get; set; } = string.Empty;
+    }
+}

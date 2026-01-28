@@ -1,0 +1,136 @@
+@using EventForge.Client.Models.Fidelity
+
+<MudDialog>
+    <DialogContent>
+        
+        <!-- Alert Modalità Demo -->
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Outlined.Info" />
+                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                    MODALITÀ DEMO - I dati verranno persi al refresh della pagina
+                </MudText>
+            </MudStack>
+        </MudAlert>
+        
+        <!-- Informazioni Card -->
+        <MudPaper Outlined="true" Class="pa-3 mb-4">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                    Storico Transazioni - Card @Card.Type
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    Numero: @Card.CardNumber
+                </MudText>
+            </MudStack>
+        </MudPaper>
+        
+        @if (Transactions != null && Transactions.Any())
+        {
+            <MudTable Items="@Transactions" 
+                      Dense="true" 
+                      Hover="true" 
+                      Striped="true"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh>Data</MudTh>
+                    <MudTh>Tipo</MudTh>
+                    <MudTh Style="text-align: right;">Punti</MudTh>
+                    <MudTh Style="text-align: right;">Saldo Dopo</MudTh>
+                    <MudTh>Descrizione</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Data">
+                        @context.TransactionDate.ToString("dd/MM/yyyy HH:mm")
+                    </MudTd>
+                    <MudTd DataLabel="Tipo">
+                        <MudChip T="string" 
+                                 Size="Size.Small" 
+                                 Color="@GetTransactionTypeColor(context.Type)"
+                                 Icon="@GetTransactionTypeIcon(context.Type)">
+                            @GetTransactionTypeText(context.Type)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Punti" Style="text-align: right;">
+                        <MudText Typo="Typo.body2" 
+                                 Color="@(context.Points > 0 ? Color.Success : Color.Warning)"
+                                 Style="font-weight: 600;">
+                            @(context.Points > 0 ? "+" : "")@context.Points
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Saldo Dopo" Style="text-align: right;">
+                        <MudText Typo="Typo.body2" Style="font-weight: 500;">
+                            @context.BalanceAfter
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Descrizione">
+                        <MudText Typo="Typo.body2">
+                            @context.Description
+                        </MudText>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                Nessuna transazione presente per questa card
+            </MudAlert>
+        }
+        
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Close">
+            Chiudi
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter, EditorRequired]
+    public FidelityCardViewModel Card { get; set; } = null!;
+    
+    [Parameter]
+    public IEnumerable<FidelityPointsTransactionViewModel>? Transactions { get; set; }
+    
+    private Color GetTransactionTypeColor(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.Earned => Color.Success,
+            TransactionType.Redeemed => Color.Warning,
+            TransactionType.Adjusted => Color.Info,
+            TransactionType.Expired => Color.Error,
+            _ => Color.Default
+        };
+    }
+    
+    private string GetTransactionTypeIcon(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.Earned => Icons.Material.Outlined.Add,
+            TransactionType.Redeemed => Icons.Material.Outlined.Remove,
+            TransactionType.Adjusted => Icons.Material.Outlined.Edit,
+            TransactionType.Expired => Icons.Material.Outlined.Warning,
+            _ => Icons.Material.Outlined.Circle
+        };
+    }
+    
+    private string GetTransactionTypeText(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.Earned => "Guadagnati",
+            TransactionType.Redeemed => "Riscattati",
+            TransactionType.Adjusted => "Aggiustati",
+            TransactionType.Expired => "Scaduti",
+            _ => "Sconosciuto"
+        };
+    }
+    
+    private void Close() => MudDialog.Close();
+}
