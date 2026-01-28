@@ -1,7 +1,10 @@
 using EventForge.DTOs.Chat;
+using EventForge.DTOs.Common;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Chat;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Controllers;
@@ -314,6 +317,125 @@ public class ChatController : BaseApiController
             _logger.LogError(ex, "Failed to retrieve messages");
             return CreateValidationProblemDetails("An error occurred while retrieving messages"
                 );
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all chat messages with pagination
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of chat messages</returns>
+    /// <response code="200">Successfully retrieved messages with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("messages/all")]
+    [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetMessages(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _chatService.GetMessagesAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve messages");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving messages.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves messages for specific conversation
+    /// </summary>
+    /// <param name="conversationId">Conversation ID</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of messages for the conversation</returns>
+    /// <response code="200">Successfully retrieved messages with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("messages/conversation/{conversationId}")]
+    [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetMessagesByConversation(
+        Guid conversationId,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _chatService.GetMessagesByConversationAsync(conversationId, pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve messages for conversation {ConversationId}", conversationId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving messages.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves unread messages for current user
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of unread messages</returns>
+    /// <response code="200">Successfully retrieved unread messages with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("messages/unread")]
+    [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetUnreadMessages(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _chatService.GetUnreadMessagesAsync(pagination, cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+            Response.Headers.Append("X-Page", result.Page.ToString());
+            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
+
+            if (pagination.WasCapped)
+            {
+                Response.Headers.Append("X-Pagination-Capped", "true");
+                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve unread messages");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving unread messages.", ex);
         }
     }
 
