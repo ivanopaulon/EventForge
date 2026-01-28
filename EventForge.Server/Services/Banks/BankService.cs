@@ -34,6 +34,7 @@ public class BankService : IBankService
             }
 
             var query = _context.Banks
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(b => b.Addresses.Where(a => !a.IsDeleted && a.TenantId == currentTenantId.Value))
                 .Include(b => b.Contacts.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value));

@@ -37,6 +37,7 @@ public class TableManagementService : ITableManagementService
         _logger.LogInformation("Getting tables with pagination for tenant {TenantId}", tenantId);
 
         var query = _context.Set<TableSession>()
+            .AsNoTracking()
             .Where(t => t.TenantId == tenantId && !t.IsDeleted);
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -63,6 +64,7 @@ public class TableManagementService : ITableManagementService
         _logger.LogInformation("Getting tables by zone {Zone} with pagination for tenant {TenantId}", zone, tenantId);
 
         var query = _context.Set<TableSession>()
+            .AsNoTracking()
             .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.Area == zone);
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -88,6 +90,7 @@ public class TableManagementService : ITableManagementService
         _logger.LogInformation("Getting available tables with pagination for tenant {TenantId}", tenantId);
 
         var query = _context.Set<TableSession>()
+            .AsNoTracking()
             .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.IsActive && t.Status == TableStatus.Available);
 
         var totalCount = await query.CountAsync(cancellationToken);

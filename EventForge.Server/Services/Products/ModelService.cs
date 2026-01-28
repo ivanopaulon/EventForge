@@ -37,6 +37,7 @@ public class ModelService : IModelService
             }
 
             var query = _context.Models
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(m => m.Brand);
 
@@ -85,6 +86,7 @@ public class ModelService : IModelService
             }
 
             var query = _context.Models
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(m => m.BrandId == brandId)
                 .Include(m => m.Brand);

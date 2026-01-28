@@ -462,6 +462,7 @@ public class NotificationService : INotificationService
         try
         {
             var query = _context.NotificationRecipients
+                .AsNoTracking()
                 .Include(nr => nr.Notification)
                 .Where(nr => nr.UserId == searchDto.UserId);
 
@@ -610,6 +611,7 @@ public class NotificationService : INotificationService
         try
         {
             var query = _context.Notifications
+                .AsNoTracking()
                 .Where(n => !n.IsDeleted)
                 .AsQueryable();
 
@@ -669,6 +671,7 @@ public class NotificationService : INotificationService
         try
         {
             var query = _context.Notifications
+                .AsNoTracking()
                 .Where(n => !n.IsDeleted && !n.ReadAt.HasValue)
                 .AsQueryable();
 
@@ -735,6 +738,7 @@ public class NotificationService : INotificationService
             }
 
             var query = _context.Notifications
+                .AsNoTracking()
                 .Where(n => !n.IsDeleted && n.Type == notificationType)
                 .AsQueryable();
 

@@ -31,6 +31,7 @@ public class UserService : IUserService
         CancellationToken ct = default)
     {
         var query = _context.Users
+            .AsNoTracking()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .Where(u => !u.IsDeleted && u.TenantId == _tenantContext.CurrentTenantId);
@@ -72,6 +73,7 @@ public class UserService : IUserService
         CancellationToken ct = default)
     {
         var query = _context.Users
+            .AsNoTracking()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .Where(u => !u.IsDeleted
@@ -114,6 +116,7 @@ public class UserService : IUserService
         CancellationToken ct = default)
     {
         var query = _context.Users
+            .AsNoTracking()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .Where(u => !u.IsDeleted

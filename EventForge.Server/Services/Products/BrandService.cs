@@ -37,6 +37,7 @@ public class BrandService : IBrandService
             }
 
             var query = _context.Brands
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -273,6 +274,7 @@ public class BrandService : IBrandService
             }
 
             var query = _context.Brands
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(b => b.IsActive);
 

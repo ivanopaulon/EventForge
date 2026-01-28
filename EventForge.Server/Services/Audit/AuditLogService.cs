@@ -245,7 +245,7 @@ public class AuditLogService : IAuditLogService
     {
         ArgumentNullException.ThrowIfNull(queryParameters);
 
-        var query = _context.EntityChangeLogs.AsQueryable();
+        var query = _context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
         // Apply filters
         if (!string.IsNullOrWhiteSpace(queryParameters.EntityName))
@@ -494,7 +494,7 @@ public class AuditLogService : IAuditLogService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.EntityChangeLogs.AsQueryable();
+        var query = _context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
         var totalCount = await query.CountAsync(ct);
 
@@ -535,6 +535,7 @@ public class AuditLogService : IAuditLogService
         CancellationToken ct = default)
     {
         var query = _context.EntityChangeLogs
+            .AsNoTracking()
             .Where(log => log.EntityName == entityType);
 
         var totalCount = await query.CountAsync(ct);
@@ -577,7 +578,7 @@ public class AuditLogService : IAuditLogService
     {
         // Note: EntityChangeLog stores ChangedBy as string (username), not Guid
         // We need to join with Users table to filter by userId
-        var query = from log in _context.EntityChangeLogs
+        var query = from log in _context.EntityChangeLogs.AsNoTracking()
                     join user in _context.Users on log.ChangedBy equals user.Username
                     where user.Id == userId
                     select log;
@@ -624,6 +625,7 @@ public class AuditLogService : IAuditLogService
         var end = endDate ?? DateTime.UtcNow;
 
         var query = _context.EntityChangeLogs
+            .AsNoTracking()
             .Where(log => log.ChangedAt >= startDate && log.ChangedAt <= end);
 
         var totalCount = await query.CountAsync(ct);
