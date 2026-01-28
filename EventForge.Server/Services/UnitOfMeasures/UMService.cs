@@ -38,6 +38,7 @@ public class UMService : IUMService
             }
 
             var query = _context.UMs
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(u => !u.IsDeleted);
 

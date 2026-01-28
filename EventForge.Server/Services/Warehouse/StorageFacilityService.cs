@@ -50,6 +50,7 @@ public class StorageFacilityService : IStorageFacilityService
                 async () =>
                 {
                     var facilities = await _context.StorageFacilities
+                        .AsNoTracking()
                         .WhereActiveTenant(currentTenantId.Value)
                         .Include(sf => sf.Locations.Where(l => !l.IsDeleted && l.TenantId == currentTenantId.Value))
                         .OrderBy(sf => sf.Name)

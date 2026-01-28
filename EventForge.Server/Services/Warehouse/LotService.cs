@@ -43,6 +43,7 @@ public class LotService : ILotService
             }
 
             var query = _context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .Where(l => l.TenantId == currentTenantId.Value && !l.IsDeleted);
@@ -572,6 +573,7 @@ public class LotService : ILotService
             }
 
             var query = _context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .Where(l => !l.IsDeleted
@@ -621,6 +623,7 @@ public class LotService : ILotService
             // This returns all lots for the tenant as the warehouse filter
             // would require joining through inventory/stock records
             var query = _context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .Where(l => !l.IsDeleted
@@ -668,6 +671,7 @@ public class LotService : ILotService
             var expiryDate = threshold ?? DateTime.UtcNow;
 
             var query = _context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .Where(l => !l.IsDeleted

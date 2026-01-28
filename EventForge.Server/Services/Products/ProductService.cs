@@ -57,7 +57,7 @@ public class ProductService : IProductService
                 throw new InvalidOperationException("Tenant context is required for product operations.");
             }
 
-            var query = _context.Products.WhereActiveTenant(currentTenantId.Value);
+            var query = _context.Products.AsNoTracking().WhereActiveTenant(currentTenantId.Value);
 
             // Apply search filter if provided (before includes to avoid type conversion issues)
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -2166,6 +2166,7 @@ public class ProductService : IProductService
         {
             // Query product suppliers for this supplier
             var query = _context.ProductSuppliers
+                .AsNoTracking()
                 .Where(ps => ps.SupplierId == supplierId &&
                             !ps.IsDeleted &&
                             ps.TenantId == currentTenantId.Value)

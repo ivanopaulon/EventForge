@@ -771,6 +771,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             var query = _context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -816,6 +817,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             var query = _context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -863,6 +865,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             var end = endDate ?? DateTime.UtcNow;
 
             var query = _context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -911,6 +914,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             var query = _context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)

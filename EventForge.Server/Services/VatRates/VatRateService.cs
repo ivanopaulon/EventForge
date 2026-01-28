@@ -34,6 +34,7 @@ public class VatRateService : IVatRateService
             }
 
             var query = _context.VatRates
+                .AsNoTracking()
                 .Include(v => v.VatNature)
                 .WhereActiveTenant(currentTenantId.Value);
 

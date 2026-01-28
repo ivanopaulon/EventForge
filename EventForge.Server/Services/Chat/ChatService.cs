@@ -476,6 +476,7 @@ public class ChatService : IChatService
 
         // 1. Build query from ChatMessages DbSet
         var query = _context.ChatMessages
+            .AsNoTracking()
             .Where(m => !m.IsDeleted || searchDto.IncludeDeleted)
             .AsQueryable();
 
@@ -558,6 +559,7 @@ public class ChatService : IChatService
         _logger.LogInformation("Retrieving all messages - Page {Page}", pagination.Page);
 
         var query = _context.ChatMessages
+            .AsNoTracking()
             .Where(m => !m.IsDeleted)
             .Include(m => m.ChatThread)
             .Include(m => m.Attachments)
@@ -595,6 +597,7 @@ public class ChatService : IChatService
             conversationId, pagination.Page);
 
         var query = _context.ChatMessages
+            .AsNoTracking()
             .Where(m => !m.IsDeleted && m.ChatThreadId == conversationId)
             .Include(m => m.Attachments)
             .Include(m => m.ReadReceipts);
@@ -635,6 +638,7 @@ public class ChatService : IChatService
         // For now, we'll return messages with no read receipts
         
         var query = _context.ChatMessages
+            .AsNoTracking()
             .Where(m => !m.IsDeleted && m.ReadAt == null)
             .Include(m => m.ChatThread)
             .Include(m => m.Attachments)

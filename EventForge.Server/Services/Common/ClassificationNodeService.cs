@@ -37,7 +37,9 @@ public class ClassificationNodeService : IClassificationNodeService
             }
             _logger.LogDebug("Getting classification nodes: page={Page}, pageSize={PageSize}, parentId={ParentId}", pagination.Page, pagination.PageSize, parentId);
 
-            var query = _context.ClassificationNodes.AsQueryable();
+            var query = _context.ClassificationNodes
+                .AsNoTracking()
+                .AsQueryable();
 
             if (parentId.HasValue)
             {

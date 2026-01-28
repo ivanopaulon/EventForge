@@ -29,6 +29,7 @@ public class StorageLocationService : IStorageLocationService
             _logger.LogDebug("Getting storage locations: page={Page}, pageSize={PageSize}, warehouseId={WarehouseId}", pagination.Page, pagination.PageSize, warehouseId);
 
             var query = _context.StorageLocations
+                .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => !sl.IsDeleted)
                 .AsQueryable();
@@ -505,6 +506,7 @@ public class StorageLocationService : IStorageLocationService
                 warehouseId, pagination.Page, pagination.PageSize);
 
             var query = _context.StorageLocations
+                .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => !sl.IsDeleted && sl.WarehouseId == warehouseId);
 
@@ -566,6 +568,7 @@ public class StorageLocationService : IStorageLocationService
                 zone, pagination.Page, pagination.PageSize);
 
             var query = _context.StorageLocations
+                .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => !sl.IsDeleted && sl.Zone == zone);
 

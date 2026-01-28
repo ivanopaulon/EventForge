@@ -33,6 +33,7 @@ public class ContactService : IContactService
             }
 
             var query = _context.Contacts
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);

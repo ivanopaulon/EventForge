@@ -37,7 +37,9 @@ public class PaymentTermService : IPaymentTermService
                 throw new InvalidOperationException("Tenant context is required for payment term operations.");
             }
 
-            var query = _context.PaymentTerms.WhereActiveTenant(currentTenantId.Value);
+            var query = _context.PaymentTerms
+                .AsNoTracking()
+                .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var paymentTerms = await query
