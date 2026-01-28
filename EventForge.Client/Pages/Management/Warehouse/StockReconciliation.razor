@@ -476,7 +476,7 @@
                     allWarehouses.AddRange(result.Items);
                 }
                 page++;
-            } while (result?.Items?.Any() == true && result.Items.Count() == pageSize);
+            } while (result?.HasNextPage == true);
             
             _warehouses = allWarehouses;
         }
@@ -514,7 +514,7 @@
                         allLocations.AddRange(result.Items);
                     }
                     page++;
-                } while (result?.Items?.Any() == true && result.Items.Count() == pageSize);
+                } while (result?.HasNextPage == true);
                 
                 _locations = allLocations;
             }

@@ -118,14 +118,37 @@ public class StockReconciliationService : IStockReconciliationService
 
         decimal calculatedQuantity = request.StartingQuantity ?? 0m;
         var sourceMovements = new List<StockMovementSourceDto>();
+        DateTime? effectiveFromDate = request.FromDate;
 
-        // 1. Process document movements
+        // 1. Check for inventory movement first (it replaces the starting quantity)
+        StockMovementSourceDto? inventoryMovement = null;
+        if (request.IncludeInventories)
+        {
+            inventoryMovement = await GetLastInventoryMovementAsync(
+                stock.ProductId,
+                stock.StorageLocationId,
+                request.FromDate,
+                request.ToDate,
+                tenantId,
+                cancellationToken);
+
+            if (inventoryMovement != null)
+            {
+                sourceMovements.Add(inventoryMovement);
+                // Inventory replaces the calculated quantity and sets new effective starting point
+                calculatedQuantity = inventoryMovement.Quantity;
+                effectiveFromDate = inventoryMovement.Date;
+                item.TotalInventories = 1;
+            }
+        }
+
+        // 2. Process document movements from effective starting date
         if (request.IncludeDocuments)
         {
             var documentMovements = await GetDocumentMovementsAsync(
                 stock.ProductId,
                 stock.StorageLocationId,
-                request.FromDate,
+                effectiveFromDate,
                 request.ToDate,
                 tenantId,
                 cancellationToken);
@@ -139,50 +162,11 @@ public class StockReconciliationService : IStockReconciliationService
             item.TotalDocuments = documentMovements.Count;
         }
 
-        // 2. Process inventory movements (last one replaces the quantity)
-        if (request.IncludeInventories)
-        {
-            var inventoryMovement = await GetLastInventoryMovementAsync(
-                stock.ProductId,
-                stock.StorageLocationId,
-                request.ToDate,
-                tenantId,
-                cancellationToken);
-
-            if (inventoryMovement != null)
-            {
-                sourceMovements.Add(inventoryMovement);
-                
-                // Inventory replaces the calculated quantity
-                calculatedQuantity = inventoryMovement.Quantity;
-                
-                // Add any document movements AFTER the inventory
-                if (request.IncludeDocuments)
-                {
-                    var documentsAfterInventory = await GetDocumentMovementsAsync(
-                        stock.ProductId,
-                        stock.StorageLocationId,
-                        inventoryMovement.Date,
-                        request.ToDate,
-                        tenantId,
-                        cancellationToken);
-
-                    foreach (var movement in documentsAfterInventory)
-                    {
-                        sourceMovements.Add(movement);
-                        calculatedQuantity += movement.Quantity;
-                    }
-                }
-
-                item.TotalInventories = 1;
-            }
-        }
-
-        // 3. Process manual stock movements
+        // 3. Process manual stock movements from effective starting date
         var manualMovements = await GetManualMovementsAsync(
             stock.ProductId,
             stock.StorageLocationId,
-            request.FromDate,
+            effectiveFromDate,
             request.ToDate,
             tenantId,
             cancellationToken);
@@ -261,13 +245,14 @@ public class StockReconciliationService : IStockReconciliationService
     private async Task<StockMovementSourceDto?> GetLastInventoryMovementAsync(
         Guid productId,
         Guid locationId,
+        DateTime? fromDate,
         DateTime? toDate,
         Guid tenantId,
         CancellationToken cancellationToken)
     {
-        // Query for the last finalized inventory document
+        // Query for the last finalized inventory document within the date range
         // We check for common inventory document type codes: "INVENTORY", "INV-COUNT", "STOCK-COUNT", "INVENT"
-        var lastInventoryRow = await _context.DocumentRows
+        var query = _context.DocumentRows
             .AsNoTracking()
             .Include(dr => dr.DocumentHeader)
                 .ThenInclude(dh => dh!.DocumentType)
@@ -282,15 +267,24 @@ public class StockReconciliationService : IStockReconciliationService
                          dr.DocumentHeader.DocumentType.Code == "INV-COUNT" ||
                          dr.DocumentHeader.DocumentType.Code == "STOCK-COUNT" ||
                          dr.DocumentHeader.DocumentType.Code == "INVENT") &&
-                        dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed)
+                        dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed);
+
+        // Apply date filters
+        if (fromDate.HasValue)
+        {
+            query = query.Where(dr => dr.DocumentHeader!.Date >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            query = query.Where(dr => dr.DocumentHeader!.Date <= toDate.Value);
+        }
+
+        var lastInventoryRow = await query
             .OrderByDescending(dr => dr.DocumentHeader!.Date)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (lastInventoryRow == null)
-            return null;
-
-        // Verify the inventory is within the date range
-        if (toDate.HasValue && lastInventoryRow.DocumentHeader!.Date > toDate.Value)
             return null;
 
         return new StockMovementSourceDto
