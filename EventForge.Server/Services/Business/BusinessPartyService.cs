@@ -1050,8 +1050,8 @@ public class BusinessPartyService : IBusinessPartyService
             // ⚡ Single query con eager loading ottimizzato
             var businessParty = await _context.BusinessParties
                 .Where(bp => bp.Id == id && !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
-                .Include(bp => bp.Contacts.Where(c => c.TenantId == currentTenantId.Value && (includeInactive || !c.IsDeleted)))
-                .Include(bp => bp.Addresses.Where(a => a.TenantId == currentTenantId.Value && (includeInactive || !a.IsDeleted)))
+                .Include(bp => bp.Contacts)
+                .Include(bp => bp.Addresses)
                 .AsSplitQuery() // ⭐ CRITICO: evita cartesian explosion con multiple includes
                 .FirstOrDefaultAsync(cancellationToken);
             
@@ -1060,6 +1060,15 @@ public class BusinessPartyService : IBusinessPartyService
                 _logger.LogWarning("BusinessParty {Id} not found", id);
                 return null;
             }
+
+            // Filter contacts and addresses based on includeInactive parameter
+            var filteredContacts = includeInactive 
+                ? businessParty.Contacts.Where(c => c.TenantId == currentTenantId.Value).ToList()
+                : businessParty.Contacts.Where(c => c.TenantId == currentTenantId.Value && !c.IsDeleted).ToList();
+
+            var filteredAddresses = includeInactive
+                ? businessParty.Addresses.Where(a => a.TenantId == currentTenantId.Value).ToList()
+                : businessParty.Addresses.Where(a => a.TenantId == currentTenantId.Value && !a.IsDeleted).ToList();
 
             // ⚡ Carica i listini prezzi associati separatamente per evitare problemi con Include filtrati
             var priceListsQuery = await _context.PriceListBusinessParties
@@ -1076,13 +1085,13 @@ public class BusinessPartyService : IBusinessPartyService
             {
                 BusinessParty = MapToBusinessPartyDtoSimple(businessParty),
                 
-                Contacts = businessParty.Contacts
+                Contacts = filteredContacts
                     .Select(MapToContactDto)
                     .OrderByDescending(c => c.IsPrimary)
                     .ThenBy(c => c.ContactType)
                     .ToList(),
                 
-                Addresses = businessParty.Addresses
+                Addresses = filteredAddresses
                     .Select(MapToAddressDto)
                     .OrderBy(a => a.AddressType)
                     .ToList(),
