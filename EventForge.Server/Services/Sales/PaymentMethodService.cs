@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
@@ -31,7 +32,7 @@ public class PaymentMethodService : IPaymentMethodService
         _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
-    public async Task<PagedResult<PaymentMethodDto>> GetPaymentMethodsAsync(int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<PaymentMethodDto>> GetPaymentMethodsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -63,8 +64,8 @@ public class PaymentMethodService : IPaymentMethodService
             // Note: If a tenant has a very large number of payment methods, consider per-page caching
             var totalCount = allPaymentMethods.Count;
             var items = allPaymentMethods
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToList();
 
             _logger.LogDebug("Found {Count} payment methods for tenant {TenantId}", totalCount, currentTenantId.Value);
@@ -72,8 +73,8 @@ public class PaymentMethodService : IPaymentMethodService
             return new PagedResult<PaymentMethodDto>
             {
                 Items = items,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 TotalCount = totalCount
             };
         }
@@ -84,7 +85,7 @@ public class PaymentMethodService : IPaymentMethodService
         }
     }
 
-    public async Task<List<PaymentMethodDto>> GetActivePaymentMethodsAsync(CancellationToken cancellationToken = default)
+    public async Task<PagedResult<PaymentMethodDto>> GetActivePaymentMethodsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -94,13 +95,25 @@ public class PaymentMethodService : IPaymentMethodService
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
             }
 
-            var paymentMethods = await _context.PaymentMethods
-                .Where(pm => pm.TenantId == currentTenantId.Value && pm.IsActive && !pm.IsDeleted)
+            var query = _context.PaymentMethods
+                .Where(pm => pm.TenantId == currentTenantId.Value && pm.IsActive && !pm.IsDeleted);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var paymentMethods = await query
                 .OrderBy(pm => pm.DisplayOrder)
                 .ThenBy(pm => pm.Name)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            return paymentMethods.Select(MapToDto).ToList();
+            return new PagedResult<PaymentMethodDto>
+            {
+                Items = paymentMethods.Select(MapToDto),
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
         }
         catch (Exception ex)
         {
