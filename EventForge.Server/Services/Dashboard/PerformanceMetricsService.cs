@@ -78,7 +78,7 @@ public class PerformanceMetricsService : IPerformanceMetricsService
 
             metrics.SlowQueries = slowQueries.Select(q => new SlowQueryDto
             {
-                QueryPreview = q.Operation.Length > 100 ? q.Operation.Substring(0, 97) + "..." : q.Operation,
+                QueryPreview = q.Operation.Length > 100 ? q.Operation.Substring(0, Math.Min(97, q.Operation.Length)) + "..." : q.Operation,
                 AvgDurationMs = q.AvgDuration,
                 ExecutionCount = q.Count,
                 LastSeen = q.LastSeen,

@@ -111,6 +111,7 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
             
             await connection.OpenAsync(cancellationToken);
 
+            // System databases (master=1, tempdb=2, model=3, msdb=4) are excluded
             using var command = new SqlCommand("SELECT name FROM sys.databases WHERE database_id > 4 ORDER BY name", connection);
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
 

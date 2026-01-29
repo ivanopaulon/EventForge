@@ -141,7 +141,7 @@ public class SetupWizardService : ISetupWizardService
             using var connection = new SqlConnection(masterConnectionString);
             await connection.OpenAsync(cancellationToken);
 
-            var createDbCommand = $"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'{config.DatabaseName}') CREATE DATABASE [{config.DatabaseName}]";
+            var createDbCommand = $"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'{SanitizeDatabaseName(config.DatabaseName)}') CREATE DATABASE [{SanitizeDatabaseName(config.DatabaseName)}]";
             using var command = new SqlCommand(createDbCommand, connection);
             await command.ExecuteNonQueryAsync(cancellationToken);
 
@@ -357,5 +357,19 @@ public class SetupWizardService : ISetupWizardService
         }
 
         return builder.ConnectionString;
+    }
+
+    private static string SanitizeDatabaseName(string databaseName)
+    {
+        if (string.IsNullOrWhiteSpace(databaseName))
+            throw new ArgumentException("Database name cannot be empty", nameof(databaseName));
+
+        if (databaseName.Length > 128)
+            throw new ArgumentException("Database name cannot exceed 128 characters", nameof(databaseName));
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(databaseName, @"^[a-zA-Z0-9_]+$"))
+            throw new ArgumentException("Database name contains invalid characters. Only letters, numbers, and underscores are allowed.", nameof(databaseName));
+
+        return databaseName;
     }
 }

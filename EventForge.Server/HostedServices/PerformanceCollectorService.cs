@@ -23,6 +23,8 @@ public class PerformanceCollectorService : BackgroundService
     {
         _logger.LogInformation("PerformanceCollectorService started. Collecting metrics every {Interval}", _interval);
 
+        await CollectMetricsAsync(stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             await Task.Delay(_interval, stoppingToken);
@@ -45,14 +47,14 @@ public class PerformanceCollectorService : BackgroundService
             var memoryUsageMB = process.WorkingSet64 / 1024 / 1024;
 
             var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
-            var recentLogs = await dbContext.SystemOperationLogs
+            
+            var requestsPerMinute = await dbContext.SystemOperationLogs
                 .Where(l => l.CreatedAt > oneMinuteAgo)
-                .ToListAsync(cancellationToken);
-
-            var requestsPerMinute = recentLogs.Count;
-            var avgResponseTimeMs = recentLogs.Any(l => l.DurationMs.HasValue) 
-                ? recentLogs.Where(l => l.DurationMs.HasValue).Average(l => l.DurationMs!.Value) 
-                : 0;
+                .CountAsync(cancellationToken);
+                
+            var avgResponseTimeMs = await dbContext.SystemOperationLogs
+                .Where(l => l.CreatedAt > oneMinuteAgo && l.DurationMs.HasValue)
+                .AverageAsync(l => (double?)l.DurationMs, cancellationToken) ?? 0;
 
             var performanceLog = new PerformanceLog
             {
