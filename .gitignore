@@ -400,3 +400,4 @@ screenshots/
 /EventForge.Server/Data/Migrations
 /EventForge.Server/appsettings.json
 /EventForge.Server/appsettings.Development.json
+/EventForge.Server/appsettings.overrides.json

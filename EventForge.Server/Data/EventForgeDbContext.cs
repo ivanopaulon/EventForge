@@ -1,5 +1,6 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
+using EventForge.Server.Data.Entities.Configuration;
 using EventForge.Server.Data.Entities.Notifications;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
@@ -148,6 +149,8 @@ public partial class EventForgeDbContext : DbContext
     // System Configuration Entities
     public DbSet<SystemConfiguration> SystemConfigurations { get; set; }
     public DbSet<BackupOperation> BackupOperations { get; set; }
+    public DbSet<JwtKeyHistory> JwtKeyHistories { get; set; }
+    public DbSet<SystemOperationLog> SystemOperationLogs { get; set; }
 
     // Notification Entities
     public DbSet<Notification> Notifications { get; set; }

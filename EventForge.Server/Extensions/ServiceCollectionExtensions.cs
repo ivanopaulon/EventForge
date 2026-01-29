@@ -51,9 +51,10 @@ public static class ServiceCollectionExtensions
         var fileRetention = builder.Configuration.GetValue<int?>("Serilog:FileRetention") ?? 7;
         var logDbConnectionString = builder.Configuration.GetConnectionString("LogDb");
         
-        // Determine if console logging should be enabled (only in Development)
-        var isConsoleLoggingEnabled = builder.Environment.IsDevelopment();
-        var consoleStatus = isConsoleLoggingEnabled ? "attivo" : "disabilitato";
+        // Disable console logging by default (even in Development) for cleaner output
+        // Console logging can be explicitly enabled via configuration: Serilog:EnableConsole = true
+        var isConsoleLoggingEnabled = builder.Configuration.GetValue<bool>("Serilog:EnableConsole", false);
+        var consoleStatus = isConsoleLoggingEnabled ? "enabled" : "disabled";
 
         // Configure column options for enriched properties
         var columnOptions = new ColumnOptions();
@@ -88,7 +89,8 @@ public static class ServiceCollectionExtensions
                 restrictedToMinimumLevel: LogEventLevel.Information,
                 outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
 
-        // Console logging enabled only in Development environment for better performance in production
+        // Console logging disabled by default for cleaner output
+        // Enable via configuration setting: Serilog:EnableConsole = true
         if (isConsoleLoggingEnabled)
         {
             loggerConfiguration.WriteTo.Console(
