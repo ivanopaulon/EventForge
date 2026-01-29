@@ -96,7 +96,7 @@ public class DocumentCollaborationHub : Hub
         if (!userId.HasValue)
         {
             _logger.LogWarning(
-                "RequestEditLock FAILED: UserId is null. DocumentId={DocumentId}, UserName={UserName}",
+                "RequestEditLock FAILED: UserId is NULL. DocumentId={DocumentId}, UserName={UserName}",
                 documentId, userName);
             throw new HubException("User not authenticated");
         }
@@ -105,7 +105,7 @@ public class DocumentCollaborationHub : Hub
         if (!tenantId.HasValue)
         {
             _logger.LogWarning(
-                "RequestEditLock FAILED: TenantId is null. DocumentId={DocumentId}, UserName={UserName}, UserId={UserId}",
+                "RequestEditLock FAILED: TenantId is NULL. DocumentId={DocumentId}, UserName={UserName}, UserId={UserId}",
                 documentId, userName, userId.Value);
             throw new HubException("Autenticazione non valida: Tenant ID non trovato. Effettua nuovamente il login.");
         }

@@ -1664,6 +1664,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                 }
                 catch (DbUpdateException dbEx)
                 {
+                    // Non-concurrency database errors (e.g., constraint violations, FK errors)
+                    // are not transient and should not be retried - propagate to outer catch
                     _logger.LogError(
                         dbEx,
                         "❌ DATABASE UPDATE ERROR during lock acquisition for document {DocumentId}, attempt {Attempt}. Inner exception: {InnerException}",
