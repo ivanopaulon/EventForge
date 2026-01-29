@@ -2,11 +2,10 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
+using EventForge.Server.Data;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
-using EventForge.Server.Services.Documents;
-using EventForge.Server.Services.Export;
-using EventForge.Server.Services.Products;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,54 +28,21 @@ public class WarehouseManagementController : BaseApiController
     // Maximum page size for bulk operations to prevent performance issues
     private const int MaxBulkOperationPageSize = 1000;
 
-    private readonly IStorageFacilityService _storageFacilityService;
-    private readonly IStorageLocationService _storageLocationService;
-    private readonly ILotService _lotService;
-    private readonly IStockService _stockService;
-    private readonly ISerialService _serialService;
-    private readonly IStockMovementService _stockMovementService;
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly IProductService _productService;
-    private readonly IInventoryBulkSeedService _inventoryBulkSeedService;
-    private readonly IInventoryDiagnosticService _inventoryDiagnosticService;
-    private readonly IStockReconciliationService _stockReconciliationService;
+    private readonly IWarehouseFacade _warehouseFacade;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<WarehouseManagementController> _logger;
-    private readonly EventForgeDbContext _context;
-    private readonly IExportService _exportService;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public WarehouseManagementController(
-        IStorageFacilityService storageFacilityService,
-        IStorageLocationService storageLocationService,
-        ILotService lotService,
-        IStockService stockService,
-        ISerialService serialService,
-        IStockMovementService stockMovementService,
-        IDocumentHeaderService documentHeaderService,
-        IProductService productService,
-        IInventoryBulkSeedService inventoryBulkSeedService,
-        IInventoryDiagnosticService inventoryDiagnosticService,
-        IStockReconciliationService stockReconciliationService,
+        IWarehouseFacade warehouseFacade,
         ITenantContext tenantContext,
         ILogger<WarehouseManagementController> logger,
-        EventForgeDbContext context,
-        IExportService exportService)
+        ICacheInvalidationService cacheInvalidation)
     {
-        _storageFacilityService = storageFacilityService ?? throw new ArgumentNullException(nameof(storageFacilityService));
-        _storageLocationService = storageLocationService ?? throw new ArgumentNullException(nameof(storageLocationService));
-        _lotService = lotService ?? throw new ArgumentNullException(nameof(lotService));
-        _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
-        _serialService = serialService ?? throw new ArgumentNullException(nameof(serialService));
-        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _productService = productService ?? throw new ArgumentNullException(nameof(productService));
-        _inventoryBulkSeedService = inventoryBulkSeedService ?? throw new ArgumentNullException(nameof(inventoryBulkSeedService));
-        _inventoryDiagnosticService = inventoryDiagnosticService ?? throw new ArgumentNullException(nameof(inventoryDiagnosticService));
-        _stockReconciliationService = stockReconciliationService ?? throw new ArgumentNullException(nameof(stockReconciliationService));
+        _warehouseFacade = warehouseFacade ?? throw new ArgumentNullException(nameof(warehouseFacade));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
+        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
     }
 
     #region Helper Methods
@@ -87,250 +53,6 @@ public class WarehouseManagementController : BaseApiController
     private const int LARGE_DOCUMENT_THRESHOLD = 300;
     private const int MAX_DISPLAYED_MISSING_IDS = 5;
     private const double MIN_ESTIMATED_LOAD_TIME_SECONDS = 1.0;
-
-    /// <summary>
-    /// Enriches inventory document rows with complete product and location data using optimized batch queries.
-    /// Solves N+1 query problem by fetching all related data in 3 batch queries instead of N queries per row.
-    /// Performance: 500 rows = 3 queries (~5 seconds) vs 1500 queries (~60+ seconds with old method).
-    /// </summary>
-    private async Task<List<InventoryDocumentRowDto>> EnrichInventoryDocumentRowsAsync(
-        IEnumerable<DocumentRowDto> rows,
-        CancellationToken cancellationToken = default)
-    {
-        var rowsList = rows.ToList();
-        if (!rowsList.Any())
-        {
-            return new List<InventoryDocumentRowDto>();
-        }
-
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        _logger.LogInformation("Starting optimized enrichment for {RowCount} inventory rows", rowsList.Count);
-
-        // BATCH 1: Fetch ALL products in a single query
-        var productIds = rowsList
-            .Where(r => r.ProductId.HasValue)
-            .Select(r => r.ProductId!.Value)
-            .Distinct()
-            .ToList();
-
-        var productsDict = new Dictionary<Guid, Product>();
-        if (productIds.Any())
-        {
-            var products = await _context.Products
-                .AsNoTracking()
-                .Where(p => productIds.Contains(p.Id))
-                .ToListAsync(cancellationToken);
-
-            productsDict = products.ToDictionary(p => p.Id);
-            _logger.LogDebug("Batch loaded {ProductCount} unique products", productsDict.Count);
-        }
-
-        // BATCH 2: Fetch ALL locations in a single query
-        var locationIds = rowsList
-            .Where(r => r.LocationId.HasValue)
-            .Select(r => r.LocationId!.Value)
-            .Distinct()
-            .ToList();
-
-        var locationsDict = new Dictionary<Guid, StorageLocation>();
-        if (locationIds.Any())
-        {
-            var locations = await _context.StorageLocations
-                .AsNoTracking()
-                .Where(l => locationIds.Contains(l.Id))
-                .ToListAsync(cancellationToken);
-
-            locationsDict = locations.ToDictionary(l => l.Id);
-            _logger.LogDebug("Batch loaded {LocationCount} unique locations", locationsDict.Count);
-        }
-
-        // BATCH 3: Fetch ALL stocks in a single query
-        // Build list of (ProductId, LocationId) pairs for stock lookup
-        var stockKeys = rowsList
-            .Where(r => r.ProductId.HasValue && r.LocationId.HasValue)
-            .Select(r => new { ProductId = r.ProductId!.Value, LocationId = r.LocationId!.Value })
-            .Distinct()
-            .ToList();
-
-        var stocksDict = new Dictionary<(Guid ProductId, Guid LocationId), Stock>();
-        if (stockKeys.Any())
-        {
-            var stockProductIds = stockKeys.Select(k => k.ProductId).ToList();
-            var stockLocationIds = stockKeys.Select(k => k.LocationId).ToList();
-
-            var stocks = await _context.Stocks
-                .AsNoTracking()
-                .Where(s => stockProductIds.Contains(s.ProductId) &&
-                           stockLocationIds.Contains(s.StorageLocationId) &&
-                           s.LotId == null) // Only get stock without lot for inventory
-                .ToListAsync(cancellationToken);
-
-            stocksDict = stocks.ToDictionary(s => (s.ProductId, s.StorageLocationId));
-            _logger.LogDebug("Batch loaded {StockCount} stock entries", stocksDict.Count);
-        }
-
-        // Now process all rows with O(1) dictionary lookups
-        var enrichedRows = new List<InventoryDocumentRowDto>(rowsList.Count);
-        foreach (var row in rowsList)
-        {
-            var productId = row.ProductId;
-            var locationId = row.LocationId;
-
-            // Lookup product from dictionary (O(1))
-            Product? product = null;
-            if (productId.HasValue)
-            {
-                if (!productsDict.TryGetValue(productId.Value, out product))
-                {
-                    // Product lookup failed - log for data quality tracking
-                    _logger.LogWarning("Product {ProductId} not found in batch - using row description as fallback", productId.Value);
-                }
-            }
-
-            // Lookup location from dictionary (O(1))
-            StorageLocation? location = null;
-            string locationName = string.Empty;
-            if (locationId.HasValue)
-            {
-                if (locationsDict.TryGetValue(locationId.Value, out location))
-                {
-                    locationName = location.Code ?? string.Empty;
-                }
-            }
-
-            // Lookup stock from dictionary (O(1))
-            decimal? previousQuantity = null;
-            decimal? adjustmentQuantity = null;
-            if (productId.HasValue && locationId.HasValue)
-            {
-                if (stocksDict.TryGetValue((productId.Value, locationId.Value), out var stock) && stock != null)
-                {
-                    previousQuantity = stock.Quantity;
-                    adjustmentQuantity = row.Quantity - previousQuantity;
-                }
-            }
-
-            enrichedRows.Add(new InventoryDocumentRowDto
-            {
-                Id = row.Id,
-                ProductId = productId ?? Guid.Empty,
-                ProductCode = row.ProductCode ?? string.Empty,
-                ProductName = product?.Name ?? row.Description, // Fallback to row description
-                LocationId = locationId ?? Guid.Empty,
-                LocationName = locationName,
-                Quantity = row.Quantity,
-                PreviousQuantity = previousQuantity,
-                AdjustmentQuantity = adjustmentQuantity,
-                Notes = row.Notes,
-                CreatedAt = row.CreatedAt,
-                CreatedBy = row.CreatedBy
-            });
-        }
-
-        stopwatch.Stop();
-        _logger.LogInformation(
-            "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. " +
-            "Unique products: {ProductCount}, locations: {LocationCount}, stocks: {StockCount}",
-            rowsList.Count, stopwatch.ElapsedMilliseconds,
-            productsDict.Count, locationsDict.Count, stocksDict.Count);
-
-        return enrichedRows;
-    }
-
-    /// <summary>
-    /// DEPRECATED: Old version with N+1 query problem. Use EnrichInventoryDocumentRowsAsync instead.
-    /// This method is kept for reference but should not be used.
-    /// Performance issue: 500 rows = 1500 queries = 60+ seconds.
-    /// </summary>
-    [Obsolete("This method has N+1 query problem. Use the optimized EnrichInventoryDocumentRowsAsync instead.", error: true)]
-    private async Task<List<InventoryDocumentRowDto>> EnrichInventoryDocumentRowsAsync_Old(
-        IEnumerable<DocumentRowDto> rows,
-        CancellationToken cancellationToken = default)
-    {
-        var enrichedRows = new List<InventoryDocumentRowDto>();
-
-        foreach (var row in rows)
-        {
-            // Use ProductId and LocationId directly from the row
-            Guid? productId = row.ProductId;
-            Guid? locationId = row.LocationId;
-            string productName = row.Description; // Now contains clean product name
-            string locationName = string.Empty;
-
-            // Try to fetch product data for complete information
-            ProductDto? product = null;
-            if (productId.HasValue)
-            {
-                try
-                {
-                    product = await _productService.GetProductByIdAsync(productId.Value, cancellationToken);
-                }
-                catch
-                {
-                    // If product fetch fails, use data from row
-                }
-            }
-
-            // Try to fetch location data for complete information
-            if (locationId.HasValue)
-            {
-                try
-                {
-                    var location = await _storageLocationService.GetStorageLocationByIdAsync(locationId.Value, cancellationToken);
-                    locationName = location?.Code ?? string.Empty;
-                }
-                catch
-                {
-                    // If location fetch fails, leave empty
-                }
-            }
-
-            // Get current stock level to show adjustment info (only if we have productId and locationId)
-            decimal? previousQuantity = null;
-            decimal? adjustmentQuantity = null;
-            if (productId.HasValue && locationId.HasValue)
-            {
-                try
-                {
-                    var stockResult = await _stockService.GetStockAsync(
-                        page: 1,
-                        pageSize: 1,
-                        productId: productId.Value,
-                        locationId: locationId.Value,
-                        lotId: null,
-                        cancellationToken: cancellationToken);
-
-                    previousQuantity = stockResult.Items.FirstOrDefault()?.Quantity;
-                    if (previousQuantity.HasValue)
-                    {
-                        adjustmentQuantity = row.Quantity - previousQuantity.Value;
-                    }
-                }
-                catch
-                {
-                    // Continue without adjustment info
-                }
-            }
-
-            enrichedRows.Add(new InventoryDocumentRowDto
-            {
-                Id = row.Id,
-                ProductId = productId ?? Guid.Empty,
-                ProductCode = row.ProductCode ?? string.Empty,
-                ProductName = product?.Name ?? productName,
-                LocationId = locationId ?? Guid.Empty,
-                LocationName = locationName,
-                Quantity = row.Quantity,
-                PreviousQuantity = previousQuantity,
-                AdjustmentQuantity = adjustmentQuantity,
-                Notes = row.Notes,
-                CreatedAt = row.CreatedAt,
-                CreatedBy = row.CreatedBy
-            });
-        }
-
-        return enrichedRows;
-    }
 
     #endregion
 
@@ -358,7 +80,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _storageFacilityService.GetStorageFacilitiesAsync(pagination, cancellationToken);
+            var result = await _warehouseFacade.GetStorageFacilitiesAsync(pagination, cancellationToken);
             
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -402,7 +124,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var facility = await _storageFacilityService.GetStorageFacilityByIdAsync(id, cancellationToken);
+            var facility = await _warehouseFacade.GetStorageFacilityByIdAsync(id, cancellationToken);
             if (facility == null)
             {
                 return CreateNotFoundProblem($"Storage facility with ID {id} not found.");
@@ -444,7 +166,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _storageFacilityService.CreateStorageFacilityAsync(createStorageFacilityDto, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.CreateStorageFacilityAsync(createStorageFacilityDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetStorageFacility), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -490,7 +212,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _storageLocationService.GetStorageLocationsAsync(pagination, facilityId, cancellationToken);
+            var result = await _warehouseFacade.GetStorageLocationsAsync(pagination, facilityId, cancellationToken);
             
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -534,7 +256,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var location = await _storageLocationService.GetStorageLocationByIdAsync(id, cancellationToken);
+            var location = await _warehouseFacade.GetStorageLocationByIdAsync(id, cancellationToken);
             if (location == null)
             {
                 return CreateNotFoundProblem($"Storage location with ID {id} not found.");
@@ -576,7 +298,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _storageLocationService.CreateStorageLocationAsync(createStorageLocationDto, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.CreateStorageLocationAsync(createStorageLocationDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetStorageLocation), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -618,7 +340,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
+            var result = await _warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
             
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -660,7 +382,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.GetLotByIdAsync(id, cancellationToken);
+            var result = await _warehouseFacade.GetLotByIdAsync(id, cancellationToken);
             return result != null ? Ok(result) : NotFound();
         }
         catch (Exception ex)
@@ -690,7 +412,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.GetLotByCodeAsync(code, cancellationToken);
+            var result = await _warehouseFacade.GetLotByCodeAsync(code, cancellationToken);
             return result != null ? Ok(result) : NotFound();
         }
         catch (Exception ex)
@@ -720,7 +442,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.GetExpiringLotsAsync(daysAhead, cancellationToken);
+            var result = await _warehouseFacade.GetExpiringLotsAsync(daysAhead, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -759,7 +481,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.CreateLotAsync(createLotDto, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.CreateLotAsync(createLotDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetLot), new { id = result.Id }, result);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
@@ -806,7 +528,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.UpdateLotAsync(id, updateLotDto, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.UpdateLotAsync(id, updateLotDto, GetCurrentUser(), cancellationToken);
             return result != null ? Ok(result) : NotFound();
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
@@ -842,7 +564,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.DeleteLotAsync(id, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.DeleteLotAsync(id, GetCurrentUser(), cancellationToken);
             return result ? NoContent() : NotFound();
         }
         catch (InvalidOperationException ex)
@@ -889,7 +611,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.UpdateQualityStatusAsync(id, qualityStatus, GetCurrentUser(), notes, cancellationToken);
+            var result = await _warehouseFacade.UpdateQualityStatusAsync(id, qualityStatus, GetCurrentUser(), notes, cancellationToken);
             return result ? Ok() : NotFound();
         }
         catch (ArgumentException ex)
@@ -935,7 +657,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.BlockLotAsync(id, reason, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.BlockLotAsync(id, reason, GetCurrentUser(), cancellationToken);
             return result ? Ok() : NotFound();
         }
         catch (Exception ex)
@@ -965,7 +687,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _lotService.UnblockLotAsync(id, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.UnblockLotAsync(id, GetCurrentUser(), cancellationToken);
             return result ? Ok() : NotFound();
         }
         catch (Exception ex)
@@ -1009,7 +731,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _stockService.GetStockAsync(pagination.Page, pagination.PageSize, productId, locationId, lotId, lowStock, cancellationToken);
+            var result = await _warehouseFacade.GetStockAsync(pagination.Page, pagination.PageSize, productId, locationId, lotId, lowStock, cancellationToken);
             
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -1051,7 +773,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var stock = await _stockService.GetStockByIdAsync(id, cancellationToken);
+            var stock = await _warehouseFacade.GetStockByIdAsync(id, cancellationToken);
             return stock != null ? Ok(stock) : NotFound();
         }
         catch (Exception ex)
@@ -1086,7 +808,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _stockService.CreateOrUpdateStockAsync(createDto, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.CreateOrUpdateStockAsync(createDto, GetCurrentUser(), cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -1123,7 +845,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _stockService.CreateOrUpdateStockAsync(dto, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.CreateOrUpdateStockAsync(dto, GetCurrentUser(), cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -1183,7 +905,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _stockService.ReserveStockAsync(productId, locationId, quantity, lotId, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.ReserveStockAsync(productId, locationId, quantity, lotId, GetCurrentUser(), cancellationToken);
             return result ? Ok() : BadRequest("Insufficient stock available for reservation.");
         }
         catch (Exception ex)
@@ -1209,7 +931,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var stocks = await _stockService.GetStockByProductIdAsync(productId, cancellationToken);
+            var stocks = await _warehouseFacade.GetStockByProductIdAsync(productId, cancellationToken);
             return Ok(stocks);
         }
         catch (Exception ex)
@@ -1261,7 +983,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _stockService.GetStockOverviewAsync(
+            var result = await _warehouseFacade.GetStockOverviewAsync(
                 pagination.Page, pagination.PageSize, search, warehouseId, locationId, lotId,
                 lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView,
                 cancellationToken);
@@ -1313,7 +1035,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _stockService.AdjustStockAsync(dto, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.AdjustStockAsync(dto, GetCurrentUser(), cancellationToken);
             return result != null ? Ok(result) : NotFound("Stock entry not found.");
         }
         catch (Exception ex)
@@ -1356,7 +1078,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _serialService.GetSerialsAsync(pagination.Page, pagination.PageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
+            var result = await _warehouseFacade.GetSerialsAsync(pagination.Page, pagination.PageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
             
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -1398,7 +1120,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var serial = await _serialService.GetSerialByIdAsync(id, cancellationToken);
+            var serial = await _warehouseFacade.GetSerialByIdAsync(id, cancellationToken);
             return serial != null ? Ok(serial) : NotFound();
         }
         catch (Exception ex)
@@ -1430,7 +1152,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _serialService.CreateSerialAsync(createDto, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.CreateSerialAsync(createDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetSerialById), new { id = result.Id }, result);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
@@ -1473,7 +1195,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _serialService.UpdateSerialStatusAsync(id, status, GetCurrentUser(), notes, cancellationToken);
+            var result = await _warehouseFacade.UpdateSerialStatusAsync(id, status, GetCurrentUser(), notes, cancellationToken);
             return result ? Ok() : NotFound();
         }
         catch (ArgumentException ex)
@@ -1514,7 +1236,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var stockResult = await _stockService.GetStockAsync(pagination.Page, pagination.PageSize, null, null, null, null, cancellationToken);
+            var stockResult = await _warehouseFacade.GetStockAsync(pagination.Page, pagination.PageSize, null, null, null, null, cancellationToken);
 
             // Convert StockDto to InventoryEntryDto
             var inventoryEntries = stockResult.Items.Select(stock => new InventoryEntryDto
@@ -1598,7 +1320,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             // Get current stock level to calculate adjustment
-            var existingStocks = await _stockService.GetStockAsync(
+            var existingStocks = await _warehouseFacade.GetStockAsync(
                 page: 1,
                 pageSize: 1,
                 productId: createDto.ProductId,
@@ -1619,7 +1341,7 @@ public class WarehouseManagementController : BaseApiController
                     ? "Inventory Count - Found Additional Stock"
                     : "Inventory Count - Stock Shortage Detected";
 
-                _ = await _stockMovementService.ProcessAdjustmentMovementAsync(
+                _ = await _warehouseFacade.ProcessAdjustmentMovementAsync(
                     productId: createDto.ProductId,
                     locationId: createDto.LocationId,
                     adjustmentQuantity: adjustmentQuantity,
@@ -1640,13 +1362,13 @@ public class WarehouseManagementController : BaseApiController
                 Notes = createDto.Notes
             };
 
-            var stock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+            var stock = await _warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
 
             // Update LastInventoryDate to track when physical count was performed
-            await _stockService.UpdateLastInventoryDateAsync(stock.Id, DateTime.UtcNow, cancellationToken);
+            await _warehouseFacade.UpdateLastInventoryDateAsync(stock.Id, DateTime.UtcNow, cancellationToken);
 
             // Get location information for response
-            var location = await _storageLocationService.GetStorageLocationByIdAsync(createDto.LocationId, cancellationToken);
+            var location = await _warehouseFacade.GetStorageLocationByIdAsync(createDto.LocationId, cancellationToken);
 
             // Build response
             var result = new InventoryEntryDto
@@ -1709,7 +1431,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             // Get or create the inventory document type
-            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
                 _tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
@@ -1741,7 +1463,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Get documents
-            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+            var documentsResult = await _warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
 
             // Convert to InventoryDocumentDto with enriched rows (only if requested)
             var inventoryDocuments = new List<InventoryDocumentDto>();
@@ -1750,7 +1472,7 @@ public class WarehouseManagementController : BaseApiController
                 // Enrich rows with complete product and location data using optimized batch method
                 // Only enrich if rows were requested and are present
                 var enrichedRows = includeRows && doc.Rows != null && doc.Rows.Any()
-                    ? await EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
+                    ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
                     : new List<InventoryDocumentRowDto>();
 
                 inventoryDocuments.Add(new InventoryDocumentDto
@@ -1819,7 +1541,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
                 return NotFound(new ProblemDetails
@@ -1832,7 +1554,7 @@ public class WarehouseManagementController : BaseApiController
 
             // Enrich rows with complete product and location data
             var enrichedRows = documentHeader.Rows != null && documentHeader.Rows.Any()
-                ? await EnrichInventoryDocumentRowsAsync(documentHeader.Rows, cancellationToken)
+                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(documentHeader.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -1893,10 +1615,10 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Get or create an "Inventory" document type
-            var inventoryDocumentType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(currentTenantId.Value, cancellationToken);
+            var inventoryDocumentType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(currentTenantId.Value, cancellationToken);
 
             // Get or create system business party for internal operations
-            var systemBusinessPartyId = await _documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
+            var systemBusinessPartyId = await _warehouseFacade.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
 
             // Generate document number if not provided
             var documentNumber = createDto.Number ?? $"INV-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
@@ -1915,7 +1637,7 @@ public class WarehouseManagementController : BaseApiController
                 IsProforma = true
             };
 
-            var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createHeaderDto, GetCurrentUser(), cancellationToken);
+            var documentHeader = await _warehouseFacade.CreateDocumentHeaderAsync(createHeaderDto, GetCurrentUser(), cancellationToken);
 
             // Map to inventory document DTO
             var result = new InventoryDocumentDto
@@ -1971,7 +1693,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             // Get the document header
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
                 return NotFound(new ProblemDetails
@@ -1983,7 +1705,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Get current stock level to calculate adjustment
-            var existingStocks = await _stockService.GetStockAsync(
+            var existingStocks = await _warehouseFacade.GetStockAsync(
                 page: 1,
                 pageSize: 1,
                 productId: rowDto.ProductId,
@@ -1996,8 +1718,8 @@ public class WarehouseManagementController : BaseApiController
             var adjustmentQuantity = rowDto.Quantity - currentQuantity;
 
             // Get product and location info for the row - fetch from ProductService to ensure complete data
-            var product = await _productService.GetProductByIdAsync(rowDto.ProductId, cancellationToken);
-            var location = await _storageLocationService.GetStorageLocationByIdAsync(rowDto.LocationId, cancellationToken);
+            var product = await _warehouseFacade.GetProductByIdAsync(rowDto.ProductId, cancellationToken);
+            var location = await _warehouseFacade.GetStorageLocationByIdAsync(rowDto.LocationId, cancellationToken);
 
             if (product == null)
             {
@@ -2025,10 +1747,7 @@ public class WarehouseManagementController : BaseApiController
             {
                 try
                 {
-                    // Fetch unit of measure details from the database context
-                    var um = await _context.UMs
-                        .FirstOrDefaultAsync(u => u.Id == product.UnitOfMeasureId.Value && !u.IsDeleted, cancellationToken);
-                    unitOfMeasure = um?.Symbol;
+                    unitOfMeasure = await _warehouseFacade.GetUnitOfMeasureSymbolAsync(product.UnitOfMeasureId.Value, cancellationToken);
                 }
                 catch
                 {
@@ -2043,13 +1762,11 @@ public class WarehouseManagementController : BaseApiController
             {
                 try
                 {
-                    // Fetch VAT rate details from the database context
-                    var vat = await _context.VatRates
-                        .FirstOrDefaultAsync(v => v.Id == product.VatRateId.Value && !v.IsDeleted, cancellationToken);
-                    if (vat != null)
+                    var vatDetails = await _warehouseFacade.GetVatRateDetailsAsync(product.VatRateId.Value, cancellationToken);
+                    if (vatDetails.HasValue)
                     {
-                        vatRate = vat.Percentage;
-                        vatDescription = $"VAT {vat.Percentage}%";
+                        vatRate = vatDetails.Value.Percentage;
+                        vatDescription = vatDetails.Value.Description;
                     }
                 }
                 catch
@@ -2076,44 +1793,14 @@ public class WarehouseManagementController : BaseApiController
                     "Merging inventory row for product {ProductId} at location {LocationId}: existing quantity {ExistingQty} + new quantity {NewQty} = {TotalQty}",
                     rowDto.ProductId, rowDto.LocationId, existingRow.Quantity, rowDto.Quantity, newQuantity);
 
-                // Update the existing row directly in the database
-                var rowEntity = await _context.DocumentRows
-                    .FirstOrDefaultAsync(r => r.Id == existingRow.Id && !r.IsDeleted, cancellationToken);
-
-                if (rowEntity != null)
-                {
-                    rowEntity.Quantity = newQuantity;
-                    // Append notes if new notes are provided
-                    if (!string.IsNullOrWhiteSpace(rowDto.Notes))
-                    {
-                        rowEntity.Notes = string.IsNullOrWhiteSpace(rowEntity.Notes)
-                            ? rowDto.Notes
-                            : $"{rowEntity.Notes}; {rowDto.Notes}";
-                    }
-                    rowEntity.ModifiedAt = DateTime.UtcNow;
-                    rowEntity.ModifiedBy = GetCurrentUser();
-
-                    await _context.SaveChangesAsync(cancellationToken);
-
-                    // Map back to DocumentRowDto
-                    documentRow = new DocumentRowDto
-                    {
-                        Id = rowEntity.Id,
-                        ProductId = rowEntity.ProductId,
-                        ProductCode = rowEntity.ProductCode,
-                        LocationId = rowEntity.LocationId,
-                        Description = rowEntity.Description,
-                        Quantity = rowEntity.Quantity,
-                        Notes = rowEntity.Notes,
-                        CreatedAt = rowEntity.CreatedAt,
-                        CreatedBy = rowEntity.CreatedBy
-                    };
-                }
-                else
-                {
-                    // Fallback if entity not found - shouldn't happen
-                    throw new InvalidOperationException($"Row entity {existingRow.Id} not found in database");
-                }
+                // Update the existing row via facade
+                documentRow = await _warehouseFacade.UpdateOrMergeInventoryRowAsync(
+                    documentId, 
+                    existingRow.Id, 
+                    newQuantity, 
+                    rowDto.Notes, 
+                    GetCurrentUser(), 
+                    cancellationToken);
             }
             else
             {
@@ -2135,7 +1822,7 @@ public class WarehouseManagementController : BaseApiController
                     Notes = rowDto.Notes
                 };
 
-                documentRow = await _documentHeaderService.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
+                documentRow = await _warehouseFacade.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
             }
 
             // Build response with the new row
@@ -2158,11 +1845,11 @@ public class WarehouseManagementController : BaseApiController
             };
 
             // Get updated document
-            var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var updatedDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
             // Enrich all rows with product and location data using the helper method
             var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
-                ? await EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -2218,10 +1905,8 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            // Get the document header entity from context
-            var documentHeader = await _context.DocumentHeaders
-                .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == documentId && !dh.IsDeleted, cancellationToken);
+            // Get the document header to check status
+            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
 
             if (documentHeader == null)
             {
@@ -2234,7 +1919,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Only allow updating Draft documents (status is Open in entity)
-            if (documentHeader.Status != DocumentStatus.Open)
+            if (documentHeader.Status != DTOs.Common.DocumentStatus.Open)
             {
                 return BadRequest(new ProblemDetails
                 {
@@ -2244,24 +1929,24 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // Update the allowed fields
-            documentHeader.Date = updateDto.InventoryDate;
-            documentHeader.SourceWarehouseId = updateDto.WarehouseId;
-            documentHeader.Notes = updateDto.Notes;
-            documentHeader.ModifiedBy = GetCurrentUser();
-            documentHeader.ModifiedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync(cancellationToken);
+            // Update the document header fields via facade
+            await _warehouseFacade.UpdateDocumentHeaderFieldsAsync(
+                documentId,
+                updateDto.InventoryDate,
+                updateDto.WarehouseId,
+                updateDto.Notes,
+                GetCurrentUser(),
+                cancellationToken);
 
             _logger.LogInformation("Updated inventory document {DocumentId} - Date: {Date}, Warehouse: {WarehouseId}",
                 documentId, updateDto.InventoryDate, updateDto.WarehouseId);
 
             // Get the updated document with full details
-            var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var updatedDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
             // Enrich rows with product and location data
             var enrichedRows = updatedDocument!.Rows != null && updatedDocument.Rows.Any()
-                ? await EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -2318,7 +2003,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             // Get the document header
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
                 return NotFound(new ProblemDetails
@@ -2340,11 +2025,17 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // Find the row in the database
-            var rowEntity = await _context.DocumentRows
-                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+            // Update the row via facade
+            var updated = await _warehouseFacade.UpdateInventoryRowAsync(
+                rowId,
+                rowDto.ProductId,
+                rowDto.Quantity,
+                rowDto.LocationId,
+                rowDto.Notes,
+                GetCurrentUser(),
+                cancellationToken);
 
-            if (rowEntity == null)
+            if (!updated)
             {
                 return NotFound(new ProblemDetails
                 {
@@ -2354,41 +2045,12 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // Update the row product, quantity, location, and notes
-            if (rowDto.ProductId.HasValue)
-            {
-                rowEntity.ProductId = rowDto.ProductId.Value;
-
-                // Update product code and description from the new product
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Id == rowDto.ProductId.Value && !p.IsDeleted, cancellationToken);
-
-                if (product != null)
-                {
-                    rowEntity.ProductCode = product.Code;
-                    rowEntity.Description = product.Name;
-                }
-            }
-
-            rowEntity.Quantity = rowDto.Quantity;
-
-            if (rowDto.LocationId.HasValue)
-            {
-                rowEntity.LocationId = rowDto.LocationId.Value;
-            }
-
-            rowEntity.Notes = rowDto.Notes;
-            rowEntity.ModifiedAt = DateTime.UtcNow;
-            rowEntity.ModifiedBy = GetCurrentUser();
-
-            await _context.SaveChangesAsync(cancellationToken);
-
             // Get updated document
-            var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var updatedDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
             // Enrich all rows with product and location data
             var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
-                ? await EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -2437,7 +2099,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             // Get the document header
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
                 return NotFound(new ProblemDetails
@@ -2459,11 +2121,10 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // Find the row in the database
-            var rowEntity = await _context.DocumentRows
-                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+            // Soft delete the row via facade
+            var deleted = await _warehouseFacade.DeleteInventoryRowAsync(rowId, GetCurrentUser(), cancellationToken);
 
-            if (rowEntity == null)
+            if (!deleted)
             {
                 return NotFound(new ProblemDetails
                 {
@@ -2473,19 +2134,12 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // Soft delete the row
-            rowEntity.IsDeleted = true;
-            rowEntity.DeletedAt = DateTime.UtcNow;
-            rowEntity.DeletedBy = GetCurrentUser();
-
-            await _context.SaveChangesAsync(cancellationToken);
-
             // Get updated document
-            var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var updatedDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
             // Enrich all rows with product and location data
             var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
-                ? await EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -2533,7 +2187,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             // Get the document header with rows
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
                 return NotFound(new ProblemDetails
@@ -2588,12 +2242,7 @@ public class WarehouseManagementController : BaseApiController
             var productIds = documentHeader.Rows.Where(r => r.ProductId.HasValue).Select(r => r.ProductId!.Value).Distinct().ToList();
             var locationIds = documentHeader.Rows.Where(r => r.LocationId.HasValue).Select(r => r.LocationId!.Value).Distinct().ToList();
 
-            var existingProducts = await _context.Products
-                .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
-                .Select(p => p.Id)
-                .ToListAsync(cancellationToken);
-
-            var missingProducts = productIds.Except(existingProducts).ToList();
+            var missingProducts = await _warehouseFacade.ValidateProductsExistAsync(productIds, cancellationToken);
             if (missingProducts.Any())
             {
                 return BadRequest(new ProblemDetails
@@ -2605,12 +2254,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Validate locations
-            var existingLocations = await _context.StorageLocations
-                .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
-                .Select(l => l.Id)
-                .ToListAsync(cancellationToken);
-
-            var missingLocations = locationIds.Except(existingLocations).ToList();
+            var missingLocations = await _warehouseFacade.ValidateLocationsExistAsync(locationIds, cancellationToken);
             if (missingLocations.Any())
             {
                 return BadRequest(new ProblemDetails
@@ -2651,7 +2295,7 @@ public class WarehouseManagementController : BaseApiController
                         var newQuantity = row.Quantity;
 
                         // Get current stock level
-                        var existingStocks = await _stockService.GetStockAsync(
+                        var existingStocks = await _warehouseFacade.GetStockAsync(
                             page: 1,
                             pageSize: 1,
                             productId: productId,
@@ -2667,7 +2311,7 @@ public class WarehouseManagementController : BaseApiController
                         {
                             // 1) Create stock adjustment movement (keeps audit trail)
                             // Use the document's InventoryDate for the movement date
-                            _ = await _stockMovementService.ProcessAdjustmentMovementAsync(
+                            _ = await _warehouseFacade.ProcessAdjustmentMovementAsync(
                                 productId: productId,
                                 locationId: locationId,
                                 adjustmentQuantity: adjustmentQuantity,
@@ -2696,12 +2340,12 @@ public class WarehouseManagementController : BaseApiController
                             };
 
                             // This call will create or update a Stock record
-                            var updatedStock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+                            var updatedStock = await _warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
 
                             // Verify stock was successfully created/updated
                             if (updatedStock != null)
                             {
-                                await _stockService.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
+                                await _warehouseFacade.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
                             }
                             else
                             {
@@ -2727,11 +2371,11 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Now close the document
-            var closedDocument = await _documentHeaderService.CloseDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
+            var closedDocument = await _warehouseFacade.CloseDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
 
             // Enrich rows with product and location data
             var enrichedRows = closedDocument!.Rows != null && closedDocument.Rows.Any()
-                ? await EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
+                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -2796,7 +2440,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _inventoryBulkSeedService.SeedInventoryAsync(
+            var result = await _warehouseFacade.SeedInventoryAsync(
                 request,
                 GetCurrentUser(),
                 cancellationToken);
@@ -2854,7 +2498,7 @@ public class WarehouseManagementController : BaseApiController
             };
 
             // 1. Verify document exists
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
+            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
             if (documentHeader == null)
             {
                 return NotFound(new ProblemDetails
@@ -2866,10 +2510,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // 2. Count total rows without loading them
-            var totalRows = await _context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
-                .CountAsync(cancellationToken);
+            var totalRows = await _warehouseFacade.CountDocumentRowsAsync(documentId, cancellationToken);
 
             result.TotalRows = totalRows;
 
@@ -2885,12 +2526,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // 3. Identify rows with null ProductId or LocationId
-            var rowsWithNullData = await _context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted &&
-                           (r.ProductId == null || r.LocationId == null))
-                .Select(r => new { r.Id, r.ProductId, r.LocationId })
-                .ToListAsync(cancellationToken);
+            var rowsWithNullData = await _warehouseFacade.GetRowsWithNullDataAsync(documentId, cancellationToken);
 
             foreach (var row in rowsWithNullData)
             {
@@ -2910,19 +2546,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // 4. Get unique product and location IDs
-            var productIds = await _context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted && r.ProductId != null)
-                .Select(r => r.ProductId!.Value)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            var locationIds = await _context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted && r.LocationId != null)
-                .Select(r => r.LocationId!.Value)
-                .Distinct()
-                .ToListAsync(cancellationToken);
+            var (productIds, locationIds) = await _warehouseFacade.GetUniqueProductAndLocationIdsAsync(documentId, cancellationToken);
 
             result.Stats.UniqueProducts = productIds.Count;
             result.Stats.UniqueLocations = locationIds.Count;
@@ -2930,13 +2554,7 @@ public class WarehouseManagementController : BaseApiController
             // 5. Verify referenced products exist
             if (productIds.Any())
             {
-                var existingProductIds = await _context.Products
-                    .AsNoTracking()
-                    .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
-                    .Select(p => p.Id)
-                    .ToListAsync(cancellationToken);
-
-                var missingProductIds = productIds.Except(existingProductIds).ToList();
+                var missingProductIds = await _warehouseFacade.ValidateProductsExistAsync(productIds, cancellationToken);
                 if (missingProductIds.Any())
                 {
                     result.Issues.Add(new InventoryValidationIssue
@@ -2954,13 +2572,7 @@ public class WarehouseManagementController : BaseApiController
             // 6. Verify referenced locations exist
             if (locationIds.Any())
             {
-                var existingLocationIds = await _context.StorageLocations
-                    .AsNoTracking()
-                    .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
-                    .Select(l => l.Id)
-                    .ToListAsync(cancellationToken);
-
-                var missingLocationIds = locationIds.Except(existingLocationIds).ToList();
+                var missingLocationIds = await _warehouseFacade.ValidateLocationsExistAsync(locationIds, cancellationToken);
                 if (missingLocationIds.Any())
                 {
                     result.Issues.Add(new InventoryValidationIssue
@@ -3025,7 +2637,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             // Get or create the inventory document type
-            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
                 _tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
@@ -3039,7 +2651,7 @@ public class WarehouseManagementController : BaseApiController
                 IncludeRows = true
             };
 
-            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+            var documentsResult = await _warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
 
             var inventoryDocuments = new List<InventoryDocumentDto>();
 
@@ -3049,7 +2661,7 @@ public class WarehouseManagementController : BaseApiController
                 {
                     // Enrich rows with product and location data
                     var enrichedRows = doc.Rows != null && doc.Rows.Any()
-                        ? await EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
+                        ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
                         : new List<InventoryDocumentRowDto>();
 
                     inventoryDocuments.Add(new InventoryDocumentDto
@@ -3101,11 +2713,10 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            // Update status to Cancelled using direct database access
-            var documentEntity = await _context.DocumentHeaders
-                .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
+            // Cancel the document via facade
+            var cancelled = await _warehouseFacade.CancelInventoryDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
 
-            if (documentEntity == null)
+            if (!cancelled)
             {
                 return NotFound(new ProblemDetails
                 {
@@ -3114,12 +2725,6 @@ public class WarehouseManagementController : BaseApiController
                     Status = StatusCodes.Status404NotFound
                 });
             }
-
-            documentEntity.Status = DocumentStatus.Cancelled;
-            documentEntity.ModifiedAt = DateTime.UtcNow;
-            documentEntity.ModifiedBy = GetCurrentUser();
-
-            await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Cancelled inventory document {DocumentId} without applying adjustments", documentId);
 
@@ -3148,12 +2753,12 @@ public class WarehouseManagementController : BaseApiController
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
-        using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
+        using var transaction = await _warehouseFacade.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
 
         try
         {
             // Get all open inventory documents
-            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
                 _tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
@@ -3166,7 +2771,7 @@ public class WarehouseManagementController : BaseApiController
                 IncludeRows = false
             };
 
-            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+            var documentsResult = await _warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
 
             var finalizedDocuments = new List<InventoryDocumentDto>();
 
@@ -3179,7 +2784,7 @@ public class WarehouseManagementController : BaseApiController
                 {
                     // Call the existing finalize logic for each document
                     // We need to get the result as InventoryDocumentDto
-                    var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(doc.Id, includeRows: true, cancellationToken);
+                    var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(doc.Id, includeRows: true, cancellationToken);
 
                     if (documentHeader != null)
                     {
@@ -3201,7 +2806,7 @@ public class WarehouseManagementController : BaseApiController
                                     }
 
                                     var newQuantity = row.Quantity;
-                                    var existingStocks = await _stockService.GetStockAsync(
+                                    var existingStocks = await _warehouseFacade.GetStockAsync(
                                         page: 1,
                                         pageSize: 1,
                                         productId: productId,
@@ -3214,7 +2819,7 @@ public class WarehouseManagementController : BaseApiController
 
                                     if (adjustmentQuantity != 0)
                                     {
-                                        _ = await _stockMovementService.ProcessAdjustmentMovementAsync(
+                                        _ = await _warehouseFacade.ProcessAdjustmentMovementAsync(
                                             productId: productId,
                                             locationId: locationId,
                                             adjustmentQuantity: adjustmentQuantity,
@@ -3234,10 +2839,10 @@ public class WarehouseManagementController : BaseApiController
                                             Notes = $"Adjusted by inventory document {documentHeader.Number}"
                                         };
 
-                                        var updatedStock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+                                        var updatedStock = await _warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
                                         if (updatedStock != null)
                                         {
-                                            await _stockService.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
+                                            await _warehouseFacade.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
                                         }
                                     }
                                 }
@@ -3250,11 +2855,11 @@ public class WarehouseManagementController : BaseApiController
                         }
 
                         // Close the document
-                        var closedDocument = await _documentHeaderService.CloseDocumentAsync(doc.Id, GetCurrentUser(), cancellationToken);
+                        var closedDocument = await _warehouseFacade.CloseDocumentAsync(doc.Id, GetCurrentUser(), cancellationToken);
 
                         // Enrich rows with product and location data
                         var enrichedRows = closedDocument!.Rows != null && closedDocument.Rows.Any()
-                            ? await EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
+                            ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
                             : new List<InventoryDocumentRowDto>();
 
                         finalizedDocuments.Add(new InventoryDocumentDto
@@ -3320,7 +2925,7 @@ public class WarehouseManagementController : BaseApiController
             _logger.LogInformation("Fetching page {Page} of inventory document {DocumentId} rows", pagination.Page, documentId);
 
             // 1. Verify document exists
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
+            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
             if (documentHeader == null)
             {
                 return NotFound(new ProblemDetails
@@ -3331,37 +2936,15 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // 2. Count total rows
-            var totalRows = await _context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
-                .CountAsync(cancellationToken);
-
-            // 3. Fetch only the requested page of rows
-            var skip = (pagination.Page - 1) * pagination.PageSize;
-            var documentRows = await _context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
-                .OrderBy(r => r.CreatedAt)
-                .Skip(skip)
-                .Take(pagination.PageSize)
-                .Select(r => new DocumentRowDto
-                {
-                    Id = r.Id,
-                    DocumentHeaderId = r.DocumentHeaderId,
-                    ProductId = r.ProductId,
-                    ProductCode = r.ProductCode,
-                    Description = r.Description,
-                    LocationId = r.LocationId,
-                    Quantity = r.Quantity,
-                    Notes = r.Notes,
-                    CreatedAt = r.CreatedAt,
-                    CreatedBy = r.CreatedBy
-                })
-                .ToListAsync(cancellationToken);
+            // 2-3. Get paginated rows via facade
+            var (documentRows, totalRows) = await _warehouseFacade.GetDocumentRowsPagedAsync(
+                documentId,
+                pagination.Page,
+                pagination.PageSize,
+                cancellationToken);
 
             // 4. Enrich using optimized batch method
-            var enrichedRows = await EnrichInventoryDocumentRowsAsync(documentRows, cancellationToken);
+            var enrichedRows = await _warehouseFacade.EnrichInventoryDocumentRowsAsync(documentRows, cancellationToken);
 
             var result = new PagedResult<InventoryDocumentRowDto>
             {
@@ -3414,7 +2997,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             // Get all open inventory documents
-            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
                 _tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
@@ -3427,7 +3010,7 @@ public class WarehouseManagementController : BaseApiController
                 IncludeRows = false
             };
 
-            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+            var documentsResult = await _warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
 
             int cancelledCount = 0;
 
@@ -3436,24 +3019,10 @@ public class WarehouseManagementController : BaseApiController
                 var itemsList = documentsResult.Items.ToList();
                 _logger.LogInformation("Cancelling {Count} open inventory documents", itemsList.Count);
 
-                // Fetch all document entities in a single query to avoid N+1 problem
+                // Cancel all documents in batch via facade
                 var documentIds = itemsList.Select(d => d.Id).ToList();
-                var documentEntities = await _context.DocumentHeaders
-                    .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
-                    .ToListAsync(cancellationToken);
-
-                var currentUser = GetCurrentUser();
-                var now = DateTime.UtcNow;
-
-                foreach (var documentEntity in documentEntities)
-                {
-                    documentEntity.Status = DocumentStatus.Cancelled;
-                    documentEntity.ModifiedAt = now;
-                    documentEntity.ModifiedBy = currentUser;
-                    cancelledCount++;
-                }
-
-                await _context.SaveChangesAsync(cancellationToken);
+                cancelledCount = await _warehouseFacade.CancelInventoryDocumentsBatchAsync(documentIds, GetCurrentUser(), cancellationToken);
+                
                 _logger.LogInformation("Successfully cancelled {Count} inventory documents without applying adjustments", cancelledCount);
             }
 
@@ -3486,7 +3055,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var report = await _inventoryDiagnosticService.DiagnoseDocumentAsync(documentId, cancellationToken);
+            var report = await _warehouseFacade.DiagnoseDocumentAsync(documentId, cancellationToken);
             return Ok(report);
         }
         catch (Exception ex)
@@ -3517,7 +3086,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var result = await _inventoryDiagnosticService.AutoRepairDocumentAsync(documentId, options, GetCurrentUser(), cancellationToken);
+            var result = await _warehouseFacade.AutoRepairDocumentAsync(documentId, options, GetCurrentUser(), cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -3549,7 +3118,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var success = await _inventoryDiagnosticService.RepairRowAsync(documentId, rowId, repairData, GetCurrentUser(), cancellationToken);
+            var success = await _warehouseFacade.RepairRowAsync(documentId, rowId, repairData, GetCurrentUser(), cancellationToken);
             if (!success)
             {
                 return NotFound(new ProblemDetails
@@ -3589,7 +3158,7 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            var removedCount = await _inventoryDiagnosticService.RemoveProblematicRowsAsync(documentId, rowIds, GetCurrentUser(), cancellationToken);
+            var removedCount = await _warehouseFacade.RemoveProblematicRowsAsync(documentId, rowIds, GetCurrentUser(), cancellationToken);
             return Ok(removedCount);
         }
         catch (Exception ex)
@@ -3633,11 +3202,8 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // 2. Load source documents
-            var documents = await _context.DocumentHeaders
-                .Include(d => d.Rows)
-                .Where(d => request.SourceDocumentIds.Contains(d.Id) && !d.IsDeleted)
-                .ToListAsync(cancellationToken);
+            // 2. Load source documents via facade
+            var documents = await _warehouseFacade.LoadDocumentsForMergeAsync(request.SourceDocumentIds, cancellationToken);
 
             if (documents.Count != request.SourceDocumentIds.Count)
             {
@@ -3673,11 +3239,11 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // 5. Create new destination document
-            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
                 _tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
-            var systemBusinessPartyId = await _documentHeaderService.GetOrCreateSystemBusinessPartyAsync(
+            var systemBusinessPartyId = await _warehouseFacade.GetOrCreateSystemBusinessPartyAsync(
                 _tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
@@ -3697,13 +3263,13 @@ public class WarehouseManagementController : BaseApiController
                 IsProforma = true
             };
 
-            var mergedDocument = await _documentHeaderService.CreateDocumentHeaderAsync(
+            var mergedDocument = await _warehouseFacade.CreateDocumentHeaderAsync(
                 createHeaderDto,
                 GetCurrentUser(),
                 cancellationToken);
 
             // 6. Group rows by (ProductId, LocationId) and sum quantities
-            var allRows = documents.SelectMany(d => d.Rows.Where(r => !r.IsDeleted)).ToList();
+            var allRows = documents.SelectMany(d => d.Rows).ToList();
 
             var groupedRows = allRows
                 .GroupBy(r => new
@@ -3738,7 +3304,7 @@ public class WarehouseManagementController : BaseApiController
                     UnitPrice = 0
                 };
 
-                await _documentHeaderService.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
+                await _warehouseFacade.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
             }
 
             _logger.LogInformation(
@@ -3746,25 +3312,23 @@ public class WarehouseManagementController : BaseApiController
                 "Total rows: {TotalRows}, Unique rows: {UniqueRows}, Duplicates removed: {DuplicatesRemoved}",
                 documents.Count, mergedDocNumber, allRows.Count, groupedRows.Count, allRows.Count - groupedRows.Count);
 
-            // 8. Cancel the source documents
-            foreach (var doc in documents)
-            {
-                doc.Status = DocumentStatus.Cancelled;
-                doc.Notes = $"{doc.Notes ?? ""} [Merged into {mergedDocNumber}]";
-                doc.ModifiedAt = DateTime.UtcNow;
-                doc.ModifiedBy = GetCurrentUser();
-            }
+            // 8. Cancel the source documents via facade
+            var statusUpdates = documents.Select(d => (
+                d.Id,
+                DocumentStatus.Cancelled,
+                $"{d.Notes ?? ""} [Merged into {mergedDocNumber}]"
+            )).ToList();
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await _warehouseFacade.UpdateDocumentStatusesBatchAsync(statusUpdates, GetCurrentUser(), cancellationToken);
 
             // 9. Load the merged document with enriched rows
-            var resultDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(
+            var resultDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(
                 mergedDocument.Id,
                 includeRows: true,
                 cancellationToken);
 
             var enrichedRows = resultDocument!.Rows != null && resultDocument.Rows.Any()
-                ? await EnrichInventoryDocumentRowsAsync(resultDocument.Rows, cancellationToken)
+                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(resultDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -3821,7 +3385,7 @@ public class WarehouseManagementController : BaseApiController
                 return BadRequest(ModelState);
             }
 
-            var result = await _stockReconciliationService.CalculateReconciledStockAsync(request, cancellationToken);
+            var result = await _warehouseFacade.CalculateReconciledStockAsync(request, cancellationToken);
 
             return Ok(result);
         }
@@ -3859,7 +3423,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var result = await _stockReconciliationService.ApplyReconciliationAsync(request, currentUser, cancellationToken);
+            var result = await _warehouseFacade.ApplyReconciliationAsync(request, currentUser, cancellationToken);
 
             if (!result.Success)
             {
@@ -3894,7 +3458,7 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogInformation("Exporting stock reconciliation report");
 
-            var fileBytes = await _stockReconciliationService.ExportReconciliationReportAsync(request, cancellationToken);
+            var fileBytes = await _warehouseFacade.ExportReconciliationReportAsync(request, cancellationToken);
 
             if (fileBytes == null || fileBytes.Length == 0)
             {
@@ -3942,7 +3506,7 @@ public class WarehouseManagementController : BaseApiController
             PageSize = 50000
         };
         
-        var data = await _storageFacilityService.GetWarehousesForExportAsync(pagination, ct);
+        var data = await _warehouseFacade.GetWarehousesForExportAsync(pagination, ct);
         
         byte[] fileBytes;
         string contentType;
@@ -3951,14 +3515,14 @@ public class WarehouseManagementController : BaseApiController
         switch (format.ToLowerInvariant())
         {
             case "csv":
-                fileBytes = await _exportService.ExportToCsvAsync(data, ct);
+                fileBytes = await _warehouseFacade.ExportToCsvAsync(data, ct);
                 contentType = "text/csv";
                 fileName = $"Warehouses_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
             
             case "excel":
             default:
-                fileBytes = await _exportService.ExportToExcelAsync(data, "Warehouses", ct);
+                fileBytes = await _warehouseFacade.ExportToExcelAsync(data, "Warehouses", ct);
                 contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                 fileName = $"Warehouses_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
@@ -3997,7 +3561,7 @@ public class WarehouseManagementController : BaseApiController
             PageSize = 50000
         };
         
-        var data = await _stockMovementService.GetInventoryForExportAsync(pagination, ct);
+        var data = await _warehouseFacade.GetInventoryForExportAsync(pagination, ct);
         
         byte[] fileBytes;
         string contentType;
@@ -4006,14 +3570,14 @@ public class WarehouseManagementController : BaseApiController
         switch (format.ToLowerInvariant())
         {
             case "csv":
-                fileBytes = await _exportService.ExportToCsvAsync(data, ct);
+                fileBytes = await _warehouseFacade.ExportToCsvAsync(data, ct);
                 contentType = "text/csv";
                 fileName = $"Inventory_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
             
             case "excel":
             default:
-                fileBytes = await _exportService.ExportToExcelAsync(data, "Inventory", ct);
+                fileBytes = await _warehouseFacade.ExportToExcelAsync(data, "Inventory", ct);
                 contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                 fileName = $"Inventory_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
