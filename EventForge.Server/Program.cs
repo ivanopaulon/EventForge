@@ -10,6 +10,35 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ========================================
+// 🔍 DIAGNOSTIC: Configuration Loading Verification
+// ========================================
+Console.WriteLine("=== CONFIGURATION DIAGNOSTIC ===");
+Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"Content Root: {builder.Environment.ContentRootPath}");
+Console.WriteLine($"Application Name: {builder.Environment.ApplicationName}");
+Console.WriteLine();
+
+// Check which configuration files exist
+var appsettingsPath = Path.Combine(builder.Environment.ContentRootPath, "appsettings.json");
+var appsettingsDevPath = Path.Combine(builder.Environment.ContentRootPath, $"appsettings.{builder.Environment.EnvironmentName}.json");
+var appsettingsOverridePath = Path.Combine(builder.Environment.ContentRootPath, "appsettings.overrides.json");
+
+Console.WriteLine("Configuration Files:");
+Console.WriteLine($"  appsettings.json: {(File.Exists(appsettingsPath) ? "✅ EXISTS" : "❌ NOT FOUND")}");
+if (File.Exists(appsettingsPath))
+{
+    var content = File.ReadAllText(appsettingsPath);
+    Console.WriteLine($"    Size: {content.Length} bytes");
+    Console.WriteLine($"    Contains ConnectionStrings: {(content.Contains("\"ConnectionStrings\"") ? "✅ YES" : "❌ NO")}");
+}
+
+Console.WriteLine($"  appsettings.{builder.Environment.EnvironmentName}.json: {(File.Exists(appsettingsDevPath) ? "✅ EXISTS" : "❌ NOT FOUND")}");
+Console.WriteLine($"  appsettings.overrides.json: {(File.Exists(appsettingsOverridePath) ? "✅ EXISTS" : "❌ NOT FOUND")}");
+
+Console.WriteLine("================================");
+Console.WriteLine();
+
 // Explicitly load appsettings.overrides.json (git-ignored) for local/production overrides
 builder.Configuration.AddJsonFile("appsettings.overrides.json", optional: true, reloadOnChange: true);
 
