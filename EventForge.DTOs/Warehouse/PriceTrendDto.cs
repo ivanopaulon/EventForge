@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EventForge.DTOs.Common;
 
 namespace EventForge.DTOs.Warehouse
 {
@@ -68,36 +69,5 @@ namespace EventForge.DTOs.Warehouse
         /// Average sale price during the period.
         /// </summary>
         public decimal AverageSalePrice { get; set; }
-    }
-
-    /// <summary>
-    /// Data point representing a price at a specific date.
-    /// </summary>
-    public class PriceTrendDataPoint
-    {
-        /// <summary>
-        /// Date of the data point.
-        /// </summary>
-        public DateTime Date { get; set; }
-
-        /// <summary>
-        /// Price at this date.
-        /// </summary>
-        public decimal Price { get; set; }
-
-        /// <summary>
-        /// Quantity associated with this price point.
-        /// </summary>
-        public decimal Quantity { get; set; }
-
-        /// <summary>
-        /// Document type that generated this price point (e.g., "Invoice", "Purchase Order").
-        /// </summary>
-        public string? DocumentType { get; set; }
-
-        /// <summary>
-        /// Business party name (customer or supplier).
-        /// </summary>
-        public string? BusinessPartyName { get; set; }
     }
 }

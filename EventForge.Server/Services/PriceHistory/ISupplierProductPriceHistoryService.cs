@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceHistory;
 
 namespace EventForge.Server.Services.PriceHistory;
