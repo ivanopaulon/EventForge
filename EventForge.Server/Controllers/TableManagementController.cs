@@ -6,6 +6,7 @@ using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace EventForge.Server.Controllers;
 
@@ -154,6 +155,7 @@ public class TableManagementController : BaseApiController
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Successfully retrieved available tables</response>
+    [OutputCache(PolicyName = "RealTimeShortCache")]
     [HttpGet("available/paginated")]
     [ProducesResponseType(typeof(PagedResult<TableSessionDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<TableSessionDto>>> GetAvailableTablesPaginated(
