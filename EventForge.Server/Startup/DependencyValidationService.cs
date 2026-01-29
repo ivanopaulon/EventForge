@@ -46,6 +46,13 @@ public static class DependencyValidationService
 
     /// <summary>
     /// Extracts all registered services from IServiceProvider using reflection.
+    /// 
+    /// TECHNICAL NOTE: IServiceProvider doesn't expose service descriptors through its public API.
+    /// We use reflection to access internal fields of the Microsoft.Extensions.DependencyInjection
+    /// implementation. This approach works across different .NET versions but may need updates
+    /// if the DI container's internal structure changes.
+    /// 
+    /// FALLBACK: Returns empty collection if reflection fails (safe degradation - no validation).
     /// </summary>
     private static IEnumerable<ServiceDescriptor> GetServiceDescriptors(
         IServiceProvider services)
@@ -180,8 +187,9 @@ public static class DependencyValidationService
 
                 if (constructors.Length > 0)
                 {
-                    // Use the constructor with the most parameters
-                    // DI containers typically select the longest constructor
+                    // IMPORTANT: Use the constructor with the most parameters
+                    // This matches .NET DI container behavior (greedy constructor selection)
+                    // The DI container selects the constructor with the most parameters it can resolve
                     var constructor = constructors.OrderByDescending(c => c.GetParameters().Length).First();
                     var parameters = constructor.GetParameters();
 
@@ -207,6 +215,13 @@ public static class DependencyValidationService
 
     /// <summary>
     /// Detects cycles in the dependency graph using Depth-First Search (DFS).
+    /// 
+    /// ALGORITHM: Uses DFS with two tracking structures:
+    /// - Visited set: Tracks all nodes visited during the entire traversal
+    /// - Recursion stack/set: Tracks current path to detect back edges (cycles)
+    /// When a node in the recursion stack is revisited, a cycle exists.
+    /// 
+    /// PERFORMANCE: O(V + E) where V = number of services, E = number of dependencies
     /// </summary>
     private static List<List<Type>> DetectCycles(
         Dictionary<Type, List<Type>> graph)
@@ -253,10 +268,13 @@ public static class DependencyValidationService
                 }
                 else if (recursionSet.Contains(dependency))
                 {
-                    // Cycle detected! Extract cycle path
+                    // CYCLE DETECTED! 
+                    // A back edge exists: dependency is already in the current path (recursion stack)
+                    // This means we've found a circular dependency chain
                     var cycle = ExtractCycle(recursionStack, dependency);
                     
                     // Only add unique cycles (avoid duplicates)
+                    // Multiple paths may discover the same cycle
                     if (!cycles.Any(c => CyclesAreEqual(c, cycle)))
                     {
                         cycles.Add(cycle);
@@ -299,6 +317,10 @@ public static class DependencyValidationService
 
     /// <summary>
     /// Checks if two cycles are equal (same services in the same order).
+    /// 
+    /// BUSINESS RULE: Cycles are equivalent regardless of starting point.
+    /// Example: [A → B → C → A] equals [B → C → A → B] equals [C → A → B → C]
+    /// This is because a circular dependency is the same cycle regardless of entry point.
     /// </summary>
     private static bool CyclesAreEqual(List<Type> cycle1, List<Type> cycle2)
     {
