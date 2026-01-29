@@ -31,6 +31,7 @@ public class QzSigningDemoRequest
 [ApiController]
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
+[Authorize(Policy = "RequireManager")]
 public class PrintingController : BaseApiController
 {
     private readonly IQzPrintingService _qzPrintingService;
