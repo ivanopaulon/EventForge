@@ -37,15 +37,6 @@ if (!File.Exists(appsettingsPath))
 var appsettingsSize = new FileInfo(appsettingsPath).Length;
 Console.WriteLine($"✅ appsettings.json: FOUND ({appsettingsSize} bytes)");
 
-// Verify ConnectionStrings section
-var appsettingsContent = File.ReadAllText(appsettingsPath);
-if (!appsettingsContent.Contains("\"ConnectionStrings\""))
-{
-    Console.WriteLine("❌ FATAL: ConnectionStrings section MISSING in appsettings.json");
-    throw new InvalidOperationException("appsettings.json must contain ConnectionStrings section");
-}
-Console.WriteLine("✅ ConnectionStrings section: PRESENT");
-
 // Check environment-specific file (optional)
 var appsettingsEnvPath = Path.Combine(contentRoot, $"appsettings.{environment}.json");
 if (File.Exists(appsettingsEnvPath))
@@ -57,24 +48,32 @@ else
     Console.WriteLine($"ℹ️  appsettings.{environment}.json: NOT FOUND (using base config)");
 }
 
-// Load overrides ONLY if file exists
+// Load overrides file (optional) - must load BEFORE validation
 var overridesPath = Path.Combine(contentRoot, "appsettings.overrides.json");
 if (File.Exists(overridesPath))
 {
     Console.WriteLine($"✅ appsettings.overrides.json: FOUND - Loading overrides");
-    builder.Configuration.AddJsonFile("appsettings.overrides.json", optional: false, reloadOnChange: true);
 }
 else
 {
     Console.WriteLine("ℹ️  appsettings.overrides.json: NOT FOUND (no custom overrides)");
 }
+// Always use optional: true to handle race conditions between check and load
+builder.Configuration.AddJsonFile("appsettings.overrides.json", optional: true, reloadOnChange: true);
 
 Console.WriteLine();
 
-// Verify connection strings
+// Verify connection strings AFTER loading all configuration sources
 Console.WriteLine("--- Connection Strings Verification ---");
 
 var connectionStringsSection = builder.Configuration.GetSection("ConnectionStrings");
+if (!connectionStringsSection.Exists())
+{
+    Console.WriteLine("❌ FATAL: ConnectionStrings section MISSING in configuration");
+    throw new InvalidOperationException("Configuration must contain ConnectionStrings section");
+}
+Console.WriteLine("✅ ConnectionStrings section: PRESENT");
+
 var allConnectionStrings = connectionStringsSection.GetChildren().ToList();
 
 if (!allConnectionStrings.Any())

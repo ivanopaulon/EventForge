@@ -25,6 +25,26 @@ public class FirstRunDetectionService : IFirstRunDetectionService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Helper method to create file marker if missing. Prevents code duplication and handles errors gracefully.
+    /// </summary>
+    private void CreateFileMarkerIfMissing(string markerPath, string reason)
+    {
+        if (!File.Exists(markerPath))
+        {
+            _logger.LogInformation("🔧 Creating missing file marker - Reason: {Reason}", reason);
+            try
+            {
+                File.WriteAllText(markerPath, $"Setup completed ({reason} on {DateTime.UtcNow:O})");
+                _logger.LogInformation("✅ File marker created at {Path}", markerPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create file marker (non-critical)");
+            }
+        }
+    }
+
     public async Task<bool> IsSetupCompleteAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -134,19 +154,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                         _logger.LogInformation("✅ Setup completed: Database has {Count} setup history records", count);
                         
                         // AUTO-FIX: Create file marker if missing
-                        if (!File.Exists(markerPath))
-                        {
-                            _logger.LogWarning("⚠️ File marker missing but DB has setup records - auto-creating marker");
-                            try
-                            {
-                                File.WriteAllText(markerPath, $"Setup completed (auto-synced from database on {DateTime.UtcNow:O})");
-                                _logger.LogInformation("✅ File marker created at {Path}", markerPath);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "Failed to create file marker (non-critical)");
-                            }
-                        }
+                        CreateFileMarkerIfMissing(markerPath, "auto-synced from database");
                         
                         return true;
                     }
@@ -179,11 +187,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                             _logger.LogInformation("✅ SetupHistories populated from existing configuration");
                             
                             // Create file marker
-                            if (!File.Exists(markerPath))
-                            {
-                                File.WriteAllText(markerPath, $"Setup completed (auto-synced on {DateTime.UtcNow:O})");
-                                _logger.LogInformation("✅ File marker created");
-                            }
+                            CreateFileMarkerIfMissing(markerPath, "auto-synced");
                             
                             return true;
                         }
@@ -240,19 +244,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                     _logger.LogInformation("✅ Setup completed: Found via EF Core");
                     
                     // Auto-create file marker
-                    if (!File.Exists(markerPath))
-                    {
-                        _logger.LogInformation("🔧 Creating missing file marker");
-                        try
-                        {
-                            File.WriteAllText(markerPath, $"Setup completed (auto-synced via EF Core on {DateTime.UtcNow:O})");
-                            _logger.LogInformation("✅ File marker created");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Failed to create file marker");
-                        }
-                    }
+                    CreateFileMarkerIfMissing(markerPath, "auto-synced via EF Core");
                     
                     return true;
                 }
