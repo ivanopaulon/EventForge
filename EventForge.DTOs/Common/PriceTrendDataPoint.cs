@@ -37,12 +37,13 @@ namespace EventForge.DTOs.Common
 
         /// <summary>
         /// Source of the price change (Manual, BulkEdit, CSVImport, AutoUpdate).
-        /// Used in supplier price history tracking.
+        /// Used in supplier price history tracking. Will be null for document-based price analysis.
         /// </summary>
         public string? ChangeSource { get; set; }
 
         /// <summary>
         /// Currency code for the price.
+        /// Used in supplier price history tracking. Will be null for document-based price analysis.
         /// </summary>
         public string? Currency { get; set; }
     }
