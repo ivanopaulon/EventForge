@@ -52,6 +52,8 @@ builder.Services.AddRazorPages(options =>
     // Allow anonymous access to setup pages
     options.Conventions.AllowAnonymousToPage("/Setup/Index");
     options.Conventions.AllowAnonymousToPage("/Setup/Complete");
+    // Allow anonymous access to server auth pages
+    options.Conventions.AllowAnonymousToPage("/ServerAuth/Login");
     // Require SuperAdmin role for dashboard pages
     options.Conventions.AuthorizeFolder("/Dashboard", "RequireSuperAdmin");
 });
@@ -340,22 +342,47 @@ app.UseStartupPerformanceMonitoring();
 // Setup wizard redirect (before routing) - check if first run
 app.UseMiddleware<EventForge.Server.Middleware.SetupWizardMiddleware>();
 
-// Configure environment-aware homepage and Swagger behavior
+// Configure environment-aware Swagger behavior with protection in production
 if (app.Environment.IsDevelopment())
 {
-    // Development: Enable Swagger and set as homepage
+    // Development: Enable Swagger at /swagger (publicly accessible)
     _ = app.UseSwagger();
     _ = app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
-        c.RoutePrefix = string.Empty; // Set Swagger as the homepage
+        c.RoutePrefix = "swagger"; // Swagger available at /swagger
         c.DocumentTitle = "EventForge API Documentation";
         c.DisplayRequestDuration();
     });
 }
 else
 {
-    // Production: Enable Swagger but redirect homepage to logs viewer
+    // Production: Protect Swagger with authentication - SuperAdmin only
+    app.UseWhen(
+        context => context.Request.Path.StartsWithSegments("/swagger"),
+        appBuilder =>
+        {
+            appBuilder.Use(async (context, next) =>
+            {
+                // Check authentication
+                if (!context.User.Identity?.IsAuthenticated ?? true)
+                {
+                    context.Response.Redirect("/server/login?returnUrl=/swagger");
+                    return;
+                }
+                
+                // Check SuperAdmin role
+                if (!context.User.IsInRole("SuperAdmin"))
+                {
+                    context.Response.StatusCode = 403;
+                    await context.Response.WriteAsync("Swagger access requires SuperAdmin role");
+                    return;
+                }
+                
+                await next();
+            });
+        });
+    
     _ = app.UseSwagger();
     _ = app.UseSwaggerUI(c =>
     {
