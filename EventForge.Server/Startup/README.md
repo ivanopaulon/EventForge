@@ -171,7 +171,7 @@ When the validator detects a cycle, use one of these strategies:
 
 **Startup Impact**:
 - Validation runs only once at application startup
-- Typical validation time: 50-200ms for 100-300 services
+- Typical validation time: 50-200ms for 100-300 services (varies by hardware/complexity)
 - No runtime performance impact
 - Can be disabled in production if needed (though not recommended)
 

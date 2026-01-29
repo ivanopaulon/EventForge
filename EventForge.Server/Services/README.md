@@ -112,17 +112,17 @@ public class WarehouseManagementController : BaseApiController
 
 ### Decision Criteria
 
-**Create a Facade if**:
-- ❌ Controller has 7+ constructor dependencies
-- ❌ Related services from the same domain
-- ❌ Complex orchestration between services
-- ❌ Testing requires many mock objects
+**Consider creating a Facade when**:
+- ✅ Controller has 7+ constructor dependencies
+- ✅ Related services from the same domain
+- ✅ Complex orchestration between services
+- ✅ Testing requires many mock objects
 
-**Don't Create a Facade if**:
-- ✅ Controller has < 7 dependencies
-- ✅ Services are unrelated by domain
-- ✅ Services don't collaborate frequently
-- ✅ Facade would add unnecessary abstraction
+**Don't create a Facade when**:
+- ❌ Controller has < 7 dependencies
+- ❌ Services are unrelated by domain
+- ❌ Services don't collaborate frequently
+- ❌ Facade would add unnecessary abstraction
 
 ### Benefits of Facades
 - ✅ **Reduced complexity**: 60-70% fewer constructor parameters
@@ -133,10 +133,14 @@ public class WarehouseManagementController : BaseApiController
 
 ### Example Metrics
 
+*These metrics represent approximate reductions achieved through facade pattern implementation.*
+
 | Controller | Before Facade | After Facade | Reduction |
 |------------|--------------|--------------|-----------|
-| DocumentsController | 11 dependencies | 4 dependencies | 69% |
-| WarehouseManagementController | 14+ dependencies | 4 dependencies | 71% |
+| DocumentsController | 11 dependencies | 4 dependencies | ~69% |
+| WarehouseManagementController | 14+ dependencies | 4 dependencies | ~71% |
+
+*Note: Exact dependency counts may vary as the codebase evolves.*
 
 ## Service Layer Standards
 

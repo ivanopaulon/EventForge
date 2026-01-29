@@ -74,11 +74,12 @@ public class DocumentFacade : IDocumentFacade
     public DocumentFacade(
         IDocumentHeaderService headerService,
         IDocumentAttachmentService attachmentService,
-        // ... other services)
+        // ... other services
+        ILogger<DocumentFacade> logger)
     {
         _headerService = headerService ?? throw new ArgumentNullException(nameof(headerService));
         _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
-        // ... null checks
+        // ... null checks for other services
     }
 
     public async Task<DocumentDto> GetDocumentAsync(Guid id, CancellationToken ct = default)
@@ -229,9 +230,11 @@ await _context.SaveChangesAsync(ct);
 ```
 
 **Performance Impact**:
-- **30-50% faster queries** for read operations
-- **30-40% less memory** usage (no change tracking objects)
+- **Significantly faster queries** for read operations (typical improvement: 30-50%)
+- **Reduced memory usage** (typical reduction: 30-40%)
 - **Better scalability** under high load
+
+*Note: Actual performance improvements vary based on query complexity, entity size, and data volume.*
 
 ### Projection-First Pattern
 Move `.Select()` **BEFORE** `.ToListAsync()` for SQL-side projection, not in-memory mapping.
@@ -258,9 +261,11 @@ return await _context.Products
 ```
 
 **Performance Impact**:
-- **+30-50% faster queries** (less data transferred)
-- **-30-40% memory usage** (only needed fields loaded)
-- **-50-70% network traffic** (smaller result sets)
+- **Faster queries** (typical improvement: 30-50% - less data transferred)
+- **Lower memory usage** (typical reduction: 30-40% - only needed fields loaded)
+- **Reduced network traffic** (typical reduction: 50-70% - smaller result sets)
+
+*Note: Actual performance gains vary based on entity size, number of columns, and data volume.*
 
 ### Exception Handling Standards
 
