@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using SystemFile = System.IO.File;
 
 namespace EventForge.Server.Controllers;
 
@@ -218,7 +219,7 @@ public class SettingsController : BaseApiController
             return RestartEnvironment.IIS;
 
         // Check if running in Docker
-        if (File.Exists("/.dockerenv"))
+        if (SystemFile.Exists("/.dockerenv"))
             return RestartEnvironment.Docker;
 
         // Default to Kestrel
