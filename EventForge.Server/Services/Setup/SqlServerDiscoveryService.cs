@@ -139,25 +139,15 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
 
     private string BuildConnectionString(string serverAddress, SqlCredentials credentials)
     {
-        var builder = new MicrosoftSqlClient.SqlConnectionStringBuilder
-        {
-            DataSource = serverAddress,
-            ConnectTimeout = 10,  // Increased from 5 to 10 seconds
-            Encrypt = false,
-            TrustServerCertificate = true
-        };
-
+        // Build connection string matching appsettings.json format EXACTLY
+        
         if (credentials.AuthenticationType == "Windows")
         {
-            builder.IntegratedSecurity = true;
+            return $"Server={serverAddress};Integrated Security=True;TrustServerCertificate=True;";
         }
         else
         {
-            builder.IntegratedSecurity = false;
-            builder.UserID = credentials.Username;
-            builder.Password = credentials.Password;
+            return $"Server={serverAddress};User Id={credentials.Username};Password={credentials.Password};TrustServerCertificate=True;";
         }
-
-        return builder.ConnectionString;
     }
 }

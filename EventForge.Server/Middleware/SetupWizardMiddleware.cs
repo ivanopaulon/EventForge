@@ -27,6 +27,7 @@ public class SetupWizardMiddleware
             path.StartsWith("/api/v1/auth", StringComparison.OrdinalIgnoreCase) || // Auth endpoints
             path.StartsWith("/server/login", StringComparison.OrdinalIgnoreCase) || // Login page
             path.Equals("/", StringComparison.OrdinalIgnoreCase) || // Landing page
+            path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) || // Swagger UI during first run
             path.StartsWith("/_framework", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/_content", StringComparison.OrdinalIgnoreCase) ||
             IsStaticFile(path))

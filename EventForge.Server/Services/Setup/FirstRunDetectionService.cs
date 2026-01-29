@@ -29,7 +29,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
     {
         try
         {
-            // Check 1: Environment variable
+            // Level 1: Check environment variable
             var envSetupComplete = Environment.GetEnvironmentVariable("EVENTFORGE_SETUP_COMPLETED");
             if (!string.IsNullOrEmpty(envSetupComplete) && envSetupComplete.Equals("true", StringComparison.OrdinalIgnoreCase))
             {
@@ -37,15 +37,15 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                 return true;
             }
 
-            // Check 2: File marker
+            // Level 2: Check file marker
             var markerPath = Path.Combine(_environment.ContentRootPath, "setup.complete");
             if (File.Exists(markerPath))
             {
-                _logger.LogDebug("Setup completed: File marker 'setup.complete' exists");
+                _logger.LogDebug("Setup completed: File marker 'setup.complete' exists at {Path}", markerPath);
                 return true;
             }
 
-            // Check 3: Validate connection string exists and database is accessible
+            // Level 3: Check if valid connection string exists and database is accessible
             var connectionString = _configuration.GetConnectionString("DefaultConnection") 
                                 ?? _configuration.GetConnectionString("SqlServer");
             
@@ -53,28 +53,29 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             {
                 try
                 {
-                    // Try to connect to database
                     using var connection = new SqlConnection(connectionString);
                     await connection.OpenAsync(cancellationToken);
                     
-                    // Check if SetupHistories table exists and has records
+                    // Check if SetupHistories table exists
                     using var command = new SqlCommand(
-                        "SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'SetupHistories') THEN 1 ELSE 0 END", 
+                        "SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'SetupHistories') THEN 1 ELSE 0 END", 
                         connection);
                     
-                    var tableExists = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? 0) == 1;
+                    var tableExists = (int)await command.ExecuteScalarAsync(cancellationToken) == 1;
                     
                     if (tableExists)
                     {
                         using var countCommand = new SqlCommand("SELECT COUNT(*) FROM SetupHistories", connection);
-                        var count = (int)(await countCommand.ExecuteScalarAsync(cancellationToken) ?? 0);
+                        var count = (int)await countCommand.ExecuteScalarAsync(cancellationToken);
                         
                         if (count > 0)
                         {
-                            _logger.LogDebug("Setup completed: Database has setup history records");
+                            _logger.LogInformation("Setup completed: Database accessible with {Count} setup history records", count);
                             return true;
                         }
                     }
+                    
+                    await connection.CloseAsync();
                 }
                 catch (Exception ex)
                 {
@@ -82,19 +83,18 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                 }
             }
 
-            // Check 4: Database check for SetupHistories via EF Core (fallback)
+            // Level 4: Fallback - Check via EF Core (if DB context can connect)
             try
             {
                 var hasSetupHistory = await _dbContext.SetupHistories.AnyAsync(cancellationToken);
                 if (hasSetupHistory)
                 {
-                    _logger.LogDebug("Setup completed: EF Core found setup history");
+                    _logger.LogDebug("Setup completed: SetupHistories table has records (via EF Core)");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                // Database might not be accessible or table might not exist yet
                 _logger.LogDebug(ex, "EF Core check failed during first run detection (expected on first run)");
             }
 
@@ -103,7 +103,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking setup status, assuming first run");
+            _logger.LogError(ex, "Error checking setup status, assuming first run for safety");
             return false;
         }
     }
