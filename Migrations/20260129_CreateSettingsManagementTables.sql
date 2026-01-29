@@ -116,18 +116,21 @@ CREATE INDEX IX_SystemOperationLog_ExecutedAt ON SystemOperationLog(ExecutedAt D
 
 -- =============================================
 -- 4. Seed initial JWT key if none exists
+-- SECURITY WARNING: The placeholder key MUST be replaced
+-- before production use. See application startup validation.
 -- =============================================
 IF NOT EXISTS (SELECT 1 FROM JwtKeyHistory WHERE IsActive = 1)
 BEGIN
     -- Generate a placeholder key identifier
     DECLARE @keyId NVARCHAR(50) = 'key_' + CONVERT(NVARCHAR(36), NEWID());
     
+    -- PLACEHOLDER KEY - MUST BE REPLACED BEFORE PRODUCTION USE
     INSERT INTO JwtKeyHistory (KeyIdentifier, EncryptedKey, IsActive, ValidFrom, CreatedBy)
     VALUES (@keyId, 'PLACEHOLDER_KEY_TO_BE_REPLACED_ON_FIRST_USE', 1, GETUTCDATE(), 'System.Migration');
     
     -- Log the operation
     INSERT INTO SystemOperationLog (OperationType, Action, Description, Success, ExecutedBy)
-    VALUES ('Bootstrap', 'Create', 'Initial JWT key placeholder created during migration', 1, 'System.Migration');
+    VALUES ('Bootstrap', 'Create', 'Initial JWT key placeholder created during migration - MUST BE REPLACED', 1, 'System.Migration');
 END
 
 -- =============================================

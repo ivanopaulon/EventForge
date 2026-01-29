@@ -7,8 +7,8 @@
     <!-- Suppress warnings that don't affect functionality -->
     <NoWarn>$(NoWarn);NU1608</NoWarn>
     
-    <!-- Reduce console output during build -->
-    <ConsoleLoggerParameters>ErrorsOnly</ConsoleLoggerParameters>
+    <!-- Show errors and warnings but reduce other output -->
+    <ConsoleLoggerParameters>NoSummary</ConsoleLoggerParameters>
     
     <!-- Minimal restore output -->
     <RestoreVerbosity>quiet</RestoreVerbosity>

@@ -267,11 +267,11 @@ public class RestartResultDto
 /// </summary>
 public enum RestartMethod
 {
-    IIS_WebConfig,      // Touch web.config
-    IIS_AppPoolRecycle, // iisreset
-    Kestrel_StopApp,    // ApplicationLifetime.StopApplication()
-    Docker_Restart,     // External (container orchestration)
-    Manual              // User must restart
+    IisWebConfig,      // Touch web.config
+    IisAppPoolRecycle, // iisreset
+    KestrelStopApp,    // ApplicationLifetime.StopApplication()
+    DockerRestart,     // External (container orchestration)
+    Manual             // User must restart
 }
 
 /// <summary>
