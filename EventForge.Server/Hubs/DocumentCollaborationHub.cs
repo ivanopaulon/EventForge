@@ -87,9 +87,19 @@ public class DocumentCollaborationHub : Hub
     {
         var userName = Context.User?.Identity?.Name ?? "Unknown";
         var userId = GetCurrentUserId();
+        var tenantId = GetCurrentTenantId();
 
         if (!userId.HasValue)
             throw new HubException("User not authenticated");
+        
+        // Add tenant validation
+        if (!tenantId.HasValue)
+        {
+            _logger.LogWarning(
+                "RequestEditLock failed: TenantId not found for user {UserId}",
+                userId.Value);
+            throw new HubException("Autenticazione non valida: Tenant ID non trovato. Effettua nuovamente il login.");
+        }
 
         try
         {
@@ -101,8 +111,9 @@ public class DocumentCollaborationHub : Hub
             if (lockAcquired)
             {
                 _logger.LogInformation(
-                    "User {UserName} acquired lock on document {DocumentId}",
+                    "User {UserName} (Tenant: {TenantId}) acquired lock on document {DocumentId}",
                     userName,
+                    tenantId.Value,
                     documentId);
 
                 // Notify other users in the document group
@@ -127,6 +138,10 @@ public class DocumentCollaborationHub : Hub
                 }
                 else
                 {
+                    _logger.LogWarning(
+                        "Lock acquisition failed for document {DocumentId} by user {UserName}",
+                        documentId,
+                        userName);
                     throw new HubException(
                         "Documento attualmente non disponibile per la modifica. Riprova tra qualche istante.");
                 }
@@ -600,8 +615,26 @@ public class DocumentCollaborationHub : Hub
     /// </summary>
     private Guid? GetCurrentTenantId()
     {
-        var tenantIdClaim = Context.User?.FindFirst("TenantId")?.Value;
-        return Guid.TryParse(tenantIdClaim, out var tenantId) ? tenantId : null;
+        // Primary: try snake_case (matches JWT token format)
+        var tenantIdClaim = Context.User?.FindFirst("tenant_id")?.Value;
+        
+        // Fallback: try PascalCase for backward compatibility
+        if (string.IsNullOrEmpty(tenantIdClaim))
+        {
+            tenantIdClaim = Context.User?.FindFirst("TenantId")?.Value;
+        }
+        
+        if (Guid.TryParse(tenantIdClaim, out var tenantId))
+        {
+            return tenantId;
+        }
+        
+        // Additional logging for debugging (only log claim types, not values)
+        _logger.LogWarning(
+            "TenantId claim not found in user context. Available claim types: {ClaimTypes}",
+            string.Join(", ", Context.User?.Claims.Select(c => c.Type) ?? Enumerable.Empty<string>()));
+        
+        return null;
     }
 
     #endregion
