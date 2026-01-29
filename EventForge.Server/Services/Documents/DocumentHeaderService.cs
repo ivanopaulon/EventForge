@@ -1545,14 +1545,24 @@ public class DocumentHeaderService : IDocumentHeaderService
     /// </summary>
     public async Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId)
     {
+        _logger.LogDebug(
+            "AcquireLockAsync called: DocumentId={DocumentId}, UserName={UserName}, ConnectionId={ConnectionId}",
+            documentId, userName, connectionId);
+
         try
         {
             var tenantId = _tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot acquire lock without a tenant context.");
+                _logger.LogWarning(
+                    "❌ Lock acquisition FAILED: TenantId is NULL. DocumentId={DocumentId}, UserName={UserName}",
+                    documentId, userName);
                 return false;
             }
+
+            _logger.LogDebug(
+                "TenantId retrieved: {TenantId} for document {DocumentId}",
+                tenantId.Value, documentId);
 
             // Use a retry pattern for optimistic concurrency
             const int maxRetries = 3;
@@ -1560,79 +1570,136 @@ public class DocumentHeaderService : IDocumentHeaderService
             {
                 try
                 {
+                    _logger.LogDebug(
+                        "Lock acquisition attempt {Attempt}/{MaxRetries} for document {DocumentId}",
+                        attempt + 1, maxRetries, documentId);
+
                     var document = await _context.DocumentHeaders
                         .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted);
 
                     if (document == null)
                     {
-                        _logger.LogWarning("Document {DocumentId} not found for lock acquisition.", documentId);
+                        _logger.LogWarning(
+                            "❌ Lock acquisition FAILED: Document NOT FOUND. DocumentId={DocumentId}, TenantId={TenantId}, UserName={UserName}",
+                            documentId, tenantId.Value, userName);
                         return false;
                     }
+
+                    _logger.LogDebug(
+                        "Document found: {DocumentId}, Current lock status: LockedBy={LockedBy}, LockedAt={LockedAt}, ConnectionId={ConnectionId}",
+                        documentId, document.LockedBy ?? "(none)", document.LockedAt, document.LockConnectionId ?? "(none)");
 
                     // Check existing lock
                     if (!string.IsNullOrEmpty(document.LockedBy) && document.LockedBy != userName)
                     {
+                        _logger.LogDebug(
+                            "Document {DocumentId} has existing lock by different user. Current: {CurrentUser}, Requested: {RequestedUser}",
+                            documentId, document.LockedBy, userName);
+
                         // Check if lock is still valid (less than 30 minutes old)
                         if (document.LockedAt.HasValue)
                         {
                             var lockAge = DateTime.UtcNow - document.LockedAt.Value;
 
+                            _logger.LogDebug(
+                                "Lock age check: {LockAge} (threshold: 30 minutes) for document {DocumentId}",
+                                lockAge, documentId);
+
                             if (lockAge < TimeSpan.FromMinutes(30))
                             {
-                                _logger.LogInformation(
-                                    "Document {DocumentId} is locked by {LockedBy} (lock age: {LockAge})",
+                                _logger.LogWarning(
+                                    "❌ Lock acquisition FAILED: Document {DocumentId} is locked by {LockedBy} (lock age: {LockAge}, still valid)",
                                     documentId, document.LockedBy, lockAge);
                                 return false; // Lock is still valid
                             }
 
                             // Lock expired - can be acquired
                             _logger.LogInformation(
-                                "Lock on document {DocumentId} expired (lock age: {LockAge}). Acquiring for {UserName}.",
+                                "Lock on document {DocumentId} EXPIRED (lock age: {LockAge}). Acquiring for {UserName}.",
                                 documentId, lockAge, userName);
                         }
                     }
 
                     // Acquire or refresh lock
+                    _logger.LogDebug(
+                        "Attempting to set lock: DocumentId={DocumentId}, UserName={UserName}, ConnectionId={ConnectionId}",
+                        documentId, userName, connectionId);
+
                     document.LockedBy = userName;
                     document.LockedAt = DateTime.UtcNow;
                     document.LockConnectionId = connectionId;
 
-                    await _context.SaveChangesAsync();
+                    _logger.LogDebug(
+                        "Lock properties set, calling SaveChangesAsync for document {DocumentId}",
+                        documentId);
+
+                    var changeCount = await _context.SaveChangesAsync();
 
                     _logger.LogInformation(
-                        "Lock acquired on document {DocumentId} by {UserName} (connection: {ConnectionId})",
-                        documentId, userName, connectionId);
+                        "✅ Lock ACQUIRED successfully on document {DocumentId} by {UserName} (connection: {ConnectionId}). Changes saved: {ChangeCount}",
+                        documentId, userName, connectionId, changeCount);
 
                     return true;
                 }
-                catch (DbUpdateConcurrencyException) when (attempt < maxRetries - 1)
+                catch (DbUpdateConcurrencyException concurrencyEx) when (attempt < maxRetries - 1)
                 {
-                    // Concurrency conflict - retry
                     _logger.LogWarning(
-                        "Concurrency conflict acquiring lock for document {DocumentId}, attempt {Attempt}",
-                        documentId, attempt + 1);
+                        concurrencyEx,
+                        "⚠️ Concurrency conflict acquiring lock for document {DocumentId}, attempt {Attempt}/{MaxRetries}. Retrying...",
+                        documentId, attempt + 1, maxRetries);
 
                     // Detach the entity to allow retry
                     var entries = _context.ChangeTracker.Entries()
                         .Where(e => e.Entity is DocumentHeader && ((DocumentHeader)e.Entity).Id == documentId);
                     foreach (var entry in entries)
                     {
+                        _logger.LogDebug(
+                            "Detaching entity {EntityType} with state {State}",
+                            entry.Entity.GetType().Name, entry.State);
                         entry.State = EntityState.Detached;
                     }
 
                     // Small delay before retry
                     await Task.Delay(50 * (attempt + 1));
                 }
+                catch (DbUpdateException dbEx)
+                {
+                    _logger.LogError(
+                        dbEx,
+                        "❌ DATABASE UPDATE ERROR during lock acquisition for document {DocumentId}, attempt {Attempt}. Inner exception: {InnerException}",
+                        documentId, attempt + 1, dbEx.InnerException?.Message ?? "(none)");
+                    throw; // Re-throw to be caught by outer catch
+                }
             }
 
             // All retries failed
-            _logger.LogWarning("Failed to acquire lock for document {DocumentId} after {MaxRetries} attempts",
+            _logger.LogWarning(
+                "❌ Lock acquisition FAILED: Max retries ({MaxRetries}) exceeded for document {DocumentId}",
                 documentId, maxRetries);
+            return false;
+        }
+        catch (DbUpdateConcurrencyException finalConcurrencyEx)
+        {
+            _logger.LogError(
+                finalConcurrencyEx,
+                "❌ CONCURRENCY EXCEPTION (final) acquiring lock for document {DocumentId}",
+                documentId);
+            return false;
+        }
+        catch (DbUpdateException finalDbEx)
+        {
+            _logger.LogError(
+                finalDbEx,
+                "❌ DATABASE EXCEPTION acquiring lock for document {DocumentId}. Inner: {InnerException}",
+                documentId, finalDbEx.InnerException?.Message ?? "(none)");
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error acquiring lock for document {DocumentId}", documentId);
+            _logger.LogError(
+                ex,
+                "❌ UNEXPECTED EXCEPTION acquiring lock for document {DocumentId}. Exception type: {ExceptionType}, Message: {Message}",
+                documentId, ex.GetType().Name, ex.Message);
             return false;
         }
     }

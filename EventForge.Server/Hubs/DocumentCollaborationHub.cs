@@ -89,20 +89,33 @@ public class DocumentCollaborationHub : Hub
         var userId = GetCurrentUserId();
         var tenantId = GetCurrentTenantId();
 
+        _logger.LogDebug(
+            "RequestEditLock called: DocumentId={DocumentId}, UserName={UserName}, UserId={UserId}, TenantId={TenantId}, ConnectionId={ConnectionId}",
+            documentId, userName, userId, tenantId, Context.ConnectionId);
+
         if (!userId.HasValue)
+        {
+            _logger.LogWarning(
+                "RequestEditLock FAILED: UserId is null. DocumentId={DocumentId}, UserName={UserName}",
+                documentId, userName);
             throw new HubException("User not authenticated");
+        }
         
         // Add tenant validation
         if (!tenantId.HasValue)
         {
             _logger.LogWarning(
-                "RequestEditLock failed: TenantId not found for user {UserId}",
-                userId.Value);
+                "RequestEditLock FAILED: TenantId is null. DocumentId={DocumentId}, UserName={UserName}, UserId={UserId}",
+                documentId, userName, userId.Value);
             throw new HubException("Autenticazione non valida: Tenant ID non trovato. Effettua nuovamente il login.");
         }
 
         try
         {
+            _logger.LogDebug(
+                "Calling AcquireLockAsync: DocumentId={DocumentId}, UserName={UserName}, ConnectionId={ConnectionId}",
+                documentId, userName, Context.ConnectionId);
+
             var lockAcquired = await _documentHeaderService.AcquireLockAsync(
                 documentId,
                 userName,
@@ -111,10 +124,8 @@ public class DocumentCollaborationHub : Hub
             if (lockAcquired)
             {
                 _logger.LogInformation(
-                    "User {UserName} (Tenant: {TenantId}) acquired lock on document {DocumentId}",
-                    userName,
-                    tenantId.Value,
-                    documentId);
+                    "✅ Lock acquired in Hub for document {DocumentId} by {UserName}",
+                    documentId, userName);
 
                 // Notify other users in the document group
                 await Clients.GroupExcept($"document_{documentId}", Context.ConnectionId)
@@ -129,6 +140,10 @@ public class DocumentCollaborationHub : Hub
             }
             else
             {
+                _logger.LogWarning(
+                    "❌ AcquireLockAsync returned FALSE for document {DocumentId}, user {UserName}",
+                    documentId, userName);
+
                 var lockInfo = await _documentHeaderService.GetLockInfoAsync(documentId);
                 
                 if (lockInfo != null)
@@ -138,10 +153,6 @@ public class DocumentCollaborationHub : Hub
                 }
                 else
                 {
-                    _logger.LogWarning(
-                        "Lock acquisition failed for document {DocumentId} by user {UserName}",
-                        documentId,
-                        userName);
                     throw new HubException(
                         "Documento attualmente non disponibile per la modifica. Riprova tra qualche istante.");
                 }
@@ -153,7 +164,10 @@ public class DocumentCollaborationHub : Hub
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to acquire lock for document {DocumentId}", documentId);
+            _logger.LogError(
+                ex,
+                "❌ Exception in RequestEditLock for document {DocumentId}, user {UserName}. Exception type: {ExceptionType}",
+                documentId, userName, ex.GetType().Name);
             throw new HubException("Errore acquisizione lock documento");
         }
     }
