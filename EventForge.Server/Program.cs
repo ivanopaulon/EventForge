@@ -60,6 +60,9 @@ builder.Services.AddMemoryCache(options =>
 // Register cache service
 builder.Services.AddSingleton<EventForge.Server.Services.Caching.ICacheService, EventForge.Server.Services.Caching.CacheService>();
 
+// Register cache invalidation service for Output Cache
+builder.Services.AddScoped<EventForge.Server.Services.Caching.ICacheInvalidationService, EventForge.Server.Services.Caching.CacheInvalidationService>();
+
 // Add SignalR for real-time communication
 builder.Services.AddSignalR(options =>
 {
@@ -175,6 +178,34 @@ builder.Services.AddMiniProfiler(options =>
     options.IgnoredPaths.Add("/health");
 }).AddEntityFramework();
 
+// Output Cache configuration
+builder.Services.AddOutputCache(options =>
+{
+    // Policy 1: Static Entities (1 hour cache)
+    // For: VatRates, DocumentTypes, PaymentTerms, Banks
+    options.AddPolicy("StaticEntities", builder => 
+        builder
+            .Expire(TimeSpan.FromHours(1))
+            .SetVaryByQuery("page", "pageSize")
+            .Tag("static"));
+    
+    // Policy 2: Semi-Static Entities (10 minutes cache)
+    // For: UnitOfMeasures, Brands, Models, PaymentMethods, ClassificationNodes, NoteFlags
+    options.AddPolicy("SemiStaticEntities", builder =>
+        builder
+            .Expire(TimeSpan.FromMinutes(10))
+            .SetVaryByQuery("page", "pageSize")
+            .Tag("semi-static"));
+    
+    // Policy 3: Real-Time Short Cache (5 seconds)
+    // For: POS.GetOpenSessions, Tables.GetAvailableTables
+    options.AddPolicy("RealTimeShortCache", builder =>
+        builder
+            .Expire(TimeSpan.FromSeconds(5))
+            .SetVaryByQuery("page", "pageSize")
+            .Tag("realtime"));
+});
+
 var app = builder.Build();
 
 // Add middleware early in the pipeline
@@ -225,6 +256,9 @@ app.UseHttpsRedirection();
 
 // Enable routing BEFORE static files
 app.UseRouting();
+
+// Enable Output Cache middleware
+app.UseOutputCache();
 
 // Add MiniProfiler middleware for performance profiling
 app.UseMiniProfiler();

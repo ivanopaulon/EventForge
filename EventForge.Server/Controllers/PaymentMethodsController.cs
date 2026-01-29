@@ -2,10 +2,12 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace EventForge.Server.Controllers;
 
@@ -21,15 +23,18 @@ public class PaymentMethodsController : BaseApiController
     private readonly IPaymentMethodService _paymentMethodService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<PaymentMethodsController> _logger;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public PaymentMethodsController(
         IPaymentMethodService paymentMethodService,
         ITenantContext tenantContext,
-        ILogger<PaymentMethodsController> logger)
+        ILogger<PaymentMethodsController> logger,
+        ICacheInvalidationService cacheInvalidation)
     {
         _paymentMethodService = paymentMethodService ?? throw new ArgumentNullException(nameof(paymentMethodService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
     }
 
     /// <summary>
@@ -42,6 +47,7 @@ public class PaymentMethodsController : BaseApiController
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
+    [OutputCache(PolicyName = "SemiStaticEntities")]
     [ProducesResponseType(typeof(PagedResult<PaymentMethodDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -86,6 +92,7 @@ public class PaymentMethodsController : BaseApiController
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("active")]
+    [OutputCache(PolicyName = "SemiStaticEntities")]
     [ProducesResponseType(typeof(PagedResult<PaymentMethodDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -282,6 +289,7 @@ public class PaymentMethodsController : BaseApiController
                 return CreateNotFoundProblem($"Payment method with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return Ok(paymentMethod);
         }
         catch (Exception ex)
@@ -321,6 +329,7 @@ public class PaymentMethodsController : BaseApiController
                 return CreateNotFoundProblem($"Payment method with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)

@@ -1,9 +1,11 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using EventForge.Server.ModelBinders;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace EventForge.Server.Controllers;
 
@@ -16,15 +18,18 @@ public class ModelsController : BaseApiController
     private readonly IModelService _service;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<ModelsController> _logger;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public ModelsController(
         IModelService service,
         ITenantContext tenantContext,
-        ILogger<ModelsController> logger)
+        ILogger<ModelsController> logger,
+        ICacheInvalidationService cacheInvalidation)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
     }
 
     /// <summary>
@@ -36,6 +41,7 @@ public class ModelsController : BaseApiController
     /// <response code="200">Successfully retrieved models with pagination metadata in headers</response>
     /// <response code="400">Invalid pagination parameters</response>
     [HttpGet]
+    [OutputCache(PolicyName = "SemiStaticEntities")]
     [ProducesResponseType(typeof(PagedResult<ModelDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<ModelDto>>> GetModels(
@@ -79,6 +85,7 @@ public class ModelsController : BaseApiController
     /// <response code="200">Successfully retrieved models with pagination metadata in headers</response>
     /// <response code="400">Invalid pagination parameters</response>
     [HttpGet("brand/{brandId}")]
+    [OutputCache(PolicyName = "SemiStaticEntities")]
     [ProducesResponseType(typeof(PagedResult<ModelDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<ModelDto>>> GetModelsByBrand(

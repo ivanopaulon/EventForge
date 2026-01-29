@@ -5,6 +5,8 @@ using EventForge.Server.Services.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.OutputCaching;
+using EventForge.Server.Services.Caching;
 
 namespace EventForge.Server.Controllers;
 
@@ -24,6 +26,7 @@ public class EntityManagementController : BaseApiController
     private readonly IClassificationNodeService _classificationNodeService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<EntityManagementController> _logger;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public EntityManagementController(
         IAddressService addressService,
@@ -31,7 +34,8 @@ public class EntityManagementController : BaseApiController
         IReferenceService referenceService,
         IClassificationNodeService classificationNodeService,
         ITenantContext tenantContext,
-        ILogger<EntityManagementController> logger)
+        ILogger<EntityManagementController> logger,
+        ICacheInvalidationService cacheInvalidation)
     {
         _addressService = addressService ?? throw new ArgumentNullException(nameof(addressService));
         _contactService = contactService ?? throw new ArgumentNullException(nameof(contactService));
@@ -39,6 +43,7 @@ public class EntityManagementController : BaseApiController
         _classificationNodeService = classificationNodeService ?? throw new ArgumentNullException(nameof(classificationNodeService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
     }
 
     #region Address Management
@@ -753,6 +758,7 @@ public class EntityManagementController : BaseApiController
     /// <response code="200">Successfully retrieved classification nodes with pagination metadata in headers</response>
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [OutputCache(PolicyName = "SemiStaticEntities")]
     [HttpGet("classification-nodes")]
     [SoftDeleteFilter]
     [ProducesResponseType(typeof(PagedResult<ClassificationNodeDto>), StatusCodes.Status200OK)]
@@ -965,6 +971,7 @@ public class EntityManagementController : BaseApiController
                 return CreateNotFoundProblem($"Classification node with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -1002,6 +1009,7 @@ public class EntityManagementController : BaseApiController
                 return CreateNotFoundProblem($"Classification node with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
