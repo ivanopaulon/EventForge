@@ -208,6 +208,17 @@ builder.Services.AddOutputCache(options =>
 
 var app = builder.Build();
 
+// Validate DI configuration at startup
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider
+        .GetRequiredService<ILogger<Program>>();
+
+    EventForge.Server.Startup.DependencyValidationService.ValidateDependencies(
+        scope.ServiceProvider,
+        logger);
+}
+
 // Add middleware early in the pipeline
 app.UseCorrelationId();
 
