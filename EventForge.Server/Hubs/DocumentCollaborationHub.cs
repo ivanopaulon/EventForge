@@ -629,10 +629,10 @@ public class DocumentCollaborationHub : Hub
             return tenantId;
         }
         
-        // Additional logging for debugging
+        // Additional logging for debugging (only log claim types, not values)
         _logger.LogWarning(
-            "TenantId claim not found in user context. Available claims: {@Claims}",
-            Context.User?.Claims.Select(c => new { c.Type, c.Value }));
+            "TenantId claim not found in user context. Available claim types: {ClaimTypes}",
+            string.Join(", ", Context.User?.Claims.Select(c => c.Type) ?? Enumerable.Empty<string>()));
         
         return null;
     }
