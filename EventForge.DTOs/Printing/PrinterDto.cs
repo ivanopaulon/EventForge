@@ -29,7 +29,7 @@ namespace EventForge.DTOs.Printing
         /// <summary>
         /// Current status of the printer
         /// </summary>
-        public PrinterStatus Status { get; set; } = PrinterStatus.Unknown;
+        public PrinterOperationalStatus Status { get; set; } = PrinterOperationalStatus.Unknown;
 
         /// <summary>
         /// Whether the printer is the default printer
@@ -78,18 +78,18 @@ namespace EventForge.DTOs.Printing
     }
 
     /// <summary>
-    /// Printer status enumeration
+    /// Real-time operational status from physical printer (QZ Tray).
     /// </summary>
-    public enum PrinterStatus
+    public enum PrinterOperationalStatus
     {
         Unknown = 0,
-        Online = 1,
-        Offline = 2,
-        Error = 3,
-        OutOfPaper = 4,
-        PaperJam = 5,
-        Busy = 6,
-        Idle = 7
+        Idle = 1,        // Ready to print
+        Busy = 2,        // Currently printing
+        Offline = 3,     // Not responding
+        Error = 4,       // Generic error
+        OutOfPaper = 5,  // Out of paper
+        PaperJam = 6,    // Paper jam
+        OutOfToner = 7   // Out of toner (added as per requirements)
     }
 
     /// <summary>

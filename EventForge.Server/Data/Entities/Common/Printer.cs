@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Common;
 
@@ -50,7 +51,7 @@ public class Printer : AuditableEntity
     /// </summary>
     [Required]
     [Display(Name = "Status", Description = "Current status of the printer.")]
-    public PrinterStatus Status { get; set; } = PrinterStatus.Active;
+    public PrinterConfigurationStatus Status { get; set; } = PrinterConfigurationStatus.Active;
 
     /// <summary>
     /// Foreign key to the associated station (optional).
@@ -62,16 +63,4 @@ public class Printer : AuditableEntity
     /// Navigation property for the station.
     /// </summary>
     public Station? Station { get; set; }
-}
-
-/// <summary>
-/// Status for the printer.
-/// </summary>
-public enum PrinterStatus
-{
-    Active,         // Printer is ready and working
-    Unavailable,    // Printer is unavailable
-    Error,          // Printer is in error state
-    Maintenance,    // Printer is under maintenance
-    Unknown         // Status is unknown
 }

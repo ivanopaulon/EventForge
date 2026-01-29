@@ -115,7 +115,7 @@ public class QzPrintingService : IQzPrintingService
             {
                 Success = false,
                 ErrorMessage = ex.Message,
-                Status = EventForge.DTOs.Printing.PrinterStatus.Error
+                Status = EventForge.DTOs.Printing.PrinterOperationalStatus.Error
             };
         }
     }
@@ -341,7 +341,7 @@ public class QzPrintingService : IQzPrintingService
                             {
                                 Id = printerName,
                                 Name = printerName,
-                                Status = EventForge.DTOs.Printing.PrinterStatus.Online,
+                                Status = EventForge.DTOs.Printing.PrinterOperationalStatus.Idle,
                                 IsAvailable = true,
                                 LastStatusUpdate = DateTime.UtcNow
                             });
@@ -359,7 +359,7 @@ public class QzPrintingService : IQzPrintingService
         }
     }
 
-    private EventForge.DTOs.Printing.PrinterStatus ParseStatusFromResponse(string response)
+    private EventForge.DTOs.Printing.PrinterOperationalStatus ParseStatusFromResponse(string response)
     {
         try
         {
@@ -369,15 +369,15 @@ public class QzPrintingService : IQzPrintingService
             {
                 // QZ Tray returns printer status information
                 // This is a simplified implementation - real QZ status checking would be more complex
-                return EventForge.DTOs.Printing.PrinterStatus.Online;
+                return EventForge.DTOs.Printing.PrinterOperationalStatus.Idle;
             }
 
-            return EventForge.DTOs.Printing.PrinterStatus.Unknown;
+            return EventForge.DTOs.Printing.PrinterOperationalStatus.Unknown;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error parsing status from QZ response: {Response}", response);
-            return EventForge.DTOs.Printing.PrinterStatus.Error;
+            return EventForge.DTOs.Printing.PrinterOperationalStatus.Error;
         }
     }
 
