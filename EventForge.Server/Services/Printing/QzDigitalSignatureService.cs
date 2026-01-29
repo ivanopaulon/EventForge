@@ -32,16 +32,18 @@ public class QzDigitalSignatureService
     /// Signs a QZ Tray payload and returns the payload with complete certificate chain, timestamp, uid, and signature
     /// </summary>
     /// <param name="payload">The original payload object to sign</param>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>A new payload object with signature, certificate chain, timestamp, uid, and position fields added</returns>
-    public async Task<object> SignPayloadAsync(object payload)
+    public async Task<object> SignPayloadAsync(object payload, CancellationToken ct = default)
     {
         try
         {
+            ct.ThrowIfCancellationRequested();
             _logger.LogDebug("Starting to sign QZ Tray payload");
 
             // Load private key and certificate chain
-            var privateKey = await LoadPrivateKeyAsync();
-            var certificateChain = await LoadCertificateChainAsync();
+            var privateKey = await LoadPrivateKeyAsync(ct);
+            var certificateChain = await LoadCertificateChainAsync(ct);
 
             // Generate timestamp (UTC milliseconds) and uid
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -87,7 +89,7 @@ public class QzDigitalSignatureService
         }
     }
 
-    private async Task<RSA> LoadPrivateKeyAsync()
+    private async Task<RSA> LoadPrivateKeyAsync(CancellationToken ct = default)
     {
         try
         {
@@ -97,7 +99,7 @@ public class QzDigitalSignatureService
                 throw new FileNotFoundException($"Private key file not found: {privateKeyPath}");
             }
 
-            var privateKeyPem = await File.ReadAllTextAsync(privateKeyPath);
+            var privateKeyPem = await File.ReadAllTextAsync(privateKeyPath, ct);
             var rsa = RSA.Create();
             rsa.ImportFromPem(privateKeyPem);
 
@@ -111,7 +113,7 @@ public class QzDigitalSignatureService
         }
     }
 
-    private async Task<string> LoadCertificateChainAsync()
+    private async Task<string> LoadCertificateChainAsync(CancellationToken ct = default)
     {
         try
         {
@@ -121,7 +123,7 @@ public class QzDigitalSignatureService
                 throw new FileNotFoundException($"Certificate file not found: {certificatePath}");
             }
 
-            var leafCertificate = await File.ReadAllTextAsync(certificatePath);
+            var leafCertificate = await File.ReadAllTextAsync(certificatePath, ct);
 
             // Start with the leaf certificate
             var certificateChain = leafCertificate.Trim();
@@ -132,7 +134,7 @@ public class QzDigitalSignatureService
                 var intermediatePath = GetFilePath(_intermediateCertificatePath);
                 if (File.Exists(intermediatePath))
                 {
-                    var intermediateCertificate = await File.ReadAllTextAsync(intermediatePath);
+                    var intermediateCertificate = await File.ReadAllTextAsync(intermediatePath, ct);
 
                     // Concatenate with intermediate certificate marker as per QZ Tray requirements
                     certificateChain += "\n--START INTERMEDIATE CERT--\n" + intermediateCertificate.Trim();
@@ -219,11 +221,14 @@ public class QzDigitalSignatureService
     /// <summary>
     /// Gets the complete certificate chain for QZ Tray certificate endpoint
     /// </summary>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>Complete certificate chain as text</returns>
-    public async Task<string> GetCertificateChainAsync()
+    public async Task<string> GetCertificateChainAsync(CancellationToken ct = default)
     {
         try
         {
+            ct.ThrowIfCancellationRequested();
+            
             // Check cache first
             if (_cachedCertificateChain != null &&
                 DateTime.UtcNow - _cacheTimestamp < _cacheExpiry)
@@ -233,7 +238,7 @@ public class QzDigitalSignatureService
             }
 
             // Load fresh certificate chain
-            var certificateChain = await LoadCertificateChainAsync();
+            var certificateChain = await LoadCertificateChainAsync(ct);
 
             // Update cache
             _cachedCertificateChain = certificateChain;
@@ -253,8 +258,9 @@ public class QzDigitalSignatureService
     /// Signs a challenge string for QZ Tray signature endpoint
     /// </summary>
     /// <param name="challenge">Challenge string to sign</param>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>Base64-encoded signature</returns>
-    public async Task<string> SignChallengeAsync(string challenge)
+    public async Task<string> SignChallengeAsync(string challenge, CancellationToken ct = default)
     {
         try
         {
@@ -263,10 +269,11 @@ public class QzDigitalSignatureService
                 throw new ArgumentException("Challenge cannot be null or empty", nameof(challenge));
             }
 
+            ct.ThrowIfCancellationRequested();
             _logger.LogDebug("Signing challenge for QZ endpoint, length: {Length}", challenge.Length);
 
             // Load private key
-            using var privateKey = await LoadPrivateKeyAsync();
+            using var privateKey = await LoadPrivateKeyAsync(ct);
 
             // Create signature
             var signature = CreateSignature(challenge, privateKey);
@@ -285,11 +292,14 @@ public class QzDigitalSignatureService
     /// <summary>
     /// Validates that the signing configuration is properly set up
     /// </summary>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>True if signing is properly configured</returns>
-    public async Task<bool> ValidateSigningConfigurationAsync()
+    public async Task<bool> ValidateSigningConfigurationAsync(CancellationToken ct = default)
     {
         try
         {
+            ct.ThrowIfCancellationRequested();
+            
             var privateKeyPath = GetFilePath(_privateKeyPath);
             var certificatePath = GetFilePath(_certificatePath);
 
@@ -317,8 +327,8 @@ public class QzDigitalSignatureService
             }
 
             // Try to load both files to ensure they're valid
-            using var privateKey = await LoadPrivateKeyAsync();
-            var certificateChain = await LoadCertificateChainAsync();
+            using var privateKey = await LoadPrivateKeyAsync(ct);
+            var certificateChain = await LoadCertificateChainAsync(ct);
 
             _logger.LogInformation("QZ Tray signing configuration is valid");
             return true;

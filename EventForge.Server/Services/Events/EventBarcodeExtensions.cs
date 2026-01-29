@@ -24,8 +24,9 @@ public class EventBarcodeExtensions
     /// </summary>
     /// <param name="eventDto">The event to generate QR code for</param>
     /// <param name="includeTicketUrl">Whether to include a ticket purchase URL</param>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>QR code as base64 image</returns>
-    public async Task<BarcodeResponseDto> GenerateEventQRCodeAsync(EventDto eventDto, bool includeTicketUrl = true)
+    public async Task<BarcodeResponseDto> GenerateEventQRCodeAsync(EventDto eventDto, bool includeTicketUrl = true, CancellationToken ct = default)
     {
         try
         {
@@ -53,7 +54,7 @@ public class EventBarcodeExtensions
                 ImageFormat = ImageFormat.PNG
             };
 
-            return await _barcodeService.GenerateBarcodeAsync(request);
+            return await _barcodeService.GenerateBarcodeAsync(request, ct);
         }
         catch (Exception ex)
         {
@@ -68,8 +69,9 @@ public class EventBarcodeExtensions
     /// <param name="eventId">Event ID</param>
     /// <param name="ticketId">Unique ticket ID</param>
     /// <param name="userId">User ID who purchased the ticket</param>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>Barcode as base64 image suitable for ticket printing</returns>
-    public async Task<BarcodeResponseDto> GenerateTicketBarcodeAsync(Guid eventId, string ticketId, int userId)
+    public async Task<BarcodeResponseDto> GenerateTicketBarcodeAsync(Guid eventId, string ticketId, int userId, CancellationToken ct = default)
     {
         try
         {
@@ -85,7 +87,7 @@ public class EventBarcodeExtensions
                 ImageFormat = ImageFormat.PNG
             };
 
-            return await _barcodeService.GenerateBarcodeAsync(request);
+            return await _barcodeService.GenerateBarcodeAsync(request, ct);
         }
         catch (Exception ex)
         {
@@ -98,8 +100,9 @@ public class EventBarcodeExtensions
     /// Generates a simple event ID barcode for inventory/tracking purposes
     /// </summary>
     /// <param name="eventId">Event ID to encode</param>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>Simple barcode for event tracking</returns>
-    public async Task<BarcodeResponseDto> GenerateEventTrackingBarcodeAsync(Guid eventId)
+    public async Task<BarcodeResponseDto> GenerateEventTrackingBarcodeAsync(Guid eventId, CancellationToken ct = default)
     {
         try
         {
@@ -115,7 +118,7 @@ public class EventBarcodeExtensions
                 ImageFormat = ImageFormat.PNG
             };
 
-            return await _barcodeService.GenerateBarcodeAsync(request);
+            return await _barcodeService.GenerateBarcodeAsync(request, ct);
         }
         catch (Exception ex)
         {

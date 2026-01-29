@@ -87,6 +87,7 @@ public class ReferenceService : IReferenceService
             }
 
             var entities = await _context.References
+                .AsNoTracking()
                 .Where(r => r.OwnerId == ownerId && !r.IsDeleted && r.TenantId == currentTenantId.Value)
                 .OrderBy(r => r.LastName)
                 .ThenBy(r => r.FirstName)
@@ -107,6 +108,7 @@ public class ReferenceService : IReferenceService
         try
         {
             var entity = await _context.References
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
             return entity == null ? null : ReferenceMapper.ToDto(entity);
@@ -239,6 +241,7 @@ public class ReferenceService : IReferenceService
         try
         {
             return await _context.References
+                .AsNoTracking()
                 .AnyAsync(r => r.Id == referenceId, cancellationToken);
         }
         catch (Exception ex)

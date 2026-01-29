@@ -30,29 +30,34 @@ public interface ITenantContext
     /// </summary>
     /// <param name="tenantId">The tenant ID to switch to</param>
     /// <param name="auditReason">Reason for the tenant switch</param>
-    Task SetTenantContextAsync(Guid tenantId, string auditReason);
+    /// <param name="ct">Cancellation token</param>
+    Task SetTenantContextAsync(Guid tenantId, string auditReason, CancellationToken ct = default);
 
     /// <summary>
     /// Starts impersonating a user (super admin only).
     /// </summary>
     /// <param name="userId">The user ID to impersonate</param>
     /// <param name="auditReason">Reason for impersonation</param>
-    Task StartImpersonationAsync(Guid userId, string auditReason);
+    /// <param name="ct">Cancellation token</param>
+    Task StartImpersonationAsync(Guid userId, string auditReason, CancellationToken ct = default);
 
     /// <summary>
     /// Ends impersonation and returns to original super admin context.
     /// </summary>
     /// <param name="auditReason">Reason for ending impersonation</param>
-    Task EndImpersonationAsync(string auditReason);
+    /// <param name="ct">Cancellation token</param>
+    Task EndImpersonationAsync(string auditReason, CancellationToken ct = default);
 
     /// <summary>
     /// Gets all tenants that the current super admin can manage.
     /// </summary>
-    Task<IEnumerable<Guid>> GetManageableTenantsAsync();
+    /// <param name="ct">Cancellation token</param>
+    Task<IEnumerable<Guid>> GetManageableTenantsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Validates if the current user can access the specified tenant.
     /// </summary>
     /// <param name="tenantId">The tenant ID to validate access for</param>
-    Task<bool> CanAccessTenantAsync(Guid tenantId);
+    /// <param name="ct">Cancellation token</param>
+    Task<bool> CanAccessTenantAsync(Guid tenantId, CancellationToken ct = default);
 }

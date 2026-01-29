@@ -11,9 +11,10 @@ public interface ICacheService
     Task<T> GetOrCreateAsync<T>(
         string key, 
         Guid tenantId, 
-        Func<Task<T>> factory, 
+        Func<CancellationToken, Task<T>> factory, 
         TimeSpan? absoluteExpiration = null,
-        TimeSpan? slidingExpiration = null);
+        TimeSpan? slidingExpiration = null,
+        CancellationToken ct = default);
     
     /// <summary>
     /// Invalidate cache for a specific key and tenant

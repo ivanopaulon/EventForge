@@ -100,7 +100,7 @@ public class TenantContext : ITenantContext
         }
     }
 
-    public async Task SetTenantContextAsync(Guid tenantId, string auditReason)
+    public async Task SetTenantContextAsync(Guid tenantId, string auditReason, CancellationToken ct = default)
     {
         try
         {
@@ -117,7 +117,7 @@ public class TenantContext : ITenantContext
                 throw new InvalidOperationException("Session is not available for tenant switching.");
             }
 
-            var canAccess = await CanAccessTenantAsync(tenantId);
+            var canAccess = await CanAccessTenantAsync(tenantId, ct);
             if (!canAccess)
             {
                 _logger.LogWarning("Accesso negato al tenant {TenantId} per l'utente {UserId}.", tenantId, CurrentUserId);
@@ -141,7 +141,13 @@ public class TenantContext : ITenantContext
                 currentTenantId,
                 tenantId,
                 null,
-                auditReason);
+                auditReason,
+                ct);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Operazione di cambio tenant annullata.");
+            throw;
         }
         catch (Exception ex)
         {
@@ -150,7 +156,7 @@ public class TenantContext : ITenantContext
         }
     }
 
-    public async Task StartImpersonationAsync(Guid userId, string auditReason)
+    public async Task StartImpersonationAsync(Guid userId, string auditReason, CancellationToken ct = default)
     {
         try
         {
@@ -175,7 +181,8 @@ public class TenantContext : ITenantContext
             }
 
             var targetUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId, ct);
             if (targetUser == null)
             {
                 _logger.LogWarning("Utente {UserId} non trovato per impersonificazione.", userId);
@@ -194,7 +201,13 @@ public class TenantContext : ITenantContext
                 CurrentTenantId,
                 targetUser.TenantId,
                 userId,
-                auditReason);
+                auditReason,
+                ct);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Operazione di impersonificazione annullata.");
+            throw;
         }
         catch (Exception ex)
         {
@@ -203,7 +216,7 @@ public class TenantContext : ITenantContext
         }
     }
 
-    public async Task EndImpersonationAsync(string auditReason)
+    public async Task EndImpersonationAsync(string auditReason, CancellationToken ct = default)
     {
         try
         {
@@ -236,11 +249,17 @@ public class TenantContext : ITenantContext
                 CurrentTenantId,
                 CurrentTenantId,
                 impersonatedUserId,
-                auditReason);
+                auditReason,
+                ct);
 
             httpContext.Session.Remove(OriginalUserIdSessionKey);
             httpContext.Session.Remove(ImpersonatedUserIdSessionKey);
             httpContext.Session.Remove(IsImpersonatingSessionKey);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Operazione di fine impersonificazione annullata.");
+            throw;
         }
         catch (Exception ex)
         {
@@ -249,7 +268,7 @@ public class TenantContext : ITenantContext
         }
     }
 
-    public async Task<IEnumerable<Guid>> GetManageableTenantsAsync()
+    public async Task<IEnumerable<Guid>> GetManageableTenantsAsync(CancellationToken ct = default)
     {
         try
         {
@@ -268,9 +287,10 @@ public class TenantContext : ITenantContext
 
             // First, check if SuperAdmin has specific AdminTenant entries
             var adminTenants = await _context.AdminTenants
+                .AsNoTracking()
                 .Where(at => at.UserId == currentUserId.Value && at.ManagedTenant.IsActive && !at.ManagedTenant.IsDeleted)
                 .Select(at => at.ManagedTenantId)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             // If SuperAdmin has specific tenant assignments, return those
             if (adminTenants.Any())
@@ -280,11 +300,17 @@ public class TenantContext : ITenantContext
 
             // If SuperAdmin has no specific assignments, they can access all active tenants
             var allTenants = await _context.Tenants
+                .AsNoTracking()
                 .Where(t => t.IsActive && !t.IsDeleted)
                 .Select(t => t.Id)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             return allTenants;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Operazione di recupero tenant gestibili annullata.");
+            throw;
         }
         catch (Exception ex)
         {
@@ -293,7 +319,7 @@ public class TenantContext : ITenantContext
         }
     }
 
-    public async Task<bool> CanAccessTenantAsync(Guid tenantId)
+    public async Task<bool> CanAccessTenantAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
@@ -311,10 +337,11 @@ public class TenantContext : ITenantContext
 
             // Check if SuperAdmin has specific tenant access defined
             var hasSpecificAccess = await _context.AdminTenants
+                .AsNoTracking()
                 .AnyAsync(at => at.UserId == currentUserId.Value &&
                                at.ManagedTenantId == tenantId &&
                                at.ManagedTenant.IsActive &&
-                               !at.ManagedTenant.IsDeleted);
+                               !at.ManagedTenant.IsDeleted, ct);
 
             if (hasSpecificAccess)
             {
@@ -323,18 +350,25 @@ public class TenantContext : ITenantContext
 
             // Check if SuperAdmin has any specific tenant assignments
             var hasAnySpecificAssignments = await _context.AdminTenants
-                .AnyAsync(at => at.UserId == currentUserId.Value);
+                .AsNoTracking()
+                .AnyAsync(at => at.UserId == currentUserId.Value, ct);
 
             // If SuperAdmin has no specific assignments, they can access all active tenants
             if (!hasAnySpecificAssignments)
             {
                 var tenantExists = await _context.Tenants
-                    .AnyAsync(t => t.Id == tenantId && t.IsActive && !t.IsDeleted);
+                    .AsNoTracking()
+                    .AnyAsync(t => t.Id == tenantId && t.IsActive && !t.IsDeleted, ct);
                 return tenantExists;
             }
 
             // SuperAdmin has specific assignments but not for this tenant
             return false;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Operazione di verifica accesso tenant annullata.");
+            throw;
         }
         catch (Exception ex)
         {
@@ -349,7 +383,8 @@ public class TenantContext : ITenantContext
         Guid? sourceTenantId,
         Guid? targetTenantId,
         Guid? targetUserId,
-        string reason)
+        string reason,
+        CancellationToken ct = default)
     {
         var httpContext = _httpContextAccessor.HttpContext;
 
@@ -373,7 +408,12 @@ public class TenantContext : ITenantContext
 
         try
         {
-            _ = await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Salvataggio audit trail annullato per l'operazione {OperationType}.", operationType);
+            throw;
         }
         catch (Exception ex)
         {

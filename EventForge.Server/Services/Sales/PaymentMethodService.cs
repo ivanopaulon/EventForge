@@ -48,7 +48,7 @@ public class PaymentMethodService : IPaymentMethodService
             var allPaymentMethods = await _cacheService.GetOrCreateAsync(
                 CACHE_KEY_ALL,
                 currentTenantId.Value,
-                async () =>
+                async (ct) =>
                 {
                     return await _context.PaymentMethods
                         .AsNoTracking()
@@ -56,9 +56,10 @@ public class PaymentMethodService : IPaymentMethodService
                         .OrderBy(pm => pm.DisplayOrder)
                         .ThenBy(pm => pm.Name)
                         .Select(pm => MapToDto(pm))
-                        .ToListAsync(cancellationToken);
+                        .ToListAsync(ct);
                 },
-                absoluteExpiration: TimeSpan.FromMinutes(15)
+                absoluteExpiration: TimeSpan.FromMinutes(15),
+                ct: cancellationToken
             );
 
             // Paginate in memory (PaymentMethods are typically few - usually < 20 per tenant)

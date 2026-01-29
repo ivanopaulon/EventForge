@@ -24,10 +24,13 @@ public class CacheService : ICacheService
     public async Task<T> GetOrCreateAsync<T>(
         string key,
         Guid tenantId,
-        Func<Task<T>> factory,
+        Func<CancellationToken, Task<T>> factory,
         TimeSpan? absoluteExpiration = null,
-        TimeSpan? slidingExpiration = null)
+        TimeSpan? slidingExpiration = null,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        
         // Build tenant-specific cache key
         var cacheKey = BuildCacheKey(key, tenantId);
         
@@ -70,7 +73,7 @@ public class CacheService : ICacheService
                 }
             });
 
-            return await factory();
+            return await factory(ct);
         }) ?? throw new InvalidOperationException("Factory returned null");
     }
 

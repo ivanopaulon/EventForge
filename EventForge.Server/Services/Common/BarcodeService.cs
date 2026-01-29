@@ -16,7 +16,7 @@ public class BarcodeService : IBarcodeService
         _logger = logger;
     }
 
-    public async Task<BarcodeResponseDto> GenerateBarcodeAsync(BarcodeRequestDto request)
+    public async Task<BarcodeResponseDto> GenerateBarcodeAsync(BarcodeRequestDto request, CancellationToken ct = default)
     {
         try
         {
@@ -42,7 +42,7 @@ public class BarcodeService : IBarcodeService
             var generator = new BarCodeGenerator(settings);
 
             // Convert to base64 using cross-platform method
-            var base64Image = await ConvertBarcodeToBase64Async(generator, request.ImageFormat, request.Width, request.Height, request.Data);
+            var base64Image = await ConvertBarcodeToBase64Async(generator, request.ImageFormat, request.Width, request.Height, request.Data, ct);
             var mimeType = GetMimeType(request.ImageFormat);
 
             return new BarcodeResponseDto
@@ -62,7 +62,7 @@ public class BarcodeService : IBarcodeService
         }
     }
 
-    public async Task<BarcodeResponseDto> GenerateQRCodeAsync(string data)
+    public async Task<BarcodeResponseDto> GenerateQRCodeAsync(string data, CancellationToken ct = default)
     {
         var request = new BarcodeRequestDto
         {
@@ -73,7 +73,7 @@ public class BarcodeService : IBarcodeService
             ImageFormat = ImageFormat.PNG
         };
 
-        return await GenerateBarcodeAsync(request);
+        return await GenerateBarcodeAsync(request, ct);
     }
 
     public bool ValidateDataForBarcodeType(string data, BarcodeType barcodeType)
@@ -126,7 +126,7 @@ public class BarcodeService : IBarcodeService
     /// <summary>
     /// Cross-platform barcode image conversion using SkiaSharp when possible
     /// </summary>
-    private async Task<string> ConvertBarcodeToBase64Async(BarCodeGenerator generator, ImageFormat format, int width, int height, string data)
+    private async Task<string> ConvertBarcodeToBase64Async(BarCodeGenerator generator, ImageFormat format, int width, int height, string data, CancellationToken ct)
     {
         try
         {
@@ -134,20 +134,20 @@ public class BarcodeService : IBarcodeService
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 // On Windows, use the original System.Drawing approach with suppress warnings
-                return await ConvertImageToBase64WindowsAsync(generator, format);
+                return await ConvertImageToBase64WindowsAsync(generator, format, ct);
             }
             else
             {
                 // On Linux/macOS, provide a fallback that explains the limitation
                 _logger.LogWarning("Running on non-Windows platform. Barcode generation requires Windows environment for full functionality.");
-                return await CreatePlaceholderImageAsync(data, format, width, height);
+                return await CreatePlaceholderImageAsync(data, format, width, height, ct);
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to generate barcode image using platform-specific method. Creating placeholder.");
             // Fallback to placeholder
-            return await CreatePlaceholderImageAsync(data, format, width, height);
+            return await CreatePlaceholderImageAsync(data, format, width, height, ct);
         }
     }
 
@@ -155,7 +155,7 @@ public class BarcodeService : IBarcodeService
     /// Windows-specific image conversion (original approach with warnings suppressed)
     /// </summary>
     [SupportedOSPlatform("windows")]
-    private static async Task<string> ConvertImageToBase64WindowsAsync(BarCodeGenerator generator, ImageFormat format)
+    private static async Task<string> ConvertImageToBase64WindowsAsync(BarCodeGenerator generator, ImageFormat format, CancellationToken ct)
     {
         try
         {
@@ -163,7 +163,7 @@ public class BarcodeService : IBarcodeService
             using var memoryStream = new MemoryStream();
             var imageFormat = GetSystemDrawingImageFormat(format);
 
-            await Task.Run(() => image.Save(memoryStream, imageFormat));
+            await Task.Run(() => image.Save(memoryStream, imageFormat), ct);
 
             var imageBytes = memoryStream.ToArray();
             return Convert.ToBase64String(imageBytes);
@@ -177,11 +177,11 @@ public class BarcodeService : IBarcodeService
     /// <summary>
     /// Creates a placeholder image using SkiaSharp for cross-platform compatibility
     /// </summary>
-    private async Task<string> CreatePlaceholderImageAsync(string data, ImageFormat format, int width, int height)
+    private async Task<string> CreatePlaceholderImageAsync(string data, ImageFormat format, int width, int height, CancellationToken ct)
     {
         try
         {
-            await Task.Delay(1); // Make it async
+            await Task.Delay(1, ct); // Make it async
 
             // Create SkiaSharp bitmap
             using var surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));

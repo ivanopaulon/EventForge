@@ -47,18 +47,19 @@ public class StorageFacilityService : IStorageFacilityService
             var allFacilities = await _cacheService.GetOrCreateAsync(
                 CACHE_KEY_ALL,
                 currentTenantId.Value,
-                async () =>
+                async (ct) =>
                 {
                     var facilities = await _context.StorageFacilities
                         .AsNoTracking()
                         .WhereActiveTenant(currentTenantId.Value)
                         .Include(sf => sf.Locations.Where(l => !l.IsDeleted && l.TenantId == currentTenantId.Value))
                         .OrderBy(sf => sf.Name)
-                        .ToListAsync(cancellationToken);
+                        .ToListAsync(ct);
 
                     return facilities.Select(MapToStorageFacilityDto).ToList();
                 },
-                absoluteExpiration: TimeSpan.FromMinutes(5)
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                ct: cancellationToken
             );
 
             // Paginate in memory (StorageFacilities are typically few - usually < 50 per tenant)

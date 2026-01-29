@@ -56,17 +56,18 @@ public class DocumentTypeService : IDocumentTypeService
             var allDocumentTypes = await _cacheService.GetOrCreateAsync(
                 CACHE_KEY_ALL,
                 tenantId.Value,
-                async () =>
+                async (ct) =>
                 {
                     var entities = await _context.DocumentTypes
                         .Include(dt => dt.DefaultWarehouse)
                         .Where(dt => dt.TenantId == tenantId.Value)
                         .OrderBy(dt => dt.Name)
-                        .ToListAsync(cancellationToken);
+                        .ToListAsync(ct);
 
                     return DocumentTypeMapper.ToDtoCollection(entities).ToList();
                 },
-                absoluteExpiration: TimeSpan.FromMinutes(30)
+                absoluteExpiration: TimeSpan.FromMinutes(30),
+                ct: cancellationToken
             );
 
             return allDocumentTypes;
