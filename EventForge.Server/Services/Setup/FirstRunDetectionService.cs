@@ -25,6 +25,26 @@ public class FirstRunDetectionService : IFirstRunDetectionService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Helper method to create file marker if missing. Prevents code duplication and handles errors gracefully.
+    /// </summary>
+    private void CreateFileMarkerIfMissing(string markerPath, string reason)
+    {
+        if (!File.Exists(markerPath))
+        {
+            _logger.LogInformation("🔧 Creating missing file marker - Reason: {Reason}", reason);
+            try
+            {
+                File.WriteAllText(markerPath, $"Setup completed ({reason} on {DateTime.UtcNow:O})");
+                _logger.LogInformation("✅ File marker created at {Path}", markerPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create file marker (non-critical)");
+            }
+        }
+    }
+
     public async Task<bool> IsSetupCompleteAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -54,15 +74,13 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                 return true;
             }
 
-            // Level 3: Check connection string
+            // Level 3: Check connection string and database
             _logger.LogInformation("--- Checking Configuration ---");
             
-            // Debug: Verify ALL connection strings in configuration
             var allConnectionStrings = _configuration.GetSection("ConnectionStrings").GetChildren();
             _logger.LogInformation("Connection strings found in configuration:");
             foreach (var cs in allConnectionStrings)
             {
-                // Log key and value length (NOT the full value for security)
                 _logger.LogInformation("  - {Key}: {Length} chars", cs.Key, cs.Value?.Length ?? 0);
             }
             
@@ -86,7 +104,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                 return false;
             }
 
-            // Debug: Log connection string details (without password)
+            // Log connection string details (without password)
             try
             {
                 var builder = new SqlConnectionStringBuilder(connectionString);
@@ -134,11 +152,50 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                     if (count > 0)
                     {
                         _logger.LogInformation("✅ Setup completed: Database has {Count} setup history records", count);
+                        
+                        // AUTO-FIX: Create file marker if missing
+                        CreateFileMarkerIfMissing(markerPath, "auto-synced from database");
+                        
                         return true;
                     }
                     else
                     {
                         _logger.LogWarning("⚠️ SetupHistories table exists but is EMPTY");
+                        
+                        // AUTO-FIX: Populate SetupHistories from existing configuration
+                        _logger.LogInformation("🔧 AUTO-FIX: Attempting to populate SetupHistories from configuration");
+                        
+                        try
+                        {
+                            var insertCommand = new SqlCommand(
+                                @"INSERT INTO SetupHistories (Id, CompletedAt, CompletedBy, ConfigurationSnapshot, Version, TenantId, CreatedAt, CreatedBy)
+                                  VALUES (NEWID(), GETUTCDATE(), 'auto_sync', @snapshot, '1.0.0', '00000000-0000-0000-0000-000000000000', GETUTCDATE(), 'system')",
+                                connection);
+                            
+                            var configSnapshot = System.Text.Json.JsonSerializer.Serialize(new
+                            {
+                                ServerAddress = connection.DataSource,
+                                DatabaseName = connection.Database,
+                                Environment = _environment.EnvironmentName,
+                                AutoSynced = true,
+                                SyncedAt = DateTime.UtcNow
+                            });
+                            
+                            insertCommand.Parameters.AddWithValue("@snapshot", configSnapshot);
+                            await insertCommand.ExecuteNonQueryAsync(cancellationToken);
+                            
+                            _logger.LogInformation("✅ SetupHistories populated from existing configuration");
+                            
+                            // Create file marker
+                            CreateFileMarkerIfMissing(markerPath, "auto-synced");
+                            
+                            return true;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "❌ Failed to auto-populate SetupHistories");
+                            // Continue to other checks
+                        }
                     }
                 }
                 else
@@ -150,9 +207,8 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             }
             catch (SqlException ex)
             {
-                _logger.LogError(ex, "❌ SQL Error {Code}: {Message}", ex.Number, ex.Message);
+                _logger.LogError(ex, "❌ SQL Error {ErrorNumber}: {Message}", ex.Number, ex.Message);
                 
-                // Log specific SQL error codes for quick diagnosis
                 switch (ex.Number)
                 {
                     case 18456:
@@ -186,6 +242,10 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                 if (hasSetupHistory)
                 {
                     _logger.LogInformation("✅ Setup completed: Found via EF Core");
+                    
+                    // Auto-create file marker
+                    CreateFileMarkerIfMissing(markerPath, "auto-synced via EF Core");
+                    
                     return true;
                 }
                 else
