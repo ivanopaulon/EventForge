@@ -28,9 +28,11 @@ Console.WriteLine("Configuration Files:");
 Console.WriteLine($"  appsettings.json: {(File.Exists(appsettingsPath) ? "✅ EXISTS" : "❌ NOT FOUND")}");
 if (File.Exists(appsettingsPath))
 {
-    var content = File.ReadAllText(appsettingsPath);
-    Console.WriteLine($"    Size: {content.Length} bytes");
-    Console.WriteLine($"    Contains ConnectionStrings: {(content.Contains("\"ConnectionStrings\"") ? "✅ YES" : "❌ NO")}");
+    var fileInfo = new FileInfo(appsettingsPath);
+    Console.WriteLine($"    Size: {fileInfo.Length} bytes");
+    // Check if ConnectionStrings section exists in configuration
+    var hasConnectionStrings = builder.Configuration.GetSection("ConnectionStrings").Exists();
+    Console.WriteLine($"    Contains ConnectionStrings: {(hasConnectionStrings ? "✅ YES" : "❌ NO")}");
 }
 
 Console.WriteLine($"  appsettings.{builder.Environment.EnvironmentName}.json: {(File.Exists(appsettingsDevPath) ? "✅ EXISTS" : "❌ NOT FOUND")}");
