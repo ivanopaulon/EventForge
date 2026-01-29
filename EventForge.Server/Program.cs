@@ -46,6 +46,25 @@ builder.Services.AddControllers(options =>
         System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
 });
 
+// Add Razor Pages for server-side UI (Setup Wizard & Dashboard)
+builder.Services.AddRazorPages(options =>
+{
+    // Allow anonymous access to setup pages
+    options.Conventions.AllowAnonymousToPage("/Setup/Index");
+    options.Conventions.AllowAnonymousToPage("/Setup/Complete");
+    // Require SuperAdmin role for dashboard pages
+    options.Conventions.AuthorizeFolder("/Dashboard", "RequireSuperAdmin");
+});
+
+// Add session support for wizard state
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
@@ -62,6 +81,22 @@ builder.Services.AddSingleton<EventForge.Server.Services.Caching.ICacheService, 
 
 // Register cache invalidation service for Output Cache
 builder.Services.AddScoped<EventForge.Server.Services.Caching.ICacheInvalidationService, EventForge.Server.Services.Caching.CacheInvalidationService>();
+
+// Register Setup Wizard services
+builder.Services.AddScoped<EventForge.Server.Services.Setup.IFirstRunDetectionService, EventForge.Server.Services.Setup.FirstRunDetectionService>();
+builder.Services.AddScoped<EventForge.Server.Services.Setup.ISqlServerDiscoveryService, EventForge.Server.Services.Setup.SqlServerDiscoveryService>();
+builder.Services.AddScoped<EventForge.Server.Services.Setup.ISetupWizardService, EventForge.Server.Services.Setup.SetupWizardService>();
+
+// Register Configuration services
+builder.Services.AddScoped<EventForge.Server.Services.Configuration.IPortConfigurationService, EventForge.Server.Services.Configuration.PortConfigurationService>();
+
+// Register Dashboard services
+builder.Services.AddScoped<EventForge.Server.Services.Dashboard.IServerStatusService, EventForge.Server.Services.Dashboard.ServerStatusService>();
+builder.Services.AddScoped<EventForge.Server.Services.Dashboard.IPerformanceMetricsService, EventForge.Server.Services.Dashboard.PerformanceMetricsService>();
+
+// Register Hosted Services
+builder.Services.AddHostedService<EventForge.Server.HostedServices.LogCleanupService>();
+builder.Services.AddHostedService<EventForge.Server.HostedServices.PerformanceCollectorService>();
 
 // Add SignalR for real-time communication
 builder.Services.AddSignalR(options =>
@@ -161,9 +196,10 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Add rate limiting for client log endpoints
+// Add rate limiting for client log endpoints and production hardening
 builder.Services.AddRateLimiter(options =>
 {
+    // Client logs endpoint rate limiting
     options.AddPolicy("ClientLogs", context =>
         System.Threading.RateLimiting.RateLimitPartition.GetSlidingWindowLimiter(
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -175,11 +211,60 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 10 // queue up to 10 requests
             }));
 
+    // Production hardening: Login rate limiting (5 attempts per 5 minutes)
+    options.AddPolicy("login", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: context.User?.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new System.Threading.RateLimiting.SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = builder.Configuration.GetValue<int>("RateLimiting:LoginLimit", 5),
+                Window = TimeSpan.FromMinutes(5),
+                SegmentsPerWindow = 5,
+                QueueLimit = 0
+            }));
+
+    // Production hardening: API rate limiting (100 calls per minute)
+    options.AddPolicy("api", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User?.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = builder.Configuration.GetValue<int>("RateLimiting:ApiLimit", 100),
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                QueueLimit = 10
+            }));
+
+    // Production hardening: Token refresh rate limiting (1 per minute)
+    options.AddPolicy("token-refresh", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User?.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = builder.Configuration.GetValue<int>("RateLimiting:TokenRefreshLimit", 1),
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Global limiter by IP as fallback
+    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return System.Threading.RateLimiting.RateLimitPartition.GetSlidingWindowLimiter(ipAddress, _ =>
+            new System.Threading.RateLimiting.SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 200,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6
+            });
+    });
+
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
         await context.HttpContext.Response.WriteAsync(
-            "Rate limit exceeded for client logging. Please retry later.",
+            "Rate limit exceeded. Please retry later.",
             cancellationToken);
     };
 });
@@ -252,6 +337,9 @@ app.UseCorrelationId();
 // Add startup performance monitoring (logs time to first request)
 app.UseStartupPerformanceMonitoring();
 
+// Setup wizard redirect (before routing) - check if first run
+app.UseMiddleware<EventForge.Server.Middleware.SetupWizardMiddleware>();
+
 // Configure environment-aware homepage and Swagger behavior
 if (app.Environment.IsDevelopment())
 {
@@ -283,14 +371,20 @@ if (!app.Environment.IsDevelopment())
 {
     // Use global exception handler middleware for centralized exception handling
     _ = app.UseGlobalExceptionHandler();
-    _ = app.UseHsts();
+    
+    // Production hardening: HTTPS enforcement
+    if (builder.Configuration.GetValue<bool>("Security:EnforceHttps", true))
+    {
+        _ = app.UseHsts();
+        app.UseHttpsRedirection();
+    }
 }
 else
 {
     _ = app.UseGlobalExceptionHandler(); // Use global exception handler in all environments
 }
 
-app.UseHttpsRedirection();
+// Note: UseHttpsRedirection is conditionally used above based on environment and configuration
 
 // Enable routing BEFORE static files
 app.UseRouting();
@@ -313,7 +407,7 @@ app.UseRateLimiter();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Enable session support for tenant context
+// Enable session support for wizard state
 app.UseSession();
 
 // Authentication & Authorization
@@ -324,8 +418,14 @@ app.UseAuthorization();
 // Add authorization logging after authorization
 app.UseAuthorizationLogging();
 
+// Maintenance mode middleware (after authentication/authorization)
+app.UseMiddleware<EventForge.Server.Middleware.MaintenanceMiddleware>();
+
 // Map API Controllers
 app.MapControllers();
+
+// Map Razor Pages for server-side UI
+app.MapRazorPages();
 
 // Map Health Checks endpoints (preserve existing ResponseWriter logic)
 app.MapHealthChecks("/health", new HealthCheckOptions

@@ -1,0 +1,430 @@
+@page
+@model EventForge.Server.Pages.Setup.IndexModel
+@{
+    ViewData["Title"] = "Setup Wizard";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">EventForge Setup Wizard</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Progress Indicator -->
+                    <div class="setup-progress mb-4">
+                        <div class="d-flex justify-content-between">
+                            <div class="step-indicator active" data-step="1">
+                                <div class="step-number">1</div>
+                                <div class="step-label">Welcome</div>
+                            </div>
+                            <div class="step-indicator" data-step="2">
+                                <div class="step-number">2</div>
+                                <div class="step-label">SQL Server</div>
+                            </div>
+                            <div class="step-indicator" data-step="3">
+                                <div class="step-number">3</div>
+                                <div class="step-label">Database</div>
+                            </div>
+                            <div class="step-indicator" data-step="4">
+                                <div class="step-number">4</div>
+                                <div class="step-label">Network</div>
+                            </div>
+                            <div class="step-indicator" data-step="5">
+                                <div class="step-number">5</div>
+                                <div class="step-label">Security</div>
+                            </div>
+                            <div class="step-indicator" data-step="6">
+                                <div class="step-number">6</div>
+                                <div class="step-label">Finalize</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="setupForm" method="post" asp-page-handler="CompleteSetup">
+                        <div asp-validation-summary="All" class="text-danger"></div>
+
+                        <!-- Step 1: Welcome -->
+                        <div class="setup-step active" data-step="1">
+                            <h4>Welcome to EventForge</h4>
+                            <p class="lead">This wizard will guide you through the initial setup process.</p>
+                            
+                            <div class="alert alert-info">
+                                <h5>What will be configured:</h5>
+                                <ul class="mb-0">
+                                    <li>SQL Server connection and database creation</li>
+                                    <li>Network and hosting settings</li>
+                                    <li>Security and authentication</li>
+                                    <li>SuperAdmin account</li>
+                                    <li>Initial system configuration</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <strong>Note:</strong> Ensure you have SQL Server credentials ready before proceeding.
+                            </div>
+                        </div>
+
+                        <!-- Step 2: SQL Server -->
+                        <div class="setup-step" data-step="2">
+                            <h4>SQL Server Configuration</h4>
+                            
+                            <div class="mb-3">
+                                <label for="sqlServerDropdown" class="form-label">Discovered SQL Servers</label>
+                                <select class="form-select" id="sqlServerDropdown">
+                                    <option value="">-- Select a server or enter manually --</option>
+                                    @foreach (var server in Model.DiscoveredSqlServers)
+                                    {
+                                        <option value="@server">@server</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="sqlServer" class="form-label">SQL Server Address</label>
+                                <input type="text" class="form-control" id="sqlServer" name="SqlServerAddress" 
+                                       placeholder="localhost\SQLEXPRESS or server.domain.com" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Authentication Type</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="AuthType" id="authWindows" value="windows" checked />
+                                    <label class="form-check-label" for="authWindows">Windows Authentication</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="AuthType" id="authSql" value="sql" />
+                                    <label class="form-check-label" for="authSql">SQL Server Authentication</label>
+                                </div>
+                            </div>
+
+                            <div id="sqlCredentials" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="sqlUsername" class="form-label">Username</label>
+                                    <input type="text" class="form-control" id="sqlUsername" name="SqlUsername" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="sqlPassword" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="sqlPassword" name="SqlPassword" />
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-secondary" id="testConnectionBtn">
+                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                Test Connection
+                            </button>
+                            <div id="connectionResult" class="mt-2"></div>
+                        </div>
+
+                        <!-- Step 3: Database -->
+                        <div class="setup-step" data-step="3">
+                            <h4>Database Configuration</h4>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Database Setup</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="DatabaseMode" id="dbCreate" value="create" checked />
+                                    <label class="form-check-label" for="dbCreate">Create New Database</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="DatabaseMode" id="dbExisting" value="existing" />
+                                    <label class="form-check-label" for="dbExisting">Use Existing Database</label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="databaseName" class="form-label">Database Name</label>
+                                <input type="text" class="form-control" id="databaseName" name="DatabaseName" 
+                                       value="EventForgeDB" required />
+                            </div>
+
+                            <div class="alert alert-info">
+                                <strong>Note:</strong> If creating a new database, the SQL Server login must have CREATE DATABASE permission.
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Network -->
+                        <div class="setup-step" data-step="4">
+                            <h4>Network Configuration</h4>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Hosting Environment</label>
+                                <div class="alert alert-info">
+                                    <strong>Detected:</strong> <span id="detectedHosting">@(Model.IsKestrel ? "Kestrel" : "IIS")</span>
+                                </div>
+                            </div>
+
+                            <div id="kestrelSettings" style="display: @(Model.IsKestrel ? "block" : "none")">
+                                <div class="mb-3">
+                                    <label for="httpPort" class="form-label">HTTP Port</label>
+                                    <input type="number" class="form-control" id="httpPort" name="HttpPort" value="5000" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="httpsPort" class="form-label">HTTPS Port</label>
+                                    <input type="number" class="form-control" id="httpsPort" name="HttpsPort" value="5001" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="forceHttps" name="ForceHttps" checked />
+                                    <label class="form-check-label" for="forceHttps">
+                                        Enforce HTTPS (recommended for production)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Security -->
+                        <div class="setup-step" data-step="5">
+                            <h4>Security Configuration</h4>
+                            
+                            <div class="mb-3">
+                                <label for="jwtSecret" class="form-label">JWT Secret Key</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="jwtSecret" name="JwtSecret" required />
+                                    <button type="button" class="btn btn-outline-secondary" id="generateSecretBtn">Generate</button>
+                                </div>
+                                <small class="form-text text-muted">Minimum 32 characters. Used to sign authentication tokens.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="tokenExpiration" class="form-label">Token Expiration (minutes)</label>
+                                <input type="number" class="form-control" id="tokenExpiration" name="TokenExpiration" 
+                                       value="480" min="30" max="1440" />
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="enableRateLimiting" name="EnableRateLimiting" checked />
+                                    <label class="form-check-label" for="enableRateLimiting">
+                                        Enable Rate Limiting (recommended)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="enableCors" name="EnableCors" checked />
+                                    <label class="form-check-label" for="enableCors">
+                                        Enable CORS for development
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 6: Finalize -->
+                        <div class="setup-step" data-step="6">
+                            <h4>Finalize Setup</h4>
+                            
+                            <h5>SuperAdmin Account</h5>
+                            <div class="mb-3">
+                                <label for="adminUsername" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="adminUsername" name="AdminUsername" 
+                                       value="admin" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="adminEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="adminEmail" name="AdminEmail" 
+                                       placeholder="admin@eventforge.local" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="adminPassword" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="adminPassword" name="AdminPassword" 
+                                       minlength="8" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="adminPasswordConfirm" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="adminPasswordConfirm" />
+                            </div>
+
+                            <hr />
+
+                            <h5>Additional Settings</h5>
+                            <div class="mb-3">
+                                <label for="logRetentionDays" class="form-label">Log Retention (days)</label>
+                                <input type="number" class="form-control" id="logRetentionDays" name="LogRetentionDays" 
+                                       value="30" min="7" max="365" />
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="seedData" name="SeedData" checked />
+                                    <label class="form-check-label" for="seedData">
+                                        Load sample data for testing
+                                    </label>
+                                </div>
+                            </div>
+
+                            <hr />
+
+                            <h5>Configuration Summary</h5>
+                            <div id="configSummary" class="alert alert-secondary">
+                                <ul class="mb-0" id="summaryList"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Navigation Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">
+                                Previous
+                            </button>
+                            <button type="button" class="btn btn-primary" id="nextBtn">
+                                Next
+                            </button>
+                            <button type="submit" class="btn btn-success" id="submitBtn" style="display: none;">
+                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                Complete Setup
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentStep = 1;
+        const totalSteps = 6;
+
+        function showStep(step) {
+            document.querySelectorAll('.setup-step').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.step-indicator').forEach(el => el.classList.remove('active'));
+            
+            document.querySelector(`.setup-step[data-step="${step}"]`).classList.add('active');
+            document.querySelector(`.step-indicator[data-step="${step}"]`).classList.add('active');
+            
+            document.getElementById('prevBtn').style.display = step > 1 ? 'block' : 'none';
+            document.getElementById('nextBtn').style.display = step < totalSteps ? 'block' : 'none';
+            document.getElementById('submitBtn').style.display = step === totalSteps ? 'block' : 'none';
+            
+            if (step === totalSteps) {
+                updateSummary();
+            }
+        }
+
+        function updateSummary() {
+            const summaryList = document.getElementById('summaryList');
+            const sqlServer = document.getElementById('sqlServer').value;
+            const dbName = document.getElementById('databaseName').value;
+            const adminUsername = document.getElementById('adminUsername').value;
+            const adminEmail = document.getElementById('adminEmail').value;
+            
+            summaryList.innerHTML = `
+                <li><strong>SQL Server:</strong> ${sqlServer}</li>
+                <li><strong>Database:</strong> ${dbName}</li>
+                <li><strong>SuperAdmin:</strong> ${adminUsername} (${adminEmail})</li>
+                <li><strong>Token Expiration:</strong> ${document.getElementById('tokenExpiration').value} minutes</li>
+                <li><strong>Log Retention:</strong> ${document.getElementById('logRetentionDays').value} days</li>
+            `;
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (validateStep(currentStep)) {
+                currentStep++;
+                showStep(currentStep);
+            }
+        });
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            currentStep--;
+            showStep(currentStep);
+        });
+
+        function validateStep(step) {
+            const currentStepEl = document.querySelector(`.setup-step[data-step="${step}"]`);
+            const inputs = currentStepEl.querySelectorAll('input[required]');
+            
+            for (let input of inputs) {
+                if (!input.value.trim()) {
+                    alert('Please fill in all required fields');
+                    input.focus();
+                    return false;
+                }
+            }
+            
+            if (step === 6) {
+                const password = document.getElementById('adminPassword').value;
+                const confirm = document.getElementById('adminPasswordConfirm').value;
+                if (password !== confirm) {
+                    alert('Passwords do not match');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        document.getElementById('sqlServerDropdown').addEventListener('change', (e) => {
+            if (e.target.value) {
+                document.getElementById('sqlServer').value = e.target.value;
+            }
+        });
+
+        document.querySelectorAll('input[name="AuthType"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                document.getElementById('sqlCredentials').style.display = 
+                    e.target.value === 'sql' ? 'block' : 'none';
+            });
+        });
+
+        document.getElementById('testConnectionBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('testConnectionBtn');
+            const spinner = btn.querySelector('.spinner-border');
+            const result = document.getElementById('connectionResult');
+            
+            spinner.classList.remove('d-none');
+            btn.disabled = true;
+            
+            const payload = {
+                server: document.getElementById('sqlServer').value,
+                authType: document.querySelector('input[name="AuthType"]:checked').value,
+                username: document.getElementById('sqlUsername').value,
+                password: document.getElementById('sqlPassword').value
+            };
+            
+            try {
+                const response = await fetch('/api/setup/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = '<div class="alert alert-success">✓ Connection successful!</div>';
+                } else {
+                    result.innerHTML = `<div class="alert alert-danger">✗ ${data.message}</div>`;
+                }
+            } catch (error) {
+                result.innerHTML = '<div class="alert alert-danger">✗ Connection failed</div>';
+            } finally {
+                spinner.classList.add('d-none');
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('generateSecretBtn').addEventListener('click', () => {
+            const array = new Uint8Array(32);
+            crypto.getRandomValues(array);
+            const secret = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+            document.getElementById('jwtSecret').value = secret;
+        });
+
+        document.getElementById('setupForm').addEventListener('submit', (e) => {
+            const submitBtn = document.getElementById('submitBtn');
+            const spinner = submitBtn.querySelector('.spinner-border');
+            spinner.classList.remove('d-none');
+            submitBtn.disabled = true;
+        });
+
+        showStep(1);
+    </script>
+}
