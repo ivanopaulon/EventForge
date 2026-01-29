@@ -31,6 +31,7 @@ using EventForge.Server.Services.VatRates;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -174,7 +175,8 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static void AddConfiguredDbContext(this IServiceCollection services, IConfiguration configuration)
     {
-        Log.Information("Configurazione DbContext: utilizzando SQL Server");
+        Log.Information("=== CONFIGURING DATABASE CONTEXT ===");
+        Log.Information("Using SQL Server");
 
         // Register HTTP context accessor first for audit tracking
         _ = services.AddHttpContextAccessor();
@@ -185,14 +187,47 @@ public static class ServiceCollectionExtensions
 
         try
         {
+            // Debug: Log ALL connection strings from configuration
+            var connectionStringsSection = configuration.GetSection("ConnectionStrings");
+            Log.Information("Connection strings in configuration:");
+            foreach (var cs in connectionStringsSection.GetChildren())
+            {
+                Log.Information("  - {Key}: {Length} chars", cs.Key, cs.Value?.Length ?? 0);
+            }
+            
             // Try DefaultConnection first (standard key), fallback to SqlServer (legacy)
-            var connectionString = configuration.GetConnectionString("DefaultConnection") 
-                                ?? configuration.GetConnectionString("SqlServer");
+            var defaultConnection = configuration.GetConnectionString("DefaultConnection");
+            var sqlServerConnection = configuration.GetConnectionString("SqlServer");
+            
+            Log.Information("DefaultConnection: {Status}", 
+                defaultConnection != null ? $"FOUND ({defaultConnection.Length} chars)" : "NOT FOUND");
+            Log.Information("SqlServer: {Status}", 
+                sqlServerConnection != null ? $"FOUND ({sqlServerConnection.Length} chars)" : "NOT FOUND");
+            
+            var connectionString = defaultConnection ?? sqlServerConnection;
             
             if (string.IsNullOrEmpty(connectionString))
             {
+                Log.Error("❌ NO CONNECTION STRING FOUND!");
                 throw new InvalidOperationException(
-                    "Database connection string not found. Expected 'DefaultConnection' or 'SqlServer' in ConnectionStrings section.");
+                    "Database connection string not found. Expected 'DefaultConnection' or 'SqlServer' in ConnectionStrings section of appsettings.json");
+            }
+
+            var keyUsed = defaultConnection != null ? "DefaultConnection" : "SqlServer";
+            Log.Information("Using connection string from key: {Key}", keyUsed);
+            
+            // Log connection details (without password) for verification
+            try
+            {
+                var builder = new SqlConnectionStringBuilder(connectionString);
+                Log.Information("Connection details: Server={Server}, Database={Database}, Auth={Auth}", 
+                    builder.DataSource, 
+                    builder.InitialCatalog,
+                    builder.IntegratedSecurity ? "Windows" : $"SQL (User={builder.UserID})");
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not parse connection string details");
             }
 
             _ = services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
@@ -201,12 +236,11 @@ public static class ServiceCollectionExtensions
                        .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
             });
             
-            Log.Information("DbContext configured for SQL Server using connection string key: {Key}", 
-                configuration.GetConnectionString("DefaultConnection") != null ? "DefaultConnection" : "SqlServer");
+            Log.Information("✅ DbContext configured successfully");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Errore durante la configurazione del DbContext.");
+            Log.Error(ex, "❌ Error during DbContext configuration");
             throw;
         }
 
