@@ -112,13 +112,19 @@ public class SetupWizardService : ISetupWizardService
         {
             ConnectionStrings = new
             {
-                DefaultConnection = connectionString,  // Primary key
-                SqlServer = connectionString           // Keep for backward compatibility
+                DefaultConnection = connectionString,
+                SqlServer = connectionString  // Backward compatibility
             },
-            Jwt = new
+            Authentication = new
             {
-                SecretKey = config.JwtSecretKey,
-                ExpirationMinutes = config.TokenExpirationMinutes
+                Jwt = new
+                {
+                    Issuer = "EventForge",
+                    Audience = "EventForge",
+                    SecretKey = config.JwtSecretKey,
+                    ExpirationMinutes = config.TokenExpirationMinutes,
+                    ClockSkewMinutes = 5
+                }
             },
             Security = new
             {
@@ -312,52 +318,31 @@ public class SetupWizardService : ISetupWizardService
 
     private string BuildConnectionString(SetupConfiguration config)
     {
-        var builder = new SqlConnectionStringBuilder
-        {
-            DataSource = config.ServerAddress,
-            InitialCatalog = config.DatabaseName,
-            ConnectTimeout = 30,
-            Encrypt = false,
-            TrustServerCertificate = true
-        };
-
+        // Build connection string matching appsettings.json format EXACTLY
+        // Format: Server=...;Database=...;User Id=...;Password=...;TrustServerCertificate=True;
+        
         if (config.Credentials.AuthenticationType == "Windows")
         {
-            builder.IntegratedSecurity = true;
+            return $"Server={config.ServerAddress};Database={config.DatabaseName};Integrated Security=True;TrustServerCertificate=True;";
         }
         else
         {
-            builder.IntegratedSecurity = false;
-            builder.UserID = config.Credentials.Username;
-            builder.Password = config.Credentials.Password;
+            return $"Server={config.ServerAddress};Database={config.DatabaseName};User Id={config.Credentials.Username};Password={config.Credentials.Password};TrustServerCertificate=True;";
         }
-
-        return builder.ConnectionString;
     }
 
     private string BuildMasterConnectionString(SetupConfiguration config)
     {
-        var builder = new SqlConnectionStringBuilder
-        {
-            DataSource = config.ServerAddress,
-            InitialCatalog = "master",
-            ConnectTimeout = 30,
-            Encrypt = false,
-            TrustServerCertificate = true
-        };
-
+        // Build master connection string matching appsettings.json format
+        
         if (config.Credentials.AuthenticationType == "Windows")
         {
-            builder.IntegratedSecurity = true;
+            return $"Server={config.ServerAddress};Database=master;Integrated Security=True;TrustServerCertificate=True;";
         }
         else
         {
-            builder.IntegratedSecurity = false;
-            builder.UserID = config.Credentials.Username;
-            builder.Password = config.Credentials.Password;
+            return $"Server={config.ServerAddress};Database=master;User Id={config.Credentials.Username};Password={config.Credentials.Password};TrustServerCertificate=True;";
         }
-
-        return builder.ConnectionString;
     }
 
     private static string SanitizeDatabaseName(string databaseName)

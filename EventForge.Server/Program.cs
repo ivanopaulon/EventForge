@@ -10,6 +10,9 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Explicitly load appsettings.overrides.json (git-ignored) for local/production overrides
+builder.Configuration.AddJsonFile("appsettings.overrides.json", optional: true, reloadOnChange: true);
+
 // builder.AddCustomSerilogLogging();
 builder.Services.AddConfiguredHttpClient(builder.Configuration);
 builder.Services.AddConfiguredDbContext(builder.Configuration);
