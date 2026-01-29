@@ -770,25 +770,46 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var query = _context.SaleSessions
+            var baseQuery = _context.SaleSessions
                 .AsNoTracking()
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted);
 
-            var totalCount = await query.CountAsync(cancellationToken);
+            var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-            var sessions = await query
+            // Use AsSplitQuery to prevent cartesian explosion with multiple collections
+            var sessions = await baseQuery
+                .AsSplitQuery()
+                .Include(s => s.Items.Where(i => !i.IsDeleted))
+                .Include(s => s.Payments.Where(p => !p.IsDeleted))
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .OrderByDescending(s => s.CreatedAt)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
+            // Load Operator and POS names in a single query
+            var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
+            var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
+
+            var operators = await _context.StoreUsers
+                .AsNoTracking()
+                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Select(u => new { u.Id, u.Name })
+                .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
+
+            var poses = await _context.StorePoses
+                .AsNoTracking()
+                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Select(p => new { p.Id, p.Name })
+                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
             var dtos = new List<SaleSessionDto>();
             foreach (var session in sessions)
             {
-                dtos.Add(await MapToDtoAsync(session, cancellationToken));
+                var dto = await MapToDtoAsync(session, cancellationToken);
+                dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
+                dto.PosName = poses.GetValueOrDefault(session.PosId);
+                dtos.Add(dto);
             }
 
             return new PagedResult<SaleSessionDto>
@@ -816,25 +837,45 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var query = _context.SaleSessions
+            var baseQuery = _context.SaleSessions
                 .AsNoTracking()
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted && s.OperatorId == operatorId);
 
-            var totalCount = await query.CountAsync(cancellationToken);
+            var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-            var sessions = await query
+            // Use AsSplitQuery to prevent cartesian explosion with multiple collections
+            var sessions = await baseQuery
+                .AsSplitQuery()
+                .Include(s => s.Items.Where(i => !i.IsDeleted))
+                .Include(s => s.Payments.Where(p => !p.IsDeleted))
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .OrderByDescending(s => s.CreatedAt)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
+            // Load Operator and POS names in a single query
+            var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
+
+            var operatorName = await _context.StoreUsers
+                .AsNoTracking()
+                .Where(u => u.Id == operatorId && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Select(u => u.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var poses = await _context.StorePoses
+                .AsNoTracking()
+                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Select(p => new { p.Id, p.Name })
+                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
             var dtos = new List<SaleSessionDto>();
             foreach (var session in sessions)
             {
-                dtos.Add(await MapToDtoAsync(session, cancellationToken));
+                var dto = await MapToDtoAsync(session, cancellationToken);
+                dto.OperatorName = operatorName;
+                dto.PosName = poses.GetValueOrDefault(session.PosId);
+                dtos.Add(dto);
             }
 
             return new PagedResult<SaleSessionDto>
@@ -864,28 +905,49 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             var end = endDate ?? DateTime.UtcNow;
 
-            var query = _context.SaleSessions
+            var baseQuery = _context.SaleSessions
                 .AsNoTracking()
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .Where(s => s.TenantId == currentTenantId.Value 
                     && !s.IsDeleted 
                     && s.CreatedAt >= startDate 
                     && s.CreatedAt <= end);
 
-            var totalCount = await query.CountAsync(cancellationToken);
+            var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-            var sessions = await query
+            // Use AsSplitQuery to prevent cartesian explosion with multiple collections
+            var sessions = await baseQuery
+                .AsSplitQuery()
+                .Include(s => s.Items.Where(i => !i.IsDeleted))
+                .Include(s => s.Payments.Where(p => !p.IsDeleted))
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .OrderByDescending(s => s.CreatedAt)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
+            // Load Operator and POS names in a single query
+            var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
+            var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
+
+            var operators = await _context.StoreUsers
+                .AsNoTracking()
+                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Select(u => new { u.Id, u.Name })
+                .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
+
+            var poses = await _context.StorePoses
+                .AsNoTracking()
+                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Select(p => new { p.Id, p.Name })
+                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
             var dtos = new List<SaleSessionDto>();
             foreach (var session in sessions)
             {
-                dtos.Add(await MapToDtoAsync(session, cancellationToken));
+                var dto = await MapToDtoAsync(session, cancellationToken);
+                dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
+                dto.PosName = poses.GetValueOrDefault(session.PosId);
+                dtos.Add(dto);
             }
 
             return new PagedResult<SaleSessionDto>
@@ -913,27 +975,48 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var query = _context.SaleSessions
+            var baseQuery = _context.SaleSessions
                 .AsNoTracking()
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .Where(s => s.TenantId == currentTenantId.Value 
                     && !s.IsDeleted 
                     && !s.ClosedAt.HasValue); // Session still open
 
-            var totalCount = await query.CountAsync(cancellationToken);
+            var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-            var sessions = await query
+            // Use AsSplitQuery to prevent cartesian explosion with multiple collections
+            var sessions = await baseQuery
+                .AsSplitQuery()
+                .Include(s => s.Items.Where(i => !i.IsDeleted))
+                .Include(s => s.Payments.Where(p => !p.IsDeleted))
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .OrderByDescending(s => s.CreatedAt)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
+            // Load Operator and POS names in a single query
+            var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
+            var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
+
+            var operators = await _context.StoreUsers
+                .AsNoTracking()
+                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Select(u => new { u.Id, u.Name })
+                .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
+
+            var poses = await _context.StorePoses
+                .AsNoTracking()
+                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Select(p => new { p.Id, p.Name })
+                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
             var dtos = new List<SaleSessionDto>();
             foreach (var session in sessions)
             {
-                dtos.Add(await MapToDtoAsync(session, cancellationToken));
+                var dto = await MapToDtoAsync(session, cancellationToken);
+                dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
+                dto.PosName = poses.GetValueOrDefault(session.PosId);
+                dtos.Add(dto);
             }
 
             return new PagedResult<SaleSessionDto>
