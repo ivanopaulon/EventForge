@@ -33,7 +33,7 @@
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
                         <MudPaper Class="pa-4 text-center">
-                            <MudText Typo="Typo.h4" Color="Color.Info">@(_discoveredPrinters?.Count(p => p.Status == PrinterOperationalStatus.Idle) ?? 0)</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Info">@(_discoveredPrinters?.Count(p => p.Status == PrinterOperationalStatus.Idle || p.Status == PrinterOperationalStatus.Busy) ?? 0)</MudText>
                             <MudText Typo="Typo.body2">@TranslationService.GetTranslation("printing.onlinePrinters", "Online")</MudText>
                         </MudPaper>
                     </MudItem>

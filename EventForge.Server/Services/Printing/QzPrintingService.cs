@@ -341,7 +341,7 @@ public class QzPrintingService : IQzPrintingService
                             {
                                 Id = printerName,
                                 Name = printerName,
-                                Status = EventForge.DTOs.Printing.PrinterOperationalStatus.Idle,
+                                Status = EventForge.DTOs.Printing.PrinterOperationalStatus.Unknown,
                                 IsAvailable = true,
                                 LastStatusUpdate = DateTime.UtcNow
                             });
@@ -368,7 +368,9 @@ public class QzPrintingService : IQzPrintingService
             if (document.RootElement.TryGetProperty("result", out var result))
             {
                 // QZ Tray returns printer status information
-                // This is a simplified implementation - real QZ status checking would be more complex
+                // Map QZ status to our operational status enum
+                // For now, assume printers responding to status check are idle
+                // A more complete implementation would parse detailed status from QZ
                 return EventForge.DTOs.Printing.PrinterOperationalStatus.Idle;
             }
 
