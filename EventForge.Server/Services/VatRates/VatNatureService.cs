@@ -45,15 +45,16 @@ public class VatNatureService : IVatNatureService
             var allNatures = await _cacheService.GetOrCreateAsync(
                 CACHE_KEY_ALL,
                 currentTenantId.Value,
-                async () =>
+                async (ct) =>
                 {
                     return await _context.VatNatures
                         .WhereActiveTenant(currentTenantId.Value)
                         .OrderBy(v => v.Code)
                         .Select(v => MapToVatNatureDto(v))
-                        .ToListAsync(cancellationToken);
+                        .ToListAsync(ct);
                 },
-                absoluteExpiration: TimeSpan.FromMinutes(30)
+                absoluteExpiration: TimeSpan.FromMinutes(30),
+                ct: cancellationToken
             );
 
             // Paginate in memory (VatNatures are typically few - usually < 50 per tenant)

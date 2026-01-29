@@ -25,14 +25,17 @@ public class QzSigner
     /// <param name="callName">The QZ Tray function name to call</param>
     /// <param name="params">Parameters for the call</param>
     /// <param name="timestamp">Unix timestamp in milliseconds</param>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>Base64-encoded signature using SHA512withRSA</returns>
-    public async Task<string> Sign(string callName, object[] @params, long timestamp)
+    public async Task<string> Sign(string callName, object[] @params, long timestamp, CancellationToken ct = default)
     {
         if (callName == null)
             throw new ArgumentNullException(nameof(callName));
 
         try
         {
+            ct.ThrowIfCancellationRequested();
+            
             // Create JSON payload with properties in the specified order: call, params, timestamp
             var payload = new
             {
@@ -51,7 +54,7 @@ public class QzSigner
             _logger.LogDebug("Signing payload: {Payload}", jsonData);
 
             // Load private key and create signature
-            using var rsa = await LoadPrivateKeyAsync();
+            using var rsa = await LoadPrivateKeyAsync(ct);
             var dataBytes = Encoding.UTF8.GetBytes(jsonData);
             var signature = rsa.SignData(dataBytes, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
 
@@ -67,7 +70,7 @@ public class QzSigner
         }
     }
 
-    private async Task<RSA> LoadPrivateKeyAsync()
+    private async Task<RSA> LoadPrivateKeyAsync(CancellationToken ct = default)
     {
         try
         {
@@ -80,7 +83,7 @@ public class QzSigner
                 throw new FileNotFoundException($"Private key file not found: {resolvedPath}");
             }
 
-            var privateKeyPem = await File.ReadAllTextAsync(resolvedPath);
+            var privateKeyPem = await File.ReadAllTextAsync(resolvedPath, ct);
             var rsa = RSA.Create();
 
             try

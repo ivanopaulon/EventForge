@@ -25,191 +25,263 @@ public class ConfigurationService : IConfigurationService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync()
+    public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync(CancellationToken ct = default)
     {
-        var configurations = await _context.SystemConfigurations
-            .OrderBy(c => c.Category)
-            .ThenBy(c => c.Key)
-            .ToListAsync();
-
-        return configurations.ToDto();
-    }
-
-    public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category)
-    {
-        var configurations = await _context.SystemConfigurations
-            .Where(c => c.Category == category)
-            .OrderBy(c => c.Key)
-            .ToListAsync();
-
-        return configurations.ToDto();
-    }
-
-    public async Task<ConfigurationDto?> GetConfigurationAsync(string key)
-    {
-        var configuration = await _context.SystemConfigurations
-            .FirstOrDefaultAsync(c => c.Key == key);
-
-        return configuration?.ToDto();
-    }
-
-    public async Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto)
-    {
-        // Check if configuration with the same key already exists
-        var existing = await _context.SystemConfigurations
-            .FirstOrDefaultAsync(c => c.Key == createDto.Key);
-
-        if (existing != null)
+        try
         {
-            throw new InvalidOperationException($"Configuration with key '{createDto.Key}' already exists.");
+            var configurations = await _context.SystemConfigurations
+                .AsNoTracking()
+                .OrderBy(c => c.Category)
+                .ThenBy(c => c.Key)
+                .ToListAsync(ct);
+
+            return configurations.ToDto();
         }
-
-        var configuration = new SystemConfiguration
+        catch (OperationCanceledException)
         {
-            Key = createDto.Key,
-            Value = createDto.IsEncrypted ? EncryptValue(createDto.Value) : createDto.Value,
-            Description = createDto.Description,
-            Category = createDto.Category,
-            IsEncrypted = createDto.IsEncrypted,
-            RequiresRestart = createDto.RequiresRestart,
-            DefaultValue = createDto.Value,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
-        };
-
-        _ = _context.SystemConfigurations.Add(configuration);
-        _ = await _context.SaveChangesAsync();
-
-        // Log the creation
-        _ = await _auditLogService.LogEntityChangeAsync(
-            nameof(SystemConfiguration),
-            configuration.Id,
-            "Configuration",
-            "Create",
-            null,
-            $"Key: {configuration.Key}, Category: {configuration.Category}",
-            configuration.CreatedBy,
-            $"Configuration '{configuration.Key}'"
-        );
-
-        return configuration.ToDto();
+            _logger.LogInformation("GetAllConfigurationsAsync operation was cancelled");
+            throw;
+        }
     }
 
-    public async Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto)
+    public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category, CancellationToken ct = default)
     {
-        var configuration = await _context.SystemConfigurations
-            .FirstOrDefaultAsync(c => c.Key == key);
-
-        if (configuration == null)
+        try
         {
-            throw new InvalidOperationException($"Configuration with key '{key}' not found.");
-        }
+            var configurations = await _context.SystemConfigurations
+                .AsNoTracking()
+                .Where(c => c.Category == category)
+                .OrderBy(c => c.Key)
+                .ToListAsync(ct);
 
-        if (configuration.IsReadOnly)
+            return configurations.ToDto();
+        }
+        catch (OperationCanceledException)
         {
-            throw new InvalidOperationException($"Configuration '{key}' is read-only and cannot be modified.");
+            _logger.LogInformation("GetConfigurationsByCategoryAsync operation was cancelled for category {Category}", category);
+            throw;
         }
-
-        var oldValue = configuration.IsEncrypted ? "[ENCRYPTED]" : configuration.Value;
-        var newValue = configuration.IsEncrypted ? EncryptValue(updateDto.Value) : updateDto.Value;
-
-        configuration.Value = newValue;
-        configuration.Description = updateDto.Description ?? configuration.Description;
-        configuration.RequiresRestart = updateDto.RequiresRestart;
-        configuration.ModifiedAt = DateTime.UtcNow;
-        configuration.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
-
-        _ = await _context.SaveChangesAsync();
-
-        // Log the update
-        _ = await _auditLogService.LogEntityChangeAsync(
-            nameof(SystemConfiguration),
-            configuration.Id,
-            "Value",
-            "Update",
-            oldValue,
-            configuration.IsEncrypted ? "[ENCRYPTED]" : updateDto.Value,
-            configuration.ModifiedBy,
-            $"Configuration '{configuration.Key}'"
-        );
-
-        return configuration.ToDto();
     }
 
-    public async Task DeleteConfigurationAsync(string key)
+    public async Task<ConfigurationDto?> GetConfigurationAsync(string key, CancellationToken ct = default)
     {
-        var configuration = await _context.SystemConfigurations
-            .FirstOrDefaultAsync(c => c.Key == key);
-
-        if (configuration == null)
+        try
         {
-            throw new InvalidOperationException($"Configuration with key '{key}' not found.");
-        }
+            var configuration = await _context.SystemConfigurations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Key == key, ct);
 
-        if (configuration.IsReadOnly)
+            return configuration?.ToDto();
+        }
+        catch (OperationCanceledException)
         {
-            throw new InvalidOperationException($"Configuration '{key}' is read-only and cannot be deleted.");
+            _logger.LogInformation("GetConfigurationAsync operation was cancelled for key {Key}", key);
+            throw;
         }
-
-        _ = _context.SystemConfigurations.Remove(configuration);
-        _ = await _context.SaveChangesAsync();
-
-        // Log the deletion
-        _ = await _auditLogService.LogEntityChangeAsync(
-            nameof(SystemConfiguration),
-            configuration.Id,
-            "Configuration",
-            "Delete",
-            $"Key: {configuration.Key}, Category: {configuration.Category}",
-            null,
-            _tenantContext.CurrentUserId?.ToString() ?? "System",
-            $"Configuration '{configuration.Key}'"
-        );
     }
 
-    public async Task<string> GetValueAsync(string key, string defaultValue = "")
+    public async Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto, CancellationToken ct = default)
     {
-        var configuration = await _context.SystemConfigurations
-            .FirstOrDefaultAsync(c => c.Key == key);
-
-        if (configuration == null)
+        try
         {
-            return defaultValue;
-        }
+            // Check if configuration with the same key already exists
+            var existing = await _context.SystemConfigurations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Key == createDto.Key, ct);
 
-        return configuration.IsEncrypted ? DecryptValue(configuration.Value) : configuration.Value;
-    }
-
-    public async Task SetValueAsync(string key, string value, string? reason = null)
-    {
-        var configuration = await _context.SystemConfigurations
-            .FirstOrDefaultAsync(c => c.Key == key);
-
-        if (configuration == null)
-        {
-            // Create new configuration
-            var createDto = new CreateConfigurationDto
+            if (existing != null)
             {
-                Key = key,
-                Value = value,
-                Description = reason,
-                Category = "General"
-            };
-            _ = await CreateConfigurationAsync(createDto);
-        }
-        else
-        {
-            // Update existing configuration
-            var updateDto = new UpdateConfigurationDto
+                throw new InvalidOperationException($"Configuration with key '{createDto.Key}' already exists.");
+            }
+
+            var configuration = new SystemConfiguration
             {
-                Value = value,
-                Description = reason ?? configuration.Description
+                Key = createDto.Key,
+                Value = createDto.IsEncrypted ? EncryptValue(createDto.Value) : createDto.Value,
+                Description = createDto.Description,
+                Category = createDto.Category,
+                IsEncrypted = createDto.IsEncrypted,
+                RequiresRestart = createDto.RequiresRestart,
+                DefaultValue = createDto.Value,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
             };
-            _ = await UpdateConfigurationAsync(key, updateDto);
+
+            _ = _context.SystemConfigurations.Add(configuration);
+            _ = await _context.SaveChangesAsync(ct);
+
+            // Log the creation
+            _ = await _auditLogService.LogEntityChangeAsync(
+                nameof(SystemConfiguration),
+                configuration.Id,
+                "Configuration",
+                "Create",
+                null,
+                $"Key: {configuration.Key}, Category: {configuration.Category}",
+                configuration.CreatedBy,
+                $"Configuration '{configuration.Key}'",
+                ct
+            );
+
+            return configuration.ToDto();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("CreateConfigurationAsync operation was cancelled for key {Key}", createDto.Key);
+            throw;
         }
     }
 
-    public async Task<SmtpTestResultDto> TestSmtpAsync(SmtpTestDto testDto)
+    public async Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto, CancellationToken ct = default)
+    {
+        try
+        {
+            var configuration = await _context.SystemConfigurations
+                .FirstOrDefaultAsync(c => c.Key == key, ct);
+
+            if (configuration == null)
+            {
+                throw new InvalidOperationException($"Configuration with key '{key}' not found.");
+            }
+
+            if (configuration.IsReadOnly)
+            {
+                throw new InvalidOperationException($"Configuration '{key}' is read-only and cannot be modified.");
+            }
+
+            var oldValue = configuration.IsEncrypted ? "[ENCRYPTED]" : configuration.Value;
+            var newValue = configuration.IsEncrypted ? EncryptValue(updateDto.Value) : updateDto.Value;
+
+            configuration.Value = newValue;
+            configuration.Description = updateDto.Description ?? configuration.Description;
+            configuration.RequiresRestart = updateDto.RequiresRestart;
+            configuration.ModifiedAt = DateTime.UtcNow;
+            configuration.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+
+            _ = await _context.SaveChangesAsync(ct);
+
+            // Log the update
+            _ = await _auditLogService.LogEntityChangeAsync(
+                nameof(SystemConfiguration),
+                configuration.Id,
+                "Value",
+                "Update",
+                oldValue,
+                configuration.IsEncrypted ? "[ENCRYPTED]" : updateDto.Value,
+                configuration.ModifiedBy,
+                $"Configuration '{configuration.Key}'",
+                ct
+            );
+
+            return configuration.ToDto();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("UpdateConfigurationAsync operation was cancelled for key {Key}", key);
+            throw;
+        }
+    }
+
+    public async Task DeleteConfigurationAsync(string key, CancellationToken ct = default)
+    {
+        try
+        {
+            var configuration = await _context.SystemConfigurations
+                .FirstOrDefaultAsync(c => c.Key == key, ct);
+
+            if (configuration == null)
+            {
+                throw new InvalidOperationException($"Configuration with key '{key}' not found.");
+            }
+
+            if (configuration.IsReadOnly)
+            {
+                throw new InvalidOperationException($"Configuration '{key}' is read-only and cannot be deleted.");
+            }
+
+            _ = _context.SystemConfigurations.Remove(configuration);
+            _ = await _context.SaveChangesAsync(ct);
+
+            // Log the deletion
+            _ = await _auditLogService.LogEntityChangeAsync(
+                nameof(SystemConfiguration),
+                configuration.Id,
+                "Configuration",
+                "Delete",
+                $"Key: {configuration.Key}, Category: {configuration.Category}",
+                null,
+                _tenantContext.CurrentUserId?.ToString() ?? "System",
+                $"Configuration '{configuration.Key}'",
+                ct
+            );
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("DeleteConfigurationAsync operation was cancelled for key {Key}", key);
+            throw;
+        }
+    }
+
+    public async Task<string> GetValueAsync(string key, string defaultValue = "", CancellationToken ct = default)
+    {
+        try
+        {
+            var configuration = await _context.SystemConfigurations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Key == key, ct);
+
+            if (configuration == null)
+            {
+                return defaultValue;
+            }
+
+            return configuration.IsEncrypted ? DecryptValue(configuration.Value) : configuration.Value;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("GetValueAsync operation was cancelled for key {Key}", key);
+            throw;
+        }
+    }
+
+    public async Task SetValueAsync(string key, string value, string? reason = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var configuration = await _context.SystemConfigurations
+                .FirstOrDefaultAsync(c => c.Key == key, ct);
+
+            if (configuration == null)
+            {
+                // Create new configuration
+                var createDto = new CreateConfigurationDto
+                {
+                    Key = key,
+                    Value = value,
+                    Description = reason,
+                    Category = "General"
+                };
+                _ = await CreateConfigurationAsync(createDto, ct);
+            }
+            else
+            {
+                // Update existing configuration
+                var updateDto = new UpdateConfigurationDto
+                {
+                    Value = value,
+                    Description = reason ?? configuration.Description
+                };
+                _ = await UpdateConfigurationAsync(key, updateDto, ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("SetValueAsync operation was cancelled for key {Key}", key);
+            throw;
+        }
+    }
+
+    public async Task<SmtpTestResultDto> TestSmtpAsync(SmtpTestDto testDto, CancellationToken ct = default)
     {
         var result = new SmtpTestResultDto();
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -217,13 +289,13 @@ public class ConfigurationService : IConfigurationService
         try
         {
             // Get SMTP configuration from database
-            var smtpServer = await GetValueAsync("SMTP_Server", "localhost");
-            var smtpPort = int.Parse(await GetValueAsync("SMTP_Port", "587"));
-            var smtpUsername = await GetValueAsync("SMTP_Username", "");
-            var smtpPassword = await GetValueAsync("SMTP_Password", "");
-            var smtpEnableSsl = bool.Parse(await GetValueAsync("SMTP_EnableSSL", "true"));
-            var smtpFromEmail = await GetValueAsync("SMTP_FromEmail", "noreply@eventforge.com");
-            var smtpFromName = await GetValueAsync("SMTP_FromName", "EventForge System");
+            var smtpServer = await GetValueAsync("SMTP_Server", "localhost", ct);
+            var smtpPort = int.Parse(await GetValueAsync("SMTP_Port", "587", ct));
+            var smtpUsername = await GetValueAsync("SMTP_Username", "", ct);
+            var smtpPassword = await GetValueAsync("SMTP_Password", "", ct);
+            var smtpEnableSsl = bool.Parse(await GetValueAsync("SMTP_EnableSSL", "true", ct));
+            var smtpFromEmail = await GetValueAsync("SMTP_FromEmail", "noreply@eventforge.com", ct);
+            var smtpFromName = await GetValueAsync("SMTP_FromName", "EventForge System", ct);
 
             using var client = new SmtpClient(smtpServer, smtpPort);
             client.EnableSsl = smtpEnableSsl;
@@ -242,7 +314,7 @@ public class ConfigurationService : IConfigurationService
             };
             message.To.Add(testDto.ToEmail);
 
-            await client.SendMailAsync(message);
+            await client.SendMailAsync(message, ct);
 
             result.Success = true;
             stopwatch.Stop();
@@ -250,6 +322,16 @@ public class ConfigurationService : IConfigurationService
 
             _logger.LogInformation("SMTP test successful. Email sent to {Email} in {Duration}ms",
                 testDto.ToEmail, result.DurationMs);
+        }
+        catch (OperationCanceledException)
+        {
+            result.Success = false;
+            result.ErrorMessage = "Operation was cancelled";
+            stopwatch.Stop();
+            result.DurationMs = stopwatch.ElapsedMilliseconds;
+
+            _logger.LogInformation("SMTP test was cancelled for {Email}", testDto.ToEmail);
+            throw;
         }
         catch (Exception ex)
         {
@@ -264,10 +346,11 @@ public class ConfigurationService : IConfigurationService
         return result;
     }
 
-    public async Task ReloadConfigurationAsync()
+    public async Task ReloadConfigurationAsync(CancellationToken ct = default)
     {
         // This would trigger a configuration reload in the application
         // Implementation depends on how configuration is managed in the app
+        // NOTE: CancellationToken will be used when actual implementation is added
         _logger.LogInformation("Configuration reload requested");
 
         // Here you could implement logic to:
@@ -278,15 +361,24 @@ public class ConfigurationService : IConfigurationService
         await Task.CompletedTask;
     }
 
-    public async Task<IEnumerable<string>> GetCategoriesAsync()
+    public async Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
     {
-        var categories = await _context.SystemConfigurations
-            .Select(c => c.Category)
-            .Distinct()
-            .OrderBy(c => c)
-            .ToListAsync();
+        try
+        {
+            var categories = await _context.SystemConfigurations
+                .AsNoTracking()
+                .Select(c => c.Category)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync(ct);
 
-        return categories;
+            return categories;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("GetCategoriesAsync operation was cancelled");
+            throw;
+        }
     }
 
     private string EncryptValue(string value)

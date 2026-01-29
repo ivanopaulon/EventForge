@@ -31,7 +31,7 @@ public class BackupService : IBackupService
         _environment = environment;
     }
 
-    public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request)
+    public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request, CancellationToken ct = default)
     {
         if (!_tenantContext.IsSuperAdmin)
         {
@@ -52,53 +52,55 @@ public class BackupService : IBackupService
         };
 
         _ = _context.BackupOperations.Add(backup);
-        _ = await _context.SaveChangesAsync();
+        _ = await _context.SaveChangesAsync(ct);
 
         // Start backup process in background
-        _ = Task.Run(async () => await PerformBackupAsync(backup.Id));
+        _ = Task.Run(async () => await PerformBackupAsync(backup.Id, CancellationToken.None), CancellationToken.None);
 
-        var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
+        var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId, ct));
 
         return result;
     }
 
-    public async Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId)
+    public async Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId, CancellationToken ct = default)
     {
         var backup = await _context.BackupOperations
-            .FirstOrDefaultAsync(b => b.Id == backupId);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == backupId, ct);
 
         if (backup == null)
         {
             return null;
         }
 
-        var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
+        var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId, ct));
 
         return result;
     }
 
-    public async Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50)
+    public async Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50, CancellationToken ct = default)
     {
         var backups = await _context.BackupOperations
+            .AsNoTracking()
             .OrderByDescending(b => b.StartedAt)
             .Take(limit)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var results = new List<BackupStatusDto>();
 
         foreach (var backup in backups)
         {
-            var dto = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
+            var dto = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId, ct));
             results.Add(dto);
         }
 
         return results;
     }
 
-    public async Task CancelBackupAsync(Guid backupId)
+    public async Task CancelBackupAsync(Guid backupId, CancellationToken ct = default)
     {
         var backup = await _context.BackupOperations
-            .FirstOrDefaultAsync(b => b.Id == backupId);
+            .FirstOrDefaultAsync(b => b.Id == backupId, ct);
 
         if (backup == null)
         {
@@ -115,16 +117,17 @@ public class BackupService : IBackupService
         backup.ModifiedAt = DateTime.UtcNow;
         backup.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-        _ = await _context.SaveChangesAsync();
+        _ = await _context.SaveChangesAsync(ct);
 
         // Notify clients
-        await NotifyBackupStatusChange(backup);
+        await NotifyBackupStatusChange(backup, ct);
     }
 
-    public async Task<(Stream FileStream, string FileName)?> DownloadBackupAsync(Guid backupId)
+    public async Task<(Stream FileStream, string FileName)?> DownloadBackupAsync(Guid backupId, CancellationToken ct = default)
     {
         var backup = await _context.BackupOperations
-            .FirstOrDefaultAsync(b => b.Id == backupId);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == backupId, ct);
 
         if (backup == null || backup.Status != "Completed" || string.IsNullOrEmpty(backup.FilePath))
         {
@@ -142,10 +145,10 @@ public class BackupService : IBackupService
         return (fileStream, fileName);
     }
 
-    public async Task DeleteBackupAsync(Guid backupId)
+    public async Task DeleteBackupAsync(Guid backupId, CancellationToken ct = default)
     {
         var backup = await _context.BackupOperations
-            .FirstOrDefaultAsync(b => b.Id == backupId);
+            .FirstOrDefaultAsync(b => b.Id == backupId, ct);
 
         if (backup == null)
         {
@@ -167,12 +170,12 @@ public class BackupService : IBackupService
 
         // Delete database record
         _ = _context.BackupOperations.Remove(backup);
-        _ = await _context.SaveChangesAsync();
+        _ = await _context.SaveChangesAsync(ct);
     }
 
-    private async Task PerformBackupAsync(Guid backupId)
+    private async Task PerformBackupAsync(Guid backupId, CancellationToken ct = default)
     {
-        var backup = await _context.BackupOperations.FindAsync(backupId);
+        var backup = await _context.BackupOperations.FindAsync(new object[] { backupId }, ct);
         if (backup == null) return;
 
         try
@@ -180,8 +183,8 @@ public class BackupService : IBackupService
             backup.Status = "In Progress";
             backup.ProgressPercentage = 0;
             backup.CurrentOperation = "Preparing backup";
-            _ = await _context.SaveChangesAsync();
-            await NotifyBackupStatusChange(backup);
+            _ = await _context.SaveChangesAsync(ct);
+            await NotifyBackupStatusChange(backup, ct);
 
             // Create backup directory
             var backupDir = Path.Combine(_environment.ContentRootPath, "Backups");
@@ -198,10 +201,10 @@ public class BackupService : IBackupService
                 {
                     backup.CurrentOperation = "Backing up configuration";
                     backup.ProgressPercentage = 10;
-                    _ = await _context.SaveChangesAsync();
-                    await NotifyBackupStatusChange(backup);
+                    _ = await _context.SaveChangesAsync(ct);
+                    await NotifyBackupStatusChange(backup, ct);
 
-                    await BackupConfiguration(archive);
+                    await BackupConfiguration(archive, ct);
                 }
 
                 // Backup user data
@@ -209,10 +212,10 @@ public class BackupService : IBackupService
                 {
                     backup.CurrentOperation = "Backing up user data";
                     backup.ProgressPercentage = 40;
-                    _ = await _context.SaveChangesAsync();
-                    await NotifyBackupStatusChange(backup);
+                    _ = await _context.SaveChangesAsync(ct);
+                    await NotifyBackupStatusChange(backup, ct);
 
-                    await BackupUserData(archive);
+                    await BackupUserData(archive, ct);
                 }
 
                 // Backup audit logs
@@ -220,16 +223,16 @@ public class BackupService : IBackupService
                 {
                     backup.CurrentOperation = "Backing up audit logs";
                     backup.ProgressPercentage = 70;
-                    _ = await _context.SaveChangesAsync();
-                    await NotifyBackupStatusChange(backup);
+                    _ = await _context.SaveChangesAsync(ct);
+                    await NotifyBackupStatusChange(backup, ct);
 
-                    await BackupAuditLogs(archive);
+                    await BackupAuditLogs(archive, ct);
                 }
 
                 backup.CurrentOperation = "Finalizing backup";
                 backup.ProgressPercentage = 90;
-                _ = await _context.SaveChangesAsync();
-                await NotifyBackupStatusChange(backup);
+                _ = await _context.SaveChangesAsync(ct);
+                await NotifyBackupStatusChange(backup, ct);
             }
 
             // Get file size
@@ -244,11 +247,21 @@ public class BackupService : IBackupService
             backup.ModifiedAt = DateTime.UtcNow;
             backup.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync();
-            await NotifyBackupStatusChange(backup);
+            _ = await _context.SaveChangesAsync(ct);
+            await NotifyBackupStatusChange(backup, ct);
 
             _logger.LogInformation("Backup completed successfully: {BackupId}, File: {FilePath}, Size: {Size} bytes",
                 backupId, filePath, fileInfo.Length);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Backup operation {BackupId} was cancelled", backupId);
+            backup.Status = "Cancelled";
+            backup.CompletedAt = DateTime.UtcNow;
+            backup.ModifiedAt = DateTime.UtcNow;
+            backup.ModifiedBy = "System";
+            _ = await _context.SaveChangesAsync(CancellationToken.None);
+            await NotifyBackupStatusChange(backup, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -258,16 +271,18 @@ public class BackupService : IBackupService
             backup.ModifiedAt = DateTime.UtcNow;
             backup.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync();
-            await NotifyBackupStatusChange(backup);
+            _ = await _context.SaveChangesAsync(CancellationToken.None);
+            await NotifyBackupStatusChange(backup, CancellationToken.None);
 
             _logger.LogError(ex, "Backup failed: {BackupId}", backupId);
         }
     }
 
-    private async Task BackupConfiguration(ZipArchive archive)
+    private async Task BackupConfiguration(ZipArchive archive, CancellationToken ct = default)
     {
-        var configurations = await _context.SystemConfigurations.ToListAsync();
+        var configurations = await _context.SystemConfigurations
+            .AsNoTracking()
+            .ToListAsync(ct);
         var data = JsonSerializer.Serialize(configurations, new JsonSerializerOptions { WriteIndented = true });
 
         var entry = archive.CreateEntry("configuration.json");
@@ -276,10 +291,16 @@ public class BackupService : IBackupService
         await writer.WriteAsync(data);
     }
 
-    private async Task BackupUserData(ZipArchive archive)
+    private async Task BackupUserData(ZipArchive archive, CancellationToken ct = default)
     {
-        var users = await _context.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role).ToListAsync();
-        var tenants = await _context.Tenants.ToListAsync();
+        var users = await _context.Users
+            .AsNoTracking()
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .ToListAsync(ct);
+        var tenants = await _context.Tenants
+            .AsNoTracking()
+            .ToListAsync(ct);
 
         var userData = new
         {
@@ -295,10 +316,14 @@ public class BackupService : IBackupService
         await writer.WriteAsync(data);
     }
 
-    private async Task BackupAuditLogs(ZipArchive archive)
+    private async Task BackupAuditLogs(ZipArchive archive, CancellationToken ct = default)
     {
-        var auditLogs = await _context.EntityChangeLogs.ToListAsync();
-        var auditTrails = await _context.AuditTrails.ToListAsync();
+        var auditLogs = await _context.EntityChangeLogs
+            .AsNoTracking()
+            .ToListAsync(ct);
+        var auditTrails = await _context.AuditTrails
+            .AsNoTracking()
+            .ToListAsync(ct);
 
         var auditData = new
         {
@@ -314,17 +339,19 @@ public class BackupService : IBackupService
         await writer.WriteAsync(data);
     }
 
-    private async Task NotifyBackupStatusChange(BackupOperation backup)
+    private async Task NotifyBackupStatusChange(BackupOperation backup, CancellationToken ct = default)
     {
-        var dto = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
+        var dto = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId, ct));
 
         await _hubContext.Clients.Group("AuditLogUpdates")
-            .SendAsync("BackupStatusChanged", dto);
+            .SendAsync("BackupStatusChanged", dto, ct);
     }
 
-    private async Task<string> GetUserDisplayNameAsync(Guid userId)
+    private async Task<string> GetUserDisplayNameAsync(Guid userId, CancellationToken ct = default)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId, ct);
         return user != null ? $"{user.FirstName} {user.LastName}".Trim() : "Unknown User";
     }
 }

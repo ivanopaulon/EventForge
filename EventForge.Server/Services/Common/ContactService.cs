@@ -73,6 +73,7 @@ public class ContactService : IContactService
             }
 
             var contacts = await _context.Contacts
+                .AsNoTracking()
                 .Where(c => c.OwnerId == ownerId && !c.IsDeleted && c.TenantId == currentTenantId.Value)
                 .OrderBy(c => c.ContactType)
                 .ThenBy(c => c.Value)
@@ -92,6 +93,7 @@ public class ContactService : IContactService
         try
         {
             var contact = await _context.Contacts
+                .AsNoTracking()
                 .Where(c => c.Id == id && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -227,6 +229,7 @@ public class ContactService : IContactService
         try
         {
             return await _context.Contacts
+                .AsNoTracking()
                 .AnyAsync(c => c.Id == contactId && !c.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
@@ -241,6 +244,7 @@ public class ContactService : IContactService
         try
         {
             var contacts = await _context.Contacts
+                .AsNoTracking()
                 .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType && c.Purpose == purpose && !c.IsDeleted)
                 .OrderBy(c => c.ContactType)
                 .ThenBy(c => c.Value)
@@ -260,6 +264,7 @@ public class ContactService : IContactService
         try
         {
             var contact = await _context.Contacts
+                .AsNoTracking()
                 .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType &&
                            c.ContactType == contactType.ToEntity() && c.IsPrimary && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -285,6 +290,7 @@ public class ContactService : IContactService
 
             // Check if there's at least one emergency contact
             var hasEmergencyContact = await _context.Contacts
+                .AsNoTracking()
                 .AnyAsync(c => c.OwnerId == ownerId && c.Purpose == ContactPurpose.Emergency && !c.IsDeleted, cancellationToken);
 
             return hasEmergencyContact;

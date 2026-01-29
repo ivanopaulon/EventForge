@@ -6,15 +6,17 @@ public interface IBarcodeService
     /// Generates a barcode or QR code based on the provided request parameters
     /// </summary>
     /// <param name="request">The barcode generation request</param>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>A barcode response containing the generated image as base64</returns>
-    Task<BarcodeResponseDto> GenerateBarcodeAsync(BarcodeRequestDto request);
+    Task<BarcodeResponseDto> GenerateBarcodeAsync(BarcodeRequestDto request, CancellationToken ct = default);
 
     /// <summary>
     /// Generates a QR code with default settings
     /// </summary>
     /// <param name="data">The data to encode in the QR code</param>
+    /// <param name="ct">Cancellation token</param>
     /// <returns>A barcode response containing the generated QR code as base64</returns>
-    Task<BarcodeResponseDto> GenerateQRCodeAsync(string data);
+    Task<BarcodeResponseDto> GenerateQRCodeAsync(string data, CancellationToken ct = default);
 
     /// <summary>
     /// Validates if the provided data is suitable for the specified barcode type

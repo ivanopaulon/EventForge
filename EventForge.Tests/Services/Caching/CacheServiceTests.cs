@@ -37,7 +37,7 @@ public class CacheServiceTests
         var result = await _service.GetOrCreateAsync(
             "TestKey",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount++;
                 return Task.FromResult(expectedValue);
@@ -61,7 +61,7 @@ public class CacheServiceTests
         var result1 = await _service.GetOrCreateAsync(
             "TestKey",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount++;
                 return Task.FromResult(expectedValue);
@@ -72,7 +72,7 @@ public class CacheServiceTests
         var result2 = await _service.GetOrCreateAsync(
             "TestKey",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount++;
                 return Task.FromResult("DifferentValue");
@@ -98,13 +98,13 @@ public class CacheServiceTests
         var result1 = await _service.GetOrCreateAsync(
             "TestKey",
             tenant1,
-            () => Task.FromResult(value1)
+            _ => Task.FromResult(value1)
         );
 
         var result2 = await _service.GetOrCreateAsync(
             "TestKey",
             tenant2,
-            () => Task.FromResult(value2)
+            _ => Task.FromResult(value2)
         );
 
         // Assert - Different tenants should have different cached values
@@ -125,7 +125,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount++;
                 return Task.FromResult(expectedValue);
@@ -139,7 +139,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount++;
                 return Task.FromResult(expectedValue);
@@ -163,7 +163,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey",
             tenant1,
-            () =>
+            _ =>
             {
                 factoryCallCount1++;
                 return Task.FromResult("Tenant1Data");
@@ -173,7 +173,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey",
             tenant2,
-            () =>
+            _ =>
             {
                 factoryCallCount2++;
                 return Task.FromResult("Tenant2Data");
@@ -187,7 +187,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey",
             tenant1,
-            () =>
+            _ =>
             {
                 factoryCallCount1++;
                 return Task.FromResult("Tenant1Data");
@@ -197,7 +197,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey",
             tenant2,
-            () =>
+            _ =>
             {
                 factoryCallCount2++;
                 return Task.FromResult("Tenant2Data");
@@ -221,7 +221,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey1",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount1++;
                 return Task.FromResult("Value1");
@@ -231,7 +231,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey2",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount2++;
                 return Task.FromResult("Value2");
@@ -245,7 +245,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey1",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount1++;
                 return Task.FromResult("Value1");
@@ -255,7 +255,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey2",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount2++;
                 return Task.FromResult("Value2");
@@ -278,7 +278,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount++;
                 return Task.FromResult("TestValue");
@@ -293,7 +293,7 @@ public class CacheServiceTests
         await _service.GetOrCreateAsync(
             "TestKey",
             tenantId,
-            () =>
+            _ =>
             {
                 factoryCallCount++;
                 return Task.FromResult("TestValue");
@@ -316,7 +316,7 @@ public class CacheServiceTests
         var result = await _service.GetOrCreateAsync(
             "TestKey",
             tenantId,
-            () => Task.FromResult(complexObject)
+            _ => Task.FromResult(complexObject)
         );
 
         // Assert
