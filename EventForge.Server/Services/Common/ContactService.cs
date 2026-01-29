@@ -25,7 +25,7 @@ public class ContactService : IContactService
     {
         try
         {
-            // TODO: Add automated tests for tenant isolation in contact queries
+            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
             var currentTenantId = _tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {

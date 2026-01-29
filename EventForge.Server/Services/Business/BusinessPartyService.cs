@@ -28,7 +28,7 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            // TODO: Add automated tests for tenant isolation in business party queries
+            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
             var currentTenantId = _tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
