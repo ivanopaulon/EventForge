@@ -2,6 +2,8 @@ using EventForge.DTOs.Documents;
 using EventForge.Server.Services.Documents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
+using EventForge.Server.Services.Caching;
 
 namespace EventForge.Server.Controllers;
 
@@ -16,6 +18,7 @@ public class DocumentTypesController : BaseApiController
     private readonly IDocumentTypeService _documentTypeService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<DocumentTypesController> _logger;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     /// <summary>
     /// Initializes a new instance of the DocumentTypesController
@@ -23,14 +26,17 @@ public class DocumentTypesController : BaseApiController
     /// <param name="documentTypeService">Document type service</param>
     /// <param name="tenantContext">Tenant context service</param>
     /// <param name="logger">Logger instance</param>
+    /// <param name="cacheInvalidation">Cache invalidation service</param>
     public DocumentTypesController(
         IDocumentTypeService documentTypeService,
         ITenantContext tenantContext,
-        ILogger<DocumentTypesController> logger)
+        ILogger<DocumentTypesController> logger,
+        ICacheInvalidationService cacheInvalidation)
     {
         _documentTypeService = documentTypeService ?? throw new ArgumentNullException(nameof(documentTypeService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
     }
 
     /// <summary>
@@ -41,6 +47,7 @@ public class DocumentTypesController : BaseApiController
     /// <response code="200">Returns the list of document types</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="500">If an internal error occurs</response>
+    [OutputCache(PolicyName = "StaticEntities")]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<DocumentTypeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -166,6 +173,7 @@ public class DocumentTypesController : BaseApiController
                 return CreateNotFoundProblem($"Document type with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return Ok(documentType);
         }
         catch (Exception ex)
@@ -199,6 +207,7 @@ public class DocumentTypesController : BaseApiController
                 return CreateNotFoundProblem($"Document type with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)

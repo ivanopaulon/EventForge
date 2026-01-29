@@ -9,6 +9,8 @@ using EventForge.Server.Services.VatRates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.OutputCaching;
+using EventForge.Server.Services.Caching;
 
 namespace EventForge.Server.Controllers;
 
@@ -28,6 +30,7 @@ public class FinancialManagementController : BaseApiController
     private readonly IVatNatureService _vatNatureService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<FinancialManagementController> _logger;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public FinancialManagementController(
         IBankService bankService,
@@ -35,7 +38,8 @@ public class FinancialManagementController : BaseApiController
         IVatRateService vatRateService,
         IVatNatureService vatNatureService,
         ITenantContext tenantContext,
-        ILogger<FinancialManagementController> logger)
+        ILogger<FinancialManagementController> logger,
+        ICacheInvalidationService cacheInvalidation)
     {
         _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
         _paymentTermService = paymentTermService ?? throw new ArgumentNullException(nameof(paymentTermService));
@@ -43,6 +47,7 @@ public class FinancialManagementController : BaseApiController
         _vatNatureService = vatNatureService ?? throw new ArgumentNullException(nameof(vatNatureService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
     }
 
     #region Bank Management
@@ -56,6 +61,7 @@ public class FinancialManagementController : BaseApiController
     /// <response code="200">Successfully retrieved banks with pagination metadata in headers</response>
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [OutputCache(PolicyName = "StaticEntities")]
     [HttpGet("banks")]
     [ProducesResponseType(typeof(PagedResult<BankDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -202,6 +208,7 @@ public class FinancialManagementController : BaseApiController
                 return CreateNotFoundProblem($"Bank with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -239,6 +246,7 @@ public class FinancialManagementController : BaseApiController
                 return CreateNotFoundProblem($"Bank with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
@@ -261,6 +269,7 @@ public class FinancialManagementController : BaseApiController
     /// <response code="200">Successfully retrieved payment terms with pagination metadata in headers</response>
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [OutputCache(PolicyName = "StaticEntities")]
     [HttpGet("payment-terms")]
     [ProducesResponseType(typeof(PagedResult<PaymentTermDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -407,6 +416,7 @@ public class FinancialManagementController : BaseApiController
                 return CreateNotFoundProblem($"Payment term with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -444,6 +454,7 @@ public class FinancialManagementController : BaseApiController
                 return CreateNotFoundProblem($"Payment term with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
@@ -466,6 +477,7 @@ public class FinancialManagementController : BaseApiController
     /// <response code="200">Successfully retrieved VAT rates with pagination metadata in headers</response>
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [OutputCache(PolicyName = "StaticEntities")]
     [HttpGet("vat-rates")]
     [ProducesResponseType(typeof(PagedResult<VatRateDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -612,6 +624,7 @@ public class FinancialManagementController : BaseApiController
                 return CreateNotFoundProblem($"VAT rate with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -649,6 +662,7 @@ public class FinancialManagementController : BaseApiController
                 return CreateNotFoundProblem($"VAT rate with ID {id} not found.");
             }
 
+            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
