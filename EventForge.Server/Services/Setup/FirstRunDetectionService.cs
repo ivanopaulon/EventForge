@@ -150,7 +150,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             }
             catch (SqlException ex)
             {
-                _logger.LogError(ex, "❌ SQL Error {Number}: {Message}", ex.Number, ex.Message);
+                _logger.LogError(ex, "❌ SQL Error {Code}: {Message}", ex.Number, ex.Message);
                 
                 // Log specific SQL error codes for quick diagnosis
                 switch (ex.Number)
