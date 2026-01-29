@@ -1,5 +1,6 @@
 using EventForge.DTOs.Documents;
 using EventForge.Server.Filters;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Documents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,7 @@ namespace EventForge.Server.Controllers;
 /// <summary>
 /// Unified REST API controller for document-related operations with multi-tenant support.
 /// Provides aggregated access to document attachments, comments, templates, workflows, and analytics.
-/// Delegates business logic to existing specialized services through the DocumentFacade and individual services.
+/// Delegates business logic to existing specialized services through the DocumentFacade.
 /// </summary>
 [Route("api/v1/documents")]
 [Authorize]
@@ -18,39 +19,18 @@ public class DocumentsController : BaseApiController
 {
     private readonly IDocumentFacade _documentFacade;
     private readonly ITenantContext _tenantContext;
-    private readonly IDocumentTemplateService _templateService;
-    private readonly IDocumentCommentService _commentService;
-    private readonly IDocumentWorkflowService _workflowService;
-    private readonly IDocumentAnalyticsService _analyticsService;
-    private readonly IDocumentAttachmentService _attachmentService;
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly IDocumentTypeService _documentTypeService;
-    private readonly IDocumentStatusService _documentStatusService;
+    private readonly ICacheInvalidationService _cacheInvalidation;
     private readonly ILogger<DocumentsController> _logger;
 
     public DocumentsController(
         IDocumentFacade documentFacade,
         ITenantContext tenantContext,
-        IDocumentTemplateService templateService,
-        IDocumentCommentService commentService,
-        IDocumentWorkflowService workflowService,
-        IDocumentAnalyticsService analyticsService,
-        IDocumentAttachmentService attachmentService,
-        IDocumentHeaderService documentHeaderService,
-        IDocumentTypeService documentTypeService,
-        IDocumentStatusService documentStatusService,
+        ICacheInvalidationService cacheInvalidation,
         ILogger<DocumentsController> logger)
     {
         _documentFacade = documentFacade ?? throw new ArgumentNullException(nameof(documentFacade));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
-        _commentService = commentService ?? throw new ArgumentNullException(nameof(commentService));
-        _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
-        _analyticsService = analyticsService ?? throw new ArgumentNullException(nameof(analyticsService));
-        _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _documentTypeService = documentTypeService ?? throw new ArgumentNullException(nameof(documentTypeService));
-        _documentStatusService = documentStatusService ?? throw new ArgumentNullException(nameof(documentStatusService));
+        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -83,7 +63,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var result = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+            var result = await _documentFacade.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -117,7 +97,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
+            var documentHeader = await _documentFacade.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -151,7 +131,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var documentHeaders = await _documentHeaderService.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
+            var documentHeaders = await _documentFacade.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
             return Ok(documentHeaders);
         }
         catch (Exception ex)
@@ -189,7 +169,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
+            var documentHeader = await _documentFacade.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetDocument),
@@ -235,7 +215,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentHeaderService.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
+            var documentHeader = await _documentFacade.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -272,7 +252,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentHeaderService.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
+            var deleted = await _documentFacade.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -308,7 +288,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var documentHeader = await _documentHeaderService.CalculateDocumentTotalsAsync(id, cancellationToken);
+            var documentHeader = await _documentFacade.CalculateDocumentTotalsAsync(id, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -345,7 +325,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
+            var documentHeader = await _documentFacade.ApproveDocumentAsync(id, currentUser, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -382,7 +362,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
+            var documentHeader = await _documentFacade.CloseDocumentAsync(id, currentUser, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -417,7 +397,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var exists = await _documentHeaderService.DocumentHeaderExistsAsync(id, cancellationToken);
+            var exists = await _documentFacade.DocumentHeaderExistsAsync(id, cancellationToken);
             return Ok(exists);
         }
         catch (Exception ex)
@@ -459,7 +439,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var documentRow = await _documentHeaderService.AddDocumentRowAsync(createRowDto, currentUser, cancellationToken);
+            var documentRow = await _documentFacade.AddDocumentRowAsync(createRowDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(AddDocumentRow), new { id = documentRow.Id }, documentRow);
         }
         catch (Exception ex)
@@ -501,7 +481,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var documentRow = await _documentHeaderService.UpdateDocumentRowAsync(rowId, updateRowDto, currentUser, cancellationToken);
+            var documentRow = await _documentFacade.UpdateDocumentRowAsync(rowId, updateRowDto, currentUser, cancellationToken);
 
             if (documentRow == null)
             {
@@ -544,7 +524,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var success = await _documentHeaderService.DeleteDocumentRowAsync(rowId, cancellationToken);
+            var success = await _documentFacade.DeleteDocumentRowAsync(rowId, cancellationToken);
 
             if (!success)
             {
@@ -623,7 +603,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var attachments = await _attachmentService.GetDocumentRowAttachmentsAsync(documentRowId, includeHistory, cancellationToken);
+            var attachments = await _documentFacade.GetDocumentRowAttachmentsAsync(documentRowId, includeHistory, cancellationToken);
             return Ok(attachments);
         }
         catch (Exception ex)
@@ -655,7 +635,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var attachment = await _attachmentService.GetAttachmentByIdAsync(attachmentId, cancellationToken);
+            var attachment = await _documentFacade.GetAttachmentByIdAsync(attachmentId, cancellationToken);
 
             if (attachment == null)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -698,7 +678,8 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var attachment = await _documentFacade.CreateAttachmentAsync(documentId, createDto, currentUser, cancellationToken);
+            createDto.DocumentHeaderId = documentId;
+            var attachment = await _documentFacade.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetAttachment), new { attachmentId = attachment.Id }, attachment);
         }
         catch (Exception ex)
@@ -736,7 +717,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var attachment = await _attachmentService.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
+            var attachment = await _documentFacade.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetAttachment),
@@ -787,7 +768,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var attachment = await _attachmentService.UpdateAttachmentAsync(attachmentId, updateDto, currentUser, cancellationToken);
+            var attachment = await _documentFacade.UpdateAttachmentAsync(attachmentId, updateDto, currentUser, cancellationToken);
 
             if (attachment == null)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -833,7 +814,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var newVersion = await _attachmentService.CreateAttachmentVersionAsync(attachmentId, versionDto, currentUser, cancellationToken);
+            var newVersion = await _documentFacade.CreateAttachmentVersionAsync(attachmentId, versionDto, currentUser, cancellationToken);
 
             if (newVersion == null)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -870,7 +851,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var versions = await _attachmentService.GetAttachmentVersionsAsync(attachmentId, cancellationToken);
+            var versions = await _documentFacade.GetAttachmentVersionsAsync(attachmentId, cancellationToken);
             return Ok(versions);
         }
         catch (Exception ex)
@@ -912,7 +893,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var attachment = await _attachmentService.SignAttachmentAsync(attachmentId, signatureInfo, currentUser, cancellationToken);
+            var attachment = await _documentFacade.SignAttachmentAsync(attachmentId, signatureInfo, currentUser, cancellationToken);
 
             if (attachment == null)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -946,7 +927,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var attachments = await _attachmentService.GetAttachmentsByCategoryAsync(category, cancellationToken);
+            var attachments = await _documentFacade.GetAttachmentsByCategoryAsync(category, cancellationToken);
             return Ok(attachments);
         }
         catch (Exception ex)
@@ -979,7 +960,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _attachmentService.DeleteAttachmentAsync(attachmentId, currentUser, cancellationToken);
+            var deleted = await _documentFacade.DeleteAttachmentAsync(attachmentId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -1014,7 +995,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var exists = await _attachmentService.AttachmentExistsAsync(attachmentId, cancellationToken);
+            var exists = await _documentFacade.AttachmentExistsAsync(attachmentId, cancellationToken);
             return Ok(exists);
         }
         catch (Exception ex)
@@ -1080,7 +1061,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var comments = await _commentService.GetDocumentRowCommentsAsync(documentRowId, includeReplies, cancellationToken);
+            var comments = await _documentFacade.GetDocumentRowCommentsAsync(documentRowId, includeReplies, cancellationToken);
             return Ok(comments);
         }
         catch (Exception ex)
@@ -1114,7 +1095,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var comment = await _commentService.GetCommentByIdAsync(commentId, includeReplies, cancellationToken);
+            var comment = await _documentFacade.GetCommentByIdAsync(commentId, includeReplies, cancellationToken);
 
             if (comment == null)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1157,7 +1138,8 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _documentFacade.CreateCommentAsync(documentId, createDto, currentUser, cancellationToken);
+            createDto.DocumentHeaderId = documentId;
+            var comment = await _documentFacade.CreateCommentAsync(createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetComment), new { commentId = comment.Id }, comment);
         }
         catch (Exception ex)
@@ -1195,7 +1177,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _commentService.CreateCommentAsync(createDto, currentUser, cancellationToken);
+            var comment = await _documentFacade.CreateCommentAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetComment),
@@ -1246,7 +1228,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _commentService.UpdateCommentAsync(commentId, updateDto, currentUser, cancellationToken);
+            var comment = await _documentFacade.UpdateCommentAsync(commentId, updateDto, currentUser, cancellationToken);
 
             if (comment == null)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1285,7 +1267,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _commentService.ResolveCommentAsync(commentId, resolveDto, currentUser, cancellationToken);
+            var comment = await _documentFacade.ResolveCommentAsync(commentId, resolveDto, currentUser, cancellationToken);
 
             if (comment == null)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1322,7 +1304,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _commentService.ReopenCommentAsync(commentId, currentUser, cancellationToken);
+            var comment = await _documentFacade.ReopenCommentAsync(commentId, currentUser, cancellationToken);
 
             if (comment == null)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1357,7 +1339,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var stats = await _commentService.GetDocumentCommentStatsAsync(documentId, currentUser, cancellationToken);
+            var stats = await _documentFacade.GetDocumentCommentStatsAsync(documentId, currentUser, cancellationToken);
             return Ok(stats);
         }
         catch (Exception ex)
@@ -1388,7 +1370,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var comments = await _commentService.GetAssignedCommentsAsync(currentUser, status, cancellationToken);
+            var comments = await _documentFacade.GetAssignedCommentsAsync(currentUser, status, cancellationToken);
             return Ok(comments);
         }
         catch (Exception ex)
@@ -1421,7 +1403,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _commentService.DeleteCommentAsync(commentId, currentUser, cancellationToken);
+            var deleted = await _documentFacade.DeleteCommentAsync(commentId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1456,7 +1438,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var exists = await _commentService.CommentExistsAsync(commentId, cancellationToken);
+            var exists = await _documentFacade.CommentExistsAsync(commentId, cancellationToken);
             return Ok(exists);
         }
         catch (Exception ex)
@@ -1486,7 +1468,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var templates = await _templateService.GetAllAsync(cancellationToken);
+            var templates = await _documentFacade.GetAllTemplatesAsync(cancellationToken);
             return Ok(templates);
         }
         catch (Exception ex)
@@ -1545,7 +1527,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var templates = await _templateService.GetByDocumentTypeAsync(documentTypeId, cancellationToken);
+            var templates = await _documentFacade.GetTemplatesByDocumentTypeAsync(documentTypeId, cancellationToken);
             return Ok(templates);
         }
         catch (Exception ex)
@@ -1580,7 +1562,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var templates = await _templateService.GetByCategoryAsync(category, cancellationToken);
+            var templates = await _documentFacade.GetTemplatesByCategoryAsync(category, cancellationToken);
             return Ok(templates);
         }
         catch (Exception ex)
@@ -1653,7 +1635,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var template = await _templateService.CreateAsync(createDto, currentUser, cancellationToken);
+            var template = await _documentFacade.CreateTemplateAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetTemplate),
@@ -1696,7 +1678,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var template = await _templateService.UpdateAsync(templateId, updateDto, currentUser, cancellationToken);
+            var template = await _documentFacade.UpdateTemplateAsync(templateId, updateDto, currentUser, cancellationToken);
 
             if (template == null)
                 return CreateNotFoundProblem($"Document template with ID {templateId} was not found.");
@@ -1733,7 +1715,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _templateService.DeleteAsync(templateId, currentUser, cancellationToken);
+            var deleted = await _documentFacade.DeleteTemplateAsync(templateId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document template with ID {templateId} was not found.");
@@ -1770,7 +1752,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var updated = await _templateService.UpdateUsageAsync(templateId, currentUser, cancellationToken);
+            var updated = await _documentFacade.UpdateTemplateUsageAsync(templateId, currentUser, cancellationToken);
 
             if (!updated)
                 return CreateNotFoundProblem($"Document template with ID {templateId} was not found.");
@@ -1804,7 +1786,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var workflows = await _workflowService.GetAllAsync(cancellationToken);
+            var workflows = await _documentFacade.GetWorkflowsAsync(null, cancellationToken);
             return Ok(workflows);
         }
         catch (Exception ex)
@@ -1869,7 +1851,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var workflow = await _workflowService.GetByIdAsync(workflowId, cancellationToken);
+            var workflow = await _documentFacade.GetWorkflowByIdAsync(workflowId, cancellationToken);
             if (workflow == null)
                 return CreateNotFoundProblem($"Document workflow with ID {workflowId} was not found.");
 
@@ -1908,7 +1890,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var workflow = await _workflowService.CreateAsync(createDto, currentUser, cancellationToken);
+            var workflow = await _documentFacade.CreateWorkflowAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetWorkflow),
@@ -1951,7 +1933,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var workflow = await _workflowService.UpdateAsync(workflowId, updateDto, currentUser, cancellationToken);
+            var workflow = await _documentFacade.UpdateWorkflowAsync(workflowId, updateDto, currentUser, cancellationToken);
 
             if (workflow == null)
                 return CreateNotFoundProblem($"Document workflow with ID {workflowId} was not found.");
@@ -1988,7 +1970,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _workflowService.DeleteAsync(workflowId, currentUser, cancellationToken);
+            var deleted = await _documentFacade.DeleteWorkflowAsync(workflowId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document workflow with ID {workflowId} was not found.");
@@ -2079,7 +2061,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var summary = await _analyticsService.GetAnalyticsSummaryAsync(from, to, groupBy, cancellationToken);
+            var summary = await _documentFacade.GetAnalyticsSummaryAsync(from, to, groupBy, cancellationToken);
             return Ok(summary);
         }
         catch (Exception ex)
@@ -2130,7 +2112,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var kpiSummary = await _analyticsService.CalculateKpiSummaryAsync(from, to, cancellationToken);
+            var kpiSummary = await _documentFacade.CalculateKpiSummaryAsync(from, to, cancellationToken);
             return Ok(kpiSummary);
         }
         catch (Exception ex)
@@ -2204,7 +2186,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var analytics = await _analyticsService.HandleWorkflowEventAsync(
+            var analytics = await _documentFacade.HandleWorkflowEventAsync(
                 documentId, eventType, eventData, currentUser, cancellationToken);
 
             return Ok(analytics);
@@ -2239,7 +2221,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var documentTypes = await _documentTypeService.GetAllAsync(cancellationToken);
+            var documentTypes = await _documentFacade.GetAllDocumentTypesAsync(cancellationToken);
             return Ok(documentTypes);
         }
         catch (Exception ex)
@@ -2266,7 +2248,7 @@ public class DocumentsController : BaseApiController
     {
         try
         {
-            var documentType = await _documentTypeService.GetByIdAsync(id, cancellationToken);
+            var documentType = await _documentFacade.GetDocumentTypeByIdAsync(id, cancellationToken);
 
             if (documentType == null)
             {
@@ -2306,7 +2288,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var documentType = await _documentTypeService.CreateAsync(createDto, GetCurrentUser(), cancellationToken);
+            var documentType = await _documentFacade.CreateDocumentTypeAsync(createDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetDocumentType), new { id = documentType.Id }, documentType);
         }
         catch (Exception ex)
@@ -2344,7 +2326,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var documentType = await _documentTypeService.UpdateAsync(id, updateDto, GetCurrentUser(), cancellationToken);
+            var documentType = await _documentFacade.UpdateDocumentTypeAsync(id, updateDto, GetCurrentUser(), cancellationToken);
 
             if (documentType == null)
             {
@@ -2377,7 +2359,7 @@ public class DocumentsController : BaseApiController
     {
         try
         {
-            var deleted = await _documentTypeService.DeleteAsync(id, GetCurrentUser(), cancellationToken);
+            var deleted = await _documentFacade.DeleteDocumentTypeAsync(id, GetCurrentUser(), cancellationToken);
 
             if (!deleted)
             {
@@ -2503,7 +2485,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var result = await _documentStatusService.ChangeStatusAsync(
+            var result = await _documentFacade.ChangeStatusAsync(
                 id,
                 dto.NewStatus,
                 dto.Reason,
@@ -2551,7 +2533,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var history = await _documentStatusService.GetStatusHistoryAsync(id, cancellationToken);
+            var history = await _documentFacade.GetStatusHistoryAsync(id, cancellationToken);
             return Ok(history);
         }
         catch (Exception ex)
@@ -2575,7 +2557,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var transitions = await _documentStatusService.GetAvailableTransitionsAsync(id, cancellationToken);
+            var transitions = await _documentFacade.GetAvailableTransitionsAsync(id, cancellationToken);
             return Ok(transitions);
         }
         catch (Exception ex)

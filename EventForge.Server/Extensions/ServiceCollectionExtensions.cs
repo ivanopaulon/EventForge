@@ -346,6 +346,9 @@ public static class ServiceCollectionExtensions
         // Register document facade for unified API access
         _ = services.AddScoped<IDocumentFacade, DocumentFacade>();
 
+        // Register warehouse facade for unified API access
+        _ = services.AddScoped<IWarehouseFacade, WarehouseFacade>();
+
         // Register dashboard configuration services
         _ = services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
 
