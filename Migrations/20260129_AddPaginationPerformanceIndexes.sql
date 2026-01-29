@@ -149,7 +149,7 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UMs_TenantId_IsDeleted
 BEGIN
     CREATE NONCLUSTERED INDEX IX_UMs_TenantId_IsDeleted
     ON UMs (TenantId, IsDeleted)
-    INCLUDE (Id, Name, Code, UnitType)
+    INCLUDE (Id, Name, Symbol, IsDefault)
     WHERE IsDeleted = 0;
     PRINT '  ✓ Created IX_UMs_TenantId_IsDeleted';
 END
@@ -159,7 +159,7 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_NoteFlags_TenantId_IsD
 BEGIN
     CREATE NONCLUSTERED INDEX IX_NoteFlags_TenantId_IsDeleted
     ON NoteFlags (TenantId, IsDeleted)
-    INCLUDE (Id, Name, FlagType, Color)
+    INCLUDE (Id, Name, Code, Color)
     WHERE IsDeleted = 0;
     PRINT '  ✓ Created IX_NoteFlags_TenantId_IsDeleted';
 END
