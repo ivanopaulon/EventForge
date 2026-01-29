@@ -787,26 +787,40 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            // Load Operator and POS names in a single query
+            // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
             var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
             var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
 
             var operators = await _context.StoreUsers
                 .AsNoTracking()
-                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
                 .Select(u => new { u.Id, u.Name })
                 .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
 
             var poses = await _context.StorePoses
                 .AsNoTracking()
-                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .Select(p => new { p.Id, p.Name })
                 .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+            // Load all products for all sessions in a single batch
+            var allProductIds = sessions
+                .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
+                .Distinct()
+                .ToList();
+
+            var allProducts = await _context.Products
+                .AsNoTracking()
+                .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
+                .Include(p => p.Brand)
+                .Include(p => p.VatRate)
+                .Include(p => p.ImageDocument)
+                .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
 
             var dtos = new List<SaleSessionDto>();
             foreach (var session in sessions)
             {
-                var dto = await MapToDtoAsync(session, cancellationToken);
+                var dto = MapToDtoWithProducts(session, allProducts);
                 dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
                 dto.PosName = poses.GetValueOrDefault(session.PosId);
                 dtos.Add(dto);
@@ -854,25 +868,39 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            // Load Operator and POS names in a single query
+            // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
             var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
 
             var operatorName = await _context.StoreUsers
                 .AsNoTracking()
-                .Where(u => u.Id == operatorId && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Where(u => u.Id == operatorId && u.TenantId == currentTenantId.Value)
                 .Select(u => u.Name)
                 .FirstOrDefaultAsync(cancellationToken);
 
             var poses = await _context.StorePoses
                 .AsNoTracking()
-                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .Select(p => new { p.Id, p.Name })
                 .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+            // Load all products for all sessions in a single batch
+            var allProductIds = sessions
+                .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
+                .Distinct()
+                .ToList();
+
+            var allProducts = await _context.Products
+                .AsNoTracking()
+                .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
+                .Include(p => p.Brand)
+                .Include(p => p.VatRate)
+                .Include(p => p.ImageDocument)
+                .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
 
             var dtos = new List<SaleSessionDto>();
             foreach (var session in sessions)
             {
-                var dto = await MapToDtoAsync(session, cancellationToken);
+                var dto = MapToDtoWithProducts(session, allProducts);
                 dto.OperatorName = operatorName;
                 dto.PosName = poses.GetValueOrDefault(session.PosId);
                 dtos.Add(dto);
@@ -925,26 +953,40 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            // Load Operator and POS names in a single query
+            // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
             var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
             var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
 
             var operators = await _context.StoreUsers
                 .AsNoTracking()
-                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
                 .Select(u => new { u.Id, u.Name })
                 .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
 
             var poses = await _context.StorePoses
                 .AsNoTracking()
-                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .Select(p => new { p.Id, p.Name })
                 .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+            // Load all products for all sessions in a single batch
+            var allProductIds = sessions
+                .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
+                .Distinct()
+                .ToList();
+
+            var allProducts = await _context.Products
+                .AsNoTracking()
+                .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
+                .Include(p => p.Brand)
+                .Include(p => p.VatRate)
+                .Include(p => p.ImageDocument)
+                .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
 
             var dtos = new List<SaleSessionDto>();
             foreach (var session in sessions)
             {
-                var dto = await MapToDtoAsync(session, cancellationToken);
+                var dto = MapToDtoWithProducts(session, allProducts);
                 dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
                 dto.PosName = poses.GetValueOrDefault(session.PosId);
                 dtos.Add(dto);
@@ -994,26 +1036,40 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            // Load Operator and POS names in a single query
+            // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
             var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
             var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
 
             var operators = await _context.StoreUsers
                 .AsNoTracking()
-                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
                 .Select(u => new { u.Id, u.Name })
                 .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
 
             var poses = await _context.StorePoses
                 .AsNoTracking()
-                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .Select(p => new { p.Id, p.Name })
                 .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+            // Load all products for all sessions in a single batch
+            var allProductIds = sessions
+                .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
+                .Distinct()
+                .ToList();
+
+            var allProducts = await _context.Products
+                .AsNoTracking()
+                .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
+                .Include(p => p.Brand)
+                .Include(p => p.VatRate)
+                .Include(p => p.ImageDocument)
+                .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
 
             var dtos = new List<SaleSessionDto>();
             foreach (var session in sessions)
             {
-                var dto = await MapToDtoAsync(session, cancellationToken);
+                var dto = MapToDtoWithProducts(session, allProducts);
                 dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
                 dto.PosName = poses.GetValueOrDefault(session.PosId);
                 dtos.Add(dto);
@@ -1145,6 +1201,11 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             .Include(p => p.ImageDocument)
             .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
 
+        return MapToDtoWithProducts(session, products);
+    }
+
+    private SaleSessionDto MapToDtoWithProducts(SaleSession session, Dictionary<Guid, EventForge.Server.Data.Entities.Products.Product> products)
+    {
         var dto = new SaleSessionDto
         {
             Id = session.Id,
