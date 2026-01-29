@@ -1,7 +1,9 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
+using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Warehouse;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -11,6 +13,8 @@ namespace EventForge.Server.Controllers;
 /// Controller for managing lots and traceability operations.
 /// </summary>
 [Route("api/[controller]")]
+[Authorize(Policy = "RequireManager")]
+[RequireLicenseFeature("InventoryManagement")]
 public class LotsController : BaseApiController
 {
     private readonly ILotService _service;
