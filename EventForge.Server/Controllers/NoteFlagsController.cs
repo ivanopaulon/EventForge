@@ -2,10 +2,12 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace EventForge.Server.Controllers;
 
@@ -21,15 +23,18 @@ public class NoteFlagsController : BaseApiController
     private readonly INoteFlagService _noteFlagService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<NoteFlagsController> _logger;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public NoteFlagsController(
         INoteFlagService noteFlagService,
         ITenantContext tenantContext,
-        ILogger<NoteFlagsController> logger)
+        ILogger<NoteFlagsController> logger,
+        ICacheInvalidationService cacheInvalidation)
     {
         _noteFlagService = noteFlagService ?? throw new ArgumentNullException(nameof(noteFlagService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
     }
 
     /// <summary>
@@ -42,6 +47,7 @@ public class NoteFlagsController : BaseApiController
     /// <response code="400">Invalid pagination parameters</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
+    [OutputCache(PolicyName = "SemiStaticEntities")]
     [ProducesResponseType(typeof(PagedResult<NoteFlagDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -220,6 +226,7 @@ public class NoteFlagsController : BaseApiController
             if (noteFlag == null)
                 return NotFound(new { message = $"Note flag {id} not found." });
 
+            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return Ok(noteFlag);
         }
         catch (Exception ex)
@@ -257,6 +264,7 @@ public class NoteFlagsController : BaseApiController
             if (!deleted)
                 return NotFound(new { message = $"Note flag {id} not found." });
 
+            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
