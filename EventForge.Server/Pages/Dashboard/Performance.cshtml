@@ -1,0 +1,115 @@
+@page
+@model EventForge.Server.Pages.Dashboard.PerformanceModel
+@{
+    ViewData["Title"] = "Performance Metrics";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Performance Metrics</h2>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="location.reload()">
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Slow Queries -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Slow Queries (Top 10)</h5>
+                    <form method="post" asp-page-handler="ExportCsv">
+                        <button type="submit" class="btn btn-sm btn-outline-success">
+                            Export to CSV
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    @if (Model.SlowQueries.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Query Preview</th>
+                                        <th>Avg Duration</th>
+                                        <th>Max Duration</th>
+                                        <th>Count</th>
+                                        <th>Last Seen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var query in Model.SlowQueries)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <code class="text-truncate d-inline-block" style="max-width: 400px;" title="@query.QueryText">
+                                                    @query.QueryText
+                                                </code>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-@(query.AverageDurationMs > 1000 ? "danger" : query.AverageDurationMs > 500 ? "warning" : "info")">
+                                                    @query.AverageDurationMs ms
+                                                </span>
+                                            </td>
+                                            <td>@query.MaxDurationMs ms</td>
+                                            <td>@query.ExecutionCount</td>
+                                            <td>@query.LastExecuted.ToString("yyyy-MM-dd HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mb-0">
+                            No slow queries detected. This is good!
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Charts Placeholder -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Response Time Trends</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-secondary mb-0">
+                        <p class="mb-0">
+                            <strong>Coming Soon:</strong> Real-time charts will be displayed here using ApexCharts.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Request Volume</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-secondary mb-0">
+                        <p class="mb-0">
+                            <strong>Coming Soon:</strong> Request volume charts will be displayed here.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        setInterval(() => location.reload(), 30000);
+    </script>
+}

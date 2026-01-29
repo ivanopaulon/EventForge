@@ -1,0 +1,58 @@
+@page
+@model EventForge.Server.Pages.Setup.CompleteModel
+@{
+    ViewData["Title"] = "Setup Complete";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">✓ Setup Completed Successfully</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <h4 class="alert-heading">Congratulations!</h4>
+                        <p>EventForge has been successfully configured and is ready to use.</p>
+                    </div>
+
+                    <h5>Configuration Summary</h5>
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <th width="30%">Database</th>
+                                <td>@Model.DatabaseName</td>
+                            </tr>
+                            <tr>
+                                <th>SuperAdmin Username</th>
+                                <td>@Model.AdminUsername</td>
+                            </tr>
+                            <tr>
+                                <th>Setup Completed</th>
+                                <td>@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h5>Next Steps</h5>
+                    <ol>
+                        <li>Log in to the dashboard with your SuperAdmin credentials</li>
+                        <li>Review the system configuration</li>
+                        <li>Create your first tenant</li>
+                        <li>Configure additional settings as needed</li>
+                    </ol>
+
+                    <div class="alert alert-warning">
+                        <strong>Security Note:</strong> The setup.complete file has been created in the application directory. 
+                        To re-run setup (for testing only), delete this file and restart the application.
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="/dashboard" class="btn btn-primary btn-lg">Go to Dashboard</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,168 @@
+@page
+@model EventForge.Server.Pages.Dashboard.LogsModel
+@{
+    ViewData["Title"] = "System Logs";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>System Logs</h2>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="logLevel" class="form-label">Log Level</label>
+                    <select class="form-select" id="logLevel" name="logLevel" asp-for="LogLevel">
+                        <option value="">All Levels</option>
+                        <option value="Information">Information</option>
+                        <option value="Warning">Warning</option>
+                        <option value="Error">Error</option>
+                        <option value="Critical">Critical</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="timeRange" class="form-label">Time Range</label>
+                    <select class="form-select" id="timeRange" name="timeRange" asp-for="TimeRange">
+                        <option value="1">Last Hour</option>
+                        <option value="24">Last 24 Hours</option>
+                        <option value="168">Last Week</option>
+                        <option value="720">Last 30 Days</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           asp-for="SearchTerm" placeholder="Search in message..." />
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Log Entries</h5>
+            <form method="post" asp-page-handler="Export">
+                <input type="hidden" name="logLevel" value="@Model.LogLevel" />
+                <input type="hidden" name="timeRange" value="@Model.TimeRange" />
+                <input type="hidden" name="search" value="@Model.SearchTerm" />
+                <button type="submit" class="btn btn-sm btn-outline-success">
+                    Export Logs
+                </button>
+            </form>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Logs.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 180px;">Timestamp</th>
+                                <th style="width: 100px;">Level</th>
+                                <th style="width: 150px;">Category</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in Model.Logs)
+                            {
+                                <tr class="log-entry log-@log.Level.ToLower()">
+                                    <td>
+                                        <small>@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@GetLevelBadgeClass(log.Level)">
+                                            @log.Level
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">@log.Category</small>
+                                    </td>
+                                    <td>
+                                        <div class="log-message">@log.Message</div>
+                                        @if (!string.IsNullOrEmpty(log.Exception))
+                                        {
+                                            <button class="btn btn-sm btn-link p-0" 
+                                                    type="button" 
+                                                    data-bs-toggle="collapse" 
+                                                    data-bs-target="#exception-@log.Id">
+                                                View Exception
+                                            </button>
+                                            <div class="collapse mt-2" id="exception-@log.Id">
+                                                <pre class="bg-light p-2 small">@log.Exception</pre>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="card-footer bg-white">
+                    <nav aria-label="Log pagination">
+                        <ul class="pagination pagination-sm mb-0 justify-content-center">
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="?page=@(Model.CurrentPage - 1)&logLevel=@Model.LogLevel&timeRange=@Model.TimeRange&search=@Model.SearchTerm">
+                                    Previous
+                                </a>
+                            </li>
+                            
+                            @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="?page=@i&logLevel=@Model.LogLevel&timeRange=@Model.TimeRange&search=@Model.SearchTerm">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+                            
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="?page=@(Model.CurrentPage + 1)&logLevel=@Model.LogLevel&timeRange=@Model.TimeRange&search=@Model.SearchTerm">
+                                    Next
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    <div class="text-center mt-2">
+                        <small class="text-muted">
+                            Showing @((Model.CurrentPage - 1) * Model.PageSize + 1) - @Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount) 
+                            of @Model.TotalCount entries
+                        </small>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="p-4 text-center text-muted">
+                    No log entries found matching your criteria.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetLevelBadgeClass(string level)
+    {
+        return level switch
+        {
+            "Critical" => "danger",
+            "Error" => "danger",
+            "Warning" => "warning",
+            "Information" => "info",
+            _ => "secondary"
+        };
+    }
+}

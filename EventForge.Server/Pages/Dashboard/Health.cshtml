@@ -1,0 +1,96 @@
+@page
+@model EventForge.Server.Pages.Dashboard.HealthModel
+@{
+    ViewData["Title"] = "Health Checks";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Health Checks</h2>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="location.reload()">
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">System Health Status</h5>
+                    <span class="badge bg-@(Model.OverallStatus == "Healthy" ? "success" : Model.OverallStatus == "Degraded" ? "warning" : "danger") fs-6">
+                        @Model.OverallStatus
+                    </span>
+                </div>
+                <div class="card-body">
+                    @if (Model.HealthChecks.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Component</th>
+                                        <th>Status</th>
+                                        <th>Duration</th>
+                                        <th>Description</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var check in Model.HealthChecks)
+                                    {
+                                        <tr>
+                                            <td><strong>@check.Name</strong></td>
+                                            <td>
+                                                <span class="badge bg-@(check.Status == "Healthy" ? "success" : check.Status == "Degraded" ? "warning" : "danger")">
+                                                    @check.Status
+                                                </span>
+                                            </td>
+                                            <td>@check.Duration</td>
+                                            <td>@check.Description</td>
+                                            <td>
+                                                @if (check.Data.Any())
+                                                {
+                                                    <button class="btn btn-sm btn-outline-secondary" 
+                                                            type="button" 
+                                                            data-bs-toggle="collapse" 
+                                                            data-bs-target="#details-@check.Name.Replace(" ", "-")">
+                                                        View Details
+                                                    </button>
+                                                    <div class="collapse mt-2" id="details-@check.Name.Replace(" ", "-")">
+                                                        <ul class="list-unstyled mb-0">
+                                                            @foreach (var item in check.Data)
+                                                            {
+                                                                <li><small><strong>@item.Key:</strong> @item.Value</small></li>
+                                                            }
+                                                        </ul>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mb-0">
+                            No health check data available.
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-white text-muted">
+                    <small>Last checked: @DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        setInterval(() => location.reload(), 10000);
+    </script>
+}
