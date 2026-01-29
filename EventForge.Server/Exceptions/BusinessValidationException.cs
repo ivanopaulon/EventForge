@@ -3,7 +3,7 @@ namespace EventForge.Server.Exceptions;
 /// <summary>
 /// Eccezione sollevata quando una validazione business fallisce
 /// </summary>
-public class BusinessValidationException : Exception
+public class BusinessValidationException : EventForgeException
 {
     /// <summary>
     /// Codice errore standardizzato
@@ -28,5 +28,15 @@ public class BusinessValidationException : Exception
     {
         ErrorCode = "VALIDATION_ERROR";
         ValidationErrors = errors;
+    }
+    
+    public BusinessValidationException(string field, string error) 
+        : base($"Validation failed: {error}")
+    {
+        ErrorCode = "VALIDATION_ERROR";
+        ValidationErrors = new Dictionary<string, List<string>>
+        {
+            { field, new List<string> { error } }
+        };
     }
 }

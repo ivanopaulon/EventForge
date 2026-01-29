@@ -77,7 +77,34 @@ public class GlobalExceptionHandlerMiddleware
 
         switch (exception)
         {
+            case NotFoundException notFoundEx:
+                _logger.LogWarning(notFoundEx, "Entity not found: {Message}", notFoundEx.Message);
+                problemDetails.Status = (int)HttpStatusCode.NotFound;
+                problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.4";
+                problemDetails.Title = "Not Found";
+                problemDetails.Detail = notFoundEx.Message;
+                problemDetails.Extensions["entityName"] = notFoundEx.EntityName;
+                problemDetails.Extensions["entityId"] = notFoundEx.EntityId;
+                break;
+
+            case ConflictException conflictEx:
+                _logger.LogWarning(conflictEx, "Conflict: {Message}", conflictEx.Message);
+                problemDetails.Status = (int)HttpStatusCode.Conflict;
+                problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.8";
+                problemDetails.Title = "Conflict";
+                problemDetails.Detail = conflictEx.Message;
+                break;
+
+            case ForbiddenException forbiddenEx:
+                _logger.LogWarning(forbiddenEx, "Access forbidden: {Message}", forbiddenEx.Message);
+                problemDetails.Status = (int)HttpStatusCode.Forbidden;
+                problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3";
+                problemDetails.Title = "Forbidden";
+                problemDetails.Detail = forbiddenEx.Message;
+                break;
+
             case BusinessValidationException businessEx:
+                _logger.LogWarning(businessEx, "Business validation failed: {Message}", businessEx.Message);
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Business Validation Error";
@@ -91,6 +118,7 @@ public class GlobalExceptionHandlerMiddleware
                 break;
 
             case ValidationException validationEx:
+                _logger.LogWarning(validationEx, "Validation failed: {Message}", validationEx.Message);
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Validation Error";
@@ -107,6 +135,7 @@ public class GlobalExceptionHandlerMiddleware
                 break;
 
             case ArgumentNullException nullEx:
+                _logger.LogWarning(nullEx, "Argument null: {ParamName}", nullEx.ParamName);
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Bad Request";
@@ -116,6 +145,7 @@ public class GlobalExceptionHandlerMiddleware
                 break;
 
             case ArgumentException argEx:
+                _logger.LogWarning(argEx, "Invalid argument: {Message}", argEx.Message);
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Bad Request";
@@ -123,27 +153,31 @@ public class GlobalExceptionHandlerMiddleware
                 break;
 
             case InvalidOperationException invalidEx:
+                _logger.LogWarning(invalidEx, "Invalid operation: {Message}", invalidEx.Message);
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Invalid Operation";
                 problemDetails.Detail = _environment.IsDevelopment() ? invalidEx.Message : "The requested operation is invalid";
                 break;
 
-            case UnauthorizedAccessException:
+            case UnauthorizedAccessException unauthorizedEx:
+                _logger.LogWarning(unauthorizedEx, "Unauthorized access: {Message}", unauthorizedEx.Message);
                 problemDetails.Status = (int)HttpStatusCode.Unauthorized;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7235#section-3.1";
                 problemDetails.Title = "Unauthorized";
                 problemDetails.Detail = "You are not authorized to access this resource";
                 break;
 
-            case KeyNotFoundException notFoundEx:
+            case KeyNotFoundException notFoundKeyEx:
+                _logger.LogWarning(notFoundKeyEx, "Key not found: {Message}", notFoundKeyEx.Message);
                 problemDetails.Status = (int)HttpStatusCode.NotFound;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.4";
                 problemDetails.Title = "Not Found";
-                problemDetails.Detail = _environment.IsDevelopment() ? notFoundEx.Message : "The requested resource was not found";
+                problemDetails.Detail = _environment.IsDevelopment() ? notFoundKeyEx.Message : "The requested resource was not found";
                 break;
 
             case TimeoutException timeoutEx:
+                _logger.LogWarning(timeoutEx, "Request timeout: {Message}", timeoutEx.Message);
                 problemDetails.Status = (int)HttpStatusCode.RequestTimeout;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.7";
                 problemDetails.Title = "Request Timeout";
@@ -151,6 +185,7 @@ public class GlobalExceptionHandlerMiddleware
                 break;
 
             default:
+                _logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
                 problemDetails.Status = (int)HttpStatusCode.InternalServerError;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1";
                 problemDetails.Title = "Internal Server Error";
