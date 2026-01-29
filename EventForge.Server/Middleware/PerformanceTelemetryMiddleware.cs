@@ -27,6 +27,17 @@ public class PerformanceTelemetryMiddleware
         var path = context.Request.Path.Value;
         var method = context.Request.Method;
         
+        // Register callback to add header BEFORE response starts
+        context.Response.OnStarting(() =>
+        {
+            var elapsed = sw.ElapsedMilliseconds;
+            if (!context.Response.Headers.ContainsKey("X-Response-Time-Ms"))
+            {
+                context.Response.Headers["X-Response-Time-Ms"] = elapsed.ToString();
+            }
+            return Task.CompletedTask;
+        });
+        
         try
         {
             await _next(context);
@@ -36,10 +47,7 @@ public class PerformanceTelemetryMiddleware
             sw.Stop();
             var elapsed = sw.ElapsedMilliseconds;
             
-            // Add response time header for all requests
-            context.Response.Headers.TryAdd("X-Response-Time-Ms", elapsed.ToString());
-            
-            // Log slow requests
+            // Log slow requests (can happen after response is sent)
             if (elapsed > _slowRequestThresholdMs * 2)
             {
                 // Very slow requests (>400ms by default)

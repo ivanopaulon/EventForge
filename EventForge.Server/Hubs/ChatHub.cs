@@ -551,8 +551,26 @@ public class ChatHub : Hub
     /// </summary>
     private Guid? GetCurrentTenantId()
     {
-        var tenantIdClaim = Context.User?.FindFirst("TenantId")?.Value;
-        return Guid.TryParse(tenantIdClaim, out var tenantId) ? tenantId : null;
+        // Primary: try snake_case (matches JWT token format)
+        var tenantIdClaim = Context.User?.FindFirst("tenant_id")?.Value;
+        
+        // Fallback: try PascalCase for backward compatibility
+        if (string.IsNullOrEmpty(tenantIdClaim))
+        {
+            tenantIdClaim = Context.User?.FindFirst("TenantId")?.Value;
+        }
+        
+        if (Guid.TryParse(tenantIdClaim, out var tenantId))
+        {
+            return tenantId;
+        }
+        
+        // Additional logging for debugging
+        _logger.LogWarning(
+            "TenantId claim not found in user context. Available claims: {@Claims}",
+            Context.User?.Claims.Select(c => new { c.Type, c.Value }));
+        
+        return null;
     }
 
     /// <summary>
