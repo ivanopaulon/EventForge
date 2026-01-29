@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventForge Settings Panel</title>
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <div class="settings-container">
+        <header class="settings-header">
+            <h1>⚙️ EventForge Settings Panel</h1>
+            <p class="subtitle">Advanced Configuration Management</p>
+            <div id="user-info" class="user-info"></div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+            <button class="tab" data-tab="configuration">⚙️ Configuration</button>
+            <button class="tab" data-tab="database">🗄️ Database</button>
+            <button class="tab" data-tab="audit">📜 Audit Log</button>
+        </nav>
+
+        <div id="restart-banner" class="banner warning" style="display:none;">
+            ⚠️ <span id="restart-message">Configuration changes require server restart</span>
+            <button id="restart-now" class="btn-warning">Restart Server Now</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content active">
+            <div class="card">
+                <h2>System Status</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="label">Environment:</span>
+                        <span id="env-name" class="value">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Uptime:</span>
+                        <span id="uptime" class="value">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Database:</span>
+                        <span id="db-status" class="value">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Version:</span>
+                        <span id="version" class="value">1.0.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Quick Actions</h2>
+                <div class="actions-grid">
+                    <button class="btn-primary" onclick="switchTab('configuration')">
+                        Configure Settings
+                    </button>
+                    <button class="btn-primary" onclick="switchTab('database')">
+                        Manage Database
+                    </button>
+                    <button class="btn-primary" onclick="switchTab('audit')">
+                        View Audit Log
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Tab -->
+        <div id="configuration-tab" class="tab-content">
+            <div class="card">
+                <h2>Configuration Settings</h2>
+                <p class="help-text">
+                    Manage system configuration. Settings marked with 🔄 support hot-reload.
+                    Settings marked with ⚠️ require server restart.
+                </p>
+                <div id="config-loading" class="loading">Loading configurations...</div>
+                <div id="config-list" class="config-list"></div>
+            </div>
+        </div>
+
+        <!-- Database Tab -->
+        <div id="database-tab" class="tab-content">
+            <div class="card">
+                <h2>Database Management</h2>
+                <div id="db-info" class="db-info">
+                    <p><strong>Connection Status:</strong> <span id="db-connection-status">Checking...</span></p>
+                    <p><strong>Provider:</strong> <span id="db-provider">-</span></p>
+                    <p><strong>Database:</strong> <span id="db-name">-</span></p>
+                </div>
+                <div class="actions-grid">
+                    <button class="btn-primary" disabled>Apply Migrations</button>
+                    <button class="btn-primary" disabled>Create Backup</button>
+                    <button class="btn-warning" disabled>Reset Demo Data</button>
+                </div>
+                <p class="help-text">
+                    <strong>Note:</strong> Full database management features (migrations, bootstrap, backup/restore) 
+                    are planned for future implementation.
+                </p>
+            </div>
+        </div>
+
+        <!-- Audit Log Tab -->
+        <div id="audit-tab" class="tab-content">
+            <div class="card">
+                <h2>System Operation Audit Log</h2>
+                <div id="audit-loading" class="loading">Loading audit logs...</div>
+                <div id="audit-list" class="audit-list"></div>
+            </div>
+        </div>
+
+        <footer class="settings-footer">
+            <p>EventForge Settings Panel v1.0 | SuperAdmin Access Required</p>
+        </footer>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>

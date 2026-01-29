@@ -365,6 +365,7 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
 app.MapHub<AlertHub>("/hubs/alerts");
+app.MapHub<EventForge.Server.Hubs.ConfigurationHub>("/hubs/configuration");
 
 // FALLBACK: serve index.html for any non-file, non-API route (SPA)
 app.MapFallbackToFile("index.html");

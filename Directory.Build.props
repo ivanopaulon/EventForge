@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <!-- Reduce MSBuild console verbosity for cleaner output -->
+    <MSBuildVerbosity>minimal</MSBuildVerbosity>
+    
+    <!-- Suppress warnings that don't affect functionality -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
+    
+    <!-- Show errors and warnings but reduce other output -->
+    <ConsoleLoggerParameters>NoSummary</ConsoleLoggerParameters>
+    
+    <!-- Minimal restore output -->
+    <RestoreVerbosity>quiet</RestoreVerbosity>
+  </PropertyGroup>
+</Project>
