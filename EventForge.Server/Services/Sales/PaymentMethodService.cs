@@ -51,6 +51,7 @@ public class PaymentMethodService : IPaymentMethodService
                 async () =>
                 {
                     return await _context.PaymentMethods
+                        .AsNoTracking()
                         .Where(pm => pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
                         .OrderBy(pm => pm.DisplayOrder)
                         .ThenBy(pm => pm.Name)
@@ -96,6 +97,7 @@ public class PaymentMethodService : IPaymentMethodService
             }
 
             var query = _context.PaymentMethods
+                .AsNoTracking()
                 .Where(pm => pm.TenantId == currentTenantId.Value && pm.IsActive && !pm.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);

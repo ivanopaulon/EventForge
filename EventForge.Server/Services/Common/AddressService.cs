@@ -33,6 +33,7 @@ public class AddressService : IAddressService
             }
 
             var query = _context.Addresses
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);

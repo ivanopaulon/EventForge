@@ -797,6 +797,7 @@ public class TenantService : ITenantService
             }
 
             var query = _context.AuditTrails
+                .AsNoTracking()
                 .Include(at => at.PerformedByUser)
                 .Include(at => at.SourceTenant)
                 .Include(at => at.TargetTenant)
@@ -893,7 +894,7 @@ public class TenantService : ITenantService
             throw new UnauthorizedAccessException("Only super administrators can search tenants.");
         }
 
-        var query = _context.Tenants.AsQueryable();
+        var query = _context.Tenants.AsNoTracking().AsQueryable();
 
         // Apply filters
         if (!string.IsNullOrEmpty(searchDto.SearchTerm))
@@ -1210,6 +1211,7 @@ public class TenantService : ITenantService
     {
         // NOTE: No tenant filter - SuperAdmin sees all tenants
         var query = _context.Tenants
+            .AsNoTracking()
             .Where(t => !t.IsDeleted);
 
         var totalCount = await query.CountAsync(ct);
@@ -1255,6 +1257,7 @@ public class TenantService : ITenantService
         CancellationToken ct = default)
     {
         var query = _context.Tenants
+            .AsNoTracking()
             .Where(t => !t.IsDeleted && t.IsActive);
 
         var totalCount = await query.CountAsync(ct);

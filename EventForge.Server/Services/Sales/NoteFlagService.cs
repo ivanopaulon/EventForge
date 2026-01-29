@@ -38,6 +38,7 @@ public class NoteFlagService : INoteFlagService
             }
 
             var query = _context.NoteFlags
+                .AsNoTracking()
                 .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);

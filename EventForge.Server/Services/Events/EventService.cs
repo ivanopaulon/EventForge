@@ -34,6 +34,7 @@ public class EventService : IEventService
             }
 
             var query = _context.Events
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value));
 
@@ -73,6 +74,7 @@ public class EventService : IEventService
             }
 
             var query = _context.Events
+                .AsNoTracking()
                 .Where(e => !e.IsDeleted && e.TenantId == currentTenantId.Value)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value));
 
@@ -119,6 +121,7 @@ public class EventService : IEventService
             var end = endDate ?? startDate.AddYears(1);
 
             var query = _context.Events
+                .AsNoTracking()
                 .Where(e => !e.IsDeleted 
                     && e.TenantId == currentTenantId.Value
                     && e.StartDate >= startDate
@@ -164,6 +167,7 @@ public class EventService : IEventService
             var now = DateTime.UtcNow;
 
             var query = _context.Events
+                .AsNoTracking()
                 .Where(e => !e.IsDeleted 
                     && e.TenantId == currentTenantId.Value
                     && e.StartDate >= now);
