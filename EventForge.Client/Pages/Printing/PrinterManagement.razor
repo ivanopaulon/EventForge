@@ -1,7 +1,7 @@
 @page "/printing/printers"
 @using EventForge.DTOs.Printing
 @using EventForge.Client.Services
-@using PrinterStatus = EventForge.DTOs.Printing.PrinterStatus
+@using PrinterOperationalStatus = EventForge.DTOs.Printing.PrinterOperationalStatus
 @inject IPrintingService PrintingService
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
@@ -33,7 +33,7 @@
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
                         <MudPaper Class="pa-4 text-center">
-                            <MudText Typo="Typo.h4" Color="Color.Info">@(_discoveredPrinters?.Count(p => p.Status == PrinterStatus.Online) ?? 0)</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Info">@(_discoveredPrinters?.Count(p => p.Status == PrinterOperationalStatus.Idle || p.Status == PrinterOperationalStatus.Busy) ?? 0)</MudText>
                             <MudText Typo="Typo.body2">@TranslationService.GetTranslation("printing.onlinePrinters", "Online")</MudText>
                         </MudPaper>
                     </MudItem>
@@ -401,32 +401,32 @@ EventForge Print Test";
         _selectedPrinter = printer;
     }
 
-    private Color GetStatusColor(PrinterStatus status)
+    private Color GetStatusColor(PrinterOperationalStatus status)
     {
         return status switch
         {
-            PrinterStatus.Online => Color.Success,
-            PrinterStatus.Offline => Color.Error,
-            PrinterStatus.Error => Color.Error,
-            PrinterStatus.Busy => Color.Warning,
-            PrinterStatus.OutOfPaper => Color.Warning,
-            PrinterStatus.PaperJam => Color.Error,
-            PrinterStatus.Idle => Color.Info,
+            PrinterOperationalStatus.Idle => Color.Success,
+            PrinterOperationalStatus.Offline => Color.Error,
+            PrinterOperationalStatus.Error => Color.Error,
+            PrinterOperationalStatus.Busy => Color.Warning,
+            PrinterOperationalStatus.OutOfPaper => Color.Warning,
+            PrinterOperationalStatus.PaperJam => Color.Error,
+            PrinterOperationalStatus.OutOfToner => Color.Warning,
             _ => Color.Default
         };
     }
 
-    private string GetStatusText(PrinterStatus status)
+    private string GetStatusText(PrinterOperationalStatus status)
     {
         return status switch
         {
-            PrinterStatus.Online => TranslationService.GetTranslation("printing.statusOnline", "Online"),
-            PrinterStatus.Offline => TranslationService.GetTranslation("printing.statusOffline", "Offline"),
-            PrinterStatus.Error => TranslationService.GetTranslation("printing.statusError", "Error"),
-            PrinterStatus.Busy => TranslationService.GetTranslation("printing.statusBusy", "Busy"),
-            PrinterStatus.OutOfPaper => TranslationService.GetTranslation("printing.statusOutOfPaper", "Out of Paper"),
-            PrinterStatus.PaperJam => TranslationService.GetTranslation("printing.statusPaperJam", "Paper Jam"),
-            PrinterStatus.Idle => TranslationService.GetTranslation("printing.statusIdle", "Idle"),
+            PrinterOperationalStatus.Idle => TranslationService.GetTranslation("printing.statusIdle", "Idle"),
+            PrinterOperationalStatus.Offline => TranslationService.GetTranslation("printing.statusOffline", "Offline"),
+            PrinterOperationalStatus.Error => TranslationService.GetTranslation("printing.statusError", "Error"),
+            PrinterOperationalStatus.Busy => TranslationService.GetTranslation("printing.statusBusy", "Busy"),
+            PrinterOperationalStatus.OutOfPaper => TranslationService.GetTranslation("printing.statusOutOfPaper", "Out of Paper"),
+            PrinterOperationalStatus.PaperJam => TranslationService.GetTranslation("printing.statusPaperJam", "Paper Jam"),
+            PrinterOperationalStatus.OutOfToner => TranslationService.GetTranslation("printing.statusOutOfToner", "Out of Toner"),
             _ => TranslationService.GetTranslation("printing.statusUnknown", "Unknown")
         };
     }

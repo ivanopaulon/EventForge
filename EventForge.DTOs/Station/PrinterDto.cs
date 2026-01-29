@@ -41,7 +41,7 @@ namespace EventForge.DTOs.Station
         /// <summary>
         /// Current status of the printer.
         /// </summary>
-        public PrinterStatus Status { get; set; }
+        public PrinterConfigurationStatus Status { get; set; }
 
         /// <summary>
         /// Foreign key to the associated station (optional).

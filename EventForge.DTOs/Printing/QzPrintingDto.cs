@@ -169,7 +169,7 @@ namespace EventForge.DTOs.Printing
         /// <summary>
         /// Current printer status
         /// </summary>
-        public PrinterStatus Status { get; set; }
+        public PrinterOperationalStatus Status { get; set; }
 
         /// <summary>
         /// Detailed status information

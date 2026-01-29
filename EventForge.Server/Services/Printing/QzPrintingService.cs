@@ -115,7 +115,7 @@ public class QzPrintingService : IQzPrintingService
             {
                 Success = false,
                 ErrorMessage = ex.Message,
-                Status = EventForge.DTOs.Printing.PrinterStatus.Error
+                Status = EventForge.DTOs.Printing.PrinterOperationalStatus.Error
             };
         }
     }
@@ -341,7 +341,7 @@ public class QzPrintingService : IQzPrintingService
                             {
                                 Id = printerName,
                                 Name = printerName,
-                                Status = EventForge.DTOs.Printing.PrinterStatus.Online,
+                                Status = EventForge.DTOs.Printing.PrinterOperationalStatus.Unknown,
                                 IsAvailable = true,
                                 LastStatusUpdate = DateTime.UtcNow
                             });
@@ -359,7 +359,7 @@ public class QzPrintingService : IQzPrintingService
         }
     }
 
-    private EventForge.DTOs.Printing.PrinterStatus ParseStatusFromResponse(string response)
+    private EventForge.DTOs.Printing.PrinterOperationalStatus ParseStatusFromResponse(string response)
     {
         try
         {
@@ -368,16 +368,18 @@ public class QzPrintingService : IQzPrintingService
             if (document.RootElement.TryGetProperty("result", out var result))
             {
                 // QZ Tray returns printer status information
-                // This is a simplified implementation - real QZ status checking would be more complex
-                return EventForge.DTOs.Printing.PrinterStatus.Online;
+                // Map QZ status to our operational status enum
+                // For now, assume printers responding to status check are idle
+                // A more complete implementation would parse detailed status from QZ
+                return EventForge.DTOs.Printing.PrinterOperationalStatus.Idle;
             }
 
-            return EventForge.DTOs.Printing.PrinterStatus.Unknown;
+            return EventForge.DTOs.Printing.PrinterOperationalStatus.Unknown;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error parsing status from QZ response: {Response}", response);
-            return EventForge.DTOs.Printing.PrinterStatus.Error;
+            return EventForge.DTOs.Printing.PrinterOperationalStatus.Error;
         }
     }
 

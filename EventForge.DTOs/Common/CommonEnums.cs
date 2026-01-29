@@ -240,14 +240,15 @@ namespace EventForge.DTOs.Common
     }
 
     /// <summary>
-    /// Printer status enumeration.
+    /// Administrative/configuration status of a printer in the system.
     /// </summary>
-    public enum PrinterStatus
+    public enum PrinterConfigurationStatus
     {
-        Active,         // Printer is ready and working
-        Offline,        // Printer is offline
-        Error,          // Printer has an error
-        Suspended       // Printer is temporarily suspended
+        Active = 0,         // Printer is ready and working
+        Offline = 1,        // Printer is offline
+        Error = 2,          // Configuration error
+        Maintenance = 3,    // Printer is under maintenance
+        Suspended = 4       // Printer is temporarily suspended
     }
 
     /// <summary>
