@@ -50,7 +50,7 @@
     <PackageReference Include="MiniProfiler.EntityFrameworkCore" />
     <!-- Setup Wizard and Background Services -->
     <PackageReference Include="ncrontab" />
-    <PackageReference Include="System.Data.SqlClient" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
