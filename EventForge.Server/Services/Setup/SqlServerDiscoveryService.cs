@@ -57,7 +57,6 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
                     await connection.OpenAsync(cancellationToken);
                     
                     var version = connection.ServerVersion;
-                    await connection.CloseAsync();
 
                     if (discovered.Add(instanceName))
                     {
@@ -69,7 +68,7 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
                             Version = version
                         });
 
-                        _logger.LogInformation("Found SQL Server instance: {Instance} (version: {Version})", instanceName, version);
+                        _logger.LogInformation("Found SQL Server instance: {Instance} (Version: {Version})", instanceName, version);
                     }
                 }
                 catch (Exception ex)
@@ -96,7 +95,6 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
             using var connection = new MicrosoftSqlClient.SqlConnection(connectionString);
             
             await connection.OpenAsync(cancellationToken);
-            await connection.CloseAsync();
 
             _logger.LogInformation("Successfully connected to SQL Server: {Server}", serverAddress);
             return true;
@@ -120,6 +118,7 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
             await connection.OpenAsync(cancellationToken);
 
             // System databases (master=1, tempdb=2, model=3, msdb=4) are excluded
+            // Note: This assumes a standard SQL Server installation
             using var command = new MicrosoftSqlClient.SqlCommand("SELECT name FROM sys.databases WHERE database_id > 4 ORDER BY name", connection);
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
@@ -127,8 +126,6 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
             {
                 databases.Add(reader.GetString(0));
             }
-
-            await connection.CloseAsync();
 
             _logger.LogInformation("Found {Count} user databases on {Server}", databases.Count, serverAddress);
         }

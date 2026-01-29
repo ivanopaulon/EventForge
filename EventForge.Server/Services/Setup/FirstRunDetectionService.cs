@@ -59,7 +59,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                     
                     // Check if SetupHistories table exists and has records
                     using var command = new SqlCommand(
-                        "SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'SetupHistories') THEN 1 ELSE 0 END", 
+                        "SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'SetupHistories') THEN 1 ELSE 0 END", 
                         connection);
                     
                     var tableExists = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? 0) == 1;

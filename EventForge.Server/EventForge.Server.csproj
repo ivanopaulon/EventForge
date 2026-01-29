@@ -51,7 +51,6 @@
     <!-- Setup Wizard and Background Services -->
     <PackageReference Include="ncrontab" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
-    <PackageReference Include="System.Data.SqlClient" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
