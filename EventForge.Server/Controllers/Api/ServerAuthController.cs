@@ -111,7 +111,7 @@ public class ServerAuthController : ControllerBase
                 Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
                 Title = "Account Locked",
                 Status = StatusCodes.Status401Unauthorized,
-                Detail = $"Account is locked until {user.LockedUntil.Value:yyyy-MM-dd HH:mm:ss} UTC",
+                Detail = "Account is temporarily locked. Please try again later.",
                 Instance = HttpContext.Request.Path
             });
         }

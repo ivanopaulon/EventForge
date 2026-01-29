@@ -309,8 +309,13 @@
                 document.getElementById('version').textContent = `Version: ${serverInfo.version}`;
                 document.getElementById('uptime').textContent = formatUptime(serverInfo.uptime);
                 
+                const envElement = document.getElementById('environment');
                 const envBadge = getEnvironmentBadge(serverInfo.environment);
-                document.getElementById('environment').innerHTML = `<span class="badge ${envBadge}">${serverInfo.environment}</span>`;
+                const span = document.createElement('span');
+                span.className = `badge ${envBadge}`;
+                span.textContent = serverInfo.environment;
+                envElement.textContent = ''; // Clear existing content
+                envElement.appendChild(span);
             } catch (error) {
                 console.error('Failed to load server info:', error);
                 document.getElementById('version').textContent = 'Version: Error';
@@ -370,6 +375,11 @@
             const logoutBtn = document.getElementById('logoutBtn');
             const firstRunBanner = document.getElementById('firstRunBanner');
 
+            // Always show Swagger in Development (before first run check)
+            if (serverInfo && serverInfo.environment === 'Development') {
+                swaggerBtn.classList.remove('hidden');
+            }
+
             // First run banner
             if (isFirstRun) {
                 firstRunBanner.classList.remove('hidden');
@@ -388,7 +398,7 @@
                 logoutBtn.classList.remove('hidden');
                 loginBtn.classList.add('hidden');
 
-                // Show Swagger if SuperAdmin
+                // Show Swagger if SuperAdmin (in addition to Development check above)
                 if (userRoles.includes('SuperAdmin')) {
                     swaggerBtn.classList.remove('hidden');
                 }
@@ -397,11 +407,6 @@
                 loginBtn.classList.remove('hidden');
                 dashboardBtn.classList.add('hidden');
                 logoutBtn.classList.add('hidden');
-            }
-
-            // Always show Swagger in Development
-            if (serverInfo && serverInfo.environment === 'Development') {
-                swaggerBtn.classList.remove('hidden');
             }
         }
 

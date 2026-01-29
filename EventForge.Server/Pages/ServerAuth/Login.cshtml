@@ -265,8 +265,21 @@
                     const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard';
                     window.location.href = returnUrl;
                 } else {
-                    const errorData = await response.json();
-                    showError(errorData.detail || 'Invalid credentials');
+                    // Try to parse error response
+                    let errorMessage = 'Invalid credentials';
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.detail) {
+                            errorMessage = errorData.detail;
+                        } else if (errorData.title) {
+                            errorMessage = errorData.title;
+                        }
+                    } catch (e) {
+                        // If parsing fails, use default error message
+                        console.error('Failed to parse error response:', e);
+                    }
+                    
+                    showError(errorMessage);
                     submitBtn.disabled = false;
                     loading.classList.remove('show');
                 }

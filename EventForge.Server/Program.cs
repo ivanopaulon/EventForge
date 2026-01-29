@@ -343,55 +343,14 @@ app.UseStartupPerformanceMonitoring();
 app.UseMiddleware<EventForge.Server.Middleware.SetupWizardMiddleware>();
 
 // Configure environment-aware Swagger behavior with protection in production
-if (app.Environment.IsDevelopment())
+_ = app.UseSwagger();
+_ = app.UseSwaggerUI(c =>
 {
-    // Development: Enable Swagger at /swagger (publicly accessible)
-    _ = app.UseSwagger();
-    _ = app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
-        c.RoutePrefix = "swagger"; // Swagger available at /swagger
-        c.DocumentTitle = "EventForge API Documentation";
-        c.DisplayRequestDuration();
-    });
-}
-else
-{
-    // Production: Protect Swagger with authentication - SuperAdmin only
-    app.UseWhen(
-        context => context.Request.Path.StartsWithSegments("/swagger"),
-        appBuilder =>
-        {
-            appBuilder.Use(async (context, next) =>
-            {
-                // Check authentication
-                if (!context.User.Identity?.IsAuthenticated ?? true)
-                {
-                    context.Response.Redirect("/server/login?returnUrl=/swagger");
-                    return;
-                }
-                
-                // Check SuperAdmin role
-                if (!context.User.IsInRole("SuperAdmin"))
-                {
-                    context.Response.StatusCode = 403;
-                    await context.Response.WriteAsync("Swagger access requires SuperAdmin role");
-                    return;
-                }
-                
-                await next();
-            });
-        });
-    
-    _ = app.UseSwagger();
-    _ = app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
-        c.RoutePrefix = "swagger"; // Swagger available at /swagger
-        c.DocumentTitle = "EventForge API Documentation";
-        c.DisplayRequestDuration();
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
+    c.RoutePrefix = "swagger"; // Swagger available at /swagger
+    c.DocumentTitle = "EventForge API Documentation";
+    c.DisplayRequestDuration();
+});
 
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())
@@ -441,6 +400,35 @@ app.UseSession();
 app.UseAuthentication();
 app.UseCors();
 app.UseAuthorization();
+
+// Production: Protect Swagger with authentication - SuperAdmin only
+// Must be AFTER UseAuthentication/UseAuthorization so User principal is populated
+if (!app.Environment.IsDevelopment())
+{
+    app.UseWhen(
+        context => context.Request.Path.StartsWithSegments("/swagger"),
+        appBuilder =>
+        {
+            appBuilder.Use(async (context, next) =>
+            {
+                // Check authentication
+                if (context.User.Identity?.IsAuthenticated != true)
+                {
+                    context.Response.Redirect("/server/login?returnUrl=/swagger");
+                    return;
+                }
+                
+                // Check SuperAdmin role
+                if (!context.User.IsInRole("SuperAdmin"))
+                {
+                    context.Response.Redirect("/?error=swagger_access_denied");
+                    return;
+                }
+                
+                await next();
+            });
+        });
+}
 
 // Add authorization logging after authorization
 app.UseAuthorizationLogging();
