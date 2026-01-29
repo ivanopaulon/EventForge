@@ -73,5 +73,8 @@
     <!-- FASE 6 - Performance Monitoring -->
     <PackageVersion Include="MiniProfiler.AspNetCore.Mvc" Version="4.5.4" />
     <PackageVersion Include="MiniProfiler.EntityFrameworkCore" Version="4.5.4" />
+    <!-- Setup Wizard and Background Services -->
+    <PackageVersion Include="ncrontab" Version="3.3.3" />
+    <PackageVersion Include="System.Data.SqlClient" Version="4.9.0" />
   </ItemGroup>
 </Project>

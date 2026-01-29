@@ -22,6 +22,35 @@ public class SystemOperationLog
     public string OperationType { get; set; } = string.Empty;
 
     /// <summary>
+    /// Operation name/action.
+    /// </summary>
+    [MaxLength(100)]
+    public string? Operation { get; set; }
+
+    /// <summary>
+    /// Category of the operation (e.g., Database, Maintenance, Security).
+    /// </summary>
+    [MaxLength(50)]
+    public string? Category { get; set; }
+
+    /// <summary>
+    /// Severity level (Information, Warning, Error, Critical).
+    /// </summary>
+    [MaxLength(20)]
+    public string? Severity { get; set; }
+
+    /// <summary>
+    /// Status of the operation (Success, Failed, InProgress).
+    /// </summary>
+    [MaxLength(20)]
+    public string? Status { get; set; }
+
+    /// <summary>
+    /// Duration in milliseconds.
+    /// </summary>
+    public double? DurationMs { get; set; }
+
+    /// <summary>
     /// Type of entity affected (e.g., configuration key name, migration name).
     /// </summary>
     [MaxLength(100)]
@@ -43,9 +72,8 @@ public class SystemOperationLog
     /// <summary>
     /// Human-readable description of the operation.
     /// </summary>
-    [Required]
     [MaxLength(500)]
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; }
 
     /// <summary>
     /// Previous value before the operation (for updates).
@@ -73,6 +101,11 @@ public class SystemOperationLog
     public string? ErrorMessage { get; set; }
 
     /// <summary>
+    /// Date and time when the operation was created/logged.
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
     /// Date and time when the operation was executed.
     /// </summary>
     public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
@@ -96,3 +129,4 @@ public class SystemOperationLog
     [MaxLength(500)]
     public string? UserAgent { get; set; }
 }
+

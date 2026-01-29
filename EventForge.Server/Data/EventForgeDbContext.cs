@@ -151,6 +151,9 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<BackupOperation> BackupOperations { get; set; }
     public DbSet<JwtKeyHistory> JwtKeyHistories { get; set; }
     public DbSet<SystemOperationLog> SystemOperationLogs { get; set; }
+    public DbSet<SetupHistory> SetupHistories { get; set; }
+    public DbSet<SystemAlert> SystemAlerts { get; set; }
+    public DbSet<PerformanceLog> PerformanceLogs { get; set; }
 
     // Notification Entities
     public DbSet<Notification> Notifications { get; set; }
