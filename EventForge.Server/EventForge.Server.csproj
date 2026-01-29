@@ -50,6 +50,7 @@
     <PackageReference Include="MiniProfiler.EntityFrameworkCore" />
     <!-- Setup Wizard and Background Services -->
     <PackageReference Include="ncrontab" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="System.Data.SqlClient" />
   </ItemGroup>
   <ItemGroup>

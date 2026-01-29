@@ -1,4 +1,4 @@
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -112,7 +112,8 @@ public class SetupWizardService : ISetupWizardService
         {
             ConnectionStrings = new
             {
-                DefaultConnection = connectionString
+                DefaultConnection = connectionString,  // Primary key
+                SqlServer = connectionString           // Keep for backward compatibility
             },
             Jwt = new
             {

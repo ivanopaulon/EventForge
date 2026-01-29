@@ -185,12 +185,24 @@ public static class ServiceCollectionExtensions
 
         try
         {
+            // Try DefaultConnection first (standard key), fallback to SqlServer (legacy)
+            var connectionString = configuration.GetConnectionString("DefaultConnection") 
+                                ?? configuration.GetConnectionString("SqlServer");
+            
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "Database connection string not found. Expected 'DefaultConnection' or 'SqlServer' in ConnectionStrings section.");
+            }
+
             _ = services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
             {
-                _ = options.UseSqlServer(configuration.GetConnectionString("SqlServer"))
+                _ = options.UseSqlServer(connectionString)
                        .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
             });
-            Log.Information("DbContext configurato per SQL Server.");
+            
+            Log.Information("DbContext configured for SQL Server using connection string key: {Key}", 
+                configuration.GetConnectionString("DefaultConnection") != null ? "DefaultConnection" : "SqlServer");
         }
         catch (Exception ex)
         {
