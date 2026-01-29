@@ -101,8 +101,35 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath);
     }
 
-    // Configure custom schema IDs to avoid conflicts between classes with the same name
-    c.CustomSchemaIds(type => type.FullName);
+    // Configure custom schema IDs - simplified for better Swagger UI readability
+    // Uses simple class names for non-generic types; for generic types, creates
+    // concatenated names from the generic type and its arguments (e.g., PagedResultOfProductDto)
+    c.CustomSchemaIds(type => GetSchemaId(type));
+
+    static string GetSchemaId(Type type)
+    {
+        // Handle generic types recursively (e.g., PagedResult<T>, ActionResult<PagedResult<T>>)
+        if (type.IsGenericType)
+        {
+            var genericName = type.Name.Split('`')[0];
+            var genericArgs = string.Join("", type.GetGenericArguments().Select(t => GetSchemaId(t)));
+            return $"{genericName}Of{genericArgs}";
+        }
+        
+        // Known conflicting types: use namespace prefix to avoid Swagger schema conflicts
+        // PrinterDto exists in both EventForge.DTOs.Printing and EventForge.DTOs.Station
+        if (type.Name == "PrinterDto")
+        {
+            var namespacePrefix = type.Namespace?
+                .Replace("EventForge.DTOs.", "")
+                .Replace(".", "") ?? "";
+            return $"{namespacePrefix}{type.Name}";
+        }
+        
+        // For non-generic, non-conflicting types, use simple class name
+        // This makes Swagger UI much more readable and performant
+        return type.Name;
+    }
 
     // JWT Bearer Authentication configuration
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
