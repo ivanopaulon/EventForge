@@ -21,22 +21,10 @@ public class BusinessValidationException : EventForgeException
         ErrorCode = errorCode;
     }
     
-    public BusinessValidationException(
-        string message, 
-        Dictionary<string, List<string>> errors)
-        : base(message)
+    public BusinessValidationException(Dictionary<string, List<string>> errors) 
+        : base("Validation failed")
     {
         ErrorCode = "VALIDATION_ERROR";
         ValidationErrors = errors;
-    }
-    
-    public BusinessValidationException(string field, string error) 
-        : base($"Validation failed: {error}")
-    {
-        ErrorCode = "VALIDATION_ERROR";
-        ValidationErrors = new Dictionary<string, List<string>>
-        {
-            { field, new List<string> { error } }
-        };
     }
 }
