@@ -36,7 +36,7 @@ public class StorageFacilityService : IStorageFacilityService
     {
         try
         {
-            // TODO: Add automated tests for tenant isolation in storage facility queries
+            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
             var currentTenantId = _tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {

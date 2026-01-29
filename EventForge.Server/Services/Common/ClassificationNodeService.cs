@@ -29,7 +29,7 @@ public class ClassificationNodeService : IClassificationNodeService
     {
         try
         {
-            // TODO: Add automated tests for tenant isolation in classification node queries
+            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
             var currentTenantId = _tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {

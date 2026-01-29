@@ -499,8 +499,8 @@ public class NotificationsController : BaseApiController
                 "Starting notification export for tenant {TenantId} from {FromDate} to {ToDate} in {Format} format",
                 exportRequest.TenantId, exportRequest.FromDate, exportRequest.ToDate, exportRequest.Format);
 
-            // TODO: Implement actual export logic
-            await Task.Delay(100, cancellationToken); // Simulate export preparation
+            // STUB: Simulate export preparation - actual export logic not yet implemented
+            await Task.Delay(100, cancellationToken);
 
             var exportId = Guid.NewGuid();
             var result = new NotificationExportResultDto
@@ -545,7 +545,7 @@ public class NotificationsController : BaseApiController
         {
             _logger.LogDebug("Retrieving export status for {ExportId}", exportId);
 
-            // TODO: Implement actual export status retrieval
+            // STUB: Mock export status - actual export status retrieval not yet implemented
             await Task.Delay(10, cancellationToken);
 
             // Mock response - in real implementation, check database for export status

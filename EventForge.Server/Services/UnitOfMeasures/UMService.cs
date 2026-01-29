@@ -30,7 +30,7 @@ public class UMService : IUMService
     {
         try
         {
-            // TODO: Add automated tests for tenant isolation in UM queries
+            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
             var currentTenantId = _tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
