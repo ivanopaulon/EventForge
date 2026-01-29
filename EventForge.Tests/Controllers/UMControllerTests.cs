@@ -1,8 +1,15 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.Server.Controllers;
+using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Export;
+using EventForge.Server.Services.Interfaces;
+using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.Products;
+using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.Tenants;
 using EventForge.Server.Services.UnitOfMeasures;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -11,24 +18,50 @@ using Moq;
 namespace EventForge.Tests.Controllers;
 
 /// <summary>
-/// Unit tests for UMController pagination methods.
+/// Unit tests for ProductManagementController unit of measure methods.
 /// </summary>
 [Trait("Category", "Unit")]
-public class UMControllerTests
+public class ProductManagementControllerUMTests
 {
-    private readonly Mock<IUMService> _mockService;
+    private readonly Mock<IProductService> _mockProductService;
+    private readonly Mock<IBrandService> _mockBrandService;
+    private readonly Mock<IModelService> _mockModelService;
+    private readonly Mock<IUMService> _mockUMService;
+    private readonly Mock<IPriceListService> _mockPriceListService;
+    private readonly Mock<IPriceListGenerationService> _mockPriceListGenerationService;
+    private readonly Mock<IPriceCalculationService> _mockPriceCalculationService;
+    private readonly Mock<IPriceListBusinessPartyService> _mockPriceListBusinessPartyService;
+    private readonly Mock<IPriceListBulkOperationsService> _mockPriceListBulkOperationsService;
+    private readonly Mock<IPromotionService> _mockPromotionService;
+    private readonly Mock<IBarcodeService> _mockBarcodeService;
+    private readonly Mock<IDocumentHeaderService> _mockDocumentHeaderService;
+    private readonly Mock<IStockMovementService> _mockStockMovementService;
     private readonly Mock<ITenantContext> _mockTenantContext;
-    private readonly Mock<ILogger<UMController>> _mockLogger;
-    private readonly UMController _controller;
+    private readonly Mock<ILogger<ProductManagementController>> _mockLogger;
+    private readonly Mock<IExportService> _mockExportService;
+    private readonly ProductManagementController _controller;
     private readonly Mock<HttpContext> _mockHttpContext;
     private readonly Mock<HttpResponse> _mockResponse;
     private readonly HeaderDictionary _headers;
 
-    public UMControllerTests()
+    public ProductManagementControllerUMTests()
     {
-        _mockService = new Mock<IUMService>();
+        _mockProductService = new Mock<IProductService>();
+        _mockBrandService = new Mock<IBrandService>();
+        _mockModelService = new Mock<IModelService>();
+        _mockUMService = new Mock<IUMService>();
+        _mockPriceListService = new Mock<IPriceListService>();
+        _mockPriceListGenerationService = new Mock<IPriceListGenerationService>();
+        _mockPriceCalculationService = new Mock<IPriceCalculationService>();
+        _mockPriceListBusinessPartyService = new Mock<IPriceListBusinessPartyService>();
+        _mockPriceListBulkOperationsService = new Mock<IPriceListBulkOperationsService>();
+        _mockPromotionService = new Mock<IPromotionService>();
+        _mockBarcodeService = new Mock<IBarcodeService>();
+        _mockDocumentHeaderService = new Mock<IDocumentHeaderService>();
+        _mockStockMovementService = new Mock<IStockMovementService>();
         _mockTenantContext = new Mock<ITenantContext>();
-        _mockLogger = new Mock<ILogger<UMController>>();
+        _mockLogger = new Mock<ILogger<ProductManagementController>>();
+        _mockExportService = new Mock<IExportService>();
 
         // Setup HttpContext mock for header testing
         _headers = new HeaderDictionary();
@@ -38,10 +71,23 @@ public class UMControllerTests
         _mockHttpContext = new Mock<HttpContext>();
         _mockHttpContext.Setup(c => c.Response).Returns(_mockResponse.Object);
 
-        _controller = new UMController(
-            _mockService.Object,
+        _controller = new ProductManagementController(
+            _mockProductService.Object,
+            _mockBrandService.Object,
+            _mockModelService.Object,
+            _mockUMService.Object,
+            _mockPriceListService.Object,
+            _mockPriceListGenerationService.Object,
+            _mockPriceCalculationService.Object,
+            _mockPriceListBusinessPartyService.Object,
+            _mockPriceListBulkOperationsService.Object,
+            _mockPromotionService.Object,
+            _mockBarcodeService.Object,
+            _mockDocumentHeaderService.Object,
+            _mockStockMovementService.Object,
             _mockTenantContext.Object,
-            _mockLogger.Object)
+            _mockLogger.Object,
+            _mockExportService.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -56,7 +102,7 @@ public class UMControllerTests
     }
 
     [Fact]
-    public async Task GetUnitsOfMeasure_WithPagination_ReturnsCorrectHeaders()
+    public async Task GetUnitOfMeasures_WithPagination_ReturnsCorrectHeaders()
     {
         // Arrange
         var pagination = new PaginationParameters { Page = 1, PageSize = 20 };
@@ -67,11 +113,11 @@ public class UMControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), It.IsAny<CancellationToken>()))
+        _mockUMService.Setup(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitsOfMeasure(pagination, CancellationToken.None);
+        var result = await _controller.GetUnitOfMeasures(pagination, CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -86,7 +132,7 @@ public class UMControllerTests
     }
 
     [Fact]
-    public async Task GetUnitsOfMeasure_WithLargePageSize_ReturnsCappedHeader()
+    public async Task GetUnitOfMeasures_WithLargePageSize_ReturnsCappedHeader()
     {
         // Arrange
         var pagination = new PaginationParameters 
@@ -103,11 +149,11 @@ public class UMControllerTests
             Page = 1,
             PageSize = 1000
         };
-        _mockService.Setup(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), It.IsAny<CancellationToken>()))
+        _mockUMService.Setup(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitsOfMeasure(pagination, CancellationToken.None);
+        var result = await _controller.GetUnitOfMeasures(pagination, CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -118,7 +164,7 @@ public class UMControllerTests
     }
 
     [Fact]
-    public async Task GetUnitsOfMeasure_CallsServiceWithCorrectParameters()
+    public async Task GetUnitOfMeasures_CallsServiceWithCorrectParameters()
     {
         // Arrange
         var pagination = new PaginationParameters { Page = 2, PageSize = 50 };
@@ -129,18 +175,18 @@ public class UMControllerTests
             Page = 2,
             PageSize = 50
         };
-        _mockService.Setup(s => s.GetUMsAsync(pagination, It.IsAny<CancellationToken>()))
+        _mockUMService.Setup(s => s.GetUMsAsync(pagination, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitsOfMeasure(pagination, CancellationToken.None);
+        var result = await _controller.GetUnitOfMeasures(pagination, CancellationToken.None);
 
         // Assert
-        _mockService.Verify(s => s.GetUMsAsync(pagination, It.IsAny<CancellationToken>()), Times.Once);
+        _mockUMService.Verify(s => s.GetUMsAsync(pagination, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task GetUnitsOfMeasure_ReturnsPagedResult()
+    public async Task GetUnitOfMeasures_ReturnsPagedResult()
     {
         // Arrange
         var pagination = new PaginationParameters { Page = 1, PageSize = 20 };
@@ -156,11 +202,11 @@ public class UMControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), It.IsAny<CancellationToken>()))
+        _mockUMService.Setup(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitsOfMeasure(pagination, CancellationToken.None);
+        var result = await _controller.GetUnitOfMeasures(pagination, CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -170,7 +216,7 @@ public class UMControllerTests
     }
 
     [Fact]
-    public async Task GetUnitsOfMeasure_PassesCancellationToken()
+    public async Task GetUnitOfMeasures_PassesCancellationToken()
     {
         // Arrange
         var pagination = new PaginationParameters { Page = 1, PageSize = 20 };
@@ -182,13 +228,13 @@ public class UMControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), cancellationToken))
+        _mockUMService.Setup(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), cancellationToken))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetUnitsOfMeasure(pagination, cancellationToken);
+        var result = await _controller.GetUnitOfMeasures(pagination, cancellationToken);
 
         // Assert
-        _mockService.Verify(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), cancellationToken), Times.Once);
+        _mockUMService.Verify(s => s.GetUMsAsync(It.IsAny<PaginationParameters>(), cancellationToken), Times.Once);
     }
 }
