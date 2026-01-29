@@ -1,6 +1,7 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using EventForge.Server.Controllers;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +20,7 @@ public class BrandsControllerTests
     private readonly Mock<IBrandService> _mockService;
     private readonly Mock<ITenantContext> _mockTenantContext;
     private readonly Mock<ILogger<BrandsController>> _mockLogger;
+    private readonly Mock<ICacheInvalidationService> _mockCacheInvalidation;
     private readonly BrandsController _controller;
     private readonly Mock<HttpContext> _mockHttpContext;
     private readonly Mock<HttpResponse> _mockResponse;
@@ -29,6 +31,7 @@ public class BrandsControllerTests
         _mockService = new Mock<IBrandService>();
         _mockTenantContext = new Mock<ITenantContext>();
         _mockLogger = new Mock<ILogger<BrandsController>>();
+        _mockCacheInvalidation = new Mock<ICacheInvalidationService>();
 
         // Setup HttpContext mock for header testing
         _headers = new HeaderDictionary();
@@ -41,7 +44,8 @@ public class BrandsControllerTests
         _controller = new BrandsController(
             _mockService.Object,
             _mockTenantContext.Object,
-            _mockLogger.Object)
+            _mockLogger.Object,
+            _mockCacheInvalidation.Object)
         {
             ControllerContext = new ControllerContext
             {

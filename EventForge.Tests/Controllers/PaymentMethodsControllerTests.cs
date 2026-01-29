@@ -1,6 +1,7 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Controllers;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Sales;
 using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +20,7 @@ public class PaymentMethodsControllerTests
     private readonly Mock<IPaymentMethodService> _mockService;
     private readonly Mock<ITenantContext> _mockTenantContext;
     private readonly Mock<ILogger<PaymentMethodsController>> _mockLogger;
+    private readonly Mock<ICacheInvalidationService> _mockCacheInvalidation;
     private readonly PaymentMethodsController _controller;
     private readonly Mock<HttpContext> _mockHttpContext;
     private readonly Mock<HttpResponse> _mockResponse;
@@ -29,6 +31,7 @@ public class PaymentMethodsControllerTests
         _mockService = new Mock<IPaymentMethodService>();
         _mockTenantContext = new Mock<ITenantContext>();
         _mockLogger = new Mock<ILogger<PaymentMethodsController>>();
+        _mockCacheInvalidation = new Mock<ICacheInvalidationService>();
 
         // Setup HttpContext mock for header testing
         _headers = new HeaderDictionary();
@@ -41,7 +44,8 @@ public class PaymentMethodsControllerTests
         _controller = new PaymentMethodsController(
             _mockService.Object,
             _mockTenantContext.Object,
-            _mockLogger.Object)
+            _mockLogger.Object,
+            _mockCacheInvalidation.Object)
         {
             ControllerContext = new ControllerContext
             {

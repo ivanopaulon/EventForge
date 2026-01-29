@@ -1,5 +1,6 @@
 using EventForge.DTOs.Common;
 using EventForge.Server.Controllers;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Common;
 using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Http;
@@ -22,6 +23,7 @@ public class EntityManagementControllerTests
     private readonly Mock<IReferenceService> _mockReferenceService;
     private readonly Mock<ITenantContext> _mockTenantContext;
     private readonly Mock<ILogger<EntityManagementController>> _mockLogger;
+    private readonly Mock<ICacheInvalidationService> _mockCacheInvalidation;
     private readonly EntityManagementController _controller;
     private readonly Mock<HttpContext> _mockHttpContext;
     private readonly Mock<HttpResponse> _mockResponse;
@@ -35,6 +37,7 @@ public class EntityManagementControllerTests
         _mockReferenceService = new Mock<IReferenceService>();
         _mockTenantContext = new Mock<ITenantContext>();
         _mockLogger = new Mock<ILogger<EntityManagementController>>();
+        _mockCacheInvalidation = new Mock<ICacheInvalidationService>();
 
         // Setup HttpContext mock for header testing
         _headers = new HeaderDictionary();
@@ -50,7 +53,8 @@ public class EntityManagementControllerTests
             _mockReferenceService.Object,
             _mockClassificationNodeService.Object,
             _mockTenantContext.Object,
-            _mockLogger.Object)
+            _mockLogger.Object,
+            _mockCacheInvalidation.Object)
         {
             ControllerContext = new ControllerContext
             {

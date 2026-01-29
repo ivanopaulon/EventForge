@@ -5,6 +5,7 @@ using EventForge.DTOs.VatRates;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Tenants;
 using EventForge.Server.Services.VatRates;
 using Microsoft.AspNetCore.Http;
@@ -26,6 +27,7 @@ public class FinancialManagementControllerTests
     private readonly Mock<IVatNatureService> _mockVatNatureService;
     private readonly Mock<ITenantContext> _mockTenantContext;
     private readonly Mock<ILogger<FinancialManagementController>> _mockLogger;
+    private readonly Mock<ICacheInvalidationService> _mockCacheInvalidation;
     private readonly FinancialManagementController _controller;
     private readonly Mock<HttpContext> _mockHttpContext;
     private readonly Mock<HttpResponse> _mockResponse;
@@ -39,6 +41,7 @@ public class FinancialManagementControllerTests
         _mockVatNatureService = new Mock<IVatNatureService>();
         _mockTenantContext = new Mock<ITenantContext>();
         _mockLogger = new Mock<ILogger<FinancialManagementController>>();
+        _mockCacheInvalidation = new Mock<ICacheInvalidationService>();
 
         // Setup HttpContext mock for header testing
         _headers = new HeaderDictionary();
@@ -54,7 +57,8 @@ public class FinancialManagementControllerTests
             _mockVatRateService.Object,
             _mockVatNatureService.Object,
             _mockTenantContext.Object,
-            _mockLogger.Object)
+            _mockLogger.Object,
+            _mockCacheInvalidation.Object)
         {
             ControllerContext = new ControllerContext
             {
