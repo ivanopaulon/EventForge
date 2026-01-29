@@ -101,8 +101,24 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath);
     }
 
-    // Configure custom schema IDs to avoid conflicts between classes with the same name
-    c.CustomSchemaIds(type => type.FullName);
+    // Configure custom schema IDs - simplified for better Swagger UI readability
+    // Uses class name only for non-generic types, handles generics specially
+    c.CustomSchemaIds(type => 
+    {
+        // Handle generic types (e.g., PagedResult<T>, List<T>, ActionResult<T>)
+        if (type.IsGenericType)
+        {
+            var genericName = type.Name.Split('`')[0];
+            var genericArgs = string.Join("", type.GetGenericArguments().Select(t => t.Name));
+            return $"{genericName}Of{genericArgs}";
+        }
+        
+        // For non-generic types, use simple class name
+        // This makes Swagger UI much more readable and performant
+        // NOTE: If duplicate class names exist across namespaces, 
+        // schema conflicts may occur - use type.FullName as fallback
+        return type.Name;
+    });
 
     // JWT Bearer Authentication configuration
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
