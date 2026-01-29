@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System.Linq;
 using System.Text;
 
 namespace EventForge.Server.Startup;
@@ -56,6 +58,8 @@ public static class DependencyValidationService
         var engineField = serviceProviderType.GetField("_engine", 
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         
+        object? engine = null;
+        
         if (engineField == null)
         {
             // Try alternative approach for different service provider implementations
@@ -71,67 +75,59 @@ public static class DependencyValidationService
                         System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
                     if (engineField != null)
                     {
-                        var engine = engineField.GetValue(root);
-                        if (engine != null)
-                        {
-                            var callSiteFactoryField = engine.GetType().GetField("_callSiteFactory",
-                                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                            
-                            if (callSiteFactoryField != null)
-                            {
-                                var callSiteFactory = callSiteFactoryField.GetValue(engine);
-                                if (callSiteFactory != null)
-                                {
-                                    var descriptorsField = callSiteFactory.GetType().GetField("_descriptors",
-                                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                                    
-                                    if (descriptorsField != null)
-                                    {
-                                        var descriptors = descriptorsField.GetValue(callSiteFactory);
-                                        if (descriptors is ServiceDescriptor[] descriptorArray)
-                                        {
-                                            return descriptorArray;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        engine = engineField.GetValue(root);
                     }
                 }
             }
         }
         else
         {
-            var engine = engineField.GetValue(services);
-            if (engine != null)
+            engine = engineField.GetValue(services);
+        }
+
+        // Extract descriptors from engine if found
+        if (engine != null)
+        {
+            var descriptors = ExtractDescriptorsFromEngine(engine);
+            if (descriptors != null)
             {
-                var callSiteFactoryField = engine.GetType().GetField("_callSiteFactory",
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                
-                if (callSiteFactoryField != null)
-                {
-                    var callSiteFactory = callSiteFactoryField.GetValue(engine);
-                    if (callSiteFactory != null)
-                    {
-                        var descriptorsField = callSiteFactory.GetType().GetField("_descriptors",
-                            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                        
-                        if (descriptorsField != null)
-                        {
-                            var descriptors = descriptorsField.GetValue(callSiteFactory);
-                            if (descriptors is ServiceDescriptor[] descriptorArray)
-                            {
-                                return descriptorArray;
-                            }
-                        }
-                    }
-                }
+                return descriptors;
             }
         }
 
         // If we can't get descriptors via reflection, return empty collection
         // This will result in no validation, which is safer than throwing an error
         return Enumerable.Empty<ServiceDescriptor>();
+    }
+
+    /// <summary>
+    /// Extracts service descriptors from the engine object.
+    /// </summary>
+    private static ServiceDescriptor[]? ExtractDescriptorsFromEngine(object engine)
+    {
+        var callSiteFactoryField = engine.GetType().GetField("_callSiteFactory",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        
+        if (callSiteFactoryField != null)
+        {
+            var callSiteFactory = callSiteFactoryField.GetValue(engine);
+            if (callSiteFactory != null)
+            {
+                var descriptorsField = callSiteFactory.GetType().GetField("_descriptors",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                
+                if (descriptorsField != null)
+                {
+                    var descriptors = descriptorsField.GetValue(callSiteFactory);
+                    if (descriptors is ServiceDescriptor[] descriptorArray)
+                    {
+                        return descriptorArray;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -184,8 +180,8 @@ public static class DependencyValidationService
 
                 if (constructors.Length > 0)
                 {
-                    // Use the first constructor (DI typically uses the most specific one)
-                    // In production, we might want to use the longest constructor
+                    // Use the constructor with the most parameters
+                    // DI containers typically select the longest constructor
                     var constructor = constructors.OrderByDescending(c => c.GetParameters().Length).First();
                     var parameters = constructor.GetParameters();
 
@@ -218,12 +214,13 @@ public static class DependencyValidationService
         var cycles = new List<List<Type>>();
         var visited = new HashSet<Type>();
         var recursionStack = new Stack<Type>();
+        var recursionSet = new HashSet<Type>(); // For O(1) cycle detection
 
         foreach (var node in graph.Keys)
         {
             if (!visited.Contains(node))
             {
-                DetectCyclesDFS(node, graph, visited, recursionStack, cycles);
+                DetectCyclesDFS(node, graph, visited, recursionStack, recursionSet, cycles);
             }
         }
 
@@ -238,10 +235,12 @@ public static class DependencyValidationService
         Dictionary<Type, List<Type>> graph,
         HashSet<Type> visited,
         Stack<Type> recursionStack,
+        HashSet<Type> recursionSet,
         List<List<Type>> cycles)
     {
         visited.Add(current);
         recursionStack.Push(current);
+        recursionSet.Add(current);
 
         if (graph.TryGetValue(current, out var dependencies))
         {
@@ -250,9 +249,9 @@ public static class DependencyValidationService
                 if (!visited.Contains(dependency))
                 {
                     DetectCyclesDFS(dependency, graph, visited,
-                        recursionStack, cycles);
+                        recursionStack, recursionSet, cycles);
                 }
-                else if (recursionStack.Contains(dependency))
+                else if (recursionSet.Contains(dependency))
                 {
                     // Cycle detected! Extract cycle path
                     var cycle = ExtractCycle(recursionStack, dependency);
@@ -267,6 +266,7 @@ public static class DependencyValidationService
         }
 
         recursionStack.Pop();
+        recursionSet.Remove(current);
     }
 
     /// <summary>
