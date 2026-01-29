@@ -3020,8 +3020,8 @@ public class ProductManagementController : BaseApiController
             var avgPurchasePrice = purchasePrices.Any() ? purchasePrices.Average() : 0;
 
             // Calculate weighted average purchase price (by quantity)
-            var totalPurchaseValue = purchasePricesList.Sum(p => p.Price * p.Quantity);
-            var totalPurchaseQuantity = purchasePricesList.Sum(p => p.Quantity);
+            var totalPurchaseValue = purchasePricesList.Sum(p => p.Price * (p.Quantity ?? 0));
+            var totalPurchaseQuantity = purchasePricesList.Sum(p => p.Quantity ?? 0);
             var currentAvgPurchasePrice = totalPurchaseQuantity > 0 ? totalPurchaseValue / totalPurchaseQuantity : 0;
 
             // Calculate statistics for sale prices
@@ -3031,8 +3031,8 @@ public class ProductManagementController : BaseApiController
             var avgSalePrice = salePrices.Any() ? salePrices.Average() : 0;
 
             // Calculate weighted average sale price (by quantity)
-            var totalSaleValue = salePricesList.Sum(p => p.Price * p.Quantity);
-            var totalSaleQuantity = salePricesList.Sum(p => p.Quantity);
+            var totalSaleValue = salePricesList.Sum(p => p.Price * (p.Quantity ?? 0));
+            var totalSaleQuantity = salePricesList.Sum(p => p.Quantity ?? 0);
             var currentAvgSalePrice = totalSaleQuantity > 0 ? totalSaleValue / totalSaleQuantity : 0;
 
             var trendDto = new PriceTrendDto
