@@ -605,8 +605,25 @@ app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
 app.MapHub<AlertHub>("/hubs/alerts");
 app.MapHub<EventForge.Server.Hubs.ConfigurationHub>("/hubs/configuration");
 
-// FALLBACK: serve index.html for any non-file, non-API route (SPA)
-app.MapFallbackToFile("index.html");
+// FALLBACK: serve index.html for client SPA routes ONLY
+// Exclude Razor Pages routes (/Dashboard, /ServerAuth, /Setup, /settings)
+app.MapWhen(
+    context => !context.Request.Path.StartsWithSegments("/Dashboard") &&
+               !context.Request.Path.StartsWithSegments("/ServerAuth") &&
+               !context.Request.Path.StartsWithSegments("/Setup") &&
+               !context.Request.Path.StartsWithSegments("/settings") &&
+               !context.Request.Path.StartsWithSegments("/api") &&
+               !context.Request.Path.StartsWithSegments("/hubs") &&
+               !context.Request.Path.StartsWithSegments("/health") &&
+               !context.Request.Path.StartsWithSegments("/swagger"),
+    appBuilder =>
+    {
+        appBuilder.UseRouting();
+        appBuilder.UseEndpoints(endpoints =>
+        {
+            endpoints.MapFallbackToFile("index.html");
+        });
+    });
 
 app.Run();
 
