@@ -351,9 +351,20 @@ public class SettingsController : BaseApiController
                 {
                     // Update ConnectionStrings
                     var existingCs = property.Value;
-                    var logDb = existingCs.TryGetProperty("LogDb", out var logDbProp) 
-                        ? logDbProp.GetString() 
-                        : newConnectionString.Replace(request.DatabaseName, "EventLogger");
+                    
+                    // Derive LogDb connection string properly using SqlConnectionStringBuilder
+                    string logDb;
+                    if (existingCs.TryGetProperty("LogDb", out var logDbProp))
+                    {
+                        logDb = logDbProp.GetString() ?? newConnectionString;
+                    }
+                    else
+                    {
+                        // Create LogDb connection string with different database name
+                        var logDbBuilder = new SqlConnectionStringBuilder(newConnectionString);
+                        logDbBuilder.InitialCatalog = "EventLogger";
+                        logDb = logDbBuilder.ConnectionString;
+                    }
                     
                     var redis = existingCs.TryGetProperty("Redis", out var redisProp)
                         ? redisProp.GetString()

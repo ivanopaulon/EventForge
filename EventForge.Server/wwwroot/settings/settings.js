@@ -335,14 +335,14 @@ async function loadConfigurationForm() {
         const config = await apiCall('/file');
         
         if (config && config.configured) {
-            // Populate form
-            document.getElementById('server-address').value = config.database.serverAddress || '';
-            document.getElementById('database-name').value = config.database.databaseName || '';
-            document.getElementById('auth-type').value = config.database.authenticationType || 'SQL';
-            document.getElementById('username').value = config.database.username || '';
-            document.getElementById('trust-cert').checked = config.database.trustServerCertificate !== false;
-            document.getElementById('enforce-https').checked = config.security.enforceHttps !== false;
-            document.getElementById('enable-hsts').checked = config.security.enableHsts !== false;
+            // Populate form with null checks
+            document.getElementById('server-address').value = config.database?.serverAddress || '';
+            document.getElementById('database-name').value = config.database?.databaseName || '';
+            document.getElementById('auth-type').value = config.database?.authenticationType || 'SQL';
+            document.getElementById('username').value = config.database?.username || '';
+            document.getElementById('trust-cert').checked = config.database?.trustServerCertificate !== false;
+            document.getElementById('enforce-https').checked = config.security?.enforceHttps !== false;
+            document.getElementById('enable-hsts').checked = config.security?.enableHsts !== false;
             
             toggleAuthFields();
         }
@@ -373,9 +373,23 @@ async function testConnection() {
     btn.textContent = '🔄 Testing...';
     resultDiv.style.display = 'none';
     
+    // Validate required fields
+    const serverAddress = document.getElementById('server-address').value.trim();
+    const databaseName = document.getElementById('database-name').value.trim();
+    
+    if (!serverAddress || !databaseName) {
+        resultDiv.className = 'alert alert-error';
+        resultDiv.innerHTML = '❌ Server address and database name are required';
+        resultDiv.style.display = 'block';
+        saveBtn.disabled = true;
+        btn.disabled = false;
+        btn.textContent = '🔌 Test Connection';
+        return;
+    }
+    
     const requestData = {
-        serverAddress: document.getElementById('server-address').value,
-        databaseName: document.getElementById('database-name').value,
+        serverAddress: serverAddress,
+        databaseName: databaseName,
         authenticationType: document.getElementById('auth-type').value,
         username: document.getElementById('username').value,
         password: document.getElementById('password').value,
@@ -384,6 +398,14 @@ async function testConnection() {
     
     try {
         const result = await apiCall('/test-connection', 'POST', requestData);
+        
+        if (!result) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.innerHTML = '❌ Authentication required. Please login.';
+            resultDiv.style.display = 'block';
+            saveBtn.disabled = true;
+            return;
+        }
         
         if (result.success) {
             resultDiv.className = 'alert alert-success';
@@ -409,6 +431,18 @@ async function testConnection() {
 
 // Save configuration
 async function saveConfiguration() {
+    // Validate required fields first
+    const serverAddress = document.getElementById('server-address').value.trim();
+    const databaseName = document.getElementById('database-name').value.trim();
+    
+    if (!serverAddress || !databaseName) {
+        const resultDiv = document.getElementById('save-result');
+        resultDiv.className = 'alert alert-error';
+        resultDiv.innerHTML = '❌ Server address and database name are required';
+        resultDiv.style.display = 'block';
+        return;
+    }
+    
     if (!confirm('This will save the configuration to appsettings.json. A server restart will be required. Continue?')) {
         return;
     }
@@ -422,8 +456,8 @@ async function saveConfiguration() {
     resultDiv.style.display = 'none';
     
     const requestData = {
-        serverAddress: document.getElementById('server-address').value,
-        databaseName: document.getElementById('database-name').value,
+        serverAddress: serverAddress,
+        databaseName: databaseName,
         authenticationType: document.getElementById('auth-type').value,
         username: document.getElementById('username').value,
         password: document.getElementById('password').value,
@@ -434,6 +468,13 @@ async function saveConfiguration() {
     
     try {
         const result = await apiCall('/save', 'POST', requestData);
+        
+        if (!result) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.innerHTML = '❌ Authentication required. Please login.';
+            resultDiv.style.display = 'block';
+            return;
+        }
         
         if (result.success) {
             resultDiv.className = 'alert alert-success';
