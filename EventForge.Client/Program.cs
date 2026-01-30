@@ -55,12 +55,20 @@ builder.Services.AddMudServices(config =>
 // Add Blazored LocalStorage for state persistence
 builder.Services.AddBlazoredLocalStorage();
 
-// Add memory cache for performance optimization
+// ════════════════════════════════════════════════════════════════
+// Configure MemoryCache for client-side caching of lookup tables
+// ════════════════════════════════════════════════════════════════
+
 builder.Services.AddMemoryCache(options =>
 {
-    // Configure cache for mobile-optimized performance
-    options.SizeLimit = 50 * 1024 * 1024; // 50MB limit for mobile devices
-    options.CompactionPercentage = 0.25; // Remove 25% of cache when limit is reached
+    // Maximum 100 cached items across all cache entries
+    options.SizeLimit = 100;
+    
+    // When size limit is reached, remove 25% of least recently used entries
+    options.CompactionPercentage = 0.25;
+    
+    // Scan for expired entries every 5 minutes
+    options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
 });
 
 // Add centralized HTTP client service
