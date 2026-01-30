@@ -7,8 +7,8 @@ let authToken = null;
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Settings Panel Initializing...');
     
-    // Get JWT token from localStorage or session
-    authToken = localStorage.getItem('jwt_token') || sessionStorage.getItem('jwt_token');
+    // Get JWT token from localStorage or session (same key as used in login/logout)
+    authToken = localStorage.getItem('serverToken') || sessionStorage.getItem('serverToken');
     
     if (!authToken) {
         showError('Authentication required. Please login as SuperAdmin.');

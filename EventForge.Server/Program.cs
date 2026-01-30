@@ -431,9 +431,11 @@ app.UsePerformanceTelemetry();
 app.UseRateLimiter();
 
 // Serve default document (index.html) and static files from wwwroot
-// UseDefaultFiles enables serving index.html when requesting the site root.
-// MapFallbackToFile below ensures client-side routes are handled by index.html.
-app.UseDefaultFiles();
+// Configure default files to serve index.html from subdirectories too
+var defaultFilesOptions = new DefaultFilesOptions();
+defaultFilesOptions.DefaultFileNames.Clear();
+defaultFilesOptions.DefaultFileNames.Add("index.html");
+app.UseDefaultFiles(defaultFilesOptions);
 app.UseStaticFiles();
 
 // Enable session support for wizard state
