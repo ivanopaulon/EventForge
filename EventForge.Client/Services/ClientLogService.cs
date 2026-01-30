@@ -135,7 +135,6 @@ namespace EventForge.Client.Services
             {
                 // Fallback to local console logging if service fails
                 _logger?.LogError(ex, "Failed to process client log: {Message}", clientLog.Message);
-                Console.WriteLine($"[CLIENT LOG ERROR] {ex.Message}: {clientLog.Message}");
             }
         }
 
@@ -341,33 +340,27 @@ namespace EventForge.Client.Services
                 var httpClient = await GetAuthenticatedHttpClientAsync();
 
                 // Log the request details for debugging
-                Console.WriteLine($"[CLIENT LOG] Sending single log to {httpClient.BaseAddress}api/ClientLogs");
+                _logger?.LogTrace("Sending client log to api/ClientLogs");
 
                 var response = await httpClient.PostAsJsonAsync("api/ClientLogs", clientLog);
-
-                // Log the response for debugging
-                Console.WriteLine($"[CLIENT LOG] Response status: {response.StatusCode}");
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[CLIENT LOG] Response content: {content}");
+                    _logger?.LogWarning("Client log failed: {StatusCode} - {Content}", 
+                        response.StatusCode, content);
                 }
 
                 _ = response.EnsureSuccessStatusCode();
             }
             catch (HttpRequestException ex)
             {
-                // Log to console for debugging since server logging failed
-                Console.WriteLine($"[CLIENT LOG] HTTP error sending log to server: {ex.Message}");
-                Console.WriteLine($"[CLIENT LOG] Exception details: {ex}");
+                _logger?.LogError(ex, "HTTP error sending client log to server");
                 throw new Exception($"Failed to send log to server: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
-                // Log to console for debugging since server logging failed
-                Console.WriteLine($"[CLIENT LOG] Error sending log to server: {ex.Message}");
-                Console.WriteLine($"[CLIENT LOG] Exception details: {ex}");
+                _logger?.LogError(ex, "Error sending client log to server");
                 throw new Exception($"Failed to send log to server: {ex.Message}", ex);
             }
         }
@@ -382,33 +375,27 @@ namespace EventForge.Client.Services
                 var batchRequest = new ClientLogBatchDto { Logs = logs };
 
                 // Log the request details for debugging
-                Console.WriteLine($"[CLIENT LOG] Sending batch of {logs.Count} logs to {httpClient.BaseAddress}api/ClientLogs/batch");
+                _logger?.LogTrace("Sending batch of {Count} client logs to server", logs.Count);
 
                 var response = await httpClient.PostAsJsonAsync("api/ClientLogs/batch", batchRequest);
-
-                // Log the response for debugging
-                Console.WriteLine($"[CLIENT LOG] Response status: {response.StatusCode}");
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[CLIENT LOG] Response content: {content}");
+                    _logger?.LogWarning("Client log batch failed: {StatusCode} - {Content}", 
+                        response.StatusCode, content);
                 }
 
                 _ = response.EnsureSuccessStatusCode();
             }
             catch (HttpRequestException ex)
             {
-                // Log to console for debugging since server logging failed
-                Console.WriteLine($"[CLIENT LOG] HTTP error sending batch of {logs.Count} logs to server: {ex.Message}");
-                Console.WriteLine($"[CLIENT LOG] Exception details: {ex}");
+                _logger?.LogError(ex, "HTTP error sending client log batch ({Count} logs)", logs.Count);
                 throw new Exception($"Failed to send log batch to server: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
-                // Log to console for debugging since server logging failed
-                Console.WriteLine($"[CLIENT LOG] Error sending batch of {logs.Count} logs to server: {ex.Message}");
-                Console.WriteLine($"[CLIENT LOG] Exception details: {ex}");
+                _logger?.LogError(ex, "Error sending client log batch ({Count} logs)", logs.Count);
                 throw new Exception($"Failed to send log batch to server: {ex.Message}", ex);
             }
         }
