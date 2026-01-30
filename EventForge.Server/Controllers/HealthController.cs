@@ -1,3 +1,7 @@
+using EventForge.DTOs.Health;
+using EventForge.Server.Data;
+using EventForge.Server.Services;
+using EventForge.Server.Services.Performance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
