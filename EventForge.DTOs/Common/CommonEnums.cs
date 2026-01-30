@@ -614,27 +614,27 @@ namespace EventForge.DTOs.Common
         /// Nessun arrotondamento
         /// </summary>
         None = 0,
-        
+
         /// <summary>
         /// Arrotonda ai 5 centesimi più vicini (es. 10.37 → 10.35)
         /// </summary>
         ToNearest5Cents = 1,
-        
+
         /// <summary>
         /// Arrotonda ai 10 centesimi più vicini (es. 10.37 → 10.40)
         /// </summary>
         ToNearest10Cents = 2,
-        
+
         /// <summary>
         /// Arrotonda ai 50 centesimi più vicini (es. 10.37 → 10.50)
         /// </summary>
         ToNearest50Cents = 3,
-        
+
         /// <summary>
         /// Arrotonda all'euro più vicino (es. 10.37 → 10.00)
         /// </summary>
         ToNearestEuro = 4,
-        
+
         /// <summary>
         /// Arrotonda a X.99 (es. 10.37 → 9.99)
         /// </summary>
@@ -650,29 +650,29 @@ namespace EventForge.DTOs.Common
         /// Ultimo prezzo di acquisto (più recente cronologicamente)
         /// </summary>
         LastPurchasePrice = 0,
-        
+
         /// <summary>
         /// Prezzo medio ponderato per quantità
         /// Formula: Sum(Price * Quantity) / Sum(Quantity)
         /// </summary>
         WeightedAveragePrice = 1,
-        
+
         /// <summary>
         /// Prezzo medio semplice (media aritmetica)
         /// Formula: Sum(Price) / Count(Price)
         /// </summary>
         SimpleAveragePrice = 2,
-        
+
         /// <summary>
         /// Prezzo più basso trovato nei documenti
         /// </summary>
         LowestPrice = 3,
-        
+
         /// <summary>
         /// Prezzo più alto trovato nei documenti
         /// </summary>
         HighestPrice = 4,
-        
+
         /// <summary>
         /// Prezzo mediano (valore centrale della distribuzione)
         /// </summary>
@@ -688,27 +688,27 @@ namespace EventForge.DTOs.Common
         /// Increase price by percentage (es. +10%)
         /// </summary>
         IncreaseByPercentage = 1,
-        
+
         /// <summary>
         /// Decrease price by percentage (es. -10%)
         /// </summary>
         DecreaseByPercentage = 2,
-        
+
         /// <summary>
         /// Increase price by fixed amount (es. +5.00)
         /// </summary>
         IncreaseByAmount = 3,
-        
+
         /// <summary>
         /// Decrease price by fixed amount (es. -5.00)
         /// </summary>
         DecreaseByAmount = 4,
-        
+
         /// <summary>
         /// Set a fixed price for all items
         /// </summary>
         SetFixedPrice = 5,
-        
+
         /// <summary>
         /// Multiply price by a factor (es. *1.5)
         /// </summary>

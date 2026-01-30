@@ -1,11 +1,9 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Notifications;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Controllers;

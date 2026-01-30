@@ -132,15 +132,15 @@ namespace EventForge.Client.Services
         }
 
         public async Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(
-            Guid id, 
-            bool includeInactive = false, 
+            Guid id,
+            bool includeInactive = false,
             CancellationToken ct = default)
         {
             try
             {
                 var url = $"api/v1/businessparties/{id}/full-detail?includeInactive={includeInactive}";
                 _logger.LogInformation("Fetching full detail for BusinessParty {Id} from {Url}", id, url);
-                
+
                 return await _httpClientService.GetAsync<BusinessPartyFullDetailDto>(url, ct);
             }
             catch (Exception ex)

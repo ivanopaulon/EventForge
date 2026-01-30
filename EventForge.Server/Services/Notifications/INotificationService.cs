@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Notifications;
 
 namespace EventForge.Server.Services.Notifications;

@@ -37,7 +37,7 @@ public class SetupWizardMiddleware
         }
 
         var isSetupComplete = await firstRunDetection.IsSetupCompleteAsync();
-        
+
         if (!isSetupComplete)
         {
             context.Response.Redirect("/setup");

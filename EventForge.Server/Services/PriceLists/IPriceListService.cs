@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 
 namespace EventForge.Server.Services.PriceLists;

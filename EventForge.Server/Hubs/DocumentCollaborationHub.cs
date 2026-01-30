@@ -100,7 +100,7 @@ public class DocumentCollaborationHub : Hub
                 documentId, userName);
             throw new HubException("User not authenticated");
         }
-        
+
         // Add tenant validation
         if (!tenantId.HasValue)
         {
@@ -145,7 +145,7 @@ public class DocumentCollaborationHub : Hub
                     documentId, userName);
 
                 var lockInfo = await _documentHeaderService.GetLockInfoAsync(documentId);
-                
+
                 if (lockInfo != null)
                 {
                     throw new HubException(
@@ -254,8 +254,8 @@ public class DocumentCollaborationHub : Hub
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, 
-                "Failed to join document {DocumentId} for user {UserId}", 
+            _logger.LogError(ex,
+                "Failed to join document {DocumentId} for user {UserId}",
                 documentId, userId.Value);
             throw new HubException("Errore durante la connessione al documento. Riprova.");
         }
@@ -631,23 +631,23 @@ public class DocumentCollaborationHub : Hub
     {
         // Primary: try snake_case (matches JWT token format)
         var tenantIdClaim = Context.User?.FindFirst("tenant_id")?.Value;
-        
+
         // Fallback: try PascalCase for backward compatibility
         if (string.IsNullOrEmpty(tenantIdClaim))
         {
             tenantIdClaim = Context.User?.FindFirst("TenantId")?.Value;
         }
-        
+
         if (Guid.TryParse(tenantIdClaim, out var tenantId))
         {
             return tenantId;
         }
-        
+
         // Additional logging for debugging (only log claim types, not values)
         _logger.LogWarning(
             "TenantId claim not found in user context. Available claim types: {ClaimTypes}",
             string.Join(", ", Context.User?.Claims.Select(c => c.Type) ?? Enumerable.Empty<string>()));
-        
+
         return null;
     }
 

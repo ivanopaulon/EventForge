@@ -1,11 +1,7 @@
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
-using EventForge.DTOs.Auth;
 
 namespace EventForge.Server.Controllers.Api;
 
@@ -127,7 +123,7 @@ public class ServerAuthController : ControllerBase
         {
             // Increment failed login attempts
             user.FailedLoginAttempts++;
-            
+
             // Lock account after 5 failed attempts
             if (user.FailedLoginAttempts >= 5)
             {

@@ -15,7 +15,7 @@ public class DocumentTypeService : IDocumentTypeService
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<DocumentTypeService> _logger;
     private readonly ICacheService _cacheService;
-    
+
     private const string CACHE_KEY_ALL = "DocumentTypes_All";
 
     /// <summary>

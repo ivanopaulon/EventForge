@@ -1,8 +1,8 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Controllers;
-using EventForge.Server.Services.Warehouse;
 using EventForge.Server.Services.Tenants;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -91,9 +91,9 @@ public class LotsControllerTests
     public async Task GetLots_WithLargePageSize_ReturnsCappedHeader()
     {
         // Arrange
-        var pagination = new PaginationParameters 
-        { 
-            Page = 1, 
+        var pagination = new PaginationParameters
+        {
+            Page = 1,
             PageSize = 100,
             WasCapped = true,
             AppliedMaxPageSize = 50

@@ -1,5 +1,3 @@
-using System;
-
 namespace EventForge.DTOs.Warehouse;
 
 public class InventoryAutoRepairOptionsDto

@@ -56,13 +56,13 @@ public static class DocumentRowDialogConstants
         /// <summary>
         /// Keywords that indicate purchase-type documents
         /// </summary>
-        public static readonly string[] Purchase = 
+        public static readonly string[] Purchase =
             { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
 
         /// <summary>
         /// Keywords that indicate sale-type documents
         /// </summary>
-        public static readonly string[] Sale = 
+        public static readonly string[] Sale =
             { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
     }
 

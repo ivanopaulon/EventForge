@@ -65,10 +65,10 @@ public class ProfileController : BaseApiController
             }
 
             var profileDto = MapToProfileDto(user);
-            
+
             // Load DisplayPreferences from MetadataJson
             profileDto.DisplayPreferences = LoadDisplayPreferencesFromMetadata(user);
-            
+
             return Ok(profileDto);
         }
         catch (Exception ex)
@@ -134,7 +134,7 @@ public class ProfileController : BaseApiController
             if (updateDto.DisplayPreferences != null)
             {
                 Dictionary<string, object> metadata;
-                
+
                 if (string.IsNullOrEmpty(user.MetadataJson))
                 {
                     metadata = new Dictionary<string, object>();
@@ -143,7 +143,7 @@ public class ProfileController : BaseApiController
                 {
                     try
                     {
-                        metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(user.MetadataJson) 
+                        metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(user.MetadataJson)
                                    ?? new Dictionary<string, object>();
                     }
                     catch
@@ -154,7 +154,7 @@ public class ProfileController : BaseApiController
 
                 metadata["DisplayPreferences"] = updateDto.DisplayPreferences;
                 user.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
-                
+
                 _logger.LogInformation("Updated DisplayPreferences for user {UserId}", userId);
             }
 
@@ -163,10 +163,10 @@ public class ProfileController : BaseApiController
             _logger.LogInformation("User {UserId} updated their profile", userId.Value);
 
             var profileDto = MapToProfileDto(user);
-            
+
             // Load DisplayPreferences from MetadataJson for the return value
             profileDto.DisplayPreferences = LoadDisplayPreferencesFromMetadata(user);
-            
+
             return Ok(profileDto);
         }
         catch (Exception ex)
@@ -777,29 +777,29 @@ public class ProfileController : BaseApiController
         try
         {
             var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(user.MetadataJson);
-            
+
             if (metadata?.ContainsKey("DisplayPreferences") == true)
             {
                 var displayPrefs = System.Text.Json.JsonSerializer.Deserialize<UserDisplayPreferencesDto>(
                     metadata["DisplayPreferences"].GetRawText());
-                
+
                 if (displayPrefs != null)
                 {
                     // Backward compatibility: ensure defaults for new fields
                     if (string.IsNullOrEmpty(displayPrefs.HeadingsFont))
                         displayPrefs.HeadingsFont = "Noto Sans Display";
-                    
+
                     if (string.IsNullOrEmpty(displayPrefs.BodyFont))
                     {
                         // Migrate from PrimaryFontFamily if present
-                        displayPrefs.BodyFont = !string.IsNullOrEmpty(displayPrefs.PrimaryFontFamily) 
-                            ? displayPrefs.PrimaryFontFamily 
+                        displayPrefs.BodyFont = !string.IsNullOrEmpty(displayPrefs.PrimaryFontFamily)
+                            ? displayPrefs.PrimaryFontFamily
                             : "Noto Sans";
                     }
-                    
+
                     if (string.IsNullOrEmpty(displayPrefs.ContentFont))
                         displayPrefs.ContentFont = "Noto Serif";
-                    
+
                     if (string.IsNullOrEmpty(displayPrefs.MonospaceFont))
                     {
                         // Migrate from MonospaceFontFamily if present
@@ -807,11 +807,11 @@ public class ProfileController : BaseApiController
                             ? displayPrefs.MonospaceFontFamily
                             : "Noto Sans Mono";
                     }
-                    
+
                     if (displayPrefs.BaseFontSize < 12 || displayPrefs.BaseFontSize > 24)
                         displayPrefs.BaseFontSize = 16;
                 }
-                
+
                 return displayPrefs;
             }
         }

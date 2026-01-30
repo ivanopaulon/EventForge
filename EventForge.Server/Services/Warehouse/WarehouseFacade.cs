@@ -1,11 +1,7 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Export;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Export;
 using EventForge.Server.Services.Products;
@@ -432,7 +428,7 @@ public class WarehouseFacade : IWarehouseFacade
     {
         var vat = await _context.VatRates
             .FirstOrDefaultAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
-        
+
         if (vat == null)
             return null;
 
@@ -448,14 +444,14 @@ public class WarehouseFacade : IWarehouseFacade
             throw new InvalidOperationException($"Row {existingRowId} not found");
 
         rowEntity.Quantity = newQuantity;
-        
+
         if (!string.IsNullOrWhiteSpace(additionalNotes))
         {
             rowEntity.Notes = string.IsNullOrWhiteSpace(rowEntity.Notes)
                 ? additionalNotes
                 : $"{rowEntity.Notes}; {additionalNotes}";
         }
-        
+
         rowEntity.ModifiedAt = DateTime.UtcNow;
         rowEntity.ModifiedBy = currentUser;
 
@@ -674,7 +670,7 @@ public class WarehouseFacade : IWarehouseFacade
             .ToListAsync(cancellationToken);
 
         var now = DateTime.UtcNow;
-        
+
         foreach (var doc in documents)
         {
             var update = updates.FirstOrDefault(u => u.DocumentId == doc.Id);

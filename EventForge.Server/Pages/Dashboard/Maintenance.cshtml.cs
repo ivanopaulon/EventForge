@@ -1,6 +1,4 @@
-using EventForge.Server.Data;
 using EventForge.Server.Data.Entities;
-using EventForge.Server.Data.Entities.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -44,7 +42,7 @@ public class MaintenanceModel : PageModel
         IsMaintenanceMode = configDict.TryGetValue("MaintenanceMode", out var mm) && mm == "true";
         MaintenanceMessage = configDict.TryGetValue("MaintenanceMessage", out var msg) ? msg : string.Empty;
         LogRetentionDays = configDict.TryGetValue("LogRetentionDays", out var lrd) && int.TryParse(lrd, out var days) ? days : 30;
-        
+
         var nextCleanup = configDict.TryGetValue("NextLogCleanup", out var nlc) ? nlc : null;
         if (!string.IsNullOrEmpty(nextCleanup) && DateTime.TryParse(nextCleanup, out var dt))
         {
@@ -66,7 +64,7 @@ public class MaintenanceModel : PageModel
     {
         var mmConfig = await _context.Set<SystemConfiguration>()
             .FirstOrDefaultAsync(c => c.Key == "MaintenanceMode");
-        
+
         if (mmConfig != null)
         {
             mmConfig.Value = enabled.ToString().ToLower();
@@ -83,7 +81,7 @@ public class MaintenanceModel : PageModel
 
         var msgConfig = await _context.Set<SystemConfiguration>()
             .FirstOrDefaultAsync(c => c.Key == "MaintenanceMessage");
-        
+
         if (msgConfig != null)
         {
             msgConfig.Value = message ?? string.Empty;
@@ -114,7 +112,7 @@ public class MaintenanceModel : PageModel
 
         var lrConfig = await _context.Set<SystemConfiguration>()
             .FirstOrDefaultAsync(c => c.Key == "LogRetentionDays");
-        
+
         if (lrConfig != null)
         {
             lrConfig.Value = retentionDays.ToString();
@@ -139,7 +137,7 @@ public class MaintenanceModel : PageModel
     {
         var lrConfig = await _context.Set<SystemConfiguration>()
             .FirstOrDefaultAsync(c => c.Key == "LogRetentionDays");
-        
+
         var retentionDays = 30;
         if (lrConfig != null && int.TryParse(lrConfig.Value, out var days))
         {
@@ -153,7 +151,7 @@ public class MaintenanceModel : PageModel
 
         var ncConfig = await _context.Set<SystemConfiguration>()
             .FirstOrDefaultAsync(c => c.Key == "NextLogCleanup");
-        
+
         var nextCleanup = DateTime.UtcNow.AddDays(1).ToString("o");
         if (ncConfig != null)
         {
@@ -192,7 +190,7 @@ public class MaintenanceModel : PageModel
         try
         {
             await _context.Database.ExecuteSqlRawAsync("DBCC UPDATEUSAGE(0) WITH NO_INFOMSGS");
-            
+
             TempData["SuccessMessage"] = "Database optimization completed successfully.";
         }
         catch (Exception ex)

@@ -1,5 +1,5 @@
-using MicrosoftSqlClient = Microsoft.Data.SqlClient;  // For actual connections
 using EventForge.DTOs.Setup;
+using MicrosoftSqlClient = Microsoft.Data.SqlClient;  // For actual connections
 
 namespace EventForge.Server.Services.Setup;
 
@@ -53,9 +53,9 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
                     // Test connection with Windows Auth
                     var connectionString = BuildConnectionString(instanceName, new SqlCredentials { AuthenticationType = "Windows" });
                     using var connection = new MicrosoftSqlClient.SqlConnection(connectionString);
-                    
+
                     await connection.OpenAsync(cancellationToken);
-                    
+
                     var version = connection.ServerVersion;
 
                     if (discovered.Add(instanceName))
@@ -93,7 +93,7 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
         {
             var connectionString = BuildConnectionString(serverAddress, credentials);
             using var connection = new MicrosoftSqlClient.SqlConnection(connectionString);
-            
+
             await connection.OpenAsync(cancellationToken);
 
             _logger.LogInformation("Successfully connected to SQL Server: {Server}", serverAddress);
@@ -114,7 +114,7 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
         {
             var connectionString = BuildConnectionString(serverAddress, credentials);
             using var connection = new MicrosoftSqlClient.SqlConnection(connectionString);
-            
+
             await connection.OpenAsync(cancellationToken);
 
             // System databases (master=1, tempdb=2, model=3, msdb=4) are excluded
@@ -140,7 +140,7 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
     private string BuildConnectionString(string serverAddress, SqlCredentials credentials)
     {
         // Build connection string matching appsettings.json format EXACTLY
-        
+
         if (credentials.AuthenticationType == "Windows")
         {
             return $"Server={serverAddress};Integrated Security=True;TrustServerCertificate=True;";

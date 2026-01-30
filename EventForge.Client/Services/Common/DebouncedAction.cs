@@ -1,5 +1,3 @@
-using System.Timers;
-
 namespace EventForge.Client.Services.Common;
 
 /// <summary>

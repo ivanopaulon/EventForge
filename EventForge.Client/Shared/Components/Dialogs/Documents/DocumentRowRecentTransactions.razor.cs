@@ -1,5 +1,5 @@
-using EventForge.DTOs.Products;
 using EventForge.Client.Services;
+using EventForge.DTOs.Products;
 using Microsoft.AspNetCore.Components;
 
 namespace EventForge.Client.Shared.Components.Dialogs.Documents;

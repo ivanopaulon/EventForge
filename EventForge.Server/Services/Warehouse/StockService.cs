@@ -263,28 +263,28 @@ public class StockService : IStockService
 
             // Validate Product exists
             var productExists = await _context.Products
-                .AnyAsync(p => p.Id == createDto.ProductId && 
-                              p.TenantId == currentTenantId.Value && 
-                              !p.IsDeleted, 
+                .AnyAsync(p => p.Id == createDto.ProductId &&
+                              p.TenantId == currentTenantId.Value &&
+                              !p.IsDeleted,
                           cancellationToken);
 
             if (!productExists)
             {
-                _logger.LogWarning("Product with ID {ProductId} not found for tenant {TenantId}.", 
+                _logger.LogWarning("Product with ID {ProductId} not found for tenant {TenantId}.",
                     createDto.ProductId, currentTenantId.Value);
                 throw new ArgumentException($"Product with ID {createDto.ProductId} not found.");
             }
 
             // Validate StorageLocation exists
             var locationExists = await _context.StorageLocations
-                .AnyAsync(sl => sl.Id == createDto.StorageLocationId && 
-                               sl.TenantId == currentTenantId.Value && 
-                               !sl.IsDeleted, 
+                .AnyAsync(sl => sl.Id == createDto.StorageLocationId &&
+                               sl.TenantId == currentTenantId.Value &&
+                               !sl.IsDeleted,
                           cancellationToken);
 
             if (!locationExists)
             {
-                _logger.LogWarning("Storage location with ID {StorageLocationId} not found for tenant {TenantId}.", 
+                _logger.LogWarning("Storage location with ID {StorageLocationId} not found for tenant {TenantId}.",
                     createDto.StorageLocationId, currentTenantId.Value);
                 throw new ArgumentException($"Storage location with ID {createDto.StorageLocationId} not found.");
             }
@@ -297,16 +297,16 @@ public class StockService : IStockService
                     _logger.LogWarning("CreateOrUpdateStock called with empty LotId");
                     throw new ArgumentException("Lot ID non valido.");
                 }
-                
+
                 var lotExists = await _context.Lots
-                    .AnyAsync(l => l.Id == createDto.LotId.Value && 
-                                  l.TenantId == currentTenantId.Value && 
-                                  !l.IsDeleted, 
+                    .AnyAsync(l => l.Id == createDto.LotId.Value &&
+                                  l.TenantId == currentTenantId.Value &&
+                                  !l.IsDeleted,
                               cancellationToken);
 
                 if (!lotExists)
                 {
-                    _logger.LogWarning("Lot with ID {LotId} not found for tenant {TenantId}.", 
+                    _logger.LogWarning("Lot with ID {LotId} not found for tenant {TenantId}.",
                         createDto.LotId.Value, currentTenantId.Value);
                     throw new ArgumentException($"Lot with ID {createDto.LotId.Value} not found.");
                 }
@@ -407,40 +407,40 @@ public class StockService : IStockService
                 // Validate required fields for new stock
                 if (!dto.WarehouseId.HasValue || dto.WarehouseId == Guid.Empty)
                     throw new ArgumentException("Warehouse is required for new stock");
-                
+
                 if (dto.StorageLocationId == Guid.Empty)
                     throw new ArgumentException("Storage location is required for new stock");
-                
+
                 // Verify warehouse exists
                 var warehouseExists = await _context.StorageFacilities
-                    .AnyAsync(w => w.Id == dto.WarehouseId.Value && 
-                                  w.TenantId == currentTenantId.Value && 
-                                  !w.IsDeleted, 
+                    .AnyAsync(w => w.Id == dto.WarehouseId.Value &&
+                                  w.TenantId == currentTenantId.Value &&
+                                  !w.IsDeleted,
                               cancellationToken);
                 if (!warehouseExists)
                     throw new ArgumentException($"Warehouse {dto.WarehouseId.Value} not found");
-                
+
                 // Verify location exists and belongs to the warehouse
                 var location = await _context.StorageLocations
-                    .FirstOrDefaultAsync(l => l.Id == dto.StorageLocationId && 
-                                             l.TenantId == currentTenantId.Value && 
-                                             !l.IsDeleted, 
+                    .FirstOrDefaultAsync(l => l.Id == dto.StorageLocationId &&
+                                             l.TenantId == currentTenantId.Value &&
+                                             !l.IsDeleted,
                                         cancellationToken);
                 if (location == null)
                     throw new ArgumentException($"Storage location {dto.StorageLocationId} not found");
-                
+
                 if (location.WarehouseId != dto.WarehouseId.Value)
                     throw new ArgumentException("Storage location does not belong to the selected warehouse");
-                
+
                 // Verify product exists
                 var productExists = await _context.Products
-                    .AnyAsync(p => p.Id == dto.ProductId && 
-                                  p.TenantId == currentTenantId.Value && 
-                                  !p.IsDeleted, 
+                    .AnyAsync(p => p.Id == dto.ProductId &&
+                                  p.TenantId == currentTenantId.Value &&
+                                  !p.IsDeleted,
                               cancellationToken);
                 if (!productExists)
                     throw new ArgumentException($"Product {dto.ProductId} not found");
-                
+
                 // Create new stock
                 var newStock = new Stock
                 {
@@ -478,7 +478,7 @@ public class StockService : IStockService
 
                 return stockForDto.ToStockDto();
             }
-            
+
             // Case 2: Update existing stock
             else
             {
@@ -487,16 +487,16 @@ public class StockService : IStockService
                         .ThenInclude(sl => sl!.Warehouse)
                     .Include(s => s.Product)
                     .Include(s => s.Lot)
-                    .FirstOrDefaultAsync(s => s.Id == dto.StockId && 
-                                             s.TenantId == currentTenantId.Value, 
+                    .FirstOrDefaultAsync(s => s.Id == dto.StockId &&
+                                             s.TenantId == currentTenantId.Value,
                                         cancellationToken);
-                
+
                 if (existingStock == null)
                     throw new ArgumentException($"Stock {dto.StockId} not found");
-                
+
                 // ❌ BLOCK: Attempt to change warehouse
-                if (dto.WarehouseId.HasValue && 
-                    dto.WarehouseId != Guid.Empty && 
+                if (dto.WarehouseId.HasValue &&
+                    dto.WarehouseId != Guid.Empty &&
                     existingStock.StorageLocation?.WarehouseId != null &&
                     dto.WarehouseId.Value != existingStock.StorageLocation.WarehouseId)
                 {
@@ -504,16 +504,16 @@ public class StockService : IStockService
                         "Cannot change the warehouse of existing stock. " +
                         "Delete this stock entry and create a new one in the desired warehouse.");
                 }
-                
+
                 // ❌ BLOCK: Attempt to change location
-                if (dto.StorageLocationId != Guid.Empty && 
+                if (dto.StorageLocationId != Guid.Empty &&
                     dto.StorageLocationId != existingStock.StorageLocationId)
                 {
                     throw new InvalidOperationException(
                         "Cannot change the storage location of existing stock. " +
                         "Use a warehouse movement/transfer to move stock between locations.");
                 }
-                
+
                 // ✅ ALLOW: Update quantity and other fields
                 existingStock.Quantity = dto.NewQuantity;
                 existingStock.ReservedQuantity = dto.ReservedQuantity;
@@ -525,7 +525,7 @@ public class StockService : IStockService
                 existingStock.Notes = dto.Notes;
                 existingStock.ModifiedBy = currentUser;
                 existingStock.ModifiedAt = DateTime.UtcNow;
-                
+
                 _ = await _context.SaveChangesAsync(cancellationToken);
 
                 _ = await _auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,

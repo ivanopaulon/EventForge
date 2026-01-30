@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
@@ -6,7 +5,6 @@ using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.OutputCaching;
 
 namespace EventForge.Server.Controllers;
@@ -61,18 +59,18 @@ public class PaymentMethodsController : BaseApiController
         try
         {
             var result = await _paymentMethodService.GetPaymentMethodsAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -106,18 +104,18 @@ public class PaymentMethodsController : BaseApiController
         try
         {
             var result = await _paymentMethodService.GetActivePaymentMethodsAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)

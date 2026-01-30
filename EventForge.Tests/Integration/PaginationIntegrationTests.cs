@@ -5,9 +5,6 @@ using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net;
-using System.Net.Http.Json;
-using System.Security.Claims;
 using System.Text.Json;
 
 namespace EventForge.Tests.Integration;
@@ -69,7 +66,7 @@ public class PaginationIntegrationTests : IClassFixture<WebApplicationFactory<Pr
             {
                 var serviceProvider = services.BuildServiceProvider();
                 var settings = serviceProvider.GetService<Microsoft.Extensions.Options.IOptions<PaginationSettings>>();
-                
+
                 // Assert
                 Assert.NotNull(settings);
                 Assert.True(settings.Value.EndpointOverrides.ContainsKey("/api/v1/stock/overview"));
@@ -92,7 +89,7 @@ public class PaginationIntegrationTests : IClassFixture<WebApplicationFactory<Pr
             {
                 var serviceProvider = services.BuildServiceProvider();
                 var settings = serviceProvider.GetService<Microsoft.Extensions.Options.IOptions<PaginationSettings>>();
-                
+
                 // Assert
                 Assert.NotNull(settings);
                 Assert.True(settings.Value.RoleBasedLimits.ContainsKey("User"));

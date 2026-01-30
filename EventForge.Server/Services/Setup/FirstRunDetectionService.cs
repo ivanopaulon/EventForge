@@ -49,7 +49,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
         {
             // Level 1: Check environment variable
             var envSetupComplete = Environment.GetEnvironmentVariable("EVENTFORGE_SETUP_COMPLETED");
-            
+
             if (!string.IsNullOrEmpty(envSetupComplete) && envSetupComplete.Equals("true", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
@@ -57,7 +57,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
 
             // Level 2: Check file marker
             var markerPath = Path.Combine(_environment.ContentRootPath, "setup.complete");
-            
+
             if (File.Exists(markerPath))
             {
                 return true;
@@ -66,9 +66,9 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             // Level 3: Check connection string and database
             var defaultConnection = _configuration.GetConnectionString("DefaultConnection");
             var sqlServerConnection = _configuration.GetConnectionString("SqlServer");
-            
+
             var connectionString = defaultConnection ?? sqlServerConnection;
-            
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 _logger.LogWarning("Setup not complete - no connection string configured");
@@ -79,24 +79,24 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             {
                 using var connection = new SqlConnection(connectionString);
                 await connection.OpenAsync(cancellationToken);
-                
+
                 // Check if SetupHistories table exists
                 using var command = new SqlCommand(
-                    "SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'SetupHistories') THEN 1 ELSE 0 END", 
+                    "SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'SetupHistories') THEN 1 ELSE 0 END",
                     connection);
-                
+
                 var tableExists = (int)await command.ExecuteScalarAsync(cancellationToken) == 1;
-                
+
                 if (tableExists)
                 {
                     using var countCommand = new SqlCommand("SELECT COUNT(*) FROM SetupHistories", connection);
                     var count = (int)await countCommand.ExecuteScalarAsync(cancellationToken);
-                    
+
                     if (count > 0)
                     {
                         // AUTO-FIX: Create file marker if missing
                         CreateFileMarkerIfMissing(markerPath, "auto-synced from database");
-                        
+
                         return true;
                     }
                     else
@@ -110,7 +110,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                                   VALUES 
                                   (NEWID(), GETUTCDATE(), @completedBy, @snapshot, @version, @tenantId, GETUTCDATE(), @createdBy, 0, 1)",
                                 connection);
-                            
+
                             var configSnapshot = System.Text.Json.JsonSerializer.Serialize(new
                             {
                                 ServerAddress = connection.DataSource,
@@ -119,18 +119,18 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                                 AutoSynced = true,
                                 SyncedAt = DateTime.UtcNow
                             });
-                            
+
                             insertCommand.Parameters.AddWithValue("@completedBy", "auto_sync");
                             insertCommand.Parameters.AddWithValue("@snapshot", configSnapshot);
                             insertCommand.Parameters.AddWithValue("@version", "1.0.0");
                             insertCommand.Parameters.AddWithValue("@tenantId", Guid.Empty);
                             insertCommand.Parameters.AddWithValue("@createdBy", "system");
-                            
+
                             await insertCommand.ExecuteNonQueryAsync(cancellationToken);
-                            
+
                             // Create file marker
                             CreateFileMarkerIfMissing(markerPath, "auto-synced");
-                            
+
                             return true;
                         }
                         catch (Exception ex)
@@ -140,7 +140,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                         }
                     }
                 }
-                
+
                 await connection.CloseAsync();
             }
             catch (SqlException ex)
@@ -160,7 +160,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                 {
                     // Auto-create file marker
                     CreateFileMarkerIfMissing(markerPath, "auto-synced via EF Core");
-                    
+
                     return true;
                 }
             }

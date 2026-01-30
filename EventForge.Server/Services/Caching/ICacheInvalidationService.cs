@@ -9,17 +9,17 @@ public interface ICacheInvalidationService
     /// Invalidate cache for static entities (VatRates, DocumentTypes, PaymentTerms, Banks)
     /// </summary>
     Task InvalidateStaticEntitiesAsync(CancellationToken ct = default);
-    
+
     /// <summary>
     /// Invalidate cache for semi-static entities (Brands, Models, UnitOfMeasures, etc.)
     /// </summary>
     Task InvalidateSemiStaticEntitiesAsync(CancellationToken ct = default);
-    
+
     /// <summary>
     /// Invalidate cache for real-time entities (POS sessions, Tables)
     /// </summary>
     Task InvalidateRealTimeEntitiesAsync(CancellationToken ct = default);
-    
+
     /// <summary>
     /// Invalidate cache by custom tag
     /// </summary>

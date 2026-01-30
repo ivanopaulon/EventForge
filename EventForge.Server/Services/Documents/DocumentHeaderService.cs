@@ -1858,23 +1858,23 @@ public class DocumentHeaderService : IDocumentHeaderService
             .Include(d => d.BusinessParty)
             .Where(d => !d.IsDeleted && d.TenantId == currentTenantId.Value)
             .OrderBy(d => d.Date);
-        
+
         var totalCount = await query.CountAsync(ct);
-        
+
         _logger.LogInformation("Export requested for {Count} documents", totalCount);
-        
+
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
             _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetDocumentsInBatchesAsync(query, ct);
         }
-        
+
         // Standard export for smaller datasets
         var items = await query
             .Take(pagination.PageSize)
             .ToListAsync(ct);
-        
+
         return items.Select(d => new EventForge.DTOs.Export.DocumentExportDto
         {
             Id = d.Id,
@@ -1898,18 +1898,18 @@ public class DocumentHeaderService : IDocumentHeaderService
         const int batchSize = 5000;
         var results = new List<EventForge.DTOs.Export.DocumentExportDto>();
         var skip = 0;
-        
+
         while (true)
         {
             ct.ThrowIfCancellationRequested();
-            
+
             var batch = await query
                 .Skip(skip)
                 .Take(batchSize)
                 .ToListAsync(ct);
-            
+
             if (batch.Count == 0) break;
-            
+
             results.AddRange(batch.Select(d => new EventForge.DTOs.Export.DocumentExportDto
             {
                 Id = d.Id,
@@ -1924,13 +1924,13 @@ public class DocumentHeaderService : IDocumentHeaderService
                 Notes = d.Notes,
                 CreatedAt = d.CreatedAt
             }));
-            
+
             skip += batchSize;
-            
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
-        
+
         return results;
     }
 

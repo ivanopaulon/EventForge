@@ -1,6 +1,4 @@
-using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
-using EventForge.DTOs.PriceLists;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
@@ -70,15 +68,15 @@ public class BusinessPartyService_FullDetailTests : IDisposable
         Assert.NotNull(result.BusinessParty);
         Assert.Equal(businessPartyId, result.BusinessParty.Id);
         Assert.Equal("Test Company", result.BusinessParty.Name);
-        
+
         // Verify contacts are loaded
         Assert.NotEmpty(result.Contacts);
         Assert.Equal(2, result.Contacts.Count);
-        
+
         // Verify addresses are loaded
         Assert.NotEmpty(result.Addresses);
         Assert.Single(result.Addresses);
-        
+
         // Verify statistics are populated
         Assert.NotNull(result.Statistics);
         Assert.Equal(2, result.Statistics.TotalContacts);
@@ -127,7 +125,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
 
         // Act - without inactive
         var resultWithoutInactive = await _service.GetFullDetailAsync(businessPartyId, includeInactive: false);
-        
+
         // Act - with inactive
         var resultWithInactive = await _service.GetFullDetailAsync(businessPartyId, includeInactive: true);
 
@@ -149,7 +147,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
         // Assert
         Assert.NotNull(result);
         Assert.Single(result.AssignedPriceLists); // Only active price list
-        Assert.All(result.AssignedPriceLists, pl => 
+        Assert.All(result.AssignedPriceLists, pl =>
             Assert.Equal(PriceListStatus.Active, pl.Status));
     }
 
@@ -165,7 +163,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
         // Assert
         Assert.NotNull(result);
         Assert.NotEmpty(result.Contacts);
-        
+
         // First contact should be primary
         Assert.True(result.Contacts.First().IsPrimary);
     }
@@ -178,7 +176,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
     private async Task<Guid> SeedTestDataAsync()
     {
         var businessPartyId = Guid.NewGuid();
-        
+
         var businessParty = new BusinessParty
         {
             Id = businessPartyId,
@@ -191,7 +189,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
             IsActive = true,
             IsDeleted = false
         };
-        
+
         _context.BusinessParties.Add(businessParty);
 
         // Add contacts
@@ -254,7 +252,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
         int documentCount)
     {
         var businessPartyId = Guid.NewGuid();
-        
+
         var businessParty = new BusinessParty
         {
             Id = businessPartyId,
@@ -267,7 +265,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
             IsActive = true,
             IsDeleted = false
         };
-        
+
         _context.BusinessParties.Add(businessParty);
 
         // Add contacts
@@ -377,7 +375,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
     private async Task<Guid> SeedTestDataWithInactiveAsync()
     {
         var businessPartyId = Guid.NewGuid();
-        
+
         var businessParty = new BusinessParty
         {
             Id = businessPartyId,
@@ -389,7 +387,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
             IsActive = true,
             IsDeleted = false
         };
-        
+
         _context.BusinessParties.Add(businessParty);
 
         // Add active contact
@@ -432,7 +430,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
     private async Task<Guid> SeedTestDataWithPriceListsAsync()
     {
         var businessPartyId = Guid.NewGuid();
-        
+
         var businessParty = new BusinessParty
         {
             Id = businessPartyId,
@@ -444,7 +442,7 @@ public class BusinessPartyService_FullDetailTests : IDisposable
             IsActive = true,
             IsDeleted = false
         };
-        
+
         _context.BusinessParties.Add(businessParty);
 
         // Add active price list

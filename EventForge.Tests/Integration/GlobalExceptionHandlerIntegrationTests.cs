@@ -1,8 +1,7 @@
+using EventForge.DTOs.Auth;
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;
-using EventForge.DTOs.Auth;
-using System.Text.Json;
 
 namespace EventForge.Tests.Integration;
 
@@ -29,13 +28,13 @@ public class GlobalExceptionHandlerIntegrationTests : IClassFixture<WebApplicati
             Username = "",   // Empty username (invalid per FluentValidation)
             Password = ""    // Empty password (invalid per FluentValidation)
         };
-        
+
         var response = await client.PostAsJsonAsync("/api/v1/auth/login", invalidRequest);
         var content = await response.Content.ReadAsStringAsync();
 
         // Assert - Should get BadRequest
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        
+
         // Verify it's a problem details response (even if not perfect content-type)
         // The response should contain error details
         Assert.NotEmpty(content);
@@ -54,12 +53,12 @@ public class GlobalExceptionHandlerIntegrationTests : IClassFixture<WebApplicati
             NewPassword = "short", // Too short (less than 8 chars, will fail FluentValidation)
             ConfirmNewPassword = "different" // Different from NewPassword
         };
-        
+
         var response = await client.PostAsJsonAsync("/api/v1/auth/change-password", invalidRequest);
 
         // Assert - Should get BadRequest or Unauthorized (depending on auth state)
         Assert.True(
-            response.StatusCode == HttpStatusCode.BadRequest || 
+            response.StatusCode == HttpStatusCode.BadRequest ||
             response.StatusCode == HttpStatusCode.Unauthorized,
             $"Expected BadRequest or Unauthorized but got {response.StatusCode}"
         );

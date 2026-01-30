@@ -1,6 +1,6 @@
+using EventForge.Server.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using EventForge.Server.Auth;
 
 namespace EventForge.Server.Hubs;
 
@@ -24,7 +24,7 @@ public class ConfigurationHub : Hub
     public async Task NotifyConfigurationChanged(string key, string newValue, string changedBy)
     {
         _logger.LogInformation("Configuration changed: {Key} by {User}", key, changedBy);
-        
+
         await Clients.Others.SendAsync("ConfigurationChanged", new
         {
             Key = key,
@@ -40,7 +40,7 @@ public class ConfigurationHub : Hub
     public async Task NotifyRestartRequired(List<string> reasons)
     {
         _logger.LogWarning("Server restart required: {Reasons}", string.Join(", ", reasons));
-        
+
         await Clients.All.SendAsync("RestartRequired", new
         {
             Reasons = reasons,
@@ -54,7 +54,7 @@ public class ConfigurationHub : Hub
     public async Task NotifySystemOperation(string operationType, string action, string description, bool success)
     {
         _logger.LogInformation("System operation: {Type} - {Action} - {Success}", operationType, action, success);
-        
+
         await Clients.All.SendAsync("SystemOperation", new
         {
             OperationType = operationType,

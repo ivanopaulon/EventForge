@@ -1,10 +1,7 @@
-using EventForge.DTOs.Auth;
-using EventForge.DTOs.Common;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 

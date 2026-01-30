@@ -1,17 +1,10 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Business;
-using EventForge.Server.Data.Entities.PriceList;
-using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
-using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
-using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -578,7 +571,7 @@ public class PriceCalculationService : IPriceCalculationService
             }
         }
 
-        _logger.LogInformation("Applied forced price list {PriceListId} for product {ProductId}: {Price}", 
+        _logger.LogInformation("Applied forced price list {PriceListId} for product {ProductId}: {Price}",
             forcedPriceListId.Value, product.Id, finalPrice);
 
         return new ProductPriceResultDto
@@ -628,7 +621,7 @@ public class PriceCalculationService : IPriceCalculationService
         {
             // Fallback a prezzo base prodotto
             searchPath.Add("No price lists available, using product base price");
-            _logger.LogWarning("No price lists found for product {ProductId}, using base price {BasePrice}", 
+            _logger.LogWarning("No price lists found for product {ProductId}, using base price {BasePrice}",
                 product.Id, product.DefaultPrice ?? 0m);
 
             return new ProductPriceResultDto
@@ -652,7 +645,7 @@ public class PriceCalculationService : IPriceCalculationService
         {
             // Con BusinessParty: priorità ai listini assegnati al BusinessParty
             searchPath.Add($"BusinessParty {request.BusinessPartyId.Value} specified");
-            
+
             orderedEntries = applicablePriceEntries
                 .OrderByDescending(e => e.PriceList!.BusinessParties.Any(bp => bp.BusinessPartyId == request.BusinessPartyId.Value))
                 .ThenByDescending(e => e.PriceList!.Priority)
@@ -662,7 +655,7 @@ public class PriceCalculationService : IPriceCalculationService
         {
             // Senza BusinessParty: solo listini generici (senza BusinessParty assegnati)
             searchPath.Add("No BusinessParty specified, using generic price lists only");
-            
+
             orderedEntries = applicablePriceEntries
                 .Where(e => !e.PriceList!.BusinessParties.Any())
                 .OrderByDescending(e => e.PriceList!.Priority)
@@ -699,8 +692,8 @@ public class PriceCalculationService : IPriceCalculationService
         if (request.BusinessPartyId.HasValue)
         {
             var businessPartyRelation = selectedEntry.PriceList!.BusinessParties
-                .FirstOrDefault(bp => bp.BusinessPartyId == request.BusinessPartyId.Value 
-                                   && !bp.IsDeleted 
+                .FirstOrDefault(bp => bp.BusinessPartyId == request.BusinessPartyId.Value
+                                   && !bp.IsDeleted
                                    && bp.Status == PriceListBusinessPartyStatus.Active);
 
             if (businessPartyRelation?.GlobalDiscountPercentage.HasValue == true)
@@ -721,14 +714,14 @@ public class PriceCalculationService : IPriceCalculationService
                 Name = e.PriceList?.Name ?? string.Empty,
                 Priority = e.PriceList?.Priority ?? 0,
                 Price = e.Price,
-                IsAssignedToBusinessParty = request.BusinessPartyId.HasValue && 
+                IsAssignedToBusinessParty = request.BusinessPartyId.HasValue &&
                     e.PriceList!.BusinessParties.Any(bp => bp.BusinessPartyId == request.BusinessPartyId.Value),
                 IsDefault = e.PriceList?.IsDefault ?? false
             })
             .OrderByDescending(pl => pl.Priority)
             .ToList();
 
-        _logger.LogInformation("Applied automatic price from price list {PriceListId} for product {ProductId}: {Price}", 
+        _logger.LogInformation("Applied automatic price from price list {PriceListId} for product {ProductId}: {Price}",
             selectedEntry.PriceListId, product.Id, finalPrice);
 
         return new ProductPriceResultDto
@@ -760,7 +753,7 @@ public class PriceCalculationService : IPriceCalculationService
         CancellationToken cancellationToken)
     {
         ProductPriceResultDto result;
-        
+
         // Se ManualPrice presente → usa ApplyManualPriceAsync
         if (request.ManualPrice.HasValue && request.ManualPrice.Value > 0)
         {

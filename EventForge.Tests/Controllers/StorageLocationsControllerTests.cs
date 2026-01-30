@@ -1,8 +1,8 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Controllers;
-using EventForge.Server.Services.Warehouse;
 using EventForge.Server.Services.Tenants;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;

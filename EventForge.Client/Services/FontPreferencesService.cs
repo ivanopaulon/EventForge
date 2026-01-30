@@ -19,7 +19,7 @@ public class FontPreferencesService : IFontPreferencesService
     private readonly ILocalStorageService _localStorage;
     private readonly IProfileService _profileService;
     private readonly ILogger<FontPreferencesService> _logger;
-    
+
     private const string StorageKey = "eventforge-font-preferences";
     private UserDisplayPreferencesDto _currentPreferences = new();
 
@@ -125,18 +125,18 @@ public class FontPreferencesService : IFontPreferencesService
     {
         try
         {
-            var bodyFamily = _currentPreferences.UseSystemFonts 
-                ? "var(--font-family-system)" 
+            var bodyFamily = _currentPreferences.UseSystemFonts
+                ? "var(--font-family-system)"
                 : $"'{_currentPreferences.BodyFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-            
+
             var headingsFamily = _currentPreferences.UseSystemFonts
                 ? "var(--font-family-system)"
                 : $"'{_currentPreferences.HeadingsFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-            
+
             var monoFamily = _currentPreferences.UseSystemFonts
                 ? "'Courier New', Consolas, monospace"
                 : $"'{_currentPreferences.MonospaceFont}', 'Courier New', monospace";
-            
+
             var contentFamily = _currentPreferences.UseSystemFonts
                 ? "var(--font-family-system)"
                 : $"'{_currentPreferences.ContentFont}', Georgia, serif";
@@ -144,12 +144,12 @@ public class FontPreferencesService : IFontPreferencesService
             var fontSize = $"{_currentPreferences.BaseFontSize}px";
 
             // Apply CSS properties using the new multi-context function
-            await _jsRuntime.InvokeVoidAsync("EventForge.setFontPreferences", 
+            await _jsRuntime.InvokeVoidAsync("EventForge.setFontPreferences",
                 bodyFamily, headingsFamily, monoFamily, contentFamily, fontSize);
-            
-            _logger.LogInformation("Applied font preferences: Body={Body}, Headings={Headings}, Size={Size}px", 
-                _currentPreferences.BodyFont, 
-                _currentPreferences.HeadingsFont, 
+
+            _logger.LogInformation("Applied font preferences: Body={Body}, Headings={Headings}, Size={Size}px",
+                _currentPreferences.BodyFont,
+                _currentPreferences.HeadingsFont,
                 _currentPreferences.BaseFontSize);
         }
         catch (Exception ex)

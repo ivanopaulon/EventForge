@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace EventForge.DTOs.PriceLists;
 
 /// <summary>
@@ -10,7 +7,7 @@ public class UpdatePriceListResultDto
 {
     public Guid PriceListId { get; init; }
     public string PriceListName { get; init; } = string.Empty;
-    
+
     /// <summary>
     /// Statistiche modifiche
     /// </summary>
@@ -18,13 +15,13 @@ public class UpdatePriceListResultDto
     public int PricesAdded { get; init; }
     public int PricesRemoved { get; init; }
     public int PricesUnchanged { get; init; }
-    
+
     /// <summary>
     /// Timestamp sincronizzazione
     /// </summary>
     public DateTime SyncedAt { get; init; }
     public string SyncedBy { get; init; } = string.Empty;
-    
+
     /// <summary>
     /// Eventuali warning
     /// </summary>

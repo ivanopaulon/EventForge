@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Export;
 using EventForge.DTOs.Products;

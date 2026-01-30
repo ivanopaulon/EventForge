@@ -6,7 +6,7 @@ namespace EventForge.Server.Exceptions;
 public abstract class EventForgeException : Exception
 {
     public EventForgeException(string message) : base(message) { }
-    
-    public EventForgeException(string message, Exception innerException) 
+
+    public EventForgeException(string message, Exception innerException)
         : base(message, innerException) { }
 }

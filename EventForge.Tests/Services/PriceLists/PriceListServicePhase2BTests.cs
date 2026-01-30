@@ -1,17 +1,13 @@
-using EventForge.DTOs.PriceLists;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Audit;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.PriceLists;
 using EventForge.DTOs.SuperAdmin;
 using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Events;
-using EventForge.Server.Data.Entities.PriceList;
-using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Audit;
+using EventForge.Server.Data.Entities.PriceList;
+using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
-using EventForge.Server.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using ServerBusinessPartyType = EventForge.Server.Data.Entities.Business.BusinessPartyType;
@@ -304,13 +300,13 @@ public class PriceListServicePhase2BTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        
+
         // Primo elemento = prezzo migliore (Supplier B)
         Assert.Equal(45m, result[0].Price);
         Assert.Equal("Supplier B", result[0].SupplierName);
         Assert.Equal(10, result[0].LeadTimeDays);
         Assert.Equal(5, result[0].MinimumOrderQuantity);
-        
+
         // Secondo elemento = prezzo più alto (Supplier A)
         Assert.Equal(50m, result[1].Price);
         Assert.Equal("Supplier A", result[1].SupplierName);

@@ -1,5 +1,3 @@
-using EventForge.Server.Data.Entities.Configuration;
-using EventForge.Server.Data.Entities.Auth;
 using Microsoft.EntityFrameworkCore;
 using NCrontab;
 
@@ -19,7 +17,7 @@ public class LogCleanupService : BackgroundService
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-        
+
         _schedule = CrontabSchedule.Parse("0 2 * * *");
         _nextRun = _schedule.GetNextOccurrence(DateTime.UtcNow);
     }

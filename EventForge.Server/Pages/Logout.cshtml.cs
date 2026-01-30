@@ -19,7 +19,7 @@ public class LogoutModel : PageModel
         // Handle POST request (from form submission)
         // Clear any server-side session if exists
         HttpContext.Session.Clear();
-        
+
         // Return the page which handles client-side token removal
         return Page();
     }

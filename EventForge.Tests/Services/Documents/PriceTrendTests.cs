@@ -1,6 +1,5 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
-using EventForge.DTOs.Warehouse;
 
 namespace EventForge.Tests.Services.Documents;
 

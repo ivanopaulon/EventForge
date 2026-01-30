@@ -697,23 +697,23 @@ public class StockMovementService : IStockMovementService
                 .ThenInclude(loc => loc!.Warehouse)
             .Where(sm => !sm.IsDeleted && sm.TenantId == currentTenantId.Value)
             .OrderBy(sm => sm.MovementDate);
-        
+
         var totalCount = await query.CountAsync(ct);
-        
+
         _logger.LogInformation("Export requested for {Count} inventory movements", totalCount);
-        
+
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
             _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetInventoryInBatchesAsync(query, ct);
         }
-        
+
         // Standard export for smaller datasets
         var items = await query
             .Take(pagination.PageSize)
             .ToListAsync(ct);
-        
+
         return items.Select(MapToInventoryExportDto);
     }
 
@@ -724,26 +724,26 @@ public class StockMovementService : IStockMovementService
         const int batchSize = 5000;
         var results = new List<EventForge.DTOs.Export.InventoryExportDto>();
         var skip = 0;
-        
+
         while (true)
         {
             ct.ThrowIfCancellationRequested();
-            
+
             var batch = await query
                 .Skip(skip)
                 .Take(batchSize)
                 .ToListAsync(ct);
-            
+
             if (batch.Count == 0) break;
-            
+
             results.AddRange(batch.Select(MapToInventoryExportDto));
-            
+
             skip += batchSize;
-            
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
-        
+
         return results;
     }
 
@@ -751,7 +751,7 @@ public class StockMovementService : IStockMovementService
     {
         var warehouse = sm.ToLocation?.Warehouse ?? sm.FromLocation?.Warehouse;
         var location = sm.ToLocation ?? sm.FromLocation;
-        
+
         return new EventForge.DTOs.Export.InventoryExportDto
         {
             Id = sm.Id,

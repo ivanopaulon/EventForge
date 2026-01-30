@@ -35,7 +35,7 @@ public class QzSigner
         try
         {
             ct.ThrowIfCancellationRequested();
-            
+
             // Create JSON payload with properties in the specified order: call, params, timestamp
             var payload = new
             {

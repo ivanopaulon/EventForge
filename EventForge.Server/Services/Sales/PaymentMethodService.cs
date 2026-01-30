@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +14,7 @@ public class PaymentMethodService : IPaymentMethodService
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<PaymentMethodService> _logger;
     private readonly ICacheService _cacheService;
-    
+
     private const string CACHE_KEY_ALL = "PaymentMethods_All";
 
     public PaymentMethodService(

@@ -6,7 +6,6 @@ using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
 using Moq;
 
 namespace EventForge.Tests.Controllers;
@@ -43,7 +42,7 @@ public class EntityManagementControllerTests
         _headers = new HeaderDictionary();
         _mockResponse = new Mock<HttpResponse>();
         _mockResponse.Setup(r => r.Headers).Returns(_headers);
-        
+
         _mockHttpContext = new Mock<HttpContext>();
         _mockHttpContext.Setup(c => c.Response).Returns(_mockResponse.Object);
 

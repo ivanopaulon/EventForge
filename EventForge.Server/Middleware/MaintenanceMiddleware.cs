@@ -31,7 +31,7 @@ public class MaintenanceMiddleware
                 if (!isSuperAdmin)
                 {
                     _logger.LogDebug("Maintenance mode active, blocking request from non-SuperAdmin user");
-                    
+
                     context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                     context.Response.Headers.Append("Retry-After", "300");
                     context.Response.ContentType = "application/json";

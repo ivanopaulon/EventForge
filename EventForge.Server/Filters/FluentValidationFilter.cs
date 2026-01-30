@@ -25,14 +25,14 @@ public class FluentValidationFilter : IAsyncActionFilter
             {
                 var argumentType = argument.GetType();
                 var validatorType = typeof(IValidator<>).MakeGenericType(argumentType);
-                
+
                 var validator = _serviceProvider.GetService(validatorType) as IValidator;
-                
+
                 if (validator != null)
                 {
                     var validationContext = new ValidationContext<object>(argument);
                     var validationResult = await validator.ValidateAsync(validationContext);
-                    
+
                     if (!validationResult.IsValid)
                     {
                         // Throws ValidationException which will be handled by GlobalExceptionHandlerMiddleware

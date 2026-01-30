@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 using EventForge.Server.Services.PriceLists;
 using Microsoft.AspNetCore.Authorization;

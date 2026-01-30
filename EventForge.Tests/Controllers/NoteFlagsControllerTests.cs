@@ -37,7 +37,7 @@ public class NoteFlagsControllerTests
         _headers = new HeaderDictionary();
         _mockResponse = new Mock<HttpResponse>();
         _mockResponse.Setup(r => r.Headers).Returns(_headers);
-        
+
         _mockHttpContext = new Mock<HttpContext>();
         _mockHttpContext.Setup(c => c.Response).Returns(_mockResponse.Object);
 
@@ -93,9 +93,9 @@ public class NoteFlagsControllerTests
     public async Task GetAll_WithLargePageSize_ReturnsCappedHeader()
     {
         // Arrange
-        var pagination = new PaginationParameters 
-        { 
-            Page = 1, 
+        var pagination = new PaginationParameters
+        {
+            Page = 1,
             PageSize = 5000,
             WasCapped = true,
             AppliedMaxPageSize = 1000

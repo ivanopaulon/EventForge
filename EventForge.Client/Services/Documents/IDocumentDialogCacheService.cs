@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.VatRates;

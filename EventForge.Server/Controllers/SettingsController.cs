@@ -1,7 +1,5 @@
 using EventForge.DTOs.Settings;
 using EventForge.Server.Auth;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -120,14 +118,14 @@ public class SettingsController : BaseApiController
     public async Task<ActionResult<DatabaseConnectionStatusDto>> GetDatabaseStatus()
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             await _context.Database.CanConnectAsync();
             stopwatch.Stop();
 
             var provider = _configuration["DatabaseProvider"] ?? "SqlServer";
-            
+
             return Ok(new DatabaseConnectionStatusDto
             {
                 IsConnected = true,
@@ -140,7 +138,7 @@ public class SettingsController : BaseApiController
         catch (Exception ex)
         {
             stopwatch.Stop();
-            
+
             return Ok(new DatabaseConnectionStatusDto
             {
                 IsConnected = false,
@@ -159,10 +157,10 @@ public class SettingsController : BaseApiController
     public ActionResult<RestartStatusDto> GetRestartStatus()
     {
         var pendingChanges = new List<string>();
-        
+
         // Check for pending configuration changes that require restart
         // This is a simplified version - in production you'd track this in the database
-        
+
         var environment = DetectEnvironment();
         var uptime = DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
@@ -217,18 +215,18 @@ public class SettingsController : BaseApiController
     [HttpGet("file")]
     public IActionResult GetCurrentConfigurationFromFile()
     {
-        var connectionString = _configuration.GetConnectionString("DefaultConnection") 
+        var connectionString = _configuration.GetConnectionString("DefaultConnection")
                             ?? _configuration.GetConnectionString("SqlServer");
-        
+
         if (string.IsNullOrEmpty(connectionString))
         {
             return Ok(new { Configured = false });
         }
-        
+
         try
         {
             var builder = new SqlConnectionStringBuilder(connectionString);
-            
+
             return Ok(new
             {
                 Configured = true,
@@ -272,15 +270,15 @@ public class SettingsController : BaseApiController
         try
         {
             var connectionString = BuildConnectionString(request);
-            
+
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
-            
+
             using var command = new SqlCommand("SELECT @@VERSION", connection);
             var version = await command.ExecuteScalarAsync();
-            
+
             await connection.CloseAsync();
-            
+
             return Ok(new
             {
                 Success = true,
@@ -313,7 +311,7 @@ public class SettingsController : BaseApiController
             {
                 return BadRequest("Server address and database name are required");
             }
-            
+
             // 2. Build and test new connection string
             var newConnectionString = BuildConnectionString(new TestConnectionRequest
             {
@@ -324,34 +322,34 @@ public class SettingsController : BaseApiController
                 Password = request.Password,
                 TrustServerCertificate = request.TrustServerCertificate
             });
-            
+
             using var testConn = new SqlConnection(newConnectionString);
             await testConn.OpenAsync();
             await testConn.CloseAsync();
-            
+
             // 3. Read current appsettings.json
             var appsettingsPath = Path.Combine(_environment.ContentRootPath, "appsettings.json");
-            
+
             if (!SystemFile.Exists(appsettingsPath))
             {
                 return StatusCode(500, "appsettings.json not found");
             }
-            
+
             var currentJson = await SystemFile.ReadAllTextAsync(appsettingsPath);
-            
+
             // 4. Parse and update configuration
             using var doc = JsonDocument.Parse(currentJson);
             var root = doc.RootElement;
-            
+
             var updatedConfig = new Dictionary<string, object>();
-            
+
             foreach (var property in root.EnumerateObject())
             {
                 if (property.Name == "ConnectionStrings")
                 {
                     // Update ConnectionStrings
                     var existingCs = property.Value;
-                    
+
                     // Derive LogDb connection string properly using SqlConnectionStringBuilder
                     string logDb;
                     if (existingCs.TryGetProperty("LogDb", out var logDbProp))
@@ -365,11 +363,11 @@ public class SettingsController : BaseApiController
                         logDbBuilder.InitialCatalog = "EventLogger";
                         logDb = logDbBuilder.ConnectionString;
                     }
-                    
+
                     var redis = existingCs.TryGetProperty("Redis", out var redisProp)
                         ? redisProp.GetString()
                         : "localhost:6379";
-                    
+
                     updatedConfig["ConnectionStrings"] = new
                     {
                         DefaultConnection = newConnectionString,
@@ -382,10 +380,10 @@ public class SettingsController : BaseApiController
                 {
                     // Update JWT config if provided
                     var existingAuth = property.Value;
-                    var existingJwt = existingAuth.TryGetProperty("Jwt", out var jwtProp) 
-                        ? jwtProp 
+                    var existingJwt = existingAuth.TryGetProperty("Jwt", out var jwtProp)
+                        ? jwtProp
                         : new JsonElement();
-                    
+
                     updatedConfig["Authentication"] = new
                     {
                         Jwt = new
@@ -396,8 +394,8 @@ public class SettingsController : BaseApiController
                             ExpirationMinutes = request.JwtExpirationMinutes > 0 ? request.JwtExpirationMinutes : 60,
                             ClockSkewMinutes = 5
                         },
-                        PasswordPolicy = existingAuth.TryGetProperty("PasswordPolicy", out var pp) 
-                            ? JsonSerializer.Deserialize<object>(pp.GetRawText()) 
+                        PasswordPolicy = existingAuth.TryGetProperty("PasswordPolicy", out var pp)
+                            ? JsonSerializer.Deserialize<object>(pp.GetRawText())
                             : null,
                         AccountLockout = existingAuth.TryGetProperty("AccountLockout", out var al)
                             ? JsonSerializer.Deserialize<object>(al.GetRawText())
@@ -419,20 +417,20 @@ public class SettingsController : BaseApiController
                     updatedConfig[property.Name] = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
                 }
             }
-            
+
             // 5. Create backup
             var backupPath = $"{appsettingsPath}.backup.{DateTime.UtcNow:yyyyMMddHHmmss}";
             await SystemFile.WriteAllTextAsync(backupPath, currentJson);
             _logger.LogInformation("Configuration backup created at {Path}", backupPath);
-            
+
             // 6. Write updated configuration
             var options = new JsonSerializerOptions { WriteIndented = true };
             var newJson = JsonSerializer.Serialize(updatedConfig, options);
             await SystemFile.WriteAllTextAsync(appsettingsPath, newJson);
-            
-            _logger.LogWarning("Configuration updated by {User}. Server restart required.", 
+
+            _logger.LogWarning("Configuration updated by {User}. Server restart required.",
                 User.Identity?.Name ?? "unknown");
-            
+
             return Ok(new
             {
                 Success = true,
@@ -444,21 +442,21 @@ public class SettingsController : BaseApiController
         catch (SqlException ex)
         {
             _logger.LogError(ex, "Database connection test failed during save");
-            return BadRequest(new 
-            { 
-                Success = false, 
-                Error = "Database connection failed", 
-                Message = ex.Message 
+            return BadRequest(new
+            {
+                Success = false,
+                Error = "Database connection failed",
+                Message = ex.Message
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to save configuration");
-            return StatusCode(500, new 
-            { 
-                Success = false, 
-                Error = "Failed to save configuration", 
-                Message = ex.Message 
+            return StatusCode(500, new
+            {
+                Success = false,
+                Error = "Failed to save configuration",
+                Message = ex.Message
             });
         }
     }
@@ -470,13 +468,13 @@ public class SettingsController : BaseApiController
     public IActionResult TriggerServerRestart()
     {
         _logger.LogWarning("Server restart requested by {User}", User.Identity?.Name ?? "unknown");
-        
+
         Task.Run(async () =>
         {
             await Task.Delay(2000); // Give time to return response
             _appLifetime.StopApplication();
         });
-        
+
         return Ok(new
         {
             Success = true,
@@ -510,7 +508,7 @@ public class SettingsController : BaseApiController
         builder.DataSource = request.ServerAddress;
         builder.InitialCatalog = request.DatabaseName;
         builder.TrustServerCertificate = request.TrustServerCertificate;
-        
+
         if (request.AuthenticationType == "Windows")
         {
             builder.IntegratedSecurity = true;
@@ -521,7 +519,7 @@ public class SettingsController : BaseApiController
             builder.UserID = request.Username;
             builder.Password = request.Password;
         }
-        
+
         return builder.ConnectionString;
     }
 }

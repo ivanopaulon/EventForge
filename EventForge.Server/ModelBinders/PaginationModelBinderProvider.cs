@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 

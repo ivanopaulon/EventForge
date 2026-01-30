@@ -4,13 +4,7 @@ using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.VatRates;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.Extensions.Logging;
 using MudBlazor;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EventForge.Client.Shared.Components
 {
@@ -113,7 +107,7 @@ namespace EventForge.Client.Shared.Components
         /// NO backing field, NO complex setter, NO StateHasChanged in setter.
         /// </summary>
         [Parameter] public ProductDto? SelectedProduct { get; set; }
-        
+
         [Parameter] public EventCallback<ProductDto?> SelectedProductChanged { get; set; }
 
         #endregion
@@ -232,7 +226,7 @@ namespace EventForge.Client.Shared.Components
         /// </summary>
         private async Task OnProductSelectionChangedAsync(ProductDto? product)
         {
-            Logger.LogInformation("OnProductSelectionChangedAsync called. Product: {ProductId} - {ProductName}", 
+            Logger.LogInformation("OnProductSelectionChangedAsync called. Product: {ProductId} - {ProductName}",
                 product?.Id, product?.Name ?? "NULL");
 
             // Update local property
@@ -248,7 +242,7 @@ namespace EventForge.Client.Shared.Components
             // Update display values (unit of measure, VAT, etc.)
             UpdateDisplayValues();
 
-            Logger.LogInformation("Product selection propagated to parent. SelectedProduct: {ProductId}, UnitOfMeasure: {Unit}, VAT: {Vat}", 
+            Logger.LogInformation("Product selection propagated to parent. SelectedProduct: {ProductId}, UnitOfMeasure: {Unit}, VAT: {Vat}",
                 SelectedProduct?.Id, _currentUnitName, _currentVatName);
         }
 
@@ -276,7 +270,7 @@ namespace EventForge.Client.Shared.Components
                     // Update display values
                     UpdateDisplayValues();
 
-                    Logger.LogInformation("Product found by barcode {Barcode}: {ProductName}", 
+                    Logger.LogInformation("Product found by barcode {Barcode}: {ProductName}",
                         barcode, productWithCode.Product.Name);
                 }
                 else
@@ -446,7 +440,7 @@ namespace EventForge.Client.Shared.Components
                 // Update the selected product with the edited data
                 SelectedProduct = updatedProduct;
                 await SelectedProductChanged.InvokeAsync(SelectedProduct);
-                
+
                 // Update display values
                 UpdateDisplayValues();
 
@@ -493,7 +487,7 @@ namespace EventForge.Client.Shared.Components
                 // Set the created product as selected
                 SelectedProduct = createdProduct;
                 await SelectedProductChanged.InvokeAsync(SelectedProduct);
-                
+
                 // Update display values
                 UpdateDisplayValues();
 
@@ -522,7 +516,7 @@ namespace EventForge.Client.Shared.Components
             SelectedProduct = null;
             await SelectedProductChanged.InvokeAsync(null);
             _searchText = string.Empty;
-            
+
             if (_autocomplete != null)
             {
                 await _autocomplete.FocusAsync();

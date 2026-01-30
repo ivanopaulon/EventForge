@@ -1,11 +1,9 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.OutputCaching;
 
 namespace EventForge.Server.Controllers;

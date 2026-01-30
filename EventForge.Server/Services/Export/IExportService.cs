@@ -14,10 +14,10 @@ public interface IExportService
     /// <param name="ct">Cancellation token</param>
     /// <returns>Excel file as byte array</returns>
     Task<byte[]> ExportToExcelAsync<T>(
-        IEnumerable<T> data, 
-        string sheetName = "Data", 
+        IEnumerable<T> data,
+        string sheetName = "Data",
         CancellationToken ct = default) where T : class;
-    
+
     /// <summary>
     /// Exports data to CSV format
     /// </summary>
@@ -26,6 +26,6 @@ public interface IExportService
     /// <param name="ct">Cancellation token</param>
     /// <returns>CSV file as byte array</returns>
     Task<byte[]> ExportToCsvAsync<T>(
-        IEnumerable<T> data, 
+        IEnumerable<T> data,
         CancellationToken ct = default) where T : class;
 }

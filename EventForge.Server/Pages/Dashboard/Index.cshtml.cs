@@ -1,5 +1,5 @@
-using EventForge.Server.Services.Dashboard;
 using EventForge.DTOs.Dashboard;
+using EventForge.Server.Services.Dashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 

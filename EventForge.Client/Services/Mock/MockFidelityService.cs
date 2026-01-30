@@ -11,12 +11,12 @@ public class MockFidelityService : IMockFidelityService
     private readonly List<FidelityCardViewModel> _cards = new();
     private readonly List<FidelityPointsTransactionViewModel> _transactions = new();
     private readonly Random _random = Random.Shared; // Thread-safe shared random
-    
+
     public MockFidelityService()
     {
         InitializeSeedData();
     }
-    
+
     private void InitializeSeedData()
     {
         // Card 1: Gold Attiva con punti
@@ -38,7 +38,7 @@ public class MockFidelityService : IMockFidelityService
             Notes = "Cliente VIP - Gold Card attiva"
         };
         _cards.Add(goldCard);
-        
+
         // Transazioni per Gold Card
         _transactions.Add(new FidelityPointsTransactionViewModel
         {
@@ -50,7 +50,7 @@ public class MockFidelityService : IMockFidelityService
             BalanceAfter = 3000,
             Description = "Acquisto prodotti - Fattura #12345"
         });
-        
+
         _transactions.Add(new FidelityPointsTransactionViewModel
         {
             Id = Guid.NewGuid(),
@@ -61,7 +61,7 @@ public class MockFidelityService : IMockFidelityService
             BalanceAfter = 2500,
             Description = "Sconto applicato su acquisto - Fattura #12456"
         });
-        
+
         // Card 2: Silver Scaduta
         var silverCard = new FidelityCardViewModel
         {
@@ -81,7 +81,7 @@ public class MockFidelityService : IMockFidelityService
             Notes = "Card scaduta - richiedere rinnovo"
         };
         _cards.Add(silverCard);
-        
+
         // Transazioni per Silver Card
         _transactions.Add(new FidelityPointsTransactionViewModel
         {
@@ -93,7 +93,7 @@ public class MockFidelityService : IMockFidelityService
             BalanceAfter = 650,
             Description = "Bonus compleanno"
         });
-        
+
         _transactions.Add(new FidelityPointsTransactionViewModel
         {
             Id = Guid.NewGuid(),
@@ -105,7 +105,7 @@ public class MockFidelityService : IMockFidelityService
             Description = "Riscatto punti - Buono sconto"
         });
     }
-    
+
     private string GenerateCardNumber()
     {
         var parts = new List<string>();
@@ -115,25 +115,25 @@ public class MockFidelityService : IMockFidelityService
         }
         return string.Join("-", parts);
     }
-    
+
     public Task<IEnumerable<FidelityCardViewModel>> GetAllCardsAsync()
     {
         return Task.FromResult(_cards.AsEnumerable());
     }
-    
+
     public Task<FidelityCardViewModel?> GetCardByIdAsync(Guid id)
     {
         var card = _cards.FirstOrDefault(c => c.Id == id);
         return Task.FromResult(card);
     }
-    
+
     public Task<FidelityCardViewModel> CreateCardAsync(FidelityCardViewModel card)
     {
         card.Id = Guid.NewGuid();
         card.CardNumber = GenerateCardNumber();
         card.IssuedDate = DateTime.Now;
         _cards.Add(card);
-        
+
         // Aggiungi transazione iniziale se ci sono punti
         if (card.CurrentPoints > 0)
         {
@@ -148,10 +148,10 @@ public class MockFidelityService : IMockFidelityService
                 Description = "Punti iniziali all'emissione card"
             });
         }
-        
+
         return Task.FromResult(card);
     }
-    
+
     public Task<FidelityCardViewModel> UpdateCardAsync(FidelityCardViewModel card)
     {
         var index = _cards.FindIndex(c => c.Id == card.Id);
@@ -161,7 +161,7 @@ public class MockFidelityService : IMockFidelityService
         }
         return Task.FromResult(card);
     }
-    
+
     public Task RevokeCardAsync(Guid cardId)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
@@ -171,7 +171,7 @@ public class MockFidelityService : IMockFidelityService
         }
         return Task.CompletedTask;
     }
-    
+
     public Task SuspendCardAsync(Guid cardId)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
@@ -181,7 +181,7 @@ public class MockFidelityService : IMockFidelityService
         }
         return Task.CompletedTask;
     }
-    
+
     public Task ActivateCardAsync(Guid cardId)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
@@ -191,7 +191,7 @@ public class MockFidelityService : IMockFidelityService
         }
         return Task.CompletedTask;
     }
-    
+
     public Task AddPointsAsync(Guid cardId, int points, string description)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
@@ -199,7 +199,7 @@ public class MockFidelityService : IMockFidelityService
         {
             card.CurrentPoints += points;
             card.TotalPointsEarned += points;
-            
+
             _transactions.Add(new FidelityPointsTransactionViewModel
             {
                 Id = Guid.NewGuid(),
@@ -213,7 +213,7 @@ public class MockFidelityService : IMockFidelityService
         }
         return Task.CompletedTask;
     }
-    
+
     public Task RedeemPointsAsync(Guid cardId, int points, string description)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
@@ -221,7 +221,7 @@ public class MockFidelityService : IMockFidelityService
         {
             card.CurrentPoints -= points;
             card.TotalPointsRedeemed += points;
-            
+
             _transactions.Add(new FidelityPointsTransactionViewModel
             {
                 Id = Guid.NewGuid(),
@@ -235,14 +235,14 @@ public class MockFidelityService : IMockFidelityService
         }
         return Task.CompletedTask;
     }
-    
+
     public Task<IEnumerable<FidelityPointsTransactionViewModel>> GetTransactionHistoryAsync(Guid cardId)
     {
         var transactions = _transactions
             .Where(t => t.FidelityCardId == cardId)
             .OrderByDescending(t => t.TransactionDate)
             .AsEnumerable();
-        
+
         return Task.FromResult(transactions);
     }
 }

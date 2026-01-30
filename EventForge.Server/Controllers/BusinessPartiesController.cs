@@ -1,5 +1,4 @@
 using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
@@ -8,7 +7,6 @@ using EventForge.Server.Services.Export;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -70,19 +68,19 @@ public class BusinessPartiesController : BaseApiController
         try
         {
             var result = await _businessPartyService.GetBusinessPartiesAsync(pagination, cancellationToken);
-            
+
             // Add pagination metadata headers
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -142,7 +140,7 @@ public class BusinessPartiesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyFullDetailDto>> GetFullDetail(
-        Guid id, 
+        Guid id,
         [FromQuery] bool includeInactive = false,
         CancellationToken cancellationToken = default)
     {
@@ -152,12 +150,12 @@ public class BusinessPartiesController : BaseApiController
         try
         {
             var result = await _businessPartyService.GetFullDetailAsync(id, includeInactive, cancellationToken);
-            
+
             if (result == null)
             {
                 return CreateNotFoundProblem($"Business party with ID {id} not found.");
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -369,19 +367,19 @@ public class BusinessPartiesController : BaseApiController
         try
         {
             var result = await _businessPartyService.GetBusinessPartyAccountingAsync(pagination, cancellationToken);
-            
+
             // Add pagination metadata headers
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -631,7 +629,7 @@ public class BusinessPartiesController : BaseApiController
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
@@ -699,7 +697,7 @@ public class BusinessPartiesController : BaseApiController
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
@@ -942,20 +940,20 @@ public class BusinessPartiesController : BaseApiController
         _logger.LogInformation(
             "Export operation started by {User} for BusinessParties (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
-        
+
         // Use high page size for export (configured in appsettings.json)
-        var pagination = new PaginationParameters 
-        { 
-            Page = 1, 
+        var pagination = new PaginationParameters
+        {
+            Page = 1,
             PageSize = 50000 // Will be capped to MaxExportPageSize
         };
-        
+
         var data = await _businessPartyService.GetBusinessPartiesForExportAsync(pagination, ct);
-        
+
         byte[] fileBytes;
         string contentType;
         string fileName;
-        
+
         switch (format.ToLowerInvariant())
         {
             case "csv":
@@ -963,7 +961,7 @@ public class BusinessPartiesController : BaseApiController
                 contentType = "text/csv";
                 fileName = $"BusinessParties_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
-            
+
             case "excel":
             default:
                 fileBytes = await _exportService.ExportToExcelAsync(data, "Business Parties", ct);
@@ -971,11 +969,11 @@ public class BusinessPartiesController : BaseApiController
                 fileName = $"BusinessParties_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
-        
+
         _logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
-        
+
         return File(fileBytes, contentType, fileName);
     }
 

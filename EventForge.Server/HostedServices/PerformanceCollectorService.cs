@@ -1,6 +1,5 @@
-using System.Diagnostics;
-using EventForge.Server.Data.Entities.Configuration;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace EventForge.Server.HostedServices;
 
@@ -47,11 +46,11 @@ public class PerformanceCollectorService : BackgroundService
             var memoryUsageMB = process.WorkingSet64 / 1024 / 1024;
 
             var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
-            
+
             var requestsPerMinute = await dbContext.SystemOperationLogs
                 .Where(l => l.CreatedAt > oneMinuteAgo)
                 .CountAsync(cancellationToken);
-                
+
             var avgResponseTimeMs = await dbContext.SystemOperationLogs
                 .Where(l => l.CreatedAt > oneMinuteAgo && l.DurationMs.HasValue)
                 .AverageAsync(l => (double?)l.DurationMs, cancellationToken) ?? 0;

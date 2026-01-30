@@ -31,7 +31,7 @@ public class PriceResolutionService : IPriceResolutionService
         {
             var queryString = BuildQueryString(productId, documentHeaderId, businessPartyId, forcedPriceListId, direction);
             var result = await _httpClientService.GetAsync<PriceResolutionResult>($"{BaseUrl}?{queryString}");
-            
+
             return result ?? new PriceResolutionResult
             {
                 Price = 0m,
@@ -42,7 +42,7 @@ public class PriceResolutionService : IPriceResolutionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error resolving price for product {ProductId}", productId);
-            
+
             // Return fallback result instead of throwing to prevent UI disruption
             return new PriceResolutionResult
             {
@@ -61,19 +61,19 @@ public class PriceResolutionService : IPriceResolutionService
         PriceListDirection? direction)
     {
         var query = $"productId={productId}";
-        
+
         if (documentHeaderId.HasValue)
             query += $"&documentHeaderId={documentHeaderId.Value}";
-        
+
         if (businessPartyId.HasValue)
             query += $"&businessPartyId={businessPartyId.Value}";
-        
+
         if (forcedPriceListId.HasValue)
             query += $"&forcedPriceListId={forcedPriceListId.Value}";
-        
+
         if (direction.HasValue)
             query += $"&direction={direction.Value}";
-        
+
         return query;
     }
 }

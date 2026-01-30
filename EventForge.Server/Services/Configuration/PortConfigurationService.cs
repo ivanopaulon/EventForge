@@ -24,8 +24,8 @@ public class PortConfigurationService : IPortConfigurationService
     public string DetectEnvironment()
     {
         var serverType = _configuration["ASPNETCORE_SERVER"] ?? string.Empty;
-        
-        if (serverType.Contains("IIS", StringComparison.OrdinalIgnoreCase) || 
+
+        if (serverType.Contains("IIS", StringComparison.OrdinalIgnoreCase) ||
             Environment.GetEnvironmentVariable("ASPNETCORE_IIS_PHYSICAL_PATH") != null)
         {
             _logger.LogDebug("Detected IIS environment");

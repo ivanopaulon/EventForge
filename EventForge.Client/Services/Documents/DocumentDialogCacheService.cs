@@ -158,17 +158,17 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
             {
                 _logger.LogDebug("Cache MISS: Loading active sales price lists from API");
                 _priceListCacheMisses++;
-                
+
                 _activeSalesPriceLists = await _priceListService.GetActivePriceListsAsync(
                     PriceListDirection.Output
                 );
-                
+
                 // Only update timestamp if not already set or expired
                 if (_priceListsCacheTimestamp == null || IsPriceListsCacheExpired())
                 {
                     _priceListsCacheTimestamp = DateTime.UtcNow;
                 }
-                
+
                 _logger.LogInformation(
                     "Loaded {Count} active sales price lists into cache (expires at {ExpiryTime})",
                     _activeSalesPriceLists.Count,
@@ -184,10 +184,10 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
         else
         {
             _priceListCacheHits++;
-            _logger.LogDebug("Cache HIT: Returning {Count} sales price lists from cache", 
+            _logger.LogDebug("Cache HIT: Returning {Count} sales price lists from cache",
                 _activeSalesPriceLists.Count);
         }
-        
+
         return _activeSalesPriceLists;
     }
 
@@ -200,17 +200,17 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
             {
                 _logger.LogDebug("Cache MISS: Loading active purchase price lists from API");
                 _priceListCacheMisses++;
-                
+
                 _activePurchasePriceLists = await _priceListService.GetActivePriceListsAsync(
                     PriceListDirection.Input
                 );
-                
+
                 // Only update timestamp if not already set or expired
                 if (_priceListsCacheTimestamp == null || IsPriceListsCacheExpired())
                 {
                     _priceListsCacheTimestamp = DateTime.UtcNow;
                 }
-                
+
                 _logger.LogInformation(
                     "Loaded {Count} active purchase price lists into cache (expires at {ExpiryTime})",
                     _activePurchasePriceLists.Count,
@@ -226,10 +226,10 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
         else
         {
             _priceListCacheHits++;
-            _logger.LogDebug("Cache HIT: Returning {Count} purchase price lists from cache", 
+            _logger.LogDebug("Cache HIT: Returning {Count} purchase price lists from cache",
                 _activePurchasePriceLists.Count);
         }
-        
+
         return _activePurchasePriceLists;
     }
 
@@ -239,9 +239,9 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
         // Carica in parallelo per performance
         var salesTask = GetActiveSalesPriceListsAsync();
         var purchaseTask = GetActivePurchasePriceListsAsync();
-        
+
         await Task.WhenAll(salesTask, purchaseTask);
-        
+
         // Combina e rimuovi duplicati (se esistono)
         return salesTask.Result
             .Concat(purchaseTask.Result)
@@ -257,10 +257,10 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
         {
             await BuildPriceListNamesCacheAsync();
         }
-        
+
         string? name = null;
         var found = _priceListNamesCache?.TryGetValue(priceListId, out name) == true;
-        
+
         if (found)
         {
             _priceListCacheHits++;
@@ -274,24 +274,24 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
                 _priceListNamesCache?.Count ?? 0
             );
         }
-        
+
         // Log metrics periodicamente
         LogCacheMetricsIfNeeded();
-        
+
         return name;
     }
 
     private async Task BuildPriceListNamesCacheAsync()
     {
         _logger.LogDebug("Building price list names cache dictionary");
-        
+
         var allLists = await GetAllActivePriceListsAsync();
-        
+
         _priceListNamesCache = allLists.ToDictionary(
             pl => pl.Id,
             pl => pl.Name
         );
-        
+
         _logger.LogInformation(
             "Built price list names cache with {Count} entries",
             _priceListNamesCache.Count
@@ -304,10 +304,10 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
         {
             return true;
         }
-        
+
         var age = DateTime.UtcNow - _priceListsCacheTimestamp.Value;
         var expired = age > PriceListsCacheDuration;
-        
+
         if (expired)
         {
             _logger.LogDebug(
@@ -316,19 +316,19 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
                 PriceListsCacheDuration
             );
         }
-        
+
         return expired;
     }
 
     private void LogCacheMetricsIfNeeded()
     {
         var totalRequests = _priceListCacheHits + _priceListCacheMisses;
-        
+
         // Log ogni 20 richieste
         if (totalRequests > 0 && totalRequests % 20 == 0)
         {
             var hitRate = _priceListCacheHits / (double)totalRequests;
-            
+
             _logger.LogInformation(
                 "Price list cache metrics: {Hits} hits, {Misses} misses, {HitRate:P1} hit rate",
                 _priceListCacheHits,

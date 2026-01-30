@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
@@ -15,13 +14,13 @@ public class StorageFacilityService : IStorageFacilityService
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<StorageFacilityService> _logger;
     private readonly ICacheService _cacheService;
-    
+
     private const string CACHE_KEY_ALL = "StorageFacilities_All";
 
     public StorageFacilityService(
-        EventForgeDbContext context, 
-        IAuditLogService auditLogService, 
-        ITenantContext tenantContext, 
+        EventForgeDbContext context,
+        IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<StorageFacilityService> logger,
         ICacheService cacheService)
     {
@@ -304,23 +303,23 @@ public class StorageFacilityService : IStorageFacilityService
         var query = _context.StorageFacilities
             .Where(sf => !sf.IsDeleted && sf.TenantId == currentTenantId.Value)
             .OrderBy(sf => sf.Name);
-        
+
         var totalCount = await query.CountAsync(ct);
-        
+
         _logger.LogInformation("Export requested for {Count} storage facilities", totalCount);
-        
+
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
             _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetWarehousesInBatchesAsync(query, ct);
         }
-        
+
         // Standard export for smaller datasets
         var items = await query
             .Take(pagination.PageSize)
             .ToListAsync(ct);
-        
+
         return items.Select(sf => new EventForge.DTOs.Export.WarehouseExportDto
         {
             Id = sf.Id,
@@ -342,18 +341,18 @@ public class StorageFacilityService : IStorageFacilityService
         const int batchSize = 5000;
         var results = new List<EventForge.DTOs.Export.WarehouseExportDto>();
         var skip = 0;
-        
+
         while (true)
         {
             ct.ThrowIfCancellationRequested();
-            
+
             var batch = await query
                 .Skip(skip)
                 .Take(batchSize)
                 .ToListAsync(ct);
-            
+
             if (batch.Count == 0) break;
-            
+
             results.AddRange(batch.Select(sf => new EventForge.DTOs.Export.WarehouseExportDto
             {
                 Id = sf.Id,
@@ -366,27 +365,27 @@ public class StorageFacilityService : IStorageFacilityService
                 TotalStorageLocations = sf.TotalLocations,
                 CreatedAt = sf.CreatedAt
             }));
-            
+
             skip += batchSize;
-            
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
-        
+
         return results;
     }
 
     private static string? ExtractCityFromAddress(string? address)
     {
         if (string.IsNullOrEmpty(address)) return null;
-        
+
         // Try to extract city from address (simple heuristic - take last part before postal code if exists)
         var parts = address.Split(',');
         if (parts.Length > 1)
         {
             return parts[^2].Trim(); // Second to last part often contains city
         }
-        
+
         return null;
     }
 

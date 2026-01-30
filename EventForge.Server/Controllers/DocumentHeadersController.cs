@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
@@ -23,7 +22,7 @@ public class DocumentHeadersController : BaseApiController
     private readonly ILogger<DocumentHeadersController> _logger;
 
     public DocumentHeadersController(
-        IDocumentHeaderService documentHeaderService, 
+        IDocumentHeaderService documentHeaderService,
         ITenantContext tenantContext,
         IExportService exportService,
         ILogger<DocumentHeadersController> logger)
@@ -414,19 +413,19 @@ public class DocumentHeadersController : BaseApiController
         _logger.LogInformation(
             "Export operation started by {User} for Documents (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
-        
-        var pagination = new PaginationParameters 
-        { 
-            Page = 1, 
+
+        var pagination = new PaginationParameters
+        {
+            Page = 1,
             PageSize = 50000
         };
-        
+
         var data = await _documentHeaderService.GetDocumentsForExportAsync(pagination, ct);
-        
+
         byte[] fileBytes;
         string contentType;
         string fileName;
-        
+
         switch (format.ToLowerInvariant())
         {
             case "csv":
@@ -434,7 +433,7 @@ public class DocumentHeadersController : BaseApiController
                 contentType = "text/csv";
                 fileName = $"Documents_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
-            
+
             case "excel":
             default:
                 fileBytes = await _exportService.ExportToExcelAsync(data, "Documents", ct);
@@ -442,11 +441,11 @@ public class DocumentHeadersController : BaseApiController
                 fileName = $"Documents_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
-        
+
         _logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
-        
+
         return File(fileBytes, contentType, fileName);
     }
 }

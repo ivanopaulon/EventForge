@@ -1,11 +1,8 @@
-using Microsoft.Data.SqlClient;
-using System.Reflection;
-using System.Security.Cryptography;
-using System.Text.Json;
 using EventForge.DTOs.Setup;
-using EventForge.Server.Data.Entities.Configuration;
-using EventForge.Server.Services.Auth;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
+using System.Text.Json;
 
 namespace EventForge.Server.Services.Setup;
 
@@ -135,7 +132,7 @@ public class SetupWizardService : ISetupWizardService
         try
         {
             var masterConnectionString = BuildMasterConnectionString(config);
-            
+
             using var connection = new SqlConnection(masterConnectionString);
             await connection.OpenAsync(cancellationToken);
 
@@ -303,7 +300,7 @@ public class SetupWizardService : ISetupWizardService
     {
         // Build connection string matching appsettings.json format EXACTLY
         // Format: Server=...;Database=...;User Id=...;Password=...;TrustServerCertificate=True;
-        
+
         if (config.Credentials.AuthenticationType == "Windows")
         {
             return $"Server={config.ServerAddress};Database={config.DatabaseName};Integrated Security=True;TrustServerCertificate=True;";
@@ -317,7 +314,7 @@ public class SetupWizardService : ISetupWizardService
     private string BuildMasterConnectionString(SetupConfiguration config)
     {
         // Build master connection string matching appsettings.json format
-        
+
         if (config.Credentials.AuthenticationType == "Windows")
         {
             return $"Server={config.ServerAddress};Database=master;Integrated Security=True;TrustServerCertificate=True;";

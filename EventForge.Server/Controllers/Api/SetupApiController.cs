@@ -43,13 +43,13 @@ public class SetupApiController : ControllerBase
         try
         {
             var isSetupComplete = await _firstRunDetection.IsSetupCompleteAsync(cancellationToken);
-            
+
             if (isSetupComplete)
             {
                 _logger.LogWarning("Attempt to access setup endpoints after setup completion");
                 return Forbid();
             }
-            
+
             return Ok(!isSetupComplete);
         }
         catch (Exception ex)
@@ -77,7 +77,7 @@ public class SetupApiController : ControllerBase
                 _logger.LogWarning("Attempt to access setup endpoints after setup completion");
                 return Forbid();
             }
-            
+
             var instances = await _sqlServerDiscovery.DiscoverLocalInstancesAsync(cancellationToken);
             return Ok(instances);
         }
@@ -181,7 +181,7 @@ public class SetupApiController : ControllerBase
                     Errors = new List<string> { "Setup has already been completed. This operation is not allowed." }
                 });
             }
-            
+
             _logger.LogInformation("Starting setup wizard completion...");
 
             var result = await _setupWizard.CompleteSetupAsync(config, cancellationToken);

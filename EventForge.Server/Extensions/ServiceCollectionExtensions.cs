@@ -31,7 +31,6 @@ using EventForge.Server.Services.VatRates;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -51,7 +50,7 @@ public static class ServiceCollectionExtensions
         var filePath = builder.Configuration["Serilog:FilePath"] ?? "Logs/log-.log";
         var fileRetention = builder.Configuration.GetValue<int?>("Serilog:FileRetention") ?? 7;
         var logDbConnectionString = builder.Configuration.GetConnectionString("LogDb");
-        
+
         // Disable console logging by default (even in Development) for cleaner output
         // Console logging can be explicitly enabled via configuration: Serilog:EnableConsole = true
         var isConsoleLoggingEnabled = builder.Configuration.GetValue<bool>("Serilog:EnableConsole", false);
@@ -187,9 +186,9 @@ public static class ServiceCollectionExtensions
             // Try DefaultConnection first (standard key), fallback to SqlServer (legacy)
             var defaultConnection = configuration.GetConnectionString("DefaultConnection");
             var sqlServerConnection = configuration.GetConnectionString("SqlServer");
-            
+
             var connectionString = defaultConnection ?? sqlServerConnection;
-            
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 Log.Error("No connection string found - expected 'DefaultConnection' or 'SqlServer'");
@@ -225,7 +224,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddSingleton<LogIngestionService>();
         _ = services.AddSingleton<ILogIngestionService>(sp => sp.GetRequiredService<LogIngestionService>());
         _ = services.AddHostedService<LogIngestionBackgroundService>();
-        
+
         // Register user services
         _ = services.AddScoped<EventForge.Server.Services.Users.IUserService, EventForge.Server.Services.Users.UserService>();
 

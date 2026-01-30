@@ -27,29 +27,29 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var queryParams = new List<string> 
-            { 
-                $"page={page}", 
-                $"pageSize={pageSize}" 
+            var queryParams = new List<string>
+            {
+                $"page={page}",
+                $"pageSize={pageSize}"
             };
-            
+
             if (direction.HasValue)
                 queryParams.Add($"direction={direction.Value}");
-            
+
             if (status.HasValue)
                 queryParams.Add($"status={status.Value}");
-            
+
             var queryString = string.Join("&", queryParams);
-            
+
             var result = await _httpClientService.GetAsync<PagedResult<PriceListDto>>(
                 $"{BaseUrl}?{queryString}", ct);
-            
-            return result ?? new PagedResult<PriceListDto> 
-            { 
-                Items = new List<PriceListDto>(), 
-                TotalCount = 0, 
-                Page = page, 
-                PageSize = pageSize 
+
+            return result ?? new PagedResult<PriceListDto>
+            {
+                Items = new List<PriceListDto>(),
+                TotalCount = 0,
+                Page = page,
+                PageSize = pageSize
             };
         }
         catch (Exception ex)
@@ -403,21 +403,21 @@ public class PriceListService : IPriceListService
         try
         {
             var queryString = $"direction={direction}&status=Active&pageSize=1000";
-            
+
             _logger.LogDebug("Fetching active price lists: {QueryString}", queryString);
-            
+
             var result = await _httpClientService.GetAsync<PagedResult<PriceListDto>>(
                 $"{BaseUrl}?{queryString}", ct
             );
-            
+
             if (result == null || result.Items == null)
             {
                 _logger.LogWarning("GetActivePriceListsAsync returned null for direction {Direction}", direction);
                 return new List<PriceListDto>();
             }
-            
+
             _logger.LogInformation("Fetched active price lists for direction: " + direction);
-            
+
             return result.Items.ToList();
         }
         catch (Exception ex)
@@ -428,8 +428,8 @@ public class PriceListService : IPriceListService
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(
-        Guid businessPartyId, 
-        PriceListType? type = null, 
+        Guid businessPartyId,
+        PriceListType? type = null,
         CancellationToken ct = default)
     {
         try
@@ -437,20 +437,20 @@ public class PriceListService : IPriceListService
             var queryParams = new List<string>();
             if (type.HasValue)
                 queryParams.Add($"type={type.Value}");
-            
-            var queryString = queryParams.Any() 
-                ? "?" + string.Join("&", queryParams) 
+
+            var queryString = queryParams.Any()
+                ? "?" + string.Join("&", queryParams)
                 : string.Empty;
-            
+
             var url = $"api/v1/product-management/business-parties/{businessPartyId}/price-lists{queryString}";
-            
+
             var result = await _httpClientService.GetAsync<IEnumerable<PriceListDto>>(url, ct);
             return result ?? Enumerable.Empty<PriceListDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, 
-                "Error fetching price lists for business party {BusinessPartyId}", 
+            _logger.LogError(ex,
+                "Error fetching price lists for business party {BusinessPartyId}",
                 businessPartyId);
             return Enumerable.Empty<PriceListDto>();
         }

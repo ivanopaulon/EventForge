@@ -1,8 +1,6 @@
-using EventForge.DTOs.Common;
 using EventForge.Server.Configuration;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Options;
-using System.Security.Claims;
 
 namespace EventForge.Server.ModelBinders;
 

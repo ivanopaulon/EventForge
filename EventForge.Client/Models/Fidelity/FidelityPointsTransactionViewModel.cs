@@ -17,18 +17,18 @@ public enum TransactionType
 public class FidelityPointsTransactionViewModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    
+
     public Guid FidelityCardId { get; set; }
-    
+
     public DateTime TransactionDate { get; set; } = DateTime.Now;
-    
+
     public TransactionType Type { get; set; }
-    
+
     public int Points { get; set; }
-    
+
     public int BalanceAfter { get; set; }
-    
+
     public string Description { get; set; } = string.Empty;
-    
+
     public string? Reference { get; set; }
 }

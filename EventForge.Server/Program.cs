@@ -85,7 +85,7 @@ builder.Services.AddControllers(options =>
 })
 .AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.DefaultIgnoreCondition = 
+    options.JsonSerializerOptions.DefaultIgnoreCondition =
         System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
 });
 
@@ -195,7 +195,7 @@ builder.Services.AddSwaggerGen(c =>
             var genericArgs = string.Join("", type.GetGenericArguments().Select(t => GetSchemaId(t)));
             return $"{genericName}Of{genericArgs}";
         }
-        
+
         // Known conflicting types: use namespace prefix to avoid Swagger schema conflicts
         // PrinterDto exists in both EventForge.DTOs.Printing and EventForge.DTOs.Station
         if (type.Name == "PrinterDto")
@@ -205,7 +205,7 @@ builder.Services.AddSwaggerGen(c =>
                 .Replace(".", "") ?? "";
             return $"{namespacePrefix}{type.Name}";
         }
-        
+
         // For non-generic, non-conflicting types, use simple class name
         // This makes Swagger UI much more readable and performant
         return type.Name;
@@ -322,14 +322,14 @@ builder.Services.AddMiniProfiler(options =>
     options.PopupRenderPosition = StackExchange.Profiling.RenderPosition.BottomLeft;
     options.PopupShowTimeWithChildren = true;
     options.PopupShowTrivial = true;
-    
+
     // Performance
     options.EnableServerTimingHeader = true;
     options.TrackConnectionOpenClose = true;
-    
+
     // Storage uses default in-memory cache
     // options.Storage is set automatically to use memory cache
-    
+
     // Ignore paths
     options.IgnoredPaths.Add("/swagger");
     options.IgnoredPaths.Add("/health");
@@ -340,12 +340,12 @@ builder.Services.AddOutputCache(options =>
 {
     // Policy 1: Static Entities (1 hour cache)
     // For: VatRates, DocumentTypes, PaymentTerms, Banks
-    options.AddPolicy("StaticEntities", builder => 
+    options.AddPolicy("StaticEntities", builder =>
         builder
             .Expire(TimeSpan.FromHours(1))
             .SetVaryByQuery("page", "pageSize")
             .Tag("static"));
-    
+
     // Policy 2: Semi-Static Entities (10 minutes cache)
     // For: UnitOfMeasures, Brands, Models, PaymentMethods, ClassificationNodes, NoteFlags
     options.AddPolicy("SemiStaticEntities", builder =>
@@ -353,7 +353,7 @@ builder.Services.AddOutputCache(options =>
             .Expire(TimeSpan.FromMinutes(10))
             .SetVaryByQuery("page", "pageSize")
             .Tag("semi-static"));
-    
+
     // Policy 3: Real-Time Short Cache (5 seconds)
     // For: POS.GetOpenSessions, Tables.GetAvailableTables
     options.AddPolicy("RealTimeShortCache", builder =>
@@ -400,7 +400,7 @@ if (!app.Environment.IsDevelopment())
 {
     // Use global exception handler middleware for centralized exception handling
     _ = app.UseGlobalExceptionHandler();
-    
+
     // Production hardening: HTTPS enforcement
     if (builder.Configuration.GetValue<bool>("Security:EnforceHttps", true))
     {
@@ -462,14 +462,14 @@ if (!app.Environment.IsDevelopment())
                     context.Response.Redirect("/server/login?returnUrl=/swagger");
                     return;
                 }
-                
+
                 // Check SuperAdmin role
                 if (!context.User.IsInRole("SuperAdmin"))
                 {
                     context.Response.Redirect("/?error=swagger_access_denied");
                     return;
                 }
-                
+
                 await next();
             });
         });

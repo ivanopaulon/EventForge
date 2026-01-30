@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceHistory;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.PriceHistory;

@@ -22,7 +22,7 @@ public class PaginationModelBinderTests
     {
         _loggerMock = new Mock<ILogger<PaginationModelBinder>>();
         _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
-        
+
         _settings = new PaginationSettings
         {
             DefaultPageSize = 20,

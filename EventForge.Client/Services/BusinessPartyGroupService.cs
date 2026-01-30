@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services;
 
@@ -118,7 +118,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         try
         {
             var result = await _httpClientService.PostAsync<AddBusinessPartyToGroupDto, BusinessPartyGroupMemberDto>(
-                $"{BaseUrl}/{groupId}/members", 
+                $"{BaseUrl}/{groupId}/members",
                 createDto);
             return result ?? throw new InvalidOperationException("Failed to add member to business party group");
         }
@@ -134,7 +134,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         try
         {
             var result = await _httpClientService.PostAsync<BulkAddMembersDto, BulkOperationResultDto>(
-                $"{BaseUrl}/bulk-add-members", 
+                $"{BaseUrl}/bulk-add-members",
                 bulkDto);
             return result ?? throw new InvalidOperationException("Failed to bulk add members to business party group");
         }
@@ -150,7 +150,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         try
         {
             var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupMemberDto, BusinessPartyGroupMemberDto>(
-                $"{BaseUrl}/members/{membershipId}", 
+                $"{BaseUrl}/members/{membershipId}",
                 updateDto);
             return result ?? throw new InvalidOperationException("Failed to update member");
         }

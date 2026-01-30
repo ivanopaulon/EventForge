@@ -7,10 +7,10 @@ public class CacheService : ICacheService
 {
     private readonly IMemoryCache _cache;
     private readonly ILogger<CacheService> _logger;
-    
+
     // Track cache keys for pattern invalidation
     private readonly ConcurrentDictionary<string, byte> _cacheKeys = new();
-    
+
     // Default expiration times
     private static readonly TimeSpan DefaultAbsoluteExpiration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan DefaultSlidingExpiration = TimeSpan.FromMinutes(5);
@@ -30,10 +30,10 @@ public class CacheService : ICacheService
         CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        
+
         // Build tenant-specific cache key
         var cacheKey = BuildCacheKey(key, tenantId);
-        
+
         // Track key for pattern invalidation
         _cacheKeys.TryAdd(cacheKey, 0);
 
@@ -51,14 +51,14 @@ public class CacheService : ICacheService
         {
             entry.SetSize(1);  // Count towards size limit
             entry.SetAbsoluteExpiration(absoluteExpiration ?? DefaultAbsoluteExpiration);
-            
+
             // Only set sliding expiration if absolute expiration is not specified
             // to avoid confusion about when the entry actually expires
             if (!absoluteExpiration.HasValue)
             {
                 entry.SetSlidingExpiration(slidingExpiration ?? DefaultSlidingExpiration);
             }
-            
+
             entry.RegisterPostEvictionCallback((key, value, reason, state) =>
             {
                 try
@@ -104,7 +104,7 @@ public class CacheService : ICacheService
             _cacheKeys.TryRemove(key, out _);
         }
 
-        _logger.LogInformation("Cache invalidated for pattern: {Pattern}, {Count} entries removed", 
+        _logger.LogInformation("Cache invalidated for pattern: {Pattern}, {Count} entries removed",
             pattern, keysToRemove.Count);
     }
 

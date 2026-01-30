@@ -61,31 +61,31 @@ public class SystemConfiguration : AuditableEntity
     [MaxLength(1000, ErrorMessage = "Default value cannot exceed 1000 characters.")]
     [Display(Name = "Default Value", Description = "Default value for the configuration.")]
     public string? DefaultValue { get; set; }
-    
+
     /// <summary>
     /// Configuration version for tracking changes.
     /// </summary>
     [Display(Name = "Version", Description = "Version number for tracking changes.")]
     public int Version { get; set; } = 1;
-    
+
     /// <summary>
     /// Indicates if this configuration version is active.
     /// </summary>
     [Display(Name = "Is Active", Description = "Indicates if this version is active.")]
     public bool IsActive { get; set; } = true;
-    
+
     /// <summary>
     /// User who created this configuration.
     /// </summary>
     [MaxLength(100)]
     public string? CreatedBy { get; set; }
-    
+
     /// <summary>
     /// User who last modified this configuration.
     /// </summary>
     [MaxLength(100)]
     public string? ModifiedBy { get; set; }
-    
+
     /// <summary>
     /// Date when this configuration was last modified.
     /// </summary>

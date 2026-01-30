@@ -1,7 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.Server.Data.Entities.PriceList;
-using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 using PriceListDirection = EventForge.DTOs.Common.PriceListDirection;
+using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -11,15 +9,15 @@ namespace EventForge.Server.Services.PriceLists;
 public interface IPriceListValidationService
 {
     // === VALIDAZIONI TEMPORALI ===
-    
+
     /// <summary>
     /// Valida che il listino sia applicabile alla data specificata
     /// </summary>
     Task<ValidationResult> ValidatePriceListDateRangeAsync(
-        Guid priceListId, 
+        Guid priceListId,
         DateTime evaluationDate,
         CancellationToken ct = default);
-    
+
     /// <summary>
     /// Verifica che non ci siano listini sovrapposti per lo stesso business party
     /// </summary>
@@ -30,9 +28,9 @@ public interface IPriceListValidationService
         DateTime? validTo,
         Guid? excludePriceListId = null,
         CancellationToken ct = default);
-    
+
     // === VALIDAZIONI STATO ===
-    
+
     /// <summary>
     /// Verifica che il listino sia nello stato corretto
     /// </summary>
@@ -40,16 +38,16 @@ public interface IPriceListValidationService
         Guid priceListId,
         PriceListStatus requiredStatus,
         CancellationToken ct = default);
-    
+
     /// <summary>
     /// Valida che la transizione di stato sia permessa
     /// </summary>
     ValidationResult ValidateStatusTransition(
         PriceListStatus currentStatus,
         PriceListStatus newStatus);
-    
+
     // === VALIDAZIONI DUPLICATI ===
-    
+
     /// <summary>
     /// Verifica che un prodotto non sia già presente nel listino
     /// </summary>
@@ -58,7 +56,7 @@ public interface IPriceListValidationService
         Guid productId,
         Guid? excludeEntryId = null,
         CancellationToken ct = default);
-    
+
     /// <summary>
     /// Verifica che un business party non sia già assegnato al listino
     /// </summary>
@@ -66,33 +64,33 @@ public interface IPriceListValidationService
         Guid priceListId,
         Guid businessPartyId,
         CancellationToken ct = default);
-    
+
     // === VALIDAZIONI PREZZI ===
-    
+
     /// <summary>
     /// Valida che il prezzo sia valido
     /// </summary>
     ValidationResult ValidatePriceValue(decimal price, string fieldName = "Price");
-    
+
     /// <summary>
     /// Valida che i range quantità siano coerenti
     /// </summary>
     ValidationResult ValidateQuantityRange(int minQuantity, int maxQuantity);
-    
+
     /// <summary>
     /// Valida che la valuta sia supportata
     /// </summary>
     ValidationResult ValidateCurrency(string currency);
-    
+
     // === VALIDAZIONI RELAZIONALI ===
-    
+
     /// <summary>
     /// Verifica che il prodotto esista e sia attivo
     /// </summary>
     Task<ValidationResult> ValidateProductIsActiveAsync(
         Guid productId,
         CancellationToken ct = default);
-    
+
     /// <summary>
     /// Verifica compatibilità business party con direzione listino
     /// </summary>

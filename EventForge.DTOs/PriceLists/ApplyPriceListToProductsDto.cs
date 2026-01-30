@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.PriceLists;
@@ -14,32 +12,32 @@ public class ApplyPriceListToProductsDto
     /// </summary>
     [Required]
     public required Guid PriceListId { get; init; }
-    
+
     /// <summary>
     /// Modalità di applicazione
     /// </summary>
     public PriceListToProductApplicationMode ApplicationMode { get; init; } = PriceListToProductApplicationMode.UpdateExisting;
-    
+
     /// <summary>
     /// Aggiorna solo se prezzo listino > DefaultPrice
     /// </summary>
     public bool OnlyUpdateIfHigher { get; init; } = false;
-    
+
     /// <summary>
     /// Aggiorna solo se prezzo listino < DefaultPrice
     /// </summary>
     public bool OnlyUpdateIfLower { get; init; } = false;
-    
+
     /// <summary>
     /// Crea backup dei prezzi precedenti in audit log
     /// </summary>
     public bool CreateBackup { get; init; } = true;
-    
+
     /// <summary>
     /// Filtro per prodotti specifici (opzionale)
     /// </summary>
     public List<Guid>? FilterByProductIds { get; init; }
-    
+
     /// <summary>
     /// Filtro per categorie prodotti (opzionale)
     /// </summary>
@@ -55,7 +53,7 @@ public enum PriceListToProductApplicationMode
     /// Aggiorna solo prodotti già nel listino
     /// </summary>
     UpdateExisting = 0,
-    
+
     /// <summary>
     /// Aggiorna tutti i prodotti (anche se non nel listino, usa DefaultPrice)
     /// </summary>

@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
@@ -502,7 +501,7 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Getting storage locations for warehouse {WarehouseId} with pagination: page={Page}, pageSize={PageSize}", 
+            _logger.LogDebug("Getting storage locations for warehouse {WarehouseId} with pagination: page={Page}, pageSize={PageSize}",
                 warehouseId, pagination.Page, pagination.PageSize);
 
             var query = _context.StorageLocations
@@ -564,7 +563,7 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Getting storage locations for zone {Zone} with pagination: page={Page}, pageSize={PageSize}", 
+            _logger.LogDebug("Getting storage locations for zone {Zone} with pagination: page={Page}, pageSize={PageSize}",
                 zone, pagination.Page, pagination.PageSize);
 
             var query = _context.StorageLocations

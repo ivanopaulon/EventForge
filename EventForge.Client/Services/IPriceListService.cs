@@ -225,7 +225,7 @@ public interface IPriceListService
     /// <param name="ct">Cancellation token</param>
     /// <returns>List of assigned price lists</returns>
     Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(
-        Guid businessPartyId, 
-        PriceListType? type = null, 
+        Guid businessPartyId,
+        PriceListType? type = null,
         CancellationToken ct = default);
 }

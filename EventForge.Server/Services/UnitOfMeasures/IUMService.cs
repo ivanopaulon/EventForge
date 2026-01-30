@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.UnitOfMeasures;
 
 namespace EventForge.Server.Services.UnitOfMeasures;

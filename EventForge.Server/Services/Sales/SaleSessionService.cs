@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
@@ -935,9 +934,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             var baseQuery = _context.SaleSessions
                 .AsNoTracking()
-                .Where(s => s.TenantId == currentTenantId.Value 
-                    && !s.IsDeleted 
-                    && s.CreatedAt >= startDate 
+                .Where(s => s.TenantId == currentTenantId.Value
+                    && !s.IsDeleted
+                    && s.CreatedAt >= startDate
                     && s.CreatedAt <= end);
 
             var totalCount = await baseQuery.CountAsync(cancellationToken);
@@ -1019,8 +1018,8 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             var baseQuery = _context.SaleSessions
                 .AsNoTracking()
-                .Where(s => s.TenantId == currentTenantId.Value 
-                    && !s.IsDeleted 
+                .Where(s => s.TenantId == currentTenantId.Value
+                    && !s.IsDeleted
                     && !s.ClosedAt.HasValue); // Session still open
 
             var totalCount = await baseQuery.CountAsync(cancellationToken);

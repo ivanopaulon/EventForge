@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 
 namespace EventForge.Server.Services.Sales;

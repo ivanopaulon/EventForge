@@ -21,8 +21,8 @@ public class HealthController : BaseApiController
     private readonly IFirstRunDetectionService _firstRunService;
 
     public HealthController(
-        EventForgeDbContext dbContext, 
-        ILogger<HealthController> logger, 
+        EventForgeDbContext dbContext,
+        ILogger<HealthController> logger,
         IFirstRunDetectionService firstRunService,
         IPerformanceMonitoringService? performanceService = null)
     {
@@ -331,7 +331,7 @@ public class HealthController : BaseApiController
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetName().Version;
         var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        
+
         return Ok(new ServerVersionDto
         {
             Version = version?.ToString() ?? "1.0.0",

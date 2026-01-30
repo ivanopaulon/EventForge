@@ -1,6 +1,5 @@
 using EventForge.DTOs.Common;
 using FluentValidation;
-using System;
 
 namespace EventForge.DTOs.Documents.Validators
 {

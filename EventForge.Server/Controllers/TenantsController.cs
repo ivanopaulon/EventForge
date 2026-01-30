@@ -1,9 +1,6 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Tenants;
 using EventForge.Server.ModelBinders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
 

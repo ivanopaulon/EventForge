@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace EventForge.DTOs.Products.SupplierSuggestion
 {
     /// <summary>

@@ -27,14 +27,14 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.GetAsync("api/v1/health");
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Health check failed with status code {StatusCode}. Reason: {Reason}", 
+                    _logger.LogWarning("Health check failed with status code {StatusCode}. Reason: {Reason}",
                         response.StatusCode, response.ReasonPhrase);
                     return null;
                 }
-                
+
                 return await response.Content.ReadFromJsonAsync<HealthStatusDto>();
             }
             catch (HttpRequestException ex)
@@ -55,14 +55,14 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.GetAsync("api/v1/health/detailed");
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Detailed health check failed with status code {StatusCode}. Reason: {Reason}", 
+                    _logger.LogWarning("Detailed health check failed with status code {StatusCode}. Reason: {Reason}",
                         response.StatusCode, response.ReasonPhrase);
                     return null;
                 }
-                
+
                 return await response.Content.ReadFromJsonAsync<DetailedHealthStatusDto>();
             }
             catch (HttpRequestException ex)

@@ -3,7 +3,6 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 using EventForge.DTOs.SuperAdmin;
 using EventForge.Server.Data;
-using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Business;
@@ -64,24 +63,24 @@ public class PriceListService_DuplicationTests
     };
 
     private static Server.Data.Entities.PriceList.PriceList CreatePriceList(
-        Guid tenantId, 
-        string name, 
+        Guid tenantId,
+        string name,
         int priority = 0,
         string? code = null,
         bool isDefault = false) => new()
-    {
-        Id = Guid.NewGuid(),
-        TenantId = tenantId,
-        Name = name,
-        Code = code,
-        Priority = priority,
-        Status = Server.Data.Entities.PriceList.PriceListStatus.Active,
-        Type = PriceListType.Sales,
-        Direction = PriceListDirection.Output,
-        IsDefault = isDefault,
-        CreatedAt = DateTime.UtcNow,
-        CreatedBy = "test"
-    };
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Name = name,
+            Code = code,
+            Priority = priority,
+            Status = Server.Data.Entities.PriceList.PriceListStatus.Active,
+            Type = PriceListType.Sales,
+            Direction = PriceListDirection.Output,
+            IsDefault = isDefault,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
 
     private static PriceListEntry CreatePriceListEntry(Guid tenantId, Guid priceListId, Guid productId, decimal price) => new()
     {
@@ -129,10 +128,10 @@ public class PriceListService_DuplicationTests
         var products = Enumerable.Range(1, 10)
             .Select(i => CreateProduct(tenant.Id, 10m * i, $"PROD{i:D3}"))
             .ToList();
-        
+
         var bp1 = CreateBusinessParty(tenant.Id, "BP1");
         var bp2 = CreateBusinessParty(tenant.Id, "BP2");
-        
+
         var sourcePriceList = CreatePriceList(tenant.Id, "Original List", code: "ORIG-001");
 
         context.Tenants.Add(tenant);
@@ -203,7 +202,7 @@ public class PriceListService_DuplicationTests
         var products = Enumerable.Range(1, 10)
             .Select(i => CreateProduct(tenant.Id, 10m * i, $"PROD{i:D3}"))
             .ToList();
-        
+
         var sourcePriceList = CreatePriceList(tenant.Id, "Original List");
 
         context.Tenants.Add(tenant);
@@ -270,7 +269,7 @@ public class PriceListService_DuplicationTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(10m, result.AppliedMarkupPercentage);
-        
+
         // Verify price was increased
         var newEntry = await context.PriceListEntries
             .FirstAsync(e => e.PriceListId == result.NewPriceList.Id);
@@ -311,7 +310,7 @@ public class PriceListService_DuplicationTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(-15m, result.AppliedMarkupPercentage);
-        
+
         // Verify price was decreased
         var newEntry = await context.PriceListEntries
             .FirstAsync(e => e.PriceListId == result.NewPriceList.Id);
@@ -352,7 +351,7 @@ public class PriceListService_DuplicationTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(RoundingStrategy.ToNearest10Cents, result.AppliedRoundingStrategy);
-        
+
         // Verify price was rounded to nearest 10 cents
         var newEntry = await context.PriceListEntries
             .FirstAsync(e => e.PriceListId == result.NewPriceList.Id);
@@ -393,7 +392,7 @@ public class PriceListService_DuplicationTests
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Verify: 10.00 * 1.10 = 11.00 (already rounded to 10 cents)
         var newEntry = await context.PriceListEntries
             .FirstAsync(e => e.PriceListId == result.NewPriceList.Id);
@@ -418,11 +417,11 @@ public class PriceListService_DuplicationTests
         var beverageProducts = Enumerable.Range(1, 5)
             .Select(i => CreateProduct(tenant.Id, 10m * i, $"BEV{i:D3}", categoryBevande.Id))
             .ToList();
-        
+
         var foodProducts = Enumerable.Range(1, 5)
             .Select(i => CreateProduct(tenant.Id, 10m * i, $"FOOD{i:D3}", categoryFood.Id))
             .ToList();
-        
+
         var sourcePriceList = CreatePriceList(tenant.Id, "Original");
 
         context.Tenants.Add(tenant);
@@ -470,7 +469,7 @@ public class PriceListService_DuplicationTests
         var products = Enumerable.Range(1, 10)
             .Select(i => CreateProduct(tenant.Id, 10m * i, $"PROD{i:D3}"))
             .ToList();
-        
+
         var sourcePriceList = CreatePriceList(tenant.Id, "Original");
 
         context.Tenants.Add(tenant);
@@ -518,7 +517,7 @@ public class PriceListService_DuplicationTests
         var activeProducts = Enumerable.Range(1, 8)
             .Select(i => CreateProduct(tenant.Id, 10m * i, $"ACTIVE{i:D3}"))
             .ToList();
-        
+
         var inactiveProducts = Enumerable.Range(1, 2)
             .Select(i =>
             {
@@ -527,7 +526,7 @@ public class PriceListService_DuplicationTests
                 return p;
             })
             .ToList();
-        
+
         var sourcePriceList = CreatePriceList(tenant.Id, "Original");
 
         context.Tenants.Add(tenant);
@@ -623,14 +622,14 @@ public class PriceListService_DuplicationTests
         // Assert
         Assert.NotNull(result);
         Assert.NotNull(result.NewPriceList.Code);
-        
+
         // Verify uniqueness by trying to create another with same base name
         var dto2 = new DuplicatePriceListDto
         {
             Name = "Duplicate Attempt",
             Code = null
         };
-        
+
         var result2 = await service.DuplicatePriceListAsync(sourcePriceList.Id, dto2, "testuser");
         Assert.NotEqual(result.NewPriceList.Code, result2.NewPriceList.Code);
     }
@@ -773,7 +772,7 @@ public class PriceListService_DuplicationTests
     [InlineData(10.37, RoundingStrategy.ToNearest99Cents, 10.99)]
     [InlineData(10.00, RoundingStrategy.ToNearest99Cents, 10.99)]
     public async Task DuplicatePriceList_VariousRoundingStrategies_RoundsCorrectly(
-        decimal sourcePrice, 
+        decimal sourcePrice,
         RoundingStrategy strategy,
         decimal expectedPrice)
     {

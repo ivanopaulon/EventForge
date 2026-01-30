@@ -1,6 +1,3 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Auth;
-
 namespace EventForge.Server.Services.Users;
 
 /// <summary>

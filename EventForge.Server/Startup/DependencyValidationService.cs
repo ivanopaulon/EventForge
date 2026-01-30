@@ -1,6 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System.Linq;
 using System.Text;
 
 namespace EventForge.Server.Startup;
@@ -62,17 +59,17 @@ public static class DependencyValidationService
         var serviceProviderType = services.GetType();
 
         // For Microsoft.Extensions.DependencyInjection.ServiceProvider
-        var engineField = serviceProviderType.GetField("_engine", 
+        var engineField = serviceProviderType.GetField("_engine",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        
+
         object? engine = null;
-        
+
         if (engineField == null)
         {
             // Try alternative approach for different service provider implementations
             var rootField = serviceProviderType.GetField("_root",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            
+
             if (rootField != null)
             {
                 var root = rootField.GetValue(services);
@@ -114,7 +111,7 @@ public static class DependencyValidationService
     {
         var callSiteFactoryField = engine.GetType().GetField("_callSiteFactory",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        
+
         if (callSiteFactoryField != null)
         {
             var callSiteFactory = callSiteFactoryField.GetValue(engine);
@@ -122,7 +119,7 @@ public static class DependencyValidationService
             {
                 var descriptorsField = callSiteFactory.GetType().GetField("_descriptors",
                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                
+
                 if (descriptorsField != null)
                 {
                     var descriptors = descriptorsField.GetValue(callSiteFactory);
@@ -272,7 +269,7 @@ public static class DependencyValidationService
                     // A back edge exists: dependency is already in the current path (recursion stack)
                     // This means we've found a circular dependency chain
                     var cycle = ExtractCycle(recursionStack, dependency);
-                    
+
                     // Only add unique cycles (avoid duplicates)
                     // Multiple paths may discover the same cycle
                     if (!cycles.Any(c => CyclesAreEqual(c, cycle)))

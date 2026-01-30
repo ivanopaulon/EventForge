@@ -240,7 +240,7 @@ public class PriceResolutionServiceTests : IDisposable
 
         // Act
         var result = await _service.ResolvePriceAsync(
-            _productId, 
+            _productId,
             businessPartyId: _businessPartyId,
             direction: PriceListDirection.Output);
 
@@ -291,7 +291,7 @@ public class PriceResolutionServiceTests : IDisposable
 
         // Act
         var result = await _service.ResolvePriceAsync(
-            _productId, 
+            _productId,
             businessPartyId: _businessPartyId,
             direction: PriceListDirection.Input);
 

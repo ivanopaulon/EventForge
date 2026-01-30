@@ -16,7 +16,7 @@ public class DocumentRowCalculationCache
     /// <param name="key">Cache key based on input parameters</param>
     /// <param name="calculator">Function to calculate value if not cached</param>
     /// <returns>Cached or newly calculated value</returns>
-    public TValue GetOrCalculate<TKey, TValue>(TKey key, Func<TValue> calculator) 
+    public TValue GetOrCalculate<TKey, TValue>(TKey key, Func<TValue> calculator)
         where TKey : notnull
     {
         // Use string representation for more reliable cache keys

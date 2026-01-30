@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.Profile;
@@ -29,7 +27,7 @@ public class UserProfileDto
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public DateTime? PasswordChangedAt { get; set; }
-    
+
     /// <summary>
     /// Preferenze di visualizzazione dell'utente
     /// </summary>
@@ -62,7 +60,7 @@ public class UpdateProfileDto
 
     [MaxLength(50)]
     public string? TimeZone { get; set; }
-    
+
     /// <summary>
     /// Preferenze di visualizzazione
     /// </summary>

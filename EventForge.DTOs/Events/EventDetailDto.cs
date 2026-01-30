@@ -1,8 +1,5 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Teams;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace EventForge.DTOs.Events
 {

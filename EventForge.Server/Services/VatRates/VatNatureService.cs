@@ -14,13 +14,13 @@ public class VatNatureService : IVatNatureService
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<VatNatureService> _logger;
     private readonly ICacheService _cacheService;
-    
+
     private const string CACHE_KEY_ALL = "VatNatures_All";
 
     public VatNatureService(
-        EventForgeDbContext context, 
-        IAuditLogService auditLogService, 
-        ITenantContext tenantContext, 
+        EventForgeDbContext context,
+        IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<VatNatureService> logger,
         ICacheService cacheService)
     {

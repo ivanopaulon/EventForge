@@ -1,5 +1,4 @@
 using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Business;
 
@@ -82,8 +81,8 @@ public interface IBusinessPartyService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>DTO aggregato con tutti i dati, null se non trovato</returns>
     Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(
-        Guid id, 
-        bool includeInactive = false, 
+        Guid id,
+        bool includeInactive = false,
         CancellationToken cancellationToken = default);
 
     // BusinessPartyAccounting CRUD operations
@@ -193,7 +192,7 @@ public interface IBusinessPartyService
         string? sortBy = null,
         bool sortDescending = true,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Get business parties for export with batch processing support
     /// </summary>

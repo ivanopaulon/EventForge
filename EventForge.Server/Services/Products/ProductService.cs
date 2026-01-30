@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceHistory;
 using EventForge.DTOs.Products;
 using EventForge.Server.Services.CodeGeneration;
@@ -2474,23 +2473,23 @@ public class ProductService : IProductService
             .Include(p => p.CategoryNode)
             .Where(p => !p.IsDeleted && p.TenantId == currentTenantId.Value)
             .OrderBy(p => p.Name);
-        
+
         var totalCount = await query.CountAsync(ct);
-        
+
         _logger.LogInformation("Export requested for {Count} products", totalCount);
-        
+
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
             _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetProductsInBatchesAsync(query, ct);
         }
-        
+
         // Standard export for smaller datasets
         var items = await query
             .Take(pagination.PageSize)
             .ToListAsync(ct);
-        
+
         return items.Select(p => new EventForge.DTOs.Export.ProductExportDto
         {
             Id = p.Id,
@@ -2516,18 +2515,18 @@ public class ProductService : IProductService
         const int batchSize = 5000;
         var results = new List<EventForge.DTOs.Export.ProductExportDto>();
         var skip = 0;
-        
+
         while (true)
         {
             ct.ThrowIfCancellationRequested();
-            
+
             var batch = await query
                 .Skip(skip)
                 .Take(batchSize)
                 .ToListAsync(ct);
-            
+
             if (batch.Count == 0) break;
-            
+
             results.AddRange(batch.Select(p => new EventForge.DTOs.Export.ProductExportDto
             {
                 Id = p.Id,
@@ -2544,13 +2543,13 @@ public class ProductService : IProductService
                 IsActive = p.Status == EntityProductStatus.Active,
                 CreatedAt = p.CreatedAt
             }));
-            
+
             skip += batchSize;
-            
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
-        
+
         return results;
     }
 

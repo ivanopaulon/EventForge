@@ -183,7 +183,7 @@ public class PriceListBusinessPartyServiceTests
         // Arrange
         using var context = CreateInMemoryContext();
         var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), NullLogger<PriceListBusinessPartyService>.Instance);
-        
+
         var priceListId = Guid.NewGuid();
         var businessPartyId = Guid.NewGuid();
 
@@ -229,14 +229,14 @@ public class PriceListBusinessPartyServiceTests
         // Arrange
         using var context = CreateInMemoryContext();
         var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), NullLogger<PriceListBusinessPartyService>.Instance);
-        
+
         var dto = new AssignBusinessPartyToPriceListDto
         {
             BusinessPartyId = Guid.NewGuid()
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.AssignBusinessPartyAsync(Guid.NewGuid(), dto, "test"));
     }
 

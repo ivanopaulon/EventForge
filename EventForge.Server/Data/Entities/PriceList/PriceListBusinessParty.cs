@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using EventForge.Server.Data.Entities.Business;
 
 namespace EventForge.Server.Data.Entities.PriceList;
 

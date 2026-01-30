@@ -1,16 +1,14 @@
 using EventForge.DTOs.Banks;
 using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.VatRates;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.VatRates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.OutputCaching;
-using EventForge.Server.Services.Caching;
 
 namespace EventForge.Server.Controllers;
 
@@ -76,18 +74,18 @@ public class FinancialManagementController : BaseApiController
         try
         {
             var result = await _bankService.GetBanksAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -284,18 +282,18 @@ public class FinancialManagementController : BaseApiController
         try
         {
             var result = await _paymentTermService.GetPaymentTermsAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -492,18 +490,18 @@ public class FinancialManagementController : BaseApiController
         try
         {
             var result = await _vatRateService.GetVatRatesAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)

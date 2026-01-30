@@ -2,13 +2,7 @@ using EventForge.Client.Services;
 using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
 using MudBlazor;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EventForge.Client.Shared.Components.Business
 {
@@ -89,7 +83,7 @@ namespace EventForge.Client.Shared.Components.Business
         private const string InlineBadgeHeight = "18px";
         private const string InlineBadgeFontSize = "0.7rem";
         private const string InlineBadgePadding = "0 6px";
-        
+
         private const string CardBadgeBackgroundOpacity = "20"; // ~12% opacity for background
         private const string CardBadgeBorderOpacity = "40"; // ~25% opacity for border
 
@@ -265,13 +259,13 @@ namespace EventForge.Client.Shared.Components.Business
         private string GetLocationTooltip(BusinessPartyDto bp)
         {
             var parts = new List<string>();
-            
+
             if (!string.IsNullOrEmpty(bp.City))
                 parts.Add(bp.City);
-            
+
             if (!string.IsNullOrEmpty(bp.Province))
                 parts.Add(bp.Province);
-            
+
             if (!string.IsNullOrEmpty(bp.Country))
                 parts.Add(bp.Country);
 
@@ -317,12 +311,12 @@ namespace EventForge.Client.Shared.Components.Business
             if (group.ValidFrom.HasValue || group.ValidTo.HasValue)
             {
                 tooltip += " | Validità: ";
-                
+
                 if (group.ValidFrom.HasValue)
                 {
                     tooltip += $"dal {group.ValidFrom.Value:dd/MM/yyyy}";
                 }
-                
+
                 if (group.ValidTo.HasValue)
                 {
                     tooltip += $" al {group.ValidTo.Value:dd/MM/yyyy}";

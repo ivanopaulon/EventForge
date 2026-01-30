@@ -1,6 +1,5 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
-using EventForge.Server.Data.Entities.Configuration;
 using EventForge.Server.Data.Entities.Notifications;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;

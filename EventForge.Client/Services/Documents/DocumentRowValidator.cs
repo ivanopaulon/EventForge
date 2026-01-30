@@ -1,4 +1,3 @@
-using EventForge.Client.Services;
 using EventForge.DTOs.Documents;
 
 namespace EventForge.Client.Services.Documents;
@@ -130,7 +129,7 @@ public class ValidationResult
     /// </summary>
     public List<string> GetErrorMessages(ITranslationService translationService)
     {
-        return ErrorKeys.Select(key => 
+        return ErrorKeys.Select(key =>
             translationService.GetTranslation(key, GetDefaultMessage(key))
         ).ToList();
     }

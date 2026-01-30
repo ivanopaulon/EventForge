@@ -297,7 +297,7 @@ public class NotificationServiceTests : IDisposable
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.UpdateUserPreferencesAsync(preferences));
     }
 

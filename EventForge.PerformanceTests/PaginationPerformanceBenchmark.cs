@@ -1,7 +1,5 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
 using Microsoft.AspNetCore.Mvc.Testing;
-using System.Net.Http.Json;
 
 namespace EventForge.PerformanceTests;
 

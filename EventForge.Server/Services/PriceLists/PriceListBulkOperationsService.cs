@@ -1,17 +1,7 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Business;
-using EventForge.Server.Data.Entities.PriceList;
-using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
-using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
-using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
-using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -505,8 +495,8 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                     newPrice = 0;
 
                 var changeAmount = newPrice - currentPrice;
-                var changePercentage = currentPrice != 0 
-                    ? (changeAmount / currentPrice) * 100 
+                var changePercentage = currentPrice != 0
+                    ? (changeAmount / currentPrice) * 100
                     : 0;
 
                 changes.Add(new PriceChangePreview
@@ -608,7 +598,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                 {
                     result.Errors.Add($"Product {item.Product?.Name ?? item.ProductId.ToString()}: {ex.Message}");
                     result.FailedCount++;
-                    _logger.LogError(ex, "Error updating price for product {ProductId} in price list {PriceListId}", 
+                    _logger.LogError(ex, "Error updating price for product {ProductId} in price list {PriceListId}",
                         item.ProductId, priceListId);
                 }
             }
@@ -656,14 +646,14 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         // Filtro per CategoryIds
         if (dto.CategoryIds != null && dto.CategoryIds.Any())
         {
-            query = query.Where(ple => ple.Product != null && 
+            query = query.Where(ple => ple.Product != null &&
                 dto.CategoryIds.Contains(ple.Product.CategoryNodeId!.Value));
         }
 
         // Filtro per BrandIds
         if (dto.BrandIds != null && dto.BrandIds.Any())
         {
-            query = query.Where(ple => ple.Product != null && 
+            query = query.Where(ple => ple.Product != null &&
                 ple.Product.BrandId != null &&
                 dto.BrandIds.Contains(ple.Product.BrandId.Value));
         }
@@ -774,7 +764,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                 continue;
 
             // Applica filtri se specificati
-            if (dto.FilterByProductIds != null && dto.FilterByProductIds.Any() && 
+            if (dto.FilterByProductIds != null && dto.FilterByProductIds.Any() &&
                 !dto.FilterByProductIds.Contains(entry.ProductId))
             {
                 continue;

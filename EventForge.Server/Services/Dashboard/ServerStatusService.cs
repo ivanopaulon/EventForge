@@ -1,8 +1,8 @@
+using EventForge.DTOs.Dashboard;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using EventForge.DTOs.Dashboard;
-using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Dashboard;
 
@@ -45,7 +45,7 @@ public class ServerStatusService : IServerStatusService
         {
             var process = Process.GetCurrentProcess();
             status.UsedMemoryMB = process.WorkingSet64 / 1024 / 1024;
-            
+
             var gcInfo = GC.GetGCMemoryInfo();
             status.TotalMemoryMB = gcInfo.TotalAvailableMemoryBytes / 1024 / 1024;
         }
@@ -68,7 +68,7 @@ public class ServerStatusService : IServerStatusService
         {
             var maintenanceMode = await _dbContext.SystemConfigurations
                 .FirstOrDefaultAsync(c => c.Key == "System.MaintenanceMode", cancellationToken);
-            
+
             if (maintenanceMode != null && maintenanceMode.Value.Equals("true", StringComparison.OrdinalIgnoreCase))
             {
                 status.Status = "Maintenance";
@@ -97,7 +97,7 @@ public class ServerStatusService : IServerStatusService
             var recentLogs = await _dbContext.SystemOperationLogs
                 .Where(l => l.CreatedAt > oneMinuteAgo)
                 .CountAsync(cancellationToken);
-            
+
             status.RequestsPerMinute = recentLogs;
         }
         catch (Exception ex)
@@ -114,10 +114,10 @@ public class ServerStatusService : IServerStatusService
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return $"Windows {Environment.OSVersion.Version}";
-        
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             return $"Linux {Environment.OSVersion.Version}";
-        
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             return $"macOS {Environment.OSVersion.Version}";
 

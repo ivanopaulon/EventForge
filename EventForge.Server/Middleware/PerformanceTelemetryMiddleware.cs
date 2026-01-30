@@ -26,7 +26,7 @@ public class PerformanceTelemetryMiddleware
         var sw = Stopwatch.StartNew();
         var path = context.Request.Path.Value;
         var method = context.Request.Method;
-        
+
         // Register callback to add header BEFORE response starts
         context.Response.OnStarting(() =>
         {
@@ -37,7 +37,7 @@ public class PerformanceTelemetryMiddleware
             }
             return Task.CompletedTask;
         });
-        
+
         try
         {
             await _next(context);
@@ -46,7 +46,7 @@ public class PerformanceTelemetryMiddleware
         {
             sw.Stop();
             var elapsed = sw.ElapsedMilliseconds;
-            
+
             // Log slow requests (can happen after response is sent)
             if (elapsed > _slowRequestThresholdMs * 2)
             {

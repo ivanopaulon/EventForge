@@ -1,5 +1,4 @@
 using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;
@@ -29,8 +28,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     #region CRUD Groups
 
     public async Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(
-        int page = 1, 
-        int pageSize = 20, 
+        int page = 1,
+        int pageSize = 20,
         BusinessPartyGroupType? groupType = null,
         CancellationToken cancellationToken = default)
     {
@@ -101,7 +100,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     }
 
     public async Task<BusinessPartyGroupDto> CreateGroupAsync(
-        CreateBusinessPartyGroupDto dto, 
+        CreateBusinessPartyGroupDto dto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
@@ -121,7 +120,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             {
                 var codeExists = await _context.BusinessPartyGroups
                     .AnyAsync(g => g.Code == dto.Code && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
-                
+
                 if (codeExists)
                 {
                     throw new InvalidOperationException($"A Business Party Group with code '{dto.Code}' already exists.");
@@ -162,8 +161,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     }
 
     public async Task<BusinessPartyGroupDto> UpdateGroupAsync(
-        Guid id, 
-        UpdateBusinessPartyGroupDto dto, 
+        Guid id,
+        UpdateBusinessPartyGroupDto dto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
@@ -208,7 +207,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             {
                 var codeExists = await _context.BusinessPartyGroups
                     .AnyAsync(g => g.Code == dto.Code && g.Id != id && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
-                
+
                 if (codeExists)
                 {
                     throw new InvalidOperationException($"A Business Party Group with code '{dto.Code}' already exists.");
@@ -302,8 +301,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     #region Group Members Management
 
     public async Task<PagedResult<BusinessPartyGroupMemberDto>> GetGroupMembersAsync(
-        Guid groupId, 
-        int page = 1, 
+        Guid groupId,
+        int page = 1,
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
@@ -345,8 +344,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     }
 
     public async Task<BusinessPartyGroupMemberDto> AddMemberToGroupAsync(
-        Guid groupId, 
-        AddBusinessPartyToGroupDto dto, 
+        Guid groupId,
+        AddBusinessPartyToGroupDto dto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
@@ -381,9 +380,9 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
 
             // Check if already a member
             var existingMember = await _context.BusinessPartyGroupMembers
-                .Where(m => m.BusinessPartyGroupId == groupId 
-                    && m.BusinessPartyId == dto.BusinessPartyId 
-                    && m.TenantId == currentTenantId.Value 
+                .Where(m => m.BusinessPartyGroupId == groupId
+                    && m.BusinessPartyId == dto.BusinessPartyId
+                    && m.TenantId == currentTenantId.Value
                     && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -428,7 +427,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     }
 
     public async Task<BulkOperationResultDto> BulkAddMembersAsync(
-        BulkAddMembersDto dto, 
+        BulkAddMembersDto dto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
@@ -473,9 +472,9 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
 
                     // Check if already a member
                     var existingMember = await _context.BusinessPartyGroupMembers
-                        .AnyAsync(m => m.BusinessPartyGroupId == dto.BusinessPartyGroupId 
-                            && m.BusinessPartyId == businessPartyId 
-                            && m.TenantId == currentTenantId.Value 
+                        .AnyAsync(m => m.BusinessPartyGroupId == dto.BusinessPartyGroupId
+                            && m.BusinessPartyId == businessPartyId
+                            && m.TenantId == currentTenantId.Value
                             && !m.IsDeleted, cancellationToken);
 
                     if (existingMember)
@@ -516,7 +515,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 await _context.SaveChangesAsync(cancellationToken);
             }
 
-            _logger.LogInformation("Bulk add members to Group {GroupId}: {Success} succeeded, {Failure} failed.", 
+            _logger.LogInformation("Bulk add members to Group {GroupId}: {Success} succeeded, {Failure} failed.",
                 dto.BusinessPartyGroupId, result.SuccessCount, result.FailureCount);
 
             return result;
@@ -529,8 +528,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     }
 
     public async Task<bool> RemoveMemberFromGroupAsync(
-        Guid groupId, 
-        Guid businessPartyId, 
+        Guid groupId,
+        Guid businessPartyId,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
@@ -545,9 +544,9 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             }
 
             var member = await _context.BusinessPartyGroupMembers
-                .Where(m => m.BusinessPartyGroupId == groupId 
-                    && m.BusinessPartyId == businessPartyId 
-                    && m.TenantId == currentTenantId.Value 
+                .Where(m => m.BusinessPartyGroupId == groupId
+                    && m.BusinessPartyId == businessPartyId
+                    && m.TenantId == currentTenantId.Value
                     && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -588,8 +587,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     }
 
     public async Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(
-        Guid membershipId, 
-        UpdateBusinessPartyGroupMemberDto dto, 
+        Guid membershipId,
+        UpdateBusinessPartyGroupMemberDto dto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
@@ -702,14 +701,14 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             var evalDate = evaluationDate ?? DateTime.UtcNow;
 
             var groupIds = await _context.BusinessPartyGroupMembers
-                .Where(m => m.BusinessPartyId == businessPartyId 
-                    && m.TenantId == currentTenantId.Value 
+                .Where(m => m.BusinessPartyId == businessPartyId
+                    && m.TenantId == currentTenantId.Value
                     && !m.IsDeleted
                     && m.Status == BusinessPartyGroupMemberStatus.Active
                     && (!m.MemberSince.HasValue || m.MemberSince.Value <= evalDate)
                     && (!m.MemberUntil.HasValue || m.MemberUntil.Value >= evalDate))
                 .Include(m => m.Group)
-                .Where(m => !m.Group.IsDeleted 
+                .Where(m => !m.Group.IsDeleted
                     && m.Group.IsActive
                     && (!m.Group.ValidFrom.HasValue || m.Group.ValidFrom.Value <= evalDate)
                     && (!m.Group.ValidTo.HasValue || m.Group.ValidTo.Value >= evalDate))
@@ -727,7 +726,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     }
 
     public async Task<bool> IsBusinessPartyInGroupAsync(
-        Guid businessPartyId, 
+        Guid businessPartyId,
         Guid groupId,
         CancellationToken cancellationToken = default)
     {
@@ -740,9 +739,9 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             }
 
             return await _context.BusinessPartyGroupMembers
-                .AnyAsync(m => m.BusinessPartyId == businessPartyId 
-                    && m.BusinessPartyGroupId == groupId 
-                    && m.TenantId == currentTenantId.Value 
+                .AnyAsync(m => m.BusinessPartyId == businessPartyId
+                    && m.BusinessPartyGroupId == groupId
+                    && m.TenantId == currentTenantId.Value
                     && !m.IsDeleted
                     && m.Status == BusinessPartyGroupMemberStatus.Active, cancellationToken);
         }
@@ -760,8 +759,8 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     private static BusinessPartyGroupDto MapToGroupDto(Data.Entities.Business.BusinessPartyGroup group)
     {
         var now = DateTime.UtcNow;
-        var activeMembers = group.Members.Count(m => 
-            !m.IsDeleted 
+        var activeMembers = group.Members.Count(m =>
+            !m.IsDeleted
             && m.Status == BusinessPartyGroupMemberStatus.Active
             && (!m.MemberSince.HasValue || m.MemberSince.Value <= now)
             && (!m.MemberUntil.HasValue || m.MemberUntil.Value >= now));

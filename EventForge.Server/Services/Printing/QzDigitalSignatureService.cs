@@ -228,7 +228,7 @@ public class QzDigitalSignatureService
         try
         {
             ct.ThrowIfCancellationRequested();
-            
+
             // Check cache first
             if (_cachedCertificateChain != null &&
                 DateTime.UtcNow - _cacheTimestamp < _cacheExpiry)
@@ -299,7 +299,7 @@ public class QzDigitalSignatureService
         try
         {
             ct.ThrowIfCancellationRequested();
-            
+
             var privateKeyPath = GetFilePath(_privateKeyPath);
             var certificatePath = GetFilePath(_certificatePath);
 

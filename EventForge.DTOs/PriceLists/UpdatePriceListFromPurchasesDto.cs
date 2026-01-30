@@ -1,6 +1,5 @@
-using System;
-using System.ComponentModel.DataAnnotations;
 using EventForge.DTOs.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.PriceLists;
 
@@ -14,38 +13,38 @@ public class UpdatePriceListFromPurchasesDto
     /// </summary>
     [Required]
     public required Guid PriceListId { get; init; }
-    
+
     /// <summary>
     /// Range date analisi (default: ultimi 90 giorni se null)
     /// </summary>
     public DateTime? FromDate { get; init; }
-    
+
     /// <summary>
     /// Range date analisi (default: oggi se null)
     /// </summary>
     public DateTime? ToDate { get; init; }
-    
+
     /// <summary>
     /// Strategia di calcolo prezzo
     /// </summary>
     public PriceCalculationStrategy CalculationStrategy { get; init; } = PriceCalculationStrategy.LastPurchasePrice;
-    
+
     /// <summary>
     /// Arrotondamento da applicare
     /// </summary>
     public RoundingStrategy RoundingStrategy { get; init; } = RoundingStrategy.None;
-    
+
     /// <summary>
     /// Maggiorazione percentuale da applicare
     /// </summary>
     [Range(-100, 1000)]
     public decimal? MarkupPercentage { get; init; }
-    
+
     /// <summary>
     /// Se true, aggiunge nuovi prodotti trovati nei documenti
     /// </summary>
     public bool AddNewProducts { get; init; } = false;
-    
+
     /// <summary>
     /// Se true, rimuove prodotti non più presenti nei documenti del range
     /// </summary>

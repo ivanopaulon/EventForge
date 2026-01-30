@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.Settings;
@@ -60,7 +58,7 @@ public class UpdateConfigurationRequest
 {
     [Required]
     public string Value { get; set; } = string.Empty;
-    
+
     public string? Reason { get; set; }
 }
 
@@ -71,7 +69,7 @@ public class BatchUpdateConfigurationRequest
 {
     [Required]
     public Dictionary<string, string> Changes { get; set; } = new();
-    
+
     public string? Reason { get; set; }
 }
 
@@ -169,7 +167,7 @@ public class RotateJwtKeyRequest
 {
     [Required]
     public string NewKey { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Overlap period in hours during which both old and new keys are valid.
     /// </summary>

@@ -1,5 +1,4 @@
 using EventForge.DTOs.Chat;
-using EventForge.DTOs.Common;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Auth;
@@ -11,7 +10,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.Services.Chat;
 
@@ -367,7 +365,7 @@ public class ChatServiceTests : IDisposable
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => 
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _chatService.EditMessageAsync(editDto));
     }
 
@@ -418,7 +416,7 @@ public class ChatServiceTests : IDisposable
     {
         // Arrange
         var message = _context.ChatMessages.First(m => m.SenderId == _userId2);
-        
+
         // User1 is Owner (admin), trying to delete User2's message
         // Act
         var result = await _chatService.DeleteMessageAsync(message.Id, _userId1, "Admin delete", softDelete: true);

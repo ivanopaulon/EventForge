@@ -1,5 +1,4 @@
 using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;
@@ -1032,14 +1031,14 @@ public class BusinessPartyService : IBusinessPartyService
     /// Ottimizzazione FASE 5: riduce N+1 queries.
     /// </summary>
     public async Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(
-        Guid id, 
-        bool includeInactive = false, 
+        Guid id,
+        bool includeInactive = false,
         CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogInformation("Fetching full detail for BusinessParty {Id} (includeInactive: {IncludeInactive})", id, includeInactive);
-            
+
             var currentTenantId = _tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -1053,7 +1052,7 @@ public class BusinessPartyService : IBusinessPartyService
                 .Include(bp => bp.Addresses)
                 .AsSplitQuery() // ⭐ CRITICO: evita cartesian explosion con multiple includes
                 .FirstOrDefaultAsync(cancellationToken);
-            
+
             if (businessParty == null)
             {
                 _logger.LogWarning("BusinessParty {Id} not found", id);
@@ -1061,7 +1060,7 @@ public class BusinessPartyService : IBusinessPartyService
             }
 
             // Filter contacts and addresses based on includeInactive parameter
-            var filteredContacts = includeInactive 
+            var filteredContacts = includeInactive
                 ? businessParty.Contacts.Where(c => c.TenantId == currentTenantId.Value).ToList()
                 : businessParty.Contacts.Where(c => c.TenantId == currentTenantId.Value && !c.IsDeleted).ToList();
 
@@ -1071,8 +1070,8 @@ public class BusinessPartyService : IBusinessPartyService
 
             // ⚡ Carica i listini prezzi associati separatamente per evitare problemi con Include filtrati
             var priceListsQuery = await _context.PriceListBusinessParties
-                .Where(plbp => plbp.BusinessPartyId == id 
-                            && !plbp.IsDeleted 
+                .Where(plbp => plbp.BusinessPartyId == id
+                            && !plbp.IsDeleted
                             && plbp.TenantId == currentTenantId.Value
                             && !plbp.PriceList.IsDeleted
                             && plbp.PriceList.Status == Data.Entities.PriceList.PriceListStatus.Active)
@@ -1081,36 +1080,36 @@ public class BusinessPartyService : IBusinessPartyService
                 .Include(plbp => plbp.PriceList)
                     .ThenInclude(pl => pl.ProductPrices)
                 .ToListAsync(cancellationToken);
-            
+
             // Map a DTO aggregato
             var result = new BusinessPartyFullDetailDto
             {
                 BusinessParty = MapToBusinessPartyDtoSimple(businessParty),
-                
+
                 Contacts = filteredContacts
                     .Select(MapToContactDto)
                     .OrderByDescending(c => c.IsPrimary)
                     .ThenBy(c => c.ContactType)
                     .ToList(),
-                
+
                 Addresses = filteredAddresses
                     .Select(MapToAddressDto)
                     .OrderBy(a => a.AddressType)
                     .ToList(),
-                
+
                 AssignedPriceLists = priceListsQuery
                     .Select(plbp => MapToPriceListDto(plbp.PriceList))
                     .OrderByDescending(pl => pl.IsDefault)
                     .ThenBy(pl => pl.Priority)
                     .ToList(),
-                
+
                 Statistics = await CalculateStatisticsAsync(id, currentTenantId.Value, cancellationToken)
             };
-            
+
             _logger.LogInformation(
                 "Full detail loaded for BusinessParty {Id}: {ContactCount} contacts, {AddressCount} addresses, {PriceListCount} price lists",
                 id, result.Contacts.Count, result.Addresses.Count, result.AssignedPriceLists.Count);
-            
+
             return result;
         }
         catch (Exception ex)
@@ -1124,42 +1123,42 @@ public class BusinessPartyService : IBusinessPartyService
     /// Calcola statistiche aggregate per BusinessParty (query parallele ottimizzate)
     /// </summary>
     private async Task<BusinessPartyStatisticsDto> CalculateStatisticsAsync(
-        Guid businessPartyId, 
+        Guid businessPartyId,
         Guid tenantId,
         CancellationToken cancellationToken)
     {
         var currentYear = DateTime.UtcNow.Year;
-        
+
         // ⚡ Query parallele per performance ottimali
         var contactsTask = _context.Contacts
             .CountAsync(c => c.OwnerId == businessPartyId && c.OwnerType == "BusinessParty" && !c.IsDeleted && c.TenantId == tenantId, cancellationToken);
-        
+
         var addressesTask = _context.Addresses
             .CountAsync(a => a.OwnerId == businessPartyId && a.OwnerType == "BusinessParty" && !a.IsDeleted && a.TenantId == tenantId, cancellationToken);
-        
+
         var priceListsTask = _context.PriceListBusinessParties
             .CountAsync(plbp => plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted && !plbp.PriceList.IsDeleted && plbp.TenantId == tenantId, cancellationToken);
-        
+
         var documentsTask = _context.DocumentHeaders
             .CountAsync(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId, cancellationToken);
-        
+
         var lastOrderTask = _context.DocumentHeaders
             .Where(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId)
             .OrderByDescending(d => d.Date)
             .Select(d => (DateTime?)d.Date)
             .FirstOrDefaultAsync(cancellationToken);
-        
+
         var revenueTask = _context.DocumentHeaders
-            .Where(d => d.BusinessPartyId == businessPartyId 
-                     && !d.IsDeleted 
+            .Where(d => d.BusinessPartyId == businessPartyId
+                     && !d.IsDeleted
                      && d.TenantId == tenantId
                      && d.Date.Year == currentYear
                      && d.DocumentType != null
                      && !d.DocumentType.IsStockIncrease) // Solo vendite (non acquisti)
             .SumAsync(d => (decimal?)d.TotalGrossAmount, cancellationToken);
-        
+
         await Task.WhenAll(contactsTask, addressesTask, priceListsTask, documentsTask, lastOrderTask, revenueTask);
-        
+
         return new BusinessPartyStatisticsDto
         {
             TotalContacts = contactsTask.Result,
@@ -1296,23 +1295,23 @@ public class BusinessPartyService : IBusinessPartyService
             .Include(bp => bp.Contacts)
             .Where(bp => !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
             .OrderBy(bp => bp.Name);
-        
+
         var totalCount = await query.CountAsync(ct);
-        
+
         _logger.LogInformation("Export requested for {Count} business parties", totalCount);
-        
+
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
             _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetBusinessPartiesInBatchesAsync(query, ct);
         }
-        
+
         // Standard export for smaller datasets
         var items = await query
             .Take(pagination.PageSize)
             .ToListAsync(ct);
-        
+
         return items.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
         {
             Id = bp.Id,
@@ -1339,18 +1338,18 @@ public class BusinessPartyService : IBusinessPartyService
         const int batchSize = 5000;
         var results = new List<EventForge.DTOs.Export.BusinessPartyExportDto>();
         var skip = 0;
-        
+
         while (true)
         {
             ct.ThrowIfCancellationRequested();
-            
+
             var batch = await query
                 .Skip(skip)
                 .Take(batchSize)
                 .ToListAsync(ct);
-            
+
             if (batch.Count == 0) break;
-            
+
             results.AddRange(batch.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
             {
                 Id = bp.Id,
@@ -1368,13 +1367,13 @@ public class BusinessPartyService : IBusinessPartyService
                 IsActive = bp.IsActive,
                 CreatedAt = bp.CreatedAt
             }));
-            
+
             skip += batchSize;
-            
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}", 
+
+            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
-        
+
         return results;
     }
 

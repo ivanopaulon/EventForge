@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Notifications;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -212,7 +211,7 @@ public class NotificationService : INotificationService
             throw new ArgumentException("Batch size must be greater than 0", nameof(batchSize));
         }
 
-        _logger.LogInformation("Starting bulk notification processing for {Count} notifications with batch size {BatchSize}", 
+        _logger.LogInformation("Starting bulk notification processing for {Count} notifications with batch size {BatchSize}",
             notifications.Count, batchSize);
 
         // 2. Check rate limiting for bulk operations
@@ -235,7 +234,7 @@ public class NotificationService : INotificationService
             .Select(g => g.Select(x => x.notification).ToList())
             .ToList();
 
-        _logger.LogInformation("Split {TotalCount} notifications into {BatchCount} batches", 
+        _logger.LogInformation("Split {TotalCount} notifications into {BatchCount} batches",
             notifications.Count, batches.Count);
 
         // 4. Process batches with optimized database operations
@@ -244,7 +243,7 @@ public class NotificationService : INotificationService
             var batchSuccessCount = 0;
             var batchFailureCount = 0;
             var batchResults = new List<NotificationOperationResult>();
-            
+
             try
             {
                 var now = DateTime.UtcNow;
@@ -336,7 +335,7 @@ public class NotificationService : INotificationService
                 {
                     await _context.Notifications.AddRangeAsync(notificationEntities, cancellationToken);
                     await _context.NotificationRecipients.AddRangeAsync(recipientEntities, cancellationToken);
-                    
+
                     // Single SaveChanges per batch
                     await _context.SaveChangesAsync(cancellationToken);
 
@@ -344,7 +343,7 @@ public class NotificationService : INotificationService
                     // Create lookup for O(1) access
                     var notificationLookup = notificationEntities.ToDictionary(n => n.Id);
                     var recipientGroups = recipientEntities.GroupBy(r => r.UserId);
-                    
+
                     foreach (var recipientGroup in recipientGroups)
                     {
                         try
@@ -370,7 +369,7 @@ public class NotificationService : INotificationService
                                 .Group($"user_{recipientId}")
                                 .SendAsync("ReceiveBulkNotifications", recipientNotifications, cancellationToken);
 
-                            _logger.LogDebug("Sent {Count} notifications to user {UserId} via SignalR", 
+                            _logger.LogDebug("Sent {Count} notifications to user {UserId} via SignalR",
                                 recipientNotifications.Count, recipientId);
                         }
                         catch (Exception ex)
@@ -389,11 +388,11 @@ public class NotificationService : INotificationService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to process batch in bulk notification operation");
-                
+
                 // Only mark as failed items that weren't already processed
                 var alreadyProcessedCount = batchResults.Count;
                 var remainingCount = batch.Count - alreadyProcessedCount;
-                
+
                 if (remainingCount > 0)
                 {
                     for (int i = 0; i < remainingCount; i++)
@@ -412,7 +411,7 @@ public class NotificationService : INotificationService
                         failureCount++;
                     }
                 }
-                
+
                 // Add any successfully prepared items from this batch (even though save failed)
                 results.AddRange(batchResults);
                 successCount += batchSuccessCount;
@@ -1212,13 +1211,13 @@ public class NotificationService : INotificationService
                 try
                 {
                     var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(user.MetadataJson);
-                    
+
                     if (metadata?.ContainsKey("NotificationPreferences") == true)
                     {
                         // Deserialize the JsonElement directly to NotificationPreferencesDto
                         var preferences = System.Text.Json.JsonSerializer.Deserialize<NotificationPreferencesDto>(
                             metadata["NotificationPreferences"].GetRawText());
-                        
+
                         if (preferences != null)
                         {
                             preferences.UserId = userId;
@@ -1252,7 +1251,7 @@ public class NotificationService : INotificationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve notification preferences for user {UserId}", userId);
-            
+
             // Return defaults on error
             return new NotificationPreferencesDto
             {
@@ -1292,7 +1291,7 @@ public class NotificationService : INotificationService
 
             // 3. Update User.MetadataJson with new preferences
             Dictionary<string, System.Text.Json.JsonElement> metadata;
-            
+
             if (user.MetadataJson != null)
             {
                 try
@@ -1313,7 +1312,7 @@ public class NotificationService : INotificationService
             // Serialize preferences DTO to JSON and convert to JsonElement
             var preferencesJson = System.Text.Json.JsonSerializer.Serialize(preferences);
             var preferencesElement = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(preferencesJson);
-            
+
             metadata["NotificationPreferences"] = preferencesElement;
             user.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
             user.ModifiedAt = DateTime.UtcNow;
@@ -1360,7 +1359,7 @@ public class NotificationService : INotificationService
         // 1. Check if already in target locale (early return)
         if (notification.Payload.Locale == targetLocale)
         {
-            _logger.LogDebug("Notification {NotificationId} already in target locale {Locale}", 
+            _logger.LogDebug("Notification {NotificationId} already in target locale {Locale}",
                 notification.Id, targetLocale);
             return notification;
         }
@@ -1421,7 +1420,7 @@ public class NotificationService : INotificationService
     {
         var stopwatch = Stopwatch.StartNew();
         var now = DateTime.UtcNow;
-        
+
         var expiredCount = 0;
         var archivedCount = 0;
         var deletedCount = 0;
@@ -1454,12 +1453,12 @@ public class NotificationService : INotificationService
 
             // 3. Process in batches to avoid memory issues
             var remainingIds = expiredNotificationIds.Select(n => n.Id).ToList();
-            
+
             while (remainingIds.Any())
             {
                 // Get batch of IDs
                 var batchIds = remainingIds.Take(batchSize).ToList();
-                
+
                 // Fetch the actual entities for this batch
                 var batch = await _context.Notifications
                     .Where(n => batchIds.Contains(n.Id))
@@ -1475,7 +1474,7 @@ public class NotificationService : INotificationService
                         // Hard delete old notifications (>90 days expired)
                         _context.Notifications.Remove(notification);
                         deletedCount++;
-                        _logger.LogDebug("Deleting notification {NotificationId} expired {Days} days ago", 
+                        _logger.LogDebug("Deleting notification {NotificationId} expired {Days} days ago",
                             notification.Id, daysSinceExpiry);
                     }
                     else if (daysSinceExpiry > 30)
@@ -1486,7 +1485,7 @@ public class NotificationService : INotificationService
                         notification.ArchivedAt = now;
                         notification.ModifiedAt = now;
                         archivedCount++;
-                        _logger.LogDebug("Archiving notification {NotificationId} expired {Days} days ago", 
+                        _logger.LogDebug("Archiving notification {NotificationId} expired {Days} days ago",
                             notification.Id, daysSinceExpiry);
                     }
                     else
@@ -1495,7 +1494,7 @@ public class NotificationService : INotificationService
                         notification.Status = NotificationStatus.Expired;
                         notification.ModifiedAt = now;
                         expiredCount++;
-                        _logger.LogDebug("Expiring notification {NotificationId} expired {Days} days ago", 
+                        _logger.LogDebug("Expiring notification {NotificationId} expired {Days} days ago",
                             notification.Id, daysSinceExpiry);
                     }
                 }
@@ -1503,7 +1502,7 @@ public class NotificationService : INotificationService
                 // 5. Save changes for this batch
                 await _context.SaveChangesAsync(cancellationToken);
                 processedCount += batch.Count;
-                
+
                 // Remove processed IDs from remaining list
                 remainingIds = remainingIds.Skip(batchSize).ToList();
 
@@ -1542,7 +1541,7 @@ public class NotificationService : INotificationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process expired notifications");
-            
+
             return new ExpiryProcessingResultDto
             {
                 ProcessedCount = processedCount,

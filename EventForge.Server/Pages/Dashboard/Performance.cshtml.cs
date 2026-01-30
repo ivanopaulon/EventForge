@@ -1,5 +1,4 @@
 using EventForge.Server.Services.Dashboard;
-using EventForge.DTOs.Dashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -35,15 +34,15 @@ public class PerformanceModel : PageModel
     public async Task<IActionResult> OnPostExportCsvAsync()
     {
         var metrics = await _metricsService.GetPerformanceMetricsAsync();
-        
+
         var csv = new StringBuilder();
         csv.AppendLine("Query,Avg Duration (ms),Count,Last Executed");
-        
+
         foreach (var metric in metrics.SlowQueries.Take(100))
         {
             csv.AppendLine($"\"{metric.QueryPreview.Replace("\"", "\"\"")}\",{metric.AvgDurationMs},{metric.ExecutionCount},{metric.LastSeen:yyyy-MM-dd HH:mm:ss}");
         }
-        
+
         var bytes = Encoding.UTF8.GetBytes(csv.ToString());
         return File(bytes, "text/csv", $"slow-queries-{DateTime.Now:yyyyMMdd-HHmmss}.csv");
     }
@@ -52,7 +51,7 @@ public class PerformanceModel : PageModel
     {
         if (string.IsNullOrEmpty(query) || query.Length <= maxLength)
             return query;
-        
+
         return query.Substring(0, maxLength) + "...";
     }
 

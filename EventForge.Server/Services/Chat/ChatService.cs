@@ -1,5 +1,4 @@
 using EventForge.DTOs.Chat;
-using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -636,7 +635,7 @@ public class ChatService : IChatService
         // 1. Get current user ID from context (e.g., IHttpContextAccessor or parameter)
         // 2. Query messages where ReadReceipts don't contain current user's read receipt
         // For now, we'll return messages with no read receipts
-        
+
         var query = _context.ChatMessages
             .AsNoTracking()
             .Where(m => !m.IsDeleted && m.ReadAt == null)
@@ -834,9 +833,9 @@ public class ChatService : IChatService
         // 2. Validate user is sender OR chat owner/admin
         var isSender = message.SenderId == userId;
         var isOwnerOrAdmin = await _context.ChatMembers
-            .AnyAsync(cm => 
-                cm.ChatThreadId == message.ChatThreadId && 
-                cm.UserId == userId && 
+            .AnyAsync(cm =>
+                cm.ChatThreadId == message.ChatThreadId &&
+                cm.UserId == userId &&
                 (cm.Role == ChatMemberRole.Owner || cm.Role == ChatMemberRole.Admin),
                 cancellationToken);
 

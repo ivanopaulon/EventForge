@@ -1,10 +1,10 @@
+using EventForge.DTOs.Audit;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.DTOs.Audit;
+using EventForge.DTOs.SuperAdmin;
 using EventForge.Server.Data;
-using EventForge.Server.Data.Entities;
-using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Audit;
+using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
@@ -12,7 +12,6 @@ using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.PriceLists;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -39,7 +38,7 @@ public class PriceListServicePhase2CTests
 
         var tenant = CreateTenant();
         var product = CreateProduct(tenant.Id, 100m);
-        
+
         var priceList1 = CreatePriceList(tenant.Id, "List Priority 10", priority: 10);
         var priceList2 = CreatePriceList(tenant.Id, "List Priority 5", priority: 5);
         var priceList3 = CreatePriceList(tenant.Id, "List Priority 1", priority: 1);
@@ -82,7 +81,7 @@ public class PriceListServicePhase2CTests
         var tenant = CreateTenant();
         var product = CreateProduct(tenant.Id, 100m);
         var businessParty = CreateBusinessParty(tenant.Id);
-        
+
         var genericPriceList = CreatePriceList(tenant.Id, "Generic Priority 10", priority: 10);
         var specificPriceList = CreatePriceList(tenant.Id, "Specific Priority 5", priority: 5);
 
@@ -133,7 +132,7 @@ public class PriceListServicePhase2CTests
         var tenant = CreateTenant();
         var product = CreateProduct(tenant.Id, 100m);
         var businessParty = CreateBusinessParty(tenant.Id);
-        
+
         var genericPriceList = CreatePriceList(tenant.Id, "Generic", priority: 5);
         var specificPriceList = CreatePriceList(tenant.Id, "Specific", priority: 10);
 
@@ -264,7 +263,7 @@ public class PriceListServicePhase2CTests
 
         var tenant = CreateTenant();
         var product = CreateProduct(tenant.Id, 100m);
-        
+
         var lowPriorityList = CreatePriceList(tenant.Id, "Low Priority", priority: 1);
         var highPriorityList = CreatePriceList(tenant.Id, "High Priority", priority: 10);
 
@@ -471,7 +470,7 @@ public class PriceListServicePhase2CTests
         var product = CreateProduct(tenant.Id, 100m);
         var businessParty = CreateBusinessParty(tenant.Id);
         var priceList = CreatePriceList(tenant.Id, "Test List");
-        
+
         // Set BusinessParty to Automatic mode
         businessParty.DefaultPriceApplicationMode = PriceApplicationMode.Automatic;
 
@@ -510,7 +509,7 @@ public class PriceListServicePhase2CTests
         var product = CreateProduct(tenant.Id, 100m);
         var businessParty = CreateBusinessParty(tenant.Id);
         var priceList = CreatePriceList(tenant.Id, "Forced List");
-        
+
         // Set BusinessParty to ForcedPriceList mode
         businessParty.DefaultPriceApplicationMode = PriceApplicationMode.ForcedPriceList;
         businessParty.ForcedPriceListId = priceList.Id;
@@ -548,7 +547,7 @@ public class PriceListServicePhase2CTests
 
         var tenant = CreateTenant();
         var product = CreateProduct(tenant.Id, 100m);
-        
+
         var priceList1 = CreatePriceList(tenant.Id, "List 1", priority: 10);
         var priceList2 = CreatePriceList(tenant.Id, "List 2", priority: 5);
         var priceList3 = CreatePriceList(tenant.Id, "List 3", priority: 1);

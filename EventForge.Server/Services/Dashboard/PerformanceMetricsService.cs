@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using EventForge.DTOs.Dashboard;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace EventForge.Server.Services.Dashboard;
 
@@ -46,7 +46,7 @@ public class PerformanceMetricsService : IPerformanceMetricsService
             var recentLogs = await _dbContext.SystemOperationLogs
                 .Where(l => l.CreatedAt > oneMinuteAgo)
                 .CountAsync(cancellationToken);
-            
+
             metrics.RequestsPerMinute = recentLogs;
         }
         catch (Exception ex)
@@ -60,8 +60,8 @@ public class PerformanceMetricsService : IPerformanceMetricsService
             var oneHourAgo = DateTime.UtcNow.AddHours(-1);
 
             var slowQueries = await _dbContext.SystemOperationLogs
-                .Where(l => l.CreatedAt > oneHourAgo && 
-                           l.DurationMs.HasValue && 
+                .Where(l => l.CreatedAt > oneHourAgo &&
+                           l.DurationMs.HasValue &&
                            l.DurationMs.Value > slowQueryThresholdMs &&
                            l.Category == "Database")
                 .GroupBy(l => l.Operation)

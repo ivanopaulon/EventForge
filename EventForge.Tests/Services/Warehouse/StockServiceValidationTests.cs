@@ -67,7 +67,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("ProductId non valido", exception.Message);
         Assert.Contains("prodotto valido", exception.Message);
     }
@@ -90,7 +90,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Storage Location non valida", exception.Message);
         Assert.Contains("posizione di magazzino valida", exception.Message);
     }
@@ -116,7 +116,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Lot ID non valido", exception.Message);
     }
 
@@ -138,7 +138,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Product with ID", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
@@ -161,7 +161,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Storage location with ID", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
@@ -187,7 +187,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Lot with ID", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
@@ -199,7 +199,7 @@ public class StockServiceValidationTests : IDisposable
         var deletedProduct = CreateTestProduct();
         deletedProduct.IsDeleted = true; // Soft deleted
         var validStorageLocation = CreateTestStorageLocation();
-        
+
         await _context.Products.AddAsync(deletedProduct);
         await _context.StorageLocations.AddAsync(validStorageLocation);
         await _context.SaveChangesAsync();
@@ -214,7 +214,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Product with ID", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
@@ -226,7 +226,7 @@ public class StockServiceValidationTests : IDisposable
         var validProduct = CreateTestProduct();
         var deletedLocation = CreateTestStorageLocation();
         deletedLocation.IsDeleted = true; // Soft deleted
-        
+
         await _context.Products.AddAsync(validProduct);
         await _context.StorageLocations.AddAsync(deletedLocation);
         await _context.SaveChangesAsync();
@@ -241,7 +241,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Storage location with ID", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
@@ -254,7 +254,7 @@ public class StockServiceValidationTests : IDisposable
         var validStorageLocation = CreateTestStorageLocation();
         var deletedLot = CreateTestLot(validProduct.Id); // Use valid product ID
         deletedLot.IsDeleted = true; // Soft deleted
-        
+
         await _context.Products.AddAsync(validProduct);
         await _context.StorageLocations.AddAsync(validStorageLocation);
         await _context.Lots.AddAsync(deletedLot);
@@ -271,7 +271,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Lot with ID", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
@@ -283,9 +283,9 @@ public class StockServiceValidationTests : IDisposable
         var differentTenantId = Guid.NewGuid();
         var productDifferentTenant = CreateTestProduct();
         productDifferentTenant.TenantId = differentTenantId; // Different tenant
-        
+
         var validStorageLocation = CreateTestStorageLocation();
-        
+
         await _context.Products.AddAsync(productDifferentTenant);
         await _context.StorageLocations.AddAsync(validStorageLocation);
         await _context.SaveChangesAsync();
@@ -300,7 +300,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Product with ID", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
@@ -313,7 +313,7 @@ public class StockServiceValidationTests : IDisposable
         var validProduct = CreateTestProduct();
         var locationDifferentTenant = CreateTestStorageLocation();
         locationDifferentTenant.TenantId = differentTenantId; // Different tenant
-        
+
         await _context.Products.AddAsync(validProduct);
         await _context.StorageLocations.AddAsync(locationDifferentTenant);
         await _context.SaveChangesAsync();
@@ -328,7 +328,7 @@ public class StockServiceValidationTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _stockService.CreateOrUpdateStockAsync(createDto, "testuser"));
-        
+
         Assert.Contains("Storage location with ID", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
@@ -339,7 +339,7 @@ public class StockServiceValidationTests : IDisposable
         // Arrange
         var validProduct = CreateTestProduct();
         var validStorageLocation = CreateTestStorageLocation();
-        
+
         await _context.Products.AddAsync(validProduct);
         await _context.StorageLocations.AddAsync(validStorageLocation);
         await _context.SaveChangesAsync();
@@ -373,7 +373,7 @@ public class StockServiceValidationTests : IDisposable
         var validProduct = CreateTestProduct();
         var validStorageLocation = CreateTestStorageLocation();
         var validLot = CreateTestLot(validProduct.Id); // Use valid product ID
-        
+
         await _context.Products.AddAsync(validProduct);
         await _context.StorageLocations.AddAsync(validStorageLocation);
         await _context.Lots.AddAsync(validLot);
@@ -404,7 +404,7 @@ public class StockServiceValidationTests : IDisposable
         // Arrange
         var validProduct = CreateTestProduct();
         var validStorageLocation = CreateTestStorageLocation();
-        
+
         await _context.Products.AddAsync(validProduct);
         await _context.StorageLocations.AddAsync(validStorageLocation);
         await _context.SaveChangesAsync();
@@ -443,7 +443,7 @@ public class StockServiceValidationTests : IDisposable
         // Arrange
         var validProduct = CreateTestProduct();
         var validStorageLocation = CreateTestStorageLocation();
-        
+
         await _context.Products.AddAsync(validProduct);
         await _context.StorageLocations.AddAsync(validStorageLocation);
         await _context.SaveChangesAsync();

@@ -1,20 +1,18 @@
+using EventForge.DTOs.Audit;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.DTOs.Audit;
+using EventForge.DTOs.SuperAdmin;
 using EventForge.Server.Data;
-using EventForge.Server.Data.Entities;
-using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Audit;
+using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Business;
+using EventForge.Server.Data.Entities.Common;
+using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Data.Entities.Documents;
-using EventForge.Server.Data.Entities.Common;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.PriceLists;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
-using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -941,23 +939,23 @@ public class PriceListServicePhase2CTests_PR4
     };
 
     private static Product CreateProduct(
-        Guid tenantId, 
-        decimal basePrice, 
-        string code = "TEST001", 
+        Guid tenantId,
+        decimal basePrice,
+        string code = "TEST001",
         Guid? categoryNodeId = null,
         Server.Data.Entities.Products.ProductStatus status = Server.Data.Entities.Products.ProductStatus.Active) => new()
-    {
-        Id = Guid.NewGuid(),
-        TenantId = tenantId,
-        Code = code,
-        Name = "Test Product " + code,
-        DefaultPrice = basePrice,
-        VatRateId = Guid.NewGuid(),
-        CategoryNodeId = categoryNodeId,
-        Status = status,
-        CreatedAt = DateTime.UtcNow,
-        CreatedBy = "test"
-    };
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Code = code,
+            Name = "Test Product " + code,
+            DefaultPrice = basePrice,
+            VatRateId = Guid.NewGuid(),
+            CategoryNodeId = categoryNodeId,
+            Status = status,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
 
     private static PriceList CreatePurchasePriceList(Guid tenantId, string name) => new()
     {

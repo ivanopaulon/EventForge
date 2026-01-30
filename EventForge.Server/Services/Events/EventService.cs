@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Teams;
 using Microsoft.EntityFrameworkCore;
 
@@ -122,7 +121,7 @@ public class EventService : IEventService
 
             var query = _context.Events
                 .AsNoTracking()
-                .Where(e => !e.IsDeleted 
+                .Where(e => !e.IsDeleted
                     && e.TenantId == currentTenantId.Value
                     && e.StartDate >= startDate
                     && e.StartDate <= end);
@@ -168,7 +167,7 @@ public class EventService : IEventService
 
             var query = _context.Events
                 .AsNoTracking()
-                .Where(e => !e.IsDeleted 
+                .Where(e => !e.IsDeleted
                     && e.TenantId == currentTenantId.Value
                     && e.StartDate >= now);
 
@@ -409,7 +408,8 @@ public class EventService : IEventService
             // Create snapshots of all teams BEFORE modifying them
             var originalTeams = teams.ToDictionary(
                 t => t.Id,
-                t => {
+                t =>
+                {
                     var originalValues = _context.Entry(t).CurrentValues.Clone();
                     return (Team)originalValues.ToObject();
                 }
@@ -432,7 +432,8 @@ public class EventService : IEventService
                 // Create snapshots of all members BEFORE modifying them
                 var originalMembers = members.ToDictionary(
                     m => m.Id,
-                    m => {
+                    m =>
+                    {
                         var originalValues = _context.Entry(m).CurrentValues.Clone();
                         return (TeamMember)originalValues.ToObject();
                     }

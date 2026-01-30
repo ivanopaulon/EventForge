@@ -76,7 +76,7 @@ public class StockReconciliationService : IStockReconciliationService
             foreach (var stock in stocks)
             {
                 var item = await CalculateStockItemAsync(stock, request, currentTenantId.Value, cancellationToken);
-                
+
                 // Filter by discrepancies if requested
                 if (!request.OnlyWithDiscrepancies || item.Severity != ReconciliationSeverity.Correct)
                 {
@@ -182,7 +182,7 @@ public class StockReconciliationService : IStockReconciliationService
         // Set calculated values
         item.CalculatedQuantity = calculatedQuantity;
         item.Difference = calculatedQuantity - stock.Quantity;
-        
+
         // Fix percentage calculation: use the larger of current or calculated as base
         var baseValue = Math.Max(Math.Abs(item.CurrentQuantity), Math.Abs(calculatedQuantity));
         item.DifferencePercentage = baseValue != 0
@@ -190,8 +190,8 @@ public class StockReconciliationService : IStockReconciliationService
             : 0;
 
         item.Severity = DetermineSeverity(
-            item.CurrentQuantity, 
-            item.CalculatedQuantity, 
+            item.CurrentQuantity,
+            item.CalculatedQuantity,
             item.DifferencePercentage,
             request.DiscrepancyThreshold);
         item.SourceMovements = sourceMovements.OrderBy(m => m.Date).ToList();
@@ -502,7 +502,7 @@ public class StockReconciliationService : IStockReconciliationService
             // This should be enhanced in a future iteration to generate a proper Excel file
             // with Summary, Details, and Movements sheets
             await Task.CompletedTask;
-            
+
             _logger.LogWarning("Excel export not yet implemented - returning empty array");
             return Array.Empty<byte>();
         }

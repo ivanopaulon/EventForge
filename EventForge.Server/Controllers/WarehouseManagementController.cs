@@ -1,15 +1,11 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
-using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Controllers;
@@ -94,7 +90,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             var result = await _warehouseFacade.GetStorageFacilitiesAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -105,7 +101,7 @@ public class WarehouseManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -226,7 +222,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             var result = await _warehouseFacade.GetStorageLocationsAsync(pagination, facilityId, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -237,7 +233,7 @@ public class WarehouseManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -354,7 +350,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             var result = await _warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -365,7 +361,7 @@ public class WarehouseManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -745,7 +741,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             var result = await _warehouseFacade.GetStockAsync(pagination.Page, pagination.PageSize, productId, locationId, lotId, lowStock, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -756,7 +752,7 @@ public class WarehouseManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -1000,7 +996,7 @@ public class WarehouseManagementController : BaseApiController
                 pagination.Page, pagination.PageSize, search, warehouseId, locationId, lotId,
                 lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView,
                 cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -1011,7 +1007,7 @@ public class WarehouseManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -1092,7 +1088,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             var result = await _warehouseFacade.GetSerialsAsync(pagination.Page, pagination.PageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -1103,7 +1099,7 @@ public class WarehouseManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -1808,11 +1804,11 @@ public class WarehouseManagementController : BaseApiController
 
                 // Update the existing row via facade
                 documentRow = await _warehouseFacade.UpdateOrMergeInventoryRowAsync(
-                    documentId, 
-                    existingRow.Id, 
-                    newQuantity, 
-                    rowDto.Notes, 
-                    GetCurrentUser(), 
+                    documentId,
+                    existingRow.Id,
+                    newQuantity,
+                    rowDto.Notes,
+                    GetCurrentUser(),
                     cancellationToken);
             }
             else
@@ -2217,7 +2213,7 @@ public class WarehouseManagementController : BaseApiController
                 _logger.LogWarning(
                     "Cannot finalize inventory document {DocumentId}: status is {Status}, expected Open",
                     documentId, documentHeader.Status);
-                
+
                 return BadRequest(new ProblemDetails
                 {
                     Title = "Invalid document status",
@@ -2232,7 +2228,7 @@ public class WarehouseManagementController : BaseApiController
                 _logger.LogWarning(
                     "Inventory document {DocumentId} has no rows to process",
                     documentId);
-                
+
                 return BadRequest(new ProblemDetails
                 {
                     Title = "Empty document",
@@ -3035,7 +3031,7 @@ public class WarehouseManagementController : BaseApiController
                 // Cancel all documents in batch via facade
                 var documentIds = itemsList.Select(d => d.Id).ToList();
                 cancelledCount = await _warehouseFacade.CancelInventoryDocumentsBatchAsync(documentIds, GetCurrentUser(), cancellationToken);
-                
+
                 _logger.LogInformation("Successfully cancelled {Count} inventory documents without applying adjustments", cancelledCount);
             }
 
@@ -3512,19 +3508,19 @@ public class WarehouseManagementController : BaseApiController
         _logger.LogInformation(
             "Export operation started by {User} for Warehouses (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
-        
-        var pagination = new PaginationParameters 
-        { 
-            Page = 1, 
+
+        var pagination = new PaginationParameters
+        {
+            Page = 1,
             PageSize = 50000
         };
-        
+
         var data = await _warehouseFacade.GetWarehousesForExportAsync(pagination, ct);
-        
+
         byte[] fileBytes;
         string contentType;
         string fileName;
-        
+
         switch (format.ToLowerInvariant())
         {
             case "csv":
@@ -3532,7 +3528,7 @@ public class WarehouseManagementController : BaseApiController
                 contentType = "text/csv";
                 fileName = $"Warehouses_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
-            
+
             case "excel":
             default:
                 fileBytes = await _warehouseFacade.ExportToExcelAsync(data, "Warehouses", ct);
@@ -3540,11 +3536,11 @@ public class WarehouseManagementController : BaseApiController
                 fileName = $"Warehouses_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
-        
+
         _logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
-        
+
         return File(fileBytes, contentType, fileName);
     }
 
@@ -3567,19 +3563,19 @@ public class WarehouseManagementController : BaseApiController
         _logger.LogInformation(
             "Export operation started by {User} for Inventory (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
-        
-        var pagination = new PaginationParameters 
-        { 
-            Page = 1, 
+
+        var pagination = new PaginationParameters
+        {
+            Page = 1,
             PageSize = 50000
         };
-        
+
         var data = await _warehouseFacade.GetInventoryForExportAsync(pagination, ct);
-        
+
         byte[] fileBytes;
         string contentType;
         string fileName;
-        
+
         switch (format.ToLowerInvariant())
         {
             case "csv":
@@ -3587,7 +3583,7 @@ public class WarehouseManagementController : BaseApiController
                 contentType = "text/csv";
                 fileName = $"Inventory_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
-            
+
             case "excel":
             default:
                 fileBytes = await _warehouseFacade.ExportToExcelAsync(data, "Inventory", ct);
@@ -3595,11 +3591,11 @@ public class WarehouseManagementController : BaseApiController
                 fileName = $"Inventory_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
-        
+
         _logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
-        
+
         return File(fileBytes, contentType, fileName);
     }
 

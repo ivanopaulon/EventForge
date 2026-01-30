@@ -10,9 +10,8 @@ using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Xunit;
-using EntityPriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 using DtoPriceListStatus = EventForge.DTOs.Common.PriceListStatus;
+using EntityPriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -38,7 +37,7 @@ public class PriceListFilteringTests : IDisposable
 
         // Create mock logger
         var logger = new MockLogger();
-        
+
         // Note: PriceListService constructor requires many dependencies.
         // Since we're only testing GetPriceListsAsync, we'll create minimal mocks.
         // In a real scenario, you might use a mocking library like Moq.

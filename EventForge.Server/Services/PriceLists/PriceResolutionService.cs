@@ -1,11 +1,5 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.Server.Data;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EventForge.Server.Services.PriceLists
 {
@@ -62,8 +56,8 @@ namespace EventForge.Server.Services.PriceLists
                 // If direction is not provided, try to infer from document type
                 if (direction == null && documentHeader?.DocumentType != null)
                 {
-                    direction = documentHeader.DocumentType.IsStockIncrease 
-                        ? PriceListDirection.Input 
+                    direction = documentHeader.DocumentType.IsStockIncrease
+                        ? PriceListDirection.Input
                         : PriceListDirection.Output;
                 }
             }

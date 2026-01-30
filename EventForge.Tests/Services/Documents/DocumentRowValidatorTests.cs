@@ -1,7 +1,6 @@
 using EventForge.Client.Services.Documents;
-using EventForge.DTOs.Documents;
 using EventForge.DTOs.Common;
-using Xunit;
+using EventForge.DTOs.Documents;
 
 namespace EventForge.Tests.Services.Documents;
 

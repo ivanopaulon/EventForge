@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Promotions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -566,14 +565,14 @@ public class PromotionService : IPromotionService
     {
         // Check Business Party Groups (support both new and deprecated field)
         var groupIdsToCheck = rule.BusinessPartyGroupIds ?? rule.CustomerGroupIds;
-        
+
         if (groupIdsToCheck != null && groupIdsToCheck.Any())
         {
             if (applyDto.BusinessPartyGroupIds == null || !applyDto.BusinessPartyGroupIds.Any())
             {
                 return false;
             }
-            
+
             if (!groupIdsToCheck.Any(rg => applyDto.BusinessPartyGroupIds.Contains(rg)))
             {
                 return false;

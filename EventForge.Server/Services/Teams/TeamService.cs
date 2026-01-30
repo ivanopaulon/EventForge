@@ -253,7 +253,8 @@ public class TeamService : ITeamService
             // Create snapshots of all members BEFORE modifying them
             var originalMembers = members.ToDictionary(
                 m => m.Id,
-                m => {
+                m =>
+                {
                     var originalMemberValues = _context.Entry(m).CurrentValues.Clone();
                     return (TeamMember)originalMemberValues.ToObject();
                 }

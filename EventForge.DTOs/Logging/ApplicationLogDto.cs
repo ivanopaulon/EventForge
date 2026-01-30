@@ -1,5 +1,3 @@
-using System;
-
 namespace EventForge.DTOs.Logging;
 
 /// <summary>

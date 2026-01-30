@@ -1,5 +1,3 @@
-using EventForge.DTOs.Auth;
-using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Users;

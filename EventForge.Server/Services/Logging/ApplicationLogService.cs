@@ -1,5 +1,3 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Logging;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Logging;

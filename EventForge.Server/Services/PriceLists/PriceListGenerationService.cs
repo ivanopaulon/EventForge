@@ -1,17 +1,9 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Business;
-using EventForge.Server.Data.Entities.PriceList;
-using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
+using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
-using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
-using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
-using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -59,7 +51,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         {
             var eventExists = await _context.Events
                 .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId && !e.IsDeleted, cancellationToken);
-            
+
             if (!eventExists)
             {
                 throw new InvalidOperationException($"Evento {dto.EventId.Value} non trovato");
@@ -238,7 +230,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         {
             var eventExists = await _context.Events
                 .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId && !e.IsDeleted, cancellationToken);
-            
+
             if (!eventExists)
             {
                 throw new InvalidOperationException($"Event {dto.EventId.Value} non trovato");
@@ -282,7 +274,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                 continue;
 
             var basePrice = product.DefaultPrice.Value;
-            
+
             // Applica markup se specificato
             if (dto.MarkupPercentage.HasValue)
             {
@@ -354,7 +346,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         // Validazione fornitore e recupero TenantId
         var supplier = await _context.BusinessParties
             .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
-        
+
         if (supplier == null)
         {
             throw new InvalidOperationException($"Fornitore {dto.SupplierId} non trovato");
@@ -462,7 +454,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         // Validazione fornitore e recupero TenantId
         var supplier = await _context.BusinessParties
             .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
-        
+
         if (supplier == null)
         {
             throw new InvalidOperationException($"Fornitore {dto.SupplierId} non trovato");
@@ -1073,7 +1065,7 @@ public class PriceListGenerationService : IPriceListGenerationService
 
             // Count source entries BEFORE adding the new price list
             var sourceEntriesCount = sourcePriceList.ProductPrices?.Count(pp => !pp.IsDeleted) ?? 0;
-            
+
             // If the navigation property is empty, do a direct query (can happen with in-memory DB in tests)
             if (sourceEntriesCount == 0)
             {
@@ -1184,7 +1176,8 @@ public class PriceListGenerationService : IPriceListGenerationService
                     stats = stats with { CopiedPriceCount = stats.CopiedPriceCount + 1 };
                 }
 
-                stats = stats with {
+                stats = stats with
+                {
                     SkippedPriceCount = stats.SourcePriceCount - stats.CopiedPriceCount
                 };
             }
@@ -1296,7 +1289,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         // Normalizza il nome per creare un codice base usando System.Text per rimuovere accenti
         var normalized = name.Normalize(System.Text.NormalizationForm.FormD);
         var withoutAccents = new string(normalized
-            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) 
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
                 != System.Globalization.UnicodeCategory.NonSpacingMark)
             .ToArray())
             .Normalize(System.Text.NormalizationForm.FormC);

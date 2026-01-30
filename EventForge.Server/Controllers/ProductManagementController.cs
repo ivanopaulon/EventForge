@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Promotions;
@@ -16,7 +15,6 @@ using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventForge.Server.Controllers;
 
@@ -112,7 +110,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var result = await _productService.GetProductsAsync(pagination, searchTerm, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -123,7 +121,7 @@ public class ProductManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -893,7 +891,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var result = await _umService.GetUMsAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -904,7 +902,7 @@ public class ProductManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -1106,7 +1104,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var result = await _priceListService.GetPriceListsAsync(pagination, direction, status, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -1117,7 +1115,7 @@ public class ProductManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -1395,7 +1393,7 @@ public class ProductManagementController : BaseApiController
     {
         var currentUser = GetCurrentUser();
         var result = await _priceListBusinessPartyService.RemoveBusinessPartyAsync(id, businessPartyId, currentUser, cancellationToken);
-        
+
         if (!result)
             return NotFound(new { error = "Business party assignment not found" });
 
@@ -1502,7 +1500,7 @@ public class ProductManagementController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "system";
             var priceListId = await _priceListGenerationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetPriceList),
                 new { id = priceListId },
@@ -1563,7 +1561,7 @@ public class ProductManagementController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "system";
             var result = await _priceListGenerationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
-            
+
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -1662,7 +1660,7 @@ public class ProductManagementController : BaseApiController
             };
 
             var priceListId = await _priceListService.GenerateFromProductPricesAsync(productsDto, currentUser, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetPriceList),
                 new { id = priceListId },
@@ -1702,7 +1700,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var result = await _promotionService.GetPromotionsAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -1713,7 +1711,7 @@ public class ProductManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -1958,7 +1956,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var result = await _brandService.GetBrandsAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -1969,7 +1967,7 @@ public class ProductManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -2170,7 +2168,7 @@ public class ProductManagementController : BaseApiController
             var result = brandId.HasValue
                 ? await _modelService.GetModelsByBrandIdAsync(brandId.Value, pagination, cancellationToken)
                 : await _modelService.GetModelsAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -2181,7 +2179,7 @@ public class ProductManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -2643,7 +2641,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var result = await _productService.GetProductsBySupplierAsync(supplierId, pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -2654,7 +2652,7 @@ public class ProductManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -2759,7 +2757,7 @@ public class ProductManagementController : BaseApiController
                 PageSize = pagination.PageSize,
                 TotalCount = documentsResult.TotalCount
             };
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
@@ -2770,7 +2768,7 @@ public class ProductManagementController : BaseApiController
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -3273,19 +3271,19 @@ public class ProductManagementController : BaseApiController
         _logger.LogInformation(
             "Export operation started by {User} for Products (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
-        
-        var pagination = new PaginationParameters 
-        { 
-            Page = 1, 
+
+        var pagination = new PaginationParameters
+        {
+            Page = 1,
             PageSize = 50000
         };
-        
+
         var data = await _productService.GetProductsForExportAsync(pagination, ct);
-        
+
         byte[] fileBytes;
         string contentType;
         string fileName;
-        
+
         switch (format.ToLowerInvariant())
         {
             case "csv":
@@ -3293,7 +3291,7 @@ public class ProductManagementController : BaseApiController
                 contentType = "text/csv";
                 fileName = $"Products_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
-            
+
             case "excel":
             default:
                 fileBytes = await _exportService.ExportToExcelAsync(data, "Products", ct);
@@ -3301,11 +3299,11 @@ public class ProductManagementController : BaseApiController
                 fileName = $"Products_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
-        
+
         _logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
-        
+
         return File(fileBytes, contentType, fileName);
     }
 

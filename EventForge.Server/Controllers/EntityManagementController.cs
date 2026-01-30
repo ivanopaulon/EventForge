@@ -1,12 +1,10 @@
-using EventForge.DTOs.Common;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
+using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.OutputCaching;
-using EventForge.Server.Services.Caching;
 
 namespace EventForge.Server.Controllers;
 
@@ -71,18 +69,18 @@ public class EntityManagementController : BaseApiController
         try
         {
             var result = await _addressService.GetAddressesAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -306,18 +304,18 @@ public class EntityManagementController : BaseApiController
         try
         {
             var result = await _contactService.GetContactsAsync(pagination, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -781,18 +779,18 @@ public class EntityManagementController : BaseApiController
         try
         {
             var result = await _classificationNodeService.GetClassificationNodesAsync(pagination, parentId, cancellationToken);
-            
+
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
             Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
             Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-            
+
             if (pagination.WasCapped)
             {
                 Response.Headers.Append("X-Pagination-Capped", "true");
                 Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)

@@ -110,7 +110,7 @@ public class GlobalExceptionHandlerMiddleware
                 problemDetails.Title = "Business Validation Error";
                 problemDetails.Detail = _environment.IsDevelopment() ? businessEx.Message : "A business validation error occurred.";
                 problemDetails.Extensions["errorCode"] = businessEx.ErrorCode;
-                
+
                 if (businessEx.ValidationErrors != null && businessEx.ValidationErrors.Any())
                 {
                     problemDetails.Extensions["errors"] = businessEx.ValidationErrors;
@@ -123,14 +123,14 @@ public class GlobalExceptionHandlerMiddleware
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Validation Error";
                 problemDetails.Detail = "One or more validation errors occurred.";
-                
+
                 var errors = validationEx.Errors
                     .GroupBy(e => e.PropertyName)
                     .ToDictionary(
                         g => g.Key,
                         g => g.Select(e => e.ErrorMessage).ToArray()
                     );
-                
+
                 problemDetails.Extensions["errors"] = errors;
                 break;
 
@@ -139,7 +139,7 @@ public class GlobalExceptionHandlerMiddleware
                 problemDetails.Status = (int)HttpStatusCode.BadRequest;
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Title = "Bad Request";
-                problemDetails.Detail = _environment.IsDevelopment() 
+                problemDetails.Detail = _environment.IsDevelopment()
                     ? $"Required parameter '{nullEx.ParamName}' was null or missing"
                     : "A required parameter was null or missing";
                 break;

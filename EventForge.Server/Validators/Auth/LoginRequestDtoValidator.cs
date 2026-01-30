@@ -1,4 +1,3 @@
-using EventForge.DTOs.Auth;
 using FluentValidation;
 
 namespace EventForge.Server.Validators.Auth;

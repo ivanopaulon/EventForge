@@ -14,11 +14,11 @@ public class StockFilters
     public bool ShowOnlyInStock { get; set; }
     public bool ShowAllProducts { get; set; }
     public bool DetailedView { get; set; } = true;
-    
+
     /// <summary>
     /// Indicates if any filter is currently active
     /// </summary>
-    public bool HasActiveFilters => 
+    public bool HasActiveFilters =>
         !string.IsNullOrWhiteSpace(SearchTerm) ||
         WarehouseId.HasValue ||
         LocationId.HasValue ||
@@ -27,7 +27,7 @@ public class StockFilters
         ShowOnlyOutOfStock ||
         ShowOnlyInStock ||
         ShowAllProducts;
-    
+
     /// <summary>
     /// Returns count of active filters for UI badge (excludes SearchTerm as it's shown separately)
     /// </summary>
@@ -46,7 +46,7 @@ public class StockFilters
             return count;
         }
     }
-    
+
     /// <summary>
     /// Clears all filters to default state (preserves view mode preference)
     /// </summary>

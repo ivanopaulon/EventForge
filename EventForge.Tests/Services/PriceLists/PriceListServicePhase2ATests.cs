@@ -6,7 +6,6 @@ using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Business;
-using EventForge.Server.Data.Entities.Events;
 using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.PriceLists;
@@ -233,7 +232,7 @@ public class PriceListServicePhase2ATests
         context.Tenants.Add(tenant);
         context.PriceLists.Add(priceList);
         context.BusinessParties.Add(businessParty);
-        
+
         var relation = new PriceListBusinessParty
         {
             PriceListId = priceList.Id,
@@ -253,7 +252,7 @@ public class PriceListServicePhase2ATests
         var deletedRelation = await context.PriceListBusinessParties
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(plbp => plbp.PriceListId == priceList.Id && plbp.BusinessPartyId == businessParty.Id);
-        
+
         Assert.NotNull(deletedRelation);
         Assert.True(deletedRelation.IsDeleted);
         Assert.NotNull(deletedRelation.DeletedAt);

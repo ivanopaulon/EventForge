@@ -70,15 +70,15 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private bool _isLoadingData => _state.Processing.IsLoadingData;
     private List<string> _validationErrors => _state.Validation.Errors;
     private bool _isProcessingContinuousScan => _state.ContinuousScan.IsProcessing;
-    private string _continuousScanInput 
-    { 
+    private string _continuousScanInput
+    {
         get => _state.ContinuousScan.Input;
         set => _state.ContinuousScan.Input = value;
     }
     private bool _isProcessing => _state.Processing.IsSaving;
     private Guid? _selectedVatRateId => _state.SelectedVatRateId;
     private List<VatRateDto> _allVatRates => _state.Cache.AllVatRates;
-    
+
     /// <summary>
     /// Selected product with setter that handles autocomplete binding
     /// CRITICAL FIX: Converted from readonly property to prevent autocomplete resets
@@ -90,26 +90,26 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// This allows Blazor's @bind-Value to work correctly without interference.
     /// </summary>
     private ProductDto? _selectedProduct = null;
-    private bool _vatPanelExpanded 
-    { 
+    private bool _vatPanelExpanded
+    {
         get => _state.Ui.VatPanelExpanded;
         set => _state.Ui.VatPanelExpanded = value;
     }
-    private bool _discountsPanelExpanded 
-    { 
+    private bool _discountsPanelExpanded
+    {
         get => _state.Ui.DiscountsPanelExpanded;
         set => _state.Ui.DiscountsPanelExpanded = value;
     }
-    private bool _notesPanelExpanded 
-    { 
+    private bool _notesPanelExpanded
+    {
         get => _state.Ui.NotesPanelExpanded;
         set => _state.Ui.NotesPanelExpanded = value;
     }
     private int _uniqueProductsCount => _state.ContinuousScan.UniqueProductsCount;
     private int _scansPerMinute => _state.ContinuousScan.ScansPerMinute;
     private List<ContinuousScanEntry> _recentContinuousScans => _state.ContinuousScan.RecentScans;
-    private string _barcodeInput 
-    { 
+    private string _barcodeInput
+    {
         get => _state.Barcode.Input;
         set => _state.Barcode.Input = value;
     }
@@ -228,7 +228,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         // This prevents unnecessary rerenders that reset MudAutocomplete while user is typing
         if (_state.Model.DocumentHeaderId != DocumentHeaderId)
         {
-            Logger.LogDebug("DocumentHeaderId changed from {Old} to {New}", 
+            Logger.LogDebug("DocumentHeaderId changed from {Old} to {New}",
                 _state.Model.DocumentHeaderId, DocumentHeaderId);
             _state.Model.DocumentHeaderId = DocumentHeaderId;
         }
@@ -242,7 +242,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task OnProductSelectedAsync(ProductDto? product)
     {
-        Logger.LogInformation("OnProductSelectedAsync called. Product: {ProductId} - {ProductName}", 
+        Logger.LogInformation("OnProductSelectedAsync called. Product: {ProductId} - {ProductName}",
             product?.Id, product?.Name ?? "NULL");
 
         // Update local variable to match the parameter
@@ -258,22 +258,22 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             // Populate all related fields from the selected product
             await PopulateFromProductAsync(_selectedProduct);
-            
+
             // ✅ Force UI update after population
             await InvokeAsync(StateHasChanged);
-            
-            Logger.LogInformation("Product fields populated. UnitOfMeasureId: {UnitId}, VatRateId: {VatId}", 
+
+            Logger.LogInformation("Product fields populated. UnitOfMeasureId: {UnitId}, VatRateId: {VatId}",
                 _state.SelectedUnitOfMeasureId, _state.SelectedVatRateId);
         }
         else
         {
             Logger.LogInformation("Product cleared");
-            
+
             // Product was cleared
             _state.SelectedProduct = null;
             _state.PreviousSelectedProduct = null;
             ClearProductFields();
-            
+
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -288,13 +288,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        
+
         if (firstRender)
         {
             // Register keyboard shortcuts - PR #2c-Part1 Commit 2
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.register", _dotNetRef);
-            
+
             // Focus barcode field in create mode
             if (!_isEditMode)
             {
@@ -414,7 +414,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (HttpRequestException ex)
         {
             Logger.LogError(ex, "HTTP error during {Operation}", operationName);
-            
+
             if (showErrorToUser)
             {
                 Snackbar.Add(
@@ -427,7 +427,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (TaskCanceledException ex)
         {
             Logger.LogWarning(ex, "Operation {Operation} was cancelled", operationName);
-            
+
             if (showErrorToUser)
             {
                 Snackbar.Add(
@@ -440,7 +440,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during {Operation}", operationName);
-            
+
             if (showErrorToUser)
             {
                 Snackbar.Add(
@@ -510,13 +510,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             // Determina direzione in base al tipo documento
             PriceListDirection direction = PriceListDirection.Output; // Default: vendita
-            
+
             if (_state.DocumentHeader?.DocumentTypeName != null)
             {
                 var typeName = _state.DocumentHeader.DocumentTypeName.ToLower();
                 // Check if document type indicates a purchase (stock increase)
-                if (typeName.Contains("acquisto") || 
-                    typeName.Contains("purchase") || 
+                if (typeName.Contains("acquisto") ||
+                    typeName.Contains("purchase") ||
                     typeName.Contains("carico") ||
                     typeName.Contains("ddt") && typeName.Contains("fornitore"))
                 {
@@ -620,8 +620,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     private Guid? GetBusinessPartyId()
     {
-        return _state.DocumentHeader!.BusinessPartyId != Guid.Empty 
-            ? _state.DocumentHeader.BusinessPartyId 
+        return _state.DocumentHeader!.BusinessPartyId != Guid.Empty
+            ? _state.DocumentHeader.BusinessPartyId
             : null;
     }
 
@@ -632,11 +632,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         _model.UnitPrice = price;
         Logger.LogInformation("Applied recent price {Price} to unit price", price);
-        
+
         // Invalidate calculation cache
         _cachedCalculationResult = null;
         _cachedCalculationKey = string.Empty;
-        
+
         StateHasChanged();
     }
 
@@ -651,27 +651,27 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             _isApplyingPrice = true; // PR #2c-Part2 Commit 3
             await InvokeAsync(StateHasChanged);
-            
+
             // Simulate processing delay
             await Task.Delay(200);
-            
+
             _model.UnitPrice = price;
-            
+
             // Trigger animation
             _shouldAnimatePriceField = true;
             await InvokeAsync(StateHasChanged);
-            
+
             // Show success message
             Snackbar.Add(
                 "Prezzo applicato",
                 Severity.Success,
                 config => config.VisibleStateDuration = 1500
             );
-            
+
             // Invalidate calculation cache (same as original HandleRecentPriceApplied)
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
-            
+
             // Reset animation flag after animation completes
             await Task.Delay(PriceFieldAnimationDurationMs);
             _shouldAnimatePriceField = false;
@@ -974,14 +974,14 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         try
         {
-            Logger.LogInformation("Populating fields from product: {ProductId} - {ProductName}", 
+            Logger.LogInformation("Populating fields from product: {ProductId} - {ProductName}",
                 product.Id, product.Name);
 
             // 1. Populate base fields
             _state.Model.ProductId = product.Id;
             _state.Model.ProductCode = product.Code;
             _state.Model.Description = product.Name;
-            
+
             // 2. Populate price and VAT using PriceResolutionService
             var (productPrice, vatRate) = await CalculateProductPriceAsync(product);
 
@@ -991,9 +991,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             if (_state.Cache.AvailableUnits.Any())
             {
-                var defaultUnit = _state.Cache.AvailableUnits.FirstOrDefault(u => u.UnitType == "Base") 
+                var defaultUnit = _state.Cache.AvailableUnits.FirstOrDefault(u => u.UnitType == "Base")
                                ?? _state.Cache.AvailableUnits.FirstOrDefault();
-                
+
                 if (defaultUnit != null)
                 {
                     _state.SelectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
@@ -1005,7 +1005,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             {
                 _state.SelectedUnitOfMeasureId = product.UnitOfMeasureId;
                 _state.Model.UnitOfMeasureId = product.UnitOfMeasureId;
-                
+
                 var um = _state.Cache.AllUnitsOfMeasure.FirstOrDefault(u => u.Id == product.UnitOfMeasureId.Value);
                 if (um != null)
                 {
@@ -1015,7 +1015,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             // 4. Set final price
             _state.Model.UnitPrice = productPrice;
-            
+
             // 5. Invalidate cached calculation
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
@@ -1032,18 +1032,18 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             // ✅ Force UI update
             await InvokeAsync(StateHasChanged);
-            
-            Logger.LogInformation("Product fields populated successfully. UnitOfMeasureId: {UnitId}, Price: {Price}, VatRate: {VatRate}%", 
+
+            Logger.LogInformation("Product fields populated successfully. UnitOfMeasureId: {UnitId}, Price: {Price}, VatRate: {VatRate}%",
                 _state.Model.UnitOfMeasureId, _state.Model.UnitPrice, _state.Model.VatRate);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error populating from product {ProductId}", product.Id);
             Snackbar.Add(
-                TranslationService.GetTranslation("error.loadProductData", 
+                TranslationService.GetTranslation("error.loadProductData",
                     "Errore caricamento dati prodotto"),
                 Severity.Error);
-            
+
             // ✅ Ensure UI update even on error
             await InvokeAsync(StateHasChanged);
         }
@@ -1069,13 +1069,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // 1. Determine price list direction based on document type
             // Check document type name for purchase/sales indicators
             PriceListDirection direction = PriceListDirection.Output; // Default to sales
-            
+
             if (_state.DocumentHeader?.DocumentTypeName != null)
             {
                 var typeName = _state.DocumentHeader.DocumentTypeName.ToLower();
                 // Check if document type indicates a purchase (stock increase)
-                if (typeName.Contains("acquisto") || 
-                    typeName.Contains("ddt ingresso") || 
+                if (typeName.Contains("acquisto") ||
+                    typeName.Contains("ddt ingresso") ||
                     typeName.Contains("carico") ||
                     typeName.Contains("purchase") ||
                     typeName.Contains("receipt"))
@@ -1110,13 +1110,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             if (priceResult.IsPriceFromList)
             {
                 _appliedPriceListName = priceResult.PriceListName;
-                
+
                 Snackbar.Add(
                     $"📋 {TranslationService.GetTranslation("documents.priceFromList", "Prezzo da listino")}: {priceResult.PriceListName} - {priceResult.Price:C2}",
                     Severity.Info,
                     config => config.VisibleStateDuration = 3000
                 );
-                
+
                 Logger.LogInformation(
                     "Price resolved from price list: {PriceListName} (ID: {PriceListId}), Price: {Price}, Source: {Source}",
                     priceResult.PriceListName,
@@ -1160,10 +1160,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error calculating price for product {ProductId}, falling back to DefaultPrice", product.Id);
-            
+
             // Fallback to default price on error
             decimal productPrice = product.DefaultPrice ?? 0m;
-            
+
             if (product.VatRateId.HasValue)
             {
                 _state.SelectedVatRateId = product.VatRateId;
@@ -1307,11 +1307,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         // Update the simple autocomplete variable
         _selectedProduct = product;
-        
+
         // Sync to state for other components that need it
         _state.SelectedProduct = product;
         _state.PreviousSelectedProduct = product;
-        
+
         // Populate fields
         await PopulateFromProductAsync(product);
     }
@@ -1600,7 +1600,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private void OnDiscountPercentChanged(decimal value)
     {
         _model.LineDiscount = value;
-        
+
         // Se viene inserito uno sconto percentuale, azzera lo sconto in importo
         if (value > 0)
         {
@@ -1612,7 +1612,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Reset discount type when cleared
             _model.DiscountType = DiscountType.Percentage;
         }
-        
+
         StateHasChanged();
     }
 
@@ -1623,7 +1623,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private void OnDiscountAmountChanged(decimal value)
     {
         _model.LineDiscountValue = value;
-        
+
         // Se viene inserito uno sconto in importo, azzera lo sconto percentuale
         if (value > 0)
         {
@@ -1635,7 +1635,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Reset discount type when cleared
             _model.DiscountType = DiscountType.Percentage;
         }
-        
+
         StateHasChanged();
     }
 
@@ -1652,7 +1652,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 return $"IVA: {vatRate.Percentage}%";
             }
         }
-        
+
         return TranslationService.GetTranslation("documents.priceHelperText", "Prezzo unitario");
     }
 
@@ -1662,21 +1662,21 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private decimal GetCalculatedTotal()
     {
         decimal subtotal = _model.Quantity * _model.UnitPrice;
-        
+
         // Applica sconto percentuale
         if (_model.LineDiscount > 0)
         {
             decimal discountValue = subtotal * (_model.LineDiscount / 100);
             return subtotal - discountValue;
         }
-        
+
         // Applica sconto in importo (assicurandosi che non superi il subtotale)
         if (_model.LineDiscountValue > 0)
         {
             decimal discountToApply = Math.Min(_model.LineDiscountValue, subtotal);
             return subtotal - discountToApply;
         }
-        
+
         return subtotal;
     }
 
@@ -1696,7 +1696,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             );
             return false;
         }
-        
+
         // Lo sconto in importo non può superare il subtotale
         if (_model.LineDiscountValue > 0)
         {
@@ -1712,7 +1712,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -1726,10 +1726,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private bool IsValid()
     {
         _state.Validation.Errors.Clear();
-        
+
         var basicValidation = !string.IsNullOrWhiteSpace(_state.Model.Description) && _state.Model.Quantity > 0;
         var discountsValidation = ValidateDiscounts();
-        
+
         return basicValidation && discountsValidation;
     }
 
@@ -1747,13 +1747,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             // Validate form - PR #2c-Part2 Commit 1
             var isValid = await ValidateForm();
-            
+
             if (!isValid)
             {
                 Snackbar.Add("Correggi gli errori prima di salvare", Severity.Error);
                 return;
             }
-            
+
             if (_state.SelectedUnitOfMeasureId.HasValue && _state.Model.UnitOfMeasureId != _state.SelectedUnitOfMeasureId)
             {
                 UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
@@ -1816,7 +1816,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
         // Validate before submitting
         var validationResult = _validator.Validate(updateDto);
-        
+
         if (!validationResult.IsValid)
         {
             _state.Validation.Errors = validationResult.GetErrorMessages(TranslationService);
@@ -1842,7 +1842,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         // Validate before submitting
         var validationResult = _validator.Validate(_state.Model);
-        
+
         if (!validationResult.IsValid)
         {
             _state.Validation.Errors = validationResult.GetErrorMessages(TranslationService);
@@ -1962,19 +1962,19 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         // ✅ Check both _state.SelectedProduct and _selectedProduct
         var productToEdit = _state.SelectedProduct ?? _selectedProduct;
-        
+
         if (productToEdit == null || productToEdit.Id == Guid.Empty)
         {
-            Logger.LogWarning("OpenEditProductDialog called but no product selected. _state.SelectedProduct: {StateProduct}, _selectedProduct: {SelectedProduct}", 
+            Logger.LogWarning("OpenEditProductDialog called but no product selected. _state.SelectedProduct: {StateProduct}, _selectedProduct: {SelectedProduct}",
                 _state.SelectedProduct?.Id, _selectedProduct?.Id);
-                
+
             Snackbar.Add(
                 TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"),
                 Severity.Warning);
             return;
         }
 
-        Logger.LogInformation("Opening edit dialog for product {ProductId} - {ProductName}", 
+        Logger.LogInformation("Opening edit dialog for product {ProductId} - {ProductName}",
             productToEdit.Id, productToEdit.Name);
 
         var parameters = new DialogParameters
@@ -2001,9 +2001,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
         if (!result.Canceled && result.Data is ProductDto updatedProduct)
         {
-            Logger.LogInformation("Product updated: {ProductId} - {ProductName}", 
+            Logger.LogInformation("Product updated: {ProductId} - {ProductName}",
                 updatedProduct.Id, updatedProduct.Name);
-                
+
             // ✅ Update both variables
             _selectedProduct = updatedProduct;
             _state.SelectedProduct = updatedProduct;
@@ -2105,17 +2105,17 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         try
         {
-            Logger.LogInformation("Product found by barcode: {ProductCode} - {ProductName}", 
+            Logger.LogInformation("Product found by barcode: {ProductCode} - {ProductName}",
                 productWithCode.Product.Code, productWithCode.Product.Name);
 
             // Handle the unit of measure specific from the barcode if present
             if (productWithCode.Code?.ProductUnitId != null)
             {
                 _state.Barcode.ProductUnitId = productWithCode.Code.ProductUnitId;
-                Logger.LogInformation("Barcode has specific unit: {ProductUnitId}", 
+                Logger.LogInformation("Barcode has specific unit: {ProductUnitId}",
                     productWithCode.Code.ProductUnitId);
             }
-            
+
             // Update the selected product in multiple places for consistency:
             // - _selectedProduct: local component variable for UI binding
             // - _state.SelectedProduct: state shared with other components
@@ -2123,7 +2123,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _selectedProduct = productWithCode.Product;
             _state.SelectedProduct = productWithCode.Product;
             _state.PreviousSelectedProduct = productWithCode.Product;
-            
+
             // Populate fields from the product
             await PopulateFromProductAsync(productWithCode.Product);
         }
@@ -2146,11 +2146,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         // Update our local reference with the updated product
         _selectedProduct = updatedProduct;
         _state.SelectedProduct = updatedProduct;
-        
+
         // Update the description and code fields
         _state.Model.Description = updatedProduct.Name;
         _state.Model.ProductCode = updatedProduct.Code;
-        
+
         // Update VAT if changed
         if (updatedProduct.VatRateId.HasValue)
         {
@@ -2162,16 +2162,16 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 _state.Model.VatDescription = vatRate.Name;
             }
         }
-        
+
         // Update Unit of Measure if changed
         if (updatedProduct.UnitOfMeasureId.HasValue)
         {
             _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
         }
-        
+
         // Invalidate cached calculation result
         InvalidateCalculationCache();
-        
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -2190,11 +2190,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             case "ctrl+s":
                 await HandleSave();
                 break;
-                
+
             case "ctrl+enter":
                 await HandleSaveAndContinue();
                 break;
-                
+
             case "ctrl+e":
                 if (_state.SelectedProduct != null)
                 {
@@ -2205,28 +2205,28 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                     Snackbar.Add("Seleziona prima un prodotto", Severity.Warning);
                 }
                 break;
-                
+
             case "?":
                 _showKeyboardHelp = !_showKeyboardHelp;
                 await InvokeAsync(StateHasChanged);
                 break;
-                
+
             case "f2":
                 await FocusBarcodeField();
                 break;
-                
+
             case "f3":
                 await FocusProductSearch();
                 break;
-                
+
             case "+":
                 IncrementQuantity();
                 break;
-                
+
             case "-":
                 DecrementQuantity();
                 break;
-                
+
             case "*":
                 await FocusQuantityField();
                 break;
@@ -2255,20 +2255,20 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             await SaveAndContinue();
             return;
         }
-        
+
         // Track if we had validation errors before save
         var hadErrorsBefore = _state.Validation.Errors.Any();
-        
+
         // Save current row
         await SaveAndContinue();
-        
+
         // If save succeeded (no new validation errors), reset form
         if (!_state.Validation.Errors.Any())
         {
             // Reset form for next entry
             ResetForm();
             await FocusBarcodeField();
-            
+
             Snackbar.Add("Pronto per la prossima riga", Severity.Success, config => config.VisibleStateDuration = 1500);
         }
     }
@@ -2315,9 +2315,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         _state.Validation.Errors.Clear();
         _validationSuccess.Clear();
         await InvokeAsync(StateHasChanged);
-        
+
         var isValid = true;
-        
+
         // Product validation
         if (_state.SelectedProduct == null)
         {
@@ -2328,7 +2328,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             _validationSuccess["product"] = true;
         }
-        
+
         // Quantity validation
         if (_model.Quantity <= 0)
         {
@@ -2339,7 +2339,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             _validationSuccess["quantity"] = true;
         }
-        
+
         // Price validation
         if (_model.UnitPrice < 0)
         {
@@ -2350,7 +2350,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             _validationSuccess["price"] = true;
         }
-        
+
         // VAT validation
         if (_model.VatRate < 0 || _model.VatRate > 100)
         {
@@ -2361,10 +2361,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             _validationSuccess["vat"] = true;
         }
-        
+
         _isValidating = false;
         await InvokeAsync(StateHasChanged);
-        
+
         return isValid;
     }
 
@@ -2375,7 +2375,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         // Remove previous success state
         _validationSuccess.Remove(fieldName);
-        
+
         switch (fieldName)
         {
             case "quantity":
@@ -2385,7 +2385,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                     _validationSuccess[fieldName] = true;
                 }
                 break;
-                
+
             case "price":
                 var price = value as decimal?;
                 if (price.HasValue && price.Value >= 0)
@@ -2393,7 +2393,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                     _validationSuccess[fieldName] = true;
                 }
                 break;
-                
+
             case "vat":
                 var vat = value as decimal?;
                 if (vat.HasValue && vat.Value >= 0 && vat.Value <= 100)
@@ -2402,7 +2402,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 }
                 break;
         }
-        
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -2488,22 +2488,22 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Continuous scan specific: Force quantity = 1 and enable merge
             _state.Model.Quantity = 1;
             _state.Model.MergeDuplicateProducts = true;
-            
+
             // If the barcode was associated with a specific unit, use that
             if (productWithCode.Code?.ProductUnitId != null)
             {
                 _state.Barcode.ProductUnitId = productWithCode.Code.ProductUnitId;
-                
+
                 // Find and select the specific unit
                 var specificUnit = _state.Cache.AvailableUnits
                     .FirstOrDefault(u => u.Id == productWithCode.Code.ProductUnitId);
-                
+
                 if (specificUnit != null)
                 {
                     _state.SelectedUnitOfMeasureId = specificUnit.UnitOfMeasureId;
                     _state.Model.UnitOfMeasureId = specificUnit.UnitOfMeasureId;
                     UpdateModelUnitOfMeasure(_state.SelectedUnitOfMeasureId);
-                    
+
                     Logger.LogInformation(
                         "Using specific unit from barcode: {UnitId} - {UnitName}",
                         specificUnit.Id,
@@ -2513,7 +2513,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             // ✅ Validation pre-save
             var validationResult = _validator.Validate(_state.Model);
-            
+
             if (!validationResult.IsValid)
             {
                 var errors = string.Join(", ", validationResult.GetErrorMessages(TranslationService));
@@ -2751,13 +2751,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Prezzo modificato manualmente, ma c'era un listino originale
             return $"{TranslationService.GetTranslation("documents.originalFromList", "Originale da")}: {GetAppliedPriceListName()}";
         }
-        
+
         if (_state.Model.AppliedPriceListId.HasValue)
         {
             // Prezzo da listino non modificato
             return $"{TranslationService.GetTranslation("documents.fromPriceList", "Da listino")}: {GetAppliedPriceListName()}";
         }
-        
+
         return TranslationService.GetTranslation("documents.defaultPrice", "Prezzo predefinito prodotto");
     }
 
@@ -2770,12 +2770,12 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             return Color.Warning; // Giallo/arancione per modifiche manuali
         }
-        
+
         if (_state.Model.AppliedPriceListId.HasValue)
         {
             return Color.Info; // Blu per listini applicati
         }
-        
+
         return Color.Default; // Grigio per default price
     }
 
@@ -2788,12 +2788,12 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             return "price-field-manual"; // Classe custom per highlight
         }
-        
+
         if (_state.Model.AppliedPriceListId.HasValue)
         {
             return "price-field-from-list";
         }
-        
+
         return string.Empty;
     }
 
@@ -2812,7 +2812,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 _state.Model.OriginalPriceFromPriceList ?? 0m
             );
         }
-        
+
         if (_state.Model.AppliedPriceListId.HasValue)
         {
             return string.Format(
@@ -2823,7 +2823,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 GetAppliedPriceListName()
             );
         }
-        
+
         return TranslationService.GetTranslation(
             "documents.defaultPriceTooltip",
             "Prezzo predefinito del prodotto. Nessun listino applicabile."
@@ -2840,24 +2840,24 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             _state.Model.UnitPrice = newPrice;
             _state.Model.IsPriceManual = true;
-            
+
             Snackbar.Add(
                 $"⚠️ {TranslationService.GetTranslation("documents.priceManuallyModified", "Prezzo modificato manualmente")}",
                 Severity.Warning,
                 config => config.VisibleStateDuration = 2000
             );
-            
+
             Logger.LogInformation(
                 "Price manually overridden: Original={Original}, New={New}, Product={ProductId}",
                 _state.Model.OriginalPriceFromPriceList ?? 0m,
                 newPrice,
                 _state.Model.ProductId
             );
-            
+
             // Invalidate cache calculations
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
-            
+
             StateHasChanged();
         }
     }
@@ -2869,14 +2869,14 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         StopStatsTimer();
         _panelStateSaveDebouncer?.Dispose();
-        
+
         // Cleanup keyboard shortcuts - PR #2c-Part1 Commit 2
         // Dispose .NET reference first to prevent further callbacks, then unregister JS handler
         if (_dotNetRef != null)
         {
             _dotNetRef.Dispose();
             _dotNetRef = null;
-            
+
             try
             {
                 await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.unregister");

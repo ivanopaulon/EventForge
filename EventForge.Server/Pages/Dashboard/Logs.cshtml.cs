@@ -1,4 +1,3 @@
-using EventForge.Server.Data;
 using EventForge.Server.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
