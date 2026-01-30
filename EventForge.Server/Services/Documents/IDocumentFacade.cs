@@ -820,4 +820,36 @@ public interface IDocumentFacade
     Task<List<DocumentStatus>> GetAvailableTransitionsAsync(
         Guid documentId,
         CancellationToken cancellationToken = default);
+
+    #region Bulk Operations
+
+    /// <summary>
+    /// Performs a bulk approval operation on multiple documents in a single transaction.
+    /// </summary>
+    /// <param name="bulkApprovalDto">Bulk approval request data</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>Result of the bulk approval operation</returns>
+    /// <exception cref="ArgumentNullException">Thrown when bulkApprovalDto or currentUser is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
+    Task<EventForge.DTOs.Bulk.BulkApprovalResultDto> BulkApproveAsync(
+        EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Performs a bulk status change operation on multiple documents in a single transaction.
+    /// </summary>
+    /// <param name="bulkStatusChangeDto">Bulk status change request data</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>Result of the bulk status change operation</returns>
+    /// <exception cref="ArgumentNullException">Thrown when bulkStatusChangeDto or currentUser is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
+    Task<EventForge.DTOs.Bulk.BulkStatusChangeResultDto> BulkStatusChangeAsync(
+        EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    #endregion
 }

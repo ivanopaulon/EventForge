@@ -821,4 +821,22 @@ public interface IWarehouseFacade
     Task<List<InventoryDocumentRowDto>> EnrichInventoryDocumentRowsAsync(IEnumerable<DocumentRowDto> rows, CancellationToken cancellationToken = default);
 
     #endregion
+
+    #region Bulk Operations
+
+    /// <summary>
+    /// Performs a bulk warehouse transfer operation in a single transaction.
+    /// </summary>
+    /// <param name="bulkTransferDto">Bulk transfer request data</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>Result of the bulk transfer operation</returns>
+    /// <exception cref="ArgumentNullException">Thrown when bulkTransferDto or currentUser is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
+    Task<EventForge.DTOs.Bulk.BulkTransferResultDto> BulkTransferAsync(
+        EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    #endregion
 }

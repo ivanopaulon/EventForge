@@ -1,4 +1,5 @@
 using EventForge.DTOs.Documents;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -16,6 +17,8 @@ public class DocumentFacade : IDocumentFacade
     private readonly IDocumentHeaderService _documentHeaderService;
     private readonly IDocumentTypeService _documentTypeService;
     private readonly IDocumentStatusService _documentStatusService;
+    private readonly EventForgeDbContext _context;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<DocumentFacade> _logger;
 
     /// <summary>
@@ -29,6 +32,8 @@ public class DocumentFacade : IDocumentFacade
     /// <param name="documentHeaderService">Document header service</param>
     /// <param name="documentTypeService">Document type service</param>
     /// <param name="documentStatusService">Document status service</param>
+    /// <param name="context">Database context</param>
+    /// <param name="tenantContext">Tenant context</param>
     /// <param name="logger">Logger instance</param>
     public DocumentFacade(
         IDocumentAttachmentService attachmentService,
@@ -39,6 +44,8 @@ public class DocumentFacade : IDocumentFacade
         IDocumentHeaderService documentHeaderService,
         IDocumentTypeService documentTypeService,
         IDocumentStatusService documentStatusService,
+        EventForgeDbContext context,
+        ITenantContext tenantContext,
         ILogger<DocumentFacade> logger)
     {
         _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
@@ -49,6 +56,8 @@ public class DocumentFacade : IDocumentFacade
         _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
         _documentTypeService = documentTypeService ?? throw new ArgumentNullException(nameof(documentTypeService));
         _documentStatusService = documentStatusService ?? throw new ArgumentNullException(nameof(documentStatusService));
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -598,4 +607,289 @@ public class DocumentFacade : IDocumentFacade
     {
         return await _documentStatusService.GetAvailableTransitionsAsync(documentId, cancellationToken);
     }
+
+    #region Bulk Operations
+
+    /// <inheritdoc />
+    public async Task<EventForge.DTOs.Bulk.BulkApprovalResultDto> BulkApproveAsync(
+        EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var startTime = DateTime.UtcNow;
+        var errors = new List<EventForge.DTOs.Bulk.BulkItemError>();
+        var successCount = 0;
+
+        // Validate batch size
+        if (bulkApprovalDto.DocumentIds.Count > 500)
+        {
+            throw new ArgumentException("Maximum 500 documents can be approved at once.");
+        }
+
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for bulk approval operations.");
+            }
+
+            var approvalDate = bulkApprovalDto.ApprovalDate ?? DateTime.UtcNow;
+
+            // Fetch all documents in one query
+            var documents = await _context.DocumentHeaders
+                .Where(d => bulkApprovalDto.DocumentIds.Contains(d.Id) && d.TenantId == currentTenantId.Value)
+                .ToListAsync(cancellationToken);
+
+            // Check for missing documents
+            var foundIds = documents.Select(d => d.Id).ToHashSet();
+            var missingIds = bulkApprovalDto.DocumentIds.Where(id => !foundIds.Contains(id)).ToList();
+            foreach (var missingId in missingIds)
+            {
+                errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                {
+                    ItemId = missingId,
+                    ErrorMessage = "Document not found or does not belong to the current tenant."
+                });
+            }
+
+            // Approve documents
+            foreach (var document in documents)
+            {
+                try
+                {
+                    // Update document status to Closed (finalized/approved)
+                    var oldStatus = document.Status;
+                    document.Status = DocumentStatus.Closed;
+                    document.ApprovedAt = approvalDate;
+                    document.ApprovedBy = currentUser;
+                    document.ModifiedAt = DateTime.UtcNow;
+                    document.ModifiedBy = currentUser;
+
+                    // Add status history entry
+                    var statusHistory = new EventForge.Server.Data.Entities.Documents.DocumentStatusHistory
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = currentTenantId.Value,
+                        DocumentHeaderId = document.Id,
+                        FromStatus = oldStatus,
+                        ToStatus = DocumentStatus.Closed,
+                        Reason = bulkApprovalDto.ApprovalNotes,
+                        ChangedBy = currentUser,
+                        ChangedAt = approvalDate,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = currentUser
+                    };
+                    _context.DocumentStatusHistories.Add(statusHistory);
+
+                    successCount++;
+
+                    _logger.LogInformation(
+                        "Bulk approval: Document {DocumentId} approved. Notes: {Notes}",
+                        document.Id, bulkApprovalDto.ApprovalNotes ?? "N/A");
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = document.Id,
+                        ItemName = document.Number,
+                        ErrorMessage = ex.Message
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Bulk approval completed: {SuccessCount} successful, {FailureCount} failed",
+                successCount, errors.Count);
+
+            return new EventForge.DTOs.Bulk.BulkApprovalResultDto
+            {
+                TotalCount = bulkApprovalDto.DocumentIds.Count,
+                SuccessCount = successCount,
+                FailedCount = errors.Count,
+                Errors = errors,
+                ProcessedAt = DateTime.UtcNow,
+                ProcessingTime = DateTime.UtcNow - startTime,
+                RolledBack = false
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Bulk approval failed and was rolled back");
+
+            return new EventForge.DTOs.Bulk.BulkApprovalResultDto
+            {
+                TotalCount = bulkApprovalDto.DocumentIds.Count,
+                SuccessCount = 0,
+                FailedCount = bulkApprovalDto.DocumentIds.Count,
+                Errors = new List<EventForge.DTOs.Bulk.BulkItemError>
+                {
+                    new EventForge.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = Guid.Empty,
+                        ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"
+                    }
+                },
+                ProcessedAt = DateTime.UtcNow,
+                ProcessingTime = DateTime.UtcNow - startTime,
+                RolledBack = true
+            };
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<EventForge.DTOs.Bulk.BulkStatusChangeResultDto> BulkStatusChangeAsync(
+        EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var startTime = DateTime.UtcNow;
+        var errors = new List<EventForge.DTOs.Bulk.BulkItemError>();
+        var successCount = 0;
+
+        // Validate batch size
+        if (bulkStatusChangeDto.DocumentIds.Count > 500)
+        {
+            throw new ArgumentException("Maximum 500 documents can have their status changed at once.");
+        }
+
+        // Parse the new status
+        if (!Enum.TryParse<DocumentStatus>(bulkStatusChangeDto.NewStatus, true, out var newStatus))
+        {
+            throw new ArgumentException($"Invalid status: {bulkStatusChangeDto.NewStatus}");
+        }
+
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for bulk status change operations.");
+            }
+
+            var changeDate = bulkStatusChangeDto.ChangeDate ?? DateTime.UtcNow;
+
+            // Fetch all documents in one query
+            var documents = await _context.DocumentHeaders
+                .Where(d => bulkStatusChangeDto.DocumentIds.Contains(d.Id) && d.TenantId == currentTenantId.Value)
+                .ToListAsync(cancellationToken);
+
+            // Check for missing documents
+            var foundIds = documents.Select(d => d.Id).ToHashSet();
+            var missingIds = bulkStatusChangeDto.DocumentIds.Where(id => !foundIds.Contains(id)).ToList();
+            foreach (var missingId in missingIds)
+            {
+                errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                {
+                    ItemId = missingId,
+                    ErrorMessage = "Document not found or does not belong to the current tenant."
+                });
+            }
+
+            // Change document statuses
+            foreach (var document in documents)
+            {
+                try
+                {
+                    // Check if status change is valid
+                    if (document.Status == newStatus)
+                    {
+                        errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                        {
+                            ItemId = document.Id,
+                            ItemName = document.Number,
+                            ErrorMessage = $"Document already has status {newStatus}."
+                        });
+                        continue;
+                    }
+
+                    var oldStatus = document.Status;
+                    document.Status = newStatus;
+                    document.ModifiedAt = DateTime.UtcNow;
+                    document.ModifiedBy = currentUser;
+
+                    // Add status history entry
+                    var statusHistory = new EventForge.Server.Data.Entities.Documents.DocumentStatusHistory
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = currentTenantId.Value,
+                        DocumentHeaderId = document.Id,
+                        FromStatus = oldStatus,
+                        ToStatus = newStatus,
+                        Reason = bulkStatusChangeDto.Reason,
+                        ChangedBy = currentUser,
+                        ChangedAt = changeDate,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = currentUser
+                    };
+                    _context.DocumentStatusHistories.Add(statusHistory);
+
+                    successCount++;
+
+                    _logger.LogInformation(
+                        "Bulk status change: Document {DocumentId} status changed from {OldStatus} to {NewStatus}. Reason: {Reason}",
+                        document.Id, oldStatus, newStatus, bulkStatusChangeDto.Reason ?? "N/A");
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = document.Id,
+                        ItemName = document.Number,
+                        ErrorMessage = ex.Message
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Bulk status change completed: {SuccessCount} successful, {FailureCount} failed",
+                successCount, errors.Count);
+
+            return new EventForge.DTOs.Bulk.BulkStatusChangeResultDto
+            {
+                TotalCount = bulkStatusChangeDto.DocumentIds.Count,
+                SuccessCount = successCount,
+                FailedCount = errors.Count,
+                Errors = errors,
+                ProcessedAt = DateTime.UtcNow,
+                ProcessingTime = DateTime.UtcNow - startTime,
+                RolledBack = false
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Bulk status change failed and was rolled back");
+
+            return new EventForge.DTOs.Bulk.BulkStatusChangeResultDto
+            {
+                TotalCount = bulkStatusChangeDto.DocumentIds.Count,
+                SuccessCount = 0,
+                FailedCount = bulkStatusChangeDto.DocumentIds.Count,
+                Errors = new List<EventForge.DTOs.Bulk.BulkItemError>
+                {
+                    new EventForge.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = Guid.Empty,
+                        ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"
+                    }
+                },
+                ProcessedAt = DateTime.UtcNow,
+                ProcessingTime = DateTime.UtcNow - startTime,
+                RolledBack = true
+            };
+        }
+    }
+
+    #endregion
 }

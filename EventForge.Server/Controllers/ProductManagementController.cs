@@ -3309,6 +3309,63 @@ public class ProductManagementController : BaseApiController
 
     #endregion
 
+    #region Bulk Operations
+
+    /// <summary>
+    /// Performs a bulk price update on multiple products.
+    /// </summary>
+    /// <param name="bulkUpdateDto">Bulk update request data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result of the bulk update operation</returns>
+    /// <response code="200">Returns the result of the bulk update operation</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("bulk-update-prices")]
+    [Authorize(Roles = "Admin,Manager")]
+    [ProducesResponseType(typeof(EventForge.DTOs.Bulk.BulkUpdateResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<EventForge.DTOs.Bulk.BulkUpdateResultDto>> BulkUpdatePrices(
+        [FromBody] EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "System";
+            var result = await _productService.BulkUpdatePricesAsync(bulkUpdateDto, currentUser, cancellationToken);
+
+            _logger.LogInformation(
+                "Bulk price update: {SuccessCount} successful, {FailedCount} failed",
+                result.SuccessCount, result.FailedCount);
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid bulk update request");
+            return BadRequest(new ValidationProblemDetails
+            {
+                Title = "Invalid Request",
+                Detail = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during bulk price update");
+            return CreateInternalServerErrorProblem("An error occurred during bulk price update.", ex);
+        }
+    }
+
+    #endregion
+
     #endregion
 }
 

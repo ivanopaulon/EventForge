@@ -371,4 +371,16 @@ public interface IProductService
     Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Performs a bulk price update on multiple products in a single transaction.
+    /// </summary>
+    /// <param name="bulkUpdateDto">Bulk update request data</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result of the bulk update operation</returns>
+    Task<EventForge.DTOs.Bulk.BulkUpdateResultDto> BulkUpdatePricesAsync(
+        EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }

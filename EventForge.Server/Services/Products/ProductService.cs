@@ -2553,5 +2553,172 @@ public class ProductService : IProductService
         return results;
     }
 
+    /// <summary>
+    /// Performs a bulk price update on multiple products in a single transaction.
+    /// </summary>
+    public async Task<EventForge.DTOs.Bulk.BulkUpdateResultDto> BulkUpdatePricesAsync(
+        EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var startTime = DateTime.UtcNow;
+        var errors = new List<EventForge.DTOs.Bulk.BulkItemError>();
+        var successCount = 0;
+
+        // Validate batch size
+        if (bulkUpdateDto.ProductIds.Count > 500)
+        {
+            throw new ArgumentException("Maximum 500 products can be updated at once.");
+        }
+
+        // Validate required fields based on update type
+        switch (bulkUpdateDto.UpdateType)
+        {
+            case EventForge.DTOs.Bulk.PriceUpdateType.Replace:
+                if (!bulkUpdateDto.NewPrice.HasValue)
+                {
+                    throw new ArgumentException("NewPrice is required for Replace operation.");
+                }
+                break;
+            case EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByPercentage:
+            case EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByPercentage:
+                if (!bulkUpdateDto.Percentage.HasValue)
+                {
+                    throw new ArgumentException("Percentage is required for percentage-based operations.");
+                }
+                break;
+            case EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByAmount:
+            case EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByAmount:
+                if (!bulkUpdateDto.Amount.HasValue)
+                {
+                    throw new ArgumentException("Amount is required for amount-based operations.");
+                }
+                break;
+        }
+
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // Fetch all products in one query
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for bulk update operations.");
+            }
+
+            var products = await _context.Products
+                .Where(p => bulkUpdateDto.ProductIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
+                .ToListAsync(cancellationToken);
+
+            // Check for missing products
+            var foundIds = products.Select(p => p.Id).ToHashSet();
+            var missingIds = bulkUpdateDto.ProductIds.Where(id => !foundIds.Contains(id)).ToList();
+            foreach (var missingId in missingIds)
+            {
+                errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                {
+                    ItemId = missingId,
+                    ErrorMessage = "Product not found or does not belong to the current tenant."
+                });
+            }
+
+            // Update prices
+            foreach (var product in products)
+            {
+                try
+                {
+                    var newPrice = CalculateNewPrice(product.DefaultPrice ?? 0, bulkUpdateDto);
+                    
+                    if (newPrice < 0)
+                    {
+                        errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                        {
+                            ItemId = product.Id,
+                            ItemName = product.Name,
+                            ErrorMessage = "Calculated price is negative."
+                        });
+                        continue;
+                    }
+
+                    product.DefaultPrice = newPrice;
+                    product.ModifiedAt = DateTime.UtcNow;
+                    product.ModifiedBy = currentUser;
+                    successCount++;
+
+                    _logger.LogInformation(
+                        "Bulk price update: Product {ProductId} price changed to {NewPrice}. Reason: {Reason}",
+                        product.Id, newPrice, bulkUpdateDto.Reason ?? "N/A");
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = product.Id,
+                        ItemName = product.Name,
+                        ErrorMessage = ex.Message
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Bulk price update completed: {SuccessCount} successful, {FailureCount} failed",
+                successCount, errors.Count);
+
+            return new EventForge.DTOs.Bulk.BulkUpdateResultDto
+            {
+                TotalCount = bulkUpdateDto.ProductIds.Count,
+                SuccessCount = successCount,
+                FailedCount = errors.Count,
+                Errors = errors,
+                ProcessedAt = DateTime.UtcNow,
+                ProcessingTime = DateTime.UtcNow - startTime,
+                RolledBack = false
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Bulk price update failed and was rolled back");
+
+            return new EventForge.DTOs.Bulk.BulkUpdateResultDto
+            {
+                TotalCount = bulkUpdateDto.ProductIds.Count,
+                SuccessCount = 0,
+                FailedCount = bulkUpdateDto.ProductIds.Count,
+                Errors = new List<EventForge.DTOs.Bulk.BulkItemError>
+                {
+                    new EventForge.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = Guid.Empty,
+                        ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"
+                    }
+                },
+                ProcessedAt = DateTime.UtcNow,
+                ProcessingTime = DateTime.UtcNow - startTime,
+                RolledBack = true
+            };
+        }
+    }
+
+    private decimal CalculateNewPrice(decimal currentPrice, EventForge.DTOs.Bulk.BulkUpdatePricesDto dto)
+    {
+        return dto.UpdateType switch
+        {
+            EventForge.DTOs.Bulk.PriceUpdateType.Replace => dto.NewPrice ?? 0,
+            EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByPercentage => 
+                currentPrice * (1 + (dto.Percentage ?? 0) / 100),
+            EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByPercentage => 
+                currentPrice * (1 - (dto.Percentage ?? 0) / 100),
+            EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByAmount => 
+                currentPrice + (dto.Amount ?? 0),
+            EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByAmount => 
+                currentPrice - (dto.Amount ?? 0),
+            _ => currentPrice
+        };
+    }
+
     #endregion
 }

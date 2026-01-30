@@ -737,4 +737,145 @@ public class WarehouseFacade : IWarehouseFacade
     }
 
     #endregion
+
+    #region Bulk Operations
+
+    public async Task<EventForge.DTOs.Bulk.BulkTransferResultDto> BulkTransferAsync(
+        EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var startTime = DateTime.UtcNow;
+        var errors = new List<EventForge.DTOs.Bulk.BulkItemError>();
+        var successCount = 0;
+
+        // Validate batch size
+        if (bulkTransferDto.Items.Count > 500)
+        {
+            throw new ArgumentException("Maximum 500 items can be transferred at once.");
+        }
+
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // Validate facilities exist
+            var sourceFacility = await _storageFacilityService.GetStorageFacilityByIdAsync(
+                bulkTransferDto.SourceFacilityId, cancellationToken);
+            var destFacility = await _storageFacilityService.GetStorageFacilityByIdAsync(
+                bulkTransferDto.DestinationFacilityId, cancellationToken);
+
+            if (sourceFacility == null)
+            {
+                throw new ArgumentException($"Source facility {bulkTransferDto.SourceFacilityId} not found.");
+            }
+
+            if (destFacility == null)
+            {
+                throw new ArgumentException($"Destination facility {bulkTransferDto.DestinationFacilityId} not found.");
+            }
+
+            // Validate locations if specified
+            if (bulkTransferDto.SourceLocationId.HasValue)
+            {
+                var sourceLocation = await _storageLocationService.GetStorageLocationByIdAsync(
+                    bulkTransferDto.SourceLocationId.Value, cancellationToken);
+                if (sourceLocation == null)
+                {
+                    throw new ArgumentException($"Source location {bulkTransferDto.SourceLocationId} not found.");
+                }
+            }
+
+            if (bulkTransferDto.DestinationLocationId.HasValue)
+            {
+                var destLocation = await _storageLocationService.GetStorageLocationByIdAsync(
+                    bulkTransferDto.DestinationLocationId.Value, cancellationToken);
+                if (destLocation == null)
+                {
+                    throw new ArgumentException($"Destination location {bulkTransferDto.DestinationLocationId} not found.");
+                }
+            }
+
+            var transferDate = bulkTransferDto.TransferDate ?? DateTime.UtcNow;
+
+            // Process each item
+            foreach (var item in bulkTransferDto.Items)
+            {
+                try
+                {
+                    // Create stock movement for the transfer
+                    var createMovementDto = new CreateStockMovementDto
+                    {
+                        ProductId = item.ProductId,
+                        FromLocationId = bulkTransferDto.SourceLocationId,
+                        ToLocationId = bulkTransferDto.DestinationLocationId,
+                        LotId = item.LotId,
+                        Quantity = item.Quantity,
+                        MovementType = "Transfer",
+                        MovementDate = transferDate,
+                        Reason = bulkTransferDto.Reason ?? "Bulk Transfer",
+                        Notes = item.Notes,
+                        Reference = "BulkTransfer"
+                    };
+
+                    await _stockMovementService.CreateMovementAsync(createMovementDto, currentUser, cancellationToken);
+                    successCount++;
+
+                    _logger.LogInformation(
+                        "Bulk transfer: Product {ProductId} transferred {Quantity} units from location {SourceLocation} to {DestLocation}",
+                        item.ProductId, item.Quantity, bulkTransferDto.SourceLocationId, bulkTransferDto.DestinationLocationId);
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = item.ProductId,
+                        ErrorMessage = ex.Message
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Bulk transfer completed: {SuccessCount} successful, {FailureCount} failed",
+                successCount, errors.Count);
+
+            return new EventForge.DTOs.Bulk.BulkTransferResultDto
+            {
+                TotalCount = bulkTransferDto.Items.Count,
+                SuccessCount = successCount,
+                FailedCount = errors.Count,
+                Errors = errors,
+                ProcessedAt = DateTime.UtcNow,
+                ProcessingTime = DateTime.UtcNow - startTime,
+                RolledBack = false
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Bulk transfer failed and was rolled back");
+
+            return new EventForge.DTOs.Bulk.BulkTransferResultDto
+            {
+                TotalCount = bulkTransferDto.Items.Count,
+                SuccessCount = 0,
+                FailedCount = bulkTransferDto.Items.Count,
+                Errors = new List<EventForge.DTOs.Bulk.BulkItemError>
+                {
+                    new EventForge.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = Guid.Empty,
+                        ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"
+                    }
+                },
+                ProcessedAt = DateTime.UtcNow,
+                ProcessingTime = DateTime.UtcNow - startTime,
+                RolledBack = true
+            };
+        }
+    }
+
+    #endregion
 }
