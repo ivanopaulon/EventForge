@@ -1,3 +1,4 @@
+using EventForge.DTOs.ServerInfo;
 using EventForge.Server.Services.Setup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,13 +17,16 @@ public class ServerInfoController : ControllerBase
 {
     private readonly IFirstRunDetectionService _firstRunService;
     private readonly ILogger<ServerInfoController> _logger;
+    private readonly IConfiguration _configuration;
 
     public ServerInfoController(
         IFirstRunDetectionService firstRunService,
-        ILogger<ServerInfoController> logger)
+        ILogger<ServerInfoController> logger,
+        IConfiguration configuration)
     {
         _firstRunService = firstRunService ?? throw new ArgumentNullException(nameof(firstRunService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     /// <summary>
@@ -45,6 +49,28 @@ public class ServerInfoController : ControllerBase
             Uptime = (int)uptime,
             Environment = environment,
             ServerTime = DateTime.UtcNow
+        });
+    }
+
+    /// <summary>
+    /// Gets server version information from assembly.
+    /// </summary>
+    /// <returns>Server version details</returns>
+    /// <response code="200">Returns server version information</response>
+    [HttpGet("version")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ServerVersionDto), StatusCodes.Status200OK)]
+    public ActionResult<ServerVersionDto> GetVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = assembly.GetName().Version;
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        
+        return Ok(new ServerVersionDto
+        {
+            Version = version?.ToString() ?? "1.0.0",
+            InformationalVersion = informationalVersion ?? version?.ToString() ?? "1.0.0",
+            Environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production"
         });
     }
 
