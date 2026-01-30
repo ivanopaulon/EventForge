@@ -2568,4 +2568,114 @@ public class DocumentsController : BaseApiController
     }
 
     #endregion
+
+    #region Bulk Operations
+
+    /// <summary>
+    /// Performs a bulk approval operation on multiple documents.
+    /// </summary>
+    /// <param name="bulkApprovalDto">Bulk approval request data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result of the bulk approval operation</returns>
+    /// <response code="200">Returns the result of the bulk approval operation</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("bulk-approve")]
+    [Authorize(Roles = "Admin,Manager")]
+    [ProducesResponseType(typeof(EventForge.DTOs.Bulk.BulkApprovalResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<EventForge.DTOs.Bulk.BulkApprovalResultDto>> BulkApprove(
+        [FromBody] EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "System";
+            var result = await _documentFacade.BulkApproveAsync(bulkApprovalDto, currentUser, cancellationToken);
+
+            _logger.LogInformation(
+                "Bulk approval: {SuccessCount} successful, {FailedCount} failed",
+                result.SuccessCount, result.FailedCount);
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid bulk approval request");
+            return BadRequest(new ValidationProblemDetails
+            {
+                Title = "Invalid Request",
+                Detail = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during bulk approval");
+            return CreateInternalServerErrorProblem("An error occurred during bulk approval.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Performs a bulk status change operation on multiple documents.
+    /// </summary>
+    /// <param name="bulkStatusChangeDto">Bulk status change request data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result of the bulk status change operation</returns>
+    /// <response code="200">Returns the result of the bulk status change operation</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("bulk-status-change")]
+    [Authorize(Roles = "Admin,Manager")]
+    [ProducesResponseType(typeof(EventForge.DTOs.Bulk.BulkStatusChangeResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<EventForge.DTOs.Bulk.BulkStatusChangeResultDto>> BulkStatusChange(
+        [FromBody] EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "System";
+            var result = await _documentFacade.BulkStatusChangeAsync(bulkStatusChangeDto, currentUser, cancellationToken);
+
+            _logger.LogInformation(
+                "Bulk status change: {SuccessCount} successful, {FailedCount} failed",
+                result.SuccessCount, result.FailedCount);
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid bulk status change request");
+            return BadRequest(new ValidationProblemDetails
+            {
+                Title = "Invalid Request",
+                Detail = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during bulk status change");
+            return CreateInternalServerErrorProblem("An error occurred during bulk status change.", ex);
+        }
+    }
+
+    #endregion
 }

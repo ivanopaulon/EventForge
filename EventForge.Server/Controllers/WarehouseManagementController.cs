@@ -3600,4 +3600,61 @@ public class WarehouseManagementController : BaseApiController
     }
 
     #endregion
+
+    #region Bulk Operations
+
+    /// <summary>
+    /// Performs a bulk warehouse transfer operation.
+    /// </summary>
+    /// <param name="bulkTransferDto">Bulk transfer request data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result of the bulk transfer operation</returns>
+    /// <response code="200">Returns the result of the bulk transfer operation</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("bulk-transfer")]
+    [Authorize(Roles = "Admin,Manager")]
+    [ProducesResponseType(typeof(EventForge.DTOs.Bulk.BulkTransferResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<EventForge.DTOs.Bulk.BulkTransferResultDto>> BulkTransfer(
+        [FromBody] EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "System";
+            var result = await _warehouseFacade.BulkTransferAsync(bulkTransferDto, currentUser, cancellationToken);
+
+            _logger.LogInformation(
+                "Bulk transfer: {SuccessCount} successful, {FailedCount} failed",
+                result.SuccessCount, result.FailedCount);
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid bulk transfer request");
+            return BadRequest(new ValidationProblemDetails
+            {
+                Title = "Invalid Request",
+                Detail = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during bulk transfer");
+            return CreateInternalServerErrorProblem("An error occurred during bulk transfer.", ex);
+        }
+    }
+
+    #endregion
 }
