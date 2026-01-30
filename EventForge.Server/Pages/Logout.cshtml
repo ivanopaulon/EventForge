@@ -1,0 +1,29 @@
+@page
+@model EventForge.Server.Pages.LogoutModel
+@{
+    ViewData["Title"] = "Logout";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logging out...</title>
+</head>
+<body>
+    <script>
+        // Remove server token from localStorage and sessionStorage
+        localStorage.removeItem('serverToken');
+        sessionStorage.removeItem('serverToken');
+        
+        // Redirect to landing page
+        window.location.href = '/';
+    </script>
+    
+    <div style="text-align: center; padding: 50px;">
+        <h2>Logging out...</h2>
+        <p>You will be redirected shortly.</p>
+    </div>
+</body>
+</html>

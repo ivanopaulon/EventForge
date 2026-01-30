@@ -526,7 +526,7 @@ app.MapHub<AlertHub>("/hubs/alerts");
 app.MapHub<EventForge.Server.Hubs.ConfigurationHub>("/hubs/configuration");
 
 // FALLBACK: serve index.html for client SPA routes ONLY
-// Exclude Razor Pages routes (/Dashboard, /ServerAuth, /Setup, /settings)
+// Exclude Razor Pages routes (/Dashboard, /ServerAuth, /Setup) and static file paths (/settings)
 app.MapWhen(
     context => !context.Request.Path.StartsWithSegments("/Dashboard") &&
                !context.Request.Path.StartsWithSegments("/ServerAuth") &&

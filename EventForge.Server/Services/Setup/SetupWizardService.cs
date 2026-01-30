@@ -37,7 +37,7 @@ public class SetupWizardService : ISetupWizardService
 
         try
         {
-            _logger.LogWarning("Setup wizard started for environment: {Environment}", config.Environment);
+            _logger.LogInformation("Setup wizard started for environment: {Environment}", config.Environment);
 
             // Step 1: Save connection string to appsettings.overrides.json
             await SaveConnectionStringAsync(config, cancellationToken);

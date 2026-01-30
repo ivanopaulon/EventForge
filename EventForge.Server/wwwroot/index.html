@@ -307,6 +307,11 @@
             // Check if JWT token exists
             const token = localStorage.getItem('serverToken') || sessionStorage.getItem('serverToken');
             
+            // First, hide ALL buttons to reset state
+            document.getElementById('loginBtn').classList.add('hidden');
+            document.getElementById('dashboardBtn').classList.add('hidden');
+            document.getElementById('settingsBtn').classList.add('hidden');
+            
             if (token) {
                 // User is authenticated - show dashboard and settings
                 document.getElementById('dashboardBtn').classList.remove('hidden');
