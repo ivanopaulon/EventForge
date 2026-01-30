@@ -1,8 +1,10 @@
 using EventForge.DTOs.Health;
 using EventForge.Server.Controllers;
 using EventForge.Server.Data;
+using EventForge.Server.Services.Setup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace EventForge.Tests;
 
@@ -18,9 +20,10 @@ public class HealthControllerTests
             .Options;
         var context = new EventForgeDbContext(options);
         var logger = new LoggerFactory().CreateLogger<HealthController>();
+        var mockFirstRunService = new Mock<IFirstRunDetectionService>();
 
         // Act & Assert
-        var controller = new HealthController(context, logger);
+        var controller = new HealthController(context, logger, mockFirstRunService.Object);
         Assert.NotNull(controller);
     }
 

@@ -1,3 +1,4 @@
+using EventForge.Server.Services.Setup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,8 @@ using System.Reflection;
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for health check and API version information.
+/// REST API controller for health check, version information, and server status.
+/// Unified endpoint for all server information needs.
 /// </summary>
 [Route("api/v1/[controller]")]
 [AllowAnonymous]
@@ -16,11 +18,17 @@ public class HealthController : BaseApiController
     private readonly EventForgeDbContext _dbContext;
     private readonly ILogger<HealthController> _logger;
     private readonly IPerformanceMonitoringService? _performanceService;
+    private readonly IFirstRunDetectionService _firstRunService;
 
-    public HealthController(EventForgeDbContext dbContext, ILogger<HealthController> logger, IPerformanceMonitoringService? performanceService = null)
+    public HealthController(
+        EventForgeDbContext dbContext, 
+        ILogger<HealthController> logger, 
+        IFirstRunDetectionService firstRunService,
+        IPerformanceMonitoringService? performanceService = null)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _firstRunService = firstRunService ?? throw new ArgumentNullException(nameof(firstRunService));
         _performanceService = performanceService;
     }
 
@@ -310,4 +318,68 @@ public class HealthController : BaseApiController
 
         return details;
     }
+
+    /// <summary>
+    /// Gets server version information from assembly.
+    /// </summary>
+    /// <returns>Server version details</returns>
+    /// <response code="200">Returns server version information</response>
+    [HttpGet("version")]
+    [ProducesResponseType(typeof(ServerVersionDto), StatusCodes.Status200OK)]
+    public ActionResult<ServerVersionDto> GetVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = assembly.GetName().Version;
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        
+        return Ok(new ServerVersionDto
+        {
+            Version = version?.ToString() ?? "1.0.0",
+            InformationalVersion = informationalVersion ?? version?.ToString() ?? "1.0.0"
+        });
+    }
+
+    /// <summary>
+    /// Checks if the server is in first-run mode (requires setup).
+    /// </summary>
+    /// <returns>First run status</returns>
+    /// <response code="200">Returns first run status</response>
+    [HttpGet("first-run")]
+    [ProducesResponseType(typeof(FirstRunDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<FirstRunDto>> CheckFirstRun()
+    {
+        var isSetupComplete = await _firstRunService.IsSetupCompleteAsync();
+
+        return Ok(new FirstRunDto
+        {
+            IsFirstRun = !isSetupComplete
+        });
+    }
+}
+
+/// <summary>
+/// DTO for server version.
+/// </summary>
+public class ServerVersionDto
+{
+    /// <summary>
+    /// Server version from assembly.
+    /// </summary>
+    public string Version { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Informational version (includes pre-release info).
+    /// </summary>
+    public string InformationalVersion { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// DTO for first run check.
+/// </summary>
+public class FirstRunDto
+{
+    /// <summary>
+    /// Indicates if the server is in first-run mode.
+    /// </summary>
+    public bool IsFirstRun { get; set; }
 }

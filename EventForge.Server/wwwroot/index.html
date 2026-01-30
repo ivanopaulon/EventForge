@@ -229,7 +229,7 @@
         // Load version from API
         async function loadVersion() {
             try {
-                const response = await fetch(`${API_BASE}/server/version`);
+                const response = await fetch(`${API_BASE}/health/version`);
                 if (response.ok) {
                     const data = await response.json();
                     document.querySelector('.version').textContent = `v${data.version}`;
@@ -294,7 +294,7 @@
         // Check if first run
         async function checkFirstRun() {
             try {
-                const response = await fetch(`${API_BASE}/server/first-run`);
+                const response = await fetch(`${API_BASE}/health/first-run`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.isFirstRun) {
