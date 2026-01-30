@@ -261,8 +261,8 @@
                     // Save token to localStorage
                     localStorage.setItem('serverToken', data.token);
 
-                    // Redirect to dashboard
-                    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/Dashboard';
+                    // Redirect to settings
+                    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/settings';
                     window.location.href = returnUrl;
                 } else {
                     // Try to parse error response
