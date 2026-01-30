@@ -126,22 +126,22 @@
 
         .actions {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin: 30px 0;
+            margin-top: 20px;
         }
 
         .btn {
-            display: inline-block;
             padding: 15px 30px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
             border: none;
+            border-radius: 10px;
             font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
         }
 
         .btn-primary {
@@ -151,95 +151,24 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-secondary {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        .btn-secondary:hover {
-            background: #e5e7eb;
-            transform: translateY(-2px);
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-            transform: translateY(-2px);
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            color: #6b7280;
-            font-size: 0.9em;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
         }
 
         .hidden {
             display: none !important;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 5px;
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-
-        .badge-dev {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .badge-prod {
-            background: #ef4444;
-            color: white;
-        }
-
-        .badge-staging {
-            background: #f59e0b;
-            color: white;
-        }
-
-        @media (max-width: 600px) {
-            .card {
-                padding: 20px;
-            }
-
-            .header h1 {
-                font-size: 2em;
-            }
-
-            .status-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .actions {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card">
-            <!-- Header -->
             <div class="header">
-                <div class="logo">🚀</div>
+                <div class="logo">🎯</div>
                 <h1>EventForge Server</h1>
-                <div class="version" id="version">Version: Loading...</div>
+                <div class="version">v1.0.0</div>
             </div>
 
-            <!-- Status Cards -->
+            <!-- Status Grid -->
             <div class="status-grid">
                 <div class="status-card">
                     <h3>Server Status</h3>
@@ -247,6 +176,10 @@
                         <span class="status-indicator"></span>
                         <span id="status">Online</span>
                     </div>
+                </div>
+                <div class="status-card">
+                    <h3>Database</h3>
+                    <div class="value" id="dbStatus">Checking...</div>
                 </div>
                 <div class="status-card">
                     <h3>Uptime</h3>
@@ -263,20 +196,15 @@
                 <div class="icon">⚠️</div>
                 <h3>First Run Detected</h3>
                 <p>This server needs initial configuration</p>
-                <a href="/setup" class="btn btn-primary">🛠️ Start Setup</a>
+                <a href="/Setup" class="btn btn-primary">🛠️ Start Setup</a>
             </div>
 
             <!-- Quick Actions -->
             <div class="actions">
-                <!-- Conditional buttons -->
+                <!-- Conditional buttons - CORRECT URLS WITH PROPER CASE -->
                 <a href="/ServerAuth/Login" id="loginBtn" class="btn btn-primary hidden">🔐 Server Login</a>
-                <a href="/dashboard" id="dashboardBtn" class="btn btn-primary hidden">📊 Dashboard</a>
+                <a href="/Dashboard" id="dashboardBtn" class="btn btn-primary hidden">📊 Server Dashboard</a>
                 <a href="/settings" id="settingsBtn" class="btn btn-primary hidden">⚙️ Settings Panel</a>
-            </div>
-
-            <!-- Footer -->
-            <div class="footer">
-                EventForge © 2025 | Multi-Tenant Event Management Platform
             </div>
         </div>
     </div>
@@ -287,46 +215,75 @@
 
         // Load server status on page load
         document.addEventListener('DOMContentLoaded', async () => {
+            await loadVersion();
             await loadServerStatus();
             await checkFirstRun();
             checkAuthentication();
             
-            // Start auto-refresh for uptime
+            // Start auto-refresh for uptime and database status (every 10 seconds)
             setInterval(async () => {
-                await loadServerStatus();
-            }, 10000); // Update every 10 seconds
+                await updateLiveStatus();
+            }, 10000);
         });
 
-        // Load server status from /api/v1/server/info (public endpoint)
-        async function loadServerStatus() {
+        // Load version from API
+        async function loadVersion() {
             try {
-                const response = await fetch(`${API_BASE}/server/info`);
+                const response = await fetch(`${API_BASE}/server/version`);
                 if (response.ok) {
                     const data = await response.json();
+                    document.querySelector('.version').textContent = `v${data.version}`;
+                }
+            } catch (error) {
+                console.error('Error loading version:', error);
+                // Keep default v1.0.0
+            }
+        }
+
+        // Load server status (initial load)
+        async function loadServerStatus() {
+            await updateLiveStatus();
+        }
+
+        // Update live status (uptime and database) - called by auto-refresh
+        async function updateLiveStatus() {
+            try {
+                // Check database status
+                const dbResponse = await fetch(`${API_BASE}/settings/database/status`);
+                if (dbResponse.ok) {
+                    const dbData = await dbResponse.json();
+                    document.getElementById('dbStatus').textContent = dbData.isConnected ? '✓ Connected' : '✗ Disconnected';
+                }
+            } catch (error) {
+                console.error('Error loading database status:', error);
+                document.getElementById('dbStatus').textContent = '✗ Error';
+            }
+
+            try {
+                // Check server restart status for uptime
+                const statusResponse = await fetch(`${API_BASE}/settings/server/restart/status`);
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
                     
-                    // Update uptime - data.uptime is in seconds
-                    if (data.uptime !== undefined) {
-                        const totalSeconds = data.uptime;
-                        const hours = Math.floor(totalSeconds / 3600);
-                        const minutes = Math.floor((totalSeconds % 3600) / 60);
-                        const seconds = Math.floor(totalSeconds % 60);
+                    // Update uptime with seconds for precision
+                    if (statusData.uptime) {
+                        const hours = Math.floor(statusData.uptime.hours || 0);
+                        const minutes = Math.floor(statusData.uptime.minutes || 0);
+                        const seconds = Math.floor(statusData.uptime.seconds || 0);
                         document.getElementById('uptime').textContent = `${hours}h ${minutes}m ${seconds}s`;
                     }
                     
-                    // Update environment
-                    if (data.environment) {
-                        document.getElementById('environment').textContent = data.environment;
-                    }
-                    
-                    // Update version
-                    if (data.version) {
-                        document.querySelector('.version').textContent = `v${data.version}`;
+                    // Update environment (only on initial load, doesn't change)
+                    if (statusData.environment && document.getElementById('environment').textContent === 'Loading...') {
+                        document.getElementById('environment').textContent = statusData.environment;
                     }
                 }
             } catch (error) {
                 console.error('Error loading server status:', error);
-                document.getElementById('uptime').textContent = 'N/A';
-                document.getElementById('environment').textContent = 'Unknown';
+                if (document.getElementById('uptime').textContent === 'Loading...') {
+                    document.getElementById('uptime').textContent = 'N/A';
+                    document.getElementById('environment').textContent = 'Unknown';
+                }
             }
         }
 
@@ -347,7 +304,7 @@
 
         // Check authentication and show appropriate buttons
         function checkAuthentication() {
-            // Check if JWT token exists - use 'serverToken' key as per server login page
+            // Check if JWT token exists
             const token = localStorage.getItem('serverToken') || sessionStorage.getItem('serverToken');
             
             if (token) {

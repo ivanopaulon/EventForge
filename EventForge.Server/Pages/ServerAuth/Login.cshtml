@@ -262,7 +262,7 @@
                     localStorage.setItem('serverToken', data.token);
 
                     // Redirect to dashboard
-                    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard';
+                    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/Dashboard';
                     window.location.href = returnUrl;
                 } else {
                     // Try to parse error response
