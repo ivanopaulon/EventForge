@@ -9,6 +9,7 @@
 @inject IAuthService AuthService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<HealthFooter> Logger
 @implements IDisposable
 
 <!-- 
@@ -35,7 +36,14 @@
                  Color="@GetOverallHealthColor()" 
                  Size="Size.Small" />
         <MudText Typo="Typo.caption" Class="health-status-text">
-            @GetOverallHealthStatus()
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Error">Error</MudText>
+            }
+            else
+            {
+                @GetOverallHealthStatus()
+            }
         </MudText>
     </div>
 </div>
@@ -44,6 +52,7 @@
     private DetailedHealthStatusDto? _healthData;
     private DateTime? _lastUpdated;
     private Timer? _refreshTimer;
+    private string? _errorMessage;
 
     /// <summary>
     /// Refresh interval for health data in milliseconds. Default is 30 seconds.
@@ -70,13 +79,23 @@
     {
         try
         {
+            _errorMessage = null;
             _healthData = await HealthService.GetDetailedHealthAsync();
-            _lastUpdated = DateTime.Now;
+            
+            if (_healthData == null)
+            {
+                _errorMessage = "Unable to retrieve health status from server";
+                Logger.LogWarning("Health service returned null");
+            }
+            else
+            {
+                _lastUpdated = DateTime.Now;
+            }
         }
         catch (Exception ex)
         {
-            // Log error but don't break the UI
-            Console.Error.WriteLine($"Health status refresh failed: {ex.Message}");
+            _errorMessage = $"Error loading health status: {ex.Message}";
+            Logger.LogError(ex, "Health status refresh failed: {Message}", ex.Message);
         }
     }
 
@@ -99,7 +118,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Failed to fetch active sessions: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to fetch active sessions: {Message}", ex.Message);
         }
 
         try
@@ -109,7 +128,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Failed to fetch current user: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to fetch current user: {Message}", ex.Message);
         }
 
         try
@@ -123,7 +142,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Failed to extract token expiry: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to extract token expiry: {Message}", ex.Message);
         }
 
         var parameters = new DialogParameters
@@ -133,7 +152,8 @@
             { "OnRefreshRequested", EventCallback.Factory.Create(this, RefreshHealthData) },
             { "ActiveSessions", activeSessions },
             { "CurrentUser", currentUser },
-            { "TokenExpiresAt", tokenExpiresAt }
+            { "TokenExpiresAt", tokenExpiresAt },
+            { "ErrorMessage", _errorMessage }
         };
 
         var options = new DialogOptions
@@ -253,7 +273,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Failed to parse JWT expiry: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to parse JWT expiry: {Message}", ex.Message);
         }
         return null;
     }
