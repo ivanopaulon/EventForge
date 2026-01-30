@@ -93,7 +93,7 @@ main {
 
 ::deep .ef-menu-button:hover {
     background-color: rgba(255, 255, 255, 0.15) !important;
-    transform: scale(1.08);
+    transform: scale(1.05);
 }
 
 ::deep .ef-menu-button:active {

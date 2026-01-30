@@ -29,13 +29,19 @@
             </MudIconButton>
         </MudTooltip>
         <MudTooltip Text="EventForge - Torna alla Home">
-            <MudImage Src="/eventforgetitle.svg" 
-                      Alt="EventForge Logo"
-                      Height="40"
-                      Class="mx-2"
-                      Style="cursor: pointer;"
-                      @onclick="@(() => NavigationManager.NavigateTo("/"))">
-            </MudImage>
+            <MudIconButton Icon="@Icons.Material.Filled.Home"
+                          Color="Color.Inherit"
+                          OnClick="@(() => NavigationManager.NavigateTo("/"))"
+                          Size="Size.Large"
+                          Class="pa-0"
+                          aria-label="EventForge - Torna alla Home"
+                          Style="width: auto; height: auto;">
+                <MudImage Src="/eventforgetitle.svg" 
+                          Alt="EventForge Logo"
+                          Height="40"
+                          Class="mx-2">
+                </MudImage>
+            </MudIconButton>
         </MudTooltip>
         <MudSpacer />
         
