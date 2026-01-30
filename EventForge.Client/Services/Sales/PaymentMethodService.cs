@@ -1,5 +1,8 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
+using System.Net;
+using Microsoft.Extensions.Caching.Memory;
+using EventForge.Client.Helpers;
 
 namespace EventForge.Client.Services.Sales;
 
@@ -10,13 +13,15 @@ public class PaymentMethodService : IPaymentMethodService
 {
     private readonly IHttpClientService _httpClientService;
     private readonly ILogger<PaymentMethodService> _logger;
+    private readonly IMemoryCache _cache;
     private const string BaseUrl = "api/v1/payment-methods";
     private const int DefaultPageSize = 100; // Default page size for pagination
 
-    public PaymentMethodService(IHttpClientService httpClientService, ILogger<PaymentMethodService> logger)
+    public PaymentMethodService(IHttpClientService httpClientService, ILogger<PaymentMethodService> logger, IMemoryCache cache)
     {
         _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
     public async Task<List<PaymentMethodDto>?> GetAllAsync()
@@ -81,9 +86,32 @@ public class PaymentMethodService : IPaymentMethodService
 
     public async Task<List<PaymentMethodDto>?> GetActiveAsync()
     {
+        if (_cache.TryGetValue(CacheHelper.ACTIVE_PAYMENT_METHODS, out List<PaymentMethodDto>? cached) && cached != null)
+        {
+            _logger.LogDebug("Cache HIT: Active payment methods ({Count} items)", cached.Count);
+            return cached;
+        }
+        
+        _logger.LogDebug("Cache MISS: Loading active payment methods from API");
+        
         try
         {
-            return await _httpClientService.GetAsync<List<PaymentMethodDto>>($"{BaseUrl}/active");
+            var result = await _httpClientService.GetAsync<List<PaymentMethodDto>>($"{BaseUrl}/active");
+            var activePaymentMethods = result ?? new List<PaymentMethodDto>();
+            
+            _cache.Set(
+                CacheHelper.ACTIVE_PAYMENT_METHODS, 
+                activePaymentMethods, 
+                CacheHelper.GetLongCacheOptions()
+            );
+            
+            _logger.LogInformation(
+                "Cached {Count} active payment methods for {Minutes} minutes", 
+                activePaymentMethods.Count, 
+                CacheHelper.LongCache.TotalMinutes
+            );
+            
+            return activePaymentMethods;
         }
         catch (Exception ex)
         {
@@ -113,7 +141,13 @@ public class PaymentMethodService : IPaymentMethodService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreatePaymentMethodDto, PaymentMethodDto>(BaseUrl, createDto);
+            var result = await _httpClientService.PostAsync<CreatePaymentMethodDto, PaymentMethodDto>(BaseUrl, createDto);
+            
+            // Invalidate cache
+            _cache.Remove(CacheHelper.ACTIVE_PAYMENT_METHODS);
+            _logger.LogDebug("Invalidated active payment methods cache after create");
+            
+            return result;
         }
         catch (Exception ex)
         {
@@ -128,7 +162,13 @@ public class PaymentMethodService : IPaymentMethodService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdatePaymentMethodDto, PaymentMethodDto>($"{BaseUrl}/{id}", updateDto);
+            var result = await _httpClientService.PutAsync<UpdatePaymentMethodDto, PaymentMethodDto>($"{BaseUrl}/{id}", updateDto);
+            
+            // Invalidate cache
+            _cache.Remove(CacheHelper.ACTIVE_PAYMENT_METHODS);
+            _logger.LogDebug("Invalidated active payment methods cache after update (ID: {Id})", id);
+            
+            return result;
         }
         catch (Exception ex)
         {
@@ -144,6 +184,11 @@ public class PaymentMethodService : IPaymentMethodService
         try
         {
             await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            
+            // Invalidate cache
+            _cache.Remove(CacheHelper.ACTIVE_PAYMENT_METHODS);
+            _logger.LogDebug("Invalidated active payment methods cache after delete (ID: {Id})", id);
+            
             return true;
         }
         catch (Exception ex)
