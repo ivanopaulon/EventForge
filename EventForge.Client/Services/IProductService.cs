@@ -83,4 +83,7 @@ public interface IProductService
 
     // Unified Product Search
     Task<ProductSearchResultDto?> SearchProductsAsync(string query, int maxResults = 20, CancellationToken ct = default);
+
+    // Bulk Operations
+    Task<EventForge.DTOs.Bulk.BulkUpdateResultDto?> BulkUpdatePricesAsync(EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto, CancellationToken ct = default);
 }

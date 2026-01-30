@@ -32,4 +32,9 @@ public interface IWarehouseService
     /// Deletes a storage facility.
     /// </summary>
     Task<bool> DeleteStorageFacilityAsync(Guid id);
+
+    /// <summary>
+    /// Performs a bulk transfer of items between warehouses.
+    /// </summary>
+    Task<EventForge.DTOs.Bulk.BulkTransferResultDto?> BulkTransferAsync(EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto, CancellationToken ct = default);
 }

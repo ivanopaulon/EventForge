@@ -83,4 +83,30 @@ public class WarehouseService : IWarehouseService
             return false;
         }
     }
+
+    public async Task<EventForge.DTOs.Bulk.BulkTransferResultDto?> BulkTransferAsync(EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto, CancellationToken ct = default)
+    {
+        try
+        {
+            _logger.LogInformation("Starting bulk transfer of {Count} items from facility {SourceId} to {DestinationId}", 
+                bulkTransferDto.Items.Count, bulkTransferDto.SourceFacilityId, bulkTransferDto.DestinationFacilityId);
+            var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkTransferDto, EventForge.DTOs.Bulk.BulkTransferResultDto>(
+                "api/v1/warehouse/bulk-transfer", 
+                bulkTransferDto, 
+                ct);
+
+            if (result != null)
+            {
+                _logger.LogInformation("Bulk transfer completed. Success: {SuccessCount}, Failed: {FailedCount}", 
+                    result.SuccessCount, result.FailedCount);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing bulk transfer");
+            return null;
+        }
+    }
 }

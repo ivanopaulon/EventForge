@@ -166,6 +166,57 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
+    public async Task<EventForge.DTOs.Bulk.BulkApprovalResultDto?> BulkApproveAsync(EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto, CancellationToken ct = default)
+    {
+        try
+        {
+            _logger.LogInformation("Starting bulk approval for {Count} documents", bulkApprovalDto.DocumentIds.Count);
+            var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkApprovalDto, EventForge.DTOs.Bulk.BulkApprovalResultDto>(
+                "api/v1/documents/bulk-approve", 
+                bulkApprovalDto, 
+                ct);
+
+            if (result != null)
+            {
+                _logger.LogInformation("Bulk approval completed. Success: {SuccessCount}, Failed: {FailedCount}", 
+                    result.SuccessCount, result.FailedCount);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing bulk approval");
+            return null;
+        }
+    }
+
+    public async Task<EventForge.DTOs.Bulk.BulkStatusChangeResultDto?> BulkStatusChangeAsync(EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto, CancellationToken ct = default)
+    {
+        try
+        {
+            _logger.LogInformation("Starting bulk status change for {Count} documents to status '{Status}'", 
+                bulkStatusChangeDto.DocumentIds.Count, bulkStatusChangeDto.NewStatus);
+            var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkStatusChangeDto, EventForge.DTOs.Bulk.BulkStatusChangeResultDto>(
+                "api/v1/documents/bulk-status-change", 
+                bulkStatusChangeDto, 
+                ct);
+
+            if (result != null)
+            {
+                _logger.LogInformation("Bulk status change completed. Success: {SuccessCount}, Failed: {FailedCount}", 
+                    result.SuccessCount, result.FailedCount);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing bulk status change");
+            return null;
+        }
+    }
+
     private static string BuildQueryString(DocumentHeaderQueryParameters parameters)
     {
         var queryParams = new List<string>
