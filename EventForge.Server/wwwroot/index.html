@@ -268,14 +268,10 @@
 
             <!-- Quick Actions -->
             <div class="actions">
-                <!-- Always visible -->
-                <a href="/client" class="btn btn-secondary">🌐 Open Client Application</a>
-
                 <!-- Conditional buttons -->
                 <a href="/server/login" id="loginBtn" class="btn btn-primary hidden">🔐 Server Login</a>
                 <a href="/dashboard" id="dashboardBtn" class="btn btn-primary hidden">📊 Dashboard</a>
-                <a href="/swagger" id="swaggerBtn" class="btn btn-secondary hidden">📚 API Documentation (Swagger)</a>
-                <button id="logoutBtn" class="btn btn-danger hidden">🚪 Logout</button>
+                <a href="/settings" id="settingsBtn" class="btn btn-primary hidden">⚙️ Settings Panel</a>
             </div>
 
             <!-- Footer -->
@@ -286,170 +282,97 @@
     </div>
 
     <script>
-        // State
-        let serverInfo = null;
-        let isFirstRun = false;
-        let userRoles = [];
+        // API base URL
+        const API_BASE = '/api/v1';
 
-        // Initialize
-        async function init() {
-            await loadServerInfo();
+        // Load server status on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadServerStatus();
             await checkFirstRun();
-            await checkAuth();
-            updateUI();
-        }
-
-        // Load server info
-        async function loadServerInfo() {
-            try {
-                const response = await fetch('/api/v1/server/info');
-                serverInfo = await response.json();
-
-                // Update UI
-                document.getElementById('version').textContent = `Version: ${serverInfo.version}`;
-                document.getElementById('uptime').textContent = formatUptime(serverInfo.uptime);
-                
-                const envElement = document.getElementById('environment');
-                const envBadge = getEnvironmentBadge(serverInfo.environment);
-                const span = document.createElement('span');
-                span.className = `badge ${envBadge}`;
-                span.textContent = serverInfo.environment;
-                envElement.textContent = ''; // Clear existing content
-                envElement.appendChild(span);
-            } catch (error) {
-                console.error('Failed to load server info:', error);
-                document.getElementById('version').textContent = 'Version: Error';
-                document.getElementById('uptime').textContent = 'N/A';
-                document.getElementById('environment').textContent = 'Error';
-            }
-        }
-
-        // Check first run status
-        async function checkFirstRun() {
-            try {
-                const response = await fetch('/api/v1/server/first-run');
-                const data = await response.json();
-                isFirstRun = data.isFirstRun;
-            } catch (error) {
-                console.error('Failed to check first run:', error);
-                isFirstRun = false;
-            }
-        }
-
-        // Check authentication
-        async function checkAuth() {
-            const token = localStorage.getItem('serverToken') || sessionStorage.getItem('serverToken');
+            checkAuthentication();
             
-            if (!token) {
-                userRoles = [];
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/v1/auth/verify', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    userRoles = data.roles || [];
-                } else {
-                    // Token invalid, clear it
-                    localStorage.removeItem('serverToken');
-                    sessionStorage.removeItem('serverToken');
-                    userRoles = [];
-                }
-            } catch (error) {
-                console.error('Failed to verify token:', error);
-                userRoles = [];
-            }
-        }
-
-        // Update UI based on state
-        function updateUI() {
-            const loginBtn = document.getElementById('loginBtn');
-            const dashboardBtn = document.getElementById('dashboardBtn');
-            const swaggerBtn = document.getElementById('swaggerBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const firstRunBanner = document.getElementById('firstRunBanner');
-
-            // Always show Swagger in Development (before first run check)
-            if (serverInfo && serverInfo.environment === 'Development') {
-                swaggerBtn.classList.remove('hidden');
-            }
-
-            // First run banner
-            if (isFirstRun) {
-                firstRunBanner.classList.remove('hidden');
-                loginBtn.classList.add('hidden');
-                return; // Don't show other buttons during first run
-            } else {
-                firstRunBanner.classList.add('hidden');
-            }
-
-            // Check if user is authenticated
-            const isAuthenticated = userRoles.length > 0;
-
-            if (isAuthenticated) {
-                // Show dashboard and logout
-                dashboardBtn.classList.remove('hidden');
-                logoutBtn.classList.remove('hidden');
-                loginBtn.classList.add('hidden');
-
-                // Show Swagger if SuperAdmin (in addition to Development check above)
-                if (userRoles.includes('SuperAdmin')) {
-                    swaggerBtn.classList.remove('hidden');
-                }
-            } else {
-                // Show login button
-                loginBtn.classList.remove('hidden');
-                dashboardBtn.classList.add('hidden');
-                logoutBtn.classList.add('hidden');
-            }
-        }
-
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.removeItem('serverToken');
-            sessionStorage.removeItem('serverToken');
-            window.location.reload();
+            // Start auto-refresh for uptime and database status
+            setInterval(async () => {
+                await updateLiveStatus();
+            }, 10000); // Update every 10 seconds
         });
 
-        // Format uptime
-        function formatUptime(seconds) {
-            const days = Math.floor(seconds / 86400);
-            const hours = Math.floor((seconds % 86400) / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
+        // Load server status (initial load)
+        async function loadServerStatus() {
+            await updateLiveStatus();
+        }
 
-            if (days >= 1) {
-                return `${days}d ${hours}h`;
-            } else if (hours >= 1) {
-                return `${hours}h ${minutes}m`;
-            } else if (minutes >= 1) {
-                return `${minutes}m`;
+        // Update live status (uptime and database) - called by auto-refresh
+        async function updateLiveStatus() {
+            try {
+                // Check database status
+                const dbResponse = await fetch(`${API_BASE}/settings/database/status`);
+                if (dbResponse.ok) {
+                    const dbData = await dbResponse.json();
+                    document.getElementById('dbStatus').textContent = dbData.isConnected ? '✓ Connected' : '✗ Disconnected';
+                }
+            } catch (error) {
+                console.error('Error loading database status:', error);
+                document.getElementById('dbStatus').textContent = '✗ Error';
+            }
+
+            try {
+                // Check server restart status for uptime
+                const statusResponse = await fetch(`${API_BASE}/settings/server/restart/status`);
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    
+                    // Update uptime with seconds
+                    if (statusData.uptime) {
+                        const hours = Math.floor(statusData.uptime.hours || 0);
+                        const minutes = Math.floor(statusData.uptime.minutes || 0);
+                        const seconds = Math.floor(statusData.uptime.seconds || 0);
+                        document.getElementById('uptime').textContent = `${hours}h ${minutes}m ${seconds}s`;
+                    }
+                    
+                    // Update environment (only on initial load, doesn't change)
+                    if (statusData.environment && document.getElementById('environment').textContent === 'Loading...') {
+                        document.getElementById('environment').textContent = statusData.environment;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading server status:', error);
+                if (document.getElementById('uptime').textContent === 'Loading...') {
+                    document.getElementById('uptime').textContent = 'N/A';
+                    document.getElementById('environment').textContent = 'Unknown';
+                }
+            }
+        }
+
+        // Check if first run
+        async function checkFirstRun() {
+            try {
+                const response = await fetch(`${API_BASE}/server/first-run`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.isFirstRun) {
+                        document.getElementById('firstRunBanner').classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking first run:', error);
+            }
+        }
+
+        // Check authentication and show appropriate buttons
+        function checkAuthentication() {
+            // Check if JWT token exists
+            const token = localStorage.getItem('jwt_token') || sessionStorage.getItem('jwt_token');
+            
+            if (token) {
+                // User is authenticated - show dashboard and settings
+                document.getElementById('dashboardBtn').classList.remove('hidden');
+                document.getElementById('settingsBtn').classList.remove('hidden');
             } else {
-                return `${Math.floor(seconds)}s`;
+                // User is not authenticated - show login button
+                document.getElementById('loginBtn').classList.remove('hidden');
             }
         }
-
-        // Get environment badge class
-        function getEnvironmentBadge(env) {
-            switch (env) {
-                case 'Development':
-                    return 'badge-dev';
-                case 'Production':
-                    return 'badge-prod';
-                case 'Staging':
-                    return 'badge-staging';
-                default:
-                    return 'badge-dev';
-            }
-        }
-
-        // Run on page load
-        init();
     </script>
 </body>
 </html>

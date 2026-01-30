@@ -5,6 +5,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    
+    <!-- Assembly version -->
+    <Version>1.0.0</Version>
+    
+    <!-- Informational version (can include build metadata) -->
+    <InformationalVersion>1.0.0</InformationalVersion>
+    
+    <!-- Generate version attributes -->
+    <GenerateAssemblyVersionAttribute>true</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>true</GenerateAssemblyInformationalVersionAttribute>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Bogus" />

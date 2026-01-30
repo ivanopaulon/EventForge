@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Auth;
 
 namespace EventForge.Server.Controllers.Api;
 
@@ -221,15 +222,6 @@ public class ServerAuthController : ControllerBase
             Roles = roles
         });
     }
-}
-
-/// <summary>
-/// DTO for tenant information.
-/// </summary>
-public class TenantDto
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
 }
 
 /// <summary>
