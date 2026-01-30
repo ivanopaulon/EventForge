@@ -113,7 +113,7 @@ public class ModelService : IModelService
         {
             var result = await _httpClientService.PostAsync<CreateModelDto, ModelDto>(BaseUrl, createModelDto);
             
-            // Invalidate cache per Brand specifico
+            // Invalidate cache for specific brand
             if (result != null)
             {
                 var cacheKey = CacheHelper.GetModelsByBrandKey(result.BrandId);
@@ -136,7 +136,7 @@ public class ModelService : IModelService
         {
             var result = await _httpClientService.PutAsync<UpdateModelDto, ModelDto>($"{BaseUrl}/{id}", updateModelDto);
             
-            // Invalidate cache per Brand
+            // Invalidate cache for brand
             if (result != null)
             {
                 var cacheKey = CacheHelper.GetModelsByBrandKey(result.BrandId);
@@ -156,15 +156,23 @@ public class ModelService : IModelService
 
     public async Task<bool> DeleteModelAsync(Guid id)
     {
-        // Problem: Non conosciamo BrandId prima del delete
+        // Problem: We don't know BrandId before delete
         // Solution: GET model first (+1 API call, acceptable trade-off)
-        var model = await GetModelByIdAsync(id);
+        ModelDto? model = null;
+        try
+        {
+            model = await GetModelByIdAsync(id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch model {ModelId} before delete - cache invalidation may be skipped", id);
+        }
         
         try
         {
             await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             
-            // Invalidate se model esisteva
+            // Invalidate if model existed
             if (model != null)
             {
                 var cacheKey = CacheHelper.GetModelsByBrandKey(model.BrandId);

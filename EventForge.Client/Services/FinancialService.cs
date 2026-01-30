@@ -49,10 +49,10 @@ namespace EventForge.Client.Services
 
         public FinancialService(IHttpClientService httpClientService, ILogger<FinancialService> logger, ILoadingDialogService loadingDialogService, IMemoryCache cache)
         {
-            _httpClientService = httpClientService;
-            _logger = logger;
-            _loadingDialogService = loadingDialogService;
-            _cache = cache;
+            _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _loadingDialogService = loadingDialogService ?? throw new ArgumentNullException(nameof(loadingDialogService));
+            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         }
 
         #region Bank Management
