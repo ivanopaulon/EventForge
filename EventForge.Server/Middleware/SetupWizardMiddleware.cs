@@ -40,7 +40,6 @@ public class SetupWizardMiddleware
         
         if (!isSetupComplete)
         {
-            _logger.LogDebug("Setup not complete, redirecting to /setup");
             context.Response.Redirect("/setup");
             return;
         }

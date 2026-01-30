@@ -13,7 +13,7 @@
             <a class="navbar-brand" href="/">
                 <strong>EventForge Server</strong>
             </a>
-            @if (Context.Request.Path.StartsWithSegments("/dashboard"))
+            @if (User.Identity?.IsAuthenticated == true)
             {
                 <div class="d-flex align-items-center text-white">
                     <span class="me-3">@User.Identity?.Name</span>

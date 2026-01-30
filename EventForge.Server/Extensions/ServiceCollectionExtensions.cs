@@ -175,9 +175,6 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static void AddConfiguredDbContext(this IServiceCollection services, IConfiguration configuration)
     {
-        Log.Information("=== CONFIGURING DATABASE CONTEXT ===");
-        Log.Information("Using SQL Server");
-
         // Register HTTP context accessor first for audit tracking
         _ = services.AddHttpContextAccessor();
 
@@ -187,47 +184,17 @@ public static class ServiceCollectionExtensions
 
         try
         {
-            // Debug: Log ALL connection strings from configuration
-            var connectionStringsSection = configuration.GetSection("ConnectionStrings");
-            Log.Information("Connection strings in configuration:");
-            foreach (var cs in connectionStringsSection.GetChildren())
-            {
-                Log.Information("  - {Key}: {Length} chars", cs.Key, cs.Value?.Length ?? 0);
-            }
-            
             // Try DefaultConnection first (standard key), fallback to SqlServer (legacy)
             var defaultConnection = configuration.GetConnectionString("DefaultConnection");
             var sqlServerConnection = configuration.GetConnectionString("SqlServer");
-            
-            Log.Information("DefaultConnection: {Status}", 
-                defaultConnection != null ? $"FOUND ({defaultConnection.Length} chars)" : "NOT FOUND");
-            Log.Information("SqlServer: {Status}", 
-                sqlServerConnection != null ? $"FOUND ({sqlServerConnection.Length} chars)" : "NOT FOUND");
             
             var connectionString = defaultConnection ?? sqlServerConnection;
             
             if (string.IsNullOrEmpty(connectionString))
             {
-                Log.Error("❌ NO CONNECTION STRING FOUND!");
+                Log.Error("No connection string found - expected 'DefaultConnection' or 'SqlServer'");
                 throw new InvalidOperationException(
                     "Database connection string not found. Expected 'DefaultConnection' or 'SqlServer' in ConnectionStrings section of appsettings.json");
-            }
-
-            var keyUsed = defaultConnection != null ? "DefaultConnection" : "SqlServer";
-            Log.Information("Using connection string from key: {Key}", keyUsed);
-            
-            // Log connection details (without password) for verification
-            try
-            {
-                var builder = new SqlConnectionStringBuilder(connectionString);
-                Log.Information("Connection details: Server={Server}, Database={Database}, Auth={Auth}", 
-                    builder.DataSource, 
-                    builder.InitialCatalog,
-                    builder.IntegratedSecurity ? "Windows" : $"SQL (User={builder.UserID})");
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Could not parse connection string details");
             }
 
             _ = services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
@@ -235,12 +202,10 @@ public static class ServiceCollectionExtensions
                 _ = options.UseSqlServer(connectionString)
                        .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
             });
-            
-            Log.Information("✅ DbContext configured successfully");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "❌ Error during DbContext configuration");
+            Log.Error(ex, "Error during DbContext configuration");
             throw;
         }
 
@@ -462,13 +427,11 @@ public static class ServiceCollectionExtensions
                 options.Configuration = redisConnectionString;
                 options.InstanceName = "EventForge";
             });
-            Log.Information("Redis distributed cache configured for production environment");
         }
         else
         {
             // Development: Use in-memory distributed cache
             _ = services.AddDistributedMemoryCache();
-            Log.Information("In-memory distributed cache configured for development environment");
         }
 
         _ = services.AddSession(options =>
@@ -546,14 +509,10 @@ public static class ServiceCollectionExtensions
                 },
                 OnTokenValidated = context =>
                 {
-                    var username = context.Principal?.Identity?.Name;
-                    Log.Debug("JWT token validated for user: {Username}", username);
                     return Task.CompletedTask;
                 }
             };
         });
-
-        Log.Information("JWT Authentication configured successfully");
     }
 
     /// <summary>
@@ -586,8 +545,6 @@ public static class ServiceCollectionExtensions
                 policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(EventForge.DTOs.Common.AdminAccessLevel.TenantAdmin)))
             .AddPolicy("RequireTenantFullAccess", policy =>
                 policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(EventForge.DTOs.Common.AdminAccessLevel.FullAccess)));
-
-        Log.Information("Authorization policies configured successfully");
     }
 
     /// <summary>
@@ -616,10 +573,7 @@ public static class ServiceCollectionExtensions
         {
             _ = services.AddHealthChecks()
                 .AddRedis(redisConnectionString, "redis", tags: new[] { "ready" });
-            Log.Information("Redis health check configured for production environment");
         }
-
-        Log.Information("Health checks configured successfully - will probe on first request");
     }
 
     /// <summary>

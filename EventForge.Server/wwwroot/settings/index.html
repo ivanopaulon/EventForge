@@ -9,9 +9,13 @@
 <body>
     <div class="settings-container">
         <header class="settings-header">
-            <h1>⚙️ EventForge Settings Panel</h1>
-            <p class="subtitle">Advanced Configuration Management</p>
-            <div id="user-info" class="user-info"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>⚙️ EventForge Settings Panel</h1>
+                    <p class="subtitle">Advanced Configuration Management</p>
+                </div>
+                <button id="logoutBtn" class="btn-logout" style="display:none;" onclick="handleLogout()">🚪 Logout</button>
+            </div>
         </header>
 
         <nav class="tabs">
