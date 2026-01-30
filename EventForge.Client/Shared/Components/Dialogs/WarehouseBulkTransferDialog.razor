@@ -58,12 +58,12 @@
                         <MudItem xs="12">
                             <MudPaper Elevation="1" Class="pa-3">
                                 <MudGrid>
-                                    <MudItem xs="12" md="5">
+                                    <MudItem xs="12" md="6">
                                         <MudText Typo="Typo.body2">
                                             <strong>@TranslationService.GetTranslation("field.product", "Prodotto"):</strong> @GetProductName(item.ProductId)
                                         </MudText>
                                     </MudItem>
-                                    <MudItem xs="12" md="3">
+                                    <MudItem xs="12" md="4">
                                         <MudNumericField @bind-Value="item.Quantity"
                                                          Label="@TranslationService.GetTranslation("field.quantity", "Quantità")"
                                                          Variant="Variant.Outlined"
@@ -71,32 +71,16 @@
                                                          Min="0.01m"
                                                          Format="N2" />
                                     </MudItem>
-                                    <MudItem xs="12" md="3">
+                                    <MudItem xs="12" md="2">
                                         <MudTextField @bind-Value="item.Notes"
                                                       Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                                       Variant="Variant.Outlined"
                                                       MaxLength="500" />
                                     </MudItem>
-                                    <MudItem xs="12" md="1">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                       Color="Color.Error"
-                                                       OnClick="@(() => RemoveItem(index))"
-                                                       Size="Size.Small" />
-                                    </MudItem>
                                 </MudGrid>
                             </MudPaper>
                         </MudItem>
                     }
-
-                    <MudItem xs="12">
-                        <MudButton StartIcon="@Icons.Material.Filled.Add"
-                                   Color="Color.Primary"
-                                   Variant="Variant.Text"
-                                   OnClick="AddItem"
-                                   Disabled="@_isLoadingProducts">
-                            @TranslationService.GetTranslation("button.addItem", "Aggiungi articolo")
-                        </MudButton>
-                    </MudItem>
 
                     <MudItem xs="12">
                         <MudDatePicker @bind-Date="_model.TransferDate"
@@ -298,19 +282,6 @@
     private string GetProductName(Guid productId)
     {
         return _productNames.TryGetValue(productId, out var name) ? name : productId.ToString();
-    }
-
-    private void AddItem()
-    {
-        _model.Items.Add(new TransferItemModel { Quantity = 1 });
-    }
-
-    private void RemoveItem(int index)
-    {
-        if (_model.Items.Count > 1)
-        {
-            _model.Items.RemoveAt(index);
-        }
     }
 
     private void Cancel()

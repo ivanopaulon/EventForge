@@ -41,6 +41,7 @@
                                           Label="@($"{TranslationService.GetTranslation("field.newStatus", "Nuovo stato")} *")"
                                           Variant="Variant.Outlined"
                                           Required="true"
+                                          RequiredError="@TranslationService.GetTranslation("validation.statusRequired", "Lo stato è obbligatorio")"
                                           MaxLength="50" />
                         </MudItem>
                     }
@@ -256,16 +257,10 @@
             }
             else if (_model.OperationType == BulkOperationType.StatusChange)
             {
-                if (string.IsNullOrWhiteSpace(_model.NewStatus))
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("validation.statusRequired", "Lo stato è obbligatorio"), Severity.Error);
-                    return;
-                }
-
                 var bulkDto = new BulkStatusChangeDto
                 {
                     DocumentIds = DocumentIds,
-                    NewStatus = _model.NewStatus,
+                    NewStatus = _model.NewStatus ?? string.Empty,
                     Reason = _model.Reason,
                     ChangeDate = _model.ChangeDate
                 };
