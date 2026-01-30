@@ -51,7 +51,7 @@ function switchTab(tabName) {
             loadDashboardData();
             break;
         case 'configuration':
-            loadConfigurations();
+            loadConfigurationForm();
             break;
         case 'database':
             loadDatabaseStatus();
@@ -283,6 +283,251 @@ async function apiCall(endpoint, options = {}) {
     return await response.json();
 }
 
+// API call helper with method
+async function apiCall(endpoint, method = 'GET', body = null) {
+    const url = `${API_BASE}${endpoint}`;
+    
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        }
+    };
+    
+    if (body && method !== 'GET') {
+        options.body = JSON.stringify(body);
+    }
+    
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+        if (response.status === 401) {
+            showError('Unauthorized. Please login as SuperAdmin.');
+            return null;
+        }
+        if (response.status === 403) {
+            showError('Forbidden. SuperAdmin role required.');
+            return null;
+        }
+        
+        // Try to get error details from response
+        try {
+            const errorData = await response.json();
+            throw new Error(errorData.message || errorData.Message || `API call failed: ${response.status}`);
+        } catch {
+            throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+        }
+    }
+    
+    return await response.json();
+}
+
+// Load configuration form
+async function loadConfigurationForm() {
+    const loading = document.getElementById('config-loading');
+    const form = document.getElementById('config-form');
+    
+    try {
+        loading.style.display = 'block';
+        form.style.display = 'none';
+        
+        const config = await apiCall('/file');
+        
+        if (config && config.configured) {
+            // Populate form with null checks
+            document.getElementById('server-address').value = config.database?.serverAddress || '';
+            document.getElementById('database-name').value = config.database?.databaseName || '';
+            document.getElementById('auth-type').value = config.database?.authenticationType || 'SQL';
+            document.getElementById('username').value = config.database?.username || '';
+            document.getElementById('trust-cert').checked = config.database?.trustServerCertificate !== false;
+            document.getElementById('enforce-https').checked = config.security?.enforceHttps !== false;
+            document.getElementById('enable-hsts').checked = config.security?.enableHsts !== false;
+            
+            toggleAuthFields();
+        }
+        
+        loading.style.display = 'none';
+        form.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error loading configuration:', error);
+        loading.innerHTML = '<p class="error">Failed to load configuration</p>';
+    }
+}
+
+// Toggle SQL auth fields based on auth type
+function toggleAuthFields() {
+    const authType = document.getElementById('auth-type').value;
+    const sqlAuthFields = document.getElementById('sql-auth-fields');
+    sqlAuthFields.style.display = authType === 'SQL' ? 'block' : 'none';
+}
+
+// Test connection
+async function testConnection() {
+    const btn = document.getElementById('test-connection-btn');
+    const resultDiv = document.getElementById('test-result');
+    const saveBtn = document.getElementById('save-config-btn');
+    
+    btn.disabled = true;
+    btn.textContent = '🔄 Testing...';
+    resultDiv.style.display = 'none';
+    
+    // Validate required fields
+    const serverAddress = document.getElementById('server-address').value.trim();
+    const databaseName = document.getElementById('database-name').value.trim();
+    
+    if (!serverAddress || !databaseName) {
+        resultDiv.className = 'alert alert-error';
+        resultDiv.innerHTML = '❌ Server address and database name are required';
+        resultDiv.style.display = 'block';
+        saveBtn.disabled = true;
+        btn.disabled = false;
+        btn.textContent = '🔌 Test Connection';
+        return;
+    }
+    
+    const requestData = {
+        serverAddress: serverAddress,
+        databaseName: databaseName,
+        authenticationType: document.getElementById('auth-type').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        trustServerCertificate: document.getElementById('trust-cert').checked
+    };
+    
+    try {
+        const result = await apiCall('/test-connection', 'POST', requestData);
+        
+        if (!result) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.innerHTML = '❌ Authentication required. Please login.';
+            resultDiv.style.display = 'block';
+            saveBtn.disabled = true;
+            return;
+        }
+        
+        if (result.success) {
+            resultDiv.className = 'alert alert-success';
+            resultDiv.innerHTML = `✅ ${result.message}<br/><small>Server: ${result.serverVersion}</small>`;
+            resultDiv.style.display = 'block';
+            saveBtn.disabled = false;
+        } else {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.innerHTML = `❌ ${result.message}`;
+            resultDiv.style.display = 'block';
+            saveBtn.disabled = true;
+        }
+    } catch (error) {
+        resultDiv.className = 'alert alert-error';
+        resultDiv.innerHTML = `❌ Connection test failed: ${error.message || error}`;
+        resultDiv.style.display = 'block';
+        saveBtn.disabled = true;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔌 Test Connection';
+    }
+}
+
+// Save configuration
+async function saveConfiguration() {
+    // Validate required fields first
+    const serverAddress = document.getElementById('server-address').value.trim();
+    const databaseName = document.getElementById('database-name').value.trim();
+    
+    if (!serverAddress || !databaseName) {
+        const resultDiv = document.getElementById('save-result');
+        resultDiv.className = 'alert alert-error';
+        resultDiv.innerHTML = '❌ Server address and database name are required';
+        resultDiv.style.display = 'block';
+        return;
+    }
+    
+    if (!confirm('This will save the configuration to appsettings.json. A server restart will be required. Continue?')) {
+        return;
+    }
+    
+    const btn = document.getElementById('save-config-btn');
+    const resultDiv = document.getElementById('save-result');
+    const restartBtn = document.getElementById('restart-server-btn');
+    
+    btn.disabled = true;
+    btn.textContent = '💾 Saving...';
+    resultDiv.style.display = 'none';
+    
+    const requestData = {
+        serverAddress: serverAddress,
+        databaseName: databaseName,
+        authenticationType: document.getElementById('auth-type').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        trustServerCertificate: document.getElementById('trust-cert').checked,
+        enforceHttps: document.getElementById('enforce-https').checked,
+        enableHsts: document.getElementById('enable-hsts').checked
+    };
+    
+    try {
+        const result = await apiCall('/save', 'POST', requestData);
+        
+        if (!result) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.innerHTML = '❌ Authentication required. Please login.';
+            resultDiv.style.display = 'block';
+            return;
+        }
+        
+        if (result.success) {
+            resultDiv.className = 'alert alert-success';
+            resultDiv.innerHTML = `✅ ${result.message}<br/><small>Backup: ${result.backupPath}</small>`;
+            resultDiv.style.display = 'block';
+            restartBtn.style.display = 'inline-block';
+        } else {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.innerHTML = `❌ Failed to save: ${result.message}`;
+            resultDiv.style.display = 'block';
+        }
+    } catch (error) {
+        resultDiv.className = 'alert alert-error';
+        resultDiv.innerHTML = `❌ Save failed: ${error.message || error}`;
+        resultDiv.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Save Configuration';
+    }
+}
+
+// Restart server
+async function restartServer() {
+    if (!confirm('This will restart the server. You will need to refresh this page in ~10 seconds. Continue?')) {
+        return;
+    }
+    
+    const btn = document.getElementById('restart-server-btn');
+    btn.disabled = true;
+    btn.textContent = '🔄 Restarting...';
+    
+    try {
+        await apiCall('/restart', 'POST');
+        
+        // Show countdown
+        let countdown = 10;
+        const interval = setInterval(() => {
+            btn.textContent = `🔄 Restarting... (${countdown}s)`;
+            countdown--;
+            
+            if (countdown === 0) {
+                clearInterval(interval);
+                window.location.reload();
+            }
+        }, 1000);
+        
+    } catch (error) {
+        btn.disabled = false;
+        btn.textContent = '🔄 Restart Server Now';
+        alert('Restart failed: ' + (error.message || error));
+    }
+}
+
 // Show error message
 function showError(message) {
     const container = document.querySelector('.settings-container');
@@ -295,3 +540,27 @@ function showError(message) {
         </div>
     `;
 }
+
+// Setup event listeners when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Configuration tab
+    const authTypeSelect = document.getElementById('auth-type');
+    if (authTypeSelect) {
+        authTypeSelect.addEventListener('change', toggleAuthFields);
+    }
+    
+    const testBtn = document.getElementById('test-connection-btn');
+    if (testBtn) {
+        testBtn.addEventListener('click', testConnection);
+    }
+    
+    const saveBtn = document.getElementById('save-config-btn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveConfiguration);
+    }
+    
+    const restartBtn = document.getElementById('restart-server-btn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartServer);
+    }
+});

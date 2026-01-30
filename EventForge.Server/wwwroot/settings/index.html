@@ -69,13 +69,94 @@
         <!-- Configuration Tab -->
         <div id="configuration-tab" class="tab-content">
             <div class="card">
-                <h2>Configuration Settings</h2>
-                <p class="help-text">
-                    Manage system configuration. Settings marked with 🔄 support hot-reload.
-                    Settings marked with ⚠️ require server restart.
-                </p>
-                <div id="config-loading" class="loading">Loading configurations...</div>
-                <div id="config-list" class="config-list"></div>
+                <h2>⚙️ System Configuration</h2>
+                <p class="card-subtitle">Modify system configuration and save to appsettings.json</p>
+                
+                <div id="config-loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading configuration...</p>
+                </div>
+                
+                <div id="config-form" style="display:none;">
+                    <h3>Database Connection</h3>
+                    
+                    <div class="form-group">
+                        <label for="server-address">SQL Server Address</label>
+                        <input type="text" id="server-address" placeholder="localhost\SQLEXPRESS" />
+                        <small>Example: localhost\SQLEXPRESS, production-server, 192.168.1.10</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="database-name">Database Name</label>
+                        <input type="text" id="database-name" placeholder="EventData1" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="auth-type">Authentication Type</label>
+                        <select id="auth-type">
+                            <option value="SQL">SQL Server Authentication</option>
+                            <option value="Windows">Windows Authentication</option>
+                        </select>
+                    </div>
+                    
+                    <div id="sql-auth-fields">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" placeholder="vsapp" />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" placeholder="Enter password" />
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="trust-cert" checked />
+                            Trust Server Certificate
+                        </label>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="test-connection-btn" class="btn btn-secondary">
+                            🔌 Test Connection
+                        </button>
+                    </div>
+                    
+                    <div id="test-result" style="display:none;"></div>
+                    
+                    <hr />
+                    
+                    <h3>Security Settings</h3>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enforce-https" checked />
+                            Enforce HTTPS
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enable-hsts" checked />
+                            Enable HSTS (HTTP Strict Transport Security)
+                        </label>
+                    </div>
+                    
+                    <hr />
+                    
+                    <div class="button-group">
+                        <button id="save-config-btn" class="btn btn-primary" disabled>
+                            💾 Save Configuration
+                        </button>
+                        <button id="restart-server-btn" class="btn btn-warning" style="display:none;">
+                            🔄 Restart Server Now
+                        </button>
+                    </div>
+                    
+                    <div id="save-result" style="display:none;"></div>
+                </div>
             </div>
         </div>
 

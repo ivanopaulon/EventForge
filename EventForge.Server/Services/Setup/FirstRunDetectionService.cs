@@ -168,8 +168,10 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                         try
                         {
                             var insertCommand = new SqlCommand(
-                                @"INSERT INTO SetupHistories (Id, CompletedAt, CompletedBy, ConfigurationSnapshot, Version, TenantId, CreatedAt, CreatedBy)
-                                  VALUES (NEWID(), GETUTCDATE(), 'auto_sync', @snapshot, '1.0.0', '00000000-0000-0000-0000-000000000000', GETUTCDATE(), 'system')",
+                                @"INSERT INTO SetupHistories 
+                                  (Id, CompletedAt, CompletedBy, ConfigurationSnapshot, Version, TenantId, CreatedAt, CreatedBy, IsDeleted, IsActive) 
+                                  VALUES 
+                                  (NEWID(), GETUTCDATE(), @completedBy, @snapshot, @version, @tenantId, GETUTCDATE(), @createdBy, 0, 1)",
                                 connection);
                             
                             var configSnapshot = System.Text.Json.JsonSerializer.Serialize(new
@@ -181,7 +183,12 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                                 SyncedAt = DateTime.UtcNow
                             });
                             
+                            insertCommand.Parameters.AddWithValue("@completedBy", "auto_sync");
                             insertCommand.Parameters.AddWithValue("@snapshot", configSnapshot);
+                            insertCommand.Parameters.AddWithValue("@version", "1.0.0");
+                            insertCommand.Parameters.AddWithValue("@tenantId", Guid.Empty);
+                            insertCommand.Parameters.AddWithValue("@createdBy", "system");
+                            
                             await insertCommand.ExecuteNonQueryAsync(cancellationToken);
                             
                             _logger.LogInformation("✅ SetupHistories populated from existing configuration");
