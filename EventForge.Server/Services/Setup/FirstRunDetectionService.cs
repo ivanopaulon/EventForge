@@ -32,11 +32,9 @@ public class FirstRunDetectionService : IFirstRunDetectionService
     {
         if (!File.Exists(markerPath))
         {
-            _logger.LogInformation("🔧 Creating missing file marker - Reason: {Reason}", reason);
             try
             {
                 File.WriteAllText(markerPath, $"Setup completed ({reason} on {DateTime.UtcNow:O})");
-                _logger.LogInformation("✅ File marker created at {Path}", markerPath);
             }
             catch (Exception ex)
             {
@@ -49,90 +47,38 @@ public class FirstRunDetectionService : IFirstRunDetectionService
     {
         try
         {
-            _logger.LogInformation("=== FIRST RUN DETECTION START ===");
-            _logger.LogInformation("ContentRootPath: {Path}", _environment.ContentRootPath);
-            _logger.LogInformation("EnvironmentName: {Env}", _environment.EnvironmentName);
-            
             // Level 1: Check environment variable
             var envSetupComplete = Environment.GetEnvironmentVariable("EVENTFORGE_SETUP_COMPLETED");
-            _logger.LogDebug("Environment variable EVENTFORGE_SETUP_COMPLETED: {Value}", envSetupComplete ?? "(not set)");
             
             if (!string.IsNullOrEmpty(envSetupComplete) && envSetupComplete.Equals("true", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogInformation("✅ Setup completed: Environment variable set");
                 return true;
             }
 
             // Level 2: Check file marker
             var markerPath = Path.Combine(_environment.ContentRootPath, "setup.complete");
-            _logger.LogInformation("Checking file marker at: {Path}", markerPath);
-            _logger.LogInformation("File exists: {Exists}", File.Exists(markerPath));
             
             if (File.Exists(markerPath))
             {
-                _logger.LogInformation("✅ Setup completed: File marker exists");
                 return true;
             }
 
             // Level 3: Check connection string and database
-            _logger.LogInformation("--- Checking Configuration ---");
-            
-            var allConnectionStrings = _configuration.GetSection("ConnectionStrings").GetChildren();
-            _logger.LogInformation("Connection strings found in configuration:");
-            foreach (var cs in allConnectionStrings)
-            {
-                _logger.LogInformation("  - {Key}: {Length} chars", cs.Key, cs.Value?.Length ?? 0);
-            }
-            
             var defaultConnection = _configuration.GetConnectionString("DefaultConnection");
             var sqlServerConnection = _configuration.GetConnectionString("SqlServer");
-            
-            _logger.LogInformation("DefaultConnection: {HasValue} ({Length} chars)", 
-                defaultConnection != null ? "FOUND" : "NOT FOUND", 
-                defaultConnection?.Length ?? 0);
-            
-            _logger.LogInformation("SqlServer: {HasValue} ({Length} chars)", 
-                sqlServerConnection != null ? "FOUND" : "NOT FOUND", 
-                sqlServerConnection?.Length ?? 0);
             
             var connectionString = defaultConnection ?? sqlServerConnection;
             
             if (string.IsNullOrEmpty(connectionString))
             {
-                _logger.LogWarning("❌ No connection string found in configuration!");
-                _logger.LogInformation("First run detected: No connection string configured");
+                _logger.LogWarning("Setup not complete - no connection string configured");
                 return false;
             }
 
-            // Log connection string details (without password)
-            try
-            {
-                var builder = new SqlConnectionStringBuilder(connectionString);
-                _logger.LogInformation("Connection string details:");
-                _logger.LogInformation("  - Server: {Server}", builder.DataSource);
-                _logger.LogInformation("  - Database: {Database}", builder.InitialCatalog);
-                _logger.LogInformation("  - Auth Type: {Auth}", builder.IntegratedSecurity ? "Windows" : "SQL");
-                if (!builder.IntegratedSecurity)
-                {
-                    _logger.LogInformation("  - User: {User}", builder.UserID);
-                    _logger.LogInformation("  - Password: {HasPassword}", !string.IsNullOrEmpty(builder.Password) ? "SET" : "NOT SET");
-                }
-                _logger.LogInformation("  - TrustServerCertificate: {Trust}", builder.TrustServerCertificate);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to parse connection string");
-            }
-
-            _logger.LogInformation("Attempting database connection...");
-            
             try
             {
                 using var connection = new SqlConnection(connectionString);
-                
-                _logger.LogDebug("Opening connection to: {Server}", connection.DataSource);
                 await connection.OpenAsync(cancellationToken);
-                _logger.LogInformation("✅ Database connection successful!");
                 
                 // Check if SetupHistories table exists
                 using var command = new SqlCommand(
@@ -140,19 +86,14 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                     connection);
                 
                 var tableExists = (int)await command.ExecuteScalarAsync(cancellationToken) == 1;
-                _logger.LogInformation("SetupHistories table exists: {Exists}", tableExists);
                 
                 if (tableExists)
                 {
                     using var countCommand = new SqlCommand("SELECT COUNT(*) FROM SetupHistories", connection);
                     var count = (int)await countCommand.ExecuteScalarAsync(cancellationToken);
                     
-                    _logger.LogInformation("SetupHistories records: {Count}", count);
-                    
                     if (count > 0)
                     {
-                        _logger.LogInformation("✅ Setup completed: Database has {Count} setup history records", count);
-                        
                         // AUTO-FIX: Create file marker if missing
                         CreateFileMarkerIfMissing(markerPath, "auto-synced from database");
                         
@@ -160,11 +101,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                     }
                     else
                     {
-                        _logger.LogWarning("⚠️ SetupHistories table exists but is EMPTY");
-                        
                         // AUTO-FIX: Populate SetupHistories from existing configuration
-                        _logger.LogInformation("🔧 AUTO-FIX: Attempting to populate SetupHistories from configuration");
-                        
                         try
                         {
                             var insertCommand = new SqlCommand(
@@ -191,8 +128,6 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                             
                             await insertCommand.ExecuteNonQueryAsync(cancellationToken);
                             
-                            _logger.LogInformation("✅ SetupHistories populated from existing configuration");
-                            
                             // Create file marker
                             CreateFileMarkerIfMissing(markerPath, "auto-synced");
                             
@@ -200,78 +135,46 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "❌ Failed to auto-populate SetupHistories");
+                            _logger.LogError(ex, "Failed to auto-populate SetupHistories");
                             // Continue to other checks
                         }
                     }
-                }
-                else
-                {
-                    _logger.LogWarning("⚠️ SetupHistories table does NOT exist");
                 }
                 
                 await connection.CloseAsync();
             }
             catch (SqlException ex)
             {
-                _logger.LogError(ex, "❌ SQL Error {ErrorNumber}: {Message}", ex.Number, ex.Message);
-                
-                switch (ex.Number)
-                {
-                    case 18456:
-                        _logger.LogError("SQL Authentication FAILED - Invalid username or password");
-                        break;
-                    case 4060:
-                        _logger.LogError("Database does NOT exist or cannot be opened");
-                        break;
-                    case 53:
-                        _logger.LogError("SQL Server NOT reachable - Check server name and network");
-                        break;
-                    case -1:
-                        _logger.LogError("Connection timeout - SQL Server may not be running");
-                        break;
-                    default:
-                        _logger.LogError("Unhandled SQL error code: {Code}", ex.Number);
-                        break;
-                }
+                _logger.LogError(ex, "SQL Error {ErrorNumber} during setup check", ex.Number);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Database connection failed: {Message}", ex.Message);
+                _logger.LogError(ex, "Database connection failed during setup check");
             }
 
             // Level 4: Fallback - EF Core
-            _logger.LogInformation("Trying EF Core fallback...");
-            
             try
             {
                 var hasSetupHistory = await _dbContext.SetupHistories.AnyAsync(cancellationToken);
                 if (hasSetupHistory)
                 {
-                    _logger.LogInformation("✅ Setup completed: Found via EF Core");
-                    
                     // Auto-create file marker
                     CreateFileMarkerIfMissing(markerPath, "auto-synced via EF Core");
                     
                     return true;
                 }
-                else
-                {
-                    _logger.LogWarning("⚠️ EF Core connected but SetupHistories is empty");
-                }
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "EF Core check failed: {Message}", ex.Message);
+                _logger.LogDebug(ex, "EF Core check failed");
             }
 
-            _logger.LogWarning("=== FIRST RUN DETECTED ===");
-            _logger.LogInformation("No setup completion markers found - redirecting to setup wizard");
+            _logger.LogWarning("Setup not complete - setup wizard required");
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ CRITICAL ERROR in first run detection");
+            _logger.LogError(ex, "Critical error in first run detection");
             return false;
         }
     }

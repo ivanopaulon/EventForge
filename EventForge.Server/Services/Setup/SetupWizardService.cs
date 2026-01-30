@@ -37,16 +37,14 @@ public class SetupWizardService : ISetupWizardService
 
         try
         {
-            _logger.LogInformation("Starting setup wizard...");
+            _logger.LogWarning("Setup wizard started for environment: {Environment}", config.Environment);
 
             // Step 1: Save connection string to appsettings.overrides.json
-            _logger.LogInformation("Step 1: Saving connection string configuration...");
             await SaveConnectionStringAsync(config, cancellationToken);
 
             // Step 2: Create database if requested
             if (config.CreateDatabase)
             {
-                _logger.LogInformation("Step 2: Creating database '{Database}'...", config.DatabaseName);
                 var dbCreated = await CreateDatabaseAsync(config, cancellationToken);
                 if (!dbCreated)
                 {
@@ -57,7 +55,6 @@ public class SetupWizardService : ISetupWizardService
             }
 
             // Step 3: Apply EF Core migrations
-            _logger.LogInformation("Step 3: Applying database migrations...");
             var migrationsApplied = await ApplyMigrationsAsync(cancellationToken);
             if (!migrationsApplied)
             {
@@ -67,7 +64,6 @@ public class SetupWizardService : ISetupWizardService
             }
 
             // Step 4: Create SuperAdmin user
-            _logger.LogInformation("Step 4: Creating SuperAdmin user...");
             var userCreated = await CreateSuperAdminUserAsync(config, cancellationToken);
             if (!userCreated)
             {
@@ -75,26 +71,23 @@ public class SetupWizardService : ISetupWizardService
             }
 
             // Step 5: Save security configuration
-            _logger.LogInformation("Step 5: Saving security configuration...");
             await SaveSecurityConfigurationAsync(config, cancellationToken);
 
             // Step 6: Save setup history
-            _logger.LogInformation("Step 6: Saving setup history...");
             await SaveSetupHistoryAsync(config, cancellationToken);
 
             // Step 7: Create file marker
-            _logger.LogInformation("Step 7: Creating setup completion marker...");
             CreateFileMarker();
 
             result.Success = true;
             result.Message = "Setup completed successfully!";
             result.RedirectUrl = "/";
 
-            _logger.LogInformation("Setup wizard completed successfully");
+            _logger.LogInformation("Setup completed successfully - database: {Database}", config.DatabaseName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during setup wizard");
+            _logger.LogError(ex, "Setup wizard failed");
             result.Success = false;
             result.Errors.Add($"Setup failed: {ex.Message}");
         }
@@ -135,8 +128,6 @@ public class SetupWizardService : ISetupWizardService
 
         var json = JsonSerializer.Serialize(overrides, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(overridesPath, json, cancellationToken);
-
-        _logger.LogInformation("Connection string saved to {Path}", overridesPath);
     }
 
     private async Task<bool> CreateDatabaseAsync(SetupConfiguration config, CancellationToken cancellationToken)
@@ -154,7 +145,6 @@ public class SetupWizardService : ISetupWizardService
 
             await connection.CloseAsync();
 
-            _logger.LogInformation("Database '{Database}' created successfully", config.DatabaseName);
             return true;
         }
         catch (Exception ex)
@@ -173,7 +163,6 @@ public class SetupWizardService : ISetupWizardService
 
             await dbContext.Database.MigrateAsync(cancellationToken);
 
-            _logger.LogInformation("Database migrations applied successfully");
             return true;
         }
         catch (Exception ex)
@@ -192,7 +181,6 @@ public class SetupWizardService : ISetupWizardService
 
             var success = await bootstrapService.EnsureAdminBootstrappedAsync(cancellationToken);
 
-            _logger.LogInformation("SuperAdmin user created successfully");
             return success;
         }
         catch (Exception ex)
@@ -275,8 +263,6 @@ public class SetupWizardService : ISetupWizardService
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Security configuration saved to database");
     }
 
     private async Task SaveSetupHistoryAsync(SetupConfiguration config, CancellationToken cancellationToken)
@@ -305,15 +291,12 @@ public class SetupWizardService : ISetupWizardService
 
         dbContext.SetupHistories.Add(setupHistory);
         await dbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Setup history saved to database");
     }
 
     private void CreateFileMarker()
     {
         var markerPath = Path.Combine(_environment.ContentRootPath, "setup.complete");
         File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
-        _logger.LogInformation("Setup completion marker created at {Path}", markerPath);
     }
 
     private string BuildConnectionString(SetupConfiguration config)

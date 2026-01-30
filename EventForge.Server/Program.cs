@@ -13,79 +13,30 @@ var builder = WebApplication.CreateBuilder(args);
 // ========================================
 // 🔍 STARTUP VALIDATION
 // ========================================
-Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
-Console.WriteLine("║         EVENTFORGE SERVER - STARTUP VALIDATION            ║");
-Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
-Console.WriteLine();
-
-Console.WriteLine("--- Configuration Files Verification ---");
 var contentRoot = builder.Environment.ContentRootPath;
 var environment = builder.Environment.EnvironmentName;
-
-Console.WriteLine($"Environment: {environment}");
-Console.WriteLine($"Content Root: {contentRoot}");
-Console.WriteLine();
 
 // Verify appsettings.json (CRITICAL)
 var appsettingsPath = Path.Combine(contentRoot, "appsettings.json");
 if (!File.Exists(appsettingsPath))
 {
-    Console.WriteLine($"❌ FATAL: appsettings.json NOT FOUND at {appsettingsPath}");
     throw new FileNotFoundException("Critical configuration file missing", "appsettings.json");
 }
 
-var appsettingsSize = new FileInfo(appsettingsPath).Length;
-Console.WriteLine($"✅ appsettings.json: FOUND ({appsettingsSize} bytes)");
-
-// Check environment-specific file (optional)
-var appsettingsEnvPath = Path.Combine(contentRoot, $"appsettings.{environment}.json");
-if (File.Exists(appsettingsEnvPath))
-{
-    Console.WriteLine($"✅ appsettings.{environment}.json: FOUND");
-}
-else
-{
-    Console.WriteLine($"ℹ️  appsettings.{environment}.json: NOT FOUND (using base config)");
-}
-
 // Load overrides file (optional) - must load BEFORE validation
-var overridesPath = Path.Combine(contentRoot, "appsettings.overrides.json");
-if (File.Exists(overridesPath))
-{
-    Console.WriteLine($"✅ appsettings.overrides.json: FOUND - Loading overrides");
-}
-else
-{
-    Console.WriteLine("ℹ️  appsettings.overrides.json: NOT FOUND (no custom overrides)");
-}
-// Always use optional: true to handle race conditions between check and load
 builder.Configuration.AddJsonFile("appsettings.overrides.json", optional: true, reloadOnChange: true);
 
-Console.WriteLine();
-
 // Verify connection strings AFTER loading all configuration sources
-Console.WriteLine("--- Connection Strings Verification ---");
-
 var connectionStringsSection = builder.Configuration.GetSection("ConnectionStrings");
 if (!connectionStringsSection.Exists())
 {
-    Console.WriteLine("❌ FATAL: ConnectionStrings section MISSING in configuration");
     throw new InvalidOperationException("Configuration must contain ConnectionStrings section");
 }
-Console.WriteLine("✅ ConnectionStrings section: PRESENT");
 
 var allConnectionStrings = connectionStringsSection.GetChildren().ToList();
-
 if (!allConnectionStrings.Any())
 {
-    Console.WriteLine("❌ FATAL: NO connection strings found!");
     throw new InvalidOperationException("Configuration must contain at least one connection string");
-}
-
-Console.WriteLine($"Found {allConnectionStrings.Count} connection string(s):");
-foreach (var cs in allConnectionStrings)
-{
-    Console.WriteLine($"  ✅ {cs.Key}: {cs.Value?.Length ?? 0} characters");
 }
 
 var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -93,50 +44,19 @@ var sqlServerConnection = builder.Configuration.GetConnectionString("SqlServer")
 
 if (string.IsNullOrEmpty(defaultConnection) && string.IsNullOrEmpty(sqlServerConnection))
 {
-    Console.WriteLine("❌ FATAL: 'DefaultConnection' or 'SqlServer' NOT FOUND");
     throw new InvalidOperationException("Required connection string missing");
 }
-
-var activeConnection = defaultConnection ?? sqlServerConnection;
-var activeKey = defaultConnection != null ? "DefaultConnection" : "SqlServer";
-
-Console.WriteLine($"✅ Active connection: {activeKey}");
-
-// Parse connection string (without logging password)
-try
-{
-    var connBuilder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(activeConnection);
-    Console.WriteLine($"   Server: {connBuilder.DataSource}");
-    Console.WriteLine($"   Database: {connBuilder.InitialCatalog}");
-    Console.WriteLine($"   Auth: {(connBuilder.IntegratedSecurity ? "Windows" : $"SQL Server (User: {connBuilder.UserID})")}");
-    Console.WriteLine($"   Password: {(!string.IsNullOrEmpty(connBuilder.Password) ? "✓ SET" : "✗ NOT SET")}");
-    Console.WriteLine($"   Trust Certificate: {connBuilder.TrustServerCertificate}");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"⚠️  WARNING: Could not parse connection string: {ex.Message}");
-}
-
-Console.WriteLine();
-Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
-Console.WriteLine("║             CONFIGURING SERVICES                          ║");
-Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
-Console.WriteLine();
 
 // ========================================
 // ✅ CONFIGURE LOGGING FIRST (CRITICAL!)
 // ========================================
 builder.AddCustomSerilogLogging();
-Console.WriteLine("✅ Logging configured");
 
 // ========================================
 // ✅ CONFIGURE SERVICES (WITH LOGGING ACTIVE)
 // ========================================
 builder.Services.AddConfiguredHttpClient(builder.Configuration);
-Console.WriteLine("✅ HTTP Client configured");
-
 builder.Services.AddConfiguredDbContext(builder.Configuration);
-Console.WriteLine("✅ Database Context configured");
 
 // Add Authentication & Authorization services
 builder.Services.AddAuthentication(builder.Configuration);
