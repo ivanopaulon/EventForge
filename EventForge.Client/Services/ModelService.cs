@@ -53,7 +53,8 @@ public class ModelService : IModelService
 
     public async Task<IEnumerable<ModelDto>> GetActiveModelsByBrandAsync(Guid brandId, CancellationToken ct = default)
     {
-        // Cache key dinamica (unique per ogni BrandId)
+        // Note: Method name kept as "GetActiveModelsByBrandAsync" for consistency,
+        // but returns all models since ModelDto doesn't have an IsActive property
         var cacheKey = CacheHelper.GetModelsByBrandKey(brandId);
         
         // Try cache first
@@ -69,23 +70,23 @@ public class ModelService : IModelService
         try
         {
             var result = await GetModelsByBrandIdAsync(brandId, 1, 100);
-            var activeModels = result?.Items?.Where(m => m.IsActive) ?? Enumerable.Empty<ModelDto>();
+            var models = result?.Items ?? Enumerable.Empty<ModelDto>();
             
             // Store in cache (15 minutes)
             _cache.Set(
                 cacheKey, 
-                activeModels, 
+                models, 
                 CacheHelper.GetShortCacheOptions()
             );
             
             _logger.LogInformation(
-                "Cached {Count} active models for brand {BrandId} for {Minutes} minutes", 
-                activeModels.Count(), 
+                "Cached {Count} models for brand {BrandId} for {Minutes} minutes", 
+                models.Count(), 
                 brandId,
                 CacheHelper.ShortCache.TotalMinutes
             );
             
-            return activeModels;
+            return models;
         }
         catch (HttpRequestException)
         {
