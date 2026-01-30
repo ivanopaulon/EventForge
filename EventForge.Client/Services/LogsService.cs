@@ -19,9 +19,9 @@ namespace EventForge.Client.Services
         Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto);
 
         // Real-time subscriptions
-        Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived);
-        Task SubscribeToAuditLogsAsync(Func<EntityChangeLogDto, Task> onLogReceived);
-        Task UnsubscribeFromLogsAsync();
+        Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived, CancellationToken ct = default);
+        Task SubscribeToAuditLogsAsync(Func<EntityChangeLogDto, Task> onLogReceived, CancellationToken ct = default);
+        Task UnsubscribeFromLogsAsync(CancellationToken ct = default);
     }
 
     public class LogsService : ILogsService
@@ -97,7 +97,7 @@ namespace EventForge.Client.Services
 
         #region Real-time Subscriptions
 
-        public async Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived)
+        public async Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived, CancellationToken ct = default)
         {
             try
             {
@@ -112,7 +112,7 @@ namespace EventForge.Client.Services
             }
         }
 
-        public async Task SubscribeToAuditLogsAsync(Func<EntityChangeLogDto, Task> onLogReceived)
+        public async Task SubscribeToAuditLogsAsync(Func<EntityChangeLogDto, Task> onLogReceived, CancellationToken ct = default)
         {
             try
             {
@@ -127,7 +127,7 @@ namespace EventForge.Client.Services
             }
         }
 
-        public async Task UnsubscribeFromLogsAsync()
+        public async Task UnsubscribeFromLogsAsync(CancellationToken ct = default)
         {
             try
             {

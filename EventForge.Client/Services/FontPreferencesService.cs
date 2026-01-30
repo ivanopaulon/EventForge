@@ -112,9 +112,10 @@ public class FontPreferencesService : IFontPreferencesService
                     await _profileService.UpdateProfileAsync(updateDto);
                 }
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _logger.LogWarning(ex, "Failed to sync font preferences to server");
+                // Background sync failed, not critical (already logged by HttpClientService)
+                _logger.LogDebug(ex, "Background sync font preferences failed");
             }
         });
 

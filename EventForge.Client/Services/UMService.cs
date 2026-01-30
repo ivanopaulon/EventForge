@@ -1,5 +1,6 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.UnitOfMeasures;
+using System.Net;
 
 namespace EventForge.Client.Services;
 
@@ -18,90 +19,54 @@ public class UMService : IUMService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<UMDto>> GetUMsAsync(int page = 1, int pageSize = 100)
+    public async Task<PagedResult<UMDto>> GetUMsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
-        try
-        {
-            var result = await _httpClientService.GetAsync<PagedResult<UMDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
-            return result ?? new PagedResult<UMDto> { Items = new List<UMDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving units of measure");
-            throw;
-        }
+        var result = await _httpClientService.GetAsync<PagedResult<UMDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
+        return result ?? new PagedResult<UMDto> { Items = new List<UMDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
     }
 
-    public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync()
+    public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync(CancellationToken ct = default)
     {
         try
         {
             // Get all active units (use max allowed page size of 100)
-            var result = await GetUMsAsync(1, 100);
+            var result = await GetUMsAsync(1, 100, ct);
             return result?.Items?.Where(um => um.IsActive) ?? Enumerable.Empty<UMDto>();
         }
-        catch (Exception ex)
+        catch (HttpRequestException)
         {
-            _logger.LogError(ex, "Error retrieving all units of measure");
+            // Fallback on HTTP error (already logged by HttpClientService)
             return Enumerable.Empty<UMDto>();
         }
     }
 
-    public async Task<UMDto?> GetUMByIdAsync(Guid id)
+    public async Task<UMDto?> GetUMByIdAsync(Guid id, CancellationToken ct = default)
     {
-        try
-        {
-            return await _httpClientService.GetAsync<UMDto>($"{BaseUrl}/{id}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving unit of measure with ID {Id}", id);
-            throw;
-        }
+        return await _httpClientService.GetAsync<UMDto>($"{BaseUrl}/{id}", ct);
     }
 
-    public async Task<UMDto> CreateUMAsync(CreateUMDto createUMDto)
+    public async Task<UMDto> CreateUMAsync(CreateUMDto createUMDto, CancellationToken ct = default)
     {
-        try
-        {
-            var result = await _httpClientService.PostAsync<CreateUMDto, UMDto>(BaseUrl, createUMDto);
-            return result ?? throw new InvalidOperationException("Failed to create unit of measure");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating unit of measure");
-            throw;
-        }
+        var result = await _httpClientService.PostAsync<CreateUMDto, UMDto>(BaseUrl, createUMDto, ct);
+        return result ?? throw new InvalidOperationException("Failed to create unit of measure");
     }
 
-    public async Task<UMDto?> UpdateUMAsync(Guid id, UpdateUMDto updateUMDto)
+    public async Task<UMDto?> UpdateUMAsync(Guid id, UpdateUMDto updateUMDto, CancellationToken ct = default)
     {
-        try
-        {
-            return await _httpClientService.PutAsync<UpdateUMDto, UMDto>($"{BaseUrl}/{id}", updateUMDto);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating unit of measure with ID {Id}", id);
-            throw;
-        }
+        return await _httpClientService.PutAsync<UpdateUMDto, UMDto>($"{BaseUrl}/{id}", updateUMDto, ct);
     }
 
-    public async Task<bool> DeleteUMAsync(Guid id)
+    public async Task<bool> DeleteUMAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
-        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
+            // Business logic: return false if not found (no logging)
             return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting unit of measure with ID {Id}", id);
-            throw;
         }
     }
 }
