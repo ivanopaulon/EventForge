@@ -2,39 +2,8 @@
    ========================
    
    Updated to use EventForge custom theme variables for consistent navigation styling.
-   Navigation drawer width optimized for Italian language labels to prevent text wrapping.
+   Navigation drawer width is controlled by MainLayout.razor component.
 */
-
-/* Navigation Drawer Width - optimized for long labels (Material Design compliant)
-   Default MudDrawer width is 240px, increased to 300px to accommodate Italian labels
-   Reference: https://m3.material.io/components/navigation-drawer/specs
-   Best practice: 256-320px for standard navigation drawers
-*/
-::deep .mud-drawer {
-    width: 300px !important;
-}
-
-/* Responsive navigation drawer widths */
-@media (max-width: 640px) {
-    /* Mobile: Maintain appropriate width for touch targets */
-    ::deep .mud-drawer {
-        width: 300px !important;
-    }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-    /* Tablet: Slightly narrower but still comfortable */
-    ::deep .mud-drawer {
-        width: 300px !important;
-    }
-}
-
-@media (min-width: 1025px) {
-    /* Desktop: Full width for comfortable reading */
-    ::deep .mud-drawer {
-        width: 300px !important;
-    }
-}
 
 .navbar-toggler {
     background-color: var(--sidebar-hover-bg);
@@ -138,6 +107,7 @@
 /* Ensure proper spacing for nav groups */
 ::deep .mud-nav-group {
     width: 100%;
+    margin: 8px 0;
 }
 
 /* Optimize nav link padding for better text display */
@@ -146,9 +116,9 @@
     min-height: 48px;
 }
 
-/* Icon spacing in nav links */
+/* Icon spacing in nav links - 12px provides better visual balance */
 ::deep .mud-nav-link .mud-icon-root {
-    margin-right: 0.75rem;
+    margin-right: 12px;
 }
 
 /* NavMenu Component Styles - Miglioramento spaziatura e leggibilità */
@@ -168,10 +138,6 @@
 }
 
 /* Gruppi di navigazione con migliore aspetto */
-::deep .mud-nav-group {
-    margin: 8px 0;
-}
-
 ::deep .mud-nav-group-header {
     font-weight: 600;
     color: var(--mud-palette-text-primary);
@@ -190,18 +156,6 @@
 
 ::deep .mud-nav-link.active .mud-icon-root {
     color: white !important;
-}
-
-/* Icone con migliore allineamento */
-::deep .mud-nav-link .mud-icon-root {
-    margin-right: 12px;
-    transition: color 0.2s ease;
-}
-
-/* Testo dei link */
-::deep .mud-nav-link-text {
-    white-space: normal;
-    word-wrap: break-word;
 }
 
 /* Badge nelle voci di menu */
