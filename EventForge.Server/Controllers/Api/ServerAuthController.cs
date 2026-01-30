@@ -50,7 +50,10 @@ public class ServerAuthController : ControllerBase
             .Select(t => new TenantDto
             {
                 Id = t.Id,
-                Name = t.Name
+                Name = t.Name,
+                Code = t.Code,
+                DisplayName = t.DisplayName,
+                IsActive = t.IsActive
             })
             .ToListAsync();
 

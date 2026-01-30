@@ -242,10 +242,10 @@
             <!-- Status Cards -->
             <div class="status-grid">
                 <div class="status-card">
-                    <h3>Status</h3>
+                    <h3>Server Status</h3>
                     <div class="value">
                         <span class="status-indicator"></span>
-                        Online
+                        <span id="status">Online</span>
                     </div>
                 </div>
                 <div class="status-card">
@@ -291,56 +291,42 @@
             await checkFirstRun();
             checkAuthentication();
             
-            // Start auto-refresh for uptime and database status
+            // Start auto-refresh for uptime
             setInterval(async () => {
-                await updateLiveStatus();
+                await loadServerStatus();
             }, 10000); // Update every 10 seconds
         });
 
-        // Load server status (initial load)
+        // Load server status from /api/v1/server/info (public endpoint)
         async function loadServerStatus() {
-            await updateLiveStatus();
-        }
-
-        // Update live status (uptime and database) - called by auto-refresh
-        async function updateLiveStatus() {
             try {
-                // Check database status
-                const dbResponse = await fetch(`${API_BASE}/settings/database/status`);
-                if (dbResponse.ok) {
-                    const dbData = await dbResponse.json();
-                    document.getElementById('dbStatus').textContent = dbData.isConnected ? '✓ Connected' : '✗ Disconnected';
-                }
-            } catch (error) {
-                console.error('Error loading database status:', error);
-                document.getElementById('dbStatus').textContent = '✗ Error';
-            }
-
-            try {
-                // Check server restart status for uptime
-                const statusResponse = await fetch(`${API_BASE}/settings/server/restart/status`);
-                if (statusResponse.ok) {
-                    const statusData = await statusResponse.json();
+                const response = await fetch(`${API_BASE}/server/info`);
+                if (response.ok) {
+                    const data = await response.json();
                     
-                    // Update uptime with seconds
-                    if (statusData.uptime) {
-                        const hours = Math.floor(statusData.uptime.hours || 0);
-                        const minutes = Math.floor(statusData.uptime.minutes || 0);
-                        const seconds = Math.floor(statusData.uptime.seconds || 0);
+                    // Update uptime - data.uptime is in seconds
+                    if (data.uptime !== undefined) {
+                        const totalSeconds = data.uptime;
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const seconds = Math.floor(totalSeconds % 60);
                         document.getElementById('uptime').textContent = `${hours}h ${minutes}m ${seconds}s`;
                     }
                     
-                    // Update environment (only on initial load, doesn't change)
-                    if (statusData.environment && document.getElementById('environment').textContent === 'Loading...') {
-                        document.getElementById('environment').textContent = statusData.environment;
+                    // Update environment
+                    if (data.environment) {
+                        document.getElementById('environment').textContent = data.environment;
+                    }
+                    
+                    // Update version
+                    if (data.version) {
+                        document.querySelector('.version').textContent = `v${data.version}`;
                     }
                 }
             } catch (error) {
                 console.error('Error loading server status:', error);
-                if (document.getElementById('uptime').textContent === 'Loading...') {
-                    document.getElementById('uptime').textContent = 'N/A';
-                    document.getElementById('environment').textContent = 'Unknown';
-                }
+                document.getElementById('uptime').textContent = 'N/A';
+                document.getElementById('environment').textContent = 'Unknown';
             }
         }
 
@@ -361,8 +347,8 @@
 
         // Check authentication and show appropriate buttons
         function checkAuthentication() {
-            // Check if JWT token exists
-            const token = localStorage.getItem('jwt_token') || sessionStorage.getItem('jwt_token');
+            // Check if JWT token exists - use 'serverToken' key as per server login page
+            const token = localStorage.getItem('serverToken') || sessionStorage.getItem('serverToken');
             
             if (token) {
                 // User is authenticated - show dashboard and settings
