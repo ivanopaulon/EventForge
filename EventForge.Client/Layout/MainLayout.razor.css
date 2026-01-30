@@ -68,6 +68,57 @@ main {
     color: #F1F3F5 !important;
 }
 
+/* AppBar personalizzata con gradiente e ombra */
+::deep .ef-appbar {
+    background: linear-gradient(90deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%) !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Drawer con stile moderno */
+::deep .ef-drawer {
+    background-color: var(--mud-palette-surface) !important;
+    border-right: 1px solid var(--mud-palette-divider);
+}
+
+::deep .ef-drawer .mud-drawer-content {
+    background-color: var(--mud-palette-background);
+}
+
+/* Menu toggle button con migliore interattività */
+::deep .ef-menu-button {
+    color: white !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::deep .ef-menu-button:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    transform: scale(1.05);
+}
+
+::deep .ef-menu-button:active {
+    transform: scale(0.95);
+}
+
+/* Icone AppBar con spaziatura uniforme */
+::deep .mud-appbar .mud-icon-button {
+    margin: 0 4px;
+    transition: all 0.2s ease;
+}
+
+::deep .mud-appbar .mud-icon-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Logo con hover effect */
+::deep .mud-appbar .mud-image {
+    transition: opacity 0.2s ease;
+}
+
+::deep .mud-appbar .mud-image:hover {
+    opacity: 0.85;
+}
+
 @media (min-width: 641px) {
     .page {
         flex-direction: row;
@@ -95,5 +146,23 @@ main {
     .top-row, article {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
+    }
+}
+
+/* Responsività mobile */
+@media (max-width: 960px) {
+    ::deep .ef-drawer {
+        width: 260px !important;
+    }
+    
+    ::deep .ef-appbar {
+        box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+}
+
+/* Migliore contrasto in modalità scura */
+@media (prefers-color-scheme: dark) {
+    ::deep .ef-drawer {
+        border-right: 1px solid rgba(255, 255, 255, 0.12);
     }
 }

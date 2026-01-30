@@ -28,21 +28,33 @@
                            Class="ef-menu-button">
             </MudIconButton>
         </MudTooltip>
-        <MudImage Src="/eventforgetitle.svg" Alt="EventForge Logo"></MudImage>
+        <MudTooltip Text="EventForge - Torna alla Home">
+            <MudIconButton Color="Color.Inherit"
+                          OnClick="@(() => NavigationManager.NavigateTo("/"))"
+                          Size="Size.Large"
+                          Class="pa-0"
+                          aria-label="EventForge - Torna alla Home"
+                          Style="width: auto; height: auto;">
+                <MudImage Src="/eventforgetitle.svg" 
+                          Alt="EventForge Logo"
+                          Height="40"
+                          Class="mx-2">
+                </MudImage>
+            </MudIconButton>
+        </MudTooltip>
         <MudSpacer />
         
         @if (_isAuthenticated)
         {
-            <!-- Font Preferences Button -->
+            <!-- Font Preferences Button con migliore spaziatura -->
             <MudTooltip Text="@TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font")">
                 <MudIconButton Icon="@Icons.Material.Filled.FontDownload"
                                Color="Color.Inherit"
                                OnClick="OpenFontPreferences"
-                               Size="Size.Small"
-                               Class="me-3"
+                               Size="Size.Medium"
+                               Class="me-4"
                                aria-label="@TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font")" />
             </MudTooltip>
-            
             <UserAccountMenu OnLogout="@HandleLogout" />
         }
         else
@@ -62,9 +74,12 @@
     {
         <!-- Navigation drawer with accessibility improvements -->
         <MudDrawer @bind-Open="@_drawerOpen" 
-                   ClipMode="DrawerClipMode.Always" 
-                   Elevation="2"
+                   ClipMode="DrawerClipMode.Docked"
+                   Elevation="1"
+                   Variant="@DrawerVariant.Responsive"
+                   Width="280px"
                    id="navigation-drawer"
+                   Class="ef-drawer"
                    aria-label="@TranslationService.GetTranslation("navigation.mainMenu", "Main navigation menu")">
             <NavMenu />
         </MudDrawer>
