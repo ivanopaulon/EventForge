@@ -6,10 +6,10 @@ namespace EventForge.Client.Services
     public interface ISuperAdminService
     {
         // Role Management
-        Task<IEnumerable<RoleDto>> GetRolesAsync();
-        Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId);
-        Task<IEnumerable<PermissionDto>> GetAllPermissionsAsync();
-        Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds);
+        Task<IEnumerable<RoleDto>> GetRolesAsync(CancellationToken ct = default);
+        Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId, CancellationToken ct = default);
+        Task<IEnumerable<PermissionDto>> GetAllPermissionsAsync(CancellationToken ct = default);
+        Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds, CancellationToken ct = default);
 
         // Tenant Management
         Task<IEnumerable<TenantResponseDto>> GetTenantsAsync();
@@ -75,18 +75,18 @@ namespace EventForge.Client.Services
 
         #region Role Management
 
-        public async Task<IEnumerable<RoleDto>> GetRolesAsync()
+        public async Task<IEnumerable<RoleDto>> GetRolesAsync(CancellationToken ct = default)
         {
             try
             {
-                var roles = await _httpClientService.GetAsync<IEnumerable<RoleResponseDto>>("api/v1/user-management/roles");
+                var roles = await _httpClientService.GetAsync<IEnumerable<RoleResponseDto>>("api/v1/user-management/roles", ct);
                 if (roles == null)
                 {
                     return new List<RoleDto>();
                 }
 
                 // Fetch all users once to avoid N+1 query problem
-                var users = await _httpClientService.GetAsync<IEnumerable<UserManagementDto>>("api/v1/user-management");
+                var users = await _httpClientService.GetAsync<IEnumerable<UserManagementDto>>("api/v1/user-management", ct);
                 var usersList = users?.ToList() ?? new List<UserManagementDto>();
 
                 // Define system roles
@@ -113,55 +113,47 @@ namespace EventForge.Client.Services
 
                 return roleDtos;
             }
-            catch (Exception ex)
+            catch (HttpRequestException)
             {
-                _logger.LogError(ex, "Error retrieving roles");
+                // Fallback on HTTP error (already logged by HttpClientService)
                 return new List<RoleDto>();
             }
         }
 
-        public async Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId)
+        public async Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(Guid roleId, CancellationToken ct = default)
         {
             try
             {
                 var permissions = await _httpClientService.GetAsync<IEnumerable<PermissionDto>>(
-                    $"api/v1/user-management/roles/{roleId}/permissions");
+                    $"api/v1/user-management/roles/{roleId}/permissions", ct);
                 return permissions ?? new List<PermissionDto>();
             }
-            catch (Exception ex)
+            catch (HttpRequestException)
             {
-                _logger.LogError(ex, "Error retrieving permissions for role {RoleId}", roleId);
+                // Fallback on HTTP error (already logged by HttpClientService)
                 return new List<PermissionDto>();
             }
         }
 
-        public async Task<IEnumerable<PermissionDto>> GetAllPermissionsAsync()
+        public async Task<IEnumerable<PermissionDto>> GetAllPermissionsAsync(CancellationToken ct = default)
         {
             try
             {
                 var permissions = await _httpClientService.GetAsync<IEnumerable<PermissionDto>>(
-                    "api/v1/user-management/permissions");
+                    "api/v1/user-management/permissions", ct);
                 return permissions ?? new List<PermissionDto>();
             }
-            catch (Exception ex)
+            catch (HttpRequestException)
             {
-                _logger.LogError(ex, "Error retrieving all permissions");
+                // Fallback on HTTP error (already logged by HttpClientService)
                 return new List<PermissionDto>();
             }
         }
 
-        public async Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds)
+        public async Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds, CancellationToken ct = default)
         {
-            try
-            {
-                var dto = new UpdateRolePermissionsDto { PermissionIds = permissionIds };
-                await _httpClientService.PutAsync($"api/v1/user-management/roles/{roleId}/permissions", dto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating permissions for role {RoleId}", roleId);
-                throw;
-            }
+            var dto = new UpdateRolePermissionsDto { PermissionIds = permissionIds };
+            await _httpClientService.PutAsync($"api/v1/user-management/roles/{roleId}/permissions", dto, ct);
         }
 
         #endregion

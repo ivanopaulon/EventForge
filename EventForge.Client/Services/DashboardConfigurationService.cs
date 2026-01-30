@@ -1,4 +1,5 @@
 using EventForge.DTOs.Dashboard;
+using System.Net;
 
 namespace EventForge.Client.Services
 {
@@ -16,106 +17,58 @@ namespace EventForge.Client.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<DashboardConfigurationDto>> GetConfigurationsAsync(string entityType)
+        public async Task<IEnumerable<DashboardConfigurationDto>> GetConfigurationsAsync(string entityType, CancellationToken ct = default)
+        {
+            var response = await _httpClientService.GetAsync<List<DashboardConfigurationDto>>($"api/v1/DashboardConfiguration?entityType={entityType}", ct);
+            return response ?? new List<DashboardConfigurationDto>();
+        }
+
+        public async Task<DashboardConfigurationDto?> GetConfigurationByIdAsync(Guid id, CancellationToken ct = default)
+        {
+            return await _httpClientService.GetAsync<DashboardConfigurationDto>($"api/v1/DashboardConfiguration/{id}", ct);
+        }
+
+        public async Task<DashboardConfigurationDto?> GetDefaultConfigurationAsync(string entityType, CancellationToken ct = default)
         {
             try
             {
-                var response = await _httpClientService.GetAsync<List<DashboardConfigurationDto>>($"api/v1/DashboardConfiguration?entityType={entityType}");
-                return response ?? new List<DashboardConfigurationDto>();
+                return await _httpClientService.GetAsync<DashboardConfigurationDto>($"api/v1/DashboardConfiguration/default/{entityType}", ct);
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                _logger.LogError(ex, "Error getting dashboard configurations for entity type {EntityType}", entityType);
-                throw;
+                // Business logic: return null if no default exists yet (no logging)
+                return null;
             }
         }
 
-        public async Task<DashboardConfigurationDto?> GetConfigurationByIdAsync(Guid id)
+        public async Task<DashboardConfigurationDto> CreateConfigurationAsync(CreateDashboardConfigurationDto createDto, CancellationToken ct = default)
         {
-            try
+            var response = await _httpClientService.PostAsync<CreateDashboardConfigurationDto, DashboardConfigurationDto>("api/v1/DashboardConfiguration", createDto, ct);
+            if (response == null)
             {
-                return await _httpClientService.GetAsync<DashboardConfigurationDto>($"api/v1/DashboardConfiguration/{id}");
+                throw new InvalidOperationException("Failed to create dashboard configuration");
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting dashboard configuration {ConfigurationId}", id);
-                throw;
-            }
+            return response;
         }
 
-        public async Task<DashboardConfigurationDto?> GetDefaultConfigurationAsync(string entityType)
+        public async Task<DashboardConfigurationDto> UpdateConfigurationAsync(Guid id, UpdateDashboardConfigurationDto updateDto, CancellationToken ct = default)
         {
-            try
+            var response = await _httpClientService.PutAsync<UpdateDashboardConfigurationDto, DashboardConfigurationDto>($"api/v1/DashboardConfiguration/{id}", updateDto, ct);
+            if (response == null)
             {
-                return await _httpClientService.GetAsync<DashboardConfigurationDto>($"api/v1/DashboardConfiguration/default/{entityType}");
+                throw new InvalidOperationException("Failed to update dashboard configuration");
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting default dashboard configuration for entity type {EntityType}", entityType);
-                return null; // Return null if no default exists yet
-            }
+            return response;
         }
 
-        public async Task<DashboardConfigurationDto> CreateConfigurationAsync(CreateDashboardConfigurationDto createDto)
+        public async Task DeleteConfigurationAsync(Guid id, CancellationToken ct = default)
         {
-            try
-            {
-                var response = await _httpClientService.PostAsync<CreateDashboardConfigurationDto, DashboardConfigurationDto>("api/v1/DashboardConfiguration", createDto);
-                if (response == null)
-                {
-                    throw new InvalidOperationException("Failed to create dashboard configuration");
-                }
-                return response;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating dashboard configuration");
-                throw;
-            }
+            await _httpClientService.DeleteAsync($"api/v1/DashboardConfiguration/{id}", ct);
         }
 
-        public async Task<DashboardConfigurationDto> UpdateConfigurationAsync(Guid id, UpdateDashboardConfigurationDto updateDto)
+        public async Task SetAsDefaultAsync(Guid id, CancellationToken ct = default)
         {
-            try
-            {
-                var response = await _httpClientService.PutAsync<UpdateDashboardConfigurationDto, DashboardConfigurationDto>($"api/v1/DashboardConfiguration/{id}", updateDto);
-                if (response == null)
-                {
-                    throw new InvalidOperationException("Failed to update dashboard configuration");
-                }
-                return response;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating dashboard configuration {ConfigurationId}", id);
-                throw;
-            }
-        }
-
-        public async Task DeleteConfigurationAsync(Guid id)
-        {
-            try
-            {
-                await _httpClientService.DeleteAsync($"api/v1/DashboardConfiguration/{id}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting dashboard configuration {ConfigurationId}", id);
-                throw;
-            }
-        }
-
-        public async Task SetAsDefaultAsync(Guid id)
-        {
-            try
-            {
-                await _httpClientService.PostAsync<object>($"api/v1/DashboardConfiguration/{id}/set-default", new { });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error setting dashboard configuration as default {ConfigurationId}", id);
-                throw;
-            }
+            await _httpClientService.PostAsync<object>($"api/v1/DashboardConfiguration/{id}/set-default", new { }, ct);
         }
     }
 }
