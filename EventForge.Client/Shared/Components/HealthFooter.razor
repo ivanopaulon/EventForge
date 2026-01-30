@@ -9,7 +9,7 @@
 @inject IAuthService AuthService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
-@inject ILogger<HealthFooter> _logger
+@inject ILogger<HealthFooter> Logger
 @implements IDisposable
 
 <!-- 
@@ -38,7 +38,7 @@
         <MudText Typo="Typo.caption" Class="health-status-text">
             @if (!string.IsNullOrEmpty(_errorMessage))
             {
-                <span style="color: var(--mud-palette-error);">Error</span>
+                <MudText Typo="Typo.caption" Color="Color.Error">Error</MudText>
             }
             else
             {
@@ -52,7 +52,7 @@
     private DetailedHealthStatusDto? _healthData;
     private DateTime? _lastUpdated;
     private Timer? _refreshTimer;
-    private string? _errorMessage; // NEW: Track error state
+    private string? _errorMessage;
 
     /// <summary>
     /// Refresh interval for health data in milliseconds. Default is 30 seconds.
@@ -79,13 +79,13 @@
     {
         try
         {
-            _errorMessage = null; // Clear previous errors
+            _errorMessage = null;
             _healthData = await HealthService.GetDetailedHealthAsync();
             
             if (_healthData == null)
             {
                 _errorMessage = "Unable to retrieve health status from server";
-                _logger.LogWarning("Health service returned null");
+                Logger.LogWarning("Health service returned null");
             }
             else
             {
@@ -95,7 +95,7 @@
         catch (Exception ex)
         {
             _errorMessage = $"Error loading health status: {ex.Message}";
-            _logger.LogError(ex, "Health status refresh failed: {Message}", ex.Message);
+            Logger.LogError(ex, "Health status refresh failed: {Message}", ex.Message);
         }
     }
 
@@ -118,7 +118,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Failed to fetch active sessions: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to fetch active sessions: {Message}", ex.Message);
         }
 
         try
@@ -128,7 +128,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Failed to fetch current user: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to fetch current user: {Message}", ex.Message);
         }
 
         try
@@ -142,7 +142,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Failed to extract token expiry: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to extract token expiry: {Message}", ex.Message);
         }
 
         var parameters = new DialogParameters
@@ -153,7 +153,7 @@
             { "ActiveSessions", activeSessions },
             { "CurrentUser", currentUser },
             { "TokenExpiresAt", tokenExpiresAt },
-            { "ErrorMessage", _errorMessage } // NEW
+            { "ErrorMessage", _errorMessage }
         };
 
         var options = new DialogOptions
@@ -273,7 +273,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Failed to parse JWT expiry: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to parse JWT expiry: {Message}", ex.Message);
         }
         return null;
     }
