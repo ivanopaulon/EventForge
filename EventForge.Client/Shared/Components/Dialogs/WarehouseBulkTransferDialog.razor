@@ -1,0 +1,394 @@
+@using MudBlazor
+@using EventForge.DTOs.Bulk
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Products
+@inject IWarehouseService WarehouseService
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<WarehouseBulkTransferDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        @if (!_isProcessing && _result == null)
+        {
+            <MudForm @ref="_form" @bind-IsValid="@_isValid">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            @TranslationService.GetTranslation("bulk.transfer.description", "Trasferisci più articoli tra magazzini contemporaneamente")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_model.SourceFacilityId"
+                                   Label="@($"{TranslationService.GetTranslation("warehouse.sourceFacility", "Magazzino origine")} *")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   T="Guid?">
+                            @foreach (var facility in _facilities)
+                            {
+                                <MudSelectItem Value="@((Guid?)facility.Id)">@facility.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_model.DestinationFacilityId"
+                                   Label="@($"{TranslationService.GetTranslation("warehouse.destinationFacility", "Magazzino destinazione")} *")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   T="Guid?">
+                            @foreach (var facility in _facilities.Where(f => f.Id != _model.SourceFacilityId))
+                            {
+                                <MudSelectItem Value="@((Guid?)facility.Id)">@facility.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                            @TranslationService.GetTranslation("bulk.transfer.items", "Articoli da trasferire")
+                        </MudText>
+                    </MudItem>
+
+                    @foreach (var item in _model.Items)
+                    {
+                        var index = _model.Items.IndexOf(item);
+                        <MudItem xs="12">
+                            <MudPaper Elevation="1" Class="pa-3">
+                                <MudGrid>
+                                    <MudItem xs="12" md="5">
+                                        <MudText Typo="Typo.body2">
+                                            <strong>@TranslationService.GetTranslation("field.product", "Prodotto"):</strong> @GetProductName(item.ProductId)
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="12" md="3">
+                                        <MudNumericField @bind-Value="item.Quantity"
+                                                         Label="@TranslationService.GetTranslation("field.quantity", "Quantità")"
+                                                         Variant="Variant.Outlined"
+                                                         Required="true"
+                                                         Min="0.01m"
+                                                         Format="N2" />
+                                    </MudItem>
+                                    <MudItem xs="12" md="3">
+                                        <MudTextField @bind-Value="item.Notes"
+                                                      Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                                      Variant="Variant.Outlined"
+                                                      MaxLength="500" />
+                                    </MudItem>
+                                    <MudItem xs="12" md="1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Color="Color.Error"
+                                                       OnClick="@(() => RemoveItem(index))"
+                                                       Size="Size.Small" />
+                                    </MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        </MudItem>
+                    }
+
+                    <MudItem xs="12">
+                        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Text"
+                                   OnClick="AddItem"
+                                   Disabled="@_isLoadingProducts">
+                            @TranslationService.GetTranslation("button.addItem", "Aggiungi articolo")
+                        </MudButton>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudDatePicker @bind-Date="_model.TransferDate"
+                                       Label="@TranslationService.GetTranslation("field.transferDate", "Data trasferimento")"
+                                       Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Reason"
+                                      Label="@TranslationService.GetTranslation("field.reason", "Motivo")"
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      MaxLength="500" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+        else if (_isProcessing)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+            <MudText Align="Align.Center">
+                @TranslationService.GetTranslation("bulk.processing", "Elaborazione in corso...")
+            </MudText>
+        }
+        else if (_result != null)
+        {
+            <MudGrid>
+                <MudItem xs="12">
+                    @if (_result.RolledBack)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.rolledBack", "L'operazione è stata annullata a causa di errori")
+                        </MudAlert>
+                    }
+                    else if (_result.FailedCount > 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.partialSuccess", "Operazione completata con alcuni errori")
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Success" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.success", "Operazione completata con successo")
+                        </MudAlert>
+                    }
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("bulk.total", "Totale")</MudText>
+                        <MudText Typo="Typo.h5">@_result.TotalCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Success">@TranslationService.GetTranslation("bulk.success", "Successo")</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Success">@_result.SuccessCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Error">@TranslationService.GetTranslation("bulk.failed", "Falliti")</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Error">@_result.FailedCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                @if (_result.Errors.Any())
+                {
+                    <MudItem xs="12">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel Text="@TranslationService.GetTranslation("bulk.viewErrors", "Visualizza errori")">
+                                <MudList T="string">
+                                    @foreach (var error in _result.Errors)
+                                    {
+                                        <MudListItem T="string">
+                                            <MudText Typo="Typo.body2" Color="Color.Error">
+                                                @if (!string.IsNullOrEmpty(error.ItemName))
+                                                {
+                                                    <strong>@error.ItemName:</strong>
+                                                }
+                                                @error.ErrorMessage
+                                            </MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption">
+                        @TranslationService.GetTranslation("bulk.processedAt", "Elaborato il"): @_result.ProcessedAt.ToString("g")
+                    </MudText>
+                    <MudText Typo="Typo.caption">
+                        @TranslationService.GetTranslation("bulk.processingTime", "Tempo di elaborazione"): @_result.ProcessingTime.TotalSeconds.ToString("F2")s
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_result == null)
+        {
+            <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+            <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isProcessing || _model.Items.Count == 0)" OnClick="Submit">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">@TranslationService.GetTranslation("common.processing", "Elaborazione...")</MudText>
+                }
+                else
+                {
+                    <MudText>@TranslationService.GetTranslation("button.transfer", "Trasferisci")</MudText>
+                }
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" OnClick="Close">@TranslationService.GetTranslation("button.close", "Chiudi")</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public List<Guid> ProductIds { get; set; } = new();
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isProcessing;
+    private bool _isLoadingProducts;
+    private BulkTransferResultDto? _result;
+    private TransferModel _model = new();
+    private List<StorageFacilityDto> _facilities = new();
+    private Dictionary<Guid, string> _productNames = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFacilitiesAsync();
+        await LoadProductsAsync();
+        InitializeItems();
+    }
+
+    private async Task LoadFacilitiesAsync()
+    {
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 100);
+            _facilities = result?.Items.ToList() ?? new List<StorageFacilityDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading storage facilities");
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore nel caricamento"), Severity.Error);
+        }
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        _isLoadingProducts = true;
+        try
+        {
+            foreach (var productId in ProductIds)
+            {
+                var product = await ProductService.GetProductByIdAsync(productId);
+                if (product != null)
+                {
+                    _productNames[productId] = product.Name ?? product.Code ?? productId.ToString();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products");
+        }
+        finally
+        {
+            _isLoadingProducts = false;
+        }
+    }
+
+    private void InitializeItems()
+    {
+        foreach (var productId in ProductIds)
+        {
+            _model.Items.Add(new TransferItemModel
+            {
+                ProductId = productId,
+                Quantity = 1
+            });
+        }
+    }
+
+    private string GetProductName(Guid productId)
+    {
+        return _productNames.TryGetValue(productId, out var name) ? name : productId.ToString();
+    }
+
+    private void AddItem()
+    {
+        _model.Items.Add(new TransferItemModel { Quantity = 1 });
+    }
+
+    private void RemoveItem(int index)
+    {
+        if (_model.Items.Count > 1)
+        {
+            _model.Items.RemoveAt(index);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Close()
+    {
+        MudDialog.Close(DialogResult.Ok(_result));
+    }
+
+    private async Task Submit()
+    {
+        if (_form == null || !_form.IsValid || !_model.SourceFacilityId.HasValue || !_model.DestinationFacilityId.HasValue || _model.Items.Count == 0)
+            return;
+
+        _isProcessing = true;
+        try
+        {
+            var bulkDto = new BulkTransferDto
+            {
+                SourceFacilityId = _model.SourceFacilityId.Value,
+                DestinationFacilityId = _model.DestinationFacilityId.Value,
+                Items = _model.Items.Select(i => new BulkTransferItemDto
+                {
+                    ProductId = i.ProductId,
+                    Quantity = i.Quantity,
+                    Notes = i.Notes
+                }).ToList(),
+                TransferDate = _model.TransferDate,
+                Reason = _model.Reason
+            };
+
+            Logger.LogInformation("Starting bulk transfer of {Count} items", _model.Items.Count);
+            _result = await WarehouseService.BulkTransferAsync(bulkDto);
+
+            if (_result == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.operationFailed", "Operazione fallita"), Severity.Error);
+            }
+            else if (_result.RolledBack)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("bulk.rolledBack", "L'operazione è stata annullata a causa di errori"), Severity.Error);
+            }
+            else if (_result.FailedCount > 0)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("bulk.partialSuccess", "Operazione completata con alcuni errori"), Severity.Warning);
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("bulk.success", "Operazione completata con successo"), Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error performing bulk transfer");
+            Snackbar.Add(TranslationService.GetTranslation("messages.operationFailed", "Operazione fallita"), Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private class TransferModel
+    {
+        public Guid? SourceFacilityId { get; set; }
+        public Guid? DestinationFacilityId { get; set; }
+        public List<TransferItemModel> Items { get; set; } = new();
+        public DateTime? TransferDate { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    private class TransferItemModel
+    {
+        public Guid ProductId { get; set; }
+        public decimal Quantity { get; set; }
+        public string? Notes { get; set; }
+    }
+}
