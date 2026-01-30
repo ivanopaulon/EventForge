@@ -9,6 +9,8 @@ namespace EventForge.Server.Controllers.Api;
 
 /// <summary>
 /// REST API controller for public server information.
+/// Provides version info and first-run detection for setup wizard.
+/// For comprehensive health/status info, use /api/v1/health/detailed
 /// </summary>
 [Route("api/v1/server")]
 [ApiController]
@@ -17,39 +19,13 @@ public class ServerInfoController : ControllerBase
 {
     private readonly IFirstRunDetectionService _firstRunService;
     private readonly ILogger<ServerInfoController> _logger;
-    private readonly IConfiguration _configuration;
 
     public ServerInfoController(
         IFirstRunDetectionService firstRunService,
-        ILogger<ServerInfoController> logger,
-        IConfiguration configuration)
+        ILogger<ServerInfoController> logger)
     {
         _firstRunService = firstRunService ?? throw new ArgumentNullException(nameof(firstRunService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-    }
-
-    /// <summary>
-    /// Gets public server information (version, uptime, environment).
-    /// </summary>
-    /// <returns>Server information</returns>
-    /// <response code="200">Returns server information</response>
-    [HttpGet("info")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(ServerInfoDto), StatusCodes.Status200OK)]
-    public ActionResult<ServerInfoDto> GetServerInfo()
-    {
-        var uptime = (DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime()).TotalSeconds;
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-
-        return Ok(new ServerInfoDto
-        {
-            Version = version,
-            Uptime = (int)uptime,
-            Environment = environment,
-            ServerTime = DateTime.UtcNow
-        });
     }
 
     /// <summary>
@@ -69,8 +45,7 @@ public class ServerInfoController : ControllerBase
         return Ok(new ServerVersionDto
         {
             Version = version?.ToString() ?? "1.0.0",
-            InformationalVersion = informationalVersion ?? version?.ToString() ?? "1.0.0",
-            Environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production"
+            InformationalVersion = informationalVersion ?? version?.ToString() ?? "1.0.0"
         });
     }
 
@@ -94,29 +69,19 @@ public class ServerInfoController : ControllerBase
 }
 
 /// <summary>
-/// DTO for server information.
+/// DTO for server version.
 /// </summary>
-public class ServerInfoDto
+public class ServerVersionDto
 {
     /// <summary>
-    /// Server version.
+    /// Server version from assembly.
     /// </summary>
     public string Version { get; set; } = string.Empty;
 
     /// <summary>
-    /// Server uptime in seconds.
+    /// Informational version (includes pre-release info).
     /// </summary>
-    public int Uptime { get; set; }
-
-    /// <summary>
-    /// Server environment (Development/Production/Staging).
-    /// </summary>
-    public string Environment { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Current server time (UTC).
-    /// </summary>
-    public DateTime ServerTime { get; set; }
+    public string InformationalVersion { get; set; } = string.Empty;
 }
 
 /// <summary>

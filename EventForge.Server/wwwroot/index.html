@@ -248,41 +248,45 @@
         // Update live status (uptime and database) - called by auto-refresh
         async function updateLiveStatus() {
             try {
-                // Check database status
-                const dbResponse = await fetch(`${API_BASE}/settings/database/status`);
-                if (dbResponse.ok) {
-                    const dbData = await dbResponse.json();
-                    document.getElementById('dbStatus').textContent = dbData.isConnected ? '✓ Connected' : '✗ Disconnected';
-                }
-            } catch (error) {
-                console.error('Error loading database status:', error);
-                document.getElementById('dbStatus').textContent = '✗ Error';
-            }
-
-            try {
-                // Check server restart status for uptime
-                const statusResponse = await fetch(`${API_BASE}/settings/server/restart/status`);
-                if (statusResponse.ok) {
-                    const statusData = await statusResponse.json();
+                // Use the existing /health/detailed endpoint (public, no auth required)
+                const healthResponse = await fetch('/api/v1/health/detailed');
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
                     
-                    // Update uptime with seconds for precision
-                    if (statusData.uptime) {
-                        const hours = Math.floor(statusData.uptime.hours || 0);
-                        const minutes = Math.floor(statusData.uptime.minutes || 0);
-                        const seconds = Math.floor(statusData.uptime.seconds || 0);
-                        document.getElementById('uptime').textContent = `${hours}h ${minutes}m ${seconds}s`;
+                    // Update version
+                    if (healthData.version) {
+                        document.querySelector('.version').textContent = `v${healthData.version}`;
                     }
                     
-                    // Update environment (only on initial load, doesn't change)
-                    if (statusData.environment && document.getElementById('environment').textContent === 'Loading...') {
-                        document.getElementById('environment').textContent = statusData.environment;
+                    // Update uptime (TimeSpan format from C#)
+                    if (healthData.uptime) {
+                        // uptime is a TimeSpan string like "00:05:42.1234567"
+                        const uptimeParts = healthData.uptime.split(':');
+                        if (uptimeParts.length >= 3) {
+                            const hours = parseInt(uptimeParts[0], 10);
+                            const minutes = parseInt(uptimeParts[1], 10);
+                            const seconds = Math.floor(parseFloat(uptimeParts[2]));
+                            document.getElementById('uptime').textContent = `${hours}h ${minutes}m ${seconds}s`;
+                        }
+                    }
+                    
+                    // Update environment
+                    if (healthData.environment) {
+                        document.getElementById('environment').textContent = healthData.environment;
+                    }
+                    
+                    // Update database status
+                    if (healthData.databaseStatus) {
+                        const dbConnected = healthData.databaseStatus === 'Healthy';
+                        document.getElementById('dbStatus').textContent = dbConnected ? '✓ Connected' : '✗ Disconnected';
                     }
                 }
             } catch (error) {
-                console.error('Error loading server status:', error);
+                console.error('Error loading server health:', error);
                 if (document.getElementById('uptime').textContent === 'Loading...') {
                     document.getElementById('uptime').textContent = 'N/A';
                     document.getElementById('environment').textContent = 'Unknown';
+                    document.getElementById('dbStatus').textContent = '✗ Error';
                 }
             }
         }

@@ -12,7 +12,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (!authToken) {
         showError('Authentication required. Please login as SuperAdmin.');
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+            window.location.href = '/ServerAuth/Login?returnUrl=' + encodeURIComponent('/settings');
+        }, 2000);
         return;
+    }
+    
+    // Show logout button when authenticated
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.style.display = 'block';
     }
     
     // Setup tab switching
@@ -23,6 +33,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     console.log('Settings Panel Ready');
 });
+
+// Handle logout
+function handleLogout() {
+    // Remove server token
+    localStorage.removeItem('serverToken');
+    sessionStorage.removeItem('serverToken');
+    
+    // Redirect to landing page
+    window.location.href = '/';
+}
 
 // Setup tab switching
 function setupTabs() {
