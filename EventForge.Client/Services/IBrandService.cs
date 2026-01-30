@@ -18,10 +18,12 @@ public interface IBrandService
     Task<PagedResult<BrandDto>> GetBrandsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default);
 
     /// <summary>
-    /// Gets all active brands as a simple list.
+    /// Gets all brands as a simple list.
+    /// Note: Returns all brands since BrandDto doesn't have an IsActive property.
+    /// Cached for performance optimization.
     /// </summary>
     /// <param name="ct">Cancellation token</param>
-    /// <returns>List of active brands</returns>
+    /// <returns>List of all brands</returns>
     Task<IEnumerable<BrandDto>> GetActiveBrandsAsync(CancellationToken ct = default);
 
     /// <summary>

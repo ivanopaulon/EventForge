@@ -31,13 +31,15 @@ public class BrandService : IBrandService
 
     public async Task<IEnumerable<BrandDto>> GetActiveBrandsAsync(CancellationToken ct = default)
     {
+        // Note: Method name kept as "GetActiveBrandsAsync" for consistency with other services,
+        // but returns all brands since BrandDto doesn't have an IsActive property
         if (_cache.TryGetValue(CacheHelper.ACTIVE_BRANDS, out IEnumerable<BrandDto>? cached) && cached != null)
         {
-            _logger.LogDebug("Cache HIT: Active brands ({Count} items)", cached.Count());
+            _logger.LogDebug("Cache HIT: Brands ({Count} items)", cached.Count());
             return cached;
         }
         
-        _logger.LogDebug("Cache MISS: Loading active brands from API");
+        _logger.LogDebug("Cache MISS: Loading brands from API");
         
         try
         {
@@ -51,7 +53,7 @@ public class BrandService : IBrandService
             );
             
             _logger.LogInformation(
-                "Cached {Count} active brands for {Minutes} minutes", 
+                "Cached {Count} brands for {Minutes} minutes", 
                 brands.Count(), 
                 CacheHelper.ShortCache.TotalMinutes
             );
@@ -75,7 +77,7 @@ public class BrandService : IBrandService
         
         // Invalidate cache
         _cache.Remove(CacheHelper.ACTIVE_BRANDS);
-        _logger.LogDebug("Invalidated active brands cache after create");
+        _logger.LogDebug("Invalidated brands cache after create");
         
         return result ?? throw new InvalidOperationException("Failed to create brand");
     }
@@ -86,7 +88,7 @@ public class BrandService : IBrandService
         
         // Invalidate cache
         _cache.Remove(CacheHelper.ACTIVE_BRANDS);
-        _logger.LogDebug("Invalidated active brands cache after update (ID: {Id})", id);
+        _logger.LogDebug("Invalidated brands cache after update (ID: {Id})", id);
         
         return result;
     }
@@ -99,7 +101,7 @@ public class BrandService : IBrandService
             
             // Invalidate cache
             _cache.Remove(CacheHelper.ACTIVE_BRANDS);
-            _logger.LogDebug("Invalidated active brands cache after delete (ID: {Id})", id);
+            _logger.LogDebug("Invalidated brands cache after delete (ID: {Id})", id);
             
             return true;
         }
