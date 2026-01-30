@@ -87,4 +87,14 @@ public interface IDocumentHeaderService
     /// <param name="documentId">Document header ID</param>
     /// <returns>Document header with updated totals or null if not found</returns>
     Task<DocumentHeaderDto?> CalculateDocumentTotalsAsync(Guid documentId);
+
+    /// <summary>
+    /// Performs bulk approval of multiple documents.
+    /// </summary>
+    Task<EventForge.DTOs.Bulk.BulkApprovalResultDto?> BulkApproveAsync(EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Performs bulk status change of multiple documents.
+    /// </summary>
+    Task<EventForge.DTOs.Bulk.BulkStatusChangeResultDto?> BulkStatusChangeAsync(EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto, CancellationToken ct = default);
 }

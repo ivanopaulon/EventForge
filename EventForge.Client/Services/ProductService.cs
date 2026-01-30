@@ -653,6 +653,31 @@ public class ProductService : IProductService
             return null;
         }
     }
+
+    public async Task<EventForge.DTOs.Bulk.BulkUpdateResultDto?> BulkUpdatePricesAsync(EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto, CancellationToken ct = default)
+    {
+        try
+        {
+            _logger.LogInformation("Starting bulk price update for {Count} products", bulkUpdateDto.ProductIds.Count);
+            var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkUpdatePricesDto, EventForge.DTOs.Bulk.BulkUpdateResultDto>(
+                "api/v1/product-management/bulk-update-prices", 
+                bulkUpdateDto, 
+                ct);
+
+            if (result != null)
+            {
+                _logger.LogInformation("Bulk price update completed. Success: {SuccessCount}, Failed: {FailedCount}", 
+                    result.SuccessCount, result.FailedCount);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing bulk price update");
+            return null;
+        }
+    }
 }
 
 public class ImageUploadResultDto

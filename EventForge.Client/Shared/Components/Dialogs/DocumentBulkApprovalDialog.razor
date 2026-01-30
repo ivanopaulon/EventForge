@@ -1,0 +1,315 @@
+@using MudBlazor
+@using EventForge.DTOs.Bulk
+@inject IDocumentHeaderService DocumentHeaderService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentBulkApprovalDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        @if (!_isProcessing && _approvalResult == null && _statusResult == null)
+        {
+            <MudForm @ref="_form" @bind-IsValid="@_isValid">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            @TranslationService.GetTranslation("bulk.document.description", "Esegui operazioni massive su più documenti contemporaneamente")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                            @TranslationService.GetTranslation("bulk.selectedDocuments", "Documenti selezionati"): @DocumentIds.Count
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudRadioGroup @bind-Value="_model.OperationType" T="BulkOperationType">
+                            <MudRadio Value="@BulkOperationType.Approval" Color="Color.Primary">
+                                @TranslationService.GetTranslation("bulk.document.approve", "Approvazione documenti")
+                            </MudRadio>
+                            <MudRadio Value="@BulkOperationType.StatusChange" Color="Color.Primary">
+                                @TranslationService.GetTranslation("bulk.document.statusChange", "Cambio stato")
+                            </MudRadio>
+                        </MudRadioGroup>
+                    </MudItem>
+
+                    @if (_model.OperationType == BulkOperationType.StatusChange)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.NewStatus"
+                                          Label="@($"{TranslationService.GetTranslation("field.newStatus", "Nuovo stato")} *")"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          RequiredError="@TranslationService.GetTranslation("validation.statusRequired", "Lo stato è obbligatorio")"
+                                          MaxLength="50" />
+                        </MudItem>
+                    }
+
+                    @if (_model.OperationType == BulkOperationType.Approval)
+                    {
+                        <MudItem xs="12">
+                            <MudDatePicker @bind-Date="_model.ApprovalDate"
+                                           Label="@TranslationService.GetTranslation("field.approvalDate", "Data approvazione")"
+                                           Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.ApprovalNotes"
+                                          Label="@TranslationService.GetTranslation("field.approvalNotes", "Note approvazione")"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          MaxLength="1000" />
+                        </MudItem>
+                    }
+
+                    @if (_model.OperationType == BulkOperationType.StatusChange)
+                    {
+                        <MudItem xs="12">
+                            <MudDatePicker @bind-Date="_model.ChangeDate"
+                                           Label="@TranslationService.GetTranslation("field.changeDate", "Data cambio")"
+                                           Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Reason"
+                                          Label="@TranslationService.GetTranslation("field.reason", "Motivo")"
+                                          Variant="Variant.Outlined"
+                                          Lines="3"
+                                          MaxLength="1000" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudForm>
+        }
+        else if (_isProcessing)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+            <MudText Align="Align.Center">
+                @TranslationService.GetTranslation("bulk.processing", "Elaborazione in corso...")
+            </MudText>
+        }
+        else if (_approvalResult != null || _statusResult != null)
+        {
+            var result = _approvalResult != null 
+                ? new { TotalCount = _approvalResult.TotalCount, SuccessCount = _approvalResult.SuccessCount, FailedCount = _approvalResult.FailedCount, Errors = _approvalResult.Errors, ProcessedAt = _approvalResult.ProcessedAt, ProcessingTime = _approvalResult.ProcessingTime, RolledBack = _approvalResult.RolledBack }
+                : new { TotalCount = _statusResult!.TotalCount, SuccessCount = _statusResult.SuccessCount, FailedCount = _statusResult.FailedCount, Errors = _statusResult.Errors, ProcessedAt = _statusResult.ProcessedAt, ProcessingTime = _statusResult.ProcessingTime, RolledBack = _statusResult.RolledBack };
+
+            <MudGrid>
+                <MudItem xs="12">
+                    @if (result.RolledBack)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.rolledBack", "L'operazione è stata annullata a causa di errori")
+                        </MudAlert>
+                    }
+                    else if (result.FailedCount > 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.partialSuccess", "Operazione completata con alcuni errori")
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Success" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.success", "Operazione completata con successo")
+                        </MudAlert>
+                    }
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("bulk.total", "Totale")</MudText>
+                        <MudText Typo="Typo.h5">@result.TotalCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Success">@TranslationService.GetTranslation("bulk.success", "Successo")</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Success">@result.SuccessCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Error">@TranslationService.GetTranslation("bulk.failed", "Falliti")</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Error">@result.FailedCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                @if (result.Errors.Any())
+                {
+                    <MudItem xs="12">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel Text="@TranslationService.GetTranslation("bulk.viewErrors", "Visualizza errori")">
+                                <MudList T="string">
+                                    @foreach (var error in result.Errors)
+                                    {
+                                        <MudListItem T="string">
+                                            <MudText Typo="Typo.body2" Color="Color.Error">
+                                                @if (!string.IsNullOrEmpty(error.ItemName))
+                                                {
+                                                    <strong>@error.ItemName:</strong>
+                                                }
+                                                @error.ErrorMessage
+                                            </MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption">
+                        @TranslationService.GetTranslation("bulk.processedAt", "Elaborato il"): @result.ProcessedAt.ToString("g")
+                    </MudText>
+                    <MudText Typo="Typo.caption">
+                        @TranslationService.GetTranslation("bulk.processingTime", "Tempo di elaborazione"): @result.ProcessingTime.TotalSeconds.ToString("F2")s
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_approvalResult == null && _statusResult == null)
+        {
+            <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+            <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isProcessing)" OnClick="Submit">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">@TranslationService.GetTranslation("common.processing", "Elaborazione...")</MudText>
+                }
+                else
+                {
+                    <MudText>@TranslationService.GetTranslation("button.execute", "Esegui")</MudText>
+                }
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" OnClick="Close">@TranslationService.GetTranslation("button.close", "Chiudi")</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public List<Guid> DocumentIds { get; set; } = new();
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isProcessing;
+    private BulkApprovalResultDto? _approvalResult;
+    private BulkStatusChangeResultDto? _statusResult;
+    private DocumentOperationModel _model = new();
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Close()
+    {
+        MudDialog.Close(DialogResult.Ok(_approvalResult ?? (object?)_statusResult));
+    }
+
+    private async Task Submit()
+    {
+        if (_form == null || !_form.IsValid || DocumentIds.Count == 0)
+            return;
+
+        _isProcessing = true;
+        try
+        {
+            if (_model.OperationType == BulkOperationType.Approval)
+            {
+                var bulkDto = new BulkApprovalDto
+                {
+                    DocumentIds = DocumentIds,
+                    ApprovalNotes = _model.ApprovalNotes,
+                    ApprovalDate = _model.ApprovalDate
+                };
+
+                Logger.LogInformation("Starting bulk approval for {Count} documents", DocumentIds.Count);
+                _approvalResult = await DocumentHeaderService.BulkApproveAsync(bulkDto);
+
+                if (_approvalResult == null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.operationFailed", "Operazione fallita"), Severity.Error);
+                }
+                else if (_approvalResult.RolledBack)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("bulk.rolledBack", "L'operazione è stata annullata a causa di errori"), Severity.Error);
+                }
+                else if (_approvalResult.FailedCount > 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("bulk.partialSuccess", "Operazione completata con alcuni errori"), Severity.Warning);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("bulk.success", "Operazione completata con successo"), Severity.Success);
+                }
+            }
+            else if (_model.OperationType == BulkOperationType.StatusChange)
+            {
+                var bulkDto = new BulkStatusChangeDto
+                {
+                    DocumentIds = DocumentIds,
+                    NewStatus = _model.NewStatus ?? string.Empty,
+                    Reason = _model.Reason,
+                    ChangeDate = _model.ChangeDate
+                };
+
+                Logger.LogInformation("Starting bulk status change for {Count} documents to status '{Status}'", DocumentIds.Count, _model.NewStatus);
+                _statusResult = await DocumentHeaderService.BulkStatusChangeAsync(bulkDto);
+
+                if (_statusResult == null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.operationFailed", "Operazione fallita"), Severity.Error);
+                }
+                else if (_statusResult.RolledBack)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("bulk.rolledBack", "L'operazione è stata annullata a causa di errori"), Severity.Error);
+                }
+                else if (_statusResult.FailedCount > 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("bulk.partialSuccess", "Operazione completata con alcuni errori"), Severity.Warning);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("bulk.success", "Operazione completata con successo"), Severity.Success);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error performing bulk document operation");
+            Snackbar.Add(TranslationService.GetTranslation("messages.operationFailed", "Operazione fallita"), Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private enum BulkOperationType
+    {
+        Approval,
+        StatusChange
+    }
+
+    private class DocumentOperationModel
+    {
+        public BulkOperationType OperationType { get; set; } = BulkOperationType.Approval;
+        public string? NewStatus { get; set; }
+        public string? Reason { get; set; }
+        public DateTime? ChangeDate { get; set; }
+        public string? ApprovalNotes { get; set; }
+        public DateTime? ApprovalDate { get; set; }
+    }
+}

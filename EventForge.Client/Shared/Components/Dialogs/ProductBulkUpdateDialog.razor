@@ -1,0 +1,283 @@
+@using MudBlazor
+@using EventForge.DTOs.Bulk
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<ProductBulkUpdateDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        @if (!_isProcessing && _result == null)
+        {
+            <MudForm @ref="_form" @bind-IsValid="@_isValid">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            @TranslationService.GetTranslation("bulk.priceUpdate.description", "Aggiorna i prezzi per più prodotti contemporaneamente")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                            @TranslationService.GetTranslation("bulk.selectedProducts", "Prodotti selezionati"): @ProductIds.Count
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudRadioGroup @bind-Value="_model.UpdateType" T="PriceUpdateType">
+                            <MudRadio Value="@PriceUpdateType.Replace" Color="Color.Primary">
+                                @TranslationService.GetTranslation("bulk.priceUpdate.replace", "Sostituisci prezzo")
+                            </MudRadio>
+                            <MudRadio Value="@PriceUpdateType.IncreaseByPercentage" Color="Color.Primary">
+                                @TranslationService.GetTranslation("bulk.priceUpdate.increaseByPercentage", "Aumenta del %")
+                            </MudRadio>
+                            <MudRadio Value="@PriceUpdateType.DecreaseByPercentage" Color="Color.Primary">
+                                @TranslationService.GetTranslation("bulk.priceUpdate.decreaseByPercentage", "Riduci del %")
+                            </MudRadio>
+                            <MudRadio Value="@PriceUpdateType.IncreaseByAmount" Color="Color.Primary">
+                                @TranslationService.GetTranslation("bulk.priceUpdate.increaseByAmount", "Aumenta di importo fisso")
+                            </MudRadio>
+                            <MudRadio Value="@PriceUpdateType.DecreaseByAmount" Color="Color.Primary">
+                                @TranslationService.GetTranslation("bulk.priceUpdate.decreaseByAmount", "Riduci di importo fisso")
+                            </MudRadio>
+                        </MudRadioGroup>
+                    </MudItem>
+
+                    @if (_model.UpdateType == PriceUpdateType.Replace)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudNumericField @bind-Value="_model.NewPrice"
+                                             Label="@($"{TranslationService.GetTranslation("field.newPrice", "Nuovo prezzo")} *")"
+                                             Variant="Variant.Outlined"
+                                             Required="true"
+                                             Min="0m"
+                                             Format="N2" />
+                        </MudItem>
+                    }
+
+                    @if (_model.UpdateType == PriceUpdateType.IncreaseByPercentage || _model.UpdateType == PriceUpdateType.DecreaseByPercentage)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudNumericField @bind-Value="_model.Percentage"
+                                             Label="@($"{TranslationService.GetTranslation("field.percentage", "Percentuale")} *")"
+                                             Variant="Variant.Outlined"
+                                             Required="true"
+                                             Min="0m"
+                                             Max="100m"
+                                             Format="N2"
+                                             Adornment="Adornment.End"
+                                             AdornmentText="%" />
+                        </MudItem>
+                    }
+
+                    @if (_model.UpdateType == PriceUpdateType.IncreaseByAmount || _model.UpdateType == PriceUpdateType.DecreaseByAmount)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudNumericField @bind-Value="_model.Amount"
+                                             Label="@($"{TranslationService.GetTranslation("field.amount", "Importo")} *")"
+                                             Variant="Variant.Outlined"
+                                             Required="true"
+                                             Min="0m"
+                                             Format="N2" />
+                        </MudItem>
+                    }
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Reason"
+                                      Label="@TranslationService.GetTranslation("field.reason", "Motivo")"
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      MaxLength="500" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+        else if (_isProcessing)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+            <MudText Align="Align.Center">
+                @TranslationService.GetTranslation("bulk.processing", "Elaborazione in corso...")
+            </MudText>
+        }
+        else if (_result != null)
+        {
+            <MudGrid>
+                <MudItem xs="12">
+                    @if (_result.RolledBack)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.rolledBack", "L'operazione è stata annullata a causa di errori")
+                        </MudAlert>
+                    }
+                    else if (_result.FailedCount > 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.partialSuccess", "Operazione completata con alcuni errori")
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Success" Class="mb-4">
+                            @TranslationService.GetTranslation("bulk.success", "Operazione completata con successo")
+                        </MudAlert>
+                    }
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("bulk.total", "Totale")</MudText>
+                        <MudText Typo="Typo.h5">@_result.TotalCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Success">@TranslationService.GetTranslation("bulk.success", "Successo")</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Success">@_result.SuccessCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Error">@TranslationService.GetTranslation("bulk.failed", "Falliti")</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Error">@_result.FailedCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                @if (_result.Errors.Any())
+                {
+                    <MudItem xs="12">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel Text="@TranslationService.GetTranslation("bulk.viewErrors", "Visualizza errori")">
+                                <MudList T="string">
+                                    @foreach (var error in _result.Errors)
+                                    {
+                                        <MudListItem T="string">
+                                            <MudText Typo="Typo.body2" Color="Color.Error">
+                                                @if (!string.IsNullOrEmpty(error.ItemName))
+                                                {
+                                                    <strong>@error.ItemName:</strong>
+                                                }
+                                                @error.ErrorMessage
+                                            </MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption">
+                        @TranslationService.GetTranslation("bulk.processedAt", "Elaborato il"): @_result.ProcessedAt.ToString("g")
+                    </MudText>
+                    <MudText Typo="Typo.caption">
+                        @TranslationService.GetTranslation("bulk.processingTime", "Tempo di elaborazione"): @_result.ProcessingTime.TotalSeconds.ToString("F2")s
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_result == null)
+        {
+            <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+            <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isProcessing)" OnClick="Submit">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">@TranslationService.GetTranslation("common.processing", "Elaborazione...")</MudText>
+                }
+                else
+                {
+                    <MudText>@TranslationService.GetTranslation("button.update", "Aggiorna")</MudText>
+                }
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" OnClick="Close">@TranslationService.GetTranslation("button.close", "Chiudi")</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public List<Guid> ProductIds { get; set; } = new();
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isProcessing;
+    private BulkUpdateResultDto? _result;
+    private PriceUpdateModel _model = new();
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Close()
+    {
+        MudDialog.Close(DialogResult.Ok(_result));
+    }
+
+    private async Task Submit()
+    {
+        if (_form == null || !_form.IsValid || ProductIds.Count == 0)
+            return;
+
+        _isProcessing = true;
+        try
+        {
+            var bulkDto = new BulkUpdatePricesDto
+            {
+                ProductIds = ProductIds,
+                UpdateType = _model.UpdateType,
+                NewPrice = _model.NewPrice,
+                Percentage = _model.Percentage,
+                Amount = _model.Amount,
+                Reason = _model.Reason
+            };
+
+            Logger.LogInformation("Starting bulk price update for {Count} products", ProductIds.Count);
+            _result = await ProductService.BulkUpdatePricesAsync(bulkDto);
+
+            if (_result == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.operationFailed", "Operazione fallita"), Severity.Error);
+            }
+            else if (_result.RolledBack)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("bulk.rolledBack", "L'operazione è stata annullata a causa di errori"), Severity.Error);
+            }
+            else if (_result.FailedCount > 0)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("bulk.partialSuccess", "Operazione completata con alcuni errori"), Severity.Warning);
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("bulk.success", "Operazione completata con successo"), Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error performing bulk price update");
+            Snackbar.Add(TranslationService.GetTranslation("messages.operationFailed", "Operazione fallita"), Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private class PriceUpdateModel
+    {
+        public PriceUpdateType UpdateType { get; set; } = PriceUpdateType.Replace;
+        public decimal? NewPrice { get; set; }
+        public decimal? Percentage { get; set; }
+        public decimal? Amount { get; set; }
+        public string? Reason { get; set; }
+    }
+}
