@@ -26,6 +26,14 @@ public interface IModelService
     Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 100);
 
     /// <summary>
+    /// Gets active models by brand ID (cached).
+    /// </summary>
+    /// <param name="brandId">Brand ID to filter by</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of active models for the brand</returns>
+    Task<IEnumerable<ModelDto>> GetActiveModelsByBrandAsync(Guid brandId, CancellationToken ct = default);
+
+    /// <summary>
     /// Gets a model by ID.
     /// </summary>
     /// <param name="id">Model ID</param>

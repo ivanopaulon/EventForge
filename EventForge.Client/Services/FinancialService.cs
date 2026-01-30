@@ -2,6 +2,9 @@ using EventForge.DTOs.Banks;
 using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.VatRates;
+using Microsoft.Extensions.Caching.Memory;
+using EventForge.Client.Helpers;
+using System.Net;
 
 namespace EventForge.Client.Services
 {
@@ -42,12 +45,14 @@ namespace EventForge.Client.Services
         private readonly IHttpClientService _httpClientService;
         private readonly ILogger<FinancialService> _logger;
         private readonly ILoadingDialogService _loadingDialogService;
+        private readonly IMemoryCache _cache;
 
-        public FinancialService(IHttpClientService httpClientService, ILogger<FinancialService> logger, ILoadingDialogService loadingDialogService)
+        public FinancialService(IHttpClientService httpClientService, ILogger<FinancialService> logger, ILoadingDialogService loadingDialogService, IMemoryCache cache)
         {
             _httpClientService = httpClientService;
             _logger = logger;
             _loadingDialogService = loadingDialogService;
+            _cache = cache;
         }
 
         #region Bank Management
@@ -115,8 +120,42 @@ namespace EventForge.Client.Services
 
         public async Task<PagedResult<VatRateDto>> GetVatRatesAsync(int page = 1, int pageSize = 100)
         {
+            // Cache ONLY if full list request (page=1, pageSize>=100)
+            var isFullListRequest = page == 1 && pageSize >= 100;
+            
+            if (isFullListRequest)
+            {
+                // Try cache first
+                if (_cache.TryGetValue(CacheHelper.VAT_RATES, out PagedResult<VatRateDto>? cached) && cached != null)
+                {
+                    _logger.LogDebug("Cache HIT: VAT rates ({Count} items)", cached.TotalCount);
+                    return cached;
+                }
+            }
+            
+            // Cache miss or paginated request
+            _logger.LogDebug("Cache MISS or paginated request: Loading VAT rates from API (page={Page}, size={PageSize})", 
+                page, pageSize);
+            
             var result = await _httpClientService.GetAsync<PagedResult<VatRateDto>>(
                 $"api/v1/financial/vat-rates?page={page}&pageSize={pageSize}");
+            
+            // Store in cache only for full list
+            if (isFullListRequest && result != null)
+            {
+                _cache.Set(
+                    CacheHelper.VAT_RATES, 
+                    result, 
+                    CacheHelper.GetExtraLongCacheOptions() // 24 hours
+                );
+                
+                _logger.LogInformation(
+                    "Cached {Count} VAT rates for {Hours} hours", 
+                    result.TotalCount, 
+                    CacheHelper.ExtraLongCache.TotalHours
+                );
+            }
+            
             return result ?? new PagedResult<VatRateDto>
             {
                 Items = new List<VatRateDto>(),
@@ -133,19 +172,35 @@ namespace EventForge.Client.Services
 
         public async Task<VatRateDto> CreateVatRateAsync(CreateVatRateDto createDto)
         {
-            return await _httpClientService.PostAsync<CreateVatRateDto, VatRateDto>("api/v1/financial/vat-rates", createDto) ??
+            var result = await _httpClientService.PostAsync<CreateVatRateDto, VatRateDto>("api/v1/financial/vat-rates", createDto) ??
                    throw new InvalidOperationException("Failed to create VAT rate");
+            
+            // Invalidate cache
+            _cache.Remove(CacheHelper.VAT_RATES);
+            _logger.LogDebug("Invalidated VAT rates cache after create");
+            
+            return result;
         }
 
         public async Task<VatRateDto> UpdateVatRateAsync(Guid id, UpdateVatRateDto updateDto)
         {
-            return await _httpClientService.PutAsync<UpdateVatRateDto, VatRateDto>($"api/v1/financial/vat-rates/{id}", updateDto) ??
+            var result = await _httpClientService.PutAsync<UpdateVatRateDto, VatRateDto>($"api/v1/financial/vat-rates/{id}", updateDto) ??
                    throw new InvalidOperationException("Failed to update VAT rate");
+            
+            // Invalidate cache
+            _cache.Remove(CacheHelper.VAT_RATES);
+            _logger.LogDebug("Invalidated VAT rates cache after update (ID: {Id})", id);
+            
+            return result;
         }
 
         public async Task DeleteVatRateAsync(Guid id)
         {
             await _httpClientService.DeleteAsync($"api/v1/financial/vat-rates/{id}");
+            
+            // Invalidate cache
+            _cache.Remove(CacheHelper.VAT_RATES);
+            _logger.LogDebug("Invalidated VAT rates cache after delete (ID: {Id})", id);
         }
 
         #endregion
