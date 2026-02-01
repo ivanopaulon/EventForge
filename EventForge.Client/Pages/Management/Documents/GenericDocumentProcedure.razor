@@ -11,6 +11,7 @@
 @using EventForge.Client.Shared.Documents
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Business
+@using EventForge.Client.Shared.Components.Common
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @implements IAsyncDisposable
 @inject IDocumentHeaderService DocumentHeaderService
@@ -173,31 +174,21 @@
          The UnifiedBusinessPartySelector handles search internally and ensures BusinessParty of type "Both" 
          are always included in filtering for both clients and suppliers. -->
     <MudPaper Elevation="2" Class="pa-4 mb-4">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" sm="10">
-                <UnifiedBusinessPartySelector 
-                    @bind-SelectedBusinessParty="_selectedBusinessParty"
-                    Title="@TranslationService.GetTranslation("documents.businessPartner", "Controparte Commerciale")"
-                    Placeholder="@TranslationService.GetTranslation("documents.searchBusinessParty", "Cerca per nome (min 2 caratteri)...")"
-                    FilterByType="@GetBusinessPartyTypeFilter()"
-                    ShowGroups="true"
-                    ShowFiscalInfo="true"
-                    ShowLocation="true"
-                    AllowClear="true"
-                    AutoFocus="false"
-                    Dense="true" />
-            </MudItem>
-            
-            <MudItem xs="12" sm="2" Class="d-flex align-center justify-center">
-                <MudTooltip Text="@TranslationService.GetTranslation("business.quickCreate", "Crea nuovo partner")">
-                    <MudIconButton Icon="@Icons.Material.Filled.Add"
-                                  Color="Color.Success"
-                                  OnClick="@OpenQuickCreatePartnerDialog"
-                                  Size="Size.Large"
-                                  Variant="Variant.Filled" />
-                </MudTooltip>
-            </MudItem>
-        </MudGrid>
+        <UnifiedBusinessPartySelector 
+            @bind-SelectedBusinessParty="_selectedBusinessParty"
+            Title="@TranslationService.GetTranslation("documents.businessPartner", "Controparte Commerciale")"
+            Placeholder="@TranslationService.GetTranslation("documents.searchBusinessParty", "Cerca per nome (min 2 caratteri)...")"
+            FilterByType="@GetBusinessPartyTypeFilter()"
+            EditMode="EntityEditMode.QuickDialog"
+            CreateMode="EntityCreateMode.QuickDialog"
+            DisplayMode="EntityDisplayMode.All"
+            PreferredCreateType="@GetBusinessPartyTypeFilter()"
+            ShowGroups="true"
+            ShowFiscalInfo="true"
+            ShowLocation="true"
+            AllowClear="true"
+            AutoFocus="false"
+            Dense="true" />
     </MudPaper>
 
     <!-- Expanded Details Section (Collapsible) -->
@@ -861,47 +852,6 @@
         }
         
         return null; // Allow all types
-    }
-
-    private async Task OpenQuickCreatePartnerDialog()
-    {
-        // Determina il tipo preferito in base al tipo documento
-        BusinessPartyType? preferredType = null;
-        var selectedDocType = _documentTypes.FirstOrDefault(dt => dt.Id == _model.DocumentTypeId);
-        if (selectedDocType != null)
-        {
-            preferredType = selectedDocType.RequiredPartyType;
-        }
-        
-        var parameters = new DialogParameters
-        {
-            ["PreferredPartyType"] = preferredType
-        };
-        
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
-        
-        var dialog = await DialogService.ShowAsync<QuickCreateBusinessPartyDialog>(
-            TranslationService.GetTranslation("business.quickCreate", "Creazione Rapida Partner"),
-            parameters,
-            options
-        );
-        
-        var result = await dialog.Result;
-        
-        if (!result.Canceled && result.Data is BusinessPartyDto newPartner)
-        {
-            _selectedBusinessParty = newPartner;
-            Snackbar.Add(
-                TranslationService.GetTranslation("business.partnerCreatedAndSelected", "Partner '{0}' creato e selezionato", newPartner.Name),
-                Severity.Success
-            );
-            StateHasChanged();
-        }
     }
 
     private bool CanSaveHeader()

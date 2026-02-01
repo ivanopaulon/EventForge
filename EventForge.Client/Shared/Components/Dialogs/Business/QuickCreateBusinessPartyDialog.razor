@@ -1,14 +1,19 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
+@using EventForge.DTOs.External
+@using EventForge.Client.Services.External
 @inject ITranslationService TranslationService
 @inject IBusinessPartyService BusinessPartyService
+@inject IVatLookupService VatLookupService
 @inject ISnackbar Snackbar
 @inject ILogger<QuickCreateBusinessPartyDialog> Logger
 
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            @TranslationService.GetTranslation("business.quickCreatePartner", "Creazione Rapida Partner")
+            @(IsEditMode 
+                ? TranslationService.GetTranslation("business.quickEditPartner", "Modifica Rapida Partner")
+                : TranslationService.GetTranslation("business.quickCreatePartner", "Creazione Rapida Partner"))
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -66,12 +71,62 @@
                                               Variant="Variant.Outlined"
                                               MaxLength="20" />
                             </MudItem>
-                            <MudItem xs="12" sm="4">
-                                <MudTextField @bind-Value="_model.VatNumber"
-                                              Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
-                                              Variant="Variant.Outlined"
-                                              MaxLength="20" />
+                            <MudItem xs="12" sm="8">
+                                <div class="d-flex gap-2">
+                                    <MudTextField @bind-Value="_model.VatNumber"
+                                                  Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                                  Variant="Variant.Outlined"
+                                                  MaxLength="20"
+                                                  Placeholder="IT12345678901"
+                                                  Style="flex-grow: 1;" />
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.Search"
+                                               OnClick="@LookupVatAsync"
+                                               Disabled="@(string.IsNullOrWhiteSpace(_model.VatNumber) || _isLookingUp)"
+                                               Style="align-self: flex-start; margin-top: 4px;">
+                                        @if (_isLookingUp)
+                                        {
+                                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                        }
+                                        else
+                                        {
+                                            @TranslationService.GetTranslation("common.search", "Cerca")
+                                        }
+                                    </MudButton>
+                                </div>
                             </MudItem>
+                        </MudGrid>
+                        
+                        <!-- VAT Lookup Result -->
+                        @if (_lookupResult != null)
+                        {
+                            @if (_lookupResult.IsValid)
+                            {
+                                <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Filled.CheckCircle" Dense="true" Class="mt-3">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                            @_lookupResult.Name
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">@_lookupResult.Address</MudText>
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Text"
+                                                   StartIcon="@Icons.Material.Outlined.ContentCopy"
+                                                   OnClick="@ApplyLookupData">
+                                            @TranslationService.GetTranslation("vat.useData", "Usa questi dati")
+                                        </MudButton>
+                                    </MudStack>
+                                </MudAlert>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                                    @TranslationService.GetTranslation("vat.invalidVat", "Partita IVA non valida o non trovata")
+                                </MudAlert>
+                            }
+                        }
+                        
+                        <MudGrid Spacing="2" Class="mt-2">
                             <MudItem xs="12" sm="4">
                                 <MudTextField @bind-Value="_model.SdiCode"
                                               Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
@@ -108,9 +163,19 @@
     [Parameter] 
     public BusinessPartyType? PreferredPartyType { get; set; }
     
+    [Parameter]
+    public Guid? BusinessPartyId { get; set; }
+    
+    [Parameter]
+    public BusinessPartyDto? ExistingBusinessParty { get; set; }
+    
+    private bool IsEditMode => BusinessPartyId.HasValue || ExistingBusinessParty != null;
+    
     private MudForm? _form;
     private bool _isFormValid;
     private bool _isLoading;
+    private bool _isLookingUp = false;
+    private VatLookupResultDto? _lookupResult;
     
     // Model class for simplified creation
     private class CreateModel
@@ -124,9 +189,49 @@
     
     private CreateModel _model = new();
     
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        if (PreferredPartyType.HasValue)
+        if (IsEditMode)
+        {
+            if (ExistingBusinessParty != null)
+            {
+                _model = new CreateModel
+                {
+                    PartyType = ExistingBusinessParty.PartyType,
+                    Name = ExistingBusinessParty.Name,
+                    TaxCode = ExistingBusinessParty.TaxCode,
+                    VatNumber = ExistingBusinessParty.VatNumber,
+                    SdiCode = ExistingBusinessParty.SdiCode
+                };
+            }
+            else if (BusinessPartyId.HasValue)
+            {
+                try
+                {
+                    var bp = await BusinessPartyService.GetBusinessPartyAsync(BusinessPartyId.Value);
+                    if (bp != null)
+                    {
+                        _model = new CreateModel
+                        {
+                            PartyType = bp.PartyType,
+                            Name = bp.Name,
+                            TaxCode = bp.TaxCode,
+                            VatNumber = bp.VatNumber,
+                            SdiCode = bp.SdiCode
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error loading business partner for edit");
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("business.loadError", "Errore nel caricamento del partner"),
+                        Severity.Error
+                    );
+                }
+            }
+        }
+        else if (PreferredPartyType.HasValue)
         {
             _model.PartyType = PreferredPartyType.Value;
         }
@@ -142,32 +247,58 @@
         _isLoading = true;
         try
         {
-            var dto = new CreateBusinessPartyDto
+            BusinessPartyDto result;
+
+            if (IsEditMode && (BusinessPartyId.HasValue || ExistingBusinessParty != null))
             {
-                PartyType = _model.PartyType,
-                Name = _model.Name,
-                TaxCode = _model.TaxCode,
-                VatNumber = _model.VatNumber,
-                SdiCode = _model.SdiCode
-            };
-            
-            var created = await BusinessPartyService.CreateBusinessPartyAsync(dto);
-            
-            if (created != null)
+                // UPDATE
+                var updateDto = new UpdateBusinessPartyDto
+                {
+                    PartyType = _model.PartyType,
+                    Name = _model.Name,
+                    TaxCode = _model.TaxCode,
+                    VatNumber = _model.VatNumber,
+                    SdiCode = _model.SdiCode
+                };
+                
+                var id = BusinessPartyId ?? ExistingBusinessParty!.Id;
+                result = await BusinessPartyService.UpdateBusinessPartyAsync(id, updateDto);
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("business.updateSuccess", "Partner aggiornato con successo"),
+                    Severity.Success
+                );
+            }
+            else
             {
+                // CREATE
+                var dto = new CreateBusinessPartyDto
+                {
+                    PartyType = _model.PartyType,
+                    Name = _model.Name,
+                    TaxCode = _model.TaxCode,
+                    VatNumber = _model.VatNumber,
+                    SdiCode = _model.SdiCode
+                };
+                
+                result = await BusinessPartyService.CreateBusinessPartyAsync(dto);
+                
                 Snackbar.Add(
                     TranslationService.GetTranslation("business.createSuccess", "Partner creato con successo"),
                     Severity.Success
                 );
-                
-                MudDialog.Close(DialogResult.Ok(created));
+            }
+            
+            if (result != null)
+            {
+                MudDialog.Close(DialogResult.Ok(result));
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error creating business partner");
+            Logger.LogError(ex, "Error saving business partner");
             Snackbar.Add(
-                TranslationService.GetTranslation("business.createError", "Errore nella creazione del partner"),
+                TranslationService.GetTranslation("business.saveError", "Errore nel salvataggio del partner"),
                 Severity.Error
             );
         }
@@ -180,5 +311,43 @@
     private void Cancel()
     {
         MudDialog.Cancel();
+    }
+    
+    private async Task LookupVatAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_model.VatNumber)) return;
+
+        _isLookingUp = true;
+        _lookupResult = null;
+
+        try
+        {
+            _lookupResult = await VatLookupService.LookupAsync(_model.VatNumber);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error looking up VAT number");
+            Snackbar.Add(
+                TranslationService.GetTranslation("vat.lookupError", "Errore durante la verifica della Partita IVA"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLookingUp = false;
+        }
+    }
+
+    private void ApplyLookupData()
+    {
+        if (_lookupResult == null || !_lookupResult.IsValid) return;
+
+        _model.Name = _lookupResult.Name ?? _model.Name;
+        // Keep the VAT number as entered (already validated)
+        
+        Snackbar.Add(
+            TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo"),
+            Severity.Success
+        );
     }
 }
