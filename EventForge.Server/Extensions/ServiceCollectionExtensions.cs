@@ -435,7 +435,7 @@ public static class ServiceCollectionExtensions
 
         _ = services.AddSession(options =>
         {
-            options.IdleTimeout = TimeSpan.FromHours(2); // Allineato con JWT di 120 minuti
+            options.IdleTimeout = TimeSpan.FromHours(2); // Aligned with JWT of 120 minutes
             options.Cookie.HttpOnly = true;
             options.Cookie.IsEssential = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;

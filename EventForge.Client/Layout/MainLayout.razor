@@ -115,7 +115,7 @@
         // Subscribe to session keepalive events
         SessionKeepaliveService.OnRefreshSuccess += OnSessionRefreshSuccess;
         SessionKeepaliveService.OnRefreshFailure += OnSessionRefreshFailure;
-        SessionKeepaliveService.OnSessionWarning += OnSessionWarning; // NUOVO
+        SessionKeepaliveService.OnSessionWarning += OnSessionWarning; // NEW
         
         await ThemeService.InitializeAsync();
         await FontPreferencesService.InitializeAsync();
@@ -385,12 +385,12 @@
         
         InvokeAsync(() =>
         {
-            // Mostra un avviso discreto solo se veramente critico (< 10 minuti)
+            // Show a discreet warning only if truly critical (< 10 minutes)
             if (minutesRemaining < 10)
             {
                 Snackbar.Add(
                     TranslationService.GetTranslation("session.expiringWarning", 
-                        $"La sessione scadrà tra {minutesRemaining} minuti. Il rinnovo è in corso..."),
+                        $"The session will expire in {minutesRemaining} minutes. Renewal is in progress..."),
                     Severity.Warning,
                     config =>
                     {
@@ -411,7 +411,7 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
         SessionKeepaliveService.OnRefreshSuccess -= OnSessionRefreshSuccess;
         SessionKeepaliveService.OnRefreshFailure -= OnSessionRefreshFailure;
-        SessionKeepaliveService.OnSessionWarning -= OnSessionWarning; // NUOVO
+        SessionKeepaliveService.OnSessionWarning -= OnSessionWarning; // NEW
         
         // Ensure the keepalive service is stopped when the layout is disposed
         SessionKeepaliveService.Stop();

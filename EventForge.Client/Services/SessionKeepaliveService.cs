@@ -41,8 +41,8 @@ namespace EventForge.Client.Services
     public class SessionKeepaliveService : ISessionKeepaliveService
     {
         private const int KEEPALIVE_INTERVAL_MINUTES = 3;
-        private const int REFRESH_THRESHOLD_MINUTES = 30; // Rinnovare quando mancano 30 minuti invece di 10
-        private const int WARNING_THRESHOLD_MINUTES = 15; // Mostrare warning solo sotto i 15 minuti
+        private const int REFRESH_THRESHOLD_MINUTES = 30; // Refresh when 30 minutes remain instead of 10
+        private const int WARNING_THRESHOLD_MINUTES = 15; // Show warning only below 15 minutes
         private const int MAX_RETRIES = 3;
         private const int INITIAL_RETRY_DELAY_MS = 1000; // 1 second
 
@@ -55,7 +55,7 @@ namespace EventForge.Client.Services
 
         public event Action? OnRefreshSuccess;
         public event Action<string>? OnRefreshFailure;
-        public event Action<int>? OnSessionWarning; // Parametro: minuti rimanenti
+        public event Action<int>? OnSessionWarning; // Parameter: minutes remaining
 
         public bool IsRunning => _isRunning;
 
