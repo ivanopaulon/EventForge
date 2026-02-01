@@ -18,6 +18,11 @@ namespace EventForge.Client.Services
         event Action<string>? OnRefreshFailure;
 
         /// <summary>
+        /// Event raised when session is in warning state (low time remaining)
+        /// </summary>
+        event Action<int>? OnSessionWarning;
+
+        /// <summary>
         /// Starts the keepalive timer
         /// </summary>
         void Start();
@@ -36,6 +41,8 @@ namespace EventForge.Client.Services
     public class SessionKeepaliveService : ISessionKeepaliveService
     {
         private const int KEEPALIVE_INTERVAL_MINUTES = 3;
+        private const int REFRESH_THRESHOLD_MINUTES = 30; // Rinnovare quando mancano 30 minuti invece di 10
+        private const int WARNING_THRESHOLD_MINUTES = 15; // Mostrare warning solo sotto i 15 minuti
         private const int MAX_RETRIES = 3;
         private const int INITIAL_RETRY_DELAY_MS = 1000; // 1 second
 
@@ -48,6 +55,7 @@ namespace EventForge.Client.Services
 
         public event Action? OnRefreshSuccess;
         public event Action<string>? OnRefreshFailure;
+        public event Action<int>? OnSessionWarning; // Parametro: minuti rimanenti
 
         public bool IsRunning => _isRunning;
 
@@ -148,17 +156,29 @@ namespace EventForge.Client.Services
                 var timeToExpiry = await _authService.GetTokenTimeToExpiryAsync();
                 if (timeToExpiry.HasValue)
                 {
-                    _logger.LogInformation("Token expires in {Minutes:F1} minutes", timeToExpiry.Value.TotalMinutes);
+                    var minutesRemaining = timeToExpiry.Value.TotalMinutes;
+                    _logger.LogInformation("Token expires in {Minutes:F1} minutes", minutesRemaining);
 
-                    // Only refresh if token is getting close to expiration (less than 10 minutes)
-                    if (timeToExpiry.Value.TotalMinutes > 10)
+                    // If token has plenty of time left (more than refresh threshold), skip refresh
+                    if (minutesRemaining > REFRESH_THRESHOLD_MINUTES)
                     {
-                        _logger.LogDebug("Token still has {Minutes:F1} minutes, skipping refresh", timeToExpiry.Value.TotalMinutes);
+                        _logger.LogDebug("Token still has {Minutes:F1} minutes, skipping refresh (threshold: {Threshold} min)", 
+                            minutesRemaining, REFRESH_THRESHOLD_MINUTES);
                         _consecutiveFailures = 0; // Reset failure counter on successful check
                         return;
                     }
 
-                    _logger.LogInformation("Token will expire in {Minutes:F1} minutes, attempting refresh", timeToExpiry.Value.TotalMinutes);
+                    // If token is getting low but not critical, attempt silent refresh
+                    if (minutesRemaining > WARNING_THRESHOLD_MINUTES)
+                    {
+                        _logger.LogInformation("Token will expire in {Minutes:F1} minutes, attempting proactive refresh", minutesRemaining);
+                    }
+                    else
+                    {
+                        // Token is in critical range, notify UI
+                        _logger.LogWarning("Token will expire in {Minutes:F1} minutes (critical threshold), attempting urgent refresh", minutesRemaining);
+                        OnSessionWarning?.Invoke((int)Math.Ceiling(minutesRemaining));
+                    }
                 }
 
                 // Attempt refresh with retry logic

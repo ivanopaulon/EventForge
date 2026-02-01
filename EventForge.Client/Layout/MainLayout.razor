@@ -115,6 +115,7 @@
         // Subscribe to session keepalive events
         SessionKeepaliveService.OnRefreshSuccess += OnSessionRefreshSuccess;
         SessionKeepaliveService.OnRefreshFailure += OnSessionRefreshFailure;
+        SessionKeepaliveService.OnSessionWarning += OnSessionWarning; // NUOVO
         
         await ThemeService.InitializeAsync();
         await FontPreferencesService.InitializeAsync();
@@ -378,6 +379,29 @@
         });
     }
 
+    private void OnSessionWarning(int minutesRemaining)
+    {
+        Logger.LogInformation("Session warning: {Minutes} minutes remaining", minutesRemaining);
+        
+        InvokeAsync(() =>
+        {
+            // Mostra un avviso discreto solo se veramente critico (< 10 minuti)
+            if (minutesRemaining < 10)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("session.expiringWarning", 
+                        $"La sessione scadrà tra {minutesRemaining} minuti. Il rinnovo è in corso..."),
+                    Severity.Warning,
+                    config =>
+                    {
+                        config.VisibleStateDuration = 5000;
+                        config.ShowCloseIcon = true;
+                    }
+                );
+            }
+        });
+    }
+
     public void Dispose()
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
@@ -387,6 +411,7 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
         SessionKeepaliveService.OnRefreshSuccess -= OnSessionRefreshSuccess;
         SessionKeepaliveService.OnRefreshFailure -= OnSessionRefreshFailure;
+        SessionKeepaliveService.OnSessionWarning -= OnSessionWarning; // NUOVO
         
         // Ensure the keepalive service is stopped when the layout is disposed
         SessionKeepaliveService.Stop();

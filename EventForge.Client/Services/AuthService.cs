@@ -363,7 +363,7 @@ namespace EventForge.Client.Services
                     var jwtToken = tokenHandler.ReadJwtToken(currentToken);
                     var timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
 
-                    if (timeToExpiry.TotalMinutes > 10)
+                    if (timeToExpiry.TotalMinutes > 20)
                     {
                         _logger.LogInformation("Token still has {Minutes} minutes validity, skipping refresh", timeToExpiry.TotalMinutes);
                         return true; // Token still valid, no need to refresh
