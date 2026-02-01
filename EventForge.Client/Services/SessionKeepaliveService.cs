@@ -42,7 +42,7 @@ namespace EventForge.Client.Services
     {
         private const int KEEPALIVE_INTERVAL_MINUTES = 3;
         private const int REFRESH_THRESHOLD_MINUTES = 30; // Refresh when 30 minutes remain instead of 10
-        private const int WARNING_THRESHOLD_MINUTES = 15; // Show warning only below 15 minutes
+        private const int WARNING_THRESHOLD_MINUTES = 15; // Trigger urgent refresh below 15 minutes (UI shows warning only at < 10 min)
         private const int MAX_RETRIES = 3;
         private const int INITIAL_RETRY_DELAY_MS = 1000; // 1 second
 
