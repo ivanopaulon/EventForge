@@ -1,4 +1,6 @@
 using EventForge.Client.Services;
+using EventForge.Client.Shared.Components.Common;
+using EventForge.Client.Shared.Components.Dialogs.Business;
 using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.Components;
@@ -16,6 +18,8 @@ namespace EventForge.Client.Shared.Components.Business
         [Inject] private IBusinessPartyService BusinessPartyService { get; set; } = null!;
         [Inject] private ITranslationService TranslationService { get; set; } = null!;
         [Inject] private ILogger<UnifiedBusinessPartySelector> Logger { get; set; } = null!;
+        [Inject] private IDialogService DialogService { get; set; } = null!;
+        [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
         #region Parameters - Appearance
 
@@ -66,10 +70,36 @@ namespace EventForge.Client.Shared.Components.Business
 
         #endregion
 
+        #region Parameters - Behavior Modes
+
+        /// <summary>
+        /// Defines how editing should be handled
+        /// </summary>
+        [Parameter] public EntityEditMode EditMode { get; set; } = EntityEditMode.None;
+
+        /// <summary>
+        /// Defines how creation should be handled
+        /// </summary>
+        [Parameter] public EntityCreateMode CreateMode { get; set; } = EntityCreateMode.None;
+
+        /// <summary>
+        /// Defines what information to display
+        /// </summary>
+        [Parameter] public EntityDisplayMode DisplayMode { get; set; } = EntityDisplayMode.All;
+
+        /// <summary>
+        /// Preferred business party type for quick create
+        /// </summary>
+        [Parameter] public BusinessPartyType? PreferredCreateType { get; set; }
+
+        #endregion
+
         #region Parameters - Events
 
         [Parameter] public EventCallback<BusinessPartyDto> OnEdit { get; set; }
         [Parameter] public EventCallback<BusinessPartyGroupDto> OnGroupClick { get; set; }
+        [Parameter] public EventCallback<BusinessPartyDto> OnBusinessPartyCreated { get; set; }
+        [Parameter] public EventCallback<BusinessPartyDto> OnBusinessPartyUpdated { get; set; }
 
         #endregion
 
@@ -335,6 +365,135 @@ namespace EventForge.Client.Shared.Components.Business
                 return Enumerable.Empty<BusinessPartyGroupDto>();
 
             return bp.Groups.OrderByDescending(g => g.Priority);
+        }
+
+        #endregion
+
+        #region Dialog Methods
+
+        /// <summary>
+        /// Open quick create dialog
+        /// </summary>
+        private async Task OpenQuickCreateDialog()
+        {
+            var parameters = new DialogParameters
+            {
+                ["PreferredPartyType"] = PreferredCreateType ?? FilterByType
+            };
+
+            var dialog = await DialogService.ShowAsync<QuickCreateBusinessPartyDialog>(
+                "Creazione Rapida Partner",
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is BusinessPartyDto createdParty)
+            {
+                SelectedBusinessParty = createdParty;
+                await SelectedBusinessPartyChanged.InvokeAsync(createdParty);
+                await OnBusinessPartyCreated.InvokeAsync(createdParty);
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("business.partnerCreatedAndSelected", "Partner '{0}' creato e selezionato", createdParty.Name),
+                    Severity.Success
+                );
+            }
+        }
+
+        /// <summary>
+        /// Open quick edit dialog
+        /// </summary>
+        private async Task OpenQuickEditDialog()
+        {
+            if (SelectedBusinessParty == null) return;
+
+            var parameters = new DialogParameters
+            {
+                ["BusinessPartyId"] = SelectedBusinessParty.Id,
+                ["ExistingBusinessParty"] = SelectedBusinessParty
+            };
+
+            var dialog = await DialogService.ShowAsync<QuickCreateBusinessPartyDialog>(
+                "Modifica Rapida Partner",
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is BusinessPartyDto updatedParty)
+            {
+                SelectedBusinessParty = updatedParty;
+                await SelectedBusinessPartyChanged.InvokeAsync(updatedParty);
+                await OnBusinessPartyUpdated.InvokeAsync(updatedParty);
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("business.partnerUpdated", "Partner aggiornato con successo"),
+                    Severity.Success
+                );
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods - Additional Display
+
+        /// <summary>
+        /// Get full address from business party
+        /// </summary>
+        private string? GetFullAddress(BusinessPartyDto bp)
+        {
+            // Since BusinessPartyDto doesn't have Addresses list, we'll construct from available fields
+            var parts = new List<string>();
+            
+            if (!string.IsNullOrEmpty(bp.City))
+                parts.Add(bp.City);
+                
+            if (!string.IsNullOrEmpty(bp.Province))
+                parts.Add($"({bp.Province})");
+                
+            if (!string.IsNullOrEmpty(bp.Country))
+                parts.Add(bp.Country);
+            
+            return parts.Any() ? string.Join(", ", parts) : null;
+        }
+
+        /// <summary>
+        /// Get preferred contact from business party
+        /// </summary>
+        private ContactDto? GetPreferredContact(BusinessPartyDto bp)
+        {
+            return bp.Contacts?.FirstOrDefault(c => c.IsPrimary)
+                   ?? bp.Contacts?.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Get icon for contact type
+        /// </summary>
+        private string GetContactIcon(ContactType type)
+        {
+            return type switch
+            {
+                ContactType.Email => Icons.Material.Outlined.Email,
+                ContactType.Phone => Icons.Material.Outlined.Phone,
+                ContactType.PEC => Icons.Material.Outlined.MarkEmailRead,
+                _ => Icons.Material.Outlined.ContactMail
+            };
+        }
+
+        /// <summary>
+        /// Get label for contact type
+        /// </summary>
+        private string GetContactTypeLabel(ContactType type)
+        {
+            return type switch
+            {
+                ContactType.Email => "Email",
+                ContactType.Phone => "Telefono",
+                ContactType.PEC => "PEC",
+                ContactType.Fax => "Fax",
+                _ => "Contatto"
+            };
         }
 
         #endregion
