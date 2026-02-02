@@ -3,7 +3,6 @@
 @using EventForge.DTOs.PriceLists
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Extensions
 @using MudBlazor
 @using EventForge.Client.Shared.Components.Dialogs
@@ -24,69 +23,12 @@
 @if (!_isLoading)
 {
     <div class="pricelist-page-root">
-        <div class="pricelist-top">
-            <ManagementDashboard TItem="PriceListDto"
-                                 Items="_filteredItems"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="PriceList"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
-
-        <div class="pricelist-filters">
-            <MudPaper Class="pa-3" Elevation="1">
-                <MudGrid Spacing="2">
-                    <MudItem xs="12" sm="6" md="3">
-                        <MudTextField @bind-Value="_searchTerm"
-                                      @bind-Value:after="OnSearchChanged"
-                                      Label="@TranslationService.GetTranslation("common.search", "Cerca")"
-                                      Placeholder="@TranslationService.GetTranslation("pricelist.searchPlaceholder", "Nome, codice...")"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.End"
-                                      AdornmentIcon="@Icons.Material.Outlined.Search"
-                                      Clearable="true"
-                                      Dense="true"
-                                      Class="ef-input" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="2">
-                        <MudSelect @bind-Value="_typeFilter"
-                                   @bind-Value:after="OnFilterChanged"
-                                   Label="@TranslationService.GetTranslation("pricelist.type", "Tipo")"
-                                   Variant="Variant.Outlined"
-                                   Dense="true">
-                            <MudSelectItem Value="@((PriceListType?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
-                            <MudSelectItem Value="@PriceListType.Sales">@TranslationService.GetTranslation("pricelist.type.sales", "Vendita")</MudSelectItem>
-                            <MudSelectItem Value="@PriceListType.Purchase">@TranslationService.GetTranslation("pricelist.type.purchase", "Acquisto")</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="2">
-                        <MudSelect @bind-Value="_statusFilter"
-                                   @bind-Value:after="OnFilterChanged"
-                                   Label="@TranslationService.GetTranslation("common.status", "Stato")"
-                                   Variant="Variant.Outlined"
-                                   Dense="true">
-                            <MudSelectItem Value="@((PriceListStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
-                            <MudSelectItem Value="@PriceListStatus.Active">@TranslationService.GetTranslation("common.active", "Attivo")</MudSelectItem>
-                            <MudSelectItem Value="@PriceListStatus.Suspended">@TranslationService.GetTranslation("common.suspended", "Sospeso")</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="2">
-                        <MudSwitch @bind-Value="_onlyDefault"
-                                   @bind-Value:after="OnFilterChanged"
-                                   Label="@TranslationService.GetTranslation("pricelist.onlyDefault", "Solo Default")"
-                                   Color="Color.Primary"
-                                   Dense="true" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="2">
-                        <MudSwitch @bind-Value="_hideExpired"
-                                   @bind-Value:after="OnFilterChanged"
-                                   Label="@TranslationService.GetTranslation("pricelist.hideExpired", "Nascondi Scaduti")"
-                                   Color="Color.Primary"
-                                   Dense="true" />
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="PriceListDto"
+                      Items="_items"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -105,6 +47,20 @@
                         @TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")
                     </MudText>
                     <MudSpacer />
+                    <MudTextField @bind-Value="_searchTerm"
+                                  Placeholder="@TranslationService.GetTranslation("common.search", "Cerca...")"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  IconSize="Size.Medium"
+                                  Immediate="true"
+                                  DebounceInterval="300"
+                                  Clearable="true"
+                                  Class="mr-2"
+                                  Style="max-width: 300px;" />
+                    <MudSwitch @bind-Value="_onlyDefault"
+                               Label="@TranslationService.GetTranslation("pricelist.onlyDefault", "Solo Default")"
+                               Color="Color.Primary"
+                               Class="mr-2" />
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                StartIcon="@Icons.Material.Outlined.Add"
@@ -353,11 +309,21 @@
 
     // Filter and search state
     private string _searchTerm = string.Empty;
-    private PriceListType? _typeFilter = null;
-    private PriceListStatus? _statusFilter = null;
     private bool _onlyDefault = false;
-    private bool _hideExpired = false;
     private CancellationTokenSource? _searchDebounceCts;
+    
+    // Quick Filters
+    private List<QuickFilter<PriceListDto>> _quickFilters = new()
+    {
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i listini" },
+        new() { Id = "active", Label = "Attivi", Predicate = pl => pl.Status == PriceListStatus.Active, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Listini attivi" },
+        new() { Id = "suspended", Label = "Sospesi", Predicate = pl => pl.Status == PriceListStatus.Suspended, Color = Color.Warning, Icon = Icons.Material.Outlined.Pause, Description = "Listini sospesi" },
+        new() { Id = "default", Label = "Predefiniti", Predicate = pl => pl.IsDefault, Color = Color.Primary, Icon = Icons.Material.Outlined.Star, Description = "Listini predefiniti" },
+        new() { Id = "selling", Label = "Vendita", Predicate = pl => pl.Type == PriceListType.Sales, Color = Color.Primary, Icon = Icons.Material.Outlined.Sell, Description = "Listini di vendita" },
+        new() { Id = "purchase", Label = "Acquisto", Predicate = pl => pl.Type == PriceListType.Purchase, Color = Color.Secondary, Icon = Icons.Material.Outlined.ShoppingCart, Description = "Listini di acquisto" }
+    };
+    
+    private QuickFilter<PriceListDto>? _activeQuickFilter;
 
     // Data collections
     private List<PriceListDto> _items = new();
@@ -381,56 +347,6 @@
         new() { PropertyName = "Direction", DisplayName = "Direzione", IsVisible = false, Order = 9, IsSearchable = false },
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<PriceListDto>> _dashboardMetrics = null!;
-
-    protected override void OnInitialized()
-    {
-        // Initialize dashboard metrics with translated strings
-        _dashboardMetrics = new()
-        {
-            new()
-            {
-                Title = TranslationService.GetTranslation("pricelist.metric.total", "Totale Listini"),
-                Type = MetricType.Count,
-                Icon = Icons.Material.Outlined.PriceCheck,
-                Color = "primary",
-                Description = TranslationService.GetTranslation("pricelist.metric.totalDesc", "Numero totale di listini"),
-                Format = "N0"
-            },
-            new()
-            {
-                Title = TranslationService.GetTranslation("pricelist.metric.active", "Listini Attivi"),
-                Type = MetricType.Count,
-                Filter = p => p.Status == PriceListStatus.Active,
-                Icon = Icons.Material.Outlined.CheckCircle,
-                Color = "success",
-                Description = TranslationService.GetTranslation("pricelist.metric.activeDesc", "Listini attivi"),
-                Format = "N0"
-            },
-            new()
-            {
-                Title = TranslationService.GetTranslation("pricelist.metric.sales", "Listini Vendita"),
-                Type = MetricType.Count,
-                Filter = p => p.Type == PriceListType.Sales,
-                Icon = Icons.Material.Outlined.Sell,
-                Color = "info",
-                Description = TranslationService.GetTranslation("pricelist.metric.salesDesc", "Listini di vendita"),
-                Format = "N0"
-            },
-            new()
-            {
-                Title = TranslationService.GetTranslation("pricelist.metric.default", "Listini Default"),
-                Type = MetricType.Count,
-                Filter = p => p.IsDefault,
-                Icon = Icons.Material.Outlined.Star,
-                Color = "warning",
-                Description = TranslationService.GetTranslation("pricelist.metric.defaultDesc", "Listini predefiniti"),
-                Format = "N0"
-            }
-        };
-    }
-
     private EventCallback<HashSet<PriceListDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<PriceListDto>>(this, OnSelectedItemsChanged);
 
     /// <summary>
@@ -442,6 +358,12 @@
         {
             var filtered = _items.AsEnumerable();
 
+            // Apply Quick Filter first
+            if (_activeQuickFilter != null)
+            {
+                filtered = filtered.Where(p => _activeQuickFilter.Predicate(p));
+            }
+
             // Configurable multi-column search
             if (!string.IsNullOrEmpty(_searchTerm))
             {
@@ -451,29 +373,10 @@
                         _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)));
             }
 
-            // Type filter
-            if (_typeFilter.HasValue)
-            {
-                filtered = filtered.Where(p => p.Type == _typeFilter.Value);
-            }
-
-            // Status filter
-            if (_statusFilter.HasValue)
-            {
-                filtered = filtered.Where(p => p.Status == _statusFilter.Value);
-            }
-
             // Only default filter
             if (_onlyDefault)
             {
                 filtered = filtered.Where(p => p.IsDefault);
-            }
-
-            // Hide expired filter
-            if (_hideExpired)
-            {
-                var now = DateTime.Now;
-                filtered = filtered.Where(p => !p.ValidTo.HasValue || p.ValidTo.Value >= now);
             }
 
             return filtered;
@@ -559,15 +462,22 @@
     }
 
     /// <summary>
+    /// Handles Quick Filter selection.
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<PriceListDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    /// <summary>
     /// Clears all active filters.
     /// </summary>
     private void ClearFilters()
     {
         _searchTerm = string.Empty;
-        _typeFilter = null;
-        _statusFilter = null;
         _onlyDefault = false;
-        _hideExpired = false;
+        _activeQuickFilter = null;
         StateHasChanged();
     }
 
