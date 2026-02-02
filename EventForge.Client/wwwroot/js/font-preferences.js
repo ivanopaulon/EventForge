@@ -1,4 +1,6 @@
 // Font preferences helper functions - Multi-Context Font System
+// Supports: Noto Sans, Noto Sans Display, Noto Serif, Noto Serif Display, Noto Sans Mono
+//           Roboto, Roboto Condensed, Roboto Slab, Roboto Mono
 window.EventForge = window.EventForge || {};
 
 window.EventForge.setFontPreferences = function(bodyFont, headingsFont, monoFont, contentFont, fontSize) {
