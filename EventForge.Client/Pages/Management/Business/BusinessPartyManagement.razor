@@ -42,19 +42,31 @@
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true">
             <ToolBarContent>
+                <!-- SECTION 1: Title -->
                 <MudText Typo="Typo.h5">
                     @GetPageTitle()
                 </MudText>
                 <MudSpacer />
                 
-                <!-- Filter Dropdown -->
+                <!-- SECTION 2: Search -->
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("businessparty.search", "Cerca")"
+                              Placeholder="@TranslationService.GetTranslation("businessparty.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                
+                <!-- SECTION 3: Inline Filters (1 filter - compliant) -->
                 <MudSelect @bind-Value="_selectedFilter"
                            Label="@TranslationService.GetTranslation("businessparty.filterByType", "Filtra per tipo")"
                            Variant="Variant.Outlined"
                            Dense="true"
                            Margin="Margin.Dense"
-                           Class="filter-select"
-                           Style="min-width: 200px; margin-right: 12px;">
+                           Class="filter-select ml-2"
+                           Style="min-width: 200px;">
                     <MudSelectItem Value="@((BusinessPartyType?)null)">
                         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                             <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Small" />
@@ -81,15 +93,7 @@
                     </MudSelectItem>
                 </MudSelect>
                 
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("businessparty.search", "Cerca")"
-                              Placeholder="@TranslationService.GetTranslation("businessparty.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
+                <!-- SECTION 4: Toolbar Actions -->
                 <ManagementTableToolbar ShowSelectionBadge="true"
                                         SelectedCount="@_selectedBusinessParties.Count"
                                         ShowRefresh="true"
