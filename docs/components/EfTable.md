@@ -551,20 +551,114 @@ private async Task HandleExport(string format)
 - `SelectedItemsChanged` event for reactivity
 - Actions can require selection via `RequiresSelection`
 
+## Standard Toolbar Structure
+
+For management pages in EventForge, we follow a **standardized 4-section toolbar pattern** to ensure consistency across all pages.
+
+### 4-Section Toolbar Layout
+
+All management pages MUST structure their custom toolbar (`ToolBarContent`) in exactly 4 sections:
+
+```razor
+<ToolBarContent>
+    <!-- SECTION 1: Title -->
+    <MudText Typo="Typo.h5">
+        @TranslationService.GetTranslation("[entity].[titleKey]", "Default Title")
+    </MudText>
+    <MudSpacer />
+    
+    <!-- SECTION 2: Search (if enabled) -->
+    <MudTextField @bind-Value="_searchTerm"
+                  @bind-Value:after="OnSearchChanged"
+                  Label="@TranslationService.GetTranslation("[entity].search", "Search...")"
+                  Placeholder="@TranslationService.GetTranslation("[entity].searchPlaceholder", "Enter...")"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                  Clearable="true"
+                  Class="ef-input" />
+    
+    <!-- SECTION 3: Inline Filters (MAX 2-3) -->
+    <MudSwitch @bind-Value="_showOnlyActive"
+               @bind-Value:after="OnFilterChanged"
+               Label="@TranslationService.GetTranslation("[entity].onlyActive", "Only Active")"
+               Color="Color.Primary"
+               Class="ml-2" />
+    
+    <!-- SECTION 4: Toolbar Actions -->
+    <ManagementTableToolbar ShowSelectionBadge="true"
+                            SelectedCount="@_selectedItems.Count"
+                            ShowRefresh="true"
+                            ShowCreate="true"
+                            ShowDelete="true"
+                            CreateTooltip="[entity].createNew"
+                            IsDisabled="_isLoadingData"
+                            OnRefresh="@LoadDataAsync"
+                            OnCreate="@CreateEntity"
+                            OnDelete="@DeleteSelectedEntities" />
+</ToolBarContent>
+```
+
+### Section Guidelines
+
+#### Section 1: Title
+- Use `MudText` with `Typo="Typo.h5"`
+- Always use `TranslationService.GetTranslation()` 
+- Follow with `<MudSpacer />` to push content right
+
+#### Section 2: Search (Optional)
+- Use class `ef-input` for consistent styling
+- Use `Variant="Outlined"` for consistency
+- Include `Clearable="true"` for better UX
+- Bind to `OnSearchChanged` with debounce
+
+#### Section 3: Inline Filters
+- **MAXIMUM 2-3 filters** in toolbar
+- Allowed: `MudSwitch` (boolean toggles), `MudSelect` (simple dropdowns)
+- NOT allowed: Date pickers, multiple text inputs, complex controls
+- Use `Class="ml-2"` for consistent spacing
+
+#### Section 4: Toolbar Actions
+- Always use `ManagementTableToolbar` component
+- Standard parameters for consistency
+- Bind to loading state and event handlers
+
+### Complete Management Page Example
+
+See **WarehouseManagement.razor** for the gold standard implementation:
+```
+EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor
+```
+
+Key features:
+- Standard 4-section toolbar layout
+- Exactly 2 inline filters (fiscal/refrigerated switches)
+- ManagementDashboard integration
+- Proper naming conventions
+- All text translated
+
+### Additional Documentation
+
+For the complete standardization guide including HTML structure, code-behind patterns, CSS classes, and migration checklist, see:
+- **[EFTable Standard Pattern Guide](/docs/EFTABLE_STANDARD_PATTERN.md)** - Comprehensive standardization documentation
+
 ## Reference Implementation
 
-See **VatRateManagement.razor** for a complete real-world example:
+See **VatRateManagement.razor** and **WarehouseManagement.razor** for complete real-world examples:
 ```
 EventForge.Client/Pages/Management/Financial/VatRateManagement.razor
+EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor
 ```
 
-This page demonstrates:
+These pages demonstrate:
 - Column configuration
 - Multi-selection
-- Search integration
+- Search integration with debounce
 - Custom row actions
 - Grouping
 - Dashboard integration
+- **Standard toolbar structure** (4 sections)
+- **Inline filters** (max 2-3)
 
 ## Accessibility
 

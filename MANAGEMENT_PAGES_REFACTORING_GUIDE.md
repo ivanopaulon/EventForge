@@ -3,6 +3,21 @@
 ## Overview
 This guide documents the standardization of all management pages to use the VatRateManagement.razor template structure with EFTable and ManagementDashboard components.
 
+## 📖 Comprehensive Documentation
+
+For the complete, detailed EFTable standardization pattern including:
+- Full HTML structure templates
+- Standard toolbar 4-section layout
+- Code-behind patterns and naming conventions
+- CSS classes and responsive design
+- Inline filters guidelines (max 2-3)
+- Complete working examples
+- Migration checklist
+
+**See:** [`docs/EFTABLE_STANDARD_PATTERN.md`](/docs/EFTABLE_STANDARD_PATTERN.md)
+
+This guide below provides a quick reference for the pattern.
+
 ## Completed Pages (3/11)
 - ✅ VatNatureManagement.razor
 - ✅ BrandManagement.razor
@@ -103,10 +118,13 @@ This guide documents the standardization of all management pages to use the VatR
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true">
             <ToolBarContent>
+                <!-- SECTION 1: Title -->
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("[entity].management", "Gestione [Entities]")
                 </MudText>
                 <MudSpacer />
+                
+                <!-- SECTION 2: Search (if enabled) -->
                 <MudTextField @bind-Value="_searchTerm"
                               @bind-Value:after="OnSearchChanged"
                               Label="@TranslationService.GetTranslation("[entity].search", "Cerca [entities]")"
@@ -116,6 +134,27 @@ This guide documents the standardization of all management pages to use the VatR
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
                               Class="ef-input" />
+                
+                <!-- SECTION 3: Inline Filters (MAX 2-3, OPTIONAL) -->
+                <!-- Example: MudSwitch for boolean toggles -->
+                <!-- <MudSwitch @bind-Value="_showOnlyActive"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("[entity].onlyActive", "Solo attivi")"
+                           Color="Color.Primary"
+                           Class="ml-2" /> -->
+                
+                <!-- Example: MudSelect for dropdown filters -->
+                <!-- <MudSelect @bind-Value="_statusFilter"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("[entity].status", "Stato")"
+                           Variant="Variant.Outlined"
+                           Class="ml-2"
+                           Style="min-width: 150px;">
+                    <MudSelectItem Value="@("all")">Tutti</MudSelectItem>
+                    <MudSelectItem Value="@("active")">Attivi</MudSelectItem>
+                </MudSelect> -->
+                
+                <!-- SECTION 4: Toolbar Actions -->
                 <ManagementTableToolbar ShowSelectionBadge="true"
                                         SelectedCount="@_selected[Entities].Count"
                                         ShowRefresh="true"
