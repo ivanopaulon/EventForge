@@ -3,7 +3,8 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IAuthService AuthService
 @inject ILotService LotService
@@ -13,6 +14,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<LotManagement> Logger
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")</PageTitle>
 <PageLoadingOverlay Visible="_isLoading || _isLoadingLots"
@@ -21,14 +23,12 @@
 @if (!_isLoading)
 {
     <div class="lot-page-root">
-        <div class="lot-top">
-            <ManagementDashboard TItem="LotDto"
-                                 Items="_filteredLots"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="Lot"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="LotDto"
+                      Items="_lots"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -37,10 +37,16 @@
                  MultiSelection="true"
                  SelectedItems="_selectedLots"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
+                 OnRowClick="@HandleRowClick"
                  IsLoading="_isLoadingLots"
                  ComponentKey="LotManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="Lotti"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_lots.Count">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")
@@ -304,74 +310,118 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Code", DisplayName = "Codice Lotto", IsVisible = true, Order = 0 },
-        new() { PropertyName = "ProductName", DisplayName = "Prodotto", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2 },
-        new() { PropertyName = "QualityStatus", DisplayName = "Qualità", IsVisible = true, Order = 3 },
-        new() { PropertyName = "AvailableQuantity", DisplayName = "Disponibile", IsVisible = true, Order = 4 },
-        new() { PropertyName = "ExpiryDate", DisplayName = "Data Scadenza", IsVisible = true, Order = 5 }
+        new() { PropertyName = "Code", DisplayName = "Codice Lotto", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "ProductName", DisplayName = "Prodotto", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "QualityStatus", DisplayName = "Qualità", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "AvailableQuantity", DisplayName = "Disponibile", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "ExpiryDate", DisplayName = "Data Scadenza", IsVisible = true, Order = 5, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<LotDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<LotDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Lotti",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.QrCode,
-            Color = "primary",
-            Description = "Numero totale di lotti",
-            Format = "N0"
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i lotti"
         },
-        new()
-        {
-            Title = "Attivi",
-            Type = MetricType.Count,
-            Filter = l => l.IsActive && l.Status == "Active",
+        new() 
+        { 
+            Id = "active", 
+            Label = "Attivi",
+            Predicate = l => l.Status == "Active",
+            Color = Color.Success,
             Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "success",
-            Description = "Lotti attivi",
-            Format = "N0"
+            Description = "Lotti attivi"
         },
-        new()
-        {
-            Title = "Scaduti",
-            Type = MetricType.Count,
-            Filter = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value < DateTime.Now,
-            Icon = Icons.Material.Outlined.ErrorOutline,
-            Color = "error",
-            Description = "Lotti scaduti",
-            Format = "N0"
+        new() 
+        { 
+            Id = "blocked", 
+            Label = "Bloccati",
+            Predicate = l => l.Status == "Blocked",
+            Color = Color.Warning,
+            Icon = Icons.Material.Outlined.Block,
+            Description = "Lotti bloccati"
         },
-        new()
-        {
-            Title = "In Scadenza",
-            Type = MetricType.Count,
-            Filter = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value >= DateTime.Now && l.ExpiryDate.Value <= DateTime.Now.AddDays(30),
+        new() 
+        { 
+            Id = "expired", 
+            Label = "Scaduti",
+            Predicate = l => l.Status == "Expired",
+            Color = Color.Error,
+            Icon = Icons.Material.Outlined.EventBusy,
+            Description = "Lotti scaduti"
+        },
+        new() 
+        { 
+            Id = "recalled", 
+            Label = "Richiamati",
+            Predicate = l => l.Status == "Recalled",
+            Color = Color.Error,
+            Icon = Icons.Material.Outlined.NotificationImportant,
+            Description = "Lotti richiamati"
+        },
+        new() 
+        { 
+            Id = "expiring_soon", 
+            Label = "In Scadenza",
+            Predicate = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= DateTime.UtcNow.AddDays(30) && l.ExpiryDate.Value > DateTime.UtcNow,
+            Color = Color.Warning,
             Icon = Icons.Material.Outlined.Warning,
-            Color = "warning",
-            Description = "Lotti in scadenza nei prossimi 30 giorni",
-            Format = "N0"
+            Description = "Lotti in scadenza entro 30 giorni"
         }
     };
+    
+    private QuickFilter<LotDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<LotDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<LotDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<LotDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered lots based on search criteria.
     /// </summary>
     private IEnumerable<LotDto> _filteredLots => 
-        _lots.Where(l => 
-            // Search filter: check code, product name, and barcode
-            (string.IsNullOrEmpty(_searchText) || 
-             l.Code.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
-             (l.ProductName != null && l.ProductName.Contains(_searchText, StringComparison.OrdinalIgnoreCase)) ||
-             (l.Barcode != null && l.Barcode.Contains(_searchText, StringComparison.OrdinalIgnoreCase))) &&
-            // Status filter
-            (string.IsNullOrEmpty(_selectedStatus) || l.Status == _selectedStatus) &&
-            // Quality status filter
-            (string.IsNullOrEmpty(_selectedQualityStatus) || l.QualityStatus == _selectedQualityStatus));
+        _lots.Where(l => FilterLot(l));
+
+    /// <summary>
+    /// Filters a lot based on all active filters
+    /// </summary>
+    private bool FilterLot(LotDto lot)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(lot))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!lot.MatchesSearchInColumns(
+            _searchText,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        // Status filter (inline filter for compatibility)
+        if (!string.IsNullOrEmpty(_selectedStatus) && lot.Status != _selectedStatus)
+            return false;
+
+        // Quality status filter (inline filter for compatibility)
+        if (!string.IsNullOrEmpty(_selectedQualityStatus) && lot.QualityStatus != _selectedQualityStatus)
+            return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -380,6 +430,22 @@
     {
         _selectedLots = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to lot detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<LotDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/warehouse/lots/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/warehouse/lots/{args.Item.Id}");
     }
 
     /// <summary>
@@ -443,6 +509,7 @@
     private void ClearFilters()
     {
         _searchText = string.Empty;
+        _activeQuickFilter = null;
         _selectedStatus = null;
         _selectedQualityStatus = null;
         StateHasChanged();
@@ -546,4 +613,15 @@
         "OnHold" => Color.Info,
         _ => Color.Default
     };
+
+    /// <summary>
+    /// Checks if any filters are currently active
+    /// </summary>
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchText)
+            || _activeQuickFilter != null
+            || !string.IsNullOrEmpty(_selectedStatus)
+            || !string.IsNullOrEmpty(_selectedQualityStatus);
+    }
 }

@@ -292,7 +292,7 @@
         { 
             Id = "stock_increase", 
             Label = "Aumento Stock",
-            Predicate = d => d.IsStockIncrease && d.StockImpact > 0,
+            Predicate = d => d.IsStockIncrease,
             Color = Color.Success,
             Icon = Icons.Material.Outlined.TrendingUp,
             Description = "Tipi con movimento di carico"
@@ -301,18 +301,10 @@
         { 
             Id = "stock_decrease", 
             Label = "Riduzione Stock",
-            Predicate = d => !d.IsStockIncrease && d.StockImpact < 0,
+            Predicate = d => !d.IsStockIncrease,
             Color = Color.Error,
             Icon = Icons.Material.Outlined.TrendingDown,
             Description = "Tipi con movimento di scarico"
-        },
-        new() 
-        { 
-            Id = "no_stock_impact", 
-            Label = "Senza Stock",
-            Predicate = d => d.StockImpact == 0,
-            Color = Color.Default,
-            Description = "Tipi senza impatto su stock"
         },
         new() 
         { 
