@@ -465,6 +465,18 @@
                     _groupByProperties = new List<string>(_preferences.GroupByProperties);
                 }
 
+                // Apply searchability
+                if (_preferences.ColumnSearchability != null && _preferences.ColumnSearchability.Any())
+                {
+                    foreach (var col in _columnConfigurations)
+                    {
+                        if (_preferences.ColumnSearchability.TryGetValue(col.PropertyName, out var isSearchable))
+                        {
+                            col.IsSearchable = isSearchable;
+                        }
+                    }
+                }
+
                 Logger.LogDebug("Loaded table preferences for {ComponentKey}", ComponentKey);
             }
         }
@@ -482,7 +494,8 @@
             {
                 ColumnOrders = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.Order),
                 ColumnVisibility = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.IsVisible),
-                GroupByProperties = new List<string>(_groupByProperties)
+                GroupByProperties = new List<string>(_groupByProperties),
+                ColumnSearchability = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.IsSearchable)
             };
 
             await TablePreferencesService.SavePreferencesAsync(ComponentKey, preferences);
@@ -506,7 +519,8 @@
                 PropertyName = c.PropertyName,
                 DisplayName = c.DisplayName,
                 IsVisible = c.IsVisible,
-                Order = c.Order
+                Order = c.Order,
+                IsSearchable = c.IsSearchable
             }).ToList();
             
             _groupByProperties = new List<string>(GroupByProperties);

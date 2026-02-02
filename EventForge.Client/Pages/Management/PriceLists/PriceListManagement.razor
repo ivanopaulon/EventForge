@@ -4,6 +4,8 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
+@using MudBlazor
 @using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IPriceListService PriceListService
@@ -13,6 +15,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@inject IJSRuntime JSRuntime
 @inject ILogger<PriceListManagement> Logger
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingData"
@@ -96,7 +99,7 @@
                      ComponentKey="PriceListManagement"
                      InitialColumnConfigurations="_initialColumns"
                      AllowDragDropGrouping="true"
-                     OnRowClick="@(args => NavigationManager.NavigateTo($"/management/pricelists/{args.Item.Id}"))">
+                     OnRowClick="@HandleRowClick">
                 <ToolBarContent>
                     <MudText Typo="Typo.h5">
                         @TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")
@@ -366,16 +369,16 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Type", DisplayName = "Tipo", IsVisible = true, Order = 2 },
-        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3 },
-        new() { PropertyName = "Priority", DisplayName = "Priorità", IsVisible = true, Order = 4 },
-        new() { PropertyName = "ValidFrom", DisplayName = "Valido Da", IsVisible = true, Order = 5 },
-        new() { PropertyName = "ValidTo", DisplayName = "Valido Fino", IsVisible = true, Order = 6 },
-        new() { PropertyName = "EntryCount", DisplayName = "Prodotti", IsVisible = true, Order = 7 },
-        new() { PropertyName = "IsDefault", DisplayName = "Default", IsVisible = false, Order = 8 },
-        new() { PropertyName = "Direction", DisplayName = "Direzione", IsVisible = false, Order = 9 },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Type", DisplayName = "Tipo", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "Priority", DisplayName = "Priorità", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "ValidFrom", DisplayName = "Valido Da", IsVisible = true, Order = 5, IsSearchable = false },
+        new() { PropertyName = "ValidTo", DisplayName = "Valido Fino", IsVisible = true, Order = 6, IsSearchable = false },
+        new() { PropertyName = "EntryCount", DisplayName = "Prodotti", IsVisible = true, Order = 7, IsSearchable = false },
+        new() { PropertyName = "IsDefault", DisplayName = "Default", IsVisible = false, Order = 8, IsSearchable = false },
+        new() { PropertyName = "Direction", DisplayName = "Direzione", IsVisible = false, Order = 9, IsSearchable = false },
     };
 
     // Dashboard configuration
@@ -439,12 +442,13 @@
         {
             var filtered = _items.AsEnumerable();
 
-            // Search filter
+            // Configurable multi-column search
             if (!string.IsNullOrEmpty(_searchTerm))
             {
                 filtered = filtered.Where(p =>
-                    p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    (p.Code != null && p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+                    p.MatchesSearchInColumns(
+                        _searchTerm,
+                        _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)));
             }
 
             // Type filter
@@ -483,6 +487,22 @@
     {
         _selectedItems = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to price list detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<PriceListDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/management/pricelists/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/management/pricelists/{args.Item.Id}");
     }
 
     /// <summary>

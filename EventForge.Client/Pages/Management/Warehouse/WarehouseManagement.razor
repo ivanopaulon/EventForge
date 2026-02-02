@@ -4,6 +4,8 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IWarehouseService WarehouseService
@@ -13,6 +15,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<WarehouseManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingFacilities"
                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -39,7 +42,8 @@
                  IsLoading="_isLoadingFacilities"
                  ComponentKey="WarehouseManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("warehouse.facilityManagement", "Gestione Magazzini")
@@ -252,12 +256,12 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Address", DisplayName = "Indirizzo", IsVisible = true, Order = 2 },
-        new() { PropertyName = "TotalLocations", DisplayName = "Ubicazioni", IsVisible = true, Order = 3 },
-        new() { PropertyName = "Properties", DisplayName = "Proprietà", IsVisible = true, Order = 4 },
-        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Address", DisplayName = "Indirizzo", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "TotalLocations", DisplayName = "Ubicazioni", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "Properties", DisplayName = "Proprietà", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5, IsSearchable = false }
     };
 
     // Dashboard configuration
@@ -310,16 +314,29 @@
     /// Computed property for filtered storage facilities based on search criteria.
     /// </summary>
     private IEnumerable<StorageFacilityDto> _filteredFacilities => 
-        _storageFacilities.Where(f => 
-            // Search filter: check name, code, and address
-            (string.IsNullOrEmpty(_searchTerm) || 
-             f.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             f.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             (f.Address != null && f.Address.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
-            // Fiscal filter
-            (!_showOnlyFiscal || f.IsFiscal) &&
-            // Refrigerated filter
-            (!_showOnlyRefrigerated || f.IsRefrigerated));
+        _storageFacilities.Where(f => FilterFacility(f));
+
+    /// <summary>
+    /// Filters a facility based on search term and other criteria
+    /// </summary>
+    private bool FilterFacility(StorageFacilityDto facility)
+    {
+        // Configurable multi-column search
+        if (!facility.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        // Fiscal filter
+        if (_showOnlyFiscal && !facility.IsFiscal)
+            return false;
+
+        // Refrigerated filter
+        if (_showOnlyRefrigerated && !facility.IsRefrigerated)
+            return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -328,6 +345,22 @@
     {
         _selectedFacilities = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to facility detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<StorageFacilityDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/warehouse/facilities/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/warehouse/facilities/{args.Item.Id}");
     }
 
     /// <summary>

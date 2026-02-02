@@ -591,3 +591,22 @@ kbd {
 }
 
 /* Desktop (>= 960px) - default styles already applied above */
+
+/* ========================================
+   EFTable Row Click Styles
+   ======================================== */
+
+/* Cursor pointer on clickable rows */
+.eftable-wrapper .mud-table-row {
+    cursor: pointer;
+}
+
+/* Do NOT show pointer on action cells (last column typically) */
+.eftable-wrapper .mud-table-row td:last-child {
+    cursor: default;
+}
+
+/* Enhanced hover feedback for clickable rows */
+.eftable-wrapper .mud-table-row:hover {
+    background-color: var(--mud-palette-action-default-hover) !important;
+}

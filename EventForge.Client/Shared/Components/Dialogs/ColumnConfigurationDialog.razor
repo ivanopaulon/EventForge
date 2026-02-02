@@ -70,9 +70,17 @@
                 {
                     <MudPaper Elevation="1" Class="pa-2 mb-2">
                         <div class="d-flex align-center gap-2">
-                            <MudCheckBox @bind-Value="column.IsVisible"
-                                       Color="Color.Primary"
-                                       Dense="true" />
+                            <MudStack Row="true" Spacing="1">
+                                <MudCheckBox @bind-Value="column.IsVisible"
+                                           Color="Color.Primary"
+                                           Dense="true"
+                                           Title="@TranslationService.GetTranslation("table.columnVisible", "Visibile")" />
+                                <MudCheckBox @bind-Value="column.IsSearchable"
+                                           Color="Color.Secondary"
+                                           Dense="true"
+                                           Disabled="@(!column.IsVisible)"
+                                           Title="@TranslationService.GetTranslation("table.columnSearchable", "Ricercabile")" />
+                            </MudStack>
                             <MudText Typo="Typo.body1" Class="flex-grow-1">
                                 @column.DisplayName
                             </MudText>
@@ -93,7 +101,7 @@
 
             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                 @TranslationService.GetTranslation("table.columnConfigHelp", 
-                    "Usa le frecce per riordinare le colonne. Deseleziona per nascondere una colonna.")
+                    "Usa le frecce per riordinare le colonne. Deseleziona per nascondere una colonna. La seconda casella rende la colonna ricercabile.")
             </MudText>
         </MudStack>
     </DialogContent>
@@ -126,7 +134,8 @@
             PropertyName = c.PropertyName,
             DisplayName = c.DisplayName,
             IsVisible = c.IsVisible,
-            Order = c.Order
+            Order = c.Order,
+            IsSearchable = c.IsSearchable
         }).ToList();
 
         _selectedGroupProperties = new List<string>(GroupByProperties);

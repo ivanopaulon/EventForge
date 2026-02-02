@@ -1992,6 +1992,9 @@
     "warnings24h": "Warnings (24h)"
   },
   "table": {
+    "columnSearchable": "Searchable",
+    "columnSearchableTooltip": "This column will be included in text search",
+    "columnVisible": "Visible",
     "filterBy": "Filter by {0}",
     "loading": "Loading...",
     "noData": "No data available",
