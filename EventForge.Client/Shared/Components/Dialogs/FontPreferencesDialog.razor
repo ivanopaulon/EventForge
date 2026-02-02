@@ -8,12 +8,15 @@
         <MudStack Spacing="4">
             <!-- Preset Veloci -->
             <MudText Typo="Typo.h6">@TranslationService.GetTranslation("fontPreferences.presets", "Preset Veloci")</MudText>
+
+            <!-- Sezione Noto -->
+            <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1">@TranslationService.GetTranslation("fontPreferences.notoFamily", "Famiglia Noto")</MudText>
             <MudGrid Spacing="2">
                 <MudItem xs="12" sm="6">
                     <MudButton Variant="Variant.Outlined" 
-                               Color="@(GetPresetColor(NotoPreset.AllSans))"
+                               Color="@(GetPresetColor(FontPreset.NotoAllSans))"
                                FullWidth="true" 
-                               OnClick="@(() => ApplyPreset(NotoPreset.AllSans))"
+                               OnClick="@(() => ApplyPreset(FontPreset.NotoAllSans))"
                                StartIcon="@Icons.Material.Filled.TextFields"
                                Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
                         <MudStack Spacing="0">
@@ -28,9 +31,9 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudButton Variant="Variant.Outlined" 
-                               Color="@(GetPresetColor(NotoPreset.SerifBody))"
+                               Color="@(GetPresetColor(FontPreset.NotoSerifBody))"
                                FullWidth="true" 
-                               OnClick="@(() => ApplyPreset(NotoPreset.SerifBody))"
+                               OnClick="@(() => ApplyPreset(FontPreset.NotoSerifBody))"
                                StartIcon="@Icons.Material.Filled.MenuBook"
                                Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
                         <MudStack Spacing="0">
@@ -45,9 +48,9 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudButton Variant="Variant.Outlined" 
-                               Color="@(GetPresetColor(NotoPreset.DisplayHeadings))"
+                               Color="@(GetPresetColor(FontPreset.NotoDisplayHeadings))"
                                FullWidth="true" 
-                               OnClick="@(() => ApplyPreset(NotoPreset.DisplayHeadings))"
+                               OnClick="@(() => ApplyPreset(FontPreset.NotoDisplayHeadings))"
                                StartIcon="@Icons.Material.Filled.Title"
                                Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
                         <MudStack Spacing="0">
@@ -62,9 +65,9 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudButton Variant="Variant.Outlined" 
-                               Color="@(GetPresetColor(NotoPreset.Editorial))"
+                               Color="@(GetPresetColor(FontPreset.NotoEditorial))"
                                FullWidth="true" 
-                               OnClick="@(() => ApplyPreset(NotoPreset.Editorial))"
+                               OnClick="@(() => ApplyPreset(FontPreset.NotoEditorial))"
                                StartIcon="@Icons.Material.Filled.Article"
                                Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
                         <MudStack Spacing="0">
@@ -73,6 +76,82 @@
                             </MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("fontPreferences.preset.editorial.desc", "Elegante, mix serif")
+                            </MudText>
+                        </MudStack>
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Sezione Roboto -->
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">@TranslationService.GetTranslation("fontPreferences.robotoFamily", "Famiglia Roboto")</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="@(GetPresetColor(FontPreset.RobotoMaterialDesign))"
+                               FullWidth="true" 
+                               OnClick="@(() => ApplyPreset(FontPreset.RobotoMaterialDesign))"
+                               StartIcon="@Icons.Material.Filled.Palette"
+                               Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("fontPreferences.preset.materialDesign", "Material Design")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("fontPreferences.preset.materialDesign.desc", "Classico Google")
+                            </MudText>
+                        </MudStack>
+                    </MudButton>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="@(GetPresetColor(FontPreset.RobotoCondensed))"
+                               FullWidth="true" 
+                               OnClick="@(() => ApplyPreset(FontPreset.RobotoCondensed))"
+                               StartIcon="@Icons.Material.Filled.CompressOutlined"
+                               Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("fontPreferences.preset.condensed", "Compatto")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("fontPreferences.preset.condensed.desc", "Ottimizzato per densità")
+                            </MudText>
+                        </MudStack>
+                    </MudButton>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="@(GetPresetColor(FontPreset.RobotoEditorial))"
+                               FullWidth="true" 
+                               OnClick="@(() => ApplyPreset(FontPreset.RobotoEditorial))"
+                               StartIcon="@Icons.Material.Filled.Article"
+                               Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("fontPreferences.preset.robotoEditorial", "Editoriale Moderno")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("fontPreferences.preset.robotoEditorial.desc", "Serif moderno")
+                            </MudText>
+                        </MudStack>
+                    </MudButton>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="@(GetPresetColor(FontPreset.RobotoTech))"
+                               FullWidth="true" 
+                               OnClick="@(() => ApplyPreset(FontPreset.RobotoTech))"
+                               StartIcon="@Icons.Material.Filled.Code"
+                               Style="height: 80px; text-align: left; justify-content: flex-start; padding: 16px;">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @TranslationService.GetTranslation("fontPreferences.preset.tech", "Tech/Developer")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("fontPreferences.preset.tech.desc", "Stile tecnico")
                             </MudText>
                         </MudStack>
                     </MudButton>
@@ -91,6 +170,9 @@
                        Variant="Variant.Outlined">
                 <MudSelectItem Value="@("Noto Sans")">Noto Sans - @TranslationService.GetTranslation("fontPreferences.notoSans.desc", "Moderno, neutro")</MudSelectItem>
                 <MudSelectItem Value="@("Noto Serif")">Noto Serif - @TranslationService.GetTranslation("fontPreferences.notoSerif.desc", "Classico, leggibile")</MudSelectItem>
+                <MudSelectItem Value="@("Roboto")">Roboto - @TranslationService.GetTranslation("fontPreferences.roboto.desc", "Material Design")</MudSelectItem>
+                <MudSelectItem Value="@("Roboto Condensed")">Roboto Condensed - @TranslationService.GetTranslation("fontPreferences.robotoCondensed.desc", "Compatto")</MudSelectItem>
+                <MudSelectItem Value="@("Roboto Slab")">Roboto Slab - @TranslationService.GetTranslation("fontPreferences.robotoSlab.desc", "Serif moderno")</MudSelectItem>
             </MudSelect>
 
             <MudSelect T="string" 
@@ -102,14 +184,19 @@
                 <MudSelectItem Value="@("Noto Sans Display")">Noto Sans Display (@TranslationService.GetTranslation("fontPreferences.recommended", "Consigliato"))</MudSelectItem>
                 <MudSelectItem Value="@("Noto Serif")">Noto Serif</MudSelectItem>
                 <MudSelectItem Value="@("Noto Serif Display")">Noto Serif Display</MudSelectItem>
+                <MudSelectItem Value="@("Roboto")">Roboto</MudSelectItem>
+                <MudSelectItem Value="@("Roboto Condensed")">Roboto Condensed</MudSelectItem>
+                <MudSelectItem Value="@("Roboto Slab")">Roboto Slab</MudSelectItem>
             </MudSelect>
 
-            <MudTextField T="string" 
-                          Value="@_preferences.MonospaceFont"
-                          Label="@TranslationService.GetTranslation("fontPreferences.monoFont", "Font per Codice")"
-                          HelperText="@TranslationService.GetTranslation("fontPreferences.monoFont.help", "Unica opzione monospace")"
-                          Variant="Variant.Outlined"
-                          ReadOnly="true" />
+            <MudSelect T="string" 
+                       @bind-Value="_preferences.MonospaceFont"
+                       Label="@TranslationService.GetTranslation("fontPreferences.monoFont", "Font per Codice")"
+                       HelperText="@TranslationService.GetTranslation("fontPreferences.monoFont.help", "Font monospace per codice e log")"
+                       Variant="Variant.Outlined">
+                <MudSelectItem Value="@("Noto Sans Mono")">Noto Sans Mono</MudSelectItem>
+                <MudSelectItem Value="@("Roboto Mono")">Roboto Mono</MudSelectItem>
+            </MudSelect>
 
             <MudSlider @bind-Value="_preferences.BaseFontSize" 
                        Min="12" 
@@ -229,7 +316,7 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
 
     private UserDisplayPreferencesDto _preferences = new();
-    private NotoPreset? _currentPreset = null;
+    private FontPreset? _currentPreset = null;
 
     // Sample data for table preview
     private List<SampleDataItem> _sampleData = new()
@@ -239,12 +326,19 @@
         new SampleDataItem { Name = "Workshop", Type = "Formazione", Status = "Pianificato" }
     };
 
-    private enum NotoPreset
+    private enum FontPreset
     {
-        AllSans,
-        SerifBody,
-        DisplayHeadings,
-        Editorial
+        // Noto Presets
+        NotoAllSans,
+        NotoSerifBody,
+        NotoDisplayHeadings,
+        NotoEditorial,
+        
+        // Roboto Presets
+        RobotoMaterialDesign,
+        RobotoCondensed,
+        RobotoEditorial,
+        RobotoTech
     }
 
     private class SampleDataItem
@@ -268,41 +362,75 @@
         };
     }
 
-    private void ApplyPreset(NotoPreset preset)
+    private void ApplyPreset(FontPreset preset)
     {
         _currentPreset = preset;
         
         switch (preset)
         {
-            case NotoPreset.AllSans:
+            // Noto Presets
+            case FontPreset.NotoAllSans:
                 _preferences.BodyFont = "Noto Sans";
                 _preferences.HeadingsFont = "Noto Sans";
                 _preferences.ContentFont = "Noto Serif";
+                _preferences.MonospaceFont = "Noto Sans Mono";
                 break;
                 
-            case NotoPreset.SerifBody:
+            case FontPreset.NotoSerifBody:
                 _preferences.BodyFont = "Noto Serif";
                 _preferences.HeadingsFont = "Noto Sans";
                 _preferences.ContentFont = "Noto Serif";
+                _preferences.MonospaceFont = "Noto Sans Mono";
                 break;
                 
-            case NotoPreset.DisplayHeadings:
+            case FontPreset.NotoDisplayHeadings:
                 _preferences.BodyFont = "Noto Sans";
                 _preferences.HeadingsFont = "Noto Sans Display";
                 _preferences.ContentFont = "Noto Serif";
+                _preferences.MonospaceFont = "Noto Sans Mono";
                 break;
                 
-            case NotoPreset.Editorial:
+            case FontPreset.NotoEditorial:
                 _preferences.BodyFont = "Noto Serif";
                 _preferences.HeadingsFont = "Noto Serif Display";
                 _preferences.ContentFont = "Noto Serif";
+                _preferences.MonospaceFont = "Noto Sans Mono";
+                break;
+                
+            // Roboto Presets
+            case FontPreset.RobotoMaterialDesign:
+                _preferences.BodyFont = "Roboto";
+                _preferences.HeadingsFont = "Roboto";
+                _preferences.ContentFont = "Roboto Slab";
+                _preferences.MonospaceFont = "Roboto Mono";
+                break;
+                
+            case FontPreset.RobotoCondensed:
+                _preferences.BodyFont = "Roboto";
+                _preferences.HeadingsFont = "Roboto Condensed";
+                _preferences.ContentFont = "Roboto";
+                _preferences.MonospaceFont = "Roboto Mono";
+                break;
+                
+            case FontPreset.RobotoEditorial:
+                _preferences.BodyFont = "Roboto";
+                _preferences.HeadingsFont = "Roboto Slab";
+                _preferences.ContentFont = "Roboto Slab";
+                _preferences.MonospaceFont = "Roboto Mono";
+                break;
+                
+            case FontPreset.RobotoTech:
+                _preferences.BodyFont = "Roboto Condensed";
+                _preferences.HeadingsFont = "Roboto Condensed";
+                _preferences.ContentFont = "Roboto Mono";
+                _preferences.MonospaceFont = "Roboto Mono";
                 break;
         }
         
         StateHasChanged();
     }
 
-    private Color GetPresetColor(NotoPreset preset)
+    private Color GetPresetColor(FontPreset preset)
     {
         return _currentPreset == preset ? Color.Primary : Color.Default;
     }
@@ -330,11 +458,20 @@
     {
         return fontName switch
         {
+            // Noto family
             "Noto Sans" => "'Noto Sans', sans-serif",
             "Noto Sans Display" => "'Noto Sans Display', sans-serif",
             "Noto Serif" => "'Noto Serif', serif",
             "Noto Serif Display" => "'Noto Serif Display', serif",
             "Noto Sans Mono" => "'Noto Sans Mono', monospace",
+            
+            // Roboto family
+            "Roboto" => "'Roboto', sans-serif",
+            "Roboto Condensed" => "'Roboto Condensed', sans-serif",
+            "Roboto Slab" => "'Roboto Slab', serif",
+            "Roboto Mono" => "'Roboto Mono', monospace",
+            
+            // Default fallback
             _ => "'Noto Sans', sans-serif"
         };
     }
