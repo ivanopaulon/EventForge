@@ -5,6 +5,8 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IBusinessPartyService BusinessPartyService
@@ -14,6 +16,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingBusinessParties"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -40,7 +43,8 @@
                  IsLoading="_isLoadingBusinessParties"
                  ComponentKey="BusinessPartyManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <!-- SECTION 1: Title -->
                 <MudText Typo="Typo.h5">
@@ -338,14 +342,14 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "VatNumber", DisplayName = "P.IVA", IsVisible = true, Order = 1 },
-        new() { PropertyName = "TaxCode", DisplayName = "C.F.", IsVisible = true, Order = 2 },
-        new() { PropertyName = "Groups", DisplayName = "Gruppi", IsVisible = true, Order = 3 },
-        new() { PropertyName = "City", DisplayName = "Località", IsVisible = true, Order = 4 },
-        new() { PropertyName = "Province", DisplayName = "Provincia", IsVisible = true, Order = 5 },
-        new() { PropertyName = "Country", DisplayName = "Nazione", IsVisible = true, Order = 6 },
-        new() { PropertyName = "Contacts", DisplayName = "Contatti", IsVisible = true, Order = 7 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "VatNumber", DisplayName = "P.IVA", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "TaxCode", DisplayName = "C.F.", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "Groups", DisplayName = "Gruppi", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "City", DisplayName = "Località", IsVisible = true, Order = 4, IsSearchable = true },
+        new() { PropertyName = "Province", DisplayName = "Provincia", IsVisible = true, Order = 5, IsSearchable = true },
+        new() { PropertyName = "Country", DisplayName = "Nazione", IsVisible = true, Order = 6, IsSearchable = false },
+        new() { PropertyName = "Contacts", DisplayName = "Contatti", IsVisible = true, Order = 7, IsSearchable = false }
     };
 
     // Dashboard configuration with dynamic metrics
@@ -413,13 +417,13 @@
         {
             var filtered = _allBusinessParties.AsEnumerable();
             
-            // Apply text search filter
+            // Apply configurable multi-column search
             if (!string.IsNullOrWhiteSpace(_searchTerm))
             {
                 filtered = filtered.Where(bp =>
-                    (bp.Name?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (bp.VatNumber?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (bp.TaxCode?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
+                    bp.MatchesSearchInColumns(
+                        _searchTerm,
+                        _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)));
             }
             
             // Apply type filter
@@ -439,6 +443,22 @@
     {
         _selectedBusinessParties = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to business party detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<BusinessPartyDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/business/parties/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/business/parties/{args.Item.Id}");
     }
 
     /// <summary>

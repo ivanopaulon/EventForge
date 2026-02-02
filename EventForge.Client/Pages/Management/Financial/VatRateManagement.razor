@@ -4,6 +4,8 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IFinancialService FinancialService
@@ -13,6 +15,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<VatRateManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingVatRates"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -42,7 +45,8 @@
                  AllowDragDropGrouping="true"
                  ShowExport="true"
                  ExportFormats="@(new List<string> { "Excel" })"
-                 ExcelFileName="VatRates">
+                 ExcelFileName="VatRates"
+                 OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
@@ -270,12 +274,12 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Percentage", DisplayName = "Percentuale", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2 },
-        new() { PropertyName = "ValidFrom", DisplayName = "Valido Da", IsVisible = true, Order = 3 },
-        new() { PropertyName = "ValidTo", DisplayName = "Valido A", IsVisible = true, Order = 4 },
-        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Percentage", DisplayName = "Percentuale", IsVisible = true, Order = 1, IsSearchable = false },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "ValidFrom", DisplayName = "Valido Da", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "ValidTo", DisplayName = "Valido A", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5, IsSearchable = false }
     };
 
     // Dashboard configuration
@@ -330,15 +334,32 @@
     /// Computed property for filtered VAT rates based on search criteria.
     /// </summary>
     private IEnumerable<VatRateDto> _filteredVatRates => 
-        _vatRates.Where(v => 
-            // Search filter: check name
-            (string.IsNullOrEmpty(_searchTerm) || 
-             v.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
-            // Status filter
-            (_statusFilter == "all" || 
-             (_statusFilter == "active" && v.Status == VatRateStatus.Active) ||
-             (_statusFilter == "suspended" && v.Status == VatRateStatus.Suspended) ||
-             (_statusFilter == "deleted" && v.Status == VatRateStatus.Deleted)));
+        _vatRates.Where(v => FilterVatRate(v));
+
+    /// <summary>
+    /// Filters a VAT rate based on search term and status
+    /// </summary>
+    private bool FilterVatRate(VatRateDto vatRate)
+    {
+        // Configurable multi-column search
+        if (!vatRate.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        // Status filter
+        if (_statusFilter != "all")
+        {
+            if (_statusFilter == "active" && vatRate.Status != VatRateStatus.Active)
+                return false;
+            if (_statusFilter == "suspended" && vatRate.Status != VatRateStatus.Suspended)
+                return false;
+            if (_statusFilter == "deleted" && vatRate.Status != VatRateStatus.Deleted)
+                return false;
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -347,6 +368,22 @@
     {
         _selectedVatRates = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to VAT rate detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<VatRateDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/management/financial/vat-rates/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/management/financial/vat-rates/{args.Item.Id}");
     }
 
     /// <summary>
