@@ -4,7 +4,6 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Extensions
 @using MudBlazor
 @attribute [Authorize]
@@ -24,14 +23,12 @@
 @if (!_isLoading)
 {
     <div class="businessparty-page-root">
-        <div class="businessparty-top">
-            <ManagementDashboard TItem="BusinessPartyDto"
-                                 Items="_filteredBusinessParties"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="BusinessParty"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="BusinessPartyDto"
+                      Items="_allBusinessParties"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -63,41 +60,7 @@
                               Clearable="true"
                               Class="ef-input" />
                 
-                <!-- SECTION 3: Inline Filters (1 filter - compliant) -->
-                <MudSelect @bind-Value="_selectedFilter"
-                           Label="@TranslationService.GetTranslation("businessparty.filterByType", "Filtra per tipo")"
-                           Variant="Variant.Outlined"
-                           Dense="true"
-                           Margin="Margin.Dense"
-                           Class="filter-select ml-2"
-                           Style="min-width: 200px;">
-                    <MudSelectItem Value="@((BusinessPartyType?)null)">
-                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                            <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Small" />
-                            <MudText>@TranslationService.GetTranslation("businessparty.all", "Tutti")</MudText>
-                        </MudStack>
-                    </MudSelectItem>
-                    <MudSelectItem Value="@BusinessPartyType.Cliente">
-                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                            <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Small" />
-                            <MudText>@TranslationService.GetTranslation("businessparty.customersOnly", "Solo Clienti")</MudText>
-                        </MudStack>
-                    </MudSelectItem>
-                    <MudSelectItem Value="@BusinessPartyType.Supplier">
-                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                            <MudIcon Icon="@Icons.Material.Outlined.LocalShipping" Size="Size.Small" />
-                            <MudText>@TranslationService.GetTranslation("businessparty.suppliersOnly", "Solo Fornitori")</MudText>
-                        </MudStack>
-                    </MudSelectItem>
-                    <MudSelectItem Value="@BusinessPartyType.Both">
-                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                            <MudIcon Icon="@Icons.Material.Outlined.Handshake" Size="Size.Small" />
-                            <MudText>@TranslationService.GetTranslation("businessparty.both", "Cliente/Fornitore")</MudText>
-                        </MudStack>
-                    </MudSelectItem>
-                </MudSelect>
-                
-                <!-- SECTION 4: Toolbar Actions -->
+                <!-- SECTION 3: Toolbar Actions -->
                 <ManagementTableToolbar ShowSelectionBadge="true"
                                         SelectedCount="@_selectedBusinessParties.Count"
                                         ShowRefresh="true"
@@ -330,7 +293,65 @@
     // Filter and search state
     private string _searchTerm = string.Empty;
     private CancellationTokenSource? _searchDebounceCts;
-    private BusinessPartyType? _selectedFilter = null;
+
+    // Quick Filters
+    private List<QuickFilter<BusinessPartyDto>> _quickFilters = new()
+    {
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutte le anagrafiche"
+        },
+        new() 
+        { 
+            Id = "customers", 
+            Label = "Clienti",
+            Predicate = bp => bp.PartyType == BusinessPartyType.Cliente || bp.PartyType == BusinessPartyType.Both,
+            Color = Color.Primary,
+            Icon = Icons.Material.Outlined.People,
+            Description = "Solo clienti"
+        },
+        new() 
+        { 
+            Id = "suppliers", 
+            Label = "Fornitori",
+            Predicate = bp => bp.PartyType == BusinessPartyType.Supplier || bp.PartyType == BusinessPartyType.Both,
+            Color = Color.Secondary,
+            Icon = Icons.Material.Outlined.LocalShipping,
+            Description = "Solo fornitori"
+        },
+        new() 
+        { 
+            Id = "both", 
+            Label = "Cliente + Fornitore",
+            Predicate = bp => bp.PartyType == BusinessPartyType.Both,
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.Handshake,
+            Description = "Anagrafiche sia cliente che fornitore"
+        },
+        new() 
+        { 
+            Id = "active", 
+            Label = "Attivi",
+            Predicate = bp => bp.IsActive,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Anagrafiche attive"
+        },
+        new() 
+        { 
+            Id = "with_vat", 
+            Label = "Con P.IVA",
+            Predicate = bp => !string.IsNullOrWhiteSpace(bp.VatNumber),
+            Color = Color.Warning,
+            Icon = Icons.Material.Outlined.Numbers,
+            Description = "Anagrafiche con Partita IVA"
+        }
+    };
+    
+    private QuickFilter<BusinessPartyDto>? _activeQuickFilter;
 
     // Data collections
     private List<BusinessPartyDto> _allBusinessParties = new();
@@ -352,61 +373,16 @@
         new() { PropertyName = "Contacts", DisplayName = "Contatti", IsVisible = true, Order = 7, IsSearchable = false }
     };
 
-    // Dashboard configuration with dynamic metrics
-    private List<DashboardMetric<BusinessPartyDto>> _dashboardMetrics = new()
-    {
-        new()
-        {
-            Title = "Totale Business Party",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Business,
-            Color = "primary",
-            Description = "Numero totale di business party",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Clienti",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.People,
-            Color = "info",
-            Description = "Numero di clienti",
-            Format = "N0",
-            Filter = item => item.PartyType == BusinessPartyType.Cliente || item.PartyType == BusinessPartyType.Both
-        },
-        new()
-        {
-            Title = "Fornitori",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.LocalShipping,
-            Color = "success",
-            Description = "Numero di fornitori",
-            Format = "N0",
-            Filter = item => item.PartyType == BusinessPartyType.Supplier || item.PartyType == BusinessPartyType.Both
-        },
-        new()
-        {
-            Title = "Con P.IVA",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Numbers,
-            Color = "warning",
-            Description = "Business party con P.IVA",
-            Format = "N0",
-            Filter = item => !string.IsNullOrWhiteSpace(item.VatNumber)
-        },
-        new()
-        {
-            Title = "Aggiunti (30gg)",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.NewReleases,
-            Color = "secondary",
-            Description = "Aggiunti negli ultimi 30 giorni",
-            Format = "N0",
-            Filter = item => item.CreatedAt >= DateTime.Now.AddDays(-30)
-        }
-    };
-
     private EventCallback<HashSet<BusinessPartyDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<BusinessPartyDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<BusinessPartyDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered business parties based on search and type filter.
@@ -417,6 +393,12 @@
         {
             var filtered = _allBusinessParties.AsEnumerable();
             
+            // Apply quick filter
+            if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+            {
+                filtered = filtered.Where(bp => _activeQuickFilter.Predicate(bp));
+            }
+            
             // Apply configurable multi-column search
             if (!string.IsNullOrWhiteSpace(_searchTerm))
             {
@@ -424,12 +406,6 @@
                     bp.MatchesSearchInColumns(
                         _searchTerm,
                         _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)));
-            }
-            
-            // Apply type filter
-            if (_selectedFilter.HasValue)
-            {
-                filtered = filtered.Where(bp => bp.PartyType == _selectedFilter.Value);
             }
             
             return filtered.ToList();
@@ -495,14 +471,16 @@
     /// </summary>
     protected override void OnParametersSet()
     {
-        // Interpret the URL parameter
-        _selectedFilter = FilterType?.ToLower() switch
+        // Interpret the URL parameter and set the quick filter
+        var filterId = FilterType?.ToLower() switch
         {
-            "customers" or "clienti" => BusinessPartyType.Cliente,
-            "suppliers" or "fornitori" => BusinessPartyType.Supplier,
-            "both" or "entrambi" => BusinessPartyType.Both,
-            _ => null
+            "customers" or "clienti" => "customers",
+            "suppliers" or "fornitori" => "suppliers",
+            "both" or "entrambi" => "both",
+            _ => "all"
         };
+        
+        _activeQuickFilter = _quickFilters.FirstOrDefault(f => f.Id == filterId);
     }
 
     /// <summary>
@@ -545,7 +523,7 @@
     private void ClearFilters()
     {
         _searchTerm = string.Empty;
-        _selectedFilter = null;
+        _activeQuickFilter = null;
         StateHasChanged();
     }
 
@@ -573,10 +551,10 @@
     private void CreateBusinessParty()
     {
         // Navigate based on active filter
-        var route = _selectedFilter switch
+        var route = _activeQuickFilter?.Id switch
         {
-            BusinessPartyType.Supplier => "/business/suppliers/new",
-            BusinessPartyType.Both => "/business/customers/new", // Default to customer form
+            "suppliers" => "/business/suppliers/new",
+            "both" => "/business/customers/new", // Default to customer form
             _ => "/business/customers/new"
         };
         
@@ -898,11 +876,11 @@
     /// </summary>
     private string GetPageTitle()
     {
-        return _selectedFilter switch
+        return _activeQuickFilter?.Id switch
         {
-            BusinessPartyType.Cliente => TranslationService.GetTranslation("customer.management", "Gestione Clienti"),
-            BusinessPartyType.Supplier => TranslationService.GetTranslation("supplier.management", "Gestione Fornitori"),
-            BusinessPartyType.Both => TranslationService.GetTranslation("businessparty.managementBoth", "Gestione Cliente/Fornitore"),
+            "customers" => TranslationService.GetTranslation("customer.management", "Gestione Clienti"),
+            "suppliers" => TranslationService.GetTranslation("supplier.management", "Gestione Fornitori"),
+            "both" => TranslationService.GetTranslation("businessparty.managementBoth", "Gestione Cliente/Fornitore"),
             _ => TranslationService.GetTranslation("businessparty.management", "Gestione Business Party")
         };
     }
