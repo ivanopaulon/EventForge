@@ -6,11 +6,6 @@
     overflow: hidden;
 }
 
-.brand-top {
-    flex: 0 0 auto;
-    padding: 12px;
-}
-
 .eftable-wrapper {
     flex: 1 1 auto;
     min-height: 0;
@@ -23,10 +18,6 @@
     .brand-page-root {
         height: auto;
         min-height: 100vh;
-    }
-    
-    .brand-top {
-        padding: 8px;
     }
     
     .eftable-wrapper {
