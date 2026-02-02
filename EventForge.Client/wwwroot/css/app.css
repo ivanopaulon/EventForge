@@ -610,3 +610,37 @@ kbd {
 .eftable-wrapper .mud-table-row:hover {
     background-color: var(--mud-palette-action-default-hover) !important;
 }
+
+/* ============================================
+   Quick Filters Component Styles
+   ============================================ */
+
+/* Quick Filters wrapper styling */
+.quick-filters-wrapper {
+    background-color: var(--mud-palette-background-grey);
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+
+/* Smooth transitions for chip interactions */
+.quick-filters-wrapper .mud-chip {
+    transition: all 0.2s ease;
+}
+
+/* Hover effect for chips */
+.quick-filters-wrapper .mud-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Selected chip emphasis */
+.quick-filters-wrapper .mud-chip-selected {
+    font-weight: 600;
+}
+
+/* Count badge styling in chips */
+.quick-filter-count {
+    font-weight: 600;
+    margin-left: 4px;
+}
