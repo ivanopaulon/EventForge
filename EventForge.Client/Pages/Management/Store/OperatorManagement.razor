@@ -3,6 +3,8 @@
 @using EventForge.DTOs.Store
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
@@ -12,6 +14,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<OperatorManagement> Logger
 @inject EventForge.Client.Services.Store.IStoreUserService StoreUserService
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingData"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -19,13 +22,12 @@
 @if (!_isLoading)
 {
     <div class="product-page-root">
-        <div class="product-top">
-            <MudPaper Elevation="2" Class="pa-4 mb-4">
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("store.operatorManagement", "Gestione Operatori")
-                </MudText>
-            </MudPaper>
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="StoreUserDto"
+                     Items="_items"
+                     Filters="_quickFilters"
+                     OnFilterSelected="@HandleQuickFilter"
+                     ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -34,11 +36,16 @@
                      MultiSelection="true"
                      SelectedItems="_selectedItems"
                      SelectedItemsChanged="_selectedItemsChangedCallback"
-                     OnRowClick="@(args => NavigationManager.NavigateTo($"/store/operators/{args.Item.Id}"))"
+                     OnRowClick="@HandleRowClick"
                      IsLoading="_isLoadingData"
                      ComponentKey="OperatorManagement"
                      InitialColumnConfigurations="_initialColumns"
-                     AllowDragDropGrouping="true">
+                     AllowDragDropGrouping="true"
+                     ShowExport="true"
+                     ShowExportDialog="true"
+                     ExcelFileName="Operatori"
+                     IsDataFiltered="@HasActiveFilters()"
+                     TotalItemsCount="@_items.Count">
                 <ToolBarContent>
                     <MudText Typo="Typo.h5">
                         @TranslationService.GetTranslation("store.operatorsList", "Operatori")
@@ -265,24 +272,46 @@
 
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Username", DisplayName = "Username", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Email", DisplayName = "Email", IsVisible = true, Order = 2 },
-        new() { PropertyName = "Role", DisplayName = "Ruolo", IsVisible = true, Order = 3 },
-        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 4 },
-        new() { PropertyName = "CashierGroupName", DisplayName = "Gruppo", IsVisible = true, Order = 5 },
-        new() { PropertyName = "IsOnShift", DisplayName = "In Turno", IsVisible = true, Order = 6 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Username", DisplayName = "Username", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Email", DisplayName = "Email", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "Role", DisplayName = "Ruolo", IsVisible = true, Order = 3, IsSearchable = true },
+        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "CashierGroupName", DisplayName = "Gruppo", IsVisible = true, Order = 5, IsSearchable = true },
+        new() { PropertyName = "IsOnShift", DisplayName = "In Turno", IsVisible = true, Order = 6, IsSearchable = false }
     };
+
+    private List<QuickFilter<StoreUserDto>> _quickFilters = new()
+    {
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti gli operatori" },
+        new() { Id = "active", Label = "Attivi", Predicate = o => o.Status == CashierStatus.Active, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Operatori attivi" },
+        new() { Id = "onshift", Label = "In Turno", Predicate = o => o.IsOnShift, Color = Color.Primary, Icon = Icons.Material.Outlined.WorkHistory, Description = "Operatori in turno" },
+        new() { Id = "recent", Label = "Recenti", Predicate = o => o.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Info, Icon = Icons.Material.Outlined.NewReleases, Description = "Operatori creati negli ultimi 30 giorni" }
+    };
+
+    private QuickFilter<StoreUserDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<StoreUserDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StoreUserDto>>(this, OnSelectedItemsChanged);
 
-    private IEnumerable<StoreUserDto> _filteredItems =>
-        _items.Where(p =>
-            string.IsNullOrEmpty(_searchTerm) ||
-            p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-            p.Username.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-            (p.Email != null && p.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-            (p.Role != null && p.Role.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+    private IEnumerable<StoreUserDto> _filteredItems => _items.Where(i => FilterOperator(i));
+
+    private bool FilterOperator(StoreUserDto item)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(item))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!item.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        return true;
+    }
 
     private void OnSelectedItemsChanged(HashSet<StoreUserDto> items)
     {
@@ -344,7 +373,24 @@
     private void ClearFilters()
     {
         _searchTerm = string.Empty;
+        _activeQuickFilter = null;
         StateHasChanged();
+    }
+
+    private void HandleQuickFilter(QuickFilter<StoreUserDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    private void HandleRowClick(TableRowClickEventArgs<StoreUserDto> args)
+    {
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/store/operators/{args.Item.Id}", "_blank");
+            return;
+        }
+        NavigationManager.NavigateTo($"/store/operators/{args.Item.Id}");
     }
 
     private async Task OnSearchChanged()
@@ -507,5 +553,11 @@
         {
             await OnInitializedAsync();
         }
+    }
+
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null;
     }
 }

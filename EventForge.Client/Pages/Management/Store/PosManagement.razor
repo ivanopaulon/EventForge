@@ -3,6 +3,8 @@
 @using EventForge.DTOs.Store
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
@@ -12,6 +14,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<PosManagement> Logger
 @inject EventForge.Client.Services.Store.IStorePosService StorePosService
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingData"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -19,13 +22,12 @@
 @if (!_isLoading)
 {
     <div class="product-page-root">
-        <div class="product-top">
-            <MudPaper Elevation="2" Class="pa-4 mb-4">
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("store.posManagement", "Gestione Punti Cassa")
-                </MudText>
-            </MudPaper>
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="StorePosDto"
+                      Items="_items"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -34,11 +36,16 @@
                      MultiSelection="true"
                      SelectedItems="_selectedItems"
                      SelectedItemsChanged="_selectedItemsChangedCallback"
-                     OnRowClick="@(args => NavigationManager.NavigateTo($"/store/pos/{args.Item.Id}"))"
+                     OnRowClick="@HandleRowClick"
                      IsLoading="_isLoadingData"
                      ComponentKey="PosManagement"
                      InitialColumnConfigurations="_initialColumns"
-                     AllowDragDropGrouping="true">
+                     AllowDragDropGrouping="true"
+                     ShowExport="true"
+                     ShowExportDialog="true"
+                     ExcelFileName="Punti_Cassa"
+                     IsDataFiltered="@HasActiveFilters()"
+                     TotalItemsCount="@_items.Count">
                 <ToolBarContent>
                     <MudText Typo="Typo.h5">
                         @TranslationService.GetTranslation("store.posList", "Punti Cassa")
@@ -237,26 +244,118 @@
 
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Location", DisplayName = "Location", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 2 },
-        new() { PropertyName = "IsOnline", DisplayName = "Online", IsVisible = true, Order = 3 },
-        new() { PropertyName = "TerminalIdentifier", DisplayName = "Terminal", IsVisible = true, Order = 4 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Location", DisplayName = "Location", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "IsOnline", DisplayName = "Online", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "TerminalIdentifier", DisplayName = "Terminal", IsVisible = true, Order = 4, IsSearchable = true }
     };
+
+    // Quick Filters
+    private List<QuickFilter<StorePosDto>> _quickFilters = new()
+    {
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i punti cassa"
+        },
+        new() 
+        { 
+            Id = "active", 
+            Label = "Attivi",
+            Predicate = p => p.Status == CashRegisterStatus.Active,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Punti cassa attivi"
+        },
+        new() 
+        { 
+            Id = "online", 
+            Label = "Online",
+            Predicate = p => p.IsOnline,
+            Color = Color.Primary,
+            Icon = Icons.Material.Outlined.CloudDone,
+            Description = "Punti cassa online"
+        },
+        new() 
+        { 
+            Id = "offline", 
+            Label = "Offline",
+            Predicate = p => !p.IsOnline,
+            Color = Color.Warning,
+            Icon = Icons.Material.Outlined.CloudOff,
+            Description = "Punti cassa offline"
+        },
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = p => p.CreatedAt >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.NewReleases,
+            Description = "Punti cassa creati negli ultimi 30 giorni"
+        }
+    };
+    
+    private QuickFilter<StorePosDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<StorePosDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StorePosDto>>(this, OnSelectedItemsChanged);
 
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<StorePosDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
     private IEnumerable<StorePosDto> _filteredItems =>
-        _items.Where(p =>
-            string.IsNullOrEmpty(_searchTerm) ||
-            p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-            (p.Location != null && p.Location.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-            (p.TerminalIdentifier != null && p.TerminalIdentifier.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+        _items.Where(p => FilterPos(p));
+
+    /// <summary>
+    /// Filters a POS based on all active filters
+    /// </summary>
+    private bool FilterPos(StorePosDto pos)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(pos))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!pos.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        return true;
+    }
 
     private void OnSelectedItemsChanged(HashSet<StorePosDto> items)
     {
         _selectedItems = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to POS detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<StorePosDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/store/pos/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/store/pos/{args.Item.Id}");
     }
 
     protected override async Task OnInitializedAsync()
@@ -478,5 +577,14 @@
         {
             await OnInitializedAsync();
         }
+    }
+
+    /// <summary>
+    /// Checks if any filters are currently active
+    /// </summary>
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null;
     }
 }

@@ -3,8 +3,9 @@
 @using EventForge.DTOs.Warehouse
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Shared.Components.Dialogs
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IStockService StockService
@@ -31,36 +32,6 @@
                       Filters="_quickFilters"
                       OnFilterSelected="@HandleQuickFilter"
                       ShowCount="true" />
-
-        @* Dashboard only shown when not paginated - metrics would be inaccurate on paginated view *@
-        @if (_totalPages <= 1)
-        {
-            <div class="stock-overview-top">
-                <ManagementDashboard TItem="StockLocationDetail"
-                                     Items="_stockItems"
-                                     Metrics="_dashboardMetrics"
-                                     EntityType="Stock"
-                                     AllowConfiguration="true"
-                                     UseServerSide="false" />
-            </div>
-        }
-        else
-        {
-            <div class="pa-2">
-                <MudAlert Severity="Severity.Info" Dense="true">
-                    <div class="d-flex align-center gap-2">
-                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
-                        <MudText Typo="Typo.body2">
-                            @TranslationService.GetTranslation("stock.dashboardDisabledPagination", 
-                                "Dashboard metriche disabilitata con paginazione server. Visualizzati {0} di {1} elementi totali su {2} pagine.",
-                                _stockItems.Count,
-                                _totalCount,
-                                _totalPages)
-                        </MudText>
-                    </div>
-                </MudAlert>
-            </div>
-        }
 
         <div class="eftable-wrapper">
             @* Filter active indicator *@
@@ -773,9 +744,6 @@
         new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 10, IsSearchable = false }
     };
 
-    // Dashboard configuration - initialized in OnInitializedAsync to access instance methods
-    private List<DashboardMetric<StockLocationDetail>> _dashboardMetrics = new();
-
     private EventCallback<HashSet<StockLocationDetail>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StockLocationDetail>>(this, OnSelectedItemsChanged);
 
     /// <summary>
@@ -854,8 +822,6 @@
         try
         {
             // Initialize dashboard metrics
-            InitializeDashboardMetrics();
-
             // Clear filters before initial load to show all data
             _filters.ShowOnlyLowStock = false;
             _filters.ShowOnlyCritical = false;
@@ -891,52 +857,6 @@
     /// <summary>
     /// Initializes dashboard metrics.
     /// </summary>
-    private void InitializeDashboardMetrics()
-    {
-        _dashboardMetrics = new List<DashboardMetric<StockLocationDetail>>
-        {
-            new()
-            {
-                Title = "Totale Prodotti Monitorati",
-                Type = MetricType.Count,
-                Icon = Icons.Material.Outlined.Inventory,
-                Color = "primary",
-                Description = "Numero totale di prodotti unici in giacenza",
-                Format = "N0"
-            },
-            new()
-            {
-                Title = "Sotto Riordino",
-                Type = MetricType.Count,
-                Filter = x => x.ReorderPoint.HasValue && x.Quantity > 0 && x.Quantity <= x.ReorderPoint.Value && (!x.SafetyStock.HasValue || x.Quantity > x.SafetyStock.Value),
-                Icon = Icons.Material.Outlined.Warning,
-                Color = "warning",
-                Description = "Prodotti sotto il punto di riordino",
-                Format = "N0"
-            },
-            new()
-            {
-                Title = "Critici",
-                Type = MetricType.Count,
-                Filter = x => x.SafetyStock.HasValue && x.Quantity > 0 && x.Quantity <= x.SafetyStock.Value,
-                Icon = Icons.Material.Outlined.Error,
-                Color = "error",
-                Description = "Prodotti sotto la scorta di sicurezza",
-                Format = "N0"
-            },
-            new()
-            {
-                Title = "Esauriti",
-                Type = MetricType.Count,
-                Filter = x => x.Quantity == 0,
-                Icon = Icons.Material.Outlined.RemoveCircleOutline,
-                Color = "dark",
-                Description = "Prodotti senza giacenza",
-                Format = "N0"
-            }
-        };
-    }
-
     /// <summary>
     /// Shows the login dialog.
     /// </summary>

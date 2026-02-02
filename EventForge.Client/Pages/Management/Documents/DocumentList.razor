@@ -3,7 +3,8 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Documents
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IDocumentTypeService DocumentTypeService
@@ -12,6 +13,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentList> Logger
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("documents.list", "Elenco Documenti")</PageTitle>
 
@@ -21,14 +23,12 @@
 @if (!_isLoading)
 {
     <div class="document-page-root">
-        <div class="document-top">
-            <ManagementDashboard TItem="DocumentHeaderDto"
-                                 Items="_filteredDocuments"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="Document"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="DocumentHeaderDto"
+                      Items="_documents"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -37,16 +37,30 @@
                  MultiSelection="true"
                  SelectedItems="_selectedDocuments"
                  SelectedItemsChanged="_selectedDocumentsChangedCallback"
-                 OnRowClick="@(args => ViewDocument(args.Item.Id))"
+                 OnRowClick="@HandleRowClick"
                  IsLoading="_isLoading"
                  ComponentKey="DocumentManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="Documenti"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_documents.Count">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("documents.list", "Elenco Documenti")
                 </MudText>
                 <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("documents.search", "Cerca documenti")"
+                              Placeholder="@TranslationService.GetTranslation("documents.searchPlaceholder", "Inserisci numero, tipo o cliente...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
                 <MudSelect T="Guid?" Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
                            Class="ef-select"
                            @bind-Value="_selectedDocumentTypeId"
@@ -252,6 +266,7 @@
     private HashSet<DocumentHeaderDto> _selectedDocuments = new();
 
     // Filter state
+    private string _searchTerm = string.Empty;
     private Guid? _selectedDocumentTypeId = null;
     private DocumentStatus? _selectedStatus = null;
     private int _currentPage = 1;
@@ -264,71 +279,120 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Number", DisplayName = "Numero", IsVisible = true, Order = 0 },
-        new() { PropertyName = "DocumentTypeName", DisplayName = "Tipo", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Date", DisplayName = "Data", IsVisible = true, Order = 2 },
-        new() { PropertyName = "CustomerName", DisplayName = "Cliente", IsVisible = true, Order = 3 },
-        new() { PropertyName = "TotalGrossAmount", DisplayName = "Importo", IsVisible = true, Order = 4 },
-        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 5 }
+        new() { PropertyName = "Number", DisplayName = "Numero", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "DocumentTypeName", DisplayName = "Tipo", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Date", DisplayName = "Data", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "CustomerName", DisplayName = "Cliente", IsVisible = true, Order = 3, IsSearchable = true },
+        new() { PropertyName = "TotalGrossAmount", DisplayName = "Importo", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 5, IsSearchable = false }
     };
 
-    // Dashboard metrics
-    private List<DashboardMetric<DocumentHeaderDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<DocumentHeaderDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Documenti",
-            Type = MetricType.Count,
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i documenti"
+        },
+        new() 
+        { 
+            Id = "draft", 
+            Label = "Bozze",
+            Predicate = d => d.Status == DocumentStatus.Draft,
+            Color = Color.Default,
+            Icon = Icons.Material.Outlined.EditNote,
+            Description = "Documenti in bozza"
+        },
+        new() 
+        { 
+            Id = "open", 
+            Label = "Aperti",
+            Predicate = d => d.Status == DocumentStatus.Open,
+            Color = Color.Info,
             Icon = Icons.Material.Outlined.Description,
-            Color = "primary",
-            Description = "Numero totale di documenti",
-            Format = "N0"
+            Description = "Documenti aperti"
         },
-        new()
-        {
-            Title = "Bozze",
-            Type = MetricType.Count,
-            Filter = d => d.Status == DocumentStatus.Draft,
-            Icon = Icons.Material.Outlined.Edit,
-            Color = "warning",
-            Description = "Documenti in bozza",
-            Format = "N0"
+        new() 
+        { 
+            Id = "closed", 
+            Label = "Chiusi",
+            Predicate = d => d.Status == DocumentStatus.Closed,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Documenti chiusi"
         },
-        new()
-        {
-            Title = "Chiusi",
-            Type = MetricType.Count,
-            Filter = d => d.Status == DocumentStatus.Closed,
-            Icon = Icons.Material.Outlined.Lock,
-            Color = "warning",
-            Description = "Documenti chiusi",
-            Format = "N0"
+        new() 
+        { 
+            Id = "cancelled", 
+            Label = "Annullati",
+            Predicate = d => d.Status == DocumentStatus.Cancelled,
+            Color = Color.Error,
+            Icon = Icons.Material.Outlined.Cancel,
+            Description = "Documenti annullati"
         },
-        new()
-        {
-            Title = "Ultimi 30 Giorni",
-            Type = MetricType.Count,
-            Filter = d => d.Date >= DateTime.UtcNow.AddDays(-30),
-            Icon = Icons.Material.Outlined.CalendarToday,
-            Color = "info",
-            Description = "Documenti degli ultimi 30 giorni",
-            Format = "N0"
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = d => d.Date >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Warning,
+            Icon = Icons.Material.Outlined.NewReleases,
+            Description = "Documenti degli ultimi 30 giorni"
         }
     };
+    
+    private QuickFilter<DocumentHeaderDto>? _activeQuickFilter;
 
     // Multi-selection callback
     private EventCallback<HashSet<DocumentHeaderDto>> _selectedDocumentsChangedCallback => 
         EventCallback.Factory.Create<HashSet<DocumentHeaderDto>>(this, OnSelectedDocumentsChanged);
 
     /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<DocumentHeaderDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    /// <summary>
     /// Computed property for filtered documents based on filter criteria.
     /// </summary>
     private IEnumerable<DocumentHeaderDto> _filteredDocuments => 
-        _documents.Where(d => 
-            // Document type filter
-            (!_selectedDocumentTypeId.HasValue || d.DocumentTypeId == _selectedDocumentTypeId.Value) &&
-            // Status filter
-            (!_selectedStatus.HasValue || d.Status == _selectedStatus.Value));
+        _documents.Where(d => FilterDocument(d));
+
+    /// <summary>
+    /// Filters a document based on all active filters
+    /// </summary>
+    private bool FilterDocument(DocumentHeaderDto document)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(document))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!document.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        // Document type filter (inline filter)
+        if (_selectedDocumentTypeId.HasValue && document.DocumentTypeId != _selectedDocumentTypeId.Value)
+            return false;
+
+        // Status filter (inline filter)
+        if (_selectedStatus.HasValue && document.Status != _selectedStatus.Value)
+            return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -337,6 +401,22 @@
     {
         _selectedDocuments = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to document detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<DocumentHeaderDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/documents/edit/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/documents/edit/{args.Item.Id}");
     }
 
     /// <summary>
@@ -421,6 +501,8 @@
     /// </summary>
     private void ClearFilters()
     {
+        _searchTerm = string.Empty;
+        _activeQuickFilter = null;
         _selectedDocumentTypeId = null;
         _selectedStatus = null;
         StateHasChanged();
@@ -430,6 +512,14 @@
     /// Called when filter changes to trigger refresh.
     /// </summary>
     private void OnFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Called when search term changes
+    /// </summary>
+    private void OnSearchChanged()
     {
         StateHasChanged();
     }
@@ -614,5 +704,16 @@
     private string GetPagerInfo()
     {
         return $"{{first_item}}-{{last_item}} {TranslationService.GetTranslation("common.of", "di")} {{all_items}}";
+    }
+
+    /// <summary>
+    /// Checks if any filters are currently active
+    /// </summary>
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null
+            || _selectedDocumentTypeId.HasValue
+            || _selectedStatus.HasValue;
     }
 }

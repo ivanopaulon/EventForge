@@ -3,8 +3,9 @@
 @using EventForge.DTOs.Warehouse
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Shared.Components.Dialogs.Warehouse
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject ITransferOrderService TransferOrderService
 @inject IWarehouseService WarehouseService
@@ -13,6 +14,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<TransferOrderManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("transferOrder.title", "Transfer Orders")</PageTitle>
 
@@ -22,14 +24,12 @@
 @if (!_isLoading)
 {
     <div class="transfer-order-page-root">
-        <div class="transfer-order-top">
-            <ManagementDashboard TItem="TransferOrderDto"
-                                 Items="_transferOrders"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="TransferOrder"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="TransferOrderDto"
+                      Items="_transferOrders"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -38,11 +38,16 @@
                      MultiSelection="true"
                      SelectedItems="_selectedTransferOrders"
                      SelectedItemsChanged="_selectedItemsChangedCallback"
-                     OnRowClick="@(args => ViewDetails(args.Item.Id))"
+                     OnRowClick="@HandleRowClick"
                      IsLoading="_isLoadingTransferOrders"
                      ComponentKey="TransferOrderManagement"
                      InitialColumnConfigurations="_initialColumns"
-                     AllowDragDropGrouping="true">
+                     AllowDragDropGrouping="true"
+                     ShowExport="true"
+                     ShowExportDialog="true"
+                     ExcelFileName="Trasferimenti"
+                     IsDataFiltered="@HasActiveFilters()"
+                     TotalItemsCount="@_transferOrders.Count">
                 <ToolBarContent>
                     <MudText Typo="Typo.h5">
                         @TranslationService.GetTranslation("transferOrder.title", "Transfer Orders")
@@ -316,16 +321,81 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Number", DisplayName = "Number", IsVisible = true, Order = 0 },
-        new() { PropertyName = "OrderDate", DisplayName = "Order Date", IsVisible = true, Order = 1 },
-        new() { PropertyName = "SourceWarehouseName", DisplayName = "Source", IsVisible = true, Order = 2 },
-        new() { PropertyName = "DestinationWarehouseName", DisplayName = "Destination", IsVisible = true, Order = 3 },
-        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 4 },
-        new() { PropertyName = "ItemsCount", DisplayName = "Items", IsVisible = true, Order = 5 }
+        new() { PropertyName = "Number", DisplayName = "Number", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "OrderDate", DisplayName = "Order Date", IsVisible = true, Order = 1, IsSearchable = false },
+        new() { PropertyName = "SourceWarehouseName", DisplayName = "Source", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "DestinationWarehouseName", DisplayName = "Destination", IsVisible = true, Order = 3, IsSearchable = true },
+        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "ItemsCount", DisplayName = "Items", IsVisible = true, Order = 5, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<TransferOrderDto>> _dashboardMetrics = new();
+    // Quick Filters
+    private List<QuickFilter<TransferOrderDto>> _quickFilters = new()
+    {
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i trasferimenti"
+        },
+        new() 
+        { 
+            Id = "pending", 
+            Label = "In Attesa",
+            Predicate = t => t.Status == "Pending",
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.HourglassEmpty,
+            Description = "Trasferimenti in attesa"
+        },
+        new() 
+        { 
+            Id = "shipped", 
+            Label = "Spediti",
+            Predicate = t => t.Status == "Shipped",
+            Color = Color.Primary,
+            Icon = Icons.Material.Outlined.LocalShipping,
+            Description = "Trasferimenti spediti"
+        },
+        new() 
+        { 
+            Id = "in_transit", 
+            Label = "In Transito",
+            Predicate = t => t.Status == "InTransit",
+            Color = Color.Warning,
+            Icon = Icons.Material.Outlined.LocalShipping,
+            Description = "Trasferimenti in transito"
+        },
+        new() 
+        { 
+            Id = "completed", 
+            Label = "Completati",
+            Predicate = t => t.Status == "Completed",
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Trasferimenti completati"
+        },
+        new() 
+        { 
+            Id = "cancelled", 
+            Label = "Annullati",
+            Predicate = t => t.Status == "Cancelled",
+            Color = Color.Error,
+            Icon = Icons.Material.Outlined.Cancel,
+            Description = "Trasferimenti annullati"
+        },
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = t => t.OrderDate >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.NewReleases,
+            Description = "Trasferimenti degli ultimi 30 giorni"
+        }
+    };
+    
+    private QuickFilter<TransferOrderDto>? _activeQuickFilter;
 
     // Dialog options preserved from PR #739
     private readonly DialogOptions _dialogOptions = new()
@@ -339,6 +409,15 @@
         EventCallback.Factory.Create<HashSet<TransferOrderDto>>(this, OnSelectedItemsChanged);
 
     /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<TransferOrderDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    /// <summary>
     /// Handles selection changes from EFTable
     /// </summary>
     private void OnSelectedItemsChanged(HashSet<TransferOrderDto> items)
@@ -348,13 +427,28 @@
     }
 
     /// <summary>
+    /// Handles row click - navigates to transfer order detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<TransferOrderDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/warehouse/transfers/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        ViewDetails(args.Item.Id);
+    }
+
+    /// <summary>
     /// Component initialization.
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            InitializeDashboardMetrics();
             await LoadWarehousesAsync();
             await LoadTransferOrdersAsync();
         }
@@ -367,55 +461,6 @@
         {
             _isLoading = false;
         }
-    }
-
-    /// <summary>
-    /// Initializes dashboard metrics with translated strings
-    /// </summary>
-    private void InitializeDashboardMetrics()
-    {
-        _dashboardMetrics = new List<DashboardMetric<TransferOrderDto>>
-        {
-            new()
-            {
-                Title = TranslationService.GetTranslation("transferOrder.metric.total", "Total Transfer Orders"),
-                Type = MetricType.Count,
-                Icon = Icons.Material.Outlined.SwapHoriz,
-                Color = "primary",
-                Description = TranslationService.GetTranslation("transferOrder.metric.totalDesc", "Total number of transfer orders"),
-                Format = "N0"
-            },
-            new()
-            {
-                Title = TranslationService.GetTranslation("transferOrder.metric.pending", "Pending"),
-                Type = MetricType.Count,
-                Filter = t => t.Status == "Pending",
-                Icon = Icons.Material.Outlined.Schedule,
-                Color = "warning",
-                Description = TranslationService.GetTranslation("transferOrder.metric.pendingDesc", "Transfer orders pending shipment"),
-                Format = "N0"
-            },
-            new()
-            {
-                Title = TranslationService.GetTranslation("transferOrder.metric.inTransit", "In Transit"),
-                Type = MetricType.Count,
-                Filter = t => t.Status == "Shipped" || t.Status == "InTransit",
-                Icon = Icons.Material.Outlined.LocalShipping,
-                Color = "info",
-                Description = TranslationService.GetTranslation("transferOrder.metric.inTransitDesc", "Transfer orders in transit"),
-                Format = "N0"
-            },
-            new()
-            {
-                Title = TranslationService.GetTranslation("transferOrder.metric.completed", "Completed"),
-                Type = MetricType.Count,
-                Filter = t => t.Status == "Completed",
-                Icon = Icons.Material.Outlined.CheckCircle,
-                Color = "success",
-                Description = TranslationService.GetTranslation("transferOrder.metric.completedDesc", "Completed transfer orders"),
-                Format = "N0"
-            }
-        };
     }
 
     /// <summary>
@@ -720,5 +765,17 @@
             "Cancelled" => Color.Error,
             _ => Color.Default
         };
+    }
+
+    /// <summary>
+    /// Checks if any filters are currently active
+    /// </summary>
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null
+            || _selectedSourceWarehouseId.HasValue
+            || _selectedDestinationWarehouseId.HasValue
+            || !string.IsNullOrEmpty(_selectedStatus);
     }
 }

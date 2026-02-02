@@ -3,7 +3,8 @@
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IDocumentTypeService DocumentTypeService
@@ -14,6 +15,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentTypeManagement> Logger
 @inject IFilterStateService FilterStateService
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingDocumentTypes"
                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -21,14 +23,12 @@
 @if (!_isLoading)
 {
     <div class="document-type-page-root">
-        <div class="document-type-top">
-            <ManagementDashboard TItem="DocumentTypeDto"
-                                 Items="_filteredDocumentTypes"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="DocumentType"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="DocumentTypeDto"
+                      Items="_documentTypes"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -37,10 +37,16 @@
                  MultiSelection="true"
                  SelectedItems="_selectedDocumentTypes"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
+                 OnRowClick="@HandleRowClick"
                  IsLoading="_isLoadingDocumentTypes"
                  ComponentKey="DocumentTypeManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="Tipi_Documento"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_documentTypes.Count">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("documentType.management", "Gestione Tipi Documento")
@@ -254,71 +260,109 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
-        new() { PropertyName = "IsFiscal", DisplayName = "Fiscale", IsVisible = true, Order = 2 },
-        new() { PropertyName = "IsStockIncrease", DisplayName = "Aumento Stock", IsVisible = true, Order = 3 },
-        new() { PropertyName = "RequiredPartyType", DisplayName = "Tipo Controparte", IsVisible = true, Order = 4 },
-        new() { PropertyName = "DefaultWarehouseName", DisplayName = "Magazzino Predefinito", IsVisible = true, Order = 5 },
-        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 6 }
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "IsFiscal", DisplayName = "Fiscale", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "IsStockIncrease", DisplayName = "Aumento Stock", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "RequiredPartyType", DisplayName = "Tipo Controparte", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "DefaultWarehouseName", DisplayName = "Magazzino Predefinito", IsVisible = true, Order = 5, IsSearchable = true },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 6, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<DocumentTypeDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<DocumentTypeDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Tipi",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Category,
-            Color = "primary",
-            Description = "Numero totale di tipi documento",
-            Format = "N0"
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i tipi documento"
         },
-        new()
-        {
-            Title = "Documenti Fiscali",
-            Type = MetricType.Count,
-            Filter = dt => dt.IsFiscal,
-            Icon = Icons.Material.Outlined.Receipt,
-            Color = "success",
-            Description = "Tipi documento fiscali",
-            Format = "N0"
+        new() 
+        { 
+            Id = "fiscal", 
+            Label = "Fiscali",
+            Predicate = d => d.IsFiscal,
+            Color = Color.Primary,
+            Icon = Icons.Material.Outlined.AccountBalance,
+            Description = "Tipi documento fiscali"
         },
-        new()
-        {
-            Title = "Tipi Carico",
-            Type = MetricType.Count,
-            Filter = dt => dt.IsStockIncrease,
-            Icon = Icons.Material.Outlined.ArrowUpward,
-            Color = "info",
-            Description = "Tipi con movimento di carico",
-            Format = "N0"
+        new() 
+        { 
+            Id = "stock_increase", 
+            Label = "Aumento Stock",
+            Predicate = d => d.IsStockIncrease,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.TrendingUp,
+            Description = "Tipi con movimento di carico"
         },
-        new()
-        {
-            Title = "Ultimi Aggiunti",
-            Type = MetricType.Count,
-            Filter = dt => dt.CreatedAt >= DateTime.Now.AddDays(-30),
+        new() 
+        { 
+            Id = "stock_decrease", 
+            Label = "Riduzione Stock",
+            Predicate = d => !d.IsStockIncrease,
+            Color = Color.Error,
+            Icon = Icons.Material.Outlined.TrendingDown,
+            Description = "Tipi con movimento di scarico"
+        },
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = d => d.CreatedAt >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Info,
             Icon = Icons.Material.Outlined.NewReleases,
-            Color = "warning",
-            Description = "Tipi aggiunti negli ultimi 30 giorni",
-            Format = "N0"
+            Description = "Tipi aggiunti negli ultimi 30 giorni"
         }
     };
+    
+    private QuickFilter<DocumentTypeDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<DocumentTypeDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<DocumentTypeDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<DocumentTypeDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered document types based on search criteria.
     /// </summary>
     private IEnumerable<DocumentTypeDto> _filteredDocumentTypes =>
-        _documentTypes.Where(dt =>
-            (string.IsNullOrEmpty(_searchTerm) ||
-             dt.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             dt.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
-            (!_showOnlyFiscal || dt.IsFiscal) &&
-            (!_showOnlyStockIncrease || dt.IsStockIncrease));
+        _documentTypes.Where(dt => FilterDocumentType(dt));
+
+    /// <summary>
+    /// Filters a document type based on all active filters
+    /// </summary>
+    private bool FilterDocumentType(DocumentTypeDto documentType)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(documentType))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!documentType.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        // Inline filters (maintained for compatibility)
+        if (_showOnlyFiscal && !documentType.IsFiscal)
+            return false;
+
+        if (_showOnlyStockIncrease && !documentType.IsStockIncrease)
+            return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -327,6 +371,22 @@
     {
         _selectedDocumentTypes = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to document type detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<DocumentTypeDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/documents/types/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/documents/types/{args.Item.Id}");
     }
 
     protected override async Task OnInitializedAsync()
@@ -609,5 +669,16 @@
                 Logger.LogError(ex, "Error deleting selected document types");
             }
         }
+    }
+
+    /// <summary>
+    /// Checks if any filters are currently active
+    /// </summary>
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null
+            || _showOnlyFiscal
+            || _showOnlyStockIncrease;
     }
 }
