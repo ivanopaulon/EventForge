@@ -290,58 +290,12 @@
     // Quick Filters
     private List<QuickFilter<DocumentHeaderDto>> _quickFilters = new()
     {
-        new() 
-        { 
-            Id = "all", 
-            Label = "Tutti",
-            Predicate = _ => true,
-            Description = "Mostra tutti i documenti"
-        },
-        new() 
-        { 
-            Id = "draft", 
-            Label = "Bozze",
-            Predicate = d => d.Status == DocumentStatus.Draft,
-            Color = Color.Default,
-            Icon = Icons.Material.Outlined.EditNote,
-            Description = "Documenti in bozza"
-        },
-        new() 
-        { 
-            Id = "open", 
-            Label = "Aperti",
-            Predicate = d => d.Status == DocumentStatus.Open,
-            Color = Color.Info,
-            Icon = Icons.Material.Outlined.Description,
-            Description = "Documenti aperti"
-        },
-        new() 
-        { 
-            Id = "closed", 
-            Label = "Chiusi",
-            Predicate = d => d.Status == DocumentStatus.Closed,
-            Color = Color.Success,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Description = "Documenti chiusi"
-        },
-        new() 
-        { 
-            Id = "cancelled", 
-            Label = "Annullati",
-            Predicate = d => d.Status == DocumentStatus.Cancelled,
-            Color = Color.Error,
-            Icon = Icons.Material.Outlined.Cancel,
-            Description = "Documenti annullati"
-        },
-        new() 
-        { 
-            Id = "recent", 
-            Label = "Recenti",
-            Predicate = d => d.Date >= DateTime.UtcNow.AddDays(-30),
-            Color = Color.Warning,
-            Icon = Icons.Material.Outlined.NewReleases,
-            Description = "Documenti degli ultimi 30 giorni"
-        }
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i documenti" },
+        new() { Id = "draft", Label = "Bozze", Predicate = d => d.Status == DocumentStatus.Draft, Color = Color.Default, Icon = Icons.Material.Outlined.Edit, Description = "Documenti in bozza" },
+        new() { Id = "open", Label = "Aperti", Predicate = d => d.Status == DocumentStatus.Open, Color = Color.Info, Icon = Icons.Material.Outlined.Description, Description = "Documenti aperti" },
+        new() { Id = "closed", Label = "Chiusi", Predicate = d => d.Status == DocumentStatus.Closed, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Documenti chiusi" },
+        new() { Id = "cancelled", Label = "Annullati", Predicate = d => d.Status == DocumentStatus.Cancelled, Color = Color.Error, Icon = Icons.Material.Outlined.Cancel, Description = "Documenti annullati" },
+        new() { Id = "recent", Label = "Recenti", Predicate = d => d.Date >= DateTime.UtcNow.AddDays(-30), Color = Color.Primary, Icon = Icons.Material.Outlined.NewReleases, Description = "Documenti degli ultimi 30 giorni" }
     };
     
     private QuickFilter<DocumentHeaderDto>? _activeQuickFilter;

@@ -321,58 +321,12 @@
     // Quick Filters
     private List<QuickFilter<LotDto>> _quickFilters = new()
     {
-        new() 
-        { 
-            Id = "all", 
-            Label = "Tutti",
-            Predicate = _ => true,
-            Description = "Mostra tutti i lotti"
-        },
-        new() 
-        { 
-            Id = "active", 
-            Label = "Attivi",
-            Predicate = l => l.Status == "Active",
-            Color = Color.Success,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Description = "Lotti attivi"
-        },
-        new() 
-        { 
-            Id = "blocked", 
-            Label = "Bloccati",
-            Predicate = l => l.Status == "Blocked",
-            Color = Color.Warning,
-            Icon = Icons.Material.Outlined.Block,
-            Description = "Lotti bloccati"
-        },
-        new() 
-        { 
-            Id = "expired", 
-            Label = "Scaduti",
-            Predicate = l => l.Status == "Expired",
-            Color = Color.Error,
-            Icon = Icons.Material.Outlined.EventBusy,
-            Description = "Lotti scaduti"
-        },
-        new() 
-        { 
-            Id = "recalled", 
-            Label = "Richiamati",
-            Predicate = l => l.Status == "Recalled",
-            Color = Color.Error,
-            Icon = Icons.Material.Outlined.NotificationImportant,
-            Description = "Lotti richiamati"
-        },
-        new() 
-        { 
-            Id = "expiring_soon", 
-            Label = "In Scadenza",
-            Predicate = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= DateTime.UtcNow.AddDays(30) && l.ExpiryDate.Value > DateTime.UtcNow,
-            Color = Color.Warning,
-            Icon = Icons.Material.Outlined.Warning,
-            Description = "Lotti in scadenza entro 30 giorni"
-        }
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i lotti" },
+        new() { Id = "active", Label = "Attivi", Predicate = l => l.Status == "Active", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Solo lotti attivi" },
+        new() { Id = "blocked", Label = "Bloccati", Predicate = l => l.Status == "Blocked", Color = Color.Error, Icon = Icons.Material.Outlined.Block, Description = "Lotti bloccati" },
+        new() { Id = "expired", Label = "Scaduti", Predicate = l => l.Status == "Expired", Color = Color.Default, Icon = Icons.Material.Outlined.EventBusy, Description = "Lotti scaduti" },
+        new() { Id = "expiring_soon", Label = "In Scadenza", Predicate = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= DateTime.UtcNow.AddDays(30) && l.ExpiryDate.Value > DateTime.UtcNow, Color = Color.Warning, Icon = Icons.Material.Outlined.Warning, Description = "Lotti in scadenza entro 30 giorni" },
+        new() { Id = "recent", Label = "Recenti", Predicate = l => l.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Info, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
     };
     
     private QuickFilter<LotDto>? _activeQuickFilter;

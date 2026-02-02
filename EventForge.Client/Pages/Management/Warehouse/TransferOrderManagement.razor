@@ -332,67 +332,12 @@
     // Quick Filters
     private List<QuickFilter<TransferOrderDto>> _quickFilters = new()
     {
-        new() 
-        { 
-            Id = "all", 
-            Label = "Tutti",
-            Predicate = _ => true,
-            Description = "Mostra tutti i trasferimenti"
-        },
-        new() 
-        { 
-            Id = "pending", 
-            Label = "In Attesa",
-            Predicate = t => t.Status == "Pending",
-            Color = Color.Info,
-            Icon = Icons.Material.Outlined.HourglassEmpty,
-            Description = "Trasferimenti in attesa"
-        },
-        new() 
-        { 
-            Id = "shipped", 
-            Label = "Spediti",
-            Predicate = t => t.Status == "Shipped",
-            Color = Color.Primary,
-            Icon = Icons.Material.Outlined.LocalShipping,
-            Description = "Trasferimenti spediti"
-        },
-        new() 
-        { 
-            Id = "in_transit", 
-            Label = "In Transito",
-            Predicate = t => t.Status == "InTransit",
-            Color = Color.Warning,
-            Icon = Icons.Material.Outlined.LocalShipping,
-            Description = "Trasferimenti in transito"
-        },
-        new() 
-        { 
-            Id = "completed", 
-            Label = "Completati",
-            Predicate = t => t.Status == "Completed",
-            Color = Color.Success,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Description = "Trasferimenti completati"
-        },
-        new() 
-        { 
-            Id = "cancelled", 
-            Label = "Annullati",
-            Predicate = t => t.Status == "Cancelled",
-            Color = Color.Error,
-            Icon = Icons.Material.Outlined.Cancel,
-            Description = "Trasferimenti annullati"
-        },
-        new() 
-        { 
-            Id = "recent", 
-            Label = "Recenti",
-            Predicate = t => t.OrderDate >= DateTime.UtcNow.AddDays(-30),
-            Color = Color.Info,
-            Icon = Icons.Material.Outlined.NewReleases,
-            Description = "Trasferimenti degli ultimi 30 giorni"
-        }
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti gli ordini di trasferimento" },
+        new() { Id = "pending", Label = "In Sospeso", Predicate = t => t.Status == "Pending", Color = Color.Warning, Icon = Icons.Material.Outlined.Schedule, Description = "Ordini in attesa di elaborazione" },
+        new() { Id = "in_transit", Label = "In Transito", Predicate = t => t.Status == "InTransit", Color = Color.Info, Icon = Icons.Material.Outlined.LocalShipping, Description = "Ordini in transito" },
+        new() { Id = "completed", Label = "Completati", Predicate = t => t.Status == "Completed", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Ordini completati" },
+        new() { Id = "cancelled", Label = "Annullati", Predicate = t => t.Status == "Cancelled", Color = Color.Default, Icon = Icons.Material.Outlined.Cancel, Description = "Ordini annullati" },
+        new() { Id = "recent", Label = "Recenti", Predicate = t => t.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Primary, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
     };
     
     private QuickFilter<TransferOrderDto>? _activeQuickFilter;
