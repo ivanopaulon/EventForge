@@ -258,7 +258,7 @@
         { 
             Id = "recent", 
             Label = "Recenti",
-            Predicate = p => p.CreatedAt >= DateTime.Now.AddDays(-30),
+            Predicate = p => p.CreatedAt >= DateTime.UtcNow.AddDays(-30),
             Color = Color.Warning,
             Icon = Icons.Material.Outlined.NewReleases,
             Description = "Prodotti aggiunti negli ultimi 30 giorni"
