@@ -265,7 +265,7 @@ public class SalesService : ISalesService
         {
             var response = await _httpClientService.GetAsync<Dictionary<string, bool>>(
                 $"{BaseUrl}/{sessionId}/can-split", cancellationToken);
-            return response?["canSplit"] ?? false;
+            return response?.TryGetValue("canSplit", out var canSplit) == true && canSplit;
         }
         catch (Exception ex)
         {
@@ -281,7 +281,7 @@ public class SalesService : ISalesService
             var query = string.Join("&", sessionIds.Select(id => $"sessionIds={id}"));
             var response = await _httpClientService.GetAsync<Dictionary<string, bool>>(
                 $"{BaseUrl}/can-merge?{query}", cancellationToken);
-            return response?["canMerge"] ?? false;
+            return response?.TryGetValue("canMerge", out var canMerge) == true && canMerge;
         }
         catch (Exception ex)
         {

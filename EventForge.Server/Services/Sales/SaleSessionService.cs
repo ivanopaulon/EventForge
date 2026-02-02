@@ -19,6 +19,11 @@ public class SaleSessionService : ISaleSessionService
     private readonly IDocumentHeaderService _documentHeaderService;
     private readonly IStockMovementService _stockMovementService;
 
+    /// <summary>
+    /// Tolerance for percentage sum validation (allows for rounding errors).
+    /// </summary>
+    private const decimal PercentageSumTolerance = 0.01m;
+
     public SaleSessionService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
@@ -2077,7 +2082,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     throw new InvalidOperationException("Le percentuali devono essere fornite per ogni persona.");
 
                 var sum = splitDto.Percentages.Sum();
-                if (Math.Abs(sum - 100) > 0.01m)
+                if (Math.Abs(sum - 100) > PercentageSumTolerance)
                     throw new InvalidOperationException($"Le percentuali devono sommare a 100. Somma attuale: {sum}");
                 break;
         }
