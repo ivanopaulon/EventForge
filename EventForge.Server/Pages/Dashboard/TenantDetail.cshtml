@@ -1,0 +1,374 @@
+@page "/dashboard/tenantdetail"
+@model EventForge.Server.Pages.Dashboard.TenantDetailModel
+@{
+    ViewData["Title"] = Model.IsEditMode ? $"Modifica Tenant: {Model.Tenant.DisplayName}" : "Nuovo Tenant";
+    ViewData["PageSection"] = "Multi-Tenant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-building"></i> 
+        @if (Model.IsEditMode)
+        {
+            <span>Modifica Tenant</span>
+        }
+        else
+        {
+            <span>Nuovo Tenant</span>
+        }
+    </h2>
+    <a href="/dashboard/tenants" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Torna alla Lista
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Statistics (Edit Mode Only) -->
+@if (Model.IsEditMode)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Utenti Attivi</h6>
+                    <h3>@Model.CurrentUserCount / @Model.Tenant.MaxUsers</h3>
+                    @{
+                        var userPercentage = Model.Tenant.MaxUsers > 0 
+                            ? (Model.CurrentUserCount * 100.0 / Model.Tenant.MaxUsers) 
+                            : 0;
+                    }
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar @(userPercentage > 90 ? "bg-danger" : userPercentage > 75 ? "bg-warning" : "bg-success")" 
+                             style="width: @userPercentage%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Stato</h6>
+                    <h3>
+                        @if (Model.Tenant.IsActive)
+                        {
+                            <span class="badge bg-success">Attivo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Disabilitato</span>
+                        }
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Creato</h6>
+                    <h3>@Model.Tenant.CreatedAt.ToString("dd/MM/yyyy")</h3>
+                    <small class="text-muted">@Model.Tenant.CreatedAt.ToString("HH:mm")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<form method="post">
+    <input type="hidden" asp-for="Tenant.Id" />
+    
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informazioni Base</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Tenant.Name" class="form-label">Nome Tenant *</label>
+                            <input asp-for="Tenant.Name" class="form-control" 
+                                   placeholder="es. acme-corp"
+                                   @(Model.IsEditMode ? "readonly" : "")
+                                   required />
+                            <span asp-validation-for="Tenant.Name" class="text-danger"></span>
+                            @if (!Model.IsEditMode)
+                            {
+                                <small class="text-muted">Identificatore univoco (non modificabile)</small>
+                            }
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label asp-for="Tenant.Code" class="form-label">Codice *</label>
+                            <input asp-for="Tenant.Code" class="form-control" 
+                                   placeholder="es. ACME"
+                                   @(Model.IsEditMode ? "readonly" : "")
+                                   required 
+                                   id="tenantCode" />
+                            <span asp-validation-for="Tenant.Code" class="text-danger"></span>
+                            @if (!Model.IsEditMode)
+                            {
+                                <small class="text-muted">Codice breve univoco (max 10 caratteri)</small>
+                            }
+                        </div>
+
+                        <div class="col-md-12">
+                            <label asp-for="Tenant.DisplayName" class="form-label">Nome Visualizzato *</label>
+                            <input asp-for="Tenant.DisplayName" class="form-control" 
+                                   placeholder="es. ACME Corporation"
+                                   required />
+                            <span asp-validation-for="Tenant.DisplayName" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label asp-for="Tenant.Description" class="form-label">Descrizione</label>
+                            <textarea asp-for="Tenant.Description" class="form-control" 
+                                      rows="3"
+                                      placeholder="Descrizione opzionale del tenant"></textarea>
+                            <span asp-validation-for="Tenant.Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-envelope"></i> Informazioni Contatto</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Tenant.ContactEmail" class="form-label">Email Contatto *</label>
+                            <input asp-for="Tenant.ContactEmail" type="email" class="form-control" 
+                                   placeholder="admin@acme-corp.com"
+                                   required />
+                            <span asp-validation-for="Tenant.ContactEmail" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Tenant.Domain" class="form-label">Dominio</label>
+                            <input asp-for="Tenant.Domain" class="form-control" 
+                                   placeholder="acme-corp.com" />
+                            <span asp-validation-for="Tenant.Domain" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin User (Only for New Tenant) -->
+            @if (!Model.IsEditMode)
+            {
+                <div class="card mb-4 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-person-circle"></i> Utente Admin</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Verrà creato automaticamente un utente admin con ruolo SuperAdmin. 
+                            La password generata verrà mostrata una sola volta dopo la creazione.
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="AdminUser.Username" class="form-label">Username *</label>
+                                <input asp-for="AdminUser.Username" class="form-control" 
+                                       placeholder="admin"
+                                       required />
+                                <span asp-validation-for="AdminUser.Username" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="AdminUser.Email" class="form-label">Email *</label>
+                                <input asp-for="AdminUser.Email" type="email" class="form-control" 
+                                       placeholder="admin@acme-corp.com"
+                                       required />
+                                <span asp-validation-for="AdminUser.Email" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="AdminUser.FirstName" class="form-label">Nome *</label>
+                                <input asp-for="AdminUser.FirstName" class="form-control" 
+                                       placeholder="Mario"
+                                       required />
+                                <span asp-validation-for="AdminUser.FirstName" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="AdminUser.LastName" class="form-label">Cognome *</label>
+                                <input asp-for="AdminUser.LastName" class="form-control" 
+                                       placeholder="Rossi"
+                                       required />
+                                <span asp-validation-for="AdminUser.LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Impostazioni</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Tenant.MaxUsers" class="form-label">Massimo Utenti *</label>
+                        <input asp-for="Tenant.MaxUsers" type="number" class="form-control" 
+                               min="1" max="10000"
+                               required />
+                        <span asp-validation-for="Tenant.MaxUsers" class="text-danger"></span>
+                        <small class="text-muted">Numero massimo di utenti consentiti</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Tenant.SubscriptionExpiresAt" class="form-label">Scadenza Sottoscrizione</label>
+                        <input asp-for="Tenant.SubscriptionExpiresAt" type="date" class="form-control" />
+                        <span asp-validation-for="Tenant.SubscriptionExpiresAt" class="text-danger"></span>
+                        <small class="text-muted">Lascia vuoto per nessuna scadenza</small>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input asp-for="Tenant.IsActive" class="form-check-input" type="checkbox" 
+                               id="tenantActive" />
+                        <label class="form-check-label" for="tenantActive">
+                            <strong>Tenant Attivo</strong>
+                        </label>
+                        <small class="d-block text-muted">
+                            @if (Model.IsEditMode)
+                            {
+                                <span>Disabilitando il tenant, tutti gli utenti non potranno accedere</span>
+                            }
+                            else
+                            {
+                                <span>Il tenant sarà immediatamente attivo</span>
+                            }
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata (Edit Mode) -->
+            @if (Model.IsEditMode)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Metadata</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8"><code class="small">@Model.Tenant.Id</code></dd>
+
+                            <dt class="col-sm-4">Creato:</dt>
+                            <dd class="col-sm-8">@Model.Tenant.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                            @if (Model.Tenant.ModifiedAt.HasValue)
+                            {
+                                <dt class="col-sm-4">Modificato:</dt>
+                                <dd class="col-sm-8">@Model.Tenant.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")</dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+            }
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-save"></i> 
+                        @(Model.IsEditMode ? "Salva Modifiche" : "Crea Tenant")
+                    </button>
+                    <a href="/dashboard/tenants" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-circle"></i> Annulla
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    @if (!Model.IsEditMode)
+    {
+        <script>
+            // Auto-generate Code from Name
+            document.getElementById('Tenant_Name').addEventListener('input', function(e) {
+                const name = e.target.value;
+                const codeField = document.getElementById('tenantCode');
+                
+                // Only auto-fill if code is empty
+                if (!codeField.value || codeField.dataset.autoGenerated === 'true') {
+                    const code = name
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9]/g, '')
+                        .substring(0, 10);
+                    
+                    codeField.value = code;
+                    codeField.dataset.autoGenerated = 'true';
+                }
+            });
+
+            // Mark as manually edited if user types in code field
+            document.getElementById('tenantCode').addEventListener('input', function(e) {
+                if (e.target.value) {
+                    e.target.dataset.autoGenerated = 'false';
+                }
+            });
+
+            // Auto-fill admin email from contact email
+            document.getElementById('Tenant_ContactEmail').addEventListener('input', function(e) {
+                const contactEmail = e.target.value;
+                const adminEmailField = document.getElementById('AdminUser_Email');
+                
+                // Only auto-fill if admin email is empty
+                if (!adminEmailField.value || adminEmailField.dataset.autoFilled === 'true') {
+                    adminEmailField.value = contactEmail;
+                    adminEmailField.dataset.autoFilled = 'true';
+                }
+            });
+
+            // Mark as manually edited if user types in admin email field
+            document.getElementById('AdminUser_Email').addEventListener('input', function(e) {
+                if (e.target.value !== document.getElementById('Tenant_ContactEmail').value) {
+                    e.target.dataset.autoFilled = 'false';
+                }
+            });
+        </script>
+    }
+}

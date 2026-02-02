@@ -67,10 +67,9 @@
                         <span>Multi-Tenant</span>
                     </div>
                     <a href="/dashboard/tenants" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 disabled">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/tenant") ? "active" : "")">
                         <i class="bi bi-building me-2"></i>
                         <span>Tenants</span>
-                        <span class="badge bg-secondary ms-auto">Soon</span>
                     </a>
                     <a href="/dashboard/users" 
                        class="list-group-item list-group-item-action bg-dark text-white border-0 disabled">
