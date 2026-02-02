@@ -2280,7 +2280,12 @@
     "searchOrCreatePrompt": "Search for an existing product to assign this code, or create a new product.",
     "showExpiring": "Show expiring",
     "skipProduct": "Skip and Continue",
-    "status": "Status",
+    "status": {
+      "criticalTooltip": "Stock below safety level - order urgently",
+      "lowStockTooltip": "Stock below reorder point - consider reordering",
+      "outOfStockTooltip": "Product out of stock - no inventory available",
+      "normalTooltip": "Stock level is normal"
+    },
     "storageLocation": "Storage location",
     "time": "Time",
     "totalEntries": "Total entries",
@@ -2463,12 +2468,6 @@
       "locationRequired": "Select a location",
       "notesRequired": "Notes required for changes greater than {0}",
       "notesTooLong": "Notes cannot exceed 500 characters"
-    },
-    "status": {
-      "criticalTooltip": "Stock below safety level - order urgently",
-      "lowStockTooltip": "Stock below reorder point - consider reordering",
-      "outOfStockTooltip": "Product out of stock - no inventory available",
-      "normalTooltip": "Stock level is normal"
     }
   },
   "nav": {
@@ -2985,5 +2984,21 @@
     "preview": "Preview",
     "recommended": "Recommended",
     "systemFont": "System Font"
+  },
+  "export": {
+    "dialogTitle": "Export data",
+    "selectColumns": "Select columns to export",
+    "allColumns": "All columns",
+    "recordsToExport": "rows will be exported",
+    "filteredFrom": "Filtered from {0} total rows",
+    "selectedColumns": "{0} columns selected",
+    "selectFormat": "Select format",
+    "recommended": "Recommended",
+    "confirm": "Export",
+    "noData": "No data to export",
+    "success": "Export completed successfully!",
+    "failed": "Export failed",
+    "error": "Error during export: {0}",
+    "inProgress": "Export in progress..."
   }
 }

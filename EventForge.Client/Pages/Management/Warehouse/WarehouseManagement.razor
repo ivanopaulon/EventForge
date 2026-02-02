@@ -40,6 +40,11 @@
                  ComponentKey="WarehouseManagement"
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="Magazzini"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_storageFacilities.Count"
                  OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
@@ -669,5 +674,13 @@
             // Reload the page after successful login
             await OnInitializedAsync();
         }
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm) 
+            || _showOnlyFiscal 
+            || _showOnlyRefrigerated
+            || _activeQuickFilter != null;
     }
 }

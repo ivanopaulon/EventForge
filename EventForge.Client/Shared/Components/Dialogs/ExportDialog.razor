@@ -1,0 +1,154 @@
+@typeparam TItem
+@using EventForge.Client.Shared.Components.Export
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Download" Class="mr-2" />
+            @TranslationService.GetTranslation("export.dialogTitle", "Esporta dati")
+        </MudText>
+    </TitleContent>
+    
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- Column Selection Section -->
+            <div>
+                <MudText Typo="Typo.subtitle1" Class="mb-2">
+                    @TranslationService.GetTranslation("export.selectColumns", "Seleziona colonne da esportare")
+                </MudText>
+                
+                <MudSwitch @bind-Value="_exportAllColumns" 
+                           Color="Color.Primary"
+                           Label="@TranslationService.GetTranslation("export.allColumns", "Tutte le colonne")"
+                           Class="mb-2" />
+                
+                @if (!_exportAllColumns)
+                {
+                    <MudPaper Class="pa-2" Elevation="0" Style="max-height: 300px; overflow-y: auto; border: 1px solid var(--mud-palette-lines-default);">
+                        <MudStack Spacing="1">
+                            @foreach (var col in Columns)
+                            {
+                                <MudCheckBox @bind-Value="col.IncludeInExport" 
+                                             Label="@col.DisplayName" 
+                                             Dense="true"
+                                             Color="Color.Primary" />
+                            }
+                        </MudStack>
+                    </MudPaper>
+                }
+            </div>
+            
+            <MudDivider />
+            
+            <!-- Export Info -->
+            <MudAlert Severity="@(IsFiltered ? Severity.Info : Severity.Normal)" 
+                      Dense="false" 
+                      Variant="Variant.Outlined"
+                      Class="pa-3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.body1">
+                        <strong>@RecordsToExport</strong> 
+                        @TranslationService.GetTranslation("export.recordsToExport", "righe verranno esportate")
+                    </MudText>
+                    
+                    @if (IsFiltered && TotalRecords > RecordsToExport)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @TranslationService.GetTranslationFormatted("export.filteredFrom", "Filtrate da {0} righe totali", TotalRecords)
+                        </MudText>
+                    }
+                    
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @TranslationService.GetTranslationFormatted("export.selectedColumns", "{0} colonne selezionate", SelectedColumnsCount)
+                    </MudText>
+                </MudStack>
+            </MudAlert>
+            
+            <MudDivider />
+            
+            <!-- Format Selection -->
+            <div>
+                <MudText Typo="Typo.subtitle1" Class="mb-2">
+                    @TranslationService.GetTranslation("export.selectFormat", "Seleziona formato")
+                </MudText>
+                
+                <MudRadioGroup @bind-Value="_selectedFormat">
+                    <MudRadio Value="@ExportFormat.Excel" Color="Color.Primary">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Outlined.TableView" Size="Size.Small" />
+                            <MudText>Excel (.xlsx)</MudText>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
+                                @TranslationService.GetTranslation("export.recommended", "Consigliato")
+                            </MudChip>
+                        </MudStack>
+                    </MudRadio>
+                    <MudRadio Value="@ExportFormat.Csv" Color="Color.Secondary">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" />
+                            <MudText>CSV (.csv)</MudText>
+                        </MudStack>
+                    </MudRadio>
+                </MudRadioGroup>
+            </div>
+        </MudStack>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Download"
+                   OnClick="ConfirmExport"
+                   Disabled="@(SelectedColumnsCount == 0)">
+            @TranslationService.GetTranslation("export.confirm", "Esporta")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public List<ExportColumnConfig> Columns { get; set; } = new();
+    [Parameter] public int RecordsToExport { get; set; }
+    [Parameter] public int TotalRecords { get; set; }
+    [Parameter] public bool IsFiltered { get; set; }
+    
+    private bool _exportAllColumns = false;
+    private ExportFormat _selectedFormat = ExportFormat.Excel;
+    
+    private int SelectedColumnsCount => 
+        _exportAllColumns 
+            ? Columns.Count 
+            : Columns.Count(c => c.IncludeInExport);
+    
+    protected override void OnParametersSet()
+    {
+        // Default: export solo colonne visibili (già selezionate)
+        if (!Columns.Any(c => c.IncludeInExport))
+        {
+            foreach (var col in Columns)
+            {
+                col.IncludeInExport = true;
+            }
+        }
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+    
+    private void ConfirmExport()
+    {
+        var result = new ExportDialogResult
+        {
+            Format = _selectedFormat,
+            Columns = _exportAllColumns 
+                ? Columns 
+                : Columns.Where(c => c.IncludeInExport).ToList()
+        };
+        
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+}
