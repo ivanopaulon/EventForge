@@ -127,8 +127,8 @@ public class UsersModel : PageModel
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Password reset for user {UserId} by {Admin}. New password: {Password}", 
-            id, User.Identity?.Name, newPassword);
+        _logger.LogInformation("Password reset for user {UserId} by {Admin}", 
+            id, User.Identity?.Name);
 
         TempData["SuccessMessage"] = $"Password resettata per {user.Username}. Nuova password: {newPassword}";
         
@@ -139,25 +139,31 @@ public class UsersModel : PageModel
     {
         const string chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
         const string symbols = "!@#$%&*";
-        var random = new Random();
         var password = new char[12];
 
-        password[0] = chars[random.Next(0, 25)];
-        password[1] = chars[random.Next(25, 50)];
-        password[2] = chars[random.Next(50, chars.Length)];
-        password[3] = symbols[random.Next(symbols.Length)];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        var randomBytes = new byte[password.Length];
+        rng.GetBytes(randomBytes);
 
+        // Ensure at least one uppercase, lowercase, digit, and symbol
+        password[0] = chars[randomBytes[0] % 25];  // Uppercase
+        password[1] = chars[25 + (randomBytes[1] % 25)];  // Lowercase
+        password[2] = chars[50 + (randomBytes[2] % (chars.Length - 50))];  // Digit
+        password[3] = symbols[randomBytes[3] % symbols.Length];  // Symbol
+
+        // Fill remaining positions
         for (int i = 4; i < password.Length; i++)
         {
-            var useSymbol = random.Next(10) == 0;
+            var useSymbol = randomBytes[i] % 10 == 0;
             password[i] = useSymbol 
-                ? symbols[random.Next(symbols.Length)] 
-                : chars[random.Next(chars.Length)];
+                ? symbols[randomBytes[i] % symbols.Length] 
+                : chars[randomBytes[i] % chars.Length];
         }
 
+        // Shuffle the password
         for (int i = password.Length - 1; i > 0; i--)
         {
-            int j = random.Next(i + 1);
+            int j = randomBytes[i] % (i + 1);
             (password[i], password[j]) = (password[j], password[i]);
         }
 

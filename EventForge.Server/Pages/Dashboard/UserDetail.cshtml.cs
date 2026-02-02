@@ -171,8 +171,8 @@ public class UserDetailModel : PageModel
             await transaction.CommitAsync();
 
             _logger.LogInformation(
-                "User {Username} created by {Admin} with password: {Password}",
-                user.Username, this.User.Identity?.Name, password);
+                "User {Username} created by {Admin}",
+                user.Username, this.User.Identity?.Name);
 
             TempData["SuccessMessage"] = $"Utente creato con successo! Password: {password}";
 
