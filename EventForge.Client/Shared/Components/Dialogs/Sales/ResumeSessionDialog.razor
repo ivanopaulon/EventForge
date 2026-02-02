@@ -64,6 +64,25 @@
                                     <MudText Typo="Typo.body1" Style="font-weight: 600;">
                                         #@session.Id.ToString().Substring(0, 8)
                                     </MudText>
+                                    @* Visual indicators for split/merged sessions *@
+                                    @if (session.ParentSessionId.HasValue)
+                                    {
+                                        <MudChip Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.CallSplit" Class="mt-1">
+                                            @TranslationService.GetTranslation("sales.split.split", "Splitta")
+                                        </MudChip>
+                                    }
+                                    @if (session.ChildSessionCount > 0)
+                                    {
+                                        <MudChip Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.AccountTree" Class="mt-1">
+                                            @TranslationService.GetTranslation("sales.split.childCount", "{0} Figli", session.ChildSessionCount)
+                                        </MudChip>
+                                    }
+                                    @if (!string.IsNullOrEmpty(session.MergeReason))
+                                    {
+                                        <MudChip Color="Color.Secondary" Size="Size.Small" Icon="@Icons.Material.Filled.MergeType" Class="mt-1">
+                                            @TranslationService.GetTranslation("sales.merge.merged", "Merged")
+                                        </MudChip>
+                                    }
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -112,6 +131,24 @@
                                     <MudText Typo="Typo.body2">
                                         @GetRelativeTime(session.UpdatedAt)
                                     </MudText>
+                                    @* Display split type and percentage if present *@
+                                    @if (!string.IsNullOrEmpty(session.SplitType))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mt-2">
+                                            @TranslationService.GetTranslation("sales.split.type", "Split Type"): <strong>@session.SplitType</strong>
+                                            @if (session.SplitPercentage.HasValue)
+                                            {
+                                                <span> - @session.SplitPercentage.Value%</span>
+                                            }
+                                        </MudText>
+                                    }
+                                    @* Display merge reason if present *@
+                                    @if (!string.IsNullOrEmpty(session.MergeReason))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mt-2">
+                                            @TranslationService.GetTranslation("sales.merge.reason", "Motivo Unione"): <strong>@session.MergeReason</strong>
+                                        </MudText>
+                                    }
                                 </MudItem>
 
                                 <!-- Item Preview -->

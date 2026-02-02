@@ -8,6 +8,7 @@
 @using EventForge.Client.Shared.Components.Dialogs.Sales
 @using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Services.Sales
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @implements IDisposable
@@ -18,6 +19,7 @@
 @inject ITranslationService TranslationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
+@inject ISalesService SalesService
 
 <PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading" 
@@ -145,6 +147,22 @@
                                                    OnClick="@AddSessionNoteAsync">
                                             @TranslationService.GetTranslation("sales.notes", "Note")
                                         </MudButton>
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.splitTooltip", "Dividi Conto")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.CallSplit" 
+                                                       Color="Color.Primary"
+                                                       OnClick="@OpenSplitDialogAsync"
+                                                       Disabled="@(!_canSplit)"
+                                                       Size="Size.Small" />
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.mergeTooltip", "Unisci Sessioni")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.MergeType" 
+                                                       Color="Color.Secondary"
+                                                       OnClick="@OpenMergeDialogAsync"
+                                                       Disabled="@(_openSessions.Count < 2)"
+                                                       Size="Size.Small" />
                                     </MudTooltip>
                                     
                                 </MudStack>
@@ -303,6 +321,10 @@
 
         // Initialize ViewModel
         await ViewModel.InitializeAsync(username);
+        
+        // Initialize split/merge functionality
+        await LoadOpenSessionsAsync();
+        await CheckCanSplitAsync();
     }
 
     private void HandleNotification(string message, bool isSuccess)
@@ -830,6 +852,93 @@
         sb.AppendLine("</body></html>");
 
         return sb.ToString();
+    }
+
+    // Split and Merge Functionality
+    private bool _canSplit = false;
+    private List<SaleSessionDto> _openSessions = new();
+    
+    private async Task CheckCanSplitAsync()
+    {
+        if (ViewModel.CurrentSession != null)
+        {
+            _canSplit = await SalesService.CanSplitSessionAsync(ViewModel.CurrentSession.Id);
+        }
+        else
+        {
+            _canSplit = false;
+        }
+    }
+    
+    private async Task LoadOpenSessionsAsync()
+    {
+        var allSessions = await SalesService.GetActiveSessionsAsync();
+        if (allSessions != null)
+        {
+            _openSessions = allSessions
+                .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
+                .ToList();
+        }
+    }
+    
+    private async Task OpenSplitDialogAsync()
+    {
+        if (ViewModel.CurrentSession == null) return;
+        
+        var parameters = new DialogParameters
+        {
+            { "Session", ViewModel.CurrentSession }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = DialogService.Show<SplitPaymentDialog>(
+            TranslationService.GetTranslation("sales.split.title", "Dividi Conto"), 
+            parameters, 
+            options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            // Refresh session
+            await ViewModel.ReloadSessionAsync();
+            await LoadOpenSessionsAsync();
+            await CheckCanSplitAsync();
+        }
+    }
+    
+    private async Task OpenMergeDialogAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            { "AvailableSessions", _openSessions }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = DialogService.Show<MergeSessionsDialog>(
+            TranslationService.GetTranslation("sales.merge.title", "Unisci Sessioni"), 
+            parameters, 
+            options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            // Refresh session
+            await ViewModel.ReloadSessionAsync();
+            await LoadOpenSessionsAsync();
+            await CheckCanSplitAsync();
+        }
     }
 
     // UI Helper Methods
