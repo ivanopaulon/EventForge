@@ -1,0 +1,162 @@
+@using EventForge.DTOs.Sales
+@using EventForge.Client.Services.Sales
+@using MudBlazor
+@inject ISalesService SalesService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-3">
+            @TranslationService.GetTranslation("sales.merge.title", "Unisci Sessioni")
+        </MudText>
+        
+        <MudText Typo="Typo.body2" Class="mb-4">
+            @TranslationService.GetTranslation("sales.merge.description", "Seleziona almeno 2 sessioni da unire in un'unica sessione")
+        </MudText>
+        
+        @if (_availableSessions.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info">
+                @TranslationService.GetTranslation("sales.merge.noSessions", "Nessuna sessione disponibile per il merge")
+            </MudAlert>
+        }
+        else
+        {
+            @foreach (var session in _availableSessions)
+            {
+                <MudCard Class="mb-2" Elevation="1">
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="1">
+                                <MudCheckBox @bind-Value="@_selectedSessions[session.Id]" 
+                                            Color="Color.Primary" 
+                                            T="bool" />
+                            </MudItem>
+                            <MudItem xs="11">
+                                <MudText Typo="Typo.subtitle1">
+                                    <strong>@TranslationService.GetTranslation("sales.sessionNumber", "Sessione") #@session.Id.ToString().Substring(0, 8)</strong>
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    @TranslationService.GetTranslation("sales.table", "Tavolo"): @(session.TableId.HasValue ? TranslationService.GetTranslation("sales.tableN", "Tavolo {0}", session.TableId.Value) : TranslationService.GetTranslation("common.na", "N/A"))
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    @TranslationService.GetTranslation("sales.items", "Articoli"): @session.Items.Count - @TranslationService.GetTranslation("sales.total", "Totale"): <strong>@session.FinalTotal.ToString("C2")</strong>
+                                </MudText>
+                                <MudText Typo="Typo.caption">
+                                    @TranslationService.GetTranslation("sales.created", "Creata"): @session.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                </MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            }
+            
+            @if (GetSelectedSessionIds().Count >= 2)
+            {
+                <MudDivider Class="my-4" />
+                
+                <MudAlert Severity="Severity.Success" Class="mb-3">
+                    <strong>@TranslationService.GetTranslation("sales.merge.preview", "Preview Sessione Unita")</strong><br/>
+                    @TranslationService.GetTranslation("sales.merge.totalItems", "Totale Articoli"): @GetTotalItems()<br/>
+                    @TranslationService.GetTranslation("sales.merge.totalAmount", "Importo Totale"): <strong>@GetTotalAmount().ToString("C2")</strong>
+                </MudAlert>
+                
+                <MudTextField @bind-Value="_mergeReason" 
+                             Label="@TranslationService.GetTranslation("sales.merge.reason", "Motivo Unione (opzionale)")" 
+                             Variant="Variant.Outlined"
+                             Lines="2"
+                             T="string" />
+            }
+        }
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="ConfirmMerge"
+                   Disabled="@(!IsValidMerge())">
+            @TranslationService.GetTranslation("sales.merge.confirm", "Conferma Unione")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    
+    [Parameter] public List<SaleSessionDto> AvailableSessions { get; set; } = new();
+    
+    private List<SaleSessionDto> _availableSessions = new();
+    private Dictionary<Guid, bool> _selectedSessions = new();
+    private string _mergeReason = string.Empty;
+    
+    protected override void OnParametersSet()
+    {
+        _availableSessions = AvailableSessions;
+        _selectedSessions = _availableSessions.ToDictionary(s => s.Id, s => false);
+    }
+    
+    private List<Guid> GetSelectedSessionIds()
+    {
+        return _selectedSessions.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+    }
+    
+    private int GetTotalItems()
+    {
+        var selectedIds = GetSelectedSessionIds();
+        return _availableSessions
+            .Where(s => selectedIds.Contains(s.Id))
+            .Sum(s => s.Items.Count);
+    }
+    
+    private decimal GetTotalAmount()
+    {
+        var selectedIds = GetSelectedSessionIds();
+        return _availableSessions
+            .Where(s => selectedIds.Contains(s.Id))
+            .Sum(s => s.FinalTotal);
+    }
+    
+    private bool IsValidMerge()
+    {
+        return GetSelectedSessionIds().Count >= 2;
+    }
+    
+    private async Task ConfirmMerge()
+    {
+        try
+        {
+            var mergeDto = new MergeSessionsDto
+            {
+                SessionIds = GetSelectedSessionIds(),
+                MergeReason = string.IsNullOrWhiteSpace(_mergeReason) ? null : _mergeReason
+            };
+            
+            var result = await SalesService.MergeSessionsAsync(mergeDto);
+            
+            if (result != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.merge.success", "Sessioni unite con successo - Totale: {0}", result.FinalTotal.ToString("C2")), 
+                    Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.merge.error", "Errore durante l'unione delle sessioni"), 
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{TranslationService.GetTranslation("common.error", "Errore")}: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}

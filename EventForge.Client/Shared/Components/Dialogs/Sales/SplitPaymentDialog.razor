@@ -1,0 +1,333 @@
+@using EventForge.DTOs.Sales
+@using EventForge.Client.Services.Sales
+@using MudBlazor
+@inject ISalesService SalesService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" @bind-ActivePanelIndex="_activeTabIndex">
+            
+            <!-- TAB 1: EQUAL SPLIT -->
+            <MudTabPanel Text="@TranslationService.GetTranslation("sales.split.equal", "Split Equo")" Icon="@Icons.Material.Filled.Calculate">
+                <MudNumericField @bind-Value="_numberOfPeople" 
+                                 Label="@TranslationService.GetTranslation("sales.split.numberOfPeople", "Numero Persone")" 
+                                 Min="2" 
+                                 Max="20"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 HelperText="@TranslationService.GetTranslation("sales.split.equalHelp", "Divisione equa tra tutte le persone")"
+                                 T="int" />
+                
+                @if (_numberOfPeople >= 2)
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-4">
+                        <strong>@TranslationService.GetTranslation("sales.split.amountPerPerson", "Importo per persona"):</strong> @GetEqualSplitAmount().ToString("C2")
+                    </MudAlert>
+                    
+                    <MudText Typo="Typo.caption" Class="mt-2">
+                        @TranslationService.GetTranslation("sales.split.totalToDivide", "Totale da dividere"): @_session.FinalTotal.ToString("C2")
+                    </MudText>
+                }
+            </MudTabPanel>
+            
+            <!-- TAB 2: BY ITEMS SPLIT -->
+            <MudTabPanel Text="@TranslationService.GetTranslation("sales.split.byItems", "Per Articoli")" Icon="@Icons.Material.Filled.ShoppingCart">
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    @TranslationService.GetTranslation("sales.split.byItemsHelp", "Assegna ogni articolo a una persona specifica")
+                </MudText>
+                
+                <MudNumericField @bind-Value="_numberOfPeople" 
+                                 Label="@TranslationService.GetTranslation("sales.split.numberOfPeople", "Numero Persone")" 
+                                 Min="2" 
+                                 Max="20"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 T="int" />
+                
+                @if (_numberOfPeople >= 2 && _itemAssignments.Count > 0)
+                {
+                    <MudDivider Class="my-4" />
+                    
+                    @foreach (var item in _session.Items)
+                    {
+                        <MudCard Class="mb-2" Elevation="1">
+                            <MudCardContent>
+                                <MudGrid>
+                                    <MudItem xs="8">
+                                        <MudText Typo="Typo.body1"><strong>@item.ProductName</strong></MudText>
+                                        <MudText Typo="Typo.caption">
+                                            @TranslationService.GetTranslation("sales.quantity", "Qtà"): @item.Quantity - @item.TotalAmount.ToString("C2")
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudSelect @bind-Value="_itemAssignments[item.Id]" 
+                                                   Label="@TranslationService.GetTranslation("sales.split.person", "Persona")"
+                                                   Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   T="int">
+                                            @for (int i = 0; i < _numberOfPeople; i++)
+                                            {
+                                                var personIndex = i;
+                                                <MudSelectItem Value="@personIndex">
+                                                    @TranslationService.GetTranslation("sales.split.personN", "Persona {0}", personIndex + 1)
+                                                </MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                    
+                    <MudDivider Class="my-4" />
+                    
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @TranslationService.GetTranslation("sales.split.summaryPerPerson", "Riepilogo per Persona")
+                    </MudText>
+                    @for (int i = 0; i < _numberOfPeople; i++)
+                    {
+                        var personIndex = i;
+                        var personTotal = GetPersonTotal(personIndex);
+                        <MudChip T="string" Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            @TranslationService.GetTranslation("sales.split.personN", "Persona {0}", personIndex + 1): @personTotal.ToString("C2")
+                        </MudChip>
+                    }
+                }
+            </MudTabPanel>
+            
+            <!-- TAB 3: PERCENTAGE SPLIT -->
+            <MudTabPanel Text="@TranslationService.GetTranslation("sales.split.percentage", "Percentuale")" Icon="@Icons.Material.Filled.Percent">
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    @TranslationService.GetTranslation("sales.split.percentageHelp", "Dividi il conto con percentuali personalizzate")
+                </MudText>
+                
+                <MudNumericField @bind-Value="_numberOfPeople" 
+                                 Label="@TranslationService.GetTranslation("sales.split.numberOfPeople", "Numero Persone")" 
+                                 Min="2" 
+                                 Max="20"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 T="int" />
+                
+                @if (_numberOfPeople >= 2 && _percentages.Count > 0)
+                {
+                    <MudDivider Class="my-4" />
+                    
+                    @for (int i = 0; i < _numberOfPeople; i++)
+                    {
+                        var index = i;
+                        <MudCard Class="mb-3" Elevation="1">
+                            <MudCardContent>
+                                <MudText Typo="Typo.subtitle1" Class="mb-2">
+                                    <strong>@TranslationService.GetTranslation("sales.split.personN", "Persona {0}", index + 1)</strong>
+                                </MudText>
+                                
+                                <MudSlider @bind-Value="_percentages[index]" 
+                                          Min="0" 
+                                          Max="100" 
+                                          Step="5"
+                                          Color="Color.Primary"
+                                          ValueLabel="true">
+                                    @TranslationService.GetTranslation("sales.split.percentageLabel", "Percentuale"): @_percentages[index]%
+                                </MudSlider>
+                                
+                                <MudNumericField @bind-Value="_percentages[index]" 
+                                                Label="@TranslationService.GetTranslation("sales.split.exactPercentage", "Percentuale Esatta")" 
+                                                Min="0" 
+                                                Max="100"
+                                                Variant="Variant.Outlined"
+                                                Margin="Margin.Dense"
+                                                Adornment="Adornment.End"
+                                                AdornmentText="%"
+                                                T="decimal" />
+                                
+                                <MudText Typo="Typo.body2" Class="mt-2">
+                                    @TranslationService.GetTranslation("sales.amount", "Importo"): <strong>@GetPercentageAmount(index).ToString("C2")</strong>
+                                </MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                    
+                    <MudAlert Severity="@GetPercentageValidationSeverity()" Class="mt-3">
+                        @TranslationService.GetTranslation("sales.split.totalPercentages", "Totale percentuali"): <strong>@_percentages.Sum()%</strong>
+                        @if (Math.Abs(_percentages.Sum() - 100) > 0.01m)
+                        {
+                            <span> - @TranslationService.GetTranslation("sales.split.mustBe100", "Deve essere esattamente 100%")</span>
+                        }
+                        else
+                        {
+                            <span> - ✓ @TranslationService.GetTranslation("common.correct", "Corretto")</span>
+                        }
+                    </MudAlert>
+                }
+            </MudTabPanel>
+            
+        </MudTabs>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="ConfirmSplit"
+                   Disabled="@(!IsValidSplit())">
+            @TranslationService.GetTranslation("sales.split.confirmSplit", "Conferma Split")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    
+    [Parameter] public SaleSessionDto Session { get; set; } = null!;
+    
+    private SaleSessionDto _session = null!;
+    private int _activeTabIndex = 0;
+    private int _numberOfPeople = 2;
+    private int _previousNumberOfPeople = 2;
+    private Dictionary<Guid, int> _itemAssignments = new();
+    private List<decimal> _percentages = new();
+    
+    protected override void OnParametersSet()
+    {
+        _session = Session;
+        InitializeItemAssignments();
+        InitializePercentages();
+        _previousNumberOfPeople = _numberOfPeople;
+    }
+    
+    private void InitializeItemAssignments()
+    {
+        _itemAssignments.Clear();
+        foreach (var item in _session.Items)
+        {
+            _itemAssignments[item.Id] = 0; // Default to person 0
+        }
+    }
+    
+    private void InitializePercentages()
+    {
+        _percentages.Clear();
+        if (_numberOfPeople < 2) return;
+        
+        // Calculate base percentage and remainder to ensure sum is exactly 100
+        var basePercentage = Math.Floor(100m / _numberOfPeople);
+        var remainder = 100m - (basePercentage * _numberOfPeople);
+        
+        for (int i = 0; i < _numberOfPeople; i++)
+        {
+            // Distribute remainder to first few people
+            _percentages.Add(i < remainder ? basePercentage + 1 : basePercentage);
+        }
+    }
+    
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender && _numberOfPeople != _previousNumberOfPeople)
+        {
+            // Re-initialize when number of people changes
+            _previousNumberOfPeople = _numberOfPeople;
+            InitializePercentages();
+            StateHasChanged();
+        }
+    }
+    
+    private decimal GetEqualSplitAmount()
+    {
+        if (_numberOfPeople < 2) return 0;
+        return Math.Round(_session.FinalTotal / _numberOfPeople, 2);
+    }
+    
+    private decimal GetPersonTotal(int personIndex)
+    {
+        return _session.Items
+            .Where(item => _itemAssignments.TryGetValue(item.Id, out var assignment) && assignment == personIndex)
+            .Sum(item => item.TotalAmount);
+    }
+    
+    private decimal GetPercentageAmount(int personIndex)
+    {
+        if (personIndex >= _percentages.Count) return 0;
+        return Math.Round(_session.FinalTotal * _percentages[personIndex] / 100, 2);
+    }
+    
+    private Severity GetPercentageValidationSeverity()
+    {
+        return Math.Abs(_percentages.Sum() - 100) < 0.01m ? Severity.Success : Severity.Warning;
+    }
+    
+    private bool IsValidSplit()
+    {
+        if (_numberOfPeople < 2) return false;
+        
+        return _activeTabIndex switch
+        {
+            0 => true, // Equal split always valid if >= 2 people
+            1 => _itemAssignments.Count == _session.Items.Count, // All items must be assigned
+            2 => Math.Abs(_percentages.Sum() - 100) < 0.01m, // Percentages must sum to 100
+            _ => false
+        };
+    }
+    
+    private async Task ConfirmSplit()
+    {
+        try
+        {
+            var splitDto = new SplitSessionDto
+            {
+                SessionId = _session.Id,
+                NumberOfPeople = _numberOfPeople,
+                SplitType = _activeTabIndex switch
+                {
+                    0 => SplitTypeDto.Equal,
+                    1 => SplitTypeDto.ByItems,
+                    2 => SplitTypeDto.Percentage,
+                    _ => SplitTypeDto.Equal
+                }
+            };
+            
+            // Add specific data based on split type
+            if (_activeTabIndex == 1) // ByItems
+            {
+                splitDto.ItemAssignments = _itemAssignments
+                    .Select(kvp => new SplitItemAssignmentDto
+                    {
+                        ItemId = kvp.Key,
+                        PersonIndex = kvp.Value
+                    })
+                    .ToList();
+            }
+            else if (_activeTabIndex == 2) // Percentage
+            {
+                splitDto.Percentages = _percentages;
+            }
+            
+            var result = await SalesService.SplitSessionAsync(splitDto);
+            
+            if (result != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.split.success", "Sessione divisa in {0} parti", result.ChildSessions.Count), 
+                    Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("sales.split.error", "Errore durante lo split della sessione"), 
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{TranslationService.GetTranslation("common.error", "Errore")}: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}
