@@ -115,10 +115,19 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label asp-for="Tenant.Name" class="form-label">Nome Tenant *</label>
-                            <input asp-for="Tenant.Name" class="form-control" 
-                                   placeholder="es. acme-corp"
-                                   @(Model.IsEditMode ? "readonly" : "")
-                                   required />
+                            @if (Model.IsEditMode)
+                            {
+                                <input asp-for="Tenant.Name" class="form-control" 
+                                       placeholder="es. acme-corp"
+                                       readonly
+                                       required />
+                            }
+                            else
+                            {
+                                <input asp-for="Tenant.Name" class="form-control" 
+                                       placeholder="es. acme-corp"
+                                       required />
+                            }
                             <span asp-validation-for="Tenant.Name" class="text-danger"></span>
                             @if (!Model.IsEditMode)
                             {
@@ -128,11 +137,21 @@
                         
                         <div class="col-md-6">
                             <label asp-for="Tenant.Code" class="form-label">Codice *</label>
-                            <input asp-for="Tenant.Code" class="form-control" 
-                                   placeholder="es. ACME"
-                                   @(Model.IsEditMode ? "readonly" : "")
-                                   required 
-                                   id="tenantCode" />
+                            @if (Model.IsEditMode)
+                            {
+                                <input asp-for="Tenant.Code" class="form-control" 
+                                       placeholder="es. ACME"
+                                       readonly
+                                       required 
+                                       id="tenantCode" />
+                            }
+                            else
+                            {
+                                <input asp-for="Tenant.Code" class="form-control" 
+                                       placeholder="es. ACME"
+                                       required 
+                                       id="tenantCode" />
+                            }
                             <span asp-validation-for="Tenant.Code" class="text-danger"></span>
                             @if (!Model.IsEditMode)
                             {
