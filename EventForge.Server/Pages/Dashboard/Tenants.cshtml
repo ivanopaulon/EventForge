@@ -53,12 +53,11 @@
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-5">
-                <input type="text" name="search" class="form-control" 
-                       placeholder="Cerca per nome, codice, dominio..." 
-                       value="@Model.SearchTerm" />
+                <input type="text" asp-for="SearchTerm" class="form-control" 
+                       placeholder="Cerca per nome, codice, dominio..." />
             </div>
             <div class="col-md-3">
-                <select name="status" class="form-select" asp-for="StatusFilter">
+                <select asp-for="StatusFilter" class="form-select">
                     <option value="">Tutti gli stati</option>
                     <option value="active">Solo Attivi</option>
                     <option value="inactive">Solo Disabilitati</option>
