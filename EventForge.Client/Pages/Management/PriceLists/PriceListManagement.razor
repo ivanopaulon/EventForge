@@ -41,6 +41,11 @@
                      ComponentKey="PriceListManagement"
                      InitialColumnConfigurations="_initialColumns"
                      AllowDragDropGrouping="true"
+                     ShowExport="true"
+                     ShowExportDialog="true"
+                     ExcelFileName="Listini"
+                     IsDataFiltered="@HasActiveFilters()"
+                     TotalItemsCount="@_items.Count"
                      OnRowClick="@HandleRowClick">
                 <ToolBarContent>
                     <MudText Typo="Typo.h5">
@@ -716,5 +721,12 @@
     private async Task ShowLoginDialogAsync()
     {
         await AuthenticationDialogService.ShowLoginDialogAsync();
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm) 
+            || _onlyDefault
+            || _activeQuickFilter != null;
     }
 }

@@ -40,7 +40,12 @@
                  IsLoading="_isLoadingProducts"
                  ComponentKey="ProductManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="Prodotti"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_products.Count">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
@@ -543,5 +548,10 @@
             // Reload the page after successful login
             await OnInitializedAsync();
         }
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm);
     }
 }

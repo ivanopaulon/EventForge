@@ -41,8 +41,11 @@
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true"
                  ShowExport="true"
+                 ShowExportDialog="true"
                  ExportFormats="@(new List<string> { "Excel" })"
-                 ExcelFileName="VatRates"
+                 ExcelFileName="AliquoteIVA"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_vatRates.Count"
                  OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
@@ -698,5 +701,11 @@
             // Reload the page after successful login
             await OnInitializedAsync();
         }
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm) 
+            || _activeQuickFilter != null;
     }
 }

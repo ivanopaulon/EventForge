@@ -871,3 +871,161 @@ private bool FilterItem(EntityDto item)
 - Mark **reference fields** as not searchable: Foreign keys, enums (unless display text)
 - Consider **performance**: Don't search large text fields unnecessarily
 
+
+## Advanced Export Pattern
+
+All management pages should implement advanced export functionality with column selection and filtered data.
+
+### Basic Implementation
+
+```csharp
+<EFTable @ref="_efTable"
+         TItem="EntityDto"
+         Items="_filteredItems"
+         ShowExport="true"
+         ShowExportDialog="true"
+         ExcelFileName="EntityName"
+         IsDataFiltered="@HasActiveFilters()"
+         TotalItemsCount="@_allItems.Count"
+         ...>
+</EFTable>
+
+@code {
+    private IEnumerable<EntityDto> _filteredItems => 
+        _allItems.Where(item => FilterItem(item));
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm) 
+            || _activeQuickFilter != null
+            || _statusFilter.HasValue;
+    }
+}
+```
+
+### Parameters
+
+| Parameter | Type | Description | Required |
+|-----------|------|-------------|----------|
+| `ShowExport` | `bool` | Mostra pulsante export | ✅ Yes |
+| `ShowExportDialog` | `bool` | Mostra dialog selezione colonne (default: true) | Optional |
+| `ExcelFileName` | `string` | Nome file export (senza estensione) | ✅ Yes |
+| `IsDataFiltered` | `bool` | Indica se dati sono filtrati | ✅ Yes |
+| `TotalItemsCount` | `int` | Numero totale items (prima filtri) | ✅ Yes |
+| `OnExportAdvanced` | `EventCallback` | Custom export handler | Optional |
+
+### Features
+
+- ✅ **Column Selection**: User selects which columns to export
+- ✅ **Filtered Data**: Exports only currently displayed (filtered) data
+- ✅ **Excel & CSV**: Support for both formats
+- ✅ **Progress Indicator**: Shows loading overlay during export
+- ✅ **Export Info**: Shows count and filter status before export
+
+### Requirements
+
+1. **Always pass filtered data** to `Items` parameter
+2. **Implement HasActiveFilters()** to detect active filters
+3. **Provide TotalItemsCount** for filter status message
+4. **Use meaningful filename** for `ExcelFileName`
+
+### Example: Warehouse Management
+
+```csharp
+<EFTable @ref="_efTable"
+         TItem="StorageFacilityDto"
+         Items="_filteredFacilities"
+         ShowExport="true"
+         ShowExportDialog="true"
+         ExcelFileName="Magazzini"
+         IsDataFiltered="@HasActiveFilters()"
+         TotalItemsCount="@_storageFacilities.Count"
+         ...>
+</EFTable>
+
+@code {
+    private string _searchTerm = string.Empty;
+    private bool _showOnlyFiscal = false;
+    private bool _showOnlyRefrigerated = false;
+    private QuickFilter<StorageFacilityDto>? _activeQuickFilter;
+    
+    private List<StorageFacilityDto> _storageFacilities = new();
+    
+    private IEnumerable<StorageFacilityDto> _filteredFacilities => 
+        _storageFacilities.Where(f => FilterFacility(f));
+    
+    private bool FilterFacility(StorageFacilityDto facility)
+    {
+        // Search
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            if (!facility.MatchesSearchInColumns(_searchTerm, new[] { "Name", "Code", "Address" }))
+                return false;
+        }
+        
+        // Filters
+        if (_showOnlyFiscal && !facility.IsFiscal)
+            return false;
+            
+        if (_showOnlyRefrigerated && !facility.IsRefrigerated)
+            return false;
+        
+        // Quick filter
+        if (_activeQuickFilter?.Filter != null && !_activeQuickFilter.Filter(facility))
+            return false;
+        
+        return true;
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm) 
+            || _showOnlyFiscal 
+            || _showOnlyRefrigerated
+            || _activeQuickFilter != null;
+    }
+}
+```
+
+### Custom Export Handler
+
+For advanced scenarios, implement custom export logic:
+
+```csharp
+<EFTable ShowExport="true"
+         ShowExportDialog="true"
+         OnExportAdvanced="@CustomExport"
+         ...>
+</EFTable>
+
+@code {
+    private async Task CustomExport(ExportRequest request)
+    {
+        var data = GetFilteredData();
+        var selectedColumns = request.Columns.Where(c => c.IncludeInExport);
+        
+        if (request.Format == ExportFormat.Excel)
+        {
+            await MyCustomExportService.ExportToExcel(data, selectedColumns, request.FileName);
+        }
+        else if (request.Format == ExportFormat.Csv)
+        {
+            await MyCustomExportService.ExportToCsv(data, selectedColumns, request.FileName);
+        }
+    }
+}
+```
+
+### Legacy Mode
+
+To maintain old behavior (direct export without dialog):
+
+```csharp
+ShowExport="true"
+ShowExportDialog="false"  // Skip dialog, export directly
+```
+
+### Related Documentation
+
+- [Export.md](./components/Export.md) - Detailed export system documentation
+- [EfTable.md](./components/EfTable.md) - Complete EFTable documentation

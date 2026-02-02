@@ -41,6 +41,11 @@
                  ComponentKey="BusinessPartyManagement"
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="AnagraficheAziendali"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_allBusinessParties.Count"
                  OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <!-- SECTION 1: Title -->
@@ -883,5 +888,11 @@
             "both" => TranslationService.GetTranslation("businessparty.managementBoth", "Gestione Cliente/Fornitore"),
             _ => TranslationService.GetTranslation("businessparty.management", "Gestione Business Party")
         };
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm) 
+            || _activeQuickFilter != null;
     }
 }

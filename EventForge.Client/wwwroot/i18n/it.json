@@ -325,7 +325,8 @@
     "showingItems": "Visualizzati {0}-{1} di {2}",
     "itemsPerPage": "Elementi per pagina",
     "page": "Pagina",
-    "of": "di"
+    "of": "di",
+    "recommended": "Consigliato"
   },
   "dataRetention": {
     "indefinite": "Indefinito"
@@ -2315,7 +2316,12 @@
     "searchPlaceholder": "Inserisci nome o codice...",
     "showExpiring": "Mostra in scadenza",
     "skipProduct": "Salta e Continua",
-    "status": "Stato",
+    "status": {
+      "criticalTooltip": "Giacenza sotto la scorta di sicurezza - ordinare urgentemente",
+      "lowStockTooltip": "Giacenza sotto il punto di riordino - considerare riordino",
+      "outOfStockTooltip": "Prodotto esaurito - nessuna giacenza disponibile",
+      "normalTooltip": "Livello giacenza nella norma"
+    },
     "storageLocation": "Posizione di stoccaggio",
     "time": "Ora",
     "totalEntries": "Totale registrazioni",
@@ -2466,12 +2472,6 @@
       "locationRequired": "Seleziona un'ubicazione",
       "notesRequired": "Note obbligatorie per variazioni superiori a {0}",
       "notesTooLong": "Le note non possono superare 500 caratteri"
-    },
-    "status": {
-      "criticalTooltip": "Giacenza sotto la scorta di sicurezza - ordinare urgentemente",
-      "lowStockTooltip": "Giacenza sotto il punto di riordino - considerare riordino",
-      "outOfStockTooltip": "Prodotto esaurito - nessuna giacenza disponibile",
-      "normalTooltip": "Livello giacenza nella norma"
     }
   },
   "nav": {
@@ -3012,5 +3012,20 @@
     "useSystem": "Usa Font di Sistema (Performance)",
     "recommended": "Consigliato",
     "systemFont": "Font di Sistema"
+  },
+  "export": {
+    "dialogTitle": "Esporta dati",
+    "selectColumns": "Seleziona colonne da esportare",
+    "allColumns": "Tutte le colonne",
+    "recordsToExport": "righe verranno esportate",
+    "filteredFrom": "Filtrate da {0} righe totali",
+    "selectedColumns": "{0} colonne selezionate",
+    "selectFormat": "Seleziona formato",
+    "confirm": "Esporta",
+    "noData": "Nessun dato da esportare",
+    "success": "Export completato con successo!",
+    "failed": "Export fallito",
+    "error": "Errore durante l'export: {0}",
+    "inProgress": "Export in corso..."
   }
 }

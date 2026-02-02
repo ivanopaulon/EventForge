@@ -125,34 +125,13 @@
             }
             @if (ShowExport && ExportFormats.Any())
             {
-                <MudMenu Icon="@Icons.Material.Outlined.Download"
-                         Color="Color.Default"
-                         Dense="true"
-                         Size="Size.Small">
-                    @foreach (var format in ExportFormats)
-                    {
-                        @if (format == "Excel" && EnableExcelExport)
-                        {
-                            <MudMenuItem OnClick="@HandleExportToExcel" Disabled="@_isExporting">
-                                @if (_isExporting)
-                                {
-                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                                }
-                                else
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.TableView" Size="Size.Small" Class="mr-2" />
-                                }
-                                @format
-                            </MudMenuItem>
-                        }
-                        else
-                        {
-                            <MudMenuItem OnClick="@(async () => await HandleExport(format))">
-                                @format
-                            </MudMenuItem>
-                        }
-                    }
-                </MudMenu>
+                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta dati")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Download"
+                                   Color="Color.Default"
+                                   OnClick="@HandleExportClick"
+                                   Size="Size.Small"
+                                   Disabled="_isExporting" />
+                </MudTooltip>
             }
             @if (UseDefaultActions && OnAdd.HasDelegate)
             {
@@ -281,6 +260,18 @@
     </FooterContent>
 </MudTable>
 
+@if (_isExporting)
+{
+    <MudOverlay Visible="true" DarkBackground="true" Absolute="true">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+            <MudText Typo="Typo.h6" Color="Color.Surface">
+                @TranslationService.GetTranslation("export.inProgress", "Export in corso...")
+            </MudText>
+        </MudStack>
+    </MudOverlay>
+}
+
 @code {
     // Table reference
     private MudTable<TItem>? _tableRef;
@@ -315,6 +306,31 @@
     [Parameter] public EventCallback<string> OnExport { get; set; }
     [Parameter] public bool EnableExcelExport { get; set; } = true;
     [Parameter] public string ExcelFileName { get; set; } = "Export";
+    
+    /// <summary>
+    /// Se true, mostra dialog di selezione colonne prima dell'export.
+    /// Default: true (export avanzato).
+    /// </summary>
+    [Parameter] public bool ShowExportDialog { get; set; } = true;
+    
+    /// <summary>
+    /// Callback per export avanzato con configurazione colonne.
+    /// Se implementato, sovrascrive la logica built-in.
+    /// </summary>
+    [Parameter] public EventCallback<Export.ExportRequest> OnExportAdvanced { get; set; }
+    
+    /// <summary>
+    /// Indica se i dati visualizzati sono filtrati rispetto al totale.
+    /// Usato per mostrare informazioni corrette nel dialog export.
+    /// </summary>
+    [Parameter] public bool IsDataFiltered { get; set; } = false;
+    
+    /// <summary>
+    /// Numero totale di items disponibili (prima dei filtri).
+    /// Usato per mostrare "X filtrate da Y totali".
+    /// </summary>
+    [Parameter] public int TotalItemsCount { get; set; } = 0;
+    
     private bool _isExporting = false;
     
     // Action parameters
@@ -764,6 +780,116 @@
         StateHasChanged();
     }
 
+    private async Task HandleExportClick()
+    {
+        if (!ShowExportDialog)
+        {
+            // Legacy: export diretto senza dialog
+            await HandleExportToExcel();
+            return;
+        }
+        
+        // NEW: mostra dialog selezione colonne
+        await OpenExportDialog();
+    }
+    
+    private async Task OpenExportDialog()
+    {
+        // Preparare configurazione colonne per il dialog
+        var exportColumns = _columnConfigurations
+            .Where(c => c.IsVisible) // Default: solo colonne visibili
+            .OrderBy(c => c.Order)
+            .Select(c => new Export.ExportColumnConfig
+            {
+                PropertyName = c.PropertyName,
+                DisplayName = c.DisplayName,
+                IncludeInExport = true, // Default: tutte visibili incluse
+                Order = c.Order,
+                NumberFormat = GetExcelFormat(c.PropertyName)
+            })
+            .ToList();
+        
+        // Contare items da esportare (DATI FILTRATI!)
+        var itemsToExport = GetDisplayItems().Count();
+        var totalItems = TotalItemsCount > 0 ? TotalItemsCount : (Items?.Count() ?? 0);
+        
+        var parameters = new DialogParameters
+        {
+            { "Columns", exportColumns },
+            { "RecordsToExport", itemsToExport },
+            { "TotalRecords", totalItems },
+            { "IsFiltered", IsDataFiltered || itemsToExport < totalItems }
+        };
+        
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<Dialogs.ExportDialog<TItem>>(
+            TranslationService.GetTranslation("export.dialogTitle", "Esporta dati"),
+            parameters,
+            options);
+        
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is Export.ExportDialogResult exportResult)
+        {
+            await PerformExport(exportResult);
+        }
+    }
+    
+    private async Task PerformExport(Export.ExportDialogResult exportConfig)
+    {
+        _isExporting = true;
+        StateHasChanged();
+        
+        try
+        {
+            if (OnExportAdvanced.HasDelegate)
+            {
+                // Callback personalizzato per export avanzato
+                var request = new Export.ExportRequest
+                {
+                    Columns = exportConfig.Columns,
+                    Format = exportConfig.Format,
+                    FileName = ExcelFileName
+                };
+                
+                await OnExportAdvanced.InvokeAsync(request);
+            }
+            else if (exportConfig.Format == Export.ExportFormat.Excel && EnableExcelExport)
+            {
+                // Export Excel built-in (con colonne selezionate)
+                await HandleExportToExcelAdvanced(exportConfig.Columns);
+            }
+            else if (exportConfig.Format == Export.ExportFormat.Csv)
+            {
+                // Export CSV
+                await HandleExportToCsv(exportConfig.Columns);
+            }
+            else
+            {
+                // Fallback legacy
+                await HandleExport(exportConfig.Format.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during export");
+            Snackbar.Add(
+                TranslationService.GetTranslationFormatted("export.error", "Errore durante l'export: {0}", ex.Message),
+                Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task HandleExport(string format)
     {
         if (OnExport.HasDelegate)
@@ -783,7 +909,9 @@
             var displayItems = GetDisplayItems().ToList();
             if (!displayItems.Any())
             {
-                Snackbar.Add("No data to export", Severity.Warning);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"), 
+                    Severity.Warning);
                 return;
             }
             
@@ -811,22 +939,156 @@
                 var bytes = await response.Content.ReadAsByteArrayAsync();
                 var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"Export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
                 await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
-                Snackbar.Add("Export completed!", Severity.Success);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
+                    Severity.Success);
             }
             else
             {
-                Snackbar.Add("Export failed", Severity.Error);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("export.failed", "Export fallito"), 
+                    Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Error during Excel export");
+            Snackbar.Add(
+                TranslationService.GetTranslationFormatted("export.error", "Errore durante l'export: {0}", ex.Message), 
+                Severity.Error);
         }
         finally
         {
             _isExporting = false;
             StateHasChanged();
         }
+    }
+    
+    private async Task HandleExportToExcelAdvanced(List<Export.ExportColumnConfig> selectedColumns)
+    {
+        // IMPORTANTE: GetDisplayItems() ritorna i dati FILTRATI!
+        var displayItems = GetDisplayItems().ToList();
+        
+        if (!displayItems.Any())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"), 
+                Severity.Warning);
+            return;
+        }
+        
+        var exportData = new
+        {
+            data = displayItems, // DATI FILTRATI!
+            options = new
+            {
+                fileName = !string.IsNullOrEmpty(ExcelFileName) ? ExcelFileName : Title ?? "Export",
+                sheetName = Title ?? "Data",
+                columns = selectedColumns.Select(c => new 
+                { 
+                    PropertyName = c.PropertyName, 
+                    DisplayName = c.DisplayName, 
+                    NumberFormat = c.NumberFormat, 
+                    IsVisible = true 
+                }).ToList(),
+                formatting = new 
+                { 
+                    headerBackgroundColor = "#1976D2", 
+                    headerFontColor = "#FFFFFF", 
+                    headerBold = true, 
+                    headerBorders = true,
+                    alternateRowColors = true, 
+                    alternateRowColor = "#F5F5F5",
+                    dataBorders = true
+                },
+                autoFitColumns = true,
+                freezeHeader = true,
+                addAutoFilter = true
+            }
+        };
+        
+        var response = await Http.PostAsJsonAsync("/api/v1/export/excel", exportData);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') 
+                ?? $"{ExcelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
+                Severity.Success);
+        }
+        else
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Logger.LogError("Excel export failed: {Error}", error);
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("export.failed", "Export fallito"), 
+                Severity.Error);
+        }
+    }
+    
+    private async Task HandleExportToCsv(List<Export.ExportColumnConfig> selectedColumns)
+    {
+        var displayItems = GetDisplayItems().ToList();
+        
+        if (!displayItems.Any())
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"), 
+                Severity.Warning);
+            return;
+        }
+        
+        var csv = new System.Text.StringBuilder();
+        
+        // Header
+        csv.AppendLine(string.Join(",", selectedColumns.Select(c => EscapeCsv(c.DisplayName))));
+        
+        // Rows
+        foreach (var item in displayItems)
+        {
+            var values = selectedColumns.Select(c => 
+            {
+                var prop = typeof(TItem).GetProperty(c.PropertyName);
+                var value = prop?.GetValue(item)?.ToString() ?? "";
+                return EscapeCsv(value);
+            });
+            
+            csv.AppendLine(string.Join(",", values));
+        }
+        
+        // Add UTF-8 BOM for proper Excel display
+        var preamble = System.Text.Encoding.UTF8.GetPreamble();
+        var csvBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+        var bytes = new byte[preamble.Length + csvBytes.Length];
+        System.Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
+        System.Buffer.BlockCopy(csvBytes, 0, bytes, preamble.Length, csvBytes.Length);
+        
+        var fileName = $"{ExcelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        
+        await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes, "text/csv");
+        
+        Snackbar.Add(
+            TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
+            Severity.Success);
+    }
+    
+    private string EscapeCsv(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+            
+        if (value.Contains(",") || value.Contains("\"") || value.Contains("\n") || value.Contains("\r"))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        
+        return value;
     }
 
     private string? GetExcelFormat(string propertyName)
