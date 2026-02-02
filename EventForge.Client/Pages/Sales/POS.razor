@@ -7,6 +7,7 @@
 @using EventForge.Client.Shared.Components.Sales
 @using EventForge.Client.Shared.Components.Dialogs.Sales
 @using EventForge.Client.Shared.Components.Dialogs
+@using EventForge.Client.Shared.Components
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @implements IDisposable
@@ -43,7 +44,6 @@
                IsUpdatingItems="@ViewModel.IsUpdatingItems"
                LoadingTooltipText="@GetLoadingTooltipText()"
                LoadingSpinnerColor="@GetLoadingSpinnerColor()"
-               SearchCustomers="@ViewModel.SearchCustomersAsync"
                OnParkClick="@ParkSessionAsync"
                OnCancelClick="@CancelSessionAsync" />
 
@@ -69,19 +69,21 @@
         <MudItem xs="12" md="8">
             @if (ViewModel.HasActiveSession)
             {
-                <!-- Barcode Scanner -->
-                <BarcodeScanner Title="@TranslationService.GetTranslation("sales.scanProduct", "Scansiona Prodotto")"
-                                Label="@TranslationService.GetTranslation("sales.barcode", "Codice a Barre")"
-                                HelperText="@TranslationService.GetTranslation("sales.scanOrTypeBarcode", "Scansiona o digita il codice a barre e premi Invio")"
-                                SearchButtonText="@TranslationService.GetTranslation("common.search", "Cerca")"
-                                IsDisabled="@(!ViewModel.HasActiveSession)"
-                                OnProductFound="@HandleProductFoundAsync"
-                                OnMultipleProductsFound="@HandleMultipleProductsFoundAsync"
-                                OnProductNotFound="@HandleProductNotFoundAsync"
-                                OnError="@HandleScanErrorAsync" />
-
-                <!-- Scan Mode Toggle -->
-                <POSScanModeToggle @bind-Value="ViewModel.ScanMode" />
+                <!-- UnifiedProductScanner -->
+                <UnifiedProductScanner 
+                    SelectedProduct="@_currentProduct"
+                    SelectedProductChanged="@OnProductSelectedAsync"
+                    Title="@TranslationService.GetTranslation("sales.scanProduct", "Scansiona Prodotto")"
+                    Placeholder="@TranslationService.GetTranslation("sales.scanOrType", "Scansiona codice o cerca nome...")"
+                    SearchMode="ProductSearchMode.Both"
+                    EditMode="ProductEditMode.Dialog"
+                    CreateMode="ProductCreateMode.Dialog"
+                    ShowProductInfo="true"
+                    AllowClear="true"
+                    AutoFocus="true"
+                    Disabled="@(!ViewModel.HasActiveSession)"
+                    OnProductWithCodeFound="@HandleProductWithCodeFoundAsync"
+                    OnProductNotFound="@HandleProductNotFoundAsync" />
 
                 <!-- Products Table -->
                 <POSCartTable Items="@ViewModel.CurrentSession?.Items"
@@ -134,6 +136,8 @@
 </MudContainer>
 
 @code {
+    private ProductDto? _currentProduct;
+
     protected override async Task OnInitializedAsync()
     {
         // Subscribe to ViewModel events
@@ -153,81 +157,26 @@
         Snackbar.Add(message, isSuccess ? Severity.Success : Severity.Error);
     }
 
-    private async Task HandleProductFoundAsync(ProductWithCodeDto productWithCode)
+    private async Task OnProductSelectedAsync(ProductDto? product)
     {
-        if (!ViewModel.HasActiveSession || productWithCode.Product == null)
-            return;
-
-        // If mode is AddToCart, add immediately
-        if (ViewModel.ScanMode == ScanMode.AddToCart)
+        if (product == null) return;
+        
+        var result = await ViewModel.AddProductAsync(product);
+        
+        if (result.Success)
         {
-            await AddProductToCartAsync(productWithCode.Product);
+            _currentProduct = null;
+            Snackbar.Add($"✅ {product.Name} aggiunto", Severity.Success);
         }
         else
         {
-            // PriceCheckOnly mode - show price dialog
-            var scannedCode = productWithCode.Code?.Code ?? productWithCode.Product.Code ?? string.Empty;
-            await ShowPriceCheckDialogAsync(productWithCode.Product, scannedCode);
+            Snackbar.Add(result.Error ?? "Errore", Severity.Error);
         }
     }
 
-    private async Task ShowPriceCheckDialogAsync(ProductDto product, string code)
+    private async Task HandleProductWithCodeFoundAsync(ProductWithCodeDto productWithCode)
     {
-        var parameters = new DialogParameters
-        {
-            { "Product", product },
-            { "ScannedCode", code },
-            { "ShowAddToCartButton", true }
-        };
-
-        var dialog = await DialogService.ShowAsync<PriceCheckDialog>(
-            TranslationService.GetTranslation("sales.priceCheck", "Verifica Prezzo"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small }
-        );
-
-        var result = await dialog.Result;
-
-        // If user clicked "Add to Cart" button
-        if (!result.Canceled && result.Data is bool addToCart && addToCart)
-        {
-            await AddProductToCartAsync(product);
-        }
-    }
-
-    private async Task AddProductToCartAsync(ProductDto product)
-    {
-        var result = await ViewModel.AddProductAsync(product);
-        if (!result.Success && result.Error != null)
-        {
-            Snackbar.Add("❌ " + result.Error, Severity.Error);
-        }
-    }
-
-    private async Task HandleMultipleProductsFoundAsync(List<ProductDto> products)
-    {
-        var parameters = new DialogParameters
-        {
-            { "InitialProducts", products }
-        };
-
-        var dialog = await DialogService.ShowAsync<ProductSearchDialog>(
-            TranslationService.GetTranslation("sales.selectProduct", "Seleziona Prodotto"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true }
-        );
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is ProductDto selectedProduct)
-        {
-            var productWithCode = new ProductWithCodeDto
-            {
-                Product = selectedProduct,
-                Code = null
-            };
-            await HandleProductFoundAsync(productWithCode);
-        }
+        await OnProductSelectedAsync(productWithCode.Product);
     }
 
     private async Task HandleProductNotFoundAsync(string barcode)
@@ -260,22 +209,17 @@
             // Handle ProductDto (newly created product)
             if (result.Data is ProductDto product)
             {
-                await AddProductToCartAsync(product);
+                await OnProductSelectedAsync(product);
                 return;
             }
             
             // Handle product assignment result (from AssignBarcodeToProduct)
             if (result.Data is ProductNotFoundDialog.AssignResult assignResult)
             {
-                await AddProductToCartAsync(assignResult.Product);
+                await OnProductSelectedAsync(assignResult.Product);
                 return;
             }
         }
-    }
-
-    private Task HandleScanErrorAsync(Exception exception)
-    {
-        return Task.CompletedTask;
     }
 
     private async Task OnSelectedCustomerChangedAsync(BusinessPartyDto? customer)
