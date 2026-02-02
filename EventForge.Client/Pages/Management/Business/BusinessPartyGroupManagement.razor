@@ -3,7 +3,7 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IBusinessPartyGroupService GroupService
@@ -13,6 +13,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyGroupManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingGroups"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -20,14 +21,12 @@
 @if (!_isLoading)
 {
     <div class="group-page-root">
-        <div class="group-top">
-            <ManagementDashboard TItem="BusinessPartyGroupDto"
-                                 Items="_filteredGroups"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="BusinessPartyGroup"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="BusinessPartyGroupDto"
+                      Items="_groups"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <!-- Reorder Mode Toolbar -->
         @if (_groups.Any())
@@ -82,6 +81,7 @@
                  MultiSelection="@(!_isReorderMode)"
                  SelectedItems="_selectedGroups"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
+                 OnRowClick="@HandleRowClick"
                  IsLoading="_isLoadingGroups"
                  ComponentKey="BusinessPartyGroupManagement"
                  InitialColumnConfigurations="_initialColumns"
@@ -384,56 +384,35 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Priority", DisplayName = "Priorità", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 2 },
-        new() { PropertyName = "GroupType", DisplayName = "Tipo", IsVisible = true, Order = 3 },
-        new() { PropertyName = "ActiveMembersCount", DisplayName = "Membri", IsVisible = true, Order = 4 },
-        new() { PropertyName = "ColorPreview", DisplayName = "Colore", IsVisible = true, Order = 5 }
+        new() { PropertyName = "Priority", DisplayName = "Priorità", IsVisible = true, Order = 0, IsSearchable = false },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "GroupType", DisplayName = "Tipo", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "ActiveMembersCount", DisplayName = "Membri", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "ColorPreview", DisplayName = "Colore", IsVisible = true, Order = 5, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<BusinessPartyGroupDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<BusinessPartyGroupDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Gruppi",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Group,
-            Color = "primary",
-            Description = "Numero totale di gruppi",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Gruppi Clienti",
-            Type = MetricType.Count,
-            Filter = g => g.GroupType == BusinessPartyGroupType.Customer || g.GroupType == BusinessPartyGroupType.Both,
-            Icon = Icons.Material.Outlined.Person,
-            Color = "info",
-            Description = "Gruppi per clienti"
-        },
-        new()
-        {
-            Title = "Gruppi Fornitori",
-            Type = MetricType.Count,
-            Filter = g => g.GroupType == BusinessPartyGroupType.Supplier || g.GroupType == BusinessPartyGroupType.Both,
-            Icon = Icons.Material.Outlined.LocalShipping,
-            Color = "success",
-            Description = "Gruppi per fornitori"
-        },
-        new()
-        {
-            Title = "Gruppi Attivi",
-            Type = MetricType.Count,
-            Filter = g => g.IsActive && g.IsCurrentlyValid,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "success",
-            Description = "Gruppi attualmente validi"
-        }
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i gruppi" },
+        new() { Id = "active", Label = "Attivi", Predicate = g => g.IsActive, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Solo gruppi attivi" },
+        new() { Id = "inactive", Label = "Inattivi", Predicate = g => !g.IsActive, Color = Color.Default, Icon = Icons.Material.Outlined.Block, Description = "Solo gruppi inattivi" },
+        new() { Id = "with_parties", Label = "Con Soggetti", Predicate = g => g.TotalMembersCount > 0, Color = Color.Primary, Icon = Icons.Material.Outlined.People, Description = "Gruppi con almeno un soggetto" },
+        new() { Id = "recent", Label = "Recenti", Predicate = g => g.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Info, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
     };
+    private QuickFilter<BusinessPartyGroupDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<BusinessPartyGroupDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<BusinessPartyGroupDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<BusinessPartyGroupDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered groups based on search criteria.
@@ -443,12 +422,30 @@
         get
         {
             var items = _isReorderMode ? _orderedGroups : _groups;
-            
-            return items.Where(g => 
-                string.IsNullOrEmpty(_searchTerm) || 
-                g.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                (g.Code != null && g.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+            return items.Where(g => FilterGroup(g));
         }
+    }
+
+    /// <summary>
+    /// Filters a group based on search term and quick filter
+    /// </summary>
+    private bool FilterGroup(BusinessPartyGroupDto group)
+    {
+        // Quick filter
+        if (_activeQuickFilter?.Predicate != null && !_activeQuickFilter.Predicate(group))
+            return false;
+        
+        // Search (existing logic)
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var searchLower = _searchTerm.ToLower();
+            if (!(group.Name?.ToLower().Contains(searchLower) == true ||
+                  group.Code?.ToLower().Contains(searchLower) == true ||
+                  group.Description?.ToLower().Contains(searchLower) == true))
+                return false;
+        }
+        
+        return true;
     }
 
     /// <summary>
@@ -458,6 +455,19 @@
     {
         _selectedGroups = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to group detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<BusinessPartyGroupDto> args)
+    {
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/business/groups/{args.Item.Id}", "_blank");
+            return;
+        }
+        NavigationManager.NavigateTo($"/business/groups/{args.Item.Id}");
     }
 
     /// <summary>

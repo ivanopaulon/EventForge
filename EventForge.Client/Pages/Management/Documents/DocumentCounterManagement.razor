@@ -3,8 +3,8 @@
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Shared.Components.Dialogs.Documents
+@using EventForge.Client.Extensions
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
 @inject IDocumentCounterService DocumentCounterService
 @inject IDocumentTypeService DocumentTypeService
@@ -13,6 +13,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentCounterManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")</PageTitle>
 
@@ -21,9 +22,13 @@
 @if (!_isLoading)
 {
     <div class="document-counter-page-root">
-        <div class="document-counter-top">
-            <ManagementDashboard TItem="DocumentCounterDto" Items="_filteredCounters" Metrics="_dashboardMetrics" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="DocumentCounterDto"
+                      Items="_counters"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
+        
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
                      TItem="DocumentCounterDto"
@@ -31,6 +36,7 @@
                      MultiSelection="true"
                      SelectedItems="_selectedCounters"
                      SelectedItemsChanged="_selectedCountersChangedCallback"
+                     OnRowClick="@HandleRowClick"
                      IsLoading="_isLoadingCounters"
                      ComponentKey="DocumentCounterManagement"
                      InitialColumnConfigurations="_initialColumns"
@@ -225,70 +231,60 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "DocumentTypeName", DisplayName = "Tipo Documento", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Series", DisplayName = "Serie", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Year", DisplayName = "Anno", IsVisible = true, Order = 2 },
-        new() { PropertyName = "CurrentValue", DisplayName = "Valore Corrente", IsVisible = true, Order = 3 },
-        new() { PropertyName = "Prefix", DisplayName = "Prefisso", IsVisible = true, Order = 4 },
-        new() { PropertyName = "FormatPattern", DisplayName = "Pattern", IsVisible = true, Order = 5 },
-        new() { PropertyName = "ResetOnYearChange", DisplayName = "Reset Anno", IsVisible = true, Order = 6 }
+        new() { PropertyName = "DocumentTypeName", DisplayName = "Tipo Documento", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Series", DisplayName = "Serie", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Year", DisplayName = "Anno", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "CurrentValue", DisplayName = "Valore Corrente", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "Prefix", DisplayName = "Prefisso", IsVisible = true, Order = 4, IsSearchable = true },
+        new() { PropertyName = "FormatPattern", DisplayName = "Pattern", IsVisible = true, Order = 5, IsSearchable = false },
+        new() { PropertyName = "ResetOnYearChange", DisplayName = "Reset Anno", IsVisible = true, Order = 6, IsSearchable = false }
     };
 
-    // Dashboard metrics
-    private List<DashboardMetric<DocumentCounterDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<DocumentCounterDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Contatori",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Pin,
-            Color = "primary",
-            Description = "Numero totale di contatori",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Con Reset Anno",
-            Type = MetricType.Count,
-            Filter = c => c.ResetOnYearChange,
-            Icon = Icons.Material.Outlined.Refresh,
-            Color = "info",
-            Description = "Contatori con reset automatico su cambio anno",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Anno Corrente",
-            Type = MetricType.Count,
-            Filter = c => c.Year == DateTime.Now.Year,
-            Icon = Icons.Material.Outlined.CalendarToday,
-            Color = "success",
-            Description = "Contatori per l'anno corrente",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Con Prefisso",
-            Type = MetricType.Count,
-            Filter = c => !string.IsNullOrEmpty(c.Prefix),
-            Icon = Icons.Material.Outlined.Label,
-            Color = "warning",
-            Description = "Contatori con prefisso definito",
-            Format = "N0"
-        }
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i contatori" },
+        new() { Id = "current_year", Label = "Anno Corrente", Predicate = c => c.Year == DateTime.UtcNow.Year, Color = Color.Primary, Icon = Icons.Material.Outlined.CalendarToday, Description = "Contatori dell'anno in corso" },
+        new() { Id = "expired", Label = "Scaduti", Predicate = c => c.Year < DateTime.UtcNow.Year, Color = Color.Warning, Icon = Icons.Material.Outlined.Warning, Description = "Contatori di anni precedenti" },
+        new() { Id = "recent", Label = "Recenti", Predicate = c => c.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Info, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" },
+        new() { Id = "reset_on_year", Label = "Reset Anno", Predicate = c => c.ResetOnYearChange, Color = Color.Success, Icon = Icons.Material.Outlined.Refresh, Description = "Contatori con reset automatico" }
     };
+    private QuickFilter<DocumentCounterDto>? _activeQuickFilter;
 
     // Multi-selection callback
     private EventCallback<HashSet<DocumentCounterDto>> _selectedCountersChangedCallback => 
         EventCallback.Factory.Create<HashSet<DocumentCounterDto>>(this, OnSelectedCountersChanged);
 
     /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<DocumentCounterDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    /// <summary>
     /// Computed property for filtered counters based on filter criteria.
     /// </summary>
     private IEnumerable<DocumentCounterDto> _filteredCounters => 
-        _counters.Where(c => 
-            // Document type filter
-            !_selectedDocumentTypeId.HasValue || c.DocumentTypeId == _selectedDocumentTypeId.Value);
+        _counters.Where(c => FilterCounter(c));
+
+    /// <summary>
+    /// Filters a counter based on quick filter and document type
+    /// </summary>
+    private bool FilterCounter(DocumentCounterDto counter)
+    {
+        // Quick filter
+        if (_activeQuickFilter?.Predicate != null && !_activeQuickFilter.Predicate(counter))
+            return false;
+        
+        // Document type filter
+        if (_selectedDocumentTypeId.HasValue && counter.DocumentTypeId != _selectedDocumentTypeId.Value)
+            return false;
+        
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -297,6 +293,19 @@
     {
         _selectedCounters = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to counter detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<DocumentCounterDto> args)
+    {
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/documents/counters/{args.Item.Id}", "_blank");
+            return;
+        }
+        NavigationManager.NavigateTo($"/documents/counters/{args.Item.Id}");
     }
 
     /// <summary>

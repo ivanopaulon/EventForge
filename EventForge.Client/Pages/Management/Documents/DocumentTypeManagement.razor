@@ -272,49 +272,11 @@
     // Quick Filters
     private List<QuickFilter<DocumentTypeDto>> _quickFilters = new()
     {
-        new() 
-        { 
-            Id = "all", 
-            Label = "Tutti",
-            Predicate = _ => true,
-            Description = "Mostra tutti i tipi documento"
-        },
-        new() 
-        { 
-            Id = "fiscal", 
-            Label = "Fiscali",
-            Predicate = d => d.IsFiscal,
-            Color = Color.Primary,
-            Icon = Icons.Material.Outlined.AccountBalance,
-            Description = "Tipi documento fiscali"
-        },
-        new() 
-        { 
-            Id = "stock_increase", 
-            Label = "Aumento Stock",
-            Predicate = d => d.IsStockIncrease,
-            Color = Color.Success,
-            Icon = Icons.Material.Outlined.TrendingUp,
-            Description = "Tipi con movimento di carico"
-        },
-        new() 
-        { 
-            Id = "stock_decrease", 
-            Label = "Riduzione Stock",
-            Predicate = d => !d.IsStockIncrease,
-            Color = Color.Error,
-            Icon = Icons.Material.Outlined.TrendingDown,
-            Description = "Tipi con movimento di scarico"
-        },
-        new() 
-        { 
-            Id = "recent", 
-            Label = "Recenti",
-            Predicate = d => d.CreatedAt >= DateTime.UtcNow.AddDays(-30),
-            Color = Color.Info,
-            Icon = Icons.Material.Outlined.NewReleases,
-            Description = "Tipi aggiunti negli ultimi 30 giorni"
-        }
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i tipi documento" },
+        new() { Id = "fiscal", Label = "Fiscali", Predicate = dt => dt.IsFiscal, Color = Color.Primary, Icon = Icons.Material.Outlined.Receipt, Description = "Solo documenti fiscali" },
+        new() { Id = "stock_increase", Label = "Aumento Stock", Predicate = dt => dt.IsStockIncrease, Color = Color.Success, Icon = Icons.Material.Outlined.Inventory, Description = "Documenti che aumentano lo stock" },
+        new() { Id = "both", Label = "Fiscali + Stock", Predicate = dt => dt.IsFiscal && dt.IsStockIncrease, Color = Color.Info, Icon = Icons.Material.Outlined.CheckCircle, Description = "Documenti fiscali che aumentano stock" },
+        new() { Id = "recent", Label = "Recenti", Predicate = dt => dt.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Default, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
     };
     
     private QuickFilter<DocumentTypeDto>? _activeQuickFilter;
