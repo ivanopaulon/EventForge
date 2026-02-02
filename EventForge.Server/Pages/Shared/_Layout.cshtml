@@ -100,7 +100,38 @@
                     <div class="p-3">
                         <div class="d-flex align-items-center mb-2">
                             <div class="avatar-circle bg-primary text-white me-2">
-                                @(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "??")
+                                @{
+                                    var userName = User.Identity?.Name ?? "";
+                                    var initials = "??";
+                                    
+                                    if (!string.IsNullOrEmpty(userName))
+                                    {
+                                        // If email, extract local part before @
+                                        var namePart = userName.Contains('@') ? userName.Split('@')[0] : userName;
+                                        
+                                        // If name contains space or dot, use first letter of each part
+                                        if (namePart.Contains(' '))
+                                        {
+                                            var parts = namePart.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                                            initials = parts.Length >= 2 
+                                                ? (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper()
+                                                : (parts[0].Length >= 2 ? parts[0][..2].ToUpper() : parts[0].ToUpper());
+                                        }
+                                        else if (namePart.Contains('.'))
+                                        {
+                                            var parts = namePart.Split('.', StringSplitOptions.RemoveEmptyEntries);
+                                            initials = parts.Length >= 2 
+                                                ? (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper()
+                                                : (parts[0].Length >= 2 ? parts[0][..2].ToUpper() : parts[0].ToUpper());
+                                        }
+                                        else
+                                        {
+                                            // Just use first 2 characters
+                                            initials = namePart.Length >= 2 ? namePart[..2].ToUpper() : namePart.ToUpper();
+                                        }
+                                    }
+                                }
+                                @initials
                             </div>
                             <div class="flex-grow-1 text-truncate">
                                 <small class="d-block text-white fw-semibold text-truncate">@User.Identity.Name</small>

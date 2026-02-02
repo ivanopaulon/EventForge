@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const isClickInside = sidebar && sidebar.contains(e.target);
             const isToggleButton = sidebarToggleTop && sidebarToggleTop.contains(e.target);
             
-            if (!isClickInside && !isToggleButton && !wrapper.classList.contains('toggled')) {
-                wrapper.classList.add('toggled');
+            if (!isClickInside && !isToggleButton && wrapper.classList.contains('toggled')) {
+                wrapper.classList.remove('toggled');
             }
         }
     });
