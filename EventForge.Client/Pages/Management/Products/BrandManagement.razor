@@ -3,7 +3,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IBrandService BrandService
@@ -13,6 +13,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BrandManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingBrands"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -20,14 +21,12 @@
 @if (!_isLoading)
 {
     <div class="brand-page-root">
-        <div class="brand-top">
-            <ManagementDashboard TItem="BrandDto"
-                                 Items="_filteredBrands"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="Brand"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="BrandDto"
+                      Items="_brands"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -39,7 +38,13 @@
                  IsLoading="_isLoadingBrands"
                  ComponentKey="BrandManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="Marchi"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_brands.Count"
+                 OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("brand.management", "Gestione Marchi")
@@ -258,69 +263,100 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Country", DisplayName = "Paese", IsVisible = true, Order = 2 },
-        new() { PropertyName = "Website", DisplayName = "Sito Web", IsVisible = true, Order = 3 },
-        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Country", DisplayName = "Paese", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "Website", DisplayName = "Sito Web", IsVisible = true, Order = 3, IsSearchable = true },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<BrandDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<BrandDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Marchi",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Sell,
-            Color = "primary",
-            Description = "Numero totale di marchi",
-            Format = "N0"
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i marchi"
         },
-        new()
-        {
-            Title = "Con Sito Web",
-            Type = MetricType.Count,
-            Filter = b => !string.IsNullOrEmpty(b.Website),
+        new() 
+        { 
+            Id = "with_country", 
+            Label = "Con Paese",
+            Predicate = b => !string.IsNullOrEmpty(b.Country),
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.Flag,
+            Description = "Marchi con paese specificato"
+        },
+        new() 
+        { 
+            Id = "with_website", 
+            Label = "Con Sito Web",
+            Predicate = b => !string.IsNullOrEmpty(b.Website),
+            Color = Color.Info,
             Icon = Icons.Material.Outlined.Language,
-            Color = "success",
-            Description = "Marchi con sito web",
-            Format = "N0"
+            Description = "Marchi con sito web"
         },
-        new()
-        {
-            Title = "Con Descrizione",
-            Type = MetricType.Count,
-            Filter = b => !string.IsNullOrEmpty(b.Description),
+        new() 
+        { 
+            Id = "with_description", 
+            Label = "Con Descrizione",
+            Predicate = b => !string.IsNullOrEmpty(b.Description),
+            Color = Color.Primary,
             Icon = Icons.Material.Outlined.Description,
-            Color = "info",
-            Description = "Marchi con descrizione",
-            Format = "N0"
+            Description = "Marchi con descrizione"
         },
-        new()
-        {
-            Title = "Ultimi Aggiunti",
-            Type = MetricType.Count,
-            Filter = b => b.CreatedAt >= DateTime.Now.AddDays(-30),
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = b => b.CreatedAt >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Warning,
             Icon = Icons.Material.Outlined.NewReleases,
-            Color = "warning",
-            Description = "Marchi aggiunti negli ultimi 30 giorni",
-            Format = "N0"
+            Description = "Marchi aggiunti negli ultimi 30 giorni"
         }
     };
+    
+    private QuickFilter<BrandDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<BrandDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<BrandDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<BrandDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered brands based on search criteria.
     /// </summary>
     private IEnumerable<BrandDto> _filteredBrands => 
-        _brands.Where(b => 
-            // Search filter: check name, description, and country
-            (string.IsNullOrEmpty(_searchTerm) || 
-             b.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             (b.Description != null && b.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-             (b.Country != null && b.Country.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))));
+        _brands.Where(b => FilterBrand(b));
+
+    /// <summary>
+    /// Filters a brand based on search term and other criteria
+    /// </summary>
+    private bool FilterBrand(BrandDto brand)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(brand))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!brand.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -329,6 +365,22 @@
     {
         _selectedBrands = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to brand detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<BrandDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/product-management/brands/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/product-management/brands/{args.Item.Id}");
     }
 
     /// <summary>
@@ -392,13 +444,12 @@
     private void ClearFilters()
     {
         _searchTerm = string.Empty;
+        _activeQuickFilter = null;
         StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        _currentPage = 1; // Reset to page 1 when search changes
-        
         // Cancel previous debounce if any
         _searchDebounceCts?.Cancel();
         _searchDebounceCts = new CancellationTokenSource();
@@ -556,5 +607,11 @@
             // Reload the page after successful login
             await OnInitializedAsync();
         }
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null;
     }
 }
