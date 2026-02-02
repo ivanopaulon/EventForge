@@ -105,6 +105,16 @@ public interface ISaleSessionService
     Task<SaleSessionDto?> AddNoteAsync(Guid sessionId, AddSessionNoteDto addNoteDto, string currentUser, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Applies a global discount percentage to all session items.
+    /// </summary>
+    /// <param name="sessionId">Session ID</param>
+    /// <param name="discountDto">Discount data</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated sale session DTO or null if not found</returns>
+    Task<SaleSessionDto?> ApplyGlobalDiscountAsync(Guid sessionId, ApplyGlobalDiscountDto discountDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Calculates totals for a sale session.
     /// </summary>
     /// <param name="sessionId">Session ID</param>

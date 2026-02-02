@@ -180,6 +180,19 @@ public class SalesService : ISalesService
         }
     }
 
+    public async Task<SaleSessionDto?> ApplyGlobalDiscountAsync(Guid sessionId, ApplyGlobalDiscountDto discountDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<ApplyGlobalDiscountDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/discount", discountDto, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying global discount to session {SessionId}", sessionId);
+            return null;
+        }
+    }
+
     public async Task<SaleSessionDto?> CalculateTotalsAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         try

@@ -1,3 +1,4 @@
+using EventForge.Server.Data.Seed;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Auth.Seeders;
@@ -94,6 +95,18 @@ public class EntitySeeder : IEntitySeeder
                     _logger.LogError("Failed to seed demo products");
                     if (transaction != null) await transaction.RollbackAsync(cancellationToken);
                     return false;
+                }
+
+                // Seed NoteFlags for sales module
+                try
+                {
+                    await SalesSeedData.SeedNoteFlagsAsync(_dbContext, tenantId);
+                    _logger.LogInformation("NoteFlags seeded successfully for tenant {TenantId}", tenantId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to seed NoteFlags for tenant {TenantId}", tenantId);
+                    // Don't fail entire seeding process if NoteFlags fail
                 }
 
                 // Commit transaction if exists

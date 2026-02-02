@@ -786,6 +786,81 @@ public class POSViewModel : IDisposable
     }
 
     /// <summary>
+    /// Adds a categorized note to the current sale session.
+    /// </summary>
+    public async Task<SaleSessionDto?> AddSessionNoteAsync(AddSessionNoteDto noteDto)
+    {
+        if (CurrentSession == null)
+        {
+            _logger.LogWarning("Cannot add note: no active session");
+            return null;
+        }
+        
+        try
+        {
+            _logger.LogInformation("Adding note to session {SessionId}", CurrentSession.Id);
+            
+            var updatedSession = await _salesService.AddNoteAsync(CurrentSession.Id, noteDto);
+            
+            if (updatedSession != null)
+            {
+                CurrentSession = updatedSession;
+                NotifyStateChanged();
+                _logger.LogInformation("Note added successfully to session {SessionId}", CurrentSession.Id);
+            }
+            
+            return updatedSession;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding note to session {SessionId}", CurrentSession.Id);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Applies a global discount percentage to all items in the current session.
+    /// </summary>
+    public async Task<SaleSessionDto?> ApplyGlobalDiscountAsync(ApplyGlobalDiscountDto discountDto)
+    {
+        if (CurrentSession == null)
+        {
+            _logger.LogWarning("Cannot apply discount: no active session");
+            return null;
+        }
+        
+        try
+        {
+            IsUpdatingItems = true;
+            NotifyStateChanged();
+            
+            _logger.LogInformation("Applying {DiscountPercent}% global discount to session {SessionId}", 
+                discountDto.DiscountPercent, CurrentSession.Id);
+            
+            var updatedSession = await _salesService.ApplyGlobalDiscountAsync(CurrentSession.Id, discountDto);
+            
+            if (updatedSession != null)
+            {
+                CurrentSession = updatedSession;
+                NotifyStateChanged();
+                _logger.LogInformation("Global discount applied successfully");
+            }
+            
+            return updatedSession;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying global discount to session {SessionId}", CurrentSession.Id);
+            return null;
+        }
+        finally
+        {
+            IsUpdatingItems = false;
+            NotifyStateChanged();
+        }
+    }
+
+    /// <summary>
     /// Resumes a suspended session.
     /// </summary>
     public async Task<bool> ResumeSessionAsync(SaleSessionDto session)

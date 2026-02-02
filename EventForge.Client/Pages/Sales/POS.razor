@@ -503,8 +503,22 @@
 
         if (!result.Canceled && result.Data is decimal discountPercent)
         {
-            // TODO FASE 2: Implement backend endpoint for global discount
-            Snackbar.Add(TranslationService.GetTranslation("sales.discountWillBeApplied", $"Sconto del {discountPercent}% verrà applicato"), Severity.Info);
+            var dto = new ApplyGlobalDiscountDto
+            {
+                DiscountPercent = discountPercent,
+                Reason = "Sconto globale POS"
+            };
+            
+            var updatedSession = await ViewModel.ApplyGlobalDiscountAsync(dto);
+            
+            if (updatedSession != null)
+            {
+                Snackbar.Add($"✅ Sconto {discountPercent}% applicato - Nuovo totale: €{updatedSession.FinalTotal:F2}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("❌ Errore applicazione sconto", Severity.Error);
+            }
         }
     }
 
@@ -522,10 +536,19 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is string note)
+        if (!result.Canceled && result.Data is AddSessionNoteDto noteDto)
         {
-            // TODO FASE 2: Implement backend endpoint for session notes
-            Snackbar.Add(TranslationService.GetTranslation("sales.noteWillBeSaved", $"Nota registrata: {note}"), Severity.Info);
+            // Chiamata backend REALE (rimuove TODO)
+            var updatedSession = await ViewModel.AddSessionNoteAsync(noteDto);
+            
+            if (updatedSession != null)
+            {
+                Snackbar.Add($"✅ Nota aggiunta: {noteDto.Text}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("❌ Errore aggiunta nota", Severity.Error);
+            }
         }
     }
 
