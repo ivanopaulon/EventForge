@@ -322,7 +322,8 @@
     "showingItems": "Showing {0}-{1} of {2}",
     "itemsPerPage": "Items per page",
     "page": "Page",
-    "of": "of"
+    "of": "of",
+    "recommended": "Recommended"
   },
   "dataRetention": {
     "indefinite": "Indefinite"
@@ -2993,7 +2994,6 @@
     "filteredFrom": "Filtered from {0} total rows",
     "selectedColumns": "{0} columns selected",
     "selectFormat": "Select format",
-    "recommended": "Recommended",
     "confirm": "Export",
     "noData": "No data to export",
     "success": "Export completed successfully!",

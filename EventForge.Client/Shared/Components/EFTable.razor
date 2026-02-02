@@ -1062,7 +1062,13 @@
             csv.AppendLine(string.Join(",", values));
         }
         
-        var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+        // Add UTF-8 BOM for proper Excel display
+        var preamble = System.Text.Encoding.UTF8.GetPreamble();
+        var csvBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+        var bytes = new byte[preamble.Length + csvBytes.Length];
+        System.Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
+        System.Buffer.BlockCopy(csvBytes, 0, bytes, preamble.Length, csvBytes.Length);
+        
         var fileName = $"{ExcelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
         
         await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes, "text/csv");

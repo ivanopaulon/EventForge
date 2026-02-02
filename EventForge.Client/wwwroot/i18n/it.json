@@ -325,7 +325,8 @@
     "showingItems": "Visualizzati {0}-{1} di {2}",
     "itemsPerPage": "Elementi per pagina",
     "page": "Pagina",
-    "of": "di"
+    "of": "di",
+    "recommended": "Consigliato"
   },
   "dataRetention": {
     "indefinite": "Indefinito"
@@ -3020,7 +3021,6 @@
     "filteredFrom": "Filtrate da {0} righe totali",
     "selectedColumns": "{0} colonne selezionate",
     "selectFormat": "Seleziona formato",
-    "recommended": "Consigliato",
     "confirm": "Esporta",
     "noData": "Nessun dato da esportare",
     "success": "Export completato con successo!",
