@@ -359,7 +359,7 @@
             var filtered = _items.AsEnumerable();
 
             // Apply Quick Filter first
-            if (_activeQuickFilter != null)
+            if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
             {
                 filtered = filtered.Where(p => _activeQuickFilter.Predicate(p));
             }
