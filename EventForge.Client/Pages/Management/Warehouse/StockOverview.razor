@@ -16,6 +16,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<StockOverview> Logger
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingStock"
@@ -24,6 +25,13 @@
 @if (!_isLoading)
 {
     <div class="stock-overview-page-root">
+        <!-- Quick Filters -->
+        <QuickFilters TItem="StockLocationDetail"
+                      Items="_stockItems"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
+
         @* Dashboard only shown when not paginated - metrics would be inaccurate on paginated view *@
         @if (_totalPages <= 1)
         {
@@ -113,7 +121,13 @@
                  ComponentKey="StockOverview"
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true"
-                 ShowInternalPager="false">
+                 ShowInternalPager="false"
+                 OnRowClick="@HandleRowClick"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="GiacenzeMagazzino"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@((int)_totalCount)">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")
@@ -302,8 +316,8 @@
                                     <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@item.LotCode</MudChip>
                                     @if (item.LotExpiry.HasValue)
                                     {
-                                        var isExpiringSoon = item.LotExpiry.Value <= DateTime.Now.AddDays(30);
-                                        var isExpired = item.LotExpiry.Value <= DateTime.Now;
+                                        var isExpiringSoon = item.LotExpiry.Value <= DateTime.UtcNow.AddDays(30);
+                                        var isExpired = item.LotExpiry.Value <= DateTime.UtcNow;
                                         <MudText Typo="Typo.caption" Color="@(isExpired ? Color.Error : isExpiringSoon ? Color.Warning : Color.Default)">
                                             Scad: @item.LotExpiry.Value.ToString("dd/MM/yyyy")
                                         </MudText>
@@ -651,6 +665,65 @@
     private StockFilters _filters = new();
     private CancellationTokenSource? _searchDebounceCts;
     
+    // Quick Filters
+    private List<QuickFilter<StockLocationDetail>> _quickFilters = new()
+    {
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti gli stock"
+        },
+        new() 
+        { 
+            Id = "in_stock", 
+            Label = "In Giacenza",
+            Predicate = s => s.Quantity > 0,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Prodotti con giacenza disponibile"
+        },
+        new() 
+        { 
+            Id = "low_stock", 
+            Label = "Scorte Basse",
+            Predicate = s => s.ReorderPoint.HasValue && s.Quantity > 0 && s.Quantity <= s.ReorderPoint.Value && (!s.SafetyStock.HasValue || s.Quantity > s.SafetyStock.Value),
+            Color = Color.Warning,
+            Icon = Icons.Material.Outlined.Warning,
+            Description = "Prodotti sotto il punto di riordino"
+        },
+        new() 
+        { 
+            Id = "critical_stock", 
+            Label = "Critici",
+            Predicate = s => s.SafetyStock.HasValue && s.Quantity > 0 && s.Quantity <= s.SafetyStock.Value,
+            Color = Color.Error,
+            Icon = Icons.Material.Outlined.Error,
+            Description = "Prodotti sotto la scorta di sicurezza"
+        },
+        new() 
+        { 
+            Id = "out_of_stock", 
+            Label = "Esauriti",
+            Predicate = s => s.Quantity == 0,
+            Color = Color.Dark,
+            Icon = Icons.Material.Outlined.RemoveCircleOutline,
+            Description = "Prodotti senza giacenza"
+        },
+        new() 
+        { 
+            Id = "negative_stock", 
+            Label = "Negativi",
+            Predicate = s => s.Quantity < 0,
+            Color = Color.Secondary,
+            Icon = Icons.Material.Outlined.Warning,
+            Description = "Prodotti con giacenza negativa"
+        }
+    };
+    
+    private QuickFilter<StockLocationDetail>? _activeQuickFilter;
+    
     // Pagination state
     private int _currentPage = 1;
     private int _pageSize = DefaultPageSize;
@@ -687,17 +760,17 @@
     // Secondary columns (LotCode, Reserved, ReorderPoint, SafetyStock) hidden by default to reduce clutter
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0 },
-        new() { PropertyName = "ProductName", DisplayName = "Nome Prodotto", IsVisible = true, Order = 1 },
-        new() { PropertyName = "WarehouseName", DisplayName = "Magazzino", IsVisible = true, Order = 2 },
-        new() { PropertyName = "LocationCode", DisplayName = "Ubicazione", IsVisible = true, Order = 3 },
-        new() { PropertyName = "LotCode", DisplayName = "Lotto", IsVisible = false, Order = 4 }, // Hidden by default
-        new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 5 },
-        new() { PropertyName = "Reserved", DisplayName = "Riservato", IsVisible = false, Order = 6 }, // Hidden by default
-        new() { PropertyName = "Available", DisplayName = "Disponibile", IsVisible = true, Order = 7 },
-        new() { PropertyName = "ReorderPoint", DisplayName = "Punto Riordino", IsVisible = false, Order = 8 }, // Hidden by default
-        new() { PropertyName = "SafetyStock", DisplayName = "Scorta Sicurezza", IsVisible = false, Order = 9 }, // Hidden by default
-        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 10 }
+        new() { PropertyName = "ProductCode", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "ProductName", DisplayName = "Nome Prodotto", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "WarehouseName", DisplayName = "Magazzino", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "LocationCode", DisplayName = "Ubicazione", IsVisible = true, Order = 3, IsSearchable = true },
+        new() { PropertyName = "LotCode", DisplayName = "Lotto", IsVisible = false, Order = 4, IsSearchable = true }, // Hidden by default
+        new() { PropertyName = "Quantity", DisplayName = "Quantità", IsVisible = true, Order = 5, IsSearchable = false },
+        new() { PropertyName = "Reserved", DisplayName = "Riservato", IsVisible = false, Order = 6, IsSearchable = false }, // Hidden by default
+        new() { PropertyName = "Available", DisplayName = "Disponibile", IsVisible = true, Order = 7, IsSearchable = false },
+        new() { PropertyName = "ReorderPoint", DisplayName = "Punto Riordino", IsVisible = false, Order = 8, IsSearchable = false }, // Hidden by default
+        new() { PropertyName = "SafetyStock", DisplayName = "Scorta Sicurezza", IsVisible = false, Order = 9, IsSearchable = false }, // Hidden by default
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 10, IsSearchable = false }
     };
 
     // Dashboard configuration - initialized in OnInitializedAsync to access instance methods
@@ -712,6 +785,65 @@
     {
         _selectedStockItems = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles quick filter selection - updates server-side filters and reloads data
+    /// </summary>
+    private async Task HandleQuickFilter(QuickFilter<StockLocationDetail>? filter)
+    {
+        _activeQuickFilter = filter;
+        
+        // Update server-side filters based on quick filter selection
+        _filters.ShowOnlyLowStock = false;
+        _filters.ShowOnlyCritical = false;
+        _filters.ShowOnlyOutOfStock = false;
+        _filters.ShowOnlyInStock = false;
+        
+        if (filter?.Id == "in_stock")
+        {
+            _filters.ShowOnlyInStock = true;
+        }
+        else if (filter?.Id == "low_stock")
+        {
+            _filters.ShowOnlyLowStock = true;
+        }
+        else if (filter?.Id == "critical_stock")
+        {
+            _filters.ShowOnlyCritical = true;
+        }
+        else if (filter?.Id == "out_of_stock")
+        {
+            _filters.ShowOnlyOutOfStock = true;
+        }
+        // Note: negative_stock handled client-side via predicate
+        
+        _currentPage = 1; // Reset to first page
+        await LoadStockOverviewAsync();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to product detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<StockLocationDetail> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/product-management/products/{args.Item.ProductId}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/product-management/products/{args.Item.ProductId}");
+    }
+
+    /// <summary>
+    /// Checks if any filters are currently active
+    /// </summary>
+    private bool HasActiveFilters()
+    {
+        return _filters.HasActiveFilters || _activeQuickFilter != null;
     }
 
     /// <summary>
