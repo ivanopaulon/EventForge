@@ -4,6 +4,20 @@
 > **DEVI sempre usare `IHttpClientService`** per le chiamate API.  
 > Per dettagli completi, vedi [`docs/frontend/SERVICE_CREATION_GUIDE.md`](SERVICE_CREATION_GUIDE.md)
 
+## 📖 EFTable Standard Pattern
+
+For the **latest standardized pattern** for management pages using EFTable with:
+- Standard 4-section toolbar structure
+- Inline filters guidelines (max 2-3)
+- ManagementDashboard integration
+- Complete code-behind patterns
+- CSS classes and responsive design
+- Migration checklist
+
+**See:** [`docs/EFTABLE_STANDARD_PATTERN.md`](/docs/EFTABLE_STANDARD_PATTERN.md)
+
+This guide focuses on the drawer component patterns and service integration.
+
 ## Quick Reference - Service Pattern
 
 ### ✅ Pattern CORRETTO per i servizi
