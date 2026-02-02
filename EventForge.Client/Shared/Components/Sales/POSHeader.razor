@@ -2,6 +2,8 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Sales
 @using EventForge.Client.Shared.Components.Dialogs.Sales
+@using EventForge.Client.Shared.Components.Business
+@using EventForge.Client.Shared.Components.Common
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
@@ -68,40 +70,24 @@
         </MudItem>
 
         <!-- Customer Selection -->
-        <MudItem xs="12" sm="6" md="3">
-            <div class="d-flex align-center gap-2">
-                <MudAutocomplete T="BusinessPartyDto"
-                                 Value="SelectedCustomer"
-                                 ValueChanged="@OnCustomerChanged"
-                                 Label="@TranslationService.GetTranslation("sales.customer", "Cliente")"
-                                 Variant="Variant.Outlined"
-                                 SearchFunc="@SearchCustomers"
-                                 ToStringFunc="@(c => c?.Name ?? string.Empty)"
-                                 Clearable="true"
-                                 Disabled="@(!SelectedOperatorId.HasValue || !SelectedPosId.HasValue)"
-                                 Adornment="Adornment.Start"
-                                 AdornmentIcon="@Icons.Material.Filled.Person"
-                                 Style="flex: 1;">
-                    <ItemTemplate Context="customer">
-                        <MudText Typo="Typo.body2">@customer.Name</MudText>
-                        @if (!string.IsNullOrEmpty(customer.TaxCode))
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@customer.TaxCode</MudText>
-                        }
-                    </ItemTemplate>
-                </MudAutocomplete>
-                <MudIconButton Icon="@Icons.Material.Outlined.PersonAdd"
-                               Color="Color.Primary"
-                               Variant="Variant.Outlined"
-                               Size="Size.Medium"
-                               OnClick="@OpenQuickCreateCustomerDialogAsync"
-                               Disabled="@(!SelectedOperatorId.HasValue || !SelectedPosId.HasValue)"
-                               Title="@TranslationService.GetTranslation("sales.quickCreateCustomer", "Creazione Rapida Cliente")" />
-            </div>
+        <MudItem xs="12" sm="6" md="4">
+            <UnifiedBusinessPartySelector 
+                SelectedBusinessParty="SelectedCustomer"
+                SelectedBusinessPartyChanged="@OnCustomerChanged"
+                Title="@null"
+                Placeholder="@TranslationService.GetTranslation("sales.searchCustomer", "Cerca cliente...")"
+                FilterByType="BusinessPartyType.Customer"
+                EditMode="EntityEditMode.QuickDialog"
+                CreateMode="EntityCreateMode.QuickDialog"
+                DisplayMode="EntityDisplayMode.FiscalInfo | EntityDisplayMode.Contacts"
+                AllowQuickCreate="true"
+                AllowQuickEdit="true"
+                Disabled="@(!SelectedOperatorId.HasValue || !SelectedPosId.HasValue)"
+                Dense="true" />
         </MudItem>
 
         <!-- Date/Time + Session -->
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="4">
             <div class="d-flex flex-column" style="gap: 8px;">
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
                     <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Class="mr-1" />
@@ -183,9 +169,6 @@
     public bool IsSessionActive { get; set; }
 
     [Parameter]
-    public Func<string, CancellationToken, Task<IEnumerable<BusinessPartyDto>>>? SearchCustomers { get; set; }
-
-    [Parameter]
     public EventCallback OnParkClick { get; set; }
 
     [Parameter]
@@ -216,27 +199,5 @@
     {
         SelectedCustomer = value;
         await SelectedCustomerChanged.InvokeAsync(value);
-    }
-
-    private async Task OpenQuickCreateCustomerDialogAsync()
-    {
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<QuickCreateCustomerDialog>(
-            TranslationService.GetTranslation("sales.quickCreateCustomer", "Creazione Rapida Cliente"),
-            options);
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is BusinessPartyDto newCustomer)
-        {
-            // Update the selected customer
-            await OnCustomerChanged(newCustomer);
-        }
     }
 }
