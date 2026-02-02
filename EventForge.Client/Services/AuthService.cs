@@ -364,7 +364,7 @@ namespace EventForge.Client.Services
                     var jwtToken = tokenHandler.ReadJwtToken(currentToken);
                     var timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
 
-                    _logger.LogInformation(
+                    _logger.LogDebug(
                         "Token refresh requested. Current validity: {Minutes:F1} minutes. Proceeding with sliding expiration refresh.", 
                         timeToExpiry.TotalMinutes);
                 }
@@ -375,8 +375,16 @@ namespace EventForge.Client.Services
                     {
                         var client = _httpClientFactory.CreateClient("ApiClient");
 
-                        _logger.LogInformation("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode", 
-                            attempt, maxRetries);
+                        if (attempt > 1)
+                        {
+                            _logger.LogInformation("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode", 
+                                attempt, maxRetries);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode", 
+                                attempt, maxRetries);
+                        }
 
                         var response = await client.PostAsync($"{BaseUrl}/refresh-token", null);
 

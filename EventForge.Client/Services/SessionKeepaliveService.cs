@@ -169,12 +169,12 @@ namespace EventForge.Client.Services
                 var timeToExpiry = await _authService.GetTokenTimeToExpiryAsync();
                 if (timeToExpiry.HasValue)
                 {
-                    _logger.LogInformation("Token expires in {Minutes:F1} minutes. Performing sliding expiration refresh.", 
+                    _logger.LogDebug("Token expires in {Minutes:F1} minutes. Performing sliding expiration refresh.", 
                         timeToExpiry.Value.TotalMinutes);
                 }
                 else
                 {
-                    _logger.LogInformation("Token expiry unknown. Attempting refresh.");
+                    _logger.LogDebug("Token expiry unknown. Attempting refresh.");
                 }
 
                 // Attempt refresh with retry logic
@@ -186,8 +186,16 @@ namespace EventForge.Client.Services
                         return;
                     }
 
-                    _logger.LogInformation("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)", 
-                        attempt, MAX_RETRIES);
+                    if (attempt > 1)
+                    {
+                        _logger.LogInformation("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)", 
+                            attempt, MAX_RETRIES);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)", 
+                            attempt, MAX_RETRIES);
+                    }
 
                     try
                     {
