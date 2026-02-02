@@ -1,0 +1,76 @@
+@typeparam TItem
+
+@if (Filters != null && Filters.Any())
+{
+    <MudPaper Class="pa-2 mb-2 quick-filters-wrapper" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+        <MudChipSet T="string" 
+                    @bind-SelectedValue="_selectedValue" 
+                    Filter="true"
+                    Mandatory="false">
+            @foreach (var filter in Filters)
+            {
+                <MudChip T="string"
+                         Value="@filter.Id" 
+                         Color="@filter.Color"
+                         Icon="@filter.Icon"
+                         Variant="Variant.Outlined"
+                         Size="Size.Small"
+                         Title="@filter.Description">
+                    @filter.Label@if (ShowCount) { <text>&nbsp;(@GetFilterCount(filter))</text> }
+                </MudChip>
+            }
+        </MudChipSet>
+    </MudPaper>
+}
+
+@code {
+    /// <summary>
+    /// Gli elementi su cui calcolare i conteggi dei filtri.
+    /// </summary>
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+    
+    /// <summary>
+    /// Lista dei filtri rapidi da visualizzare.
+    /// </summary>
+    [Parameter] public List<QuickFilter<TItem>>? Filters { get; set; }
+    
+    /// <summary>
+    /// Callback invocato quando viene selezionato un filtro.
+    /// </summary>
+    [Parameter] public EventCallback<QuickFilter<TItem>?> OnFilterSelected { get; set; }
+    
+    /// <summary>
+    /// Indica se mostrare il conteggio degli elementi per ogni filtro.
+    /// </summary>
+    [Parameter] public bool ShowCount { get; set; } = true;
+    
+    private string? _selectedValue;
+    private string? _previousSelectedValue;
+    
+    private int GetFilterCount(QuickFilter<TItem> filter)
+    {
+        if (Items == null || filter.Predicate == null)
+            return 0;
+        
+        return Items.Count(filter.Predicate);
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        // Detect change in selected value and trigger callback
+        if (_selectedValue != _previousSelectedValue)
+        {
+            _previousSelectedValue = _selectedValue;
+            
+            if (string.IsNullOrEmpty(_selectedValue))
+            {
+                await OnFilterSelected.InvokeAsync(null);
+            }
+            else
+            {
+                var filter = Filters?.FirstOrDefault(f => f.Id == _selectedValue);
+                await OnFilterSelected.InvokeAsync(filter);
+            }
+        }
+    }
+}

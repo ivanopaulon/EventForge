@@ -3,7 +3,6 @@
 @using EventForge.DTOs.Warehouse
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Extensions
 @using MudBlazor
 @attribute [Authorize]
@@ -23,14 +22,12 @@
 @if (!_isLoading)
 {
     <div class="warehouse-page-root">
-        <div class="warehouse-top">
-            <ManagementDashboard TItem="StorageFacilityDto"
-                                 Items="_filteredFacilities"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="Warehouse"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="StorageFacilityDto"
+                      Items="_storageFacilities"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -246,6 +243,65 @@
     private bool _showOnlyRefrigerated = false;
     private CancellationTokenSource? _searchDebounceCts;
 
+    // Quick Filters
+    private List<QuickFilter<StorageFacilityDto>> _quickFilters = new()
+    {
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i magazzini"
+        },
+        new() 
+        { 
+            Id = "fiscal", 
+            Label = "Fiscali",
+            Predicate = f => f.IsFiscal,
+            Color = Color.Primary,
+            Icon = Icons.Material.Outlined.AccountBalance,
+            Description = "Magazzini fiscali"
+        },
+        new() 
+        { 
+            Id = "refrigerated", 
+            Label = "Refrigerati",
+            Predicate = f => f.IsRefrigerated,
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.AcUnit,
+            Description = "Magazzini refrigerati"
+        },
+        new() 
+        { 
+            Id = "both", 
+            Label = "Fiscali + Refrigerati",
+            Predicate = f => f.IsFiscal && f.IsRefrigerated,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.VerifiedUser,
+            Description = "Magazzini fiscali e refrigerati"
+        },
+        new() 
+        { 
+            Id = "active", 
+            Label = "Attivi",
+            Predicate = f => f.IsActive,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Magazzini attivi"
+        },
+        new() 
+        { 
+            Id = "with_locations", 
+            Label = "Con Ubicazioni",
+            Predicate = f => f.TotalLocations > 0,
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.LocationOn,
+            Description = "Magazzini con ubicazioni configurate"
+        }
+    };
+    
+    private QuickFilter<StorageFacilityDto>? _activeQuickFilter;
+
     // Data collections
     private List<StorageFacilityDto> _storageFacilities = new();
     private HashSet<StorageFacilityDto> _selectedFacilities = new();
@@ -264,51 +320,16 @@
         new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<StorageFacilityDto>> _dashboardMetrics = new()
-    {
-        new()
-        {
-            Title = "Totale Magazzini",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Warehouse,
-            Color = "primary",
-            Description = "Numero totale di magazzini",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Attivi",
-            Type = MetricType.Count,
-            Filter = w => w.IsActive,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "success",
-            Description = "Magazzini attivi",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Con Ubicazioni",
-            Type = MetricType.Count,
-            Filter = w => w.TotalLocations > 0,
-            Icon = Icons.Material.Outlined.LocationOn,
-            Color = "info",
-            Description = "Magazzini con ubicazioni",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Ultimi 30 Giorni",
-            Type = MetricType.Count,
-            Filter = w => w.CreatedAt >= DateTime.Now.AddDays(-30),
-            Icon = Icons.Material.Outlined.CalendarToday,
-            Color = "warning",
-            Description = "Magazzini creati negli ultimi 30 giorni",
-            Format = "N0"
-        }
-    };
-
     private EventCallback<HashSet<StorageFacilityDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StorageFacilityDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<StorageFacilityDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered storage facilities based on search criteria.
@@ -321,6 +342,13 @@
     /// </summary>
     private bool FilterFacility(StorageFacilityDto facility)
     {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(facility))
+                return false;
+        }
+
         // Configurable multi-column search
         if (!facility.MatchesSearchInColumns(
             _searchTerm,

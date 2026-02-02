@@ -3,7 +3,6 @@
 @using EventForge.DTOs.VatRates
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
 @using EventForge.Client.Extensions
 @using MudBlazor
 @attribute [Authorize]
@@ -23,14 +22,12 @@
 @if (!_isLoading)
 {
     <div class="vat-rate-page-root">
-        <div class="vat-rate-top">
-            <ManagementDashboard TItem="VatRateDto"
-                                 Items="_filteredVatRates"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="VatRate"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="VatRateDto"
+                      Items="_vatRates"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -257,7 +254,65 @@
     
     // Filter and search state
     private string _searchTerm = string.Empty;
-    private string _statusFilter = "all";
+    
+    // Quick Filters
+    private List<QuickFilter<VatRateDto>> _quickFilters = new()
+    {
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutte",
+            Predicate = _ => true,
+            Description = "Mostra tutte le aliquote IVA"
+        },
+        new() 
+        { 
+            Id = "active", 
+            Label = "Attive",
+            Predicate = v => v.Status == VatRateStatus.Active,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Aliquote IVA attive"
+        },
+        new() 
+        { 
+            Id = "suspended", 
+            Label = "Sospese",
+            Predicate = v => v.Status == VatRateStatus.Suspended,
+            Color = Color.Warning,
+            Icon = Icons.Material.Outlined.Warning,
+            Description = "Aliquote IVA sospese"
+        },
+        new() 
+        { 
+            Id = "archived", 
+            Label = "Eliminate",
+            Predicate = v => v.Status == VatRateStatus.Deleted,
+            Color = Color.Default,
+            Icon = Icons.Material.Outlined.Archive,
+            Description = "Aliquote IVA eliminate"
+        },
+        new() 
+        { 
+            Id = "standard", 
+            Label = "Standard (≥ 20%)",
+            Predicate = v => v.Percentage >= 20,
+            Color = Color.Primary,
+            Icon = Icons.Material.Outlined.TrendingUp,
+            Description = "Aliquote standard (20% o superiori)"
+        },
+        new() 
+        { 
+            Id = "reduced", 
+            Label = "Ridotte (< 20%)",
+            Predicate = v => v.Percentage < 20,
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.TrendingDown,
+            Description = "Aliquote ridotte (inferiori al 20%)"
+        }
+    };
+    
+    private QuickFilter<VatRateDto>? _activeQuickFilter;
     
     // Pagination state
     private PagedResult<VatRateDto>? _pagedResult;
@@ -282,53 +337,16 @@
         new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<VatRateDto>> _dashboardMetrics = new()
-    {
-        new()
-        {
-            Title = "Totale Aliquote",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Percent,
-            Color = "primary",
-            Description = "Numero totale di aliquote IVA",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Aliquote Attive",
-            Type = MetricType.Count,
-            Filter = v => v.Status == VatRateStatus.Active,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "success",
-            Description = "Numero di aliquote IVA attive",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Percentuale Media",
-            Type = MetricType.Average,
-            ValueSelector = v => v.Percentage,
-            Filter = v => v.Status == VatRateStatus.Active,
-            Icon = Icons.Material.Outlined.Analytics,
-            Color = "info",
-            Description = "Percentuale media delle aliquote IVA attive",
-            Format = "N2"
-        },
-        new()
-        {
-            Title = "Aliquota Massima",
-            Type = MetricType.Max,
-            ValueSelector = v => v.Percentage,
-            Filter = v => v.Status == VatRateStatus.Active,
-            Icon = Icons.Material.Outlined.TrendingUp,
-            Color = "warning",
-            Description = "Percentuale massima tra le aliquote attive",
-            Format = "N2"
-        }
-    };
-
     private EventCallback<HashSet<VatRateDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<VatRateDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<VatRateDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered VAT rates based on search criteria.
@@ -341,22 +359,18 @@
     /// </summary>
     private bool FilterVatRate(VatRateDto vatRate)
     {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(vatRate))
+                return false;
+        }
+
         // Configurable multi-column search
         if (!vatRate.MatchesSearchInColumns(
             _searchTerm,
             _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
             return false;
-
-        // Status filter
-        if (_statusFilter != "all")
-        {
-            if (_statusFilter == "active" && vatRate.Status != VatRateStatus.Active)
-                return false;
-            if (_statusFilter == "suspended" && vatRate.Status != VatRateStatus.Suspended)
-                return false;
-            if (_statusFilter == "deleted" && vatRate.Status != VatRateStatus.Deleted)
-                return false;
-        }
 
         return true;
     }
@@ -447,7 +461,7 @@
     private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
-        _statusFilter = "all";
+        _activeQuickFilter = null;
         await Task.CompletedTask;
         StateHasChanged();
     }
