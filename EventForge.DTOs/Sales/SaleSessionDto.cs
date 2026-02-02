@@ -127,6 +127,31 @@ namespace EventForge.DTOs.Sales
         public string? CouponCodes { get; set; }
 
         /// <summary>
+        /// Parent session ID if this is a split/merged child session.
+        /// </summary>
+        public Guid? ParentSessionId { get; set; }
+
+        /// <summary>
+        /// Split type if this session was created from a split.
+        /// </summary>
+        public string? SplitType { get; set; }
+
+        /// <summary>
+        /// Split percentage if split by percentage.
+        /// </summary>
+        public decimal? SplitPercentage { get; set; }
+
+        /// <summary>
+        /// Merge reason if this session is result of merge.
+        /// </summary>
+        public string? MergeReason { get; set; }
+
+        /// <summary>
+        /// Number of child sessions (0 if no children).
+        /// </summary>
+        public int ChildSessionCount { get; set; }
+
+        /// <summary>
         /// Amount remaining to be paid.
         /// </summary>
         public decimal RemainingAmount => FinalTotal - Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount);

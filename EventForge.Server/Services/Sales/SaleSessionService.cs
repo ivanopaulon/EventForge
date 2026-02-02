@@ -19,6 +19,11 @@ public class SaleSessionService : ISaleSessionService
     private readonly IDocumentHeaderService _documentHeaderService;
     private readonly IStockMovementService _stockMovementService;
 
+    /// <summary>
+    /// Tolerance for percentage sum validation (allows for rounding errors).
+    /// </summary>
+    private const decimal PercentageSumTolerance = 0.01m;
+
     public SaleSessionService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
@@ -1283,10 +1288,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             .Include(p => p.ImageDocument)
             .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
 
-        return MapToDtoWithProducts(session, products);
+        // Get child session count
+        var childSessionCount = await _context.SaleSessions
+            .CountAsync(s => s.ParentSessionId == session.Id && !s.IsDeleted, cancellationToken);
+
+        return MapToDtoWithProducts(session, products, childSessionCount);
     }
 
-    private SaleSessionDto MapToDtoWithProducts(SaleSession session, Dictionary<Guid, EventForge.Server.Data.Entities.Products.Product> products)
+    private SaleSessionDto MapToDtoWithProducts(SaleSession session, Dictionary<Guid, EventForge.Server.Data.Entities.Products.Product> products, int childSessionCount = 0)
     {
         var dto = new SaleSessionDto
         {
@@ -1307,6 +1316,11 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             UpdatedAt = session.ModifiedAt ?? session.CreatedAt,
             ClosedAt = session.ClosedAt,
             CouponCodes = session.CouponCodes,
+            ParentSessionId = session.ParentSessionId,
+            SplitType = session.SplitType,
+            SplitPercentage = session.SplitPercentage,
+            MergeReason = session.MergeReason,
+            ChildSessionCount = childSessionCount,
             Items = session.Items.Where(i => !i.IsDeleted).Select(i => MapItemToDto(i, products)).ToList(),
             Payments = session.Payments.Where(p => !p.IsDeleted).Select(MapPaymentToDto).ToList(),
             Notes = session.Notes.Select(MapNoteToDto).ToList()
@@ -1733,5 +1747,425 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         {
             _logger.LogError(ex, "Error logging detailed entity states");
         }
+    }
+
+    public async Task<SplitResultDto?> SplitSessionAsync(SplitSessionDto splitDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+            }
+
+            // Validate and retrieve session
+            var session = await _context.SaleSessions
+                .Include(s => s.Items)
+                .FirstOrDefaultAsync(s => s.Id == splitDto.SessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+            if (session == null)
+                return null;
+
+            // Validate session can be split
+            if (session.Status != SaleSessionStatus.Open)
+                throw new InvalidOperationException("Solo le sessioni aperte possono essere splittate.");
+
+            if (session.ParentSessionId != null)
+                throw new InvalidOperationException("Una sessione già splitta non può essere nuovamente splitta.");
+
+            if (!session.Items.Any(i => !i.IsDeleted))
+                throw new InvalidOperationException("La sessione deve avere almeno un item per essere splitta.");
+
+            // Validate split-specific parameters
+            ValidateSplitParameters(splitDto, session);
+
+            // Create child sessions
+            var childSessions = new List<SaleSession>();
+            var splitType = splitDto.SplitType.ToString().ToUpperInvariant();
+
+            for (var i = 0; i < splitDto.NumberOfPeople; i++)
+            {
+                var childSession = new SaleSession
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = currentTenantId.Value,
+                    OperatorId = session.OperatorId,
+                    PosId = session.PosId,
+                    CustomerId = session.CustomerId,
+                    SaleType = session.SaleType,
+                    TableId = session.TableId,
+                    Currency = session.Currency,
+                    Status = SaleSessionStatus.Open,
+                    ParentSessionId = session.Id,
+                    SplitType = splitType,
+                    CreatedBy = currentUser,
+                    CreatedAt = DateTime.UtcNow,
+                    ModifiedBy = currentUser,
+                    ModifiedAt = DateTime.UtcNow
+                };
+
+                // Add items based on split type
+                switch (splitDto.SplitType)
+                {
+                    case SplitTypeDto.Equal:
+                        AddItemsForEqualSplit(session, childSession, i, splitDto.NumberOfPeople, currentUser);
+                        break;
+                    case SplitTypeDto.ByItems:
+                        AddItemsForItemsSplit(session, childSession, i, splitDto.ItemAssignments!, currentUser);
+                        break;
+                    case SplitTypeDto.Percentage:
+                        AddItemsForPercentageSplit(session, childSession, splitDto.Percentages![i], currentUser);
+                        childSession.SplitPercentage = splitDto.Percentages![i];
+                        break;
+                }
+
+                CalculateSessionTotals(childSession);
+                childSessions.Add(childSession);
+                _ = _context.SaleSessions.Add(childSession);
+            }
+
+            // Update parent session status
+            session.Status = SaleSessionStatus.Splitting;
+            session.ModifiedBy = currentUser;
+            session.ModifiedAt = DateTime.UtcNow;
+
+            _ = await _context.SaveChangesAsync(cancellationToken);
+
+            // Log audit trail
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Split", "Open", "Splitting", currentUser, "Sale Session", cancellationToken);
+
+            _logger.LogInformation("Split session {SessionId} into {Count} child sessions", session.Id, childSessions.Count);
+
+            // Map to DTOs
+            var childDtos = new List<SaleSessionDto>();
+            foreach (var child in childSessions)
+            {
+                childDtos.Add(await MapToDtoAsync(child, cancellationToken));
+            }
+
+            return new SplitResultDto
+            {
+                OriginalSessionId = session.Id,
+                ChildSessions = childDtos,
+                TotalAmount = session.FinalTotal,
+                SplitType = splitDto.SplitType
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error splitting sale session {SessionId}", splitDto.SessionId);
+            throw;
+        }
+    }
+
+    public async Task<SaleSessionDto?> MergeSessionsAsync(MergeSessionsDto mergeDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+            }
+
+            // Validate and retrieve sessions
+            var sessions = await _context.SaleSessions
+                .Include(s => s.Items)
+                .Where(s => mergeDto.SessionIds.Contains(s.Id) && s.TenantId == currentTenantId.Value && !s.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            if (sessions.Count != mergeDto.SessionIds.Count)
+                return null;
+
+            // Validate sessions can be merged
+            if (sessions.Any(s => s.Status != SaleSessionStatus.Open))
+                throw new InvalidOperationException("Solo le sessioni aperte possono essere merge.");
+
+            if (sessions.Any(s => s.ParentSessionId != null))
+                throw new InvalidOperationException("Sessioni già splittate non possono essere merge.");
+
+            if (sessions.Select(s => s.TenantId).Distinct().Count() > 1)
+                throw new InvalidOperationException("Tutte le sessioni devono appartenere allo stesso tenant.");
+
+            // Create merged session
+            var firstSession = sessions.First();
+            var mergedSession = new SaleSession
+            {
+                Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
+                OperatorId = firstSession.OperatorId,
+                PosId = firstSession.PosId,
+                CustomerId = firstSession.CustomerId,
+                SaleType = firstSession.SaleType,
+                TableId = mergeDto.TargetTableId ?? firstSession.TableId,
+                Currency = firstSession.Currency,
+                Status = SaleSessionStatus.Open,
+                MergeReason = mergeDto.MergeReason,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow,
+                ModifiedBy = currentUser,
+                ModifiedAt = DateTime.UtcNow
+            };
+
+            // Copy all items from all sessions
+            foreach (var session in sessions)
+            {
+                foreach (var item in session.Items.Where(i => !i.IsDeleted))
+                {
+                    var newItem = new SaleItem
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = currentTenantId.Value,
+                        SaleSessionId = mergedSession.Id,
+                        ProductId = item.ProductId,
+                        ProductCode = item.ProductCode,
+                        ProductName = item.ProductName,
+                        UnitPrice = item.UnitPrice,
+                        Quantity = item.Quantity,
+                        DiscountPercent = item.DiscountPercent,
+                        TotalAmount = item.TotalAmount,
+                        TaxRate = item.TaxRate,
+                        TaxAmount = item.TaxAmount,
+                        Notes = item.Notes,
+                        IsService = item.IsService,
+                        PromotionId = item.PromotionId,
+                        CreatedBy = currentUser,
+                        CreatedAt = DateTime.UtcNow,
+                        ModifiedBy = currentUser,
+                        ModifiedAt = DateTime.UtcNow
+                    };
+                    mergedSession.Items.Add(newItem);
+                }
+            }
+
+            // Calculate totals
+            CalculateSessionTotals(mergedSession);
+
+            // Add merged session
+            _ = _context.SaleSessions.Add(mergedSession);
+
+            // Cancel original sessions
+            foreach (var session in sessions)
+            {
+                session.Status = SaleSessionStatus.Cancelled;
+                session.ModifiedBy = currentUser;
+                session.ModifiedAt = DateTime.UtcNow;
+            }
+
+            _ = await _context.SaveChangesAsync(cancellationToken);
+
+            // Log audit trail
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", mergedSession.Id, "Status", "Merge", null, "Open", currentUser, "Sale Session", cancellationToken);
+
+            _logger.LogInformation("Merged {Count} sessions into new session {SessionId}", sessions.Count, mergedSession.Id);
+
+            return await MapToDtoAsync(mergedSession, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error merging sale sessions");
+            throw;
+        }
+    }
+
+    public async Task<List<SaleSessionDto>> GetChildSessionsAsync(Guid parentSessionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+            }
+
+            var childSessions = await _context.SaleSessions
+                .Include(s => s.Items)
+                .Include(s => s.Payments)
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                .Where(s => s.ParentSessionId == parentSessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            var result = new List<SaleSessionDto>();
+            foreach (var session in childSessions)
+            {
+                result.Add(await MapToDtoAsync(session, cancellationToken));
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving child sessions for parent {ParentSessionId}", parentSessionId);
+            throw;
+        }
+    }
+
+    public async Task<bool> CanSplitSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                return false;
+            }
+
+            var session = await _context.SaleSessions
+                .Include(s => s.Items)
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+            if (session == null)
+                return false;
+
+            return session.Status == SaleSessionStatus.Open &&
+                   session.ParentSessionId == null &&
+                   session.Items.Any(i => !i.IsDeleted);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if session {SessionId} can be split", sessionId);
+            return false;
+        }
+    }
+
+    public async Task<bool> CanMergeSessionsAsync(List<Guid> sessionIds, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (sessionIds.Count < 2)
+                return false;
+
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                return false;
+            }
+
+            var sessions = await _context.SaleSessions
+                .Where(s => sessionIds.Contains(s.Id) && s.TenantId == currentTenantId.Value && !s.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            if (sessions.Count != sessionIds.Count)
+                return false;
+
+            return sessions.All(s => s.Status == SaleSessionStatus.Open && s.ParentSessionId == null) &&
+                   sessions.Select(s => s.TenantId).Distinct().Count() == 1;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if sessions can be merged");
+            return false;
+        }
+    }
+
+    private void ValidateSplitParameters(SplitSessionDto splitDto, SaleSession session)
+    {
+        switch (splitDto.SplitType)
+        {
+            case SplitTypeDto.ByItems:
+                if (splitDto.ItemAssignments == null || !splitDto.ItemAssignments.Any())
+                    throw new InvalidOperationException("Gli assegnamenti degli item sono richiesti per lo split BY_ITEMS.");
+
+                var itemIds = session.Items.Where(i => !i.IsDeleted).Select(i => i.Id).ToHashSet();
+                var assignedItems = splitDto.ItemAssignments.Select(a => a.ItemId).ToHashSet();
+
+                if (!itemIds.SetEquals(assignedItems))
+                    throw new InvalidOperationException("Tutti gli items devono essere assegnati esattamente una volta.");
+
+                if (splitDto.ItemAssignments.Any(a => a.PersonIndex < 0 || a.PersonIndex >= splitDto.NumberOfPeople))
+                    throw new InvalidOperationException($"PersonIndex deve essere tra 0 e {splitDto.NumberOfPeople - 1}.");
+                break;
+
+            case SplitTypeDto.Percentage:
+                if (splitDto.Percentages == null || splitDto.Percentages.Count != splitDto.NumberOfPeople)
+                    throw new InvalidOperationException("Le percentuali devono essere fornite per ogni persona.");
+
+                var sum = splitDto.Percentages.Sum();
+                if (Math.Abs(sum - 100) > PercentageSumTolerance)
+                    throw new InvalidOperationException($"Le percentuali devono sommare a 100. Somma attuale: {sum}");
+                break;
+        }
+    }
+
+    private void AddItemsForEqualSplit(SaleSession parentSession, SaleSession childSession, int childIndex, int totalChildren, string currentUser)
+    {
+        var activeItems = parentSession.Items.Where(i => !i.IsDeleted).ToList();
+        var itemsPerChild = activeItems.Count / totalChildren;
+        var remainder = activeItems.Count % totalChildren;
+
+        // Determine which items belong to this child
+        var startIndex = childIndex * itemsPerChild + Math.Min(childIndex, remainder);
+        var count = itemsPerChild + (childIndex < remainder ? 1 : 0);
+
+        var childItems = activeItems.Skip(startIndex).Take(count).ToList();
+
+        foreach (var item in childItems)
+        {
+            var newItem = CreateCopiedItem(item, childSession.Id, currentUser);
+            childSession.Items.Add(newItem);
+        }
+    }
+
+    private void AddItemsForItemsSplit(SaleSession parentSession, SaleSession childSession, int personIndex, List<SplitItemAssignmentDto> assignments, string currentUser)
+    {
+        var itemsForPerson = assignments.Where(a => a.PersonIndex == personIndex).Select(a => a.ItemId).ToHashSet();
+        var parentItems = parentSession.Items.Where(i => !i.IsDeleted && itemsForPerson.Contains(i.Id)).ToList();
+
+        foreach (var item in parentItems)
+        {
+            var newItem = CreateCopiedItem(item, childSession.Id, currentUser);
+            childSession.Items.Add(newItem);
+        }
+    }
+
+    private void AddItemsForPercentageSplit(SaleSession parentSession, SaleSession childSession, decimal percentage, string currentUser)
+    {
+        var activeItems = parentSession.Items.Where(i => !i.IsDeleted).ToList();
+
+        foreach (var item in activeItems)
+        {
+            var newItem = CreateCopiedItem(item, childSession.Id, currentUser);
+            // Adjust quantity based on percentage
+            newItem.Quantity = item.Quantity * (percentage / 100m);
+            newItem.TotalAmount = item.TotalAmount * (percentage / 100m);
+            newItem.TaxAmount = item.TaxAmount * (percentage / 100m);
+            childSession.Items.Add(newItem);
+        }
+    }
+
+    private SaleItem CreateCopiedItem(SaleItem source, Guid newSessionId, string currentUser)
+    {
+        return new SaleItem
+        {
+            Id = Guid.NewGuid(),
+            TenantId = source.TenantId,
+            SaleSessionId = newSessionId,
+            ProductId = source.ProductId,
+            ProductCode = source.ProductCode,
+            ProductName = source.ProductName,
+            UnitPrice = source.UnitPrice,
+            Quantity = source.Quantity,
+            DiscountPercent = source.DiscountPercent,
+            TotalAmount = source.TotalAmount,
+            TaxRate = source.TaxRate,
+            TaxAmount = source.TaxAmount,
+            Notes = source.Notes,
+            IsService = source.IsService,
+            PromotionId = source.PromotionId,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+    }
+
+    private void CalculateSessionTotals(SaleSession session)
+    {
+        var items = session.Items.Where(i => !i.IsDeleted).ToList();
+        session.OriginalTotal = items.Sum(i => i.UnitPrice * i.Quantity);
+        session.TaxAmount = items.Sum(i => i.TaxAmount);
+        session.FinalTotal = items.Sum(i => i.TotalAmount);
+        session.DiscountAmount = session.OriginalTotal - session.FinalTotal;
     }
 }

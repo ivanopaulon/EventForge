@@ -898,6 +898,32 @@ public partial class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<MessageReadReceipt>()
             .HasIndex(mrr => new { mrr.MessageId, mrr.UserId })
             .IsUnique();
+
+        // SaleSession parent-child self-referencing relationship for split/merge
+        _ = modelBuilder.Entity<SaleSession>()
+            .HasOne(s => s.ParentSession)
+            .WithMany(s => s.ChildSessions)
+            .HasForeignKey(s => s.ParentSessionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<SaleSession>()
+            .HasIndex(s => s.ParentSessionId);
+
+        // SaleSession split/merge fields configuration
+        _ = modelBuilder.Entity<SaleSession>()
+            .Property(s => s.SplitType)
+            .HasMaxLength(50)
+            .IsRequired(false);
+
+        _ = modelBuilder.Entity<SaleSession>()
+            .Property(s => s.SplitPercentage)
+            .HasPrecision(5, 2)
+            .IsRequired(false);
+
+        _ = modelBuilder.Entity<SaleSession>()
+            .Property(s => s.MergeReason)
+            .HasMaxLength(500)
+            .IsRequired(false);
     }
 
     private static void ConfigureDailySequence(ModelBuilder modelBuilder)

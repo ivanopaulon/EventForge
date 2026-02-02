@@ -81,4 +81,29 @@ public interface ISalesService
     /// Closes a sale session.
     /// </summary>
     Task<SaleSessionDto?> CloseSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Splits a sale session.
+    /// </summary>
+    Task<SplitResultDto?> SplitSessionAsync(SplitSessionDto splitDto, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Merges multiple sale sessions.
+    /// </summary>
+    Task<SaleSessionDto?> MergeSessionsAsync(MergeSessionsDto mergeDto, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets child sessions of a parent.
+    /// </summary>
+    Task<List<SaleSessionDto>> GetChildSessionsAsync(Guid parentSessionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a session can be split.
+    /// </summary>
+    Task<bool> CanSplitSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if sessions can be merged.
+    /// </summary>
+    Task<bool> CanMergeSessionsAsync(List<Guid> sessionIds, CancellationToken cancellationToken = default);
 }

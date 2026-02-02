@@ -843,4 +843,190 @@ public class SalesController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while voiding the sale session.", ex);
         }
     }
+
+    /// <summary>
+    /// Splits a sale session into multiple child sessions.
+    /// </summary>
+    /// <param name="splitDto">Split session data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Split result with child sessions</returns>
+    /// <response code="200">Session split successfully</response>
+    /// <response code="400">If session cannot be split</response>
+    /// <response code="404">If session not found</response>
+    [HttpPost("sessions/split")]
+    [ProducesResponseType(typeof(SplitResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SplitSession(
+        [FromBody] SplitSessionDto splitDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "Unknown";
+            var result = await _saleSessionService.SplitSessionAsync(splitDto, currentUser, cancellationToken);
+
+            if (result == null)
+                return CreateNotFoundProblem("Sessione non trovata");
+
+            _logger.LogInformation("Split session {SessionId} into {Count} child sessions", splitDto.SessionId, result.ChildSessions.Count);
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot split session {SessionId}: {Message}", splitDto.SessionId, ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while splitting sale session {SessionId}.", splitDto.SessionId);
+            return CreateInternalServerErrorProblem("An error occurred while splitting the sale session.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Merges multiple sale sessions into one.
+    /// </summary>
+    /// <param name="mergeDto">Merge sessions data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Merged session</returns>
+    /// <response code="200">Sessions merged successfully</response>
+    /// <response code="400">If sessions cannot be merged</response>
+    /// <response code="404">If one or more sessions not found</response>
+    [HttpPost("sessions/merge")]
+    [ProducesResponseType(typeof(SaleSessionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> MergeSessions(
+        [FromBody] MergeSessionsDto mergeDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "Unknown";
+            var result = await _saleSessionService.MergeSessionsAsync(mergeDto, currentUser, cancellationToken);
+
+            if (result == null)
+                return CreateNotFoundProblem("Una o più sessioni non trovate");
+
+            _logger.LogInformation("Merged {Count} sessions into session {SessionId}", mergeDto.SessionIds.Count, result.Id);
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot merge sessions: {Message}", ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while merging sale sessions.");
+            return CreateInternalServerErrorProblem("An error occurred while merging the sale sessions.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets all child sessions of a parent session.
+    /// </summary>
+    /// <param name="parentSessionId">Parent session ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of child sessions</returns>
+    /// <response code="200">Returns the child sessions</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("sessions/{parentSessionId:guid}/children")]
+    [ProducesResponseType(typeof(List<SaleSessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetChildSessions(
+        Guid parentSessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var children = await _saleSessionService.GetChildSessionsAsync(parentSessionId, cancellationToken);
+            return Ok(children);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving child sessions for {ParentSessionId}.", parentSessionId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving child sessions.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Checks if a session can be split.
+    /// </summary>
+    /// <param name="sessionId">Session ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Object indicating if session can be split</returns>
+    /// <response code="200">Returns the result</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("sessions/{sessionId:guid}/can-split")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CanSplitSession(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var canSplit = await _saleSessionService.CanSplitSessionAsync(sessionId, cancellationToken);
+            return Ok(new { canSplit });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while checking if session {SessionId} can be split.", sessionId);
+            return CreateInternalServerErrorProblem("An error occurred while checking split capability.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Checks if sessions can be merged.
+    /// </summary>
+    /// <param name="sessionIds">List of session IDs to check</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Object indicating if sessions can be merged</returns>
+    /// <response code="200">Returns the result</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("sessions/can-merge")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CanMergeSessions(
+        [FromQuery] List<Guid> sessionIds,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var canMerge = await _saleSessionService.CanMergeSessionsAsync(sessionIds, cancellationToken);
+            return Ok(new { canMerge });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while checking if sessions can be merged.");
+            return CreateInternalServerErrorProblem("An error occurred while checking merge capability.", ex);
+        }
+    }
 }

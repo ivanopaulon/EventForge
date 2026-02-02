@@ -218,4 +218,75 @@ public class SalesService : ISalesService
             return null;
         }
     }
+
+    public async Task<SplitResultDto?> SplitSessionAsync(SplitSessionDto splitDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<SplitSessionDto, SplitResultDto>($"{BaseUrl}/split", splitDto, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error splitting session {SessionId}", splitDto.SessionId);
+            return null;
+        }
+    }
+
+    public async Task<SaleSessionDto?> MergeSessionsAsync(MergeSessionsDto mergeDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<MergeSessionsDto, SaleSessionDto>($"{BaseUrl}/merge", mergeDto, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error merging sessions");
+            return null;
+        }
+    }
+
+    public async Task<List<SaleSessionDto>> GetChildSessionsAsync(Guid parentSessionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<List<SaleSessionDto>>(
+                $"{BaseUrl}/{parentSessionId}/children", cancellationToken) ?? new();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving child sessions for {ParentSessionId}", parentSessionId);
+            return new();
+        }
+    }
+
+    public async Task<bool> CanSplitSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClientService.GetAsync<Dictionary<string, bool>>(
+                $"{BaseUrl}/{sessionId}/can-split", cancellationToken);
+            return response?.TryGetValue("canSplit", out var canSplit) == true && canSplit;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if session {SessionId} can be split", sessionId);
+            return false;
+        }
+    }
+
+    public async Task<bool> CanMergeSessionsAsync(List<Guid> sessionIds, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = string.Join("&", sessionIds.Select(id => $"sessionIds={id}"));
+            var response = await _httpClientService.GetAsync<Dictionary<string, bool>>(
+                $"{BaseUrl}/can-merge?{query}", cancellationToken);
+            return response?.TryGetValue("canMerge", out var canMerge) == true && canMerge;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if sessions can be merged");
+            return false;
+        }
+    }
 }
