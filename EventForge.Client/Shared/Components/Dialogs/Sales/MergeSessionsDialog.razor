@@ -38,7 +38,7 @@
                                     <strong>@TranslationService.GetTranslation("sales.sessionNumber", "Sessione") #@session.Id.ToString().Substring(0, 8)</strong>
                                 </MudText>
                                 <MudText Typo="Typo.body2">
-                                    @TranslationService.GetTranslation("sales.table", "Tavolo"): @(session.TableId.HasValue ? $"Table {session.TableId}" : TranslationService.GetTranslation("common.na", "N/A"))
+                                    @TranslationService.GetTranslation("sales.table", "Tavolo"): @(session.TableId.HasValue ? TranslationService.GetTranslation("sales.tableN", "Tavolo {0}", session.TableId.Value) : TranslationService.GetTranslation("common.na", "N/A"))
                                 </MudText>
                                 <MudText Typo="Typo.body2">
                                     @TranslationService.GetTranslation("sales.items", "Articoli"): @session.Items.Count - @TranslationService.GetTranslation("sales.total", "Totale"): <strong>@session.FinalTotal.ToString("C2")</strong>

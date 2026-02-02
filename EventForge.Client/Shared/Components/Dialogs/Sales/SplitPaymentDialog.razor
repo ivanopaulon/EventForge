@@ -186,6 +186,7 @@
     private SaleSessionDto _session = null!;
     private int _activeTabIndex = 0;
     private int _numberOfPeople = 2;
+    private int _previousNumberOfPeople = 2;
     private Dictionary<Guid, int> _itemAssignments = new();
     private List<decimal> _percentages = new();
     
@@ -194,6 +195,7 @@
         _session = Session;
         InitializeItemAssignments();
         InitializePercentages();
+        _previousNumberOfPeople = _numberOfPeople;
     }
     
     private void InitializeItemAssignments()
@@ -207,19 +209,28 @@
     
     private void InitializePercentages()
     {
-        _percentages = Enumerable.Repeat(100m / _numberOfPeople, _numberOfPeople).ToList();
+        _percentages.Clear();
+        if (_numberOfPeople < 2) return;
+        
+        // Calculate base percentage and remainder to ensure sum is exactly 100
+        var basePercentage = Math.Floor(100m / _numberOfPeople);
+        var remainder = 100m - (basePercentage * _numberOfPeople);
+        
+        for (int i = 0; i < _numberOfPeople; i++)
+        {
+            // Distribute remainder to first few people
+            _percentages.Add(i < remainder ? basePercentage + 1 : basePercentage);
+        }
     }
     
     protected override void OnAfterRender(bool firstRender)
     {
-        if (!firstRender)
+        if (!firstRender && _numberOfPeople != _previousNumberOfPeople)
         {
             // Re-initialize when number of people changes
-            if (_percentages.Count != _numberOfPeople)
-            {
-                InitializePercentages();
-                StateHasChanged();
-            }
+            _previousNumberOfPeople = _numberOfPeople;
+            InitializePercentages();
+            StateHasChanged();
         }
     }
     

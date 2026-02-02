@@ -875,6 +875,9 @@
         var allSessions = await SalesService.GetActiveSessionsAsync();
         if (allSessions != null)
         {
+            // Filter to only show parent sessions (not child sessions from splits)
+            // Child sessions (with ParentSessionId) are sub-sessions from a split operation
+            // and should not be merged with other sessions to maintain split integrity
             _openSessions = allSessions
                 .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
                 .ToList();
