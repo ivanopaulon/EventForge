@@ -1,0 +1,42 @@
+@using EventForge.DTOs.Sales
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Note" Class="mr-2" />
+            Aggiungi Nota Vendita
+        </MudText>
+    </TitleContent>
+    
+    <DialogContent>
+        <MudTextField @bind-Value="_note"
+                      Label="Nota"
+                      Variant="Variant.Outlined"
+                      Lines="4"
+                      MaxLength="500"
+                      Counter="500"
+                      HelperText="Inserisci una nota per questa vendita (max 500 caratteri)" />
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Info" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit"
+                   Disabled="@string.IsNullOrWhiteSpace(_note)">
+            Salva
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? SessionId { get; set; }
+    
+    private string _note = string.Empty;
+    
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_note));
+    private void Cancel() => MudDialog.Cancel();
+}

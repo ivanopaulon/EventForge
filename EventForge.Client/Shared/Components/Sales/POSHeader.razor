@@ -7,17 +7,19 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
-<MudPaper Elevation="2" Class="pa-4 mb-4">
-    <MudGrid Spacing="3">
-        <!-- Operator Selection -->
+<MudPaper Elevation="2" Class="pa-3 mb-3">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        
+        <!-- Operatore (col 3/12) -->
         <MudItem xs="12" sm="6" md="3">
             <MudSelect T="Guid?"
                        Value="SelectedOperatorId"
                        ValueChanged="@OnOperatorChanged"
                        Label="@TranslationService.GetTranslation("sales.operator", "Operatore")"
                        Variant="Variant.Outlined"
+                       Dense="true"
                        Required="true"
-                       Disabled="@(IsSessionActive || AvailableOperators == null || AvailableOperators.Count == 0)"
+                       Disabled="@IsSessionActive"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.Person">
                 @if (AvailableOperators != null)
@@ -28,23 +30,18 @@
                     }
                 }
             </MudSelect>
-            @if (AvailableOperators == null || AvailableOperators.Count == 0)
-            {
-                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
-                    @TranslationService.GetTranslation("sales.noOperatorsAvailableAlert", "Nessun operatore disponibile")
-                </MudAlert>
-            }
         </MudItem>
 
-        <!-- POS Selection -->
-        <MudItem xs="12" sm="6" md="3">
+        <!-- POS (col 2/12) -->
+        <MudItem xs="12" sm="6" md="2">
             <MudSelect T="Guid?"
                        Value="SelectedPosId"
                        ValueChanged="@OnPosChanged"
-                       Label="@TranslationService.GetTranslation("sales.pos", "Cassa/POS")"
+                       Label="@TranslationService.GetTranslation("sales.pos", "Cassa")"
                        Variant="Variant.Outlined"
+                       Dense="true"
                        Required="true"
-                       Disabled="@(IsSessionActive || !SelectedOperatorId.HasValue || AvailablePos == null || AvailablePos.Count == 0)"
+                       Disabled="@(IsSessionActive || !SelectedOperatorId.HasValue)"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.PointOfSale">
                 @if (AvailablePos != null)
@@ -55,22 +52,10 @@
                     }
                 }
             </MudSelect>
-            @if (!SelectedOperatorId.HasValue)
-            {
-                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
-                    @TranslationService.GetTranslation("sales.selectOperatorFirst", "Seleziona prima un operatore")
-                </MudAlert>
-            }
-            else if (AvailablePos == null || AvailablePos.Count == 0)
-            {
-                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
-                    @TranslationService.GetTranslation("sales.noPosAvailableAlert", "Nessun POS attivo disponibile")
-                </MudAlert>
-            }
         </MudItem>
 
-        <!-- Customer Selection -->
-        <MudItem xs="12" sm="6" md="4">
+        <!-- Cliente - UnifiedBusinessPartySelector (col 4/12) -->
+        <MudItem xs="12" md="4">
             <UnifiedBusinessPartySelector 
                 SelectedBusinessParty="SelectedCustomer"
                 SelectedBusinessPartyChanged="@OnCustomerChanged"
@@ -86,55 +71,53 @@
                 Dense="true" />
         </MudItem>
 
-        <!-- Date/Time + Session -->
-        <MudItem xs="12" sm="6" md="4">
-            <div class="d-flex flex-column" style="gap: 8px;">
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Class="mr-1" />
-                    @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
-                </MudText>
-                <div class="d-flex align-center" style="gap: 8px;">
-                    @if (SessionNumber != null)
-                    {
-                        <MudChip T="string" 
-                                 Size="Size.Small" 
-                                 Color="Color.Primary" 
-                                 Icon="@Icons.Material.Filled.Receipt">
-                            @TranslationService.GetTranslation("sales.session", "Sessione") #@SessionNumber.ToString().Substring(0, 8)
-                        </MudChip>
-                    }
-                    @if (IsUpdatingItems)
-                    {
-                        <MudTooltip Text="@LoadingTooltipText">
-                            <MudProgressCircular Size="Size.Small" 
-                                               Color="@LoadingSpinnerColor" 
-                                               Indeterminate="true" />
-                        </MudTooltip>
-                    }
-                </div>
-            </div>
+        <!-- Session Info + Actions (col 3/12) -->
+        <MudItem xs="12" md="3">
+            <MudStack Row="true" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Spacing="1">
+                
+                <!-- Session Number -->
+                @if (IsSessionActive && SessionNumber.HasValue)
+                {
+                    <MudChip T="string" Size="Size.Small" 
+                             Color="Color.Info" 
+                             Icon="@Icons.Material.Outlined.Receipt"
+                             Variant="Variant.Text">
+                        #@SessionNumber.Value.ToString().Substring(0, 8)
+                    </MudChip>
+                }
+                
+                <!-- Loading Spinner -->
+                @if (IsUpdatingItems)
+                {
+                    <MudTooltip Text="@LoadingTooltipText">
+                        <MudProgressCircular Size="Size.Small" 
+                                             Color="@LoadingSpinnerColor" 
+                                             Indeterminate="true" />
+                    </MudTooltip>
+                }
+                
+                <!-- Park Button -->
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.parkSession", "Parcheggia (F3)")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Pause"
+                                   Color="Color.Warning"
+                                   Size="Size.Small"
+                                   OnClick="@OnParkClick"
+                                   Disabled="@(!IsSessionActive)" />
+                </MudTooltip>
+                
+                <!-- Cancel Button -->
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.cancelSession", "Annulla")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="@OnCancelClick"
+                                   Disabled="@(!IsSessionActive)" />
+                </MudTooltip>
+                
+            </MudStack>
         </MudItem>
+        
     </MudGrid>
-
-    <!-- Action Buttons -->
-    @if (IsSessionActive)
-    {
-        <MudDivider Class="my-3" />
-        <div class="d-flex justify-end gap-2">
-            <MudButton StartIcon="@Icons.Material.Filled.Pause"
-                       Color="Color.Warning"
-                       Variant="Variant.Outlined"
-                       OnClick="OnParkClick">
-                @TranslationService.GetTranslation("sales.park", "Parcheggia")
-            </MudButton>
-            <MudButton StartIcon="@Icons.Material.Filled.Cancel"
-                       Color="Color.Error"
-                       Variant="Variant.Outlined"
-                       OnClick="OnCancelClick">
-                @TranslationService.GetTranslation("sales.cancel", "Annulla")
-            </MudButton>
-        </div>
-    }
 </MudPaper>
 
 @code {

@@ -1,0 +1,59 @@
+@using EventForge.DTOs.Sales
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Discount" Class="mr-2" />
+            Sconto Globale Carrello
+        </MudText>
+    </TitleContent>
+    
+    <DialogContent>
+        <MudStack Spacing="3">
+            
+            <MudAlert Severity="Severity.Info" Dense="true">
+                Totale corrente: <strong>€@CurrentTotal.ToString("F2")</strong>
+            </MudAlert>
+            
+            <MudNumericField @bind-Value="_discountPercent"
+                             Label="Percentuale Sconto"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Max="100"
+                             Step="5"
+                             Suffix="%"
+                             HelperText="Percentuale di sconto da applicare" />
+            
+            @if (_discountPercent > 0)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">
+                    Sconto: <strong>-€@((CurrentTotal * _discountPercent / 100).ToString("F2"))</strong><br />
+                    Nuovo totale: <strong>€@((CurrentTotal * (100 - _discountPercent) / 100).ToString("F2"))</strong>
+                </MudAlert>
+            }
+            
+        </MudStack>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Warning" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit"
+                   Disabled="@(_discountPercent <= 0)">
+            Applica
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public decimal CurrentTotal { get; set; }
+    
+    private decimal _discountPercent = 0;
+    
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_discountPercent));
+    private void Cancel() => MudDialog.Cancel();
+}
