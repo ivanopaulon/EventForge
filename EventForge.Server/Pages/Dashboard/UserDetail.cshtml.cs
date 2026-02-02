@@ -17,7 +17,7 @@ public class UserDetailModel : PageModel
     private readonly ILogger<UserDetailModel> _logger;
 
     [BindProperty]
-    public UserFormModel User { get; set; } = new();
+    public UserFormModel UserForm { get; set; } = new();
 
     [BindProperty]
     public List<Guid> SelectedRoles { get; set; } = new();
@@ -51,7 +51,7 @@ public class UserDetailModel : PageModel
             if (user == null)
                 return NotFound();
 
-            User = new UserFormModel
+            UserForm = new UserFormModel
             {
                 Id = user.Id,
                 Username = user.Username,
@@ -71,7 +71,7 @@ public class UserDetailModel : PageModel
         }
         else
         {
-            User = new UserFormModel
+            UserForm = new UserFormModel
             {
                 IsActive = true,
                 MustChangePassword = true
@@ -93,7 +93,7 @@ public class UserDetailModel : PageModel
 
         try
         {
-            if (User.Id == Guid.Empty)
+            if (UserForm.Id == Guid.Empty)
             {
                 return await CreateUserAsync();
             }
@@ -112,15 +112,15 @@ public class UserDetailModel : PageModel
 
     private async Task<IActionResult> CreateUserAsync()
     {
-        if (await _context.Users.AnyAsync(u => u.Username.ToLower() == User.Username.ToLower()))
+        if (await _context.Users.AnyAsync(u => u.Username.ToLower() == UserForm.Username.ToLower()))
         {
-            ErrorMessage = $"Esiste già un utente con username '{User.Username}'";
+            ErrorMessage = $"Esiste già un utente con username '{UserForm.Username}'";
             return Page();
         }
 
-        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == User.Email.ToLower()))
+        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == UserForm.Email.ToLower()))
         {
-            ErrorMessage = $"Esiste già un utente con email '{User.Email}'";
+            ErrorMessage = $"Esiste già un utente con email '{UserForm.Email}'";
             return Page();
         }
 
@@ -133,15 +133,15 @@ public class UserDetailModel : PageModel
             var user = new User
             {
                 Id = Guid.NewGuid(),
-                TenantId = User.TenantId,
-                Username = User.Username,
-                Email = User.Email,
-                FirstName = User.FirstName,
-                LastName = User.LastName,
+                TenantId = UserForm.TenantId,
+                Username = UserForm.Username,
+                Email = UserForm.Email,
+                FirstName = UserForm.FirstName,
+                LastName = UserForm.LastName,
                 PasswordHash = hash,
                 PasswordSalt = salt,
-                MustChangePassword = User.MustChangePassword,
-                IsActive = User.IsActive,
+                MustChangePassword = UserForm.MustChangePassword,
+                IsActive = UserForm.IsActive,
                 CreatedBy = this.User.Identity?.Name ?? "system",
                 CreatedAt = DateTime.UtcNow,
                 PasswordChangedAt = DateTime.UtcNow
@@ -189,17 +189,17 @@ public class UserDetailModel : PageModel
     {
         var user = await _context.Users
             .Include(u => u.UserRoles)
-            .FirstOrDefaultAsync(u => u.Id == User.Id);
+            .FirstOrDefaultAsync(u => u.Id == UserForm.Id);
 
         if (user == null)
             return NotFound();
 
-        user.Email = User.Email;
-        user.FirstName = User.FirstName;
-        user.LastName = User.LastName;
-        user.TenantId = User.TenantId;
-        user.IsActive = User.IsActive;
-        user.MustChangePassword = User.MustChangePassword;
+        user.Email = UserForm.Email;
+        user.FirstName = UserForm.FirstName;
+        user.LastName = UserForm.LastName;
+        user.TenantId = UserForm.TenantId;
+        user.IsActive = UserForm.IsActive;
+        user.MustChangePassword = UserForm.MustChangePassword;
         user.ModifiedAt = DateTime.UtcNow;
         user.ModifiedBy = this.User.Identity?.Name ?? "system";
 

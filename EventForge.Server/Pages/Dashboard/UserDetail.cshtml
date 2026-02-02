@@ -60,8 +60,8 @@
                     <h4>
                         @if (Model.User.LastLoginAt.HasValue)
                         {
-                            <span>@Model.User.LastLoginAt.Value.ToString("dd/MM/yyyy")</span><br/>
-                            <small class="text-muted">@Model.User.LastLoginAt.Value.ToString("HH:mm")</small>
+                            <span>@Model.UserForm.LastLoginAt.Value.ToString("dd/MM/yyyy")</span><br/>
+                            <small class="text-muted">@Model.UserForm.LastLoginAt.Value.ToString("HH:mm")</small>
                         }
                         else
                         {
@@ -92,8 +92,8 @@
             <div class="card">
                 <div class="card-body text-center">
                     <h6 class="text-muted">Creato</h6>
-                    <h4>@Model.User.CreatedAt.ToString("dd/MM/yyyy")</h4>
-                    <small class="text-muted">@Model.User.CreatedAt.ToString("HH:mm")</small>
+                    <h4>@Model.UserForm.CreatedAt.ToString("dd/MM/yyyy")</h4>
+                    <small class="text-muted">@Model.UserForm.CreatedAt.ToString("HH:mm")</small>
                 </div>
             </div>
         </div>
@@ -101,7 +101,7 @@
 }
 
 <form method="post">
-    <input type="hidden" asp-for="User.Id" />
+    <input type="hidden" asp-for="UserForm.Id" />
     
     <div class="row">
         <!-- Left Column -->
@@ -114,16 +114,16 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label asp-for="User.Username" class="form-label">Username *</label>
+                            <label asp-for="UserForm.Username" class="form-label">Username *</label>
                             @if (Model.IsEditMode)
                             {
-                                <input asp-for="User.Username" class="form-control" 
+                                <input asp-for="UserForm.Username" class="form-control" 
                                        readonly
                                        required />
                             }
                             else
                             {
-                                <input asp-for="User.Username" class="form-control" 
+                                <input asp-for="UserForm.Username" class="form-control" 
                                        placeholder="es. mario.rossi"
                                        required />
                             }
@@ -135,8 +135,8 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <label asp-for="User.Email" class="form-label">Email *</label>
-                            <input asp-for="User.Email" type="email" class="form-control" 
+                            <label asp-for="UserForm.Email" class="form-label">Email *</label>
+                            <input asp-for="UserForm.Email" type="email" class="form-control" 
                                    placeholder="mario.rossi@esempio.com"
                                    required 
                                    id="userEmail" />
@@ -144,24 +144,24 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label asp-for="User.FirstName" class="form-label">Nome *</label>
-                            <input asp-for="User.FirstName" class="form-control" 
+                            <label asp-for="UserForm.FirstName" class="form-label">Nome *</label>
+                            <input asp-for="UserForm.FirstName" class="form-control" 
                                    placeholder="Mario"
                                    required />
                             <span asp-validation-for="User.FirstName" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-6">
-                            <label asp-for="User.LastName" class="form-label">Cognome *</label>
-                            <input asp-for="User.LastName" class="form-control" 
+                            <label asp-for="UserForm.LastName" class="form-label">Cognome *</label>
+                            <input asp-for="UserForm.LastName" class="form-control" 
                                    placeholder="Rossi"
                                    required />
                             <span asp-validation-for="User.LastName" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-12">
-                            <label asp-for="User.TenantId" class="form-label">Tenant *</label>
-                            <select asp-for="User.TenantId" class="form-select" required>
+                            <label asp-for="UserForm.TenantId" class="form-label">Tenant *</label>
+                            <select asp-for="UserForm.TenantId" class="form-select" required>
                                 <option value="">-- Seleziona Tenant --</option>
                                 @foreach (var tenant in Model.AvailableTenants)
                                 {
@@ -240,7 +240,7 @@
                 </div>
                 <div class="card-body">
                     <div class="form-check form-switch mb-3">
-                        <input asp-for="User.IsActive" class="form-check-input" type="checkbox" 
+                        <input asp-for="UserForm.IsActive" class="form-check-input" type="checkbox" 
                                id="userActive" />
                         <label class="form-check-label" for="userActive">
                             <strong>Utente Attivo</strong>
@@ -258,7 +258,7 @@
                     </div>
 
                     <div class="form-check form-switch">
-                        <input asp-for="User.MustChangePassword" class="form-check-input" type="checkbox" 
+                        <input asp-for="UserForm.MustChangePassword" class="form-check-input" type="checkbox" 
                                id="mustChangePassword" />
                         <label class="form-check-label" for="mustChangePassword">
                             <strong>Deve Cambiare Password</strong>
@@ -280,21 +280,21 @@
                     <div class="card-body">
                         <dl class="row mb-0">
                             <dt class="col-sm-4">ID:</dt>
-                            <dd class="col-sm-8"><code class="small">@Model.User.Id</code></dd>
+                            <dd class="col-sm-8"><code class="small">@Model.UserForm.Id</code></dd>
 
                             <dt class="col-sm-4">Creato:</dt>
-                            <dd class="col-sm-8">@Model.User.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+                            <dd class="col-sm-8">@Model.UserForm.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
 
                             @if (Model.User.ModifiedAt.HasValue)
                             {
                                 <dt class="col-sm-4">Modificato:</dt>
-                                <dd class="col-sm-8">@Model.User.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")</dd>
+                                <dd class="col-sm-8">@Model.UserForm.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")</dd>
                             }
                             
                             @if (Model.User.PasswordChangedAt.HasValue)
                             {
                                 <dt class="col-sm-4">PWD Cambiata:</dt>
-                                <dd class="col-sm-8">@Model.User.PasswordChangedAt.Value.ToString("dd/MM/yyyy HH:mm")</dd>
+                                <dd class="col-sm-8">@Model.UserForm.PasswordChangedAt.Value.ToString("dd/MM/yyyy HH:mm")</dd>
                             }
                         </dl>
                     </div>
@@ -330,12 +330,12 @@
                 
                 // Only auto-fill if email is empty or was auto-generated
                 if (!emailField.value || emailField.dataset.autoGenerated === 'true') {
-                    // Simple heuristic: if username contains @ it's likely an email
-                    if (username.includes('@')) {
+                    // Simple heuristic: if username contains @@ it's likely an email
+                    if (username.includes('@@')) {
                         emailField.value = username;
                     } else {
-                        // Otherwise, suggest username@domain format
-                        emailField.value = username ? username + '@esempio.com' : '';
+                        // Otherwise, suggest username@@domain format
+                        emailField.value = username ? username + '@@esempio.com' : '';
                     }
                     emailField.dataset.autoGenerated = 'true';
                 }
