@@ -134,6 +134,7 @@ builder.Services.AddScoped<EventForge.Server.Services.Setup.ISetupWizardService,
 
 // Register Configuration services
 builder.Services.AddScoped<EventForge.Server.Services.Configuration.IPortConfigurationService, EventForge.Server.Services.Configuration.PortConfigurationService>();
+builder.Services.AddScoped<EventForge.Server.Services.Configuration.IBrandingService, EventForge.Server.Services.Configuration.BrandingService>();
 
 // Register Dashboard services
 builder.Services.AddScoped<EventForge.Server.Services.Dashboard.IServerStatusService, EventForge.Server.Services.Dashboard.ServerStatusService>();
