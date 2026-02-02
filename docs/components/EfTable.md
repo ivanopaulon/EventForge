@@ -758,3 +758,118 @@ When enhancing EFTable:
 ## License
 
 Part of EventForge project. See root LICENSE file.
+
+## Row Click Navigation
+
+EFTable supports row click navigation to detail pages with support for Ctrl+Click to open in new tabs:
+
+### Usage Example
+
+```razor
+<EFTable TItem="ProductDto"
+         Items="_products"
+         OnRowClick="@HandleRowClick"
+         ...>
+    <!-- Table configuration -->
+</EFTable>
+
+@code {
+    private void HandleRowClick(TableRowClickEventArgs<ProductDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/products/{args.Item.Id}", "_blank");
+            return;
+        }
+        
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/products/{args.Item.Id}");
+    }
+}
+```
+
+### CSS Styling
+
+The table rows automatically get cursor pointer styling via the `eftable-wrapper` CSS class:
+
+```css
+/* Cursor pointer on clickable rows */
+.eftable-wrapper .mud-table-row {
+    cursor: pointer;
+}
+
+/* Enhanced hover feedback */
+.eftable-wrapper .mud-table-row:hover {
+    background-color: var(--mud-palette-action-default-hover) !important;
+}
+```
+
+## Configurable Multi-Field Search
+
+EFTable supports configurable searchable columns, allowing users to control which fields are included in text searches.
+
+### Model Properties
+
+```csharp
+public class EFTableColumnConfiguration
+{
+    public string PropertyName { get; set; }
+    public string DisplayName { get; set; }
+    public bool IsVisible { get; set; }
+    public bool IsSearchable { get; set; } = true;  // NEW: Controls search behavior
+    public int Order { get; set; }
+}
+
+public class EFTablePreferences
+{
+    public Dictionary<string, int> ColumnOrders { get; set; }
+    public Dictionary<string, bool> ColumnVisibility { get; set; }
+    public Dictionary<string, bool> ColumnSearchability { get; set; }  // NEW: Persisted
+    public List<string> GroupByProperties { get; set; }
+}
+```
+
+### Defining Searchable Columns
+
+```csharp
+private List<EFTableColumnConfiguration> _initialColumns = new()
+{
+    new() { PropertyName = "Name", DisplayName = "Name", IsSearchable = true },
+    new() { PropertyName = "Code", DisplayName = "Code", IsSearchable = true },
+    new() { PropertyName = "Price", DisplayName = "Price", IsSearchable = false },  // Not searchable
+    new() { PropertyName = "Stock", DisplayName = "Stock", IsSearchable = false }
+};
+```
+
+### Using Search Extension Method
+
+Use the `MatchesSearchInColumns` extension method for clean, declarative filtering:
+
+```csharp
+using EventForge.Client.Extensions;
+
+private IEnumerable<ProductDto> _filteredProducts => 
+    _products.Where(p => 
+        p.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)
+        ) 
+        && OtherFilters(p)  // Additional filters
+    );
+```
+
+### Column Configuration Dialog
+
+Users can configure searchable columns through the column configuration dialog:
+- Two checkboxes per column: "Visible" (primary) and "Searchable" (secondary)
+- Searchable checkbox is disabled when column is not visible
+- Configuration is automatically persisted to user preferences
+
+### Benefits
+
+1. **User Control**: Users decide which fields to search
+2. **Performance**: Avoids searching irrelevant columns (e.g., IDs, dates, numeric values)
+3. **Flexibility**: Per-table configuration persisted in preferences
+4. **Clean Code**: Extension method keeps filter logic readable
+

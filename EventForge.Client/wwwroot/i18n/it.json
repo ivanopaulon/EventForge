@@ -1995,6 +1995,9 @@
     "warnings24h": "Avvisi (24h)"
   },
   "table": {
+    "columnSearchable": "Ricercabile",
+    "columnSearchableTooltip": "Questa colonna sarà inclusa nella ricerca testuale",
+    "columnVisible": "Visibile",
     "filterBy": "Filtra per {0}",
     "loading": "Caricamento in corso...",
     "noData": "Nessun dato disponibile",

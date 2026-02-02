@@ -775,3 +775,99 @@ After implementing this pattern:
 **Last Updated:** 2026-02-02  
 **Author:** EventForge Team  
 **Status:** ✅ Active Standard
+
+## Row Click Navigation Pattern
+
+All management pages should implement row click navigation for quick access to detail pages.
+
+### Implementation
+
+```csharp
+// 1. Inject JSRuntime (if not already injected)
+@inject IJSRuntime JSRuntime
+
+// 2. Add OnRowClick parameter to EFTable
+<EFTable ...
+         OnRowClick="@HandleRowClick">
+</EFTable>
+
+// 3. Implement handler method
+private void HandleRowClick(TableRowClickEventArgs<EntityDto> args)
+{
+    // Ctrl+Click or Cmd+Click opens in new tab
+    if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+    {
+        JSRuntime.InvokeVoidAsync("open", $"/path/to/entity/{args.Item.Id}", "_blank");
+        return;
+    }
+    
+    // Normal click navigates in same tab
+    NavigationManager.NavigateTo($"/path/to/entity/{args.Item.Id}");
+}
+```
+
+### Requirements
+
+- ✅ Must support Ctrl+Click to open in new tab
+- ✅ Must not interfere with checkbox selection
+- ✅ Must not interfere with action buttons in row
+- ✅ Cursor should change to pointer on hover (handled by CSS)
+
+## Configurable Search Pattern
+
+Implement searchable column configuration for better UX and performance.
+
+### Step 1: Add using statement
+
+```csharp
+@using EventForge.Client.Extensions
+```
+
+### Step 2: Define searchable columns
+
+```csharp
+private List<EFTableColumnConfiguration> _initialColumns = new()
+{
+    new() { PropertyName = "Name", DisplayName = "Name", IsVisible = true, Order = 0, IsSearchable = true },
+    new() { PropertyName = "Code", DisplayName = "Code", IsVisible = true, Order = 1, IsSearchable = true },
+    new() { PropertyName = "Price", DisplayName = "Price", IsVisible = true, Order = 2, IsSearchable = false },
+    new() { PropertyName = "Stock", DisplayName = "Stock", IsVisible = true, Order = 3, IsSearchable = false }
+};
+```
+
+### Step 3: Implement filter using extension method
+
+```csharp
+private IEnumerable<EntityDto> _filteredItems => 
+    _allItems.Where(item => FilterItem(item));
+
+private bool FilterItem(EntityDto item)
+{
+    // Configurable multi-column search
+    if (!item.MatchesSearchInColumns(
+        _searchTerm,
+        _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+        return false;
+    
+    // Additional filters...
+    if (_statusFilter.HasValue && item.Status != _statusFilter)
+        return false;
+    
+    return true;
+}
+```
+
+### Benefits
+
+1. **User control**: Users can toggle searchability per column via configuration dialog
+2. **Performance**: Avoids searching non-text fields (dates, numbers, IDs)
+3. **Persistence**: Configuration saved in user preferences
+4. **Clean code**: Extension method keeps filter logic readable
+
+### Guidelines
+
+- Mark **text fields** as searchable: Name, Code, Description, Email, Address
+- Mark **non-text fields** as not searchable: Dates, Numbers, Booleans, IDs
+- Mark **reference fields** as not searchable: Foreign keys, enums (unless display text)
+- Consider **performance**: Don't search large text fields unnecessarily
+
