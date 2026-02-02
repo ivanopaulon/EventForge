@@ -3,6 +3,8 @@
 @using EventForge.DTOs.Store
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Extensions
+@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
@@ -12,6 +14,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<OperatorGroupManagement> Logger
 @inject EventForge.Client.Services.Store.IStoreUserGroupService StoreUserGroupService
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingData"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -19,13 +22,12 @@
 @if (!_isLoading)
 {
     <div class="product-page-root">
-        <div class="product-top">
-            <MudPaper Elevation="2" Class="pa-4 mb-4">
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("store.operatorGroupManagement", "Gestione Gruppi Operatori")
-                </MudText>
-            </MudPaper>
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="StoreUserGroupDto"
+                     Items="_items"
+                     Filters="_quickFilters"
+                     OnFilterSelected="@HandleQuickFilter"
+                     ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -34,11 +36,16 @@
                      MultiSelection="true"
                      SelectedItems="_selectedItems"
                      SelectedItemsChanged="_selectedItemsChangedCallback"
-                     OnRowClick="@(args => NavigationManager.NavigateTo($"/store/operator-groups/{args.Item.Id}"))"
+                     OnRowClick="@HandleRowClick"
                      IsLoading="_isLoadingData"
                      ComponentKey="OperatorGroupManagement"
                      InitialColumnConfigurations="_initialColumns"
-                     AllowDragDropGrouping="true">
+                     AllowDragDropGrouping="true"
+                     ShowExport="true"
+                     ShowExportDialog="true"
+                     ExcelFileName="Gruppi_Operatori"
+                     IsDataFiltered="@HasActiveFilters()"
+                     TotalItemsCount="@_items.Count">
                 <ToolBarContent>
                     <MudText Typo="Typo.h5">
                         @TranslationService.GetTranslation("store.operatorGroupsList", "Gruppi Operatori")
@@ -260,22 +267,45 @@
 
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 2 },
-        new() { PropertyName = "CashierCount", DisplayName = "Operatori", IsVisible = true, Order = 3 },
-        new() { PropertyName = "IsSystemGroup", DisplayName = "Sistema", IsVisible = true, Order = 4 },
-        new() { PropertyName = "IsDefault", DisplayName = "Default", IsVisible = true, Order = 5 }
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "CashierCount", DisplayName = "Operatori", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "IsSystemGroup", DisplayName = "Sistema", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "IsDefault", DisplayName = "Default", IsVisible = true, Order = 5, IsSearchable = false }
     };
+
+    private List<QuickFilter<StoreUserGroupDto>> _quickFilters = new()
+    {
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i gruppi" },
+        new() { Id = "system", Label = "Sistema", Predicate = g => g.IsSystemGroup, Color = Color.Primary, Icon = Icons.Material.Outlined.Security, Description = "Gruppi di sistema" },
+        new() { Id = "custom", Label = "Personalizzati", Predicate = g => !g.IsSystemGroup, Color = Color.Info, Icon = Icons.Material.Outlined.Group, Description = "Gruppi personalizzati" },
+        new() { Id = "recent", Label = "Recenti", Predicate = g => g.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Info, Icon = Icons.Material.Outlined.NewReleases, Description = "Gruppi creati negli ultimi 30 giorni" }
+    };
+
+    private QuickFilter<StoreUserGroupDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<StoreUserGroupDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StoreUserGroupDto>>(this, OnSelectedItemsChanged);
 
-    private IEnumerable<StoreUserGroupDto> _filteredItems =>
-        _items.Where(p =>
-            string.IsNullOrEmpty(_searchTerm) ||
-            p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-            p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-            (p.Description != null && p.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+    private IEnumerable<StoreUserGroupDto> _filteredItems => _items.Where(i => FilterOperatorGroup(i));
+
+    private bool FilterOperatorGroup(StoreUserGroupDto item)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(item))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!item.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        return true;
+    }
 
     private void OnSelectedItemsChanged(HashSet<StoreUserGroupDto> items)
     {
@@ -337,7 +367,24 @@
     private void ClearFilters()
     {
         _searchTerm = string.Empty;
+        _activeQuickFilter = null;
         StateHasChanged();
+    }
+
+    private void HandleQuickFilter(QuickFilter<StoreUserGroupDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    private void HandleRowClick(TableRowClickEventArgs<StoreUserGroupDto> args)
+    {
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/store/operator-groups/{args.Item.Id}", "_blank");
+            return;
+        }
+        NavigationManager.NavigateTo($"/store/operator-groups/{args.Item.Id}");
     }
 
     private async Task OnSearchChanged()
@@ -514,5 +561,11 @@
         {
             await OnInitializedAsync();
         }
+    }
+
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null;
     }
 }
