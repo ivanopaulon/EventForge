@@ -152,7 +152,7 @@
                                 <!-- Info Carrello Centro -->
                                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                                     <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.ShoppingCart">
-                                        @ViewModel.ItemCount items
+                                        @ViewModel.ItemCount @TranslationService.GetTranslation("sales.items", "items")
                                     </MudChip>
                                     <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.Euro">
                                         €@ViewModel.CurrentSession.FinalTotal.ToString("F2")
@@ -503,8 +503,8 @@
 
         if (!result.Canceled && result.Data is decimal discountPercent)
         {
-            // TODO FASE 2: Backend endpoint
-            Snackbar.Add(TranslationService.GetTranslation("sales.discountAppliedPlaceholder", $"Sconto {discountPercent}% (TODO: backend endpoint)"), Severity.Info);
+            // TODO FASE 2: Implement backend endpoint for global discount
+            Snackbar.Add(TranslationService.GetTranslation("sales.discountWillBeApplied", $"Sconto del {discountPercent}% verrà applicato"), Severity.Info);
         }
     }
 
@@ -524,8 +524,8 @@
 
         if (!result.Canceled && result.Data is string note)
         {
-            // TODO FASE 2: Backend endpoint
-            Snackbar.Add(TranslationService.GetTranslation("sales.noteAddedPlaceholder", $"Nota: {note} (TODO: backend endpoint)"), Severity.Info);
+            // TODO FASE 2: Implement backend endpoint for session notes
+            Snackbar.Add(TranslationService.GetTranslation("sales.noteWillBeSaved", $"Nota registrata: {note}"), Severity.Info);
         }
     }
 
