@@ -6,7 +6,7 @@
     <TitleContent>
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Outlined.Discount" Class="mr-2" />
-            Sconto Globale Carrello
+            @TranslationService.GetTranslation("sales.globalDiscountTitle", "Sconto Globale Carrello")
         </MudText>
     </TitleContent>
     
@@ -14,23 +14,23 @@
         <MudStack Spacing="3">
             
             <MudAlert Severity="Severity.Info" Dense="true">
-                Totale corrente: <strong>€@CurrentTotal.ToString("F2")</strong>
+                @TranslationService.GetTranslation("sales.currentTotal", "Totale corrente"): <strong>€@CurrentTotal.ToString("F2")</strong>
             </MudAlert>
             
             <MudNumericField @bind-Value="_discountPercent"
-                             Label="Percentuale Sconto"
+                             Label="@TranslationService.GetTranslation("sales.discountPercent", "Percentuale Sconto")"
                              Variant="Variant.Outlined"
                              Min="0"
                              Max="100"
                              Step="5"
                              Suffix="%"
-                             HelperText="Percentuale di sconto da applicare" />
+                             HelperText="@TranslationService.GetTranslation("sales.discountPercentHelper", "Percentuale di sconto da applicare")" />
             
             @if (_discountPercent > 0)
             {
                 <MudAlert Severity="Severity.Success" Dense="true">
-                    Sconto: <strong>-€@((CurrentTotal * _discountPercent / 100).ToString("F2"))</strong><br />
-                    Nuovo totale: <strong>€@((CurrentTotal * (100 - _discountPercent) / 100).ToString("F2"))</strong>
+                    @TranslationService.GetTranslation("sales.discount", "Sconto"): <strong>-€@((CurrentTotal * _discountPercent / 100).ToString("F2"))</strong><br />
+                    @TranslationService.GetTranslation("sales.newTotal", "Nuovo totale"): <strong>€@((CurrentTotal * (100 - _discountPercent) / 100).ToString("F2"))</strong>
                 </MudAlert>
             }
             
@@ -38,12 +38,12 @@
     </DialogContent>
     
     <DialogActions>
-        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
         <MudButton Color="Color.Warning" 
                    Variant="Variant.Filled" 
                    OnClick="Submit"
                    Disabled="@(_discountPercent <= 0)">
-            Applica
+            @TranslationService.GetTranslation("sales.apply", "Applica")
         </MudButton>
     </DialogActions>
 </MudDialog>

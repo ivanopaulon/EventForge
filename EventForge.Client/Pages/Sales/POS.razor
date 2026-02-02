@@ -62,31 +62,31 @@
                 <MudChip T="string" Size="Size.Small" 
                          Icon="@Icons.Material.Outlined.Payment" 
                          Variant="Variant.Text">
-                    <strong>F2</strong> Paga
+                    <strong>F2</strong> @TranslationService.GetTranslation("sales.pay", "Paga")
                 </MudChip>
                 
                 <MudChip T="string" Size="Size.Small" 
                          Icon="@Icons.Material.Outlined.Pause" 
                          Variant="Variant.Text">
-                    <strong>F3</strong> Parcheggia
+                    <strong>F3</strong> @TranslationService.GetTranslation("sales.park", "Parcheggia")
                 </MudChip>
                 
                 <MudChip T="string" Size="Size.Small" 
                          Icon="@Icons.Material.Outlined.RemoveCircle" 
                          Variant="Variant.Text">
-                    <strong>F4</strong> Rimuovi
+                    <strong>F4</strong> @TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi")
                 </MudChip>
                 
                 <MudChip T="string" Size="Size.Small" 
                          Icon="@Icons.Material.Outlined.Search" 
                          Variant="Variant.Text">
-                    <strong>F8</strong> Scanner
+                    <strong>F8</strong> @TranslationService.GetTranslation("sales.focusScanner", "Scanner")
                 </MudChip>
                 
                 <MudChip T="string" Size="Size.Small" 
                          Icon="@Icons.Material.Outlined.CheckCircle" 
                          Variant="Variant.Text">
-                    <strong>F12</strong> Chiudi
+                    <strong>F12</strong> @TranslationService.GetTranslation("sales.closeSaleShort", "Chiudi")
                 </MudChip>
                 
             </MudStack>
@@ -127,23 +127,23 @@
                                 <!-- Azioni Sinistra -->
                                 <MudStack Row="true" Spacing="1">
                                     
-                                    <MudTooltip Text="Applica sconto globale al carrello">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.applyGlobalDiscount", "Applica sconto globale al carrello")">
                                         <MudButton Variant="Variant.Text"
                                                    Color="Color.Warning"
                                                    StartIcon="@Icons.Material.Outlined.Discount"
                                                    Size="Size.Small"
                                                    OnClick="@ApplyGlobalDiscountAsync">
-                                            Sconto %
+                                            @TranslationService.GetTranslation("sales.discountShort", "Sconto %")
                                         </MudButton>
                                     </MudTooltip>
                                     
-                                    <MudTooltip Text="Aggiungi nota alla vendita">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.addSessionNoteTooltip", "Aggiungi nota alla vendita")">
                                         <MudButton Variant="Variant.Text"
                                                    Color="Color.Info"
                                                    StartIcon="@Icons.Material.Outlined.Note"
                                                    Size="Size.Small"
                                                    OnClick="@AddSessionNoteAsync">
-                                            Note
+                                            @TranslationService.GetTranslation("sales.notes", "Note")
                                         </MudButton>
                                     </MudTooltip>
                                     
@@ -162,17 +162,17 @@
                                 <!-- Azioni Destra -->
                                 <MudStack Row="true" Spacing="1">
                                     
-                                    <MudTooltip Text="Rimuovi ultimo articolo aggiunto (F4)">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.removeLastItemTooltip", "Rimuovi ultimo articolo aggiunto (F4)")">
                                         <MudButton Variant="Variant.Text"
                                                    Color="Color.Error"
                                                    StartIcon="@Icons.Material.Outlined.RemoveCircle"
                                                    Size="Size.Small"
                                                    OnClick="@RemoveLastItemAsync">
-                                            Rimuovi Ultimo
+                                            @TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi Ultimo")
                                         </MudButton>
                                     </MudTooltip>
                                     
-                                    <MudTooltip Text="Svuota carrello">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.clearCartTooltip", "Svuota carrello")">
                                         <MudIconButton Icon="@Icons.Material.Outlined.DeleteSweep"
                                                        Color="Color.Error"
                                                        Size="Size.Small"
@@ -198,7 +198,7 @@
                                   Icon="@Icons.Material.Outlined.Sync"
                                   Elevation="0"
                                   Class="mb-2">
-                            Aggiornamento carrello in corso...
+                            @TranslationService.GetTranslation("sales.updatingCart", "Aggiornamento carrello in corso...")
                         </MudAlert>
                     }
 
@@ -229,11 +229,11 @@
                                      Style="font-size: 4rem; opacity: 0.3; margin-bottom: 16px;" />
                             
                             <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2">
-                                Carrello vuoto
+                                @TranslationService.GetTranslation("sales.emptyCart", "Carrello vuoto")
                             </MudText>
                             
                             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                Scansiona un prodotto o cercalo per nome
+                                @TranslationService.GetTranslation("sales.scanProductHint", "Scansiona un prodotto o cercalo per nome")
                             </MudText>
                             
                         </MudPaper>
@@ -258,11 +258,11 @@
                              Style="font-size: 5rem; opacity: 0.2; margin-bottom: 20px;" />
                     
                     <MudText Typo="Typo.h5" Class="mb-3">
-                        Seleziona Operatore e Cassa
+                        @TranslationService.GetTranslation("sales.selectOperatorAndPos", "Seleziona Operatore e Cassa")
                     </MudText>
                     
                     <MudText Typo="Typo.body1" Color="Color.Secondary">
-                        Seleziona un operatore e un punto cassa per iniziare
+                        @TranslationService.GetTranslation("sales.selectOperatorAndPosHint", "Seleziona un operatore e un punto cassa per iniziare")
                     </MudText>
                     
                 </MudPaper>
@@ -495,7 +495,7 @@
         };
 
         var dialog = await DialogService.ShowAsync<GlobalDiscountDialog>(
-            "Sconto Globale Carrello",
+            TranslationService.GetTranslation("sales.globalDiscountTitle", "Sconto Globale Carrello"),
             parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small });
 
@@ -504,7 +504,7 @@
         if (!result.Canceled && result.Data is decimal discountPercent)
         {
             // TODO FASE 2: Backend endpoint
-            Snackbar.Add($"Sconto {discountPercent}% (TODO: backend endpoint)", Severity.Info);
+            Snackbar.Add(TranslationService.GetTranslation("sales.discountAppliedPlaceholder", $"Sconto {discountPercent}% (TODO: backend endpoint)"), Severity.Info);
         }
     }
 
@@ -516,7 +516,7 @@
         };
 
         var dialog = await DialogService.ShowAsync<SessionNoteDialog>(
-            "Aggiungi Nota Vendita",
+            TranslationService.GetTranslation("sales.addSessionNote", "Aggiungi Nota Vendita"),
             parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small });
 
@@ -525,7 +525,7 @@
         if (!result.Canceled && result.Data is string note)
         {
             // TODO FASE 2: Backend endpoint
-            Snackbar.Add($"Nota: {note} (TODO: backend endpoint)", Severity.Info);
+            Snackbar.Add(TranslationService.GetTranslation("sales.noteAddedPlaceholder", $"Nota: {note} (TODO: backend endpoint)"), Severity.Info);
         }
     }
 
@@ -538,17 +538,17 @@
 
         if (result.Success)
         {
-            Snackbar.Add($"✅ {lastItem.ProductName} rimosso", Severity.Success);
+            Snackbar.Add(TranslationService.GetTranslation("sales.itemRemoved", $"✅ {lastItem.ProductName} rimosso"), Severity.Success);
         }
     }
 
     private async Task ClearCartAsync()
     {
         var confirmed = await DialogService.ShowMessageBox(
-            "Conferma",
-            "Sei sicuro di voler svuotare il carrello?",
-            yesText: "Svuota",
-            cancelText: "Annulla");
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("sales.clearCartConfirm", "Sei sicuro di voler svuotare il carrello?"),
+            yesText: TranslationService.GetTranslation("sales.clearCart", "Svuota"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
 
         if (confirmed == true)
         {
@@ -559,7 +559,7 @@
                 {
                     await ViewModel.RemoveItemAsync(item);
                 }
-                Snackbar.Add("Carrello svuotato", Severity.Success);
+                Snackbar.Add(TranslationService.GetTranslation("sales.cartCleared", "Carrello svuotato"), Severity.Success);
             }
         }
     }

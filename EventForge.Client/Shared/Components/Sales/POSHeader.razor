@@ -78,11 +78,13 @@
                 <!-- Session Number -->
                 @if (IsSessionActive && SessionNumber.HasValue)
                 {
+                    var sessionStr = SessionNumber.Value.ToString();
+                    var displayId = sessionStr.Length >= 8 ? sessionStr.Substring(0, 8) : sessionStr;
                     <MudChip T="string" Size="Size.Small" 
                              Color="Color.Info" 
                              Icon="@Icons.Material.Outlined.Receipt"
                              Variant="Variant.Text">
-                        #@SessionNumber.Value.ToString().Substring(0, 8)
+                        #@displayId
                     </MudChip>
                 }
                 
