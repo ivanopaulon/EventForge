@@ -322,9 +322,34 @@
         await CheckAuthenticationState();
     }
 
-    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        InvokeAsync(StateHasChanged);
+        Logger.LogDebug("Navigation detected: {Uri}", e.Location);
+        
+        // Trigger token refresh on every navigation (sliding expiration)
+        if (await AuthService.IsAuthenticatedAsync())
+        {
+            Logger.LogDebug("User authenticated, triggering sliding expiration refresh on navigation");
+            
+            // Fire and forget - don't wait for refresh to complete
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var refreshed = await AuthService.RefreshTokenAsync();
+                    if (refreshed)
+                    {
+                        Logger.LogDebug("Token refreshed successfully on navigation");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to refresh token on navigation");
+                }
+            });
+        }
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleLogout()

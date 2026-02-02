@@ -4,6 +4,19 @@ namespace EventForge.Client.Services
     /// Global service for maintaining user sessions across all pages by automatically refreshing JWT tokens.
     /// This service runs a background timer that periodically checks and refreshes the authentication token
     /// to prevent session expiration while the user is active.
+    /// 
+    /// SLIDING EXPIRATION STRATEGY:
+    /// This service implements a true sliding expiration pattern where the JWT token is refreshed
+    /// every KEEPALIVE_INTERVAL_MINUTES (3 minutes) as long as the user is authenticated.
+    /// 
+    /// This ensures that:
+    /// - Users NEVER have to re-login during active work sessions
+    /// - The session only expires after TRUE inactivity (no navigation, no API calls for 4 hours)
+    /// - Token expiration acts as a safety buffer, not an active session timeout
+    /// 
+    /// The token is also refreshed on:
+    /// - Every page navigation (see MainLayout.OnLocationChanged)
+    /// - Every API call that uses the authenticated HttpClient
     /// </summary>
     public interface ISessionKeepaliveService : IDisposable
     {
@@ -41,7 +54,6 @@ namespace EventForge.Client.Services
     public class SessionKeepaliveService : ISessionKeepaliveService
     {
         private const int KEEPALIVE_INTERVAL_MINUTES = 3;
-        private const int REFRESH_THRESHOLD_MINUTES = 30; // Refresh when 30 minutes remain instead of 10
         private const int WARNING_THRESHOLD_MINUTES = 15; // Trigger urgent refresh below 15 minutes (UI shows warning only at < 10 min)
         private const int MAX_RETRIES = 3;
         private const int INITIAL_RETRY_DELAY_MS = 1000; // 1 second
@@ -152,39 +164,20 @@ namespace EventForge.Client.Services
                     return;
                 }
 
-                // Check time to expiry
+                // SLIDING EXPIRATION: Always refresh when authenticated, regardless of time remaining
+                // This ensures the session never expires as long as the user is active
                 var timeToExpiry = await _authService.GetTokenTimeToExpiryAsync();
                 if (timeToExpiry.HasValue)
                 {
-                    var minutesRemaining = timeToExpiry.Value.TotalMinutes;
-                    _logger.LogInformation("Token expires in {Minutes:F1} minutes", minutesRemaining);
-
-                    // If token has plenty of time left (more than refresh threshold), skip refresh
-                    if (minutesRemaining > REFRESH_THRESHOLD_MINUTES)
-                    {
-                        _logger.LogDebug("Token still has {Minutes:F1} minutes, skipping refresh (threshold: {Threshold} min)", 
-                            minutesRemaining, REFRESH_THRESHOLD_MINUTES);
-                        _consecutiveFailures = 0; // Reset failure counter on successful check
-                        return;
-                    }
-
-                    // If token is getting low but not critical, attempt silent refresh
-                    if (minutesRemaining > WARNING_THRESHOLD_MINUTES)
-                    {
-                        _logger.LogInformation("Token will expire in {Minutes:F1} minutes, attempting proactive refresh", minutesRemaining);
-                    }
-                    else
-                    {
-                        // Token is in critical range, notify UI
-                        _logger.LogWarning("Token will expire in {Minutes:F1} minutes (critical threshold), attempting urgent refresh", minutesRemaining);
-                        OnSessionWarning?.Invoke((int)Math.Ceiling(minutesRemaining));
-                    }
+                    _logger.LogDebug("Token expires in {Minutes:F1} minutes. Performing sliding expiration refresh.", 
+                        timeToExpiry.Value.TotalMinutes);
+                }
+                else
+                {
+                    _logger.LogDebug("Token expiry unknown. Attempting refresh.");
                 }
 
                 // Attempt refresh with retry logic
-                // Note: AuthService.RefreshTokenAsync has its own internal retry (max 2 attempts) for 5xx errors.
-                // This outer retry handles overall operation failures including network issues, 
-                // ensuring robust session management at the application level.
                 bool success = false;
                 for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
                 {
@@ -193,7 +186,16 @@ namespace EventForge.Client.Services
                         return;
                     }
 
-                    _logger.LogInformation("Token refresh attempt {Attempt}/{MaxRetries}", attempt, MAX_RETRIES);
+                    if (attempt > 1)
+                    {
+                        _logger.LogInformation("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)", 
+                            attempt, MAX_RETRIES);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)", 
+                            attempt, MAX_RETRIES);
+                    }
 
                     try
                     {
@@ -201,14 +203,14 @@ namespace EventForge.Client.Services
 
                         if (success)
                         {
-                            _logger.LogInformation("Token refresh succeeded on attempt {Attempt}", attempt);
+                            _logger.LogInformation("Token refreshed successfully on attempt {Attempt}. Session extended.", attempt);
                             _consecutiveFailures = 0;
                             OnRefreshSuccess?.Invoke();
                             return;
                         }
                         else
                         {
-                            _logger.LogWarning("Token refresh failed on attempt {Attempt}", attempt);
+                            _logger.LogWarning("Token refresh returned false on attempt {Attempt}", attempt);
                         }
                     }
                     catch (Exception ex)
@@ -219,7 +221,7 @@ namespace EventForge.Client.Services
                     // If not the last attempt, wait with exponential backoff
                     if (attempt < MAX_RETRIES)
                     {
-                        var delayMs = INITIAL_RETRY_DELAY_MS * (int)Math.Pow(2, attempt - 1); // Exponential: 1s, 2s, 4s
+                        var delayMs = INITIAL_RETRY_DELAY_MS * (int)Math.Pow(2, attempt - 1);
                         _logger.LogDebug("Waiting {DelayMs}ms before retry {NextAttempt}", delayMs, attempt + 1);
                         await Task.Delay(delayMs, cancellationToken);
                     }
@@ -234,7 +236,8 @@ namespace EventForge.Client.Services
                 // If we have too many consecutive failures, stop the service
                 if (_consecutiveFailures >= 5)
                 {
-                    _logger.LogCritical("Too many consecutive failures ({Count}), stopping SessionKeepaliveService", _consecutiveFailures);
+                    _logger.LogCritical("Too many consecutive failures ({Count}), stopping SessionKeepaliveService", 
+                        _consecutiveFailures);
                     Stop();
                 }
             }

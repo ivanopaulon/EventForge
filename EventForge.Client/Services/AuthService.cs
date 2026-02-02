@@ -355,10 +355,8 @@ namespace EventForge.Client.Services
                     return false;
                 }
 
-                // Check if token is about to expire
-                // Note: This threshold (20 min) is intentionally lower than SessionKeepaliveService's 
-                // REFRESH_THRESHOLD_MINUTES (30 min) to avoid refusing legitimate refresh requests.
-                // SessionKeepaliveService decides WHEN to refresh, AuthService decides IF refresh is needed.
+                // SLIDING EXPIRATION MODE: Always attempt refresh when called
+                // No need to check time to expiry - this is intentional to keep session alive
                 var currentToken = await GetAccessTokenAsync();
                 if (!string.IsNullOrEmpty(currentToken))
                 {
@@ -366,23 +364,27 @@ namespace EventForge.Client.Services
                     var jwtToken = tokenHandler.ReadJwtToken(currentToken);
                     var timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
 
-                    if (timeToExpiry.TotalMinutes > 20)
-                    {
-                        _logger.LogInformation("Token still has {Minutes} minutes validity, skipping refresh", timeToExpiry.TotalMinutes);
-                        return true; // Token still valid, no need to refresh
-                    }
-
-                    _logger.LogInformation("Token will expire in {Minutes} minutes, proceeding with refresh", timeToExpiry.TotalMinutes);
+                    _logger.LogDebug(
+                        "Token refresh requested. Current validity: {Minutes:F1} minutes. Proceeding with sliding expiration refresh.", 
+                        timeToExpiry.TotalMinutes);
                 }
 
                 for (int attempt = 1; attempt <= maxRetries; attempt++)
                 {
                     try
                     {
-                        // FIXED: Use ApiClient instead of EventForge.ServerAPI
                         var client = _httpClientFactory.CreateClient("ApiClient");
 
-                        _logger.LogInformation("Attempting token refresh (attempt {Attempt}/{MaxRetries})", attempt, maxRetries);
+                        if (attempt > 1)
+                        {
+                            _logger.LogInformation("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode", 
+                                attempt, maxRetries);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode", 
+                                attempt, maxRetries);
+                        }
 
                         var response = await client.PostAsync($"{BaseUrl}/refresh-token", null);
 
@@ -397,7 +399,8 @@ namespace EventForge.Client.Services
                                 // Save to localStorage
                                 await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
 
-                                _logger.LogInformation("Token refreshed successfully on attempt {Attempt}", attempt);
+                                _logger.LogInformation("Token refreshed successfully on attempt {Attempt}. New token expires in {Minutes} minutes", 
+                                    attempt, refreshResponse.ExpiresIn / 60);
 
                                 // Notify that authentication state may have changed
                                 OnAuthenticationStateChanged?.Invoke();
@@ -420,17 +423,19 @@ namespace EventForge.Client.Services
                         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
                             response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                         {
-                            _logger.LogError("Token refresh denied by server (status {StatusCode}). User may need to re-login.", response.StatusCode);
+                            _logger.LogError("Token refresh denied by server (status {StatusCode}). User may need to re-login.", 
+                                response.StatusCode);
                             return false;
                         }
                     }
                     catch (Exception attemptEx)
                     {
-                        _logger.LogError(attemptEx, "Error during token refresh attempt {Attempt}/{MaxRetries}", attempt, maxRetries);
+                        _logger.LogError(attemptEx, "Error during token refresh attempt {Attempt}/{MaxRetries}", 
+                            attempt, maxRetries);
 
                         if (attempt < maxRetries)
                         {
-                            await Task.Delay(1000 * attempt); // Linear backoff: 1s, 2s
+                            await Task.Delay(1000 * attempt);
                             continue;
                         }
                     }
