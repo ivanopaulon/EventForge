@@ -89,6 +89,7 @@ builder.Services.AddScoped<SignalRService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
+builder.Services.AddScoped<IBrandingService, BrandingService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<IFontPreferencesService, FontPreferencesService>();

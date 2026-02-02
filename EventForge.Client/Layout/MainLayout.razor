@@ -1,6 +1,7 @@
 ﻿@namespace EventForge.Client.Layout
 @inherits LayoutComponentBase
 @using EventForge.Client.Constants
+@using EventForge.DTOs.Configuration
 @inject IAuthService AuthService
 @inject ISessionKeepaliveService SessionKeepaliveService
 @inject IThemeService ThemeService
@@ -11,6 +12,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<MainLayout> Logger
 @inject IDialogService DialogService
+@inject IBrandingService BrandingService
 @implements IDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
@@ -28,17 +30,19 @@
                            Class="ef-menu-button">
             </MudIconButton>
         </MudTooltip>
-        <MudTooltip Text="EventForge - Torna alla Home">
+        <MudTooltip Text="@($"{(_branding?.ApplicationName ?? "EventForge")} - Torna alla Home")">
             <MudIconButton Color="Color.Inherit"
                           OnClick="@(() => NavigationManager.NavigateTo("/"))"
                           Size="Size.Large"
                           Class="pa-0"
-                          aria-label="EventForge - Torna alla Home"
+                          aria-label="@($"{(_branding?.ApplicationName ?? "EventForge")} - Torna alla Home")"
                           Style="width: auto; height: auto;">
-                <MudImage Src="/eventforgetitle.svg" 
-                          Alt="EventForge Logo"
-                          Height="40"
-                          Class="mx-2">
+                <MudImage Src="@(_branding?.LogoUrl ?? "/eventforgetitle.svg")" 
+                          Alt="@($"{(_branding?.ApplicationName ?? "EventForge")} Logo")"
+                          Height="@(_branding?.LogoHeight ?? 40)"
+                          ObjectFit="ObjectFit.Contain"
+                          Class="mx-2"
+                          Style="max-width: 200px;">
                 </MudImage>
             </MudIconButton>
         </MudTooltip>
@@ -103,6 +107,7 @@
     private MudThemeProvider? _mudThemeProvider;
     private MudTheme _currentTheme = new();
     private readonly SemaphoreSlim _authStateLock = new(1, 1);
+    private BrandingConfigurationDto? _branding;
 
     protected override async Task OnInitializedAsync()
     {
@@ -121,7 +126,24 @@
         await FontPreferencesService.InitializeAsync();
         await CheckAuthenticationState();
         
+        // Load branding configuration
+        await LoadBrandingAsync();
+        
         UpdateTheme();
+    }
+
+    private async Task LoadBrandingAsync()
+    {
+        try
+        {
+            _branding = await BrandingService.GetBrandingAsync();
+            Logger.LogInformation("Branding configuration loaded: {ApplicationName}", _branding?.ApplicationName);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading branding configuration, using defaults");
+            _branding = null; // Will use defaults in bindings
+        }
     }
 
     private void OnThemeChanged()
