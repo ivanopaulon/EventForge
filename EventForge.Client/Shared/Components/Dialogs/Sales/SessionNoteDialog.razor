@@ -61,7 +61,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid? SessionId { get; set; }
     
     private Guid _selectedNoteFlagId = Guid.Empty;

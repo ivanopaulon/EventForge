@@ -705,11 +705,11 @@ public class SalesController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return CreateValidationProblem(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return CreateValidationProblem(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {

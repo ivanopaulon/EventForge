@@ -1,6 +1,5 @@
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
-using MudBlazor;
 
 namespace EventForge.Server.Data.Seed;
 
@@ -30,7 +29,7 @@ public static class SalesSeedData
                 Name = "Nota Generica",
                 Description = "Nota generica senza categoria specifica",
                 Color = "#607D8B",
-                Icon = Icons.Material.Outlined.Note,
+                Icon = "note",
                 IsActive = true,
                 DisplayOrder = 1,
                 CreatedBy = "System",
@@ -46,7 +45,7 @@ public static class SalesSeedData
                 Name = "Urgente",
                 Description = "Richiede attenzione immediata",
                 Color = "#F44336",
-                Icon = Icons.Material.Outlined.PriorityHigh,
+                Icon = "priority_high",
                 IsActive = true,
                 DisplayOrder = 2,
                 CreatedBy = "System",
@@ -62,7 +61,7 @@ public static class SalesSeedData
                 Name = "Richiesta Cliente",
                 Description = "Richiesta particolare del cliente",
                 Color = "#2196F3",
-                Icon = Icons.Material.Outlined.PersonOutline,
+                Icon = "person_outline",
                 IsActive = true,
                 DisplayOrder = 3,
                 CreatedBy = "System",
@@ -78,7 +77,7 @@ public static class SalesSeedData
                 Name = "Motivo Sconto",
                 Description = "Motivazione per sconto applicato",
                 Color = "#FF9800",
-                Icon = Icons.Material.Outlined.Discount,
+                Icon = "discount",
                 IsActive = true,
                 DisplayOrder = 4,
                 CreatedBy = "System",
@@ -94,7 +93,7 @@ public static class SalesSeedData
                 Name = "Nota Cucina",
                 Description = "Istruzioni per la cucina/preparazione",
                 Color = "#4CAF50",
-                Icon = Icons.Material.Outlined.Restaurant,
+                Icon = "restaurant",
                 IsActive = true,
                 DisplayOrder = 5,
                 CreatedBy = "System",
