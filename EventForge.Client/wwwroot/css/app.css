@@ -476,14 +476,19 @@ kbd {
 }
 
 /* ===================================================================
-   EFTable Standard Pattern - Management Pages
-   ===================================================================
-   Standard wrapper classes and styles for EFTable-based management pages.
-   See: docs/EFTABLE_STANDARD_PATTERN.md for full documentation.
+   Management Pages - Unified Base Classes
    ================================================================== */
 
-/* Page root wrappers - entity-specific classes */
-/* Pattern: .[entity]-page-root */
+/* Base class for all management page roots */
+.management-page-root {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+/* Legacy entity-specific classes - DEPRECATED but kept for backward compatibility
+   @deprecated Use .management-page-root instead in new code */
 .warehouse-page-root,
 .vat-rate-page-root,
 .businessparty-page-root,
@@ -498,27 +503,26 @@ kbd {
 .pos-page-root,
 .lot-page-root,
 .unit-of-measure-page-root,
-.vat-nature-page-root {
+.vat-nature-page-root,
+.classification-node-page-root,
+.transfer-order-page-root,
+.document-page-root,
+.stock-overview-page-root,
+.group-page-root {
+    /* Inherit from base class */
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
 }
 
-/* Dashboard wrappers - entity-specific classes */
-/* Pattern: .[entity]-top */
-/* Only for pages still using ManagementDashboard or simple headers */
-.document-type-top,
-.document-counter-top,
-.lot-top,
-.operator-top {
-    width: 100%;
-}
-
-/* EFTable wrapper - ALWAYS THE SAME across all pages */
+/* Unified EFTable wrapper - ALWAYS THE SAME across all pages */
 .eftable-wrapper {
     width: 100%;
     margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Critical for overflow: auto to work in flex containers */
 }
 
 /* Search input standard styling - used in toolbar section 2 */
@@ -527,12 +531,20 @@ kbd {
     min-width: 250px;
 }
 
+/* Select input standard styling - used in toolbar section 3 */
+.ef-select {
+    max-width: 250px;
+    min-width: 150px;
+}
+
 /* ===================================================================
    EFTable Responsive Breakpoints
    ================================================================== */
 
 /* Mobile (< 600px) */
 @media (max-width: 599px) {
+    .management-page-root,
+    /* Legacy classes for backward compatibility */
     .warehouse-page-root,
     .vat-rate-page-root,
     .businessparty-page-root,
@@ -547,12 +559,18 @@ kbd {
     .pos-page-root,
     .lot-page-root,
     .unit-of-measure-page-root,
-    .vat-nature-page-root {
+    .vat-nature-page-root,
+    .classification-node-page-root,
+    .transfer-order-page-root,
+    .document-page-root,
+    .stock-overview-page-root,
+    .group-page-root {
         padding: 0.5rem;
         gap: 0.5rem;
     }
     
-    .ef-input {
+    .ef-input,
+    .ef-select {
         max-width: 100%;
         min-width: 200px;
     }
@@ -560,6 +578,7 @@ kbd {
 
 /* Tablet (600px - 959px) */
 @media (min-width: 600px) and (max-width: 959px) {
+    .management-page-root,
     .warehouse-page-root,
     .vat-rate-page-root,
     .businessparty-page-root,
@@ -574,9 +593,17 @@ kbd {
     .pos-page-root,
     .lot-page-root,
     .unit-of-measure-page-root,
-    .vat-nature-page-root {
+    .vat-nature-page-root,
+    .classification-node-page-root,
+    .transfer-order-page-root,
+    .document-page-root,
+    .stock-overview-page-root,
+    .group-page-root {
         padding: 0.75rem;
-        gap: 0.75rem;
+    }
+    
+    .ef-input {
+        max-width: 300px;
     }
 }
 
