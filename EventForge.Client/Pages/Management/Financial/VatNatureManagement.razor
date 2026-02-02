@@ -3,7 +3,7 @@
 @using EventForge.DTOs.VatRates
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IFinancialService FinancialService
@@ -13,6 +13,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<VatNatureManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingVatNatures"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -20,14 +21,12 @@
 @if (!_isLoading)
 {
     <div class="vat-nature-page-root">
-        <div class="vat-nature-top">
-            <ManagementDashboard TItem="VatNatureDto"
-                                 Items="_filteredVatNatures"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="VatNature"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="VatNatureDto"
+                      Items="_vatNatures"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -39,7 +38,13 @@
                  IsLoading="_isLoadingVatNatures"
                  ComponentKey="VatNatureManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="NatureIVA"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_vatNatures.Count"
+                 OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("financial.vatNatureManagement", "Gestione Nature IVA")
@@ -241,68 +246,99 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
-        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 3 }
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 3, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<VatNatureDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<VatNatureDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Nature IVA",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Category,
-            Color = "primary",
-            Description = "Numero totale di nature IVA",
-            Format = "N0"
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutte le nature IVA"
         },
-        new()
-        {
-            Title = "Codici N1-N7",
-            Type = MetricType.Count,
-            Filter = v => v.Code != null && v.Code.StartsWith("N") && v.Code.Length == 2,
+        new() 
+        { 
+            Id = "exempt", 
+            Label = "Esenti",
+            Predicate = v => v.Code != null && new[] { "N1", "N2", "N3", "N4" }.Any(prefix => v.Code.StartsWith(prefix)),
+            Color = Color.Success,
             Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "success",
-            Description = "Codici natura standard (N1-N7)",
-            Format = "N0"
+            Description = "Nature IVA esenti (N1-N4)"
         },
-        new()
-        {
-            Title = "Con Descrizione",
-            Type = MetricType.Count,
-            Filter = v => !string.IsNullOrEmpty(v.Description),
+        new() 
+        { 
+            Id = "non_taxable", 
+            Label = "Non Imponibili",
+            Predicate = v => v.Code != null && new[] { "N5", "N6", "N7" }.Any(prefix => v.Code.StartsWith(prefix)),
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.Block,
+            Description = "Nature IVA non imponibili (N5-N7)"
+        },
+        new() 
+        { 
+            Id = "with_description", 
+            Label = "Con Descrizione",
+            Predicate = v => !string.IsNullOrEmpty(v.Description),
+            Color = Color.Primary,
             Icon = Icons.Material.Outlined.Description,
-            Color = "info",
-            Description = "Nature IVA con descrizione",
-            Format = "N0"
+            Description = "Nature IVA con descrizione"
         },
-        new()
-        {
-            Title = "Ultime Aggiunte",
-            Type = MetricType.Count,
-            Filter = v => v.CreatedAt >= DateTime.Now.AddDays(-30),
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = v => v.CreatedAt >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Warning,
             Icon = Icons.Material.Outlined.NewReleases,
-            Color = "warning",
-            Description = "Nature IVA aggiunte negli ultimi 30 giorni",
-            Format = "N0"
+            Description = "Nature IVA aggiunte negli ultimi 30 giorni"
         }
     };
+    
+    private QuickFilter<VatNatureDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<VatNatureDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<VatNatureDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<VatNatureDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered VAT natures based on search criteria.
     /// </summary>
     private IEnumerable<VatNatureDto> _filteredVatNatures => 
-        _vatNatures.Where(vn => 
-            // Search filter: check code, name, and description
-            (string.IsNullOrEmpty(_searchTerm) || 
-             vn.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             vn.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             (vn.Description != null && vn.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))));
+        _vatNatures.Where(vn => FilterVatNature(vn));
+
+    /// <summary>
+    /// Filters a VAT nature based on search term and other criteria
+    /// </summary>
+    private bool FilterVatNature(VatNatureDto vatNature)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(vatNature))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!vatNature.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -311,6 +347,22 @@
     {
         _selectedVatNatures = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to VAT nature detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<VatNatureDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/financial/vat-natures/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/financial/vat-natures/{args.Item.Id}");
     }
 
     /// <summary>
@@ -374,13 +426,12 @@
     private void ClearFilters()
     {
         _searchTerm = string.Empty;
+        _activeQuickFilter = null;
         StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        _currentPage = 1; // Reset to page 1 when search changes
-        
         // Cancel previous debounce if any
         _searchDebounceCts?.Cancel();
         _searchDebounceCts = new CancellationTokenSource();
@@ -538,5 +589,11 @@
             // Reload the page after successful login
             await OnInitializedAsync();
         }
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null;
     }
 }
