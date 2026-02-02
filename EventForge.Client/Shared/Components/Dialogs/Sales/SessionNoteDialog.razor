@@ -1,6 +1,8 @@
 @using EventForge.DTOs.Sales
 @using MudBlazor
+@using EventForge.Client.Services.Sales
 @inject ITranslationService TranslationService
+@inject INoteFlagService NoteFlagService
 
 <MudDialog>
     <TitleContent>
@@ -11,12 +13,39 @@
     </TitleContent>
     
     <DialogContent>
-        <MudTextField @bind-Value="_note"
+        <MudSelect T="Guid"
+                   @bind-Value="_selectedNoteFlagId"
+                   Label="Categoria Nota"
+                   Variant="Variant.Outlined"
+                   Required="true"
+                   HelperText="Seleziona la tipologia di nota">
+            @if (_noteFlags != null)
+            {
+                @foreach (var flag in _noteFlags)
+                {
+                    <MudSelectItem T="Guid" Value="@flag.Id">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            @if (!string.IsNullOrEmpty(flag.Icon))
+                            {
+                                <MudIcon Icon="@flag.Icon" 
+                                         Color="Color.Default" 
+                                         Style="@($"color: {flag.Color ?? "#666"}")" 
+                                         Size="Size.Small" />
+                            }
+                            <MudText>@flag.Name</MudText>
+                        </MudStack>
+                    </MudSelectItem>
+                }
+            }
+        </MudSelect>
+        
+        <MudTextField @bind-Value="_noteText"
                       Label="@TranslationService.GetTranslation("sales.note", "Nota")"
                       Variant="Variant.Outlined"
                       Lines="4"
                       MaxLength="500"
                       Counter="500"
+                      Class="mt-4"
                       HelperText="@TranslationService.GetTranslation("sales.noteHelper", "Inserisci una nota per questa vendita (max 500 caratteri)")" />
     </DialogContent>
     
@@ -25,7 +54,7 @@
         <MudButton Color="Color.Info" 
                    Variant="Variant.Filled" 
                    OnClick="Submit"
-                   Disabled="@string.IsNullOrWhiteSpace(_note)">
+                   Disabled="@(_selectedNoteFlagId == Guid.Empty || string.IsNullOrWhiteSpace(_noteText))">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
@@ -35,8 +64,32 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid? SessionId { get; set; }
     
-    private string _note = string.Empty;
+    private Guid _selectedNoteFlagId = Guid.Empty;
+    private string _noteText = string.Empty;
+    private List<NoteFlagDto>? _noteFlags;
     
-    private void Submit() => MudDialog.Close(DialogResult.Ok(_note));
+    protected override async Task OnInitializedAsync()
+    {
+        // Carica flags attivi da backend
+        _noteFlags = await NoteFlagService.GetActiveAsync();
+        
+        // Pre-seleziona primo flag se disponibile
+        if (_noteFlags != null && _noteFlags.Count > 0)
+        {
+            _selectedNoteFlagId = _noteFlags.First().Id;
+        }
+    }
+    
+    private void Submit()
+    {
+        var dto = new AddSessionNoteDto
+        {
+            NoteFlagId = _selectedNoteFlagId,
+            Text = _noteText
+        };
+        
+        MudDialog.Close(DialogResult.Ok(dto));
+    }
+    
     private void Cancel() => MudDialog.Cancel();
 }

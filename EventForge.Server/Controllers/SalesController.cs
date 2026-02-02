@@ -667,6 +667,58 @@ public class SalesController : BaseApiController
     }
 
     /// <summary>
+    /// Applies a global discount percentage to all session items.
+    /// </summary>
+    /// <param name="sessionId">Session ID</param>
+    /// <param name="discountDto">Discount data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated sale session with applied discount</returns>
+    /// <response code="200">Returns the updated sale session</response>
+    /// <response code="400">If discount percentage is invalid</response>
+    /// <response code="403">If user doesn't have access to current tenant</response>
+    /// <response code="404">If session not found</response>
+    [HttpPost("sessions/{sessionId:guid}/discount")]
+    [ProducesResponseType(typeof(SaleSessionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SaleSessionDto>> ApplyGlobalDiscount(
+        Guid sessionId,
+        [FromBody] ApplyGlobalDiscountDto discountDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = User.Identity?.Name ?? "Unknown";
+            var session = await _saleSessionService.ApplyGlobalDiscountAsync(sessionId, discountDto, currentUser, cancellationToken);
+
+            if (session == null)
+                return CreateNotFoundProblem($"Sale session {sessionId} not found.");
+
+            return Ok(session);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while applying global discount to session {SessionId}.", sessionId);
+            return CreateInternalServerErrorProblem("An error occurred while applying the discount.", ex);
+        }
+    }
+
+    /// <summary>
     /// Calculates totals for a sale session.
     /// </summary>
     /// <param name="sessionId">Session ID</param>

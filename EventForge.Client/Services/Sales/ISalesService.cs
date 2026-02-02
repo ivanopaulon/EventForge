@@ -68,6 +68,11 @@ public interface ISalesService
     Task<SaleSessionDto?> AddNoteAsync(Guid sessionId, AddSessionNoteDto noteDto, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Applies a global discount percentage to all session items.
+    /// </summary>
+    Task<SaleSessionDto?> ApplyGlobalDiscountAsync(Guid sessionId, ApplyGlobalDiscountDto discountDto, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Recalculates totals for a sale session.
     /// </summary>
     Task<SaleSessionDto?> CalculateTotalsAsync(Guid sessionId, CancellationToken cancellationToken = default);
