@@ -1804,13 +1804,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 switch (splitDto.SplitType)
                 {
                     case SplitTypeDto.Equal:
-                        AddItemsForEqualSplit(session, childSession, i, splitDto.NumberOfPeople);
+                        AddItemsForEqualSplit(session, childSession, i, splitDto.NumberOfPeople, currentUser);
                         break;
                     case SplitTypeDto.ByItems:
-                        AddItemsForItemsSplit(session, childSession, i, splitDto.ItemAssignments!);
+                        AddItemsForItemsSplit(session, childSession, i, splitDto.ItemAssignments!, currentUser);
                         break;
                     case SplitTypeDto.Percentage:
-                        AddItemsForPercentageSplit(session, childSession, splitDto.Percentages![i]);
+                        AddItemsForPercentageSplit(session, childSession, splitDto.Percentages![i], currentUser);
                         childSession.SplitPercentage = splitDto.Percentages![i];
                         break;
                 }
@@ -2083,7 +2083,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
     }
 
-    private void AddItemsForEqualSplit(SaleSession parentSession, SaleSession childSession, int childIndex, int totalChildren)
+    private void AddItemsForEqualSplit(SaleSession parentSession, SaleSession childSession, int childIndex, int totalChildren, string currentUser)
     {
         var activeItems = parentSession.Items.Where(i => !i.IsDeleted).ToList();
         var itemsPerChild = activeItems.Count / totalChildren;
@@ -2097,42 +2097,30 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
         foreach (var item in childItems)
         {
-            var newItem = CreateCopiedItem(item, childSession.Id);
+            var newItem = CreateCopiedItem(item, childSession.Id, currentUser);
             childSession.Items.Add(newItem);
-        }
-
-        // If no items assigned (shouldn't happen with equal split), assign proportional amount
-        if (!childSession.Items.Any())
-        {
-            var proportionalAmount = parentSession.FinalTotal / totalChildren;
-            if (childIndex == totalChildren - 1)
-            {
-                // Last child gets the difference to handle rounding
-                proportionalAmount = parentSession.FinalTotal - (proportionalAmount * (totalChildren - 1));
-            }
-            childSession.FinalTotal = proportionalAmount;
         }
     }
 
-    private void AddItemsForItemsSplit(SaleSession parentSession, SaleSession childSession, int personIndex, List<SplitItemAssignmentDto> assignments)
+    private void AddItemsForItemsSplit(SaleSession parentSession, SaleSession childSession, int personIndex, List<SplitItemAssignmentDto> assignments, string currentUser)
     {
         var itemsForPerson = assignments.Where(a => a.PersonIndex == personIndex).Select(a => a.ItemId).ToHashSet();
         var parentItems = parentSession.Items.Where(i => !i.IsDeleted && itemsForPerson.Contains(i.Id)).ToList();
 
         foreach (var item in parentItems)
         {
-            var newItem = CreateCopiedItem(item, childSession.Id);
+            var newItem = CreateCopiedItem(item, childSession.Id, currentUser);
             childSession.Items.Add(newItem);
         }
     }
 
-    private void AddItemsForPercentageSplit(SaleSession parentSession, SaleSession childSession, decimal percentage)
+    private void AddItemsForPercentageSplit(SaleSession parentSession, SaleSession childSession, decimal percentage, string currentUser)
     {
         var activeItems = parentSession.Items.Where(i => !i.IsDeleted).ToList();
 
         foreach (var item in activeItems)
         {
-            var newItem = CreateCopiedItem(item, childSession.Id);
+            var newItem = CreateCopiedItem(item, childSession.Id, currentUser);
             // Adjust quantity based on percentage
             newItem.Quantity = item.Quantity * (percentage / 100m);
             newItem.TotalAmount = item.TotalAmount * (percentage / 100m);
@@ -2141,7 +2129,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
     }
 
-    private SaleItem CreateCopiedItem(SaleItem source, Guid newSessionId)
+    private SaleItem CreateCopiedItem(SaleItem source, Guid newSessionId, string currentUser)
     {
         return new SaleItem
         {
@@ -2160,9 +2148,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             Notes = source.Notes,
             IsService = source.IsService,
             PromotionId = source.PromotionId,
-            CreatedBy = source.CreatedBy,
+            CreatedBy = currentUser,
             CreatedAt = DateTime.UtcNow,
-            ModifiedBy = source.ModifiedBy,
+            ModifiedBy = currentUser,
             ModifiedAt = DateTime.UtcNow
         };
     }
