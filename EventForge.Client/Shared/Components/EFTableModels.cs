@@ -9,6 +9,12 @@ public class EFTableColumnConfiguration
     public string DisplayName { get; set; } = string.Empty;
     public bool IsVisible { get; set; } = true;
     public int Order { get; set; }
+    
+    /// <summary>
+    /// Indicates whether this column is searchable via the search bar.
+    /// Default is true to maintain backward compatibility.
+    /// </summary>
+    public bool IsSearchable { get; set; } = true;
 }
 
 /// <summary>
@@ -19,6 +25,11 @@ public class EFTablePreferences
     public Dictionary<string, int> ColumnOrders { get; set; } = new();
     public Dictionary<string, bool> ColumnVisibility { get; set; } = new();
     public List<string> GroupByProperties { get; set; } = new();
+    
+    /// <summary>
+    /// Stores which columns are searchable (PropertyName -> IsSearchable).
+    /// </summary>
+    public Dictionary<string, bool> ColumnSearchability { get; set; } = new();
 }
 
 /// <summary>
