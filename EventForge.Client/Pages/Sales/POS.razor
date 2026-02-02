@@ -506,7 +506,7 @@
             var dto = new ApplyGlobalDiscountDto
             {
                 DiscountPercent = discountPercent,
-                Reason = "Sconto globale POS"
+                Reason = TranslationService.GetTranslation("sales.globalDiscountReason", "Sconto globale POS")
             };
             
             var updatedSession = await ViewModel.ApplyGlobalDiscountAsync(dto);

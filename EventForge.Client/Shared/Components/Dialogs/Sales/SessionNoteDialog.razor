@@ -74,7 +74,7 @@
         _noteFlags = await NoteFlagService.GetActiveAsync();
         
         // Pre-seleziona primo flag se disponibile
-        if (_noteFlags?.Any() == true)
+        if (_noteFlags != null && _noteFlags.Count > 0)
         {
             _selectedNoteFlagId = _noteFlags.First().Id;
         }
