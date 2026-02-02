@@ -3,7 +3,7 @@
 @using EventForge.DTOs.UnitOfMeasures
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IUMService UMService
@@ -13,6 +13,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<UnitOfMeasureManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingUMs"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -20,14 +21,12 @@
 @if (!_isLoading)
 {
     <div class="um-page-root">
-        <div class="um-top">
-            <ManagementDashboard TItem="UMDto"
-                                 Items="_filteredUMs"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="UnitOfMeasure"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="UMDto"
+                      Items="_unitOfMeasures"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -39,7 +38,13 @@
                  IsLoading="_isLoadingUMs"
                  ComponentKey="UnitOfMeasureManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
+                 AllowDragDropGrouping="true"
+                 ShowExport="true"
+                 ShowExportDialog="true"
+                 ExcelFileName="UnitaDiMisura"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_unitOfMeasures.Count"
+                 OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")
@@ -54,15 +59,6 @@
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
                               Class="ef-input" />
-                <MudSelect T="string" @bind-Value="_defaultFilter" @bind-Value:after="OnDefaultFilterChanged" 
-                           Label="@TranslationService.GetTranslation("field.filter", "Filtro")"
-                           Variant="Variant.Outlined"
-                           Class="ef-select"
-                           Style="min-width:150px;">
-                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                    <MudSelectItem Value="@("default")">@TranslationService.GetTranslation("um.defaultOnly", "Solo Predefinite")</MudSelectItem>
-                    <MudSelectItem Value="@("standard")">@TranslationService.GetTranslation("um.standardOnly", "Solo Standard")</MudSelectItem>
-                </MudSelect>
                 <ManagementTableToolbar ShowSelectionBadge="true"
                                         SelectedCount="@_selectedUMs.Count"
                                         ShowRefresh="true"
@@ -252,7 +248,6 @@
     
     // Filter and search state
     private string _searchTerm = string.Empty;
-    private string _defaultFilter = "all";
     private CancellationTokenSource? _searchDebounceCts;
     
     // Pagination state
@@ -270,58 +265,73 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Symbol", DisplayName = "Simbolo", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
-        new() { PropertyName = "IsDefault", DisplayName = "Predefinita", IsVisible = true, Order = 3 },
-        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Symbol", DisplayName = "Simbolo", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "IsDefault", DisplayName = "Predefinita", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<UMDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<UMDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Unità",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Straighten,
-            Color = "primary",
-            Description = "Numero totale di unità di misura",
-            Format = "N0"
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutte le unità di misura"
         },
-        new()
-        {
-            Title = "Unità Predefinite",
-            Type = MetricType.Count,
-            Filter = um => um.IsDefault,
+        new() 
+        { 
+            Id = "default", 
+            Label = "Predefinite",
+            Predicate = um => um.IsDefault,
+            Color = Color.Success,
             Icon = Icons.Material.Outlined.Star,
-            Color = "success",
-            Description = "Unità di misura predefinite",
-            Format = "N0"
+            Description = "Unità di misura predefinite"
         },
-        new()
-        {
-            Title = "Unità Attive",
-            Type = MetricType.Count,
-            Filter = um => um.IsActive,
+        new() 
+        { 
+            Id = "active", 
+            Label = "Attive",
+            Predicate = um => um.IsActive,
+            Color = Color.Info,
             Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "info",
-            Description = "Unità di misura attive",
-            Format = "N0"
+            Description = "Unità di misura attive"
         },
-        new()
-        {
-            Title = "Ultime Aggiunte",
-            Type = MetricType.Count,
-            Filter = um => um.CreatedAt >= DateTime.Now.AddDays(-30),
+        new() 
+        { 
+            Id = "with_description", 
+            Label = "Con Descrizione",
+            Predicate = um => !string.IsNullOrEmpty(um.Description),
+            Color = Color.Primary,
+            Icon = Icons.Material.Outlined.Description,
+            Description = "Unità con descrizione"
+        },
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = um => um.CreatedAt >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Warning,
             Icon = Icons.Material.Outlined.NewReleases,
-            Color = "warning",
-            Description = "Unità aggiunte negli ultimi 30 giorni",
-            Format = "N0"
+            Description = "Unità aggiunte negli ultimi 30 giorni"
         }
     };
+    
+    private QuickFilter<UMDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<UMDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<UMDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<UMDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -336,15 +346,44 @@
     /// Computed property for filtered units of measure based on search criteria.
     /// </summary>
     private IEnumerable<UMDto> _filteredUMs => 
-        _unitOfMeasures.Where(um => 
-            // Search filter: check name or symbol
-            (string.IsNullOrEmpty(_searchTerm) || 
-             um.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             um.Symbol.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
-            // Default filter
-            (_defaultFilter == "all" || 
-             (_defaultFilter == "default" && um.IsDefault) ||
-             (_defaultFilter == "standard" && !um.IsDefault)));
+        _unitOfMeasures.Where(um => FilterUM(um));
+
+    /// <summary>
+    /// Filters a unit of measure based on search term and other criteria
+    /// </summary>
+    private bool FilterUM(UMDto um)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(um))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!um.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to unit of measure detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<UMDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/settings/unit-of-measures/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/settings/unit-of-measures/{args.Item.Id}");
+    }
 
     /// <summary>
     /// Component initialization.
@@ -408,14 +447,12 @@
     private void ClearFilters()
     {
         _searchTerm = string.Empty;
-        _defaultFilter = "all";
+        _activeQuickFilter = null;
         StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        _currentPage = 1; // Reset to page 1 when search changes
-        
         // Cancel previous debounce if any
         _searchDebounceCts?.Cancel();
         _searchDebounceCts = new CancellationTokenSource();
@@ -439,11 +476,6 @@
     {
         _currentPage = page;
         await LoadUMsAsync();
-    }
-
-    private void OnDefaultFilterChanged()
-    {
-        StateHasChanged();
     }
 
     private void CreateUM()
@@ -633,5 +665,11 @@
             // Reload the page after successful login
             await OnInitializedAsync();
         }
+    }
+    
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null;
     }
 }
