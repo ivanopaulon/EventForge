@@ -1,0 +1,59 @@
+@using EventForge.DTOs.Sales
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Discount" Class="mr-2" />
+            @TranslationService.GetTranslation("sales.globalDiscountTitle", "Sconto Globale Carrello")
+        </MudText>
+    </TitleContent>
+    
+    <DialogContent>
+        <MudStack Spacing="3">
+            
+            <MudAlert Severity="Severity.Info" Dense="true">
+                @TranslationService.GetTranslation("sales.currentTotal", "Totale corrente"): <strong>€@CurrentTotal.ToString("F2")</strong>
+            </MudAlert>
+            
+            <MudNumericField @bind-Value="_discountPercent"
+                             Label="@TranslationService.GetTranslation("sales.discountPercent", "Percentuale Sconto")"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Max="100"
+                             Step="5"
+                             Suffix="%"
+                             HelperText="@TranslationService.GetTranslation("sales.discountPercentHelper", "Percentuale di sconto da applicare")" />
+            
+            @if (_discountPercent > 0)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">
+                    @TranslationService.GetTranslation("sales.discount", "Sconto"): <strong>-€@((CurrentTotal * _discountPercent / 100).ToString("F2"))</strong><br />
+                    @TranslationService.GetTranslation("sales.newTotal", "Nuovo totale"): <strong>€@((CurrentTotal * (100 - _discountPercent) / 100).ToString("F2"))</strong>
+                </MudAlert>
+            }
+            
+        </MudStack>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Warning" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit"
+                   Disabled="@(_discountPercent <= 0)">
+            @TranslationService.GetTranslation("sales.apply", "Applica")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public decimal CurrentTotal { get; set; }
+    
+    private decimal _discountPercent = 0;
+    
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_discountPercent));
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -47,91 +47,244 @@
                OnParkClick="@ParkSessionAsync"
                OnCancelClick="@CancelSessionAsync" />
 
-    <!-- Keyboard Shortcuts Help Banner -->
+    <!-- Keyboard Shortcuts (solo se ha sessione) -->
     @if (ViewModel.HasActiveSession)
     {
-        <MudPaper Elevation="0" Class="pa-2 mb-2" Style="background: var(--mud-palette-background-grey);">
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
-                <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" Class="mr-1" />
-                @TranslationService.GetTranslation("sales.keyboardShortcuts", "Scorciatoie"): 
-                <strong>F2</strong> @TranslationService.GetTranslation("sales.pay", "Paga") | 
-                <strong>F3</strong> @TranslationService.GetTranslation("sales.park", "Parcheggia") | 
-                <strong>F4</strong> @TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi ultimo") | 
-                <strong>F8</strong> @TranslationService.GetTranslation("sales.focusScanner", "Scanner") | 
-                <strong>F12</strong> @TranslationService.GetTranslation("sales.closeSaleShort", "Chiudi")
-            </MudText>
+        <MudPaper Elevation="0" 
+                  Class="pa-2 mb-2" 
+                  Style="background: linear-gradient(90deg, #e3f2fd, #f3e5f5); border-radius: 8px;">
+            
+            <MudStack Row="true" 
+                      Justify="Justify.SpaceAround" 
+                      AlignItems="AlignItems.Center" 
+                      Wrap="Wrap.Wrap">
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.Payment" 
+                         Variant="Variant.Text">
+                    <strong>F2</strong> @TranslationService.GetTranslation("sales.pay", "Paga")
+                </MudChip>
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.Pause" 
+                         Variant="Variant.Text">
+                    <strong>F3</strong> @TranslationService.GetTranslation("sales.park", "Parcheggia")
+                </MudChip>
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.RemoveCircle" 
+                         Variant="Variant.Text">
+                    <strong>F4</strong> @TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi")
+                </MudChip>
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.Search" 
+                         Variant="Variant.Text">
+                    <strong>F8</strong> @TranslationService.GetTranslation("sales.focusScanner", "Scanner")
+                </MudChip>
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.CheckCircle" 
+                         Variant="Variant.Text">
+                    <strong>F12</strong> @TranslationService.GetTranslation("sales.closeSaleShort", "Chiudi")
+                </MudChip>
+                
+            </MudStack>
         </MudPaper>
     }
 
-    <!-- Main Content: 2-column layout -->
+    <!-- Main Content: 2-column responsive layout -->
     <MudGrid Spacing="3">
-        <!-- Left Column: Scanner + Products Table (70%) -->
-        <MudItem xs="12" md="8">
+        
+        <!-- Left Column: Scanner + Toolbar + Cart (70% desktop) -->
+        <MudItem xs="12" lg="8">
             @if (ViewModel.HasActiveSession)
             {
-                <!-- UnifiedProductScanner -->
-                <UnifiedProductScanner 
-                    SelectedProduct="@_currentProduct"
-                    SelectedProductChanged="@OnProductSelectedAsync"
-                    Title="@TranslationService.GetTranslation("sales.scanProduct", "Scansiona Prodotto")"
-                    Placeholder="@TranslationService.GetTranslation("sales.scanOrType", "Scansiona codice o cerca nome...")"
-                    SearchMode="ProductSearchMode.Both"
-                    EditMode="ProductEditMode.Dialog"
-                    CreateMode="ProductCreateMode.Dialog"
-                    ShowProductInfo="true"
-                    AllowClear="true"
-                    AutoFocus="true"
-                    Disabled="@(!ViewModel.HasActiveSession)"
-                    OnProductWithCodeFound="@HandleProductWithCodeFoundAsync"
-                    OnProductNotFound="@HandleProductNotFoundAsync" />
+                <MudStack Spacing="2">
+                    
+                    <!-- UnifiedProductScanner -->
+                    <UnifiedProductScanner 
+                        SelectedProduct="@_currentProduct"
+                        SelectedProductChanged="@OnProductSelectedAsync"
+                        Title="@TranslationService.GetTranslation("sales.scanProduct", "Scansiona Prodotto")"
+                        Placeholder="@TranslationService.GetTranslation("sales.scanOrType", "Scansiona codice o cerca nome...")"
+                        SearchMode="ProductSearchMode.Both"
+                        EditMode="ProductEditMode.Dialog"
+                        CreateMode="ProductCreateMode.Dialog"
+                        ShowProductInfo="true"
+                        AllowClear="true"
+                        AutoFocus="true"
+                        Disabled="@(!ViewModel.HasActiveSession)"
+                        OnProductWithCodeFound="@HandleProductWithCodeFoundAsync"
+                        OnProductNotFound="@HandleProductNotFoundAsync" />
 
-                <!-- Products Table -->
-                <POSCartTable Items="@ViewModel.CurrentSession?.Items"
-                              IsDisabled="@ViewModel.IsUpdatingItems"
-                              OnQuantityChanged="@HandleQuantityChanged"
-                              OnPriceChanged="@HandlePriceChanged"
-                              OnDiscountChanged="@HandleDiscountChanged"
-                              OnEditNotes="@EditItemNotesAsync"
-                              OnRemoveItem="@RemoveItemAsync"
-                              OnIncreaseQuantity="@IncreaseQuantityAsync"
-                              OnDecreaseQuantity="@DecreaseQuantityAsync" />
-
-                <!-- Main Action Button -->
-                <POSActionButton Session="@ViewModel.CurrentSession"
-                                 IsSessionClosed="@ViewModel.IsSessionClosed"
-                                 OnAddPayment="@AddPaymentAsync"
-                                 OnCloseSale="@CloseSaleAsync"
-                                 OnPrintReceipt="@PrintReceiptAsync" />
-            }
-            else
-            {
-                <MudAlert Severity="Severity.Info">
-                    @if (!ViewModel.SelectedOperatorId.HasValue)
+                    <!-- Toolbar Azioni Rapide (visibile solo se ha items) -->
+                    @if (ViewModel.CurrentSession?.Items.Any() == true)
                     {
-                        @TranslationService.GetTranslation("sales.selectOperatorToStart", "Seleziona un operatore per iniziare")
+                        <MudPaper Elevation="1" Class="pa-2 mb-2">
+                            <MudStack Row="true" Spacing="2" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                
+                                <!-- Azioni Sinistra -->
+                                <MudStack Row="true" Spacing="1">
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.applyGlobalDiscount", "Applica sconto globale al carrello")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Warning"
+                                                   StartIcon="@Icons.Material.Outlined.Discount"
+                                                   Size="Size.Small"
+                                                   OnClick="@ApplyGlobalDiscountAsync">
+                                            @TranslationService.GetTranslation("sales.discountShort", "Sconto %")
+                                        </MudButton>
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.addSessionNoteTooltip", "Aggiungi nota alla vendita")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Info"
+                                                   StartIcon="@Icons.Material.Outlined.Note"
+                                                   Size="Size.Small"
+                                                   OnClick="@AddSessionNoteAsync">
+                                            @TranslationService.GetTranslation("sales.notes", "Note")
+                                        </MudButton>
+                                    </MudTooltip>
+                                    
+                                </MudStack>
+                                
+                                <!-- Info Carrello Centro -->
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.ShoppingCart">
+                                        @ViewModel.ItemCount @TranslationService.GetTranslation("sales.items", "items")
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.Euro">
+                                        €@ViewModel.CurrentSession.FinalTotal.ToString("F2")
+                                    </MudChip>
+                                </MudStack>
+                                
+                                <!-- Azioni Destra -->
+                                <MudStack Row="true" Spacing="1">
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.removeLastItemTooltip", "Rimuovi ultimo articolo aggiunto (F4)")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Error"
+                                                   StartIcon="@Icons.Material.Outlined.RemoveCircle"
+                                                   Size="Size.Small"
+                                                   OnClick="@RemoveLastItemAsync">
+                                            @TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi Ultimo")
+                                        </MudButton>
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.clearCartTooltip", "Svuota carrello")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.DeleteSweep"
+                                                       Color="Color.Error"
+                                                       Size="Size.Small"
+                                                       OnClick="@ClearCartAsync" />
+                                    </MudTooltip>
+                                    
+                                </MudStack>
+                                
+                            </MudStack>
+                        </MudPaper>
                     }
-                    else if (!ViewModel.SelectedPosId.HasValue)
+
+                    <!-- Loading State -->
+                    @if (ViewModel.IsUpdatingItems)
                     {
-                        @TranslationService.GetTranslation("sales.selectPosToStart", "Seleziona un POS per iniziare")
+                        <MudProgressLinear Color="Color.Primary" 
+                                           Indeterminate="true" 
+                                           Class="mb-2" 
+                                           Style="border-radius: 4px;" />
+                        
+                        <MudAlert Severity="Severity.Info" 
+                                  Dense="true" 
+                                  Icon="@Icons.Material.Outlined.Sync"
+                                  Elevation="0"
+                                  Class="mb-2">
+                            @TranslationService.GetTranslation("sales.updatingCart", "Aggiornamento carrello in corso...")
+                        </MudAlert>
+                    }
+
+                    <!-- Cart o Empty State -->
+                    @if (ViewModel.CurrentSession?.Items.Any() == true)
+                    {
+                        <!-- Cart Table -->
+                        <POSCartTable Items="@ViewModel.CurrentSession?.Items"
+                                      IsDisabled="@ViewModel.IsUpdatingItems"
+                                      OnQuantityChanged="@HandleQuantityChanged"
+                                      OnPriceChanged="@HandlePriceChanged"
+                                      OnDiscountChanged="@HandleDiscountChanged"
+                                      OnEditNotes="@EditItemNotesAsync"
+                                      OnRemoveItem="@RemoveItemAsync"
+                                      OnIncreaseQuantity="@IncreaseQuantityAsync"
+                                      OnDecreaseQuantity="@DecreaseQuantityAsync" />
                     }
                     else
                     {
-                        @TranslationService.GetTranslation("sales.loading", "Caricamento sessione in corso...")
+                        <!-- Empty Cart State -->
+                        <MudPaper Elevation="0" 
+                                  Class="pa-8" 
+                                  Style="text-align: center; background: var(--mud-palette-background-grey); border-radius: 8px;">
+                            
+                            <MudIcon Icon="@Icons.Material.Outlined.ShoppingCart" 
+                                     Size="Size.Large" 
+                                     Color="Color.Secondary" 
+                                     Style="font-size: 4rem; opacity: 0.3; margin-bottom: 16px;" />
+                            
+                            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2">
+                                @TranslationService.GetTranslation("sales.emptyCart", "Carrello vuoto")
+                            </MudText>
+                            
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("sales.scanProductHint", "Scansiona un prodotto o cercalo per nome")
+                            </MudText>
+                            
+                        </MudPaper>
                     }
-                </MudAlert>
+
+                    <!-- Main Action Button -->
+                    <POSActionButton Session="@ViewModel.CurrentSession"
+                                     IsSessionClosed="@ViewModel.IsSessionClosed"
+                                     OnAddPayment="@AddPaymentAsync"
+                                     OnCloseSale="@CloseSaleAsync"
+                                     OnPrintReceipt="@PrintReceiptAsync" />
+                    
+                </MudStack>
+            }
+            else
+            {
+                <!-- No Session State -->
+                <MudPaper Elevation="0" Class="pa-8" Style="text-align: center;">
+                    
+                    <MudIcon Icon="@Icons.Material.Outlined.PointOfSale" 
+                             Size="Size.Large" 
+                             Style="font-size: 5rem; opacity: 0.2; margin-bottom: 20px;" />
+                    
+                    <MudText Typo="Typo.h5" Class="mb-3">
+                        @TranslationService.GetTranslation("sales.selectOperatorAndPos", "Seleziona Operatore e Cassa")
+                    </MudText>
+                    
+                    <MudText Typo="Typo.body1" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("sales.selectOperatorAndPosHint", "Seleziona un operatore e un punto cassa per iniziare")
+                    </MudText>
+                    
+                </MudPaper>
             }
         </MudItem>
 
-        <!-- Right Column: Receipt Preview (30%) -->
-        <MudItem xs="12" md="4">
-            <POSReceipt SessionNumber="@ViewModel.CurrentSession?.Id"
-                        Items="@ViewModel.CurrentSession?.Items"
-                        Payments="@ViewModel.CurrentSession?.Payments"
-                        Subtotal="@(ViewModel.CurrentSession?.OriginalTotal ?? 0m)"
-                        TotalDiscount="@(ViewModel.CurrentSession?.DiscountAmount ?? 0m)"
-                        TotalVat="@(ViewModel.CurrentSession?.TaxAmount ?? 0m)"
-                        GrandTotal="@ViewModel.GrandTotal" />
+        <!-- Right Column: Summary + Receipt Preview (30% desktop, sticky) -->
+        <MudItem xs="12" lg="4">
+            <MudStack Spacing="2" Class="pos-summary-column">
+                
+                <!-- Summary -->
+                <POSReceipt SessionNumber="@ViewModel.CurrentSession?.Id"
+                            Items="@ViewModel.CurrentSession?.Items"
+                            Payments="@ViewModel.CurrentSession?.Payments"
+                            Subtotal="@(ViewModel.CurrentSession?.OriginalTotal ?? 0m)"
+                            TotalDiscount="@(ViewModel.CurrentSession?.DiscountAmount ?? 0m)"
+                            TotalVat="@(ViewModel.CurrentSession?.TaxAmount ?? 0m)"
+                            GrandTotal="@ViewModel.GrandTotal" />
+                
+            </MudStack>
         </MudItem>
+        
     </MudGrid>
 </MudContainer>
 
@@ -331,6 +484,83 @@
         if (!result.Success && result.Error != null)
         {
             Snackbar.Add("❌ " + result.Error, Severity.Error);
+        }
+    }
+
+    private async Task ApplyGlobalDiscountAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            ["CurrentTotal"] = ViewModel.CurrentSession?.FinalTotal ?? 0m
+        };
+
+        var dialog = await DialogService.ShowAsync<GlobalDiscountDialog>(
+            TranslationService.GetTranslation("sales.globalDiscountTitle", "Sconto Globale Carrello"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is decimal discountPercent)
+        {
+            // TODO FASE 2: Implement backend endpoint for global discount
+            Snackbar.Add(TranslationService.GetTranslation("sales.discountWillBeApplied", $"Sconto del {discountPercent}% verrà applicato"), Severity.Info);
+        }
+    }
+
+    private async Task AddSessionNoteAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            ["SessionId"] = ViewModel.CurrentSession?.Id
+        };
+
+        var dialog = await DialogService.ShowAsync<SessionNoteDialog>(
+            TranslationService.GetTranslation("sales.addSessionNote", "Aggiungi Nota Vendita"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string note)
+        {
+            // TODO FASE 2: Implement backend endpoint for session notes
+            Snackbar.Add(TranslationService.GetTranslation("sales.noteWillBeSaved", $"Nota registrata: {note}"), Severity.Info);
+        }
+    }
+
+    private async Task RemoveLastItemAsync()
+    {
+        if (ViewModel.CurrentSession?.Items.Any() != true) return;
+
+        var lastItem = ViewModel.CurrentSession.Items.Last();
+        var result = await ViewModel.RemoveItemAsync(lastItem);
+
+        if (result.Success)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("sales.itemRemoved", $"✅ {lastItem.ProductName} rimosso"), Severity.Success);
+        }
+    }
+
+    private async Task ClearCartAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("sales.clearCartConfirm", "Sei sicuro di voler svuotare il carrello?"),
+            yesText: TranslationService.GetTranslation("sales.clearCart", "Svuota"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            var items = ViewModel.CurrentSession?.Items.ToList();
+            if (items != null)
+            {
+                foreach (var item in items)
+                {
+                    await ViewModel.RemoveItemAsync(item);
+                }
+                Snackbar.Add(TranslationService.GetTranslation("sales.cartCleared", "Carrello svuotato"), Severity.Success);
+            }
         }
     }
 

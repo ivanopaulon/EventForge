@@ -245,3 +245,25 @@
         min-height: 72px;
     }
 }
+
+/* ===================================================================
+   POS Page Specific Styling (FASE 1B)
+   =================================================================== */
+
+/* Sticky sidebar su desktop */
+@media (min-width: 1280px) {
+    .pos-summary-column {
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .pos-cart-table .mud-table-container {
+        overflow-x: auto;
+    }
+}
+
