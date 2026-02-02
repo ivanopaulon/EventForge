@@ -103,6 +103,38 @@ public class SaleSession : AuditableEntity
     /// </summary>
     [MaxLength(500)]
     public string? CouponCodes { get; set; }
+
+    /// <summary>
+    /// Parent session ID (null if not a split/merged session).
+    /// </summary>
+    public Guid? ParentSessionId { get; set; }
+
+    /// <summary>
+    /// Parent session navigation property.
+    /// </summary>
+    public SaleSession? ParentSession { get; set; }
+
+    /// <summary>
+    /// Child sessions collection (for split/merge tracking).
+    /// </summary>
+    public ICollection<SaleSession> ChildSessions { get; set; } = new List<SaleSession>();
+
+    /// <summary>
+    /// Split type: EQUAL, BY_ITEMS, PERCENTAGE, or null.
+    /// </summary>
+    [MaxLength(50)]
+    public string? SplitType { get; set; }
+
+    /// <summary>
+    /// Split percentage (only if SplitType = PERCENTAGE).
+    /// </summary>
+    public decimal? SplitPercentage { get; set; }
+
+    /// <summary>
+    /// Merge reason or notes (only if session is result of merge).
+    /// </summary>
+    [MaxLength(500)]
+    public string? MergeReason { get; set; }
 }
 
 /// <summary>
