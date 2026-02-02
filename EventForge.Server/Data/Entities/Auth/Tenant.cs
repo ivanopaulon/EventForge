@@ -70,6 +70,27 @@ public class Tenant : AuditableEntity
     public DateTime? SubscriptionExpiresAt { get; set; }
 
     /// <summary>
+    /// Custom logo URL override for this tenant.
+    /// </summary>
+    [MaxLength(500, ErrorMessage = "Custom logo URL cannot exceed 500 characters.")]
+    [Display(Name = "Custom Logo URL", Description = "Custom logo URL override for this tenant.")]
+    public string? CustomLogoUrl { get; set; }
+
+    /// <summary>
+    /// Custom application name override for this tenant.
+    /// </summary>
+    [MaxLength(100, ErrorMessage = "Custom application name cannot exceed 100 characters.")]
+    [Display(Name = "Custom Application Name", Description = "Custom application name override for this tenant.")]
+    public string? CustomApplicationName { get; set; }
+
+    /// <summary>
+    /// Custom favicon URL override for this tenant.
+    /// </summary>
+    [MaxLength(500, ErrorMessage = "Custom favicon URL cannot exceed 500 characters.")]
+    [Display(Name = "Custom Favicon URL", Description = "Custom favicon URL override for this tenant.")]
+    public string? CustomFaviconUrl { get; set; }
+
+    /// <summary>
     /// Navigation property: Admin tenants mapping super admins to this tenant.
     /// </summary>
     public virtual ICollection<AdminTenant> AdminTenants { get; set; } = new List<AdminTenant>();
