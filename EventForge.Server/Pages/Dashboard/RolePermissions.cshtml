@@ -1,0 +1,300 @@
+@page "/dashboard/rolepermissions"
+@model EventForge.Server.Pages.Dashboard.RolePermissionsModel
+@{
+    ViewData["Title"] = $"Permessi - {Model.Role.DisplayName}";
+    ViewData["PageSection"] = "Multi-Tenant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-key"></i> 
+        Gestione Permessi: <span class="text-primary">@Model.Role.DisplayName</span>
+    </h2>
+    <a href="/dashboard/roles" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Torna alla Lista
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Role Info -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Permessi Assegnati</h6>
+                <h3>@Model.SelectedPermissions.Count / @Model.AllPermissions.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Utenti con Ruolo</h6>
+                <h3>@Model.UsersWithRole.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Tipo Ruolo</h6>
+                <h3>
+                    @if (Model.Role.IsSystemRole)
+                    {
+                        <span class="badge bg-info">Sistema</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Custom</span>
+                    }
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="post">
+    <input type="hidden" asp-for="RoleId" />
+    
+    <div class="row">
+        <!-- Left Column - Permissions -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-check2-all"></i> Permessi Disponibili</h5>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPermissions()">
+                            Seleziona Tutti
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllPermissions()">
+                            Deseleziona Tutti
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @{
+                        var permissionsByCategory = Model.AllPermissions
+                            .GroupBy(p => p.Category)
+                            .OrderBy(g => g.Key);
+                    }
+                    
+                    @foreach (var categoryGroup in permissionsByCategory)
+                    {
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-primary mb-0">
+                                    <i class="bi bi-folder2-open"></i> @categoryGroup.Key
+                                </h6>
+                                <div>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-primary" 
+                                            onclick="selectCategoryPermissions('@categoryGroup.Key')">
+                                        Seleziona Tutti
+                                    </button>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-secondary" 
+                                            onclick="deselectCategoryPermissions('@categoryGroup.Key')">
+                                        Deseleziona
+                                    </button>
+                                </div>
+                            </div>
+                            <hr class="mt-1 mb-3" />
+                            
+                            @{
+                                var permissionsByResource = categoryGroup
+                                    .GroupBy(p => p.Resource ?? "General")
+                                    .OrderBy(g => g.Key);
+                            }
+                            
+                            @foreach (var resourceGroup in permissionsByResource)
+                            {
+                                <div class="ps-3 mb-3">
+                                    @if (resourceGroup.Key != "General")
+                                    {
+                                        <h6 class="text-muted small mb-2">
+                                            <i class="bi bi-box"></i> @resourceGroup.Key
+                                        </h6>
+                                    }
+                                    
+                                    <div class="row">
+                                        @foreach (var permission in resourceGroup.OrderBy(p => p.Action))
+                                        {
+                                            <div class="col-md-6 mb-2">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input permission-checkbox" 
+                                                           type="checkbox" 
+                                                           name="SelectedPermissions" 
+                                                           value="@permission.Id"
+                                                           id="permission_@permission.Id"
+                                                           data-category="@categoryGroup.Key"
+                                                           @(Model.SelectedPermissions.Contains(permission.Id) ? "checked" : "") />
+                                                    <label class="form-check-label" for="permission_@permission.Id">
+                                                        <strong>@permission.Action</strong>
+                                                        @if (!string.IsNullOrEmpty(permission.Description))
+                                                        {
+                                                            <br/><small class="text-muted">@permission.Description</small>
+                                                        }
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    
+                    @if (!Model.AllPermissions.Any())
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            Nessun permesso disponibile nel sistema.
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            <!-- Save Button -->
+            <div class="card">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-save"></i> Salva Permessi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Users Preview -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Utenti con questo Ruolo</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.UsersWithRole.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var user in Model.UsersWithRole.Take(10))
+                            {
+                                <div class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>@user.Username</strong><br/>
+                                            <small class="text-muted">@user.FullName</small>
+                                        </div>
+                                        @if (user.IsActive)
+                                        {
+                                            <span class="badge bg-success">Attivo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inattivo</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        @if (Model.UsersWithRole.Count > 10)
+                        {
+                            <div class="mt-2 text-center">
+                                <small class="text-muted">E altri @(Model.UsersWithRole.Count - 10) utenti...</small>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i> 
+                            Nessun utente ha questo ruolo assegnato.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Role Info -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informazioni Ruolo</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Nome:</dt>
+                        <dd class="col-sm-7">@Model.Role.Name</dd>
+
+                        <dt class="col-sm-5">Display:</dt>
+                        <dd class="col-sm-7">@Model.Role.DisplayName</dd>
+
+                        @if (!string.IsNullOrEmpty(Model.Role.Description))
+                        {
+                            <dt class="col-sm-12">Descrizione:</dt>
+                            <dd class="col-sm-12"><small>@Model.Role.Description</small></dd>
+                        }
+
+                        <dt class="col-sm-5">Sistema:</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.Role.IsSystemRole)
+                            {
+                                <span class="badge bg-info">Sì</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Creato:</dt>
+                        <dd class="col-sm-7"><small>@Model.Role.CreatedAt.ToString("dd/MM/yyyy")</small></dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        function selectAllPermissions() {
+            document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function deselectAllPermissions() {
+            document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        function selectCategoryPermissions(category) {
+            document.querySelectorAll(`.permission-checkbox[data-category="${category}"]`).forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function deselectCategoryPermissions(category) {
+            document.querySelectorAll(`.permission-checkbox[data-category="${category}"]`).forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    </script>
+}

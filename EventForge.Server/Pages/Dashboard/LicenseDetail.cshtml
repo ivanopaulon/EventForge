@@ -1,0 +1,353 @@
+@page "/dashboard/licensedetail"
+@model EventForge.Server.Pages.Dashboard.LicenseDetailModel
+@{
+    ViewData["Title"] = Model.IsEditMode ? $"Modifica Licenza: {Model.License.DisplayName}" : "Nuova Licenza";
+    ViewData["PageSection"] = "Multi-Tenant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-card-checklist"></i> 
+        @if (Model.IsEditMode)
+        {
+            <span>Modifica Licenza</span>
+        }
+        else
+        {
+            <span>Nuova Licenza</span>
+        }
+    </h2>
+    <a href="/dashboard/licenses" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Torna alla Lista
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Statistics (Edit Mode Only) -->
+@if (Model.IsEditMode)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Tenant Assegnati</h6>
+                    <h3>@Model.AssignedTenantCount</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Features</h6>
+                    <h3>@Model.FeatureCount</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Creata</h6>
+                    <h3>@Model.License.CreatedAt.ToString("dd/MM/yyyy")</h3>
+                    <small class="text-muted">@Model.License.CreatedAt.ToString("HH:mm")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<form method="post">
+    <input type="hidden" asp-for="License.Id" />
+    
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informazioni Base</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="License.Name" class="form-label">Nome Licenza *</label>
+                            @if (Model.IsEditMode)
+                            {
+                                <input asp-for="License.Name" class="form-control" 
+                                       readonly
+                                       required />
+                            }
+                            else
+                            {
+                                <input asp-for="License.Name" class="form-control" 
+                                       placeholder="es. basic-license"
+                                       required />
+                            }
+                            <span asp-validation-for="License.Name" class="text-danger"></span>
+                            @if (!Model.IsEditMode)
+                            {
+                                <small class="text-muted">Identificatore univoco (non modificabile)</small>
+                            }
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label asp-for="License.DisplayName" class="form-label">Nome Visualizzato *</label>
+                            <input asp-for="License.DisplayName" class="form-control" 
+                                   placeholder="es. Basic License"
+                                   required />
+                            <span asp-validation-for="License.DisplayName" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label asp-for="License.Description" class="form-label">Descrizione</label>
+                            <textarea asp-for="License.Description" class="form-control" 
+                                      rows="3"
+                                      placeholder="Descrizione della licenza"></textarea>
+                            <span asp-validation-for="License.Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- License Limits -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-sliders"></i> Limiti e Tier</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="License.TierLevel" class="form-label">Tier Level *</label>
+                            <select asp-for="License.TierLevel" class="form-select" required>
+                                <option value="1">1 - Basic</option>
+                                <option value="2">2 - Standard</option>
+                                <option value="3">3 - Premium</option>
+                                <option value="4">4 - Enterprise</option>
+                                <option value="5">5 - Ultimate</option>
+                            </select>
+                            <span asp-validation-for="License.TierLevel" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="License.MaxUsers" class="form-label">Massimo Utenti *</label>
+                            <input asp-for="License.MaxUsers" type="number" class="form-control" 
+                                   min="1" max="100000"
+                                   required />
+                            <span asp-validation-for="License.MaxUsers" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="License.MaxApiCallsPerMonth" class="form-label">Max API Calls/Mese *</label>
+                            <input asp-for="License.MaxApiCallsPerMonth" type="number" class="form-control" 
+                                   min="0" max="10000000"
+                                   required />
+                            <span asp-validation-for="License.MaxApiCallsPerMonth" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-check2-square"></i> Features Disponibili</h5>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllFeatures()">
+                            Seleziona Tutte
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllFeatures()">
+                            Deseleziona Tutte
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        Seleziona le features disponibili per questa licenza.
+                    </div>
+                    
+                    @{
+                        var featuresByCategory = Model.AvailableFeatures.GroupBy(f => f.Category).OrderBy(g => g.Key);
+                    }
+                    
+                    @foreach (var categoryGroup in featuresByCategory)
+                    {
+                        <div class="mb-3">
+                            <h6 class="text-primary">@categoryGroup.Key</h6>
+                            <hr class="mt-1 mb-2" />
+                            
+                            @foreach (var feature in categoryGroup.OrderBy(f => f.SortOrder).ThenBy(f => f.DisplayName))
+                            {
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input feature-checkbox" 
+                                           type="checkbox" 
+                                           name="SelectedFeatures" 
+                                           value="@feature.Id"
+                                           id="feature_@feature.Id"
+                                           @(Model.SelectedFeatures.Contains(feature.Id) ? "checked" : "") />
+                                    <label class="form-check-label" for="feature_@feature.Id">
+                                        <strong>@feature.DisplayName</strong>
+                                        @if (feature.MinimumTierLevel > 1)
+                                        {
+                                            <span class="badge bg-secondary ms-2">Tier @feature.MinimumTierLevel+</span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(feature.Description))
+                                        {
+                                            <br/><small class="text-muted">@feature.Description</small>
+                                        }
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+                    
+                    @if (!Model.AvailableFeatures.Any())
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            Nessuna feature disponibile nel sistema.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Assigned Tenants (Edit Mode) -->
+            @if (Model.IsEditMode && Model.AssignedTenants.Any())
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-building"></i> Tenant con questa Licenza</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            @foreach (var tenant in Model.AssignedTenants)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@tenant.DisplayName</strong>
+                                            <span class="badge bg-secondary ms-2">@tenant.Code</span>
+                                        </div>
+                                        <small class="text-muted">
+                                            @if (tenant.ExpiresAt.HasValue)
+                                            {
+                                                <span>Scade: @tenant.ExpiresAt.Value.ToString("dd/MM/yyyy")</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Nessuna scadenza</span>
+                                            }
+                                        </small>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Impostazioni</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input asp-for="License.IsActive" class="form-check-input" type="checkbox" 
+                               id="licenseActive" />
+                        <label class="form-check-label" for="licenseActive">
+                            <strong>Licenza Attiva</strong>
+                        </label>
+                        <small class="d-block text-muted">
+                            La licenza sarà disponibile per l'assegnazione ai tenant
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata (Edit Mode) -->
+            @if (Model.IsEditMode)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Metadata</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8"><code class="small">@Model.License.Id</code></dd>
+
+                            <dt class="col-sm-4">Creata:</dt>
+                            <dd class="col-sm-8">@Model.License.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                            @if (Model.License.ModifiedAt.HasValue)
+                            {
+                                <dt class="col-sm-4">Modificata:</dt>
+                                <dd class="col-sm-8">@Model.License.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")</dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+            }
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-save"></i> 
+                        @(Model.IsEditMode ? "Salva Modifiche" : "Crea Licenza")
+                    </button>
+                    <a href="/dashboard/licenses" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-circle"></i> Annulla
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        function selectAllFeatures() {
+            document.querySelectorAll('.feature-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function deselectAllFeatures() {
+            document.querySelectorAll('.feature-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    </script>
+}
