@@ -12,6 +12,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<ClassificationNodeManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingNodes"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -19,11 +20,12 @@
 @if (!_isLoading)
 {
     <div class="classification-page-root">
-        <div class="classification-top">
-            <ManagementDashboard TItem="ClassificationNodeDto" 
-                                 Items="_filteredNodes" 
-                                 Metrics="_dashboardMetrics" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="ClassificationNodeDto"
+                      Items="_nodes"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="classification-filters">
             <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
@@ -143,6 +145,12 @@
                                  ComponentKey="ClassificationNodeManagement"
                                  InitialColumnConfigurations="_initialColumns"
                                  AllowDragDropGrouping="true"
+                                 ShowExport="true"
+                                 ShowExportDialog="true"
+                                 ExcelFileName="Classificazioni"
+                                 IsDataFiltered="@HasActiveFilters()"
+                                 TotalItemsCount="@_nodes.Count"
+                                 OnRowClick="@HandleRowClick"
                                  Hover="true"
                                  Striped="true"
                                  Breakpoint="Breakpoint.Sm">
@@ -273,55 +281,61 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Type", DisplayName = "Tipo", IsVisible = true, Order = 2 },
-        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "Type", DisplayName = "Tipo", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3, IsSearchable = false }
     };
 
-    // Dashboard configuration
-    private List<DashboardMetric<ClassificationNodeDto>> _dashboardMetrics = new()
+    // Quick Filters
+    private List<QuickFilter<ClassificationNodeDto>> _quickFilters = new()
     {
-        new()
-        {
-            Title = "Totale Nodi",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.AccountTree,
-            Color = "primary",
-            Description = "Numero totale di nodi di classificazione",
-            Format = "N0"
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i nodi"
         },
-        new()
-        {
-            Title = "Nodi Attivi",
-            Type = MetricType.Count,
-            Filter = n => n.Status == ProductClassificationNodeStatus.Active,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "success",
-            Description = "Nodi con stato Attivo",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Categorie Root",
-            Type = MetricType.Count,
-            Filter = n => n.ParentId == null,
+        new() 
+        { 
+            Id = "root_nodes", 
+            Label = "Nodi Radice",
+            Predicate = n => n.ParentId == null,
+            Color = Color.Primary,
             Icon = Icons.Material.Outlined.Category,
-            Color = "info",
-            Description = "Nodi di primo livello (senza genitore)",
-            Format = "N0"
+            Description = "Nodi di primo livello (senza genitore)"
         },
-        new()
-        {
-            Title = "In Attesa",
-            Type = MetricType.Count,
-            Filter = n => n.Status == ProductClassificationNodeStatus.Pending,
+        new() 
+        { 
+            Id = "active", 
+            Label = "Attivi",
+            Predicate = n => n.Status == ProductClassificationNodeStatus.Active,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Nodi con stato Attivo"
+        },
+        new() 
+        { 
+            Id = "pending", 
+            Label = "In Attesa",
+            Predicate = n => n.Status == ProductClassificationNodeStatus.Pending,
+            Color = Color.Warning,
             Icon = Icons.Material.Outlined.Schedule,
-            Color = "warning",
-            Description = "Nodi in attesa di approvazione",
-            Format = "N0"
+            Description = "Nodi in attesa di approvazione"
+        },
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = n => n.CreatedAt >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.NewReleases,
+            Description = "Nodi aggiunti negli ultimi 30 giorni"
         }
     };
+    
+    private QuickFilter<ClassificationNodeDto>? _activeQuickFilter;
 
     private EventCallback<HashSet<ClassificationNodeDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<ClassificationNodeDto>>(this, OnSelectedItemsChanged);
 
@@ -332,6 +346,43 @@
     {
         _selectedNodes = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles quick filter selection
+    /// </summary>
+    private void HandleQuickFilter(QuickFilter<ClassificationNodeDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        RecomputeFilteredNodes();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to classification node detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<ClassificationNodeDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/management/classification-nodes/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/management/classification-nodes/{args.Item.Id}");
+    }
+
+    /// <summary>
+    /// Checks if any filters are currently active
+    /// </summary>
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _typeFilter != null
+            || _statusFilter != null
+            || _activeQuickFilter != null;
     }
 
     public class ClassificationNodeTreeItem : TreeItemData<ClassificationNodeTreeItem>
@@ -452,12 +503,46 @@
     private void RecomputeFilteredNodes()
     {
         var matches = _nodes.Where(n =>
-            (string.IsNullOrEmpty(_searchTerm) ||
-                (n.Name != null && n.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                (n.Code != null && n.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                (n.Description != null && n.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
-            (_typeFilter == null || n.Type == _typeFilter.Value) &&
-            (_statusFilter == null || n.Status == _statusFilter.Value)).ToList();
+        {
+            // Quick filter
+            if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+            {
+                if (!_activeQuickFilter.Predicate(n))
+                    return false;
+            }
+
+            // Search term (checking searchable columns)
+            if (!string.IsNullOrEmpty(_searchTerm))
+            {
+                var searchLower = _searchTerm.ToLowerInvariant();
+                var matchesSearch = false;
+                
+                // Name (searchable)
+                if (n.Name != null && n.Name.Contains(searchLower, StringComparison.OrdinalIgnoreCase))
+                    matchesSearch = true;
+                
+                // Code (searchable)
+                if (n.Code != null && n.Code.Contains(searchLower, StringComparison.OrdinalIgnoreCase))
+                    matchesSearch = true;
+                
+                // Description (searchable - not in columns but useful)
+                if (n.Description != null && n.Description.Contains(searchLower, StringComparison.OrdinalIgnoreCase))
+                    matchesSearch = true;
+                
+                if (!matchesSearch)
+                    return false;
+            }
+
+            // Type filter
+            if (_typeFilter != null && n.Type != _typeFilter.Value)
+                return false;
+
+            // Status filter
+            if (_statusFilter != null && n.Status != _statusFilter.Value)
+                return false;
+
+            return true;
+        }).ToList();
 
         var nodesById = _nodes.ToDictionary(n => n.Id);
         _childrenLookup = _nodes.ToLookup(n => n.ParentId);
@@ -521,7 +606,7 @@
     private void ExpandAll() { void Recurse(List<ClassificationNodeTreeItem> items) { foreach (var it in items) { it.Expanded = true; if (it.Children?.Any() == true) Recurse(it.Children); } } Recurse(TreeItems.ToList()); StateHasChanged(); }
     private void CollapseAll() { void Recurse(List<ClassificationNodeTreeItem> items) { foreach (var it in items) { it.Expanded = false; if (it.Children?.Any() == true) Recurse(it.Children); } } Recurse(TreeItems.ToList()); StateHasChanged(); }
 
-    private async Task ClearFilters() { _searchTerm = string.Empty; _typeFilter = null; _statusFilter = null; RecomputeFilteredNodes(); StateHasChanged(); await Task.CompletedTask; }
+    private async Task ClearFilters() { _searchTerm = string.Empty; _typeFilter = null; _statusFilter = null; _activeQuickFilter = null; RecomputeFilteredNodes(); StateHasChanged(); await Task.CompletedTask; }
 
     private async Task OnSearchChanged()
     {
