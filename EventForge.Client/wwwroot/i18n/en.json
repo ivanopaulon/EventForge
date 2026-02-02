@@ -275,6 +275,7 @@
     "help": "Help",
     "import": "Import",
     "info": "Information",
+    "itemsFound": "items found",
     "language": "Language",
     "loading": "Loading...",
     "never": "Never",
@@ -285,6 +286,7 @@
     "notImplemented": "Not implemented",
     "notSpecified": "Not specified",
     "ok": "OK",
+    "onlyActive": "Only active",
     "paste": "Paste",
     "preferences": "Preferences",
     "previous": "Previous",
@@ -307,6 +309,7 @@
     "system": "System",
     "tenant": "Tenant",
     "thisItem": "This item",
+    "type": "Type",
     "upload": "Upload",
     "user": "User",
     "version": "Version",
@@ -1996,13 +1999,18 @@
     "columnSearchable": "Searchable",
     "columnSearchableTooltip": "This column will be included in text search",
     "columnVisible": "Visible",
+    "configuration": "Configuration",
+    "dragColumnToGroup": "Drag a column header here to group",
     "filterBy": "Filter by {0}",
     "loading": "Loading...",
     "noData": "No data available",
     "noRecords": "No records found",
     "pagerInfo": "Showing {0} to {1} of {2}",
-    "rowsPerPage": "Rows per page",
-    "sortBy": "Sort by {0}"
+    "resetPreferences": "Reset settings",
+    "rowsPerPage": "Rows per page:",
+    "search": "Search",
+    "sortBy": "Sort by {0}",
+    "totalRecords": "Total"
   },
   "theme": {
     "changeError": "Error changing theme",
@@ -2051,7 +2059,7 @@
     "autoRefresh": "Toggle auto refresh",
     "clearFilters": "Clear all filters",
     "clearLogs": "Clear logs",
-    "create": "Create new",
+    "create": "Create new item",
     "createNew": "Create new",
     "deactivate": "Deactivate",
     "deactivateItem": "Deactivate item",
@@ -2994,11 +3002,16 @@
     "filteredFrom": "Filtered from {0} total rows",
     "selectedColumns": "{0} columns selected",
     "selectFormat": "Select format",
+    "recommended": "Recommended",
     "confirm": "Export",
     "noData": "No data to export",
     "success": "Export completed successfully!",
     "failed": "Export failed",
     "error": "Error during export: {0}",
     "inProgress": "Export in progress..."
+  },
+  "quickFilters": {
+    "title": "Quick filters",
+    "all": "All"
   }
 }
