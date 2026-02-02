@@ -278,6 +278,7 @@
     "help": "Aiuto",
     "import": "Importa",
     "info": "Informazione",
+    "itemsFound": "elementi trovati",
     "language": "Lingua",
     "loading": "Caricamento...",
     "never": "Mai",
@@ -288,6 +289,7 @@
     "notImplemented": "Non implementato",
     "notSpecified": "Non specificato",
     "ok": "OK",
+    "onlyActive": "Solo attivi",
     "paste": "Incolla",
     "preferences": "Preferenze",
     "previous": "Precedente",
@@ -310,6 +312,7 @@
     "system": "Sistema",
     "tenant": "Tenant",
     "thisItem": "Questo elemento",
+    "type": "Tipo",
     "upload": "Carica",
     "user": "Utente",
     "version": "Versione",
@@ -1999,13 +2002,18 @@
     "columnSearchable": "Ricercabile",
     "columnSearchableTooltip": "Questa colonna sarà inclusa nella ricerca testuale",
     "columnVisible": "Visibile",
+    "configuration": "Configurazione",
+    "dragColumnToGroup": "Trascina qui un'intestazione di colonna per raggruppare",
     "filterBy": "Filtra per {0}",
     "loading": "Caricamento in corso...",
     "noData": "Nessun dato disponibile",
     "noRecords": "Nessun record trovato",
     "pagerInfo": "{first_item}-{last_item} di {all_items}",
-    "rowsPerPage": "Righe per pagina",
-    "sortBy": "Ordina per {0}"
+    "resetPreferences": "Ripristina impostazioni",
+    "rowsPerPage": "Righe per pagina:",
+    "search": "Cerca",
+    "sortBy": "Ordina per {0}",
+    "totalRecords": "Totale"
   },
   "theme": {
     "changeError": "Errore nel cambio tema",
@@ -2054,7 +2062,7 @@
     "autoRefresh": "Attiva/Disattiva aggiornamento automatico",
     "clearFilters": "Cancella tutti i filtri",
     "clearLogs": "Cancella log",
-    "create": "Crea nuovo",
+    "create": "Crea nuovo elemento",
     "createNew": "Crea nuovo elemento",
     "deactivate": "Disattiva",
     "deactivateItem": "Disattiva {0}",
@@ -3021,11 +3029,16 @@
     "filteredFrom": "Filtrate da {0} righe totali",
     "selectedColumns": "{0} colonne selezionate",
     "selectFormat": "Seleziona formato",
+    "recommended": "Consigliato",
     "confirm": "Esporta",
     "noData": "Nessun dato da esportare",
     "success": "Export completato con successo!",
     "failed": "Export fallito",
     "error": "Errore durante l'export: {0}",
     "inProgress": "Export in corso..."
+  },
+  "quickFilters": {
+    "title": "Filtri rapidi",
+    "all": "Tutti"
   }
 }

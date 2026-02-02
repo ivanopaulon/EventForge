@@ -3,7 +3,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Extensions
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IProductService ProductService
@@ -13,6 +13,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<ProductManagement> Logger
+@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingProducts"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -20,14 +21,12 @@
 @if (!_isLoading)
 {
     <div class="product-page-root">
-        <div class="product-top">
-            <ManagementDashboard TItem="ProductDto"
-                                 Items="_filteredProducts"
-                                 Metrics="_dashboardMetrics"
-                                 EntityType="Product"
-                                 AllowConfiguration="true"
-                                 UseServerSide="false" />
-        </div>
+        <!-- Quick Filters -->
+        <QuickFilters TItem="ProductDto"
+                      Items="_products"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
@@ -36,7 +35,6 @@
                  MultiSelection="true"
                  SelectedItems="_selectedProducts"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
-                 OnRowClick="@(args => NavigationManager.NavigateTo($"/product-management/products/{args.Item.Id}"))"
                  IsLoading="_isLoadingProducts"
                  ComponentKey="ProductManagement"
                  InitialColumnConfigurations="_initialColumns"
@@ -45,7 +43,8 @@
                  ShowExportDialog="true"
                  ExcelFileName="Prodotti"
                  IsDataFiltered="@HasActiveFilters()"
-                 TotalItemsCount="@_products.Count">
+                 TotalItemsCount="@_products.Count"
+                 OnRowClick="@HandleRowClick">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
@@ -188,38 +187,6 @@
                 </div>
             </NoRecordsContent>
             </EFTable>
-            
-            <!-- Pagination -->
-            @if (_pagedResult != null)
-            {
-                <MudDivider Class="my-4" />
-                <div class="d-flex justify-center align-center flex-wrap gap-4">
-                    @if (_pagedResult.TotalPages > 1)
-                    {
-                        <MudPagination Count="@_pagedResult.TotalPages" 
-                                       Selected="@_currentPage" 
-                                       Color="Color.Primary"
-                                       Size="Size.Medium"
-                                       ShowFirstButton="true"
-                                       ShowLastButton="true"
-                                       SelectedChanged="@OnPageChanged" />
-                    }
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @if (_pagedResult.TotalPages > 1)
-                        {
-                            @TranslationService.GetTranslation("pagination.info", 
-                                "Pagina {0} di {1} - Totale: {2} prodotti", 
-                                _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
-                        }
-                        else
-                        {
-                            @TranslationService.GetTranslation("pagination.singlePage", 
-                                "Totale: {0} prodotti", 
-                                _pagedResult.TotalCount)
-                        }
-                    </MudText>
-                </div>
-            }
         </div>
     </div>
 }
@@ -241,10 +208,64 @@
     private string _searchTerm = string.Empty;
     private CancellationTokenSource? _searchDebounceCts;
 
-    // Pagination state
-    private PagedResult<ProductDto>? _pagedResult;
-    private int _currentPage = 1;
-    private int _pageSize = 20;
+    // Quick Filters
+    private List<QuickFilter<ProductDto>> _quickFilters = new()
+    {
+        new() 
+        { 
+            Id = "all", 
+            Label = "Tutti",
+            Predicate = _ => true,
+            Description = "Mostra tutti i prodotti"
+        },
+        new() 
+        { 
+            Id = "active", 
+            Label = "Attivi",
+            Predicate = p => p.Status == ProductStatus.Active,
+            Color = Color.Success,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Description = "Prodotti attivi"
+        },
+        new() 
+        { 
+            Id = "bundle", 
+            Label = "Bundle",
+            Predicate = p => p.IsBundle,
+            Color = Color.Info,
+            Icon = Icons.Material.Outlined.Inventory,
+            Description = "Prodotti di tipo bundle"
+        },
+        new() 
+        { 
+            Id = "simple", 
+            Label = "Semplici",
+            Predicate = p => !p.IsBundle,
+            Color = Color.Primary,
+            Icon = Icons.Material.Outlined.ShoppingBag,
+            Description = "Prodotti semplici"
+        },
+        new() 
+        { 
+            Id = "with_images", 
+            Label = "Con Immagini",
+            Predicate = p => p.ImageDocumentId != null,
+            Color = Color.Secondary,
+            Icon = Icons.Material.Outlined.Image,
+            Description = "Prodotti con immagini"
+        },
+        new() 
+        { 
+            Id = "recent", 
+            Label = "Recenti",
+            Predicate = p => p.CreatedAt >= DateTime.UtcNow.AddDays(-30),
+            Color = Color.Warning,
+            Icon = Icons.Material.Outlined.NewReleases,
+            Description = "Prodotti aggiunti negli ultimi 30 giorni"
+        }
+    };
+    
+    private QuickFilter<ProductDto>? _activeQuickFilter;
 
     // Data collections
     private List<ProductDto> _products = new();
@@ -256,63 +277,49 @@
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
-        new() { PropertyName = "ShortDescription", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
-        new() { PropertyName = "DefaultPrice", DisplayName = "Prezzo", IsVisible = true, Order = 3 }
-    };
-
-    // Dashboard configuration
-    private List<DashboardMetric<ProductDto>> _dashboardMetrics = new()
-    {
-        new()
-        {
-            Title = "Totale Prodotti",
-            Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Inventory2,
-            Color = "primary",
-            Description = "Numero totale di prodotti",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Prodotti Attivi",
-            Type = MetricType.Count,
-            Filter = p => p.Status == ProductStatus.Active,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Color = "success",
-            Description = "Prodotti attivi",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Con Immagini",
-            Type = MetricType.Count,
-            Filter = p => p.ImageDocumentId != null,
-            Icon = Icons.Material.Outlined.Image,
-            Color = "info",
-            Description = "Prodotti con immagini",
-            Format = "N0"
-        },
-        new()
-        {
-            Title = "Ultimi Aggiunti",
-            Type = MetricType.Count,
-            Filter = p => p.CreatedAt >= DateTime.Now.AddDays(-30),
-            Icon = Icons.Material.Outlined.NewReleases,
-            Color = "warning",
-            Description = "Prodotti aggiunti negli ultimi 30 giorni",
-            Format = "N0"
-        }
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+        new() { PropertyName = "ShortDescription", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
+        new() { PropertyName = "DefaultPrice", DisplayName = "Prezzo", IsVisible = true, Order = 3, IsSearchable = false }
     };
 
     private EventCallback<HashSet<ProductDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<ProductDto>>(this, OnSelectedItemsChanged);
 
     /// <summary>
-    /// Computed property for filtered products based on search criteria.
-    /// Since we now filter server-side, this just returns the products as-is.
+    /// Handles quick filter selection
     /// </summary>
-    private IEnumerable<ProductDto> _filteredProducts => _products;
+    private void HandleQuickFilter(QuickFilter<ProductDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Computed property for filtered products based on search criteria.
+    /// </summary>
+    private IEnumerable<ProductDto> _filteredProducts => 
+        _products.Where(p => FilterProduct(p));
+
+    /// <summary>
+    /// Filters a product based on search term and other criteria
+    /// </summary>
+    private bool FilterProduct(ProductDto product)
+    {
+        // Quick filter
+        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(product))
+                return false;
+        }
+
+        // Configurable multi-column search
+        if (!product.MatchesSearchInColumns(
+            _searchTerm,
+            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -321,6 +328,22 @@
     {
         _selectedProducts = items;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles row click - navigates to product detail page
+    /// </summary>
+    private void HandleRowClick(TableRowClickEventArgs<ProductDto> args)
+    {
+        // Ctrl+Click or Cmd+Click opens in new tab
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/product-management/products/{args.Item.Id}", "_blank");
+            return;
+        }
+
+        // Normal click navigates in same tab
+        NavigationManager.NavigateTo($"/product-management/products/{args.Item.Id}");
     }
 
     /// <summary>
@@ -353,18 +376,18 @@
     }
 
     /// <summary>
-    /// Loads product data with optional search term.
+    /// Loads product data.
     /// </summary>
     private async Task LoadProductsAsync()
     {
         try
         {
             _isLoadingProducts = true;
-            _pagedResult = await ProductService.GetProductsAsync(_currentPage, _pageSize, _searchTerm);
+            var result = await ProductService.GetProductsAsync(1, int.MaxValue, string.Empty);
             
-            if (_pagedResult != null)
+            if (result != null)
             {
-                _products = _pagedResult.Items.ToList();
+                _products = result.Items.ToList();
             }
         }
         catch (Exception ex)
@@ -381,16 +404,15 @@
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private async Task ClearFilters()
+    private void ClearFilters()
     {
         _searchTerm = string.Empty;
-        await LoadProductsAsync();
+        _activeQuickFilter = null;
+        StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        _currentPage = 1; // Reset to page 1 when search changes
-        
         // Cancel previous debounce if any
         _searchDebounceCts?.Cancel();
         _searchDebounceCts = new CancellationTokenSource();
@@ -401,19 +423,13 @@
             await Task.Delay(300, token); // Debounce with cancellation
             if (!token.IsCancellationRequested)
             {
-                await LoadProductsAsync(); // Call server-side search
+                StateHasChanged();
             }
         }
         catch (OperationCanceledException)
         {
             // Swallow cancellation
         }
-    }
-
-    private async Task OnPageChanged(int page)
-    {
-        _currentPage = page;
-        await LoadProductsAsync();
     }
 
     private void CreateProduct()
@@ -552,6 +568,7 @@
     
     private bool HasActiveFilters()
     {
-        return !string.IsNullOrWhiteSpace(_searchTerm);
+        return !string.IsNullOrWhiteSpace(_searchTerm)
+            || _activeQuickFilter != null;
     }
 }

@@ -22,11 +22,6 @@
     overflow: hidden;
 }
 
-.classification-top {
-    flex: 0 0 auto;
-    padding: 12px;
-}
-
 .classification-filters {
     flex: 0 0 auto;
     padding: 0 12px 12px;
@@ -46,7 +41,6 @@
         min-height: 100vh;
     }
     
-    .classification-top,
     .classification-filters {
         padding: 8px;
     }

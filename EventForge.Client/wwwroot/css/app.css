@@ -507,21 +507,11 @@ kbd {
 
 /* Dashboard wrappers - entity-specific classes */
 /* Pattern: .[entity]-top */
-.warehouse-top,
-.vat-rate-top,
-.businessparty-top,
-.pricelist-top,
-.product-top,
-.brand-top,
-.customer-top,
-.supplier-top,
+/* Only for pages still using ManagementDashboard or simple headers */
 .document-type-top,
 .document-counter-top,
-.operator-top,
-.pos-top,
 .lot-top,
-.unit-of-measure-top,
-.vat-nature-top {
+.operator-top {
     width: 100%;
 }
 
