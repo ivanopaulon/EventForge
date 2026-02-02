@@ -355,7 +355,10 @@ namespace EventForge.Client.Services
                     return false;
                 }
 
-                // Check if token is about to expire (give at least 5 minutes margin)
+                // Check if token is about to expire
+                // Note: This threshold (20 min) is intentionally lower than SessionKeepaliveService's 
+                // REFRESH_THRESHOLD_MINUTES (30 min) to avoid refusing legitimate refresh requests.
+                // SessionKeepaliveService decides WHEN to refresh, AuthService decides IF refresh is needed.
                 var currentToken = await GetAccessTokenAsync();
                 if (!string.IsNullOrEmpty(currentToken))
                 {
@@ -363,7 +366,7 @@ namespace EventForge.Client.Services
                     var jwtToken = tokenHandler.ReadJwtToken(currentToken);
                     var timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
 
-                    if (timeToExpiry.TotalMinutes > 10)
+                    if (timeToExpiry.TotalMinutes > 20)
                     {
                         _logger.LogInformation("Token still has {Minutes} minutes validity, skipping refresh", timeToExpiry.TotalMinutes);
                         return true; // Token still valid, no need to refresh
