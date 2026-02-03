@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using Microsoft.Extensions.Caching.Memory;
 using EventForge.Client.Helpers;
@@ -48,25 +49,23 @@ public class NoteFlagService : INoteFlagService
         
         try
         {
-            var result = await _httpClientService.GetAsync<List<NoteFlagDto>>($"{BaseUrl}/active");
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<NoteFlagDto>>($"{BaseUrl}/active");
+            var activeNoteFlags = pagedResult?.Items?.ToList() ?? new List<NoteFlagDto>();
             
-            if (result != null)
-            {
-                // Store in cache (60 minutes - LongCache)
-                _cache.Set(
-                    CacheHelper.ACTIVE_NOTE_FLAGS, 
-                    result, 
-                    CacheHelper.GetLongCacheOptions()
-                );
-                
-                _logger.LogInformation(
-                    "Cached {Count} active note flags for {Minutes} minutes", 
-                    result.Count, 
-                    CacheHelper.LongCache.TotalMinutes
-                );
-            }
+            // Store in cache (60 minutes - LongCache)
+            _cache.Set(
+                CacheHelper.ACTIVE_NOTE_FLAGS, 
+                activeNoteFlags, 
+                CacheHelper.GetLongCacheOptions()
+            );
             
-            return result;
+            _logger.LogInformation(
+                "Cached {Count} active note flags for {Minutes} minutes", 
+                activeNoteFlags.Count, 
+                CacheHelper.LongCache.TotalMinutes
+            );
+            
+            return activeNoteFlags;
         }
         catch (Exception ex)
         {
