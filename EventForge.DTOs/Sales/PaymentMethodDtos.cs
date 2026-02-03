@@ -123,7 +123,7 @@ namespace EventForge.DTOs.Sales
         /// <summary>
         /// Fiscal code for fiscal printer integration (1-10).
         /// </summary>
-        [Range(1, 10)]
+        [Range(1, 10, ErrorMessage = "Fiscal code must be between 1 and 10.")]
         public int? FiscalCode { get; set; }
     }
 
@@ -182,7 +182,7 @@ namespace EventForge.DTOs.Sales
         /// <summary>
         /// Fiscal code for fiscal printer integration (1-10).
         /// </summary>
-        [Range(1, 10)]
+        [Range(1, 10, ErrorMessage = "Fiscal code must be between 1 and 10.")]
         public int? FiscalCode { get; set; }
     }
 }
