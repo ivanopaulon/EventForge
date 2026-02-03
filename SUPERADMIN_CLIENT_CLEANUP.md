@@ -147,7 +147,7 @@ Before cleanup, `ISuperAdminService` was used by:
   - 3 SuperAdmin components
   - 2 Support components (AuditLogDrawer, RolePermissionsDialog)
 - **Services Removed**: 1 (SuperAdminService)
-- **Lines of Code Removed**: ~3,500 lines (estimated)
+- **Lines of Code Removed**: ~8,643 lines
 - **Component Count Reduction**: 13 components
 - **Estimated Bundle Size Reduction**: 5-10%
 - **Build Time Improvement**: ~10-15% (estimated)

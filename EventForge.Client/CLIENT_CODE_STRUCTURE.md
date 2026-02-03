@@ -293,7 +293,7 @@ SuperAdmin users should now access:
 - 3 Shared components (SuperAdminBanner, SuperAdminPageLayout, SuperAdminCollapsibleSection)
 - 2 Support components (AuditLogDrawer, RolePermissionsDialog)
 
-**Lines of Code Removed**: ~3,500 lines
+**Lines of Code Removed**: ~8,643 lines
 
 ## Architecture Patterns
 
