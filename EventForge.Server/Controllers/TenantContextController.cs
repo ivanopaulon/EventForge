@@ -129,7 +129,7 @@ public class TenantContextController : BaseApiController
     /// <param name="pageSize">Page size for pagination</param>
     /// <returns>Paginated audit trail entries</returns>
     [HttpGet("audit-trail")]
-    public async Task<ActionResult<PagedResult<AuditTrailResponseDto>>> GetAuditTrail(
+    public async Task<ActionResult<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>>> GetAuditTrail(
         [FromQuery] Guid? tenantId = null,
         [FromQuery] AuditOperationType? operationType = null,
         [FromQuery] int pageNumber = 1,

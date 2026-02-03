@@ -356,12 +356,12 @@ public class LogManagementController : BaseApiController
     /// <response code="500">If an error occurred while retrieving audit logs</response>
     [HttpGet("audit-logs")]
     [Authorize(Roles = "SuperAdmin")]
-    [ProducesResponseType(typeof(PagedResult<AuditTrailResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<PagedResult<AuditTrailResponseDto>>> GetAuditLogs(
-        [FromQuery] AuditTrailSearchDto searchDto,
+    public async Task<ActionResult<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>>> GetAuditLogs(
+        [FromQuery] EventForge.DTOs.SuperAdmin.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
@@ -392,10 +392,10 @@ public class LogManagementController : BaseApiController
     /// <response code="500">If an error occurred while retrieving statistics</response>
     [HttpGet("audit-logs/statistics")]
     [Authorize(Roles = "SuperAdmin")]
-    [ProducesResponseType(typeof(AuditTrailStatisticsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<AuditTrailStatisticsDto>> GetAuditStatistics(
+    public async Task<ActionResult<EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto>> GetAuditStatistics(
         CancellationToken cancellationToken = default)
     {
         try

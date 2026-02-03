@@ -84,7 +84,7 @@ public interface ITenantService
     /// <param name="pageNumber">Page number for pagination</param>
     /// <param name="pageSize">Page size for pagination</param>
     /// <returns>Paginated audit trail entries</returns>
-    Task<PagedResult<AuditTrailResponseDto>> GetAuditTrailAsync(
+    Task<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditTrailAsync(
         Guid? tenantId = null,
         AuditOperationType? operationType = null,
         int pageNumber = 1,

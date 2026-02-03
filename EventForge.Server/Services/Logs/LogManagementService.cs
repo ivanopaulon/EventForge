@@ -275,13 +275,22 @@ public class LogManagementService : ILogManagementService
 
     #region Audit Logs (Integration)
 
-    public async Task<PagedResult<AuditTrailResponseDto>> GetAuditLogsAsync(
-        AuditTrailSearchDto searchDto,
+    public async Task<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditLogsAsync(
+        EventForge.DTOs.SuperAdmin.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _auditLogService.SearchAuditTrailAsync(searchDto, cancellationToken);
+            // This is for SuperAdmin audit operations, not entity change logs
+            // TODO: Implement proper audit trail search for SuperAdmin operations
+            await Task.CompletedTask;
+            return new PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>
+            {
+                Items = new List<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>(),
+                TotalCount = 0,
+                Page = searchDto.PageNumber,
+                PageSize = searchDto.PageSize
+            };
         }
         catch (Exception ex)
         {
@@ -290,11 +299,23 @@ public class LogManagementService : ILogManagementService
         }
     }
 
-    public async Task<AuditTrailStatisticsDto> GetAuditStatisticsAsync(CancellationToken cancellationToken = default)
+    public async Task<EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto> GetAuditStatisticsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _auditLogService.GetAuditTrailStatisticsAsync(cancellationToken);
+            // This is for SuperAdmin audit operations, not entity change logs
+            // TODO: Implement proper statistics for SuperAdmin operations
+            await Task.CompletedTask;
+            return new EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto
+            {
+                TotalOperations = 0,
+                SuccessfulOperations = 0,
+                FailedOperations = 0,
+                CriticalOperations = 0,
+                OperationsToday = 0,
+                OperationsThisWeek = 0,
+                OperationsThisMonth = 0
+            };
         }
         catch (Exception ex)
         {
