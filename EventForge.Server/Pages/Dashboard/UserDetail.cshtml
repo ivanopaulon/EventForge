@@ -1,0 +1,352 @@
+@page "/dashboard/userdetail"
+@model EventForge.Server.Pages.Dashboard.UserDetailModel
+@{
+    ViewData["Title"] = Model.IsEditMode ? $"Modifica Utente: {Model.UserForm.Username}" : "Nuovo Utente";
+    ViewData["PageSection"] = "Multi-Tenant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-person-circle"></i> 
+        @if (Model.IsEditMode)
+        {
+            <span>Modifica Utente</span>
+        }
+        else
+        {
+            <span>Nuovo Utente</span>
+        }
+    </h2>
+    <a href="/dashboard/users" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Torna alla Lista
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Statistics (Edit Mode Only) -->
+@if (Model.IsEditMode)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Ultimo Accesso</h6>
+                    <h4>
+                        @if (Model.UserForm.LastLoginAt.HasValue)
+                        {
+                            <span>@Model.UserForm.LastLoginAt.Value.ToString("dd/MM/yyyy")</span><br/>
+                            <small class="text-muted">@Model.UserForm.LastLoginAt.Value.ToString("HH:mm")</small>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Mai</span>
+                        }
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Stato</h6>
+                    <h4>
+                        @if (Model.UserForm.IsActive)
+                        {
+                            <span class="badge bg-success">Attivo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Disabilitato</span>
+                        }
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Creato</h6>
+                    <h4>@Model.UserForm.CreatedAt.ToString("dd/MM/yyyy")</h4>
+                    <small class="text-muted">@Model.UserForm.CreatedAt.ToString("HH:mm")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<form method="post">
+    <input type="hidden" asp-for="UserForm.Id" />
+    
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informazioni Base</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="UserForm.Username" class="form-label">Username *</label>
+                            @if (Model.IsEditMode)
+                            {
+                                <input asp-for="UserForm.Username" class="form-control" 
+                                       readonly
+                                       required />
+                            }
+                            else
+                            {
+                                <input asp-for="UserForm.Username" class="form-control" 
+                                       placeholder="es. mario.rossi"
+                                       required />
+                            }
+                            <span asp-validation-for="User.Username" class="text-danger"></span>
+                            @if (!Model.IsEditMode)
+                            {
+                                <small class="text-muted">Username univoco (non modificabile)</small>
+                            }
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label asp-for="UserForm.Email" class="form-label">Email *</label>
+                            <input asp-for="UserForm.Email" type="email" class="form-control" 
+                                   placeholder="mario.rossi@esempio.com"
+                                   required 
+                                   id="userEmail" />
+                            <span asp-validation-for="User.Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="UserForm.FirstName" class="form-label">Nome *</label>
+                            <input asp-for="UserForm.FirstName" class="form-control" 
+                                   placeholder="Mario"
+                                   required />
+                            <span asp-validation-for="User.FirstName" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="UserForm.LastName" class="form-label">Cognome *</label>
+                            <input asp-for="UserForm.LastName" class="form-control" 
+                                   placeholder="Rossi"
+                                   required />
+                            <span asp-validation-for="User.LastName" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label asp-for="UserForm.TenantId" class="form-label">Tenant *</label>
+                            <select asp-for="UserForm.TenantId" class="form-select" required>
+                                <option value="">-- Seleziona Tenant --</option>
+                                @foreach (var tenant in Model.AvailableTenants)
+                                {
+                                    <option value="@tenant.Id">@tenant.DisplayName (@tenant.Code)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="User.TenantId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Roles Assignment -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-shield-lock-fill"></i> Ruoli</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        Assegnare uno o più ruoli all'utente. I permessi dipendono dai ruoli assegnati.
+                    </div>
+                    
+                    @foreach (var role in Model.AvailableRoles)
+                    {
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   name="SelectedRoles" 
+                                   value="@role.Id"
+                                   id="role_@role.Id"
+                                   @(Model.SelectedRoles.Contains(role.Id) ? "checked" : "") />
+                            <label class="form-check-label" for="role_@role.Id">
+                                <strong>@role.DisplayName</strong>
+                                @if (!string.IsNullOrEmpty(role.Description))
+                                {
+                                    <br/><small class="text-muted">@role.Description</small>
+                                }
+                            </label>
+                        </div>
+                    }
+                    
+                    @if (!Model.AvailableRoles.Any())
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            Nessun ruolo disponibile nel sistema.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Password Reset (Edit Mode) -->
+            @if (Model.IsEditMode)
+            {
+                <div class="card mb-4 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="bi bi-key"></i> Reset Password</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Per resettare la password dell'utente, utilizza il pulsante "Reset Password" nella lista utenti.
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Impostazioni</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="UserForm.IsActive" class="form-check-input" type="checkbox" 
+                               id="userActive" />
+                        <label class="form-check-label" for="userActive">
+                            <strong>Utente Attivo</strong>
+                        </label>
+                        <small class="d-block text-muted">
+                            @if (Model.IsEditMode)
+                            {
+                                <span>Disabilitando l'utente non potrà accedere al sistema</span>
+                            }
+                            else
+                            {
+                                <span>L'utente sarà immediatamente attivo</span>
+                            }
+                        </small>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input asp-for="UserForm.MustChangePassword" class="form-check-input" type="checkbox" 
+                               id="mustChangePassword" />
+                        <label class="form-check-label" for="mustChangePassword">
+                            <strong>Deve Cambiare Password</strong>
+                        </label>
+                        <small class="d-block text-muted">
+                            L'utente dovrà cambiare la password al prossimo accesso
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata (Edit Mode) -->
+            @if (Model.IsEditMode)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Metadata</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8"><code class="small">@Model.UserForm.Id</code></dd>
+
+                            <dt class="col-sm-4">Creato:</dt>
+                            <dd class="col-sm-8">@Model.UserForm.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                            @if (Model.UserForm.ModifiedAt.HasValue)
+                            {
+                                <dt class="col-sm-4">Modificato:</dt>
+                                <dd class="col-sm-8">@Model.UserForm.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")</dd>
+                            }
+                            
+                            @if (Model.UserForm.PasswordChangedAt.HasValue)
+                            {
+                                <dt class="col-sm-4">PWD Cambiata:</dt>
+                                <dd class="col-sm-8">@Model.UserForm.PasswordChangedAt.Value.ToString("dd/MM/yyyy HH:mm")</dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+            }
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-save"></i> 
+                        @(Model.IsEditMode ? "Salva Modifiche" : "Crea Utente")
+                    </button>
+                    <a href="/dashboard/users" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-circle"></i> Annulla
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    @if (!Model.IsEditMode)
+    {
+        <script>
+            // Auto-fill email from username
+            document.getElementById('UserForm_Username').addEventListener('input', function(e) {
+                const username = e.target.value;
+                const emailField = document.getElementById('userEmail');
+                
+                // Only auto-fill if email is empty or was auto-generated
+                if (!emailField.value || emailField.dataset.autoGenerated === 'true') {
+                    // Simple heuristic: if username contains @ it's likely an email
+                    if (username.includes('@')) {
+                        emailField.value = username;
+                    } else {
+                        // Otherwise, suggest username@domain format
+                        emailField.value = username ? username + '@esempio.com' : '';
+                    }
+                    emailField.dataset.autoGenerated = 'true';
+                }
+            });
+
+            // Mark as manually edited if user types in email field
+            document.getElementById('userEmail').addEventListener('input', function(e) {
+                if (e.target.value) {
+                    e.target.dataset.autoGenerated = 'false';
+                }
+            });
+        </script>
+    }
+}

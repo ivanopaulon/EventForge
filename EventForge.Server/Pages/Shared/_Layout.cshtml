@@ -72,22 +72,19 @@
                         <span>Tenants</span>
                     </a>
                     <a href="/dashboard/users" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 disabled">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/user") ? "active" : "")">
                         <i class="bi bi-people-fill me-2"></i>
                         <span>Users</span>
-                        <span class="badge bg-secondary ms-auto">Soon</span>
                     </a>
                     <a href="/dashboard/licenses" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 disabled">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/license") ? "active" : "")">
                         <i class="bi bi-card-checklist me-2"></i>
                         <span>Licenses</span>
-                        <span class="badge bg-secondary ms-auto">Soon</span>
                     </a>
                     <a href="/dashboard/roles" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 disabled">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/role") ? "active" : "")">
                         <i class="bi bi-shield-lock-fill me-2"></i>
                         <span>Roles & Permissions</span>
-                        <span class="badge bg-secondary ms-auto">Soon</span>
                     </a>
                 </div>
             </div>
