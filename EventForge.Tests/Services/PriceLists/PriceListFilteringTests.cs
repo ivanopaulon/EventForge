@@ -265,10 +265,10 @@ public class PriceListFilteringTests : IDisposable
             => Task.FromResult(new PagedResult<EntityChangeLog> { Items = Enumerable.Empty<EntityChangeLog>(), TotalCount = 0, Page = 1, PageSize = 10 });
         public Task<EntityChangeLog?> GetLogByIdAsync(Guid id, CancellationToken cancellationToken = default)
             => Task.FromResult<EntityChangeLog?>(null);
-        public Task<PagedResult<AuditTrailResponseDto>> SearchAuditTrailAsync(AuditTrailSearchDto searchDto, CancellationToken cancellationToken = default)
-            => Task.FromResult(new PagedResult<AuditTrailResponseDto> { Items = Enumerable.Empty<AuditTrailResponseDto>(), TotalCount = 0, Page = 1, PageSize = 10 });
-        public Task<AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(new AuditTrailStatisticsDto());
+        public Task<PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(EventForge.DTOs.Audit.AuditTrailSearchDto searchDto, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto> { Items = Enumerable.Empty<EventForge.DTOs.Audit.AuditTrailResponseDto>(), TotalCount = 0, Page = 1, PageSize = 10 });
+        public Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new EventForge.DTOs.Audit.AuditTrailStatisticsDto());
         public Task<ExportResultDto> ExportAdvancedAsync(ExportRequestDto exportRequest, CancellationToken cancellationToken = default)
             => Task.FromResult(new ExportResultDto());
         public Task<ExportResultDto?> GetExportStatusAsync(Guid exportId, CancellationToken cancellationToken = default)

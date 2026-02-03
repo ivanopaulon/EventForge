@@ -69,20 +69,20 @@ public class PriceListBusinessPartyServiceTests
             return Task.FromResult<EntityChangeLog?>(null);
         }
 
-        public Task<PagedResult<AuditTrailResponseDto>> SearchAuditTrailAsync(AuditTrailSearchDto searchDto, CancellationToken cancellationToken = default)
+        public Task<PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(EventForge.DTOs.Audit.AuditTrailSearchDto searchDto, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(new PagedResult<AuditTrailResponseDto>
+            return Task.FromResult(new PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>
             {
-                Items = Enumerable.Empty<AuditTrailResponseDto>(),
+                Items = Enumerable.Empty<EventForge.DTOs.Audit.AuditTrailResponseDto>(),
                 TotalCount = 0,
                 Page = 1,
                 PageSize = 10
             });
         }
 
-        public Task<AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(CancellationToken cancellationToken = default)
+        public Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(new AuditTrailStatisticsDto());
+            return Task.FromResult(new EventForge.DTOs.Audit.AuditTrailStatisticsDto());
         }
 
         public Task<ExportResultDto> ExportAdvancedAsync(ExportRequestDto exportRequest, CancellationToken cancellationToken = default)

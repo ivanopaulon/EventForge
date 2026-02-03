@@ -15,7 +15,7 @@ namespace EventForge.Client.Services
         // Audit Logs  
         Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams);
         Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id);
-        Task<AuditTrailStatisticsDto> GetAuditLogStatisticsAsync();
+        Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync();
         Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto);
 
         // Real-time subscriptions
@@ -82,10 +82,10 @@ namespace EventForge.Client.Services
             return await _httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}");
         }
 
-        public async Task<AuditTrailStatisticsDto> GetAuditLogStatisticsAsync()
+        public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync()
         {
-            return await _httpClientService.GetAsync<AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
-                   new AuditTrailStatisticsDto();
+            return await _httpClientService.GetAsync<EventForge.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
+                   new EventForge.DTOs.Audit.AuditTrailStatisticsDto();
         }
 
         public async Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto)
