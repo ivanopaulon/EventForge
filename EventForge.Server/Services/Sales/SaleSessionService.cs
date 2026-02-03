@@ -805,38 +805,35 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 throw new InvalidOperationException($"Session cannot be closed. Total paid ({completedPayments}) is less than final total ({session.FinalTotal}).");
             }
 
-            // Use transaction to ensure atomicity
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            // No manual transaction needed - EF Core will use implicit transaction via SaveChangesAsync
+            // This prevents nested transaction errors when GenerateDocumentNumberAsync is called
+            session.Status = SaleSessionStatus.Closed;
+            session.ClosedAt = DateTime.UtcNow;
+            session.ModifiedBy = currentUser;
+            session.ModifiedAt = DateTime.UtcNow;
+
+            // Generate document
+            var documentId = await GenerateReceiptDocumentAsync(session, currentUser, cancellationToken);
+
+            if (documentId.HasValue)
+            {
+                session.DocumentId = documentId.Value;
+            }
+
+            // SaveChanges will handle transaction atomicity
+            await _context.SaveChangesAsync(cancellationToken);
+            
+            // Log audit entry (best effort - don't fail session close if audit fails)
             try
             {
-                session.Status = SaleSessionStatus.Closed;
-                session.ClosedAt = DateTime.UtcNow;
-                session.ModifiedBy = currentUser;
-                session.ModifiedAt = DateTime.UtcNow;
-
-                // Generate document INSIDE the transaction
-                var documentId = await GenerateReceiptDocumentAsync(session, currentUser, cancellationToken);
-
-                if (documentId.HasValue)
-                {
-                    session.DocumentId = documentId.Value;
-                }
-
-                // SINGLE SaveChanges
-                await _context.SaveChangesAsync(cancellationToken);
                 await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
-
-                // Commit transaction
-                await transaction.CommitAsync(cancellationToken);
-
-                _logger.LogInformation("Closed sale session {SessionId}", sessionId);
             }
-            catch (Exception ex)
+            catch (Exception auditEx)
             {
-                await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Error closing sale session {SessionId}. Transaction rolled back.", sessionId);
-                throw;
+                _logger.LogWarning(auditEx, "Failed to log audit entry for session {SessionId}, but session was closed successfully", sessionId);
             }
+
+            _logger.LogInformation("Closed sale session {SessionId}", sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }

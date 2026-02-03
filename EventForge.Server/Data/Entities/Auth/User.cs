@@ -152,13 +152,6 @@ public class User : AuditableEntity
     public string? MetadataJson { get; set; }
 
     /// <summary>
-    /// Tenant ID this user belongs to.
-    /// </summary>
-    [Required]
-    [Display(Name = "Tenant ID", Description = "Tenant ID this user belongs to.")]
-    public new Guid TenantId { get; set; }
-
-    /// <summary>
     /// Indicates if the user is locked out.
     /// </summary>
     public bool IsLockedOut => LockedUntil.HasValue && LockedUntil.Value > DateTime.UtcNow;
