@@ -192,6 +192,15 @@ public partial class EventForgeDbContext : DbContext
 
     #endregion
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        
+        // Configure split query behavior to avoid cartesian explosion with multiple includes
+        // This prevents EF Core warnings about loading related collections
+        optionsBuilder.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

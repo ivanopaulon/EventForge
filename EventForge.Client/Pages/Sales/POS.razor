@@ -11,7 +11,7 @@
 @using EventForge.Client.Services.Sales
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
-@implements IDisposable
+@implements IAsyncDisposable
 @attribute [Authorize]
 @inject POSViewModel ViewModel
 @inject IDialogService DialogService
@@ -308,6 +308,8 @@
 
 @code {
     private ProductDto? _currentProduct;
+    private IJSObjectReference? _shortcutsModule;
+    private DotNetObjectReference<POS>? _dotNetRef;
 
     protected override async Task OnInitializedAsync()
     {
@@ -969,7 +971,12 @@
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("setupPOSKeyboardShortcuts", DotNetObjectReference.Create(this));
+            // Import the module as ES6 module
+            _shortcutsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/pos-shortcuts.js");
+            
+            // Create .NET reference and setup shortcuts
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await _shortcutsModule.InvokeVoidAsync("setupPOSKeyboardShortcuts", _dotNetRef);
         }
     }
 
@@ -1011,9 +1018,27 @@
         }
     }
 
-    // Dispose pattern
-    public void Dispose()
+    // Dispose pattern - now async to properly cleanup JS module
+    public async ValueTask DisposeAsync()
     {
+        // Cleanup JavaScript event listeners
+        if (_shortcutsModule != null)
+        {
+            try
+            {
+                await _shortcutsModule.InvokeVoidAsync("cleanup");
+                await _shortcutsModule.DisposeAsync();
+            }
+            catch
+            {
+                // Ignore errors during disposal
+            }
+        }
+        
+        // Dispose .NET object reference
+        _dotNetRef?.Dispose();
+        
+        // Cleanup ViewModel
         ViewModel.StateChanged -= StateHasChanged;
         ViewModel.OnNotification -= HandleNotification;
         ViewModel.Dispose();
