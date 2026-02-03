@@ -455,7 +455,8 @@ app.UseWhen(
             // If no token, redirect to login with return URL
             if (string.IsNullOrEmpty(token))
             {
-                context.Response.Redirect($"/ServerAuth/Login?returnUrl={Uri.EscapeDataString(context.Request.Path)}");
+                var returnUrl = context.Request.Path + context.Request.QueryString;
+                context.Response.Redirect($"/ServerAuth/Login?returnUrl={Uri.EscapeDataString(returnUrl)}");
                 return;
             }
             
