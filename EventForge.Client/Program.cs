@@ -170,8 +170,7 @@ builder.Services.AddScoped<IDocumentRowValidator, DocumentRowValidator>();
 builder.Services.AddScoped<IDocumentStatusService, DocumentStatusService>();
 builder.Services.AddScoped<ICsvImportService, CsvImportService>();
 
-// Add SuperAdmin services
-builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
+// Add Logs services
 builder.Services.AddScoped<ILogsService, LogsService>();
 builder.Services.AddScoped<ILogManagementService, LogManagementService>();
 builder.Services.AddScoped<IEntityManagementService, EntityManagementService>();

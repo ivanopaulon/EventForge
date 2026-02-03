@@ -4,16 +4,16 @@
 This document describes the organization and architecture of the EventForge Blazor WebAssembly client application.
 
 ## Project Statistics
-- **Total Razor Components**: 155
-- **Total C# Files**: 104
+- **Total Razor Components**: 142 (-13 from SuperAdmin cleanup)
+- **Total C# Files**: 103
 - **Total CSS Files**: 41
 - **Total JavaScript Files**: 4
 - **Build Status**: ✅ 0 Errors
-- **Last Cleanup**: December 2025 - Documentation Update (verified dead code removal, updated component counts)
+- **Last Cleanup**: February 2026 - PR #4: SuperAdmin Client Cleanup (removed all SuperAdmin pages and components)
 
 ## Folder Structure
 
-### `/Pages` - Application Pages (64 pages)
+### `/Pages` - Application Pages (51 pages)
 Pages are organized by feature domain with nested categorization:
 
 #### Root Pages (5)
@@ -23,18 +23,17 @@ Pages are organized by feature domain with nested categorization:
 - `Admin.razor` - Admin dashboard
 - `Error.razor` - Error handling page
 
-#### SuperAdmin (13 pages)
-Administrative pages for system-level management:
-- `TenantManagement.razor` / `TenantDetail.razor` - Multi-tenant management
-- `UserManagement.razor` / `UserDetail.razor` - System user management
-- `LicenseManagement.razor` / `LicenseDetail.razor` - License administration
-- `TenantSwitch.razor` - Tenant context switching
-- `SystemLogs.razor` - System-level logging
-- `ClientLogManagement.razor` - Client-side log management
-- `AuditTrail.razor` - Audit trail viewer
-- `ChatModeration.razor` - Chat moderation tools
-- `Configuration.razor` - System configuration
-- `TranslationManagement.razor` - I18n management
+#### SuperAdmin Management
+❌ **REMOVED** - All SuperAdmin pages moved to Server Dashboard (EventForge.Server)
+
+SuperAdmin functionality is now exclusively available at:
+- Server Dashboard: `/dashboard` (Razor Pages)
+  - Tenants: `/dashboard/tenants`
+  - Users: `/dashboard/users`
+  - Licenses: `/dashboard/licenses`
+  - Roles & Permissions: `/dashboard/roles`
+
+The client Blazor app is now focused exclusively on tenant-specific functionality.
 
 #### Management/Warehouse (3 pages)
 Warehouse and inventory management:
@@ -98,9 +97,9 @@ Point of sale functionality:
 #### Printing (1 page)
 - `PrinterManagement.razor` - Printer configuration
 
-### `/Shared/Components` - Reusable Components (52 components)
+### `/Shared/Components` - Reusable Components (48 components)
 
-#### Dialogs (23 components)
+#### Dialogs (22 components)
 Modal dialogs for user interaction:
 - **Product Management**: `AddProductCodeDialog`, `AddProductUnitDialog`, `AddProductSupplierDialog`, `AddBundleItemDialog`, `EditProductCodeDialog`, `EditProductUnitDialog`, `EditProductSupplierDialog`, `EditBundleItemDialog`
 - **Business**: `AddressDialog`, `ContactDialog`, `ReferenceDialog`
@@ -108,10 +107,13 @@ Modal dialogs for user interaction:
 - **Documents**: `AddDocumentRowDialog`, `DocumentCounterDialog`
 - **System**: `ConfirmationDialog`, `LoadingDialog`, `GlobalLoadingDialog`, `HealthStatusDialog`, `ModelDialog`, `ManageSupplierProductsDialog`
 
-#### Drawers (2 components)
+#### Drawers (1 component)
 Side panel components (streamlined after deprecation cleanup):
-- `AuditLogDrawer.razor` - Audit log viewer (used in SuperAdmin pages)
 - `EntityDrawer.razor` - Generic entity drawer base component
+
+**Removed Components** (PR #4 - February 2026):
+- ~~`AuditLogDrawer.razor`~~ → Only used by SuperAdmin pages (removed)
+- ~~`RolePermissionsDialog.razor`~~ → Only used by SuperAdmin pages (removed)
 
 **Removed Deprecated Drawers** (November 2025):
 - ~~`BusinessPartyDrawer.razor`~~ → Replaced by `BusinessPartyDetail.razor` page
@@ -136,14 +138,18 @@ Chart and trend visualization components:
 - Fast Inventory implementations were deprecated and removed
 - Use classic `InventoryProcedure.razor` for all inventory operations
 
-#### Other Shared Components (19)
+#### Other Shared Components (17)
 - **Navigation**: `UserAccountMenu.razor`, `LanguageSelector.razor`, `ThemeSelector.razor`
-- **UI Elements**: `ActionButtonGroup.razor`, `ClassificationNodePicker.razor`, `ProductTabSection.razor`, `SuperAdminCollapsibleSection.razor`, `SuperAdminPageLayout.razor`
+- **UI Elements**: `ActionButtonGroup.razor`, `ClassificationNodePicker.razor`, `ProductTabSection.razor`
 - **Help System**: `HelpTooltip.razor`, `InteractiveWalkthrough.razor`, `OnboardingModal.razor`
 - **Notifications**: `NotificationBadge.razor`, `NotificationGrouping.razor`, `RichNotificationCard.razor`
 - **Chat**: `EnhancedMessage.razor`, `EnhancedMessageComposer.razor`
 - **System**: `PageLoadingOverlay.razor`, `HealthFooter.razor`, `LazyAttachmentComponent.razor`
-- **Admin**: `SuperAdminBanner.razor`
+
+**Removed SuperAdmin Components** (PR #4 - February 2026):
+- ~~`SuperAdminBanner.razor`~~ → SuperAdmin functionality moved to Server Dashboard
+- ~~`SuperAdminPageLayout.razor`~~ → SuperAdmin functionality moved to Server Dashboard
+- ~~`SuperAdminCollapsibleSection.razor`~~ → SuperAdmin functionality moved to Server Dashboard
 
 ### `/Services` - Business Logic Layer (60 service files)
 
@@ -186,9 +192,12 @@ Chart and trend visualization components:
 - `EntityManagementService.cs`
 
 **Administration**:
-- `SuperAdmin/ISuperAdminService.cs` / `SuperAdminService.cs`
 - `LogsService.cs`
 - `LicenseService.cs`
+
+**Removed SuperAdmin Services** (PR #4 - February 2026):
+- ~~`SuperAdmin/ISuperAdminService.cs`~~ → Functionality moved to Server Dashboard
+- ~~`SuperAdmin/SuperAdminService.cs`~~ → Functionality moved to Server Dashboard
 
 **Sales** (`Services/Sales/`):
 - `ISalesService.cs` / `SalesService.cs`
@@ -255,6 +264,36 @@ Chart and trend visualization components:
 - `trace.svg` - Logo SVG
 - `login_background.jpg` - Login background
 - `login_panel_background.jpg` - Login panel background
+
+## Architecture Changes
+
+### PR #4: SuperAdmin Cleanup (February 2026)
+
+**Removed**:
+- All 13 SuperAdmin pages from client (`/Pages/SuperAdmin/`)
+- 3 SuperAdmin components (`SuperAdminBanner`, `SuperAdminPageLayout`, `SuperAdminCollapsibleSection`)
+- 2 SuperAdmin-only dialogs/drawers (`AuditLogDrawer`, `RolePermissionsDialog`)
+- SuperAdmin service layer (`ISuperAdminService`, `SuperAdminService`)
+- SuperAdmin navigation menu section
+
+**Rationale**:
+- Eliminates code duplication (Server Dashboard already provides full SuperAdmin functionality)
+- Improves security (SuperAdmin operations server-side only)
+- Reduces client bundle size (~5-10% reduction)
+- Simplifies architecture and maintenance
+- Clearer separation between client (tenant-specific) and server (system-wide) concerns
+
+**Migration**:
+SuperAdmin users should now access:
+- `/dashboard` - Server Dashboard (Razor Pages with sidebar navigation)
+- All tenant/user/license/role management available there
+
+**Files Removed**: 18 total files
+- 13 Razor pages (TenantManagement, UserManagement, LicenseManagement, etc.)
+- 3 Shared components (SuperAdminBanner, SuperAdminPageLayout, SuperAdminCollapsibleSection)
+- 2 Support components (AuditLogDrawer, RolePermissionsDialog)
+
+**Lines of Code Removed**: ~8,643 lines
 
 ## Architecture Patterns
 

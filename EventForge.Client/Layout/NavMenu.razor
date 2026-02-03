@@ -14,43 +14,6 @@
 <MudNavMenu>
     @if (_isAuthenticated)
     {
-        @if (_isSuperAdmin)
-        {
-            <MudNavGroup title="@TranslationService.GetTranslation("nav.superAdmin", "Super Amministrazione")" 
-                         Icon="@Icons.Material.Outlined.AdminPanelSettings" 
-                         Expanded="true">
-                <MudNavLink Href="/superadmin/tenant-management" 
-                            Icon="@Icons.Material.Outlined.Business" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.tenantManagement", "Gestione Tenant")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/user-management" 
-                            Icon="@Icons.Material.Outlined.People" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.userManagement", "Gestione Utenti")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/license-management" 
-                            Icon="@Icons.Material.Outlined.Security" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.licenseManagement", "Gestione Licenze")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/role-permission-management" 
-                            Icon="@Icons.Material.Outlined.Shield" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.rolePermissionManagement", "Gestione Ruoli e Permessi")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/feature-templates" 
-                            Icon="@Icons.Material.Outlined.FeaturedPlayList" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.featureTemplates", "Feature Templates")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/configuration" 
-                            Icon="@Icons.Material.Outlined.Settings" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.configuration", "Configurazione")
-                </MudNavLink>
-            </MudNavGroup>
-        }
         @if (_isSuperAdmin || _isAdmin || _isManager)
         {
             <!-- Dashboard Admin -->
