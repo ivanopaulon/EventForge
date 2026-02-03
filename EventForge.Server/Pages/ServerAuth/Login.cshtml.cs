@@ -56,14 +56,18 @@ public class LoginModel : PageModel
                 Password = Password
             };
 
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+            if (string.IsNullOrEmpty(userAgent))
+            {
+                userAgent = "unknown";
+            }
 
             var loginResult = await _authService.LoginAsync(loginRequest, ipAddress, userAgent);
 
             if (loginResult == null)
             {
-                ModelState.AddModelError(string.Empty, "Invalid credentials");
+                ModelState.AddModelError(string.Empty, "Invalid credentials. Please check your tenant code, username, and password.");
                 return Page();
             }
 
@@ -104,8 +108,12 @@ public class LoginModel : PageModel
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Login failed for {Username}", Username);
-            ModelState.AddModelError(string.Empty, "Login failed. Please try again.");
+            _logger.LogError(ex, "Login error for user {Username} from tenant {TenantCode}: {ErrorMessage}", 
+                Username, TenantCode, ex.Message);
+            
+            // Provide user-friendly error without exposing internal details
+            ModelState.AddModelError(string.Empty, 
+                "Unable to process login request. Please try again or contact support if the problem persists.");
             return Page();
         }
     }
