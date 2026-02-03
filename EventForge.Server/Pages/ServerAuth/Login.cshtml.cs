@@ -11,15 +11,17 @@ namespace EventForge.Server.Pages.ServerAuth;
 [AllowAnonymous]
 public class LoginModel : PageModel
 {
+    private const string CookieScheme = "ServerCookie";
+    
     private readonly Services.Auth.IAuthenticationService _authService;
-    private readonly ILogger<LoginModel> logger;
+    private readonly ILogger<LoginModel> _logger;
 
     public LoginModel(
         Services.Auth.IAuthenticationService authService,
         ILogger<LoginModel> logger)
     {
         _authService = authService;
-        this.logger = logger;
+        _logger = logger;
     }
 
     public void OnGet()
@@ -82,7 +84,7 @@ public class LoginModel : PageModel
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var claimsIdentity = new ClaimsIdentity(claims, "ServerCookie");
+            var claimsIdentity = new ClaimsIdentity(claims, CookieScheme);
             var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
 
             var authProperties = new AuthenticationProperties
@@ -93,9 +95,9 @@ public class LoginModel : PageModel
             };
 
             // Sign in with Cookie Authentication
-            await HttpContext.SignInAsync("ServerCookie", claimsPrincipal, authProperties);
+            await HttpContext.SignInAsync(CookieScheme, claimsPrincipal, authProperties);
 
-            logger.LogInformation(
+            _logger.LogInformation(
                 "User {Username} from tenant {TenantCode} logged in successfully",
                 Username, TenantCode);
 
@@ -103,7 +105,7 @@ public class LoginModel : PageModel
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Login failed for {Username}", Username);
+            _logger.LogError(ex, "Login failed for {Username}", Username);
             ModelState.AddModelError(string.Empty, "Login failed. Please try again.");
             return Page();
         }
@@ -111,7 +113,7 @@ public class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostLogoutAsync()
     {
-        await HttpContext.SignOutAsync("ServerCookie");
+        await HttpContext.SignOutAsync(CookieScheme);
         return RedirectToPage("/ServerAuth/Login");
     }
 }

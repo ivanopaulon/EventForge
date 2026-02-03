@@ -44,6 +44,10 @@ using System.Text;
 
 public static class ServiceCollectionExtensions
 {
+    // Authentication scheme constants
+    private const string CookieScheme = "ServerCookie";
+    private const string MixedScheme = "Mixed";
+
     /// <summary>
     /// Configura Serilog con fallback su file se il database non � disponibile.
     /// </summary>
@@ -468,7 +472,7 @@ public static class ServiceCollectionExtensions
         // Configure JWT authentication
         _ = services.AddAuthentication(options =>
         {
-            options.DefaultScheme = "Mixed";
+            options.DefaultScheme = MixedScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         })
         .AddJwtBearer(options =>
@@ -516,7 +520,7 @@ public static class ServiceCollectionExtensions
                 }
             };
         })
-        .AddCookie("ServerCookie", options =>
+        .AddCookie(CookieScheme, options =>
         {
             options.Cookie.Name = "serverToken";
             options.LoginPath = "/ServerAuth/Login";
@@ -540,7 +544,7 @@ public static class ServiceCollectionExtensions
                 }
             };
         })
-        .AddPolicyScheme("Mixed", "JWT or Cookie", options =>
+        .AddPolicyScheme(MixedScheme, "JWT or Cookie", options =>
         {
             options.ForwardDefaultSelector = context =>
             {
@@ -548,7 +552,7 @@ public static class ServiceCollectionExtensions
                 if (context.Request.Path.StartsWithSegments("/Dashboard") ||
                     context.Request.Path.StartsWithSegments("/ServerAuth"))
                 {
-                    return "ServerCookie";
+                    return CookieScheme;
                 }
 
                 // If the request has Authorization header, use JWT
@@ -558,7 +562,7 @@ public static class ServiceCollectionExtensions
                 }
 
                 // Default: Cookie for Razor Pages
-                return "ServerCookie";
+                return CookieScheme;
             };
         });
     }
