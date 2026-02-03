@@ -106,7 +106,7 @@ public class BrandingController : BaseApiController
     /// <param name="ct">Cancellation token</param>
     /// <returns>Updated branding configuration</returns>
     [HttpPut("tenant/{tenantId:guid}")]
-    [Authorize(Policy = AuthorizationPolicies.RequireManager)]
+    [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
     [ProducesResponseType(typeof(BrandingConfigurationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -160,7 +160,7 @@ public class BrandingController : BaseApiController
     /// <param name="ct">Cancellation token</param>
     /// <returns>No content on success</returns>
     [HttpDelete("tenant/{tenantId:guid}")]
-    [Authorize(Policy = AuthorizationPolicies.RequireManager)]
+    [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -207,7 +207,7 @@ public class BrandingController : BaseApiController
     /// <param name="ct">Cancellation token</param>
     /// <returns>Uploaded logo URL</returns>
     [HttpPost("upload")]
-    [Authorize(Policy = AuthorizationPolicies.RequireManager)]
+    [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

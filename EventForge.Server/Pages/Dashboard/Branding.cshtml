@@ -1,0 +1,222 @@
+@page "/dashboard/branding"
+@model EventForge.Server.Pages.Dashboard.BrandingModel
+@{
+    ViewData["Title"] = "Configurazione Branding";
+    ViewData["PageSection"] = "Multi-Tenant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-palette"></i> Configurazione Branding</h2>
+</div>
+
+@if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5>Branding Globale</h5>
+                <h3>@(string.IsNullOrEmpty(Model.GlobalBranding.LogoUrl) || Model.GlobalBranding.LogoUrl == "/eventforgetitle.svg" ? "Default" : "Custom")</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5>Override Tenant</h5>
+                <h3>@Model.TenantOverridesCount</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5>Configurazione</h5>
+                <h3>Attiva</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs for Global/Tenant -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="global-tab" data-bs-toggle="tab" data-bs-target="#global" type="button">
+            <i class="bi bi-globe"></i> Branding Globale
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tenant-tab" data-bs-toggle="tab" data-bs-target="#tenant" type="button">
+            <i class="bi bi-building"></i> Override Tenant
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Tab Globale -->
+    <div class="tab-pane fade show active" id="global">
+        <form method="post" asp-page-handler="UpdateGlobal" enctype="multipart/form-data">
+            <div class="row">
+                <!-- Left Column: Form -->
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-image"></i> Logo e Identità</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Upload Logo -->
+                            <div class="mb-3">
+                                <label class="form-label">Logo Applicazione</label>
+                                <input type="file" name="logoFile" class="form-control" accept=".svg,.png,.jpg,.jpeg,.webp" onchange="previewLogo(this, 'globalLogoPreview')" />
+                                <small class="text-muted">Formati supportati: SVG, PNG, JPG, WEBP (max 5MB)</small>
+                            </div>
+                            
+                            <!-- Application Name -->
+                            <div class="mb-3">
+                                <label asp-for="GlobalForm.ApplicationName" class="form-label">Nome Applicazione</label>
+                                <input asp-for="GlobalForm.ApplicationName" class="form-control" placeholder="EventForge" />
+                                <span asp-validation-for="GlobalForm.ApplicationName" class="text-danger"></span>
+                            </div>
+                            
+                            <!-- Logo Height -->
+                            <div class="mb-3">
+                                <label asp-for="GlobalForm.LogoHeight" class="form-label">Altezza Logo (px)</label>
+                                <input asp-for="GlobalForm.LogoHeight" type="number" class="form-control" min="20" max="200" />
+                                <span asp-validation-for="GlobalForm.LogoHeight" class="text-danger"></span>
+                            </div>
+                            
+                            <!-- Favicon URL -->
+                            <div class="mb-3">
+                                <label asp-for="GlobalForm.FaviconUrl" class="form-label">URL Favicon</label>
+                                <input asp-for="GlobalForm.FaviconUrl" class="form-control" placeholder="/trace.svg" />
+                                <span asp-validation-for="GlobalForm.FaviconUrl" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column: Preview -->
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-eye"></i> Anteprima</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="border rounded p-4 mb-3" style="background: #f8f9fa;">
+                                <img id="globalLogoPreview" 
+                                     src="@Model.GlobalBranding.LogoUrl" 
+                                     height="@Model.GlobalBranding.LogoHeight" 
+                                     alt="Logo Preview"
+                                     class="mb-2" />
+                                <h5>@Model.GlobalBranding.ApplicationName</h5>
+                            </div>
+                            <small class="text-muted">Anteprima in tempo reale</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Salva Configurazione Globale
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Tab Tenant -->
+    <div class="tab-pane fade" id="tenant">
+        <div class="card mb-4">
+            <div class="card-body">
+                <!-- Tenant Selector -->
+                <div class="mb-4">
+                    <label class="form-label">Seleziona Tenant</label>
+                    <select class="form-select" id="tenantSelector" onchange="loadTenantBranding(this.value)">
+                        <option value="">-- Seleziona un tenant --</option>
+                        @foreach (var tenant in Model.Tenants)
+                        {
+                            <option value="@tenant.Id">@tenant.DisplayName (@tenant.Code)</option>
+                        }
+                    </select>
+                </div>
+                
+                <div id="tenantBrandingForm" style="display: none;">
+                    <form method="post" asp-page-handler="UpdateTenant" enctype="multipart/form-data">
+                        <input type="hidden" id="selectedTenantId" name="tenantId" />
+                        
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="bi bi-building"></i> Override Branding Tenant</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Logo Tenant</label>
+                                            <input type="file" name="tenantLogoFile" class="form-control" accept=".svg,.png,.jpg,.jpeg,.webp" onchange="previewLogo(this, 'tenantLogoPreview')" />
+                                            <small class="text-muted">Formati supportati: SVG, PNG, JPG, WEBP (max 5MB)</small>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Nome Applicazione Tenant (opzionale)</label>
+                                            <input type="text" name="tenantApplicationName" id="tenantApplicationName" class="form-control" placeholder="Lascia vuoto per usare il globale" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="bi bi-eye"></i> Anteprima Tenant</h5>
+                                    </div>
+                                    <div class="card-body text-center" id="tenantPreview">
+                                        <p class="text-muted">Seleziona un tenant per visualizzare l'anteprima</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-danger" onclick="resetTenantBranding()">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Reset a Globale
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> Salva Override Tenant
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/branding.js"></script>
+}
