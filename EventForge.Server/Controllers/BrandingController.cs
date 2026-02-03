@@ -44,7 +44,7 @@ public class BrandingController : BaseApiController
         try
         {
             // Use current tenant if not specified
-            var targetTenantId = tenantId ?? _tenantContext.TenantId;
+            var targetTenantId = tenantId ?? _tenantContext.CurrentTenantId;
 
             var branding = await _brandingService.GetBrandingAsync(targetTenantId, ct);
 
@@ -106,7 +106,7 @@ public class BrandingController : BaseApiController
     /// <param name="ct">Cancellation token</param>
     /// <returns>Updated branding configuration</returns>
     [HttpPut("tenant/{tenantId:guid}")]
-    [Authorize(Policy = AuthorizationPolicies.RequireManager)]
+    [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
     [ProducesResponseType(typeof(BrandingConfigurationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -125,7 +125,7 @@ public class BrandingController : BaseApiController
             }
 
             // Validate tenant access
-            if (_tenantContext.TenantId != tenantId && !_tenantContext.IsSuperAdmin)
+            if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
             {
                 _logger.LogWarning("User {Username} attempted to update branding for unauthorized tenant {TenantId}", 
                     GetCurrentUser(), tenantId);
@@ -160,7 +160,7 @@ public class BrandingController : BaseApiController
     /// <param name="ct">Cancellation token</param>
     /// <returns>No content on success</returns>
     [HttpDelete("tenant/{tenantId:guid}")]
-    [Authorize(Policy = AuthorizationPolicies.RequireManager)]
+    [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -172,7 +172,7 @@ public class BrandingController : BaseApiController
         try
         {
             // Validate tenant access
-            if (_tenantContext.TenantId != tenantId && !_tenantContext.IsSuperAdmin)
+            if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
             {
                 _logger.LogWarning("User {Username} attempted to delete branding for unauthorized tenant {TenantId}", 
                     GetCurrentUser(), tenantId);
@@ -207,7 +207,7 @@ public class BrandingController : BaseApiController
     /// <param name="ct">Cancellation token</param>
     /// <returns>Uploaded logo URL</returns>
     [HttpPost("upload")]
-    [Authorize(Policy = AuthorizationPolicies.RequireManager)]
+    [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -223,7 +223,7 @@ public class BrandingController : BaseApiController
             // Validate tenant access if tenant-specific upload
             if (tenantId.HasValue)
             {
-                if (_tenantContext.TenantId != tenantId && !_tenantContext.IsSuperAdmin)
+                if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
                 {
                     _logger.LogWarning("User {Username} attempted to upload logo for unauthorized tenant {TenantId}", 
                         GetCurrentUser(), tenantId);

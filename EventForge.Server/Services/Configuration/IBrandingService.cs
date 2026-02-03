@@ -1,3 +1,6 @@
+using EventForge.DTOs.Configuration;
+using Microsoft.AspNetCore.Http;
+
 namespace EventForge.Server.Services.Configuration;
 
 /// <summary>
