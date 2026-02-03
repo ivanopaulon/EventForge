@@ -108,7 +108,12 @@ public class VatLookupService : IVatLookupService
     private void CacheResult(string cacheKey, VatLookupResult result)
     {
         var cacheDuration = result.IsValid ? ValidResultCacheDuration : InvalidResultCacheDuration;
-        _cache.Set(cacheKey, result, cacheDuration);
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = cacheDuration,
+            Size = 1
+        };
+        _cache.Set(cacheKey, result, cacheOptions);
         _logger.LogDebug("Cached VAT lookup result for {CacheKey} with TTL {Duration}", cacheKey, cacheDuration);
     }
 

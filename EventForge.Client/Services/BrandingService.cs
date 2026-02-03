@@ -88,7 +88,12 @@ public class BrandingService : IBrandingService
             if (branding != null)
             {
                 // Cache the result
-                _cache.Set(cacheKey, branding, CacheDuration);
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = CacheDuration,
+                    Size = 1
+                };
+                _cache.Set(cacheKey, branding, cacheOptions);
                 return branding;
             }
 

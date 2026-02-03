@@ -106,7 +106,12 @@ public class ViesVatLookupService : IVatLookupService
             }
 
             // Cache the result
-            _cache.Set(cacheKey, result, CacheDuration);
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = CacheDuration,
+                Size = 1
+            };
+            _cache.Set(cacheKey, result, cacheOptions);
 
             _logger.LogInformation(
                 "VAT lookup completed: {CountryCode}{VatNumber} - Valid: {IsValid}",

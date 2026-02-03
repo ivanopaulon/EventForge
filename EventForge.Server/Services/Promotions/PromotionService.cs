@@ -479,7 +479,8 @@ public class PromotionService : IPromotionService
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60), // 60 second TTL
             SlidingExpiration = TimeSpan.FromSeconds(30),
-            Priority = CacheItemPriority.Normal
+            Priority = CacheItemPriority.Normal,
+            Size = 1
         };
 
         _ = _cache.Set(cacheKey, promotions, cacheOptions);

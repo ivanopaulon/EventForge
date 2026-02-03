@@ -206,6 +206,49 @@ Always provide translated tooltips for better accessibility:
 3. **Run**: `dotnet run --project EventForge.Server`
 4. **Browse**: Navigate to `https://localhost:7241` (HTTPS) or `http://localhost:7240` (HTTP)
 
+### SQL Server Configuration
+
+EventForge uses SQL Server as its database backend. If you encounter "Login failed for user 'vsapp'" errors during testing database connections in `/settings` page, you need to create the SQL Server user.
+
+#### Create SQL Server User
+
+Run the following SQL commands in SQL Server Management Studio (SSMS) or Azure Data Studio:
+
+```sql
+-- Create login for SQL Server authentication
+CREATE LOGIN vsapp WITH PASSWORD = 'pass123!';
+
+-- Switch to your database
+USE EventData1;
+
+-- Create user for the login
+CREATE USER vsapp FOR LOGIN vsapp;
+
+-- Grant database owner permissions
+ALTER ROLE db_owner ADD MEMBER vsapp;
+```
+
+#### Update Connection String
+
+Edit your `EventForge.Server/appsettings.json` (or `appsettings.overrides.json` for local development) to match your SQL Server configuration:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=EventData1;User Id=vsapp;Password=pass123!;TrustServerCertificate=True;"
+  }
+}
+```
+
+**Connection String Components:**
+- `Server`: Your SQL Server instance (e.g., `localhost\\SQLEXPRESS`, `localhost`, `(localdb)\\MSSQLLocalDB`)
+- `Database`: Database name (default: `EventData1`)
+- `User Id`: SQL Server username (default: `vsapp`)
+- `Password`: SQL Server password
+- `TrustServerCertificate=True`: Required for local development with self-signed certificates
+
+**Note:** For production environments, use stronger passwords and consider using Windows Authentication or Azure AD authentication instead of SQL Server authentication.
+
 ### Configurazione Porte Server
 
 Il server EventForge è configurato per ascoltare su:

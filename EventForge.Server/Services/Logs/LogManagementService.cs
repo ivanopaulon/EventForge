@@ -104,7 +104,12 @@ public class LogManagementService : ILogManagementService
             var stats = await _applicationLogService.GetLogStatisticsByLevelAsync(fromDate, toDate, cancellationToken);
 
             // Cache for 5 minutes
-            _ = _cache.Set(cacheKey, stats, _cacheExpiration);
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = _cacheExpiration,
+                Size = 1
+            };
+            _ = _cache.Set(cacheKey, stats, cacheOptions);
 
             return stats;
         }
@@ -379,7 +384,12 @@ public class LogManagementService : ILogManagementService
             var config = await _applicationLogService.GetMonitoringConfigAsync(cancellationToken);
 
             // Cache for 5 minutes
-            _ = _cache.Set(CACHE_KEY_MONITORING_CONFIG, config, _cacheExpiration);
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = _cacheExpiration,
+                Size = 1
+            };
+            _ = _cache.Set(CACHE_KEY_MONITORING_CONFIG, config, cacheOptions);
 
             return config;
         }
@@ -434,7 +444,12 @@ public class LogManagementService : ILogManagementService
             var levelsList = levels.ToList();
 
             // Cache for 10 minutes since log levels don't change frequently
-            _ = _cache.Set(CACHE_KEY_LOG_LEVELS, levelsList, TimeSpan.FromMinutes(10));
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                Size = 1
+            };
+            _ = _cache.Set(CACHE_KEY_LOG_LEVELS, levelsList, cacheOptions);
 
             return levelsList;
         }
@@ -521,7 +536,12 @@ public class LogManagementService : ILogManagementService
 
             // Test cache functionality
             var testKey = $"health_test_{Guid.NewGuid()}";
-            _ = _cache.Set(testKey, "test", TimeSpan.FromMinutes(1));
+            var testCacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                Size = 1
+            };
+            _ = _cache.Set(testKey, "test", testCacheOptions);
             var cacheWorks = _cache.TryGetValue(testKey, out _);
             _cache.Remove(testKey);
 

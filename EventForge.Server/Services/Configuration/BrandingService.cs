@@ -119,7 +119,12 @@ public class BrandingService : IBrandingService
             }
 
             // Cache the result
-            _cache.Set(cacheKey, branding, CacheDuration);
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = CacheDuration,
+                Size = 1  // OBBLIGATORIO quando SizeLimit è impostato in Program.cs
+            };
+            _cache.Set(cacheKey, branding, cacheOptions);
 
             return branding;
         }

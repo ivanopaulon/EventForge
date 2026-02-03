@@ -167,6 +167,10 @@ namespace EventForge.Client.Services
                 // SLIDING EXPIRATION: Always refresh when authenticated, regardless of time remaining
                 // This ensures the session never expires as long as the user is active
                 var timeToExpiry = await _authService.GetTokenTimeToExpiryAsync();
+                
+                _logger.LogInformation("🔄 Starting token refresh cycle. Time to expiry: {TimeToExpiry:F1} minutes", 
+                    timeToExpiry?.TotalMinutes ?? -1);
+                
                 if (timeToExpiry.HasValue)
                 {
                     _logger.LogDebug("Token expires in {Minutes:F1} minutes. Performing sliding expiration refresh.", 
@@ -203,19 +207,26 @@ namespace EventForge.Client.Services
 
                         if (success)
                         {
-                            _logger.LogInformation("Token refreshed successfully on attempt {Attempt}. Session extended.", attempt);
+                            _logger.LogInformation("✅ Token refreshed successfully on attempt {Attempt}. New expiration extended.", attempt);
                             _consecutiveFailures = 0;
                             OnRefreshSuccess?.Invoke();
                             return;
                         }
                         else
                         {
-                            _logger.LogWarning("Token refresh returned false on attempt {Attempt}", attempt);
+                            _logger.LogWarning("⚠️ Token refresh returned false on attempt {Attempt}/{MaxRetries}. Check server endpoint availability.", 
+                                attempt, MAX_RETRIES);
                         }
+                    }
+                    catch (HttpRequestException httpEx)
+                    {
+                        _logger.LogError(httpEx, "🌐 Network error during token refresh attempt {Attempt}: {Message}", 
+                            attempt, httpEx.Message);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Exception during token refresh attempt {Attempt}", attempt);
+                        _logger.LogError(ex, "💥 Unexpected exception during token refresh attempt {Attempt}: {ExceptionType}", 
+                            attempt, ex.GetType().Name);
                     }
 
                     // If not the last attempt, wait with exponential backoff
