@@ -12,8 +12,9 @@ public static class ClaimsPrincipalExtensions
     /// </summary>
     public static string? Username(this ClaimsPrincipal principal)
     {
-        return principal?.FindFirst("username")?.Value 
-            ?? principal?.FindFirst(ClaimTypes.Name)?.Value;
+        if (principal == null) return null;
+        return principal.FindFirst("username")?.Value 
+            ?? principal.FindFirst(ClaimTypes.Name)?.Value;
     }
 
     /// <summary>
@@ -58,8 +59,9 @@ public static class ClaimsPrincipalExtensions
     /// </summary>
     public static Guid? UserId(this ClaimsPrincipal principal)
     {
-        var userIdClaim = principal?.FindFirst("user_id")?.Value 
-            ?? principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (principal == null) return null;
+        var userIdClaim = principal.FindFirst("user_id")?.Value 
+            ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (Guid.TryParse(userIdClaim, out var userId))
         {
             return userId;
