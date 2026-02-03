@@ -99,4 +99,9 @@ public class Tenant : AuditableEntity
     /// Navigation property: Licenses assigned to this tenant.
     /// </summary>
     public virtual ICollection<TenantLicense> TenantLicenses { get; set; } = new List<TenantLicense>();
+
+    /// <summary>
+    /// Navigation property: Users belonging to this tenant.
+    /// </summary>
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }
