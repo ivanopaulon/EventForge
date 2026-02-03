@@ -215,7 +215,12 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         suggestions = suggestions.OrderByDescending(s => s.TotalScore).ToList();
 
         // Cache the results
-        _cache.Set(cacheKey, suggestions, TimeSpan.FromMinutes(_cacheScoresDurationMinutes));
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheScoresDurationMinutes),
+            Size = 1
+        };
+        _cache.Set(cacheKey, suggestions, cacheOptions);
 
         return suggestions;
     }

@@ -129,7 +129,8 @@ public class LookupCacheService : ILookupCacheService
             {
                 _cache.Set(BrandsCacheKey, result, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration
+                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration,
+                    Size = 1
                 });
             }
             else
@@ -188,7 +189,8 @@ public class LookupCacheService : ILookupCacheService
             {
                 _cache.Set(key, result, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration
+                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration,
+                    Size = 1
                 });
             }
             else
@@ -241,7 +243,8 @@ public class LookupCacheService : ILookupCacheService
             {
                 _cache.Set(VatRatesCacheKey, result, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration
+                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration,
+                    Size = 1
                 });
             }
             else
@@ -294,7 +297,8 @@ public class LookupCacheService : ILookupCacheService
             {
                 _cache.Set(UnitsCacheKey, result, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration
+                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration,
+                    Size = 1
                 });
             }
             else
