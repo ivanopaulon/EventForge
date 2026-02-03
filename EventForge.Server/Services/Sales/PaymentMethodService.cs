@@ -203,6 +203,7 @@ public class PaymentMethodService : IPaymentMethodService
                 RequiresIntegration = createDto.RequiresIntegration,
                 IntegrationConfig = createDto.IntegrationConfig,
                 AllowsChange = createDto.AllowsChange,
+                FiscalCode = createDto.FiscalCode,
                 TenantId = currentTenantId.Value,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
@@ -267,6 +268,7 @@ public class PaymentMethodService : IPaymentMethodService
             paymentMethod.RequiresIntegration = updateDto.RequiresIntegration;
             paymentMethod.IntegrationConfig = updateDto.IntegrationConfig;
             paymentMethod.AllowsChange = updateDto.AllowsChange;
+            paymentMethod.FiscalCode = updateDto.FiscalCode;
             paymentMethod.ModifiedAt = DateTime.UtcNow;
             paymentMethod.ModifiedBy = currentUser;
 
@@ -391,7 +393,8 @@ public class PaymentMethodService : IPaymentMethodService
             IsActive = entity.IsActive,
             DisplayOrder = entity.DisplayOrder,
             RequiresIntegration = entity.RequiresIntegration,
-            AllowsChange = entity.AllowsChange
+            AllowsChange = entity.AllowsChange,
+            FiscalCode = entity.FiscalCode
         };
     }
 }

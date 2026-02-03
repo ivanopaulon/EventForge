@@ -66,6 +66,15 @@ public class VatRate : AuditableEntity
     /// </summary>
     [Display(Name = "Products", Description = "Products associated with this VAT rate.")]
     public ICollection<Product> Products { get; set; } = new List<Product>();
+
+    // --- Fiscal Printer Support ---
+
+    /// <summary>
+    /// Fiscal code for fiscal printer integration (1-10).
+    /// </summary>
+    [Range(1, 10, ErrorMessage = "Fiscal code must be between 1 and 10.")]
+    [Display(Name = "Fiscal Code", Description = "Code for fiscal printer integration (1-10).")]
+    public int? FiscalCode { get; set; }
 }
 
 /// <summary>

@@ -52,6 +52,13 @@ namespace EventForge.DTOs.Sales
         /// Allows change flag.
         /// </summary>
         public bool AllowsChange { get; set; }
+
+        // --- Fiscal Printer Support ---
+
+        /// <summary>
+        /// Fiscal code for fiscal printer integration (1-10).
+        /// </summary>
+        public int? FiscalCode { get; set; }
     }
 
     /// <summary>
@@ -110,6 +117,14 @@ namespace EventForge.DTOs.Sales
         /// Allows change flag.
         /// </summary>
         public bool AllowsChange { get; set; } = true;
+
+        // --- Fiscal Printer Support ---
+
+        /// <summary>
+        /// Fiscal code for fiscal printer integration (1-10).
+        /// </summary>
+        [Range(1, 10, ErrorMessage = "Fiscal code must be between 1 and 10.")]
+        public int? FiscalCode { get; set; }
     }
 
     /// <summary>
@@ -161,5 +176,13 @@ namespace EventForge.DTOs.Sales
         /// Allows change flag.
         /// </summary>
         public bool AllowsChange { get; set; }
+
+        // --- Fiscal Printer Support ---
+
+        /// <summary>
+        /// Fiscal code for fiscal printer integration (1-10).
+        /// </summary>
+        [Range(1, 10, ErrorMessage = "Fiscal code must be between 1 and 10.")]
+        public int? FiscalCode { get; set; }
     }
 }

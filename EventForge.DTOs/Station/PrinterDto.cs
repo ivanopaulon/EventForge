@@ -71,5 +71,37 @@ namespace EventForge.DTOs.Station
         /// User who last modified the printer.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        // --- Fiscal Printer Support ---
+
+        /// <summary>
+        /// Indicates if this is a fiscal printer.
+        /// </summary>
+        public bool IsFiscalPrinter { get; set; }
+
+        /// <summary>
+        /// Protocol type for fiscal printer communication (e.g., Custom, Epson, RCH, Ditron).
+        /// </summary>
+        public string? ProtocolType { get; set; }
+
+        /// <summary>
+        /// Advanced configuration for fiscal printer (JSON format).
+        /// </summary>
+        public string? ConnectionString { get; set; }
+
+        /// <summary>
+        /// TCP/IP port for fiscal printer communication.
+        /// </summary>
+        public int? Port { get; set; }
+
+        /// <summary>
+        /// Serial port baud rate.
+        /// </summary>
+        public int? BaudRate { get; set; }
+
+        /// <summary>
+        /// Serial port name (e.g., COM1, /dev/ttyUSB0).
+        /// </summary>
+        public string? SerialPortName { get; set; }
     }
 }
