@@ -96,8 +96,8 @@ public class PaymentMethodService : IPaymentMethodService
         
         try
         {
-            var result = await _httpClientService.GetAsync<List<PaymentMethodDto>>($"{BaseUrl}/active");
-            var activePaymentMethods = result ?? new List<PaymentMethodDto>();
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}/active");
+            var activePaymentMethods = pagedResult?.Items?.ToList() ?? new List<PaymentMethodDto>();
             
             _cache.Set(
                 CacheHelper.ACTIVE_PAYMENT_METHODS, 
