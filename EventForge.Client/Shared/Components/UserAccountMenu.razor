@@ -27,6 +27,19 @@
                          aria-label="@TranslationService.GetTranslation("profile.viewProfile", "View profile")">
                 @TranslationService.GetTranslation("navigation.profile", "Profile")
             </MudMenuItem>
+            
+            @* If SuperAdmin, show link Admin Dashboard *@
+            @if (_currentUser?.Roles?.Contains("SuperAdmin") == true)
+            {
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Outlined.AdminPanelSettings"
+                             Href="/Dashboard/Index"
+                             Target="_blank"
+                             aria-label="@TranslationService.GetTranslation("menu.adminDashboardDescription", "Open admin dashboard")">
+                    @TranslationService.GetTranslation("menu.adminDashboard", "Admin Dashboard")
+                </MudMenuItem>
+            }
+            
             <MudDivider />
 
             <MudMenuItem Icon="@Icons.Material.Filled.Logout"

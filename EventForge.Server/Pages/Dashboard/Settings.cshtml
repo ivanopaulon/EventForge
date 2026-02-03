@@ -1,0 +1,299 @@
+@page "/dashboard/settings"
+@model EventForge.Server.Pages.Dashboard.SettingsModel
+@{
+    ViewData["Title"] = "System Settings";
+    ViewData["PageSection"] = "Monitoring";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-gear"></i> System Settings</h2>
+</div>
+
+<!-- Tabs Navigation -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button">
+            <i class="bi bi-sliders"></i> Configuration
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="database-tab" data-bs-toggle="tab" data-bs-target="#database" type="button">
+            <i class="bi bi-database"></i> Database
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance" type="button">
+            <i class="bi bi-speedometer2"></i> Performance
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="features-tab" data-bs-toggle="tab" data-bs-target="#features" type="button">
+            <i class="bi bi-toggle-on"></i> Feature Flags
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Configuration Tab -->
+    <div class="tab-pane fade show active" id="config">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-envelope"></i> SMTP Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateSmtp">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">SMTP Server</label>
+                            <input type="text" class="form-control" name="SmtpServer" placeholder="smtp.gmail.com" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Port</label>
+                            <input type="number" class="form-control" name="SmtpPort" value="587" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Use SSL</label>
+                            <select class="form-select" name="UseSSL">
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" name="SmtpUsername" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" name="SmtpPassword" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save SMTP Settings
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="testSmtp()">
+                                <i class="bi bi-send"></i> Test Connection
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-text"></i> Logging Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateLogging">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Log Level</label>
+                            <select class="form-select" name="LogLevel">
+                                <option value="Trace">Trace</option>
+                                <option value="Debug">Debug</option>
+                                <option value="Information" selected>Information</option>
+                                <option value="Warning">Warning</option>
+                                <option value="Error">Error</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Retention Days</label>
+                            <input type="number" class="form-control" name="RetentionDays" value="30" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Max File Size (MB)</label>
+                            <input type="number" class="form-control" name="MaxFileSizeMB" value="100" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save Logging Settings
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Tab -->
+    <div class="tab-pane fade" id="database">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-database-check"></i> Database Connection Test</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="TestDatabase">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Connection String</label>
+                            <textarea class="form-control" name="ConnectionString" rows="3" 
+                                      placeholder="Server=localhost;Database=EventForge;..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plug"></i> Test Connection
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="connectionResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-archive"></i> Database Backup</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-success" onclick="createBackup()">
+                    <i class="bi bi-download"></i> Create Backup
+                </button>
+                <button type="button" class="btn btn-warning" onclick="showRestore()">
+                    <i class="bi bi-upload"></i> Restore Backup
+                </button>
+                <hr/>
+                <h6>Recent Backups</h6>
+                <div class="list-group" id="backupList">
+                    <div class="list-group-item text-muted">No backups available</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Tab -->
+    <div class="tab-pane fade" id="performance">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-memory"></i> Cache Settings</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateCache">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Memory Cache Size Limit</label>
+                            <input type="number" class="form-control" name="CacheSizeLimit" value="1024" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Compaction Percentage</label>
+                            <input type="number" class="form-control" name="CompactionPercentage" value="25" step="5" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Scan Frequency (minutes)</label>
+                            <input type="number" class="form-control" name="ScanFrequencyMinutes" value="5" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save Cache Settings
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="clearCache()">
+                                <i class="bi bi-trash"></i> Clear All Caches
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-speedometer"></i> API Rate Limiting</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateRateLimit">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Requests per Minute</label>
+                            <input type="number" class="form-control" name="RequestsPerMinute" value="60" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Burst Size</label>
+                            <input type="number" class="form-control" name="BurstSize" value="100" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save Rate Limit Settings
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Flags Tab -->
+    <div class="tab-pane fade" id="features">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-toggles"></i> Feature Flags</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateFeatures">
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="EnableDocumentCollaboration" checked>
+                                <label class="form-check-label">
+                                    <strong>Document Collaboration (SignalR)</strong><br/>
+                                    <small class="text-muted">Enable real-time document editing</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="EnableAdvancedReporting" checked>
+                                <label class="form-check-label">
+                                    <strong>Advanced Reporting</strong><br/>
+                                    <small class="text-muted">Enable PDF/Excel exports and custom reports</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="EnableAuditLog">
+                                <label class="form-check-label">
+                                    <strong>Detailed Audit Logging</strong><br/>
+                                    <small class="text-muted">Track all entity changes (may impact performance)</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="EnableMaintenanceMode">
+                                <label class="form-check-label">
+                                    <strong>Maintenance Mode</strong><br/>
+                                    <small class="text-muted text-danger">Block all user access (SuperAdmin only)</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Save Feature Flags
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function testSmtp() {
+        alert('SMTP test functionality - To be implemented');
+    }
+    
+    function createBackup() {
+        alert('Database backup functionality - To be implemented');
+    }
+    
+    function showRestore() {
+        alert('Database restore functionality - To be implemented');
+    }
+    
+    function clearCache() {
+        if (confirm('Are you sure you want to clear all caches? This may temporarily impact performance.')) {
+            alert('Cache clear functionality - To be implemented');
+        }
+    }
+</script>

@@ -38,6 +38,11 @@
                         <i class="bi bi-house-fill me-2"></i>
                         <span>Overview</span>
                     </a>
+                    <a href="/dashboard/settings" 
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/settings") ? "active" : "")">
+                        <i class="bi bi-gear me-2"></i>
+                        <span>Settings</span>
+                    </a>
                     <a href="/dashboard/health" 
                        class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/health") ? "active" : "")">
                         <i class="bi bi-heart-pulse-fill me-2"></i>

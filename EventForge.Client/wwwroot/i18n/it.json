@@ -1066,6 +1066,10 @@
     "users": "Utenti",
     "superadmin": "Super Admin"
   },
+  "menu": {
+    "adminDashboard": "Pannello Admin",
+    "adminDashboardDescription": "Apri pannello amministrazione"
+  },
   "notificationPreferences": {
     "allowDataCollection": "Consenti raccolta dati",
     "allowPersonalization": "Consenti personalizzazione",
