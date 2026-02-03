@@ -127,7 +127,7 @@
                                        placeholder="es. mario.rossi"
                                        required />
                             }
-                            <span asp-validation-for="User.Username" class="text-danger"></span>
+                            <span asp-validation-for="UserForm.Username" class="text-danger"></span>
                             @if (!Model.IsEditMode)
                             {
                                 <small class="text-muted">Username univoco (non modificabile)</small>
@@ -140,7 +140,7 @@
                                    placeholder="mario.rossi@esempio.com"
                                    required 
                                    id="userEmail" />
-                            <span asp-validation-for="User.Email" class="text-danger"></span>
+                            <span asp-validation-for="UserForm.Email" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-6">
@@ -148,7 +148,7 @@
                             <input asp-for="UserForm.FirstName" class="form-control" 
                                    placeholder="Mario"
                                    required />
-                            <span asp-validation-for="User.FirstName" class="text-danger"></span>
+                            <span asp-validation-for="UserForm.FirstName" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-6">
@@ -156,7 +156,7 @@
                             <input asp-for="UserForm.LastName" class="form-control" 
                                    placeholder="Rossi"
                                    required />
-                            <span asp-validation-for="User.LastName" class="text-danger"></span>
+                            <span asp-validation-for="UserForm.LastName" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-12">
@@ -168,7 +168,7 @@
                                     <option value="@tenant.Id">@tenant.DisplayName (@tenant.Code)</option>
                                 }
                             </select>
-                            <span asp-validation-for="User.TenantId" class="text-danger"></span>
+                            <span asp-validation-for="UserForm.TenantId" class="text-danger"></span>
                         </div>
                     </div>
                 </div>
