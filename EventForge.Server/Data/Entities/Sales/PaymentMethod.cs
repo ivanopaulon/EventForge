@@ -54,4 +54,13 @@ public class PaymentMethod : AuditableEntity
     /// Indicates if change can be given for this payment method.
     /// </summary>
     public bool AllowsChange { get; set; } = true;
+
+    // --- Fiscal Printer Support ---
+
+    /// <summary>
+    /// Fiscal code for fiscal printer integration (1-10).
+    /// </summary>
+    [Range(1, 10, ErrorMessage = "Fiscal code must be between 1 and 10.")]
+    [Display(Name = "Fiscal Code", Description = "Code for fiscal printer integration (1-10).")]
+    public int? FiscalCode { get; set; }
 }

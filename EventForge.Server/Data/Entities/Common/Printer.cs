@@ -62,4 +62,47 @@ public class Printer : AuditableEntity
     /// Navigation property for the station.
     /// </summary>
     public Station? Station { get; set; }
+
+    // --- Fiscal Printer Support ---
+
+    /// <summary>
+    /// Indicates if this is a fiscal printer.
+    /// </summary>
+    [Display(Name = "Is Fiscal Printer", Description = "Indicates if this is a fiscal printer.")]
+    public bool IsFiscalPrinter { get; set; }
+
+    /// <summary>
+    /// Protocol type for fiscal printer communication (e.g., Custom, Epson, RCH, Ditron).
+    /// </summary>
+    [MaxLength(50, ErrorMessage = "The protocol type cannot exceed 50 characters.")]
+    [Display(Name = "Protocol Type", Description = "Protocol type for fiscal printer communication.")]
+    public string? ProtocolType { get; set; }
+
+    /// <summary>
+    /// Advanced configuration for fiscal printer (JSON format).
+    /// </summary>
+    [MaxLength(500, ErrorMessage = "The connection string cannot exceed 500 characters.")]
+    [Display(Name = "Connection String", Description = "Advanced configuration (JSON).")]
+    public string? ConnectionString { get; set; }
+
+    /// <summary>
+    /// TCP/IP port for fiscal printer communication (1-65535).
+    /// </summary>
+    [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
+    [Display(Name = "Port", Description = "TCP/IP port for communication.")]
+    public int? Port { get; set; }
+
+    /// <summary>
+    /// Serial port baud rate (300-115200).
+    /// </summary>
+    [Range(300, 115200, ErrorMessage = "Baud rate must be between 300 and 115200.")]
+    [Display(Name = "Baud Rate", Description = "Serial port baud rate.")]
+    public int? BaudRate { get; set; }
+
+    /// <summary>
+    /// Serial port name (e.g., COM1, /dev/ttyUSB0).
+    /// </summary>
+    [MaxLength(20, ErrorMessage = "The serial port name cannot exceed 20 characters.")]
+    [Display(Name = "Serial Port Name", Description = "Serial port identifier.")]
+    public string? SerialPortName { get; set; }
 }

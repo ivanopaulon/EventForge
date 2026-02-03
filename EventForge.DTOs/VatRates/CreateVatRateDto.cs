@@ -54,5 +54,14 @@ namespace EventForge.DTOs.VatRates
         /// </summary>
         [Display(Name = "VAT Nature", Description = "Reference to the VAT nature for Italian tax compliance.")]
         public Guid? VatNatureId { get; set; }
+
+        // --- Fiscal Printer Support ---
+
+        /// <summary>
+        /// Fiscal code for fiscal printer integration (1-10).
+        /// </summary>
+        [Range(1, 10, ErrorMessage = "Fiscal code must be between 1 and 10.")]
+        [Display(Name = "Fiscal Code", Description = "Code for fiscal printer integration (1-10).")]
+        public int? FiscalCode { get; set; }
     }
 }

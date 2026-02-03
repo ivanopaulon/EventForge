@@ -102,6 +102,7 @@ public class VatRateService : IVatRateService
                 ValidTo = createVatRateDto.ValidTo,
                 Notes = createVatRateDto.Notes,
                 VatNatureId = createVatRateDto.VatNatureId,
+                FiscalCode = createVatRateDto.FiscalCode,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
@@ -145,6 +146,7 @@ public class VatRateService : IVatRateService
             vatRate.ValidTo = updateVatRateDto.ValidTo;
             vatRate.Notes = updateVatRateDto.Notes;
             vatRate.VatNatureId = updateVatRateDto.VatNatureId;
+            vatRate.FiscalCode = updateVatRateDto.FiscalCode;
             vatRate.ModifiedAt = DateTime.UtcNow;
             vatRate.ModifiedBy = currentUser;
 
@@ -226,6 +228,7 @@ public class VatRateService : IVatRateService
             VatNatureId = vatRate.VatNatureId,
             VatNatureCode = vatRate.VatNature?.Code,
             VatNatureName = vatRate.VatNature?.Name,
+            FiscalCode = vatRate.FiscalCode,
             IsActive = vatRate.IsActive,
             CreatedAt = vatRate.CreatedAt,
             CreatedBy = vatRate.CreatedBy,

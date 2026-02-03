@@ -11,6 +11,7 @@ using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Export;
 using EventForge.Server.Services.External;
+using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.Licensing;
 using EventForge.Server.Services.Logging;
 using EventForge.Server.Services.Logs;
@@ -248,6 +249,9 @@ public static class ServiceCollectionExtensions
         // Register VAT rate services
         _ = services.AddScoped<IVatRateService, VatRateService>();
         _ = services.AddScoped<IVatNatureService, VatNatureService>();
+
+        // Register fiscal printing services
+        _ = services.AddScoped<IFiscalMappingService, FiscalMappingService>();
 
         // Register code generation services
         _ = services.AddScoped<IDailyCodeGenerator, DailySequentialCodeGenerator>();

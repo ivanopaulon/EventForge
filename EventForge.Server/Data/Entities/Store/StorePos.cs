@@ -120,6 +120,19 @@ public class StorePos : AuditableEntity
     [MaxLength(50, ErrorMessage = "The time zone cannot exceed 50 characters.")]
     [Display(Name = "Time Zone", Description = "IANA time zone (e.g., Europe/Rome).")]
     public string? TimeZone { get; set; }
+
+    // --- Fiscal Printer Support ---
+
+    /// <summary>
+    /// Foreign key to the default fiscal printer for this POS.
+    /// </summary>
+    [Display(Name = "Default Fiscal Printer", Description = "Default fiscal printer for this POS.")]
+    public Guid? DefaultFiscalPrinterId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the default fiscal printer.
+    /// </summary>
+    public Printer? DefaultFiscalPrinter { get; set; }
 }
 
 /// <summary>

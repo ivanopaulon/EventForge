@@ -81,5 +81,12 @@ namespace EventForge.DTOs.VatRates
         /// User who last modified the VAT rate.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        // --- Fiscal Printer Support ---
+
+        /// <summary>
+        /// Fiscal code for fiscal printer integration (1-10).
+        /// </summary>
+        public int? FiscalCode { get; set; }
     }
 }

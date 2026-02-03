@@ -118,5 +118,17 @@ namespace EventForge.DTOs.Store
         /// User who last modified the POS.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        // --- Fiscal Printer Support ---
+
+        /// <summary>
+        /// Foreign key to the default fiscal printer for this POS.
+        /// </summary>
+        public Guid? DefaultFiscalPrinterId { get; set; }
+
+        /// <summary>
+        /// Name of the default fiscal printer (for display purposes).
+        /// </summary>
+        public string? DefaultFiscalPrinterName { get; set; }
     }
 }
