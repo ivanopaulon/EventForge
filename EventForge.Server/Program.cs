@@ -442,6 +442,29 @@ app.UseStaticFiles();
 // Enable session support for wizard state
 app.UseSession();
 
+// Protect /settings static files with authentication check
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/settings"),
+    appBuilder =>
+    {
+        appBuilder.Use(async (context, next) =>
+        {
+            // Check if token exists in cookie (set by login page)
+            var token = context.Request.Cookies["serverToken"];
+            
+            // If no token, redirect to login with return URL
+            if (string.IsNullOrEmpty(token))
+            {
+                var returnUrl = context.Request.Path + context.Request.QueryString;
+                context.Response.Redirect($"/ServerAuth/Login?returnUrl={Uri.EscapeDataString(returnUrl)}");
+                return;
+            }
+            
+            // Token exists, allow access (API endpoints will validate the token properly)
+            await next();
+        });
+    });
+
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseCors();

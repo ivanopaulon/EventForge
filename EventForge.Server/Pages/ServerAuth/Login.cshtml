@@ -260,6 +260,13 @@
 
                     // Save token to localStorage
                     localStorage.setItem('serverToken', data.token);
+                    
+                    // Also save token to cookie for server-side middleware check
+                    // Set cookie with path=/, HttpOnly=false (needs to be accessible by JS for logout)
+                    // Expires in 7 days (same as typical JWT expiry)
+                    const expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + 7);
+                    document.cookie = `serverToken=${data.token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
 
                     // Redirect to settings
                     const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/settings';

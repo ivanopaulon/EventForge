@@ -40,6 +40,9 @@ function handleLogout() {
     localStorage.removeItem('serverToken');
     sessionStorage.removeItem('serverToken');
     
+    // Clear serverToken cookie
+    document.cookie = 'serverToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
+    
     // Redirect to landing page
     window.location.href = '/';
 }
