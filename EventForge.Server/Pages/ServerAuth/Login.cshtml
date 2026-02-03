@@ -273,8 +273,8 @@
                         const cookieValue = `serverToken=${data.token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Lax; Secure`;
                         document.cookie = cookieValue;
                         
-                        // Verify cookie was set
-                        const cookieCheck = document.cookie.includes('serverToken=');
+                        // Verify cookie was set (check for exact cookie name with proper boundaries)
+                        const cookieCheck = document.cookie.split(';').some(c => c.trim().startsWith('serverToken='));
                         if (!cookieCheck) {
                             console.warn('serverToken cookie may not have been set correctly');
                         }
