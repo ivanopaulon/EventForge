@@ -376,50 +376,110 @@ public class AuditLogService : IAuditLogService
     /// <summary>
     /// Searches audit trail with advanced filtering.
     /// </summary>
-    public async Task<PagedResult<AuditTrailResponseDto>> SearchAuditTrailAsync(
-        AuditTrailSearchDto searchDto,
+    public async Task<PagedResult<DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(
+        DTOs.Audit.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken); // Simulate async operation
+        var query = _context.EntityChangeLogs.AsQueryable();
 
-        // In a real implementation, this would search through audit logs with the specified criteria
-        var results = new PagedResult<AuditTrailResponseDto>
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(searchDto.EntityName))
         {
-            Items = new List<AuditTrailResponseDto>(),
-            TotalCount = 0,
-            Page = searchDto.PageNumber,
+            query = query.Where(log => log.EntityName == searchDto.EntityName);
+        }
+
+        if (searchDto.EntityId.HasValue)
+        {
+            query = query.Where(log => log.EntityId == searchDto.EntityId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchDto.OperationType))
+        {
+            query = query.Where(log => log.OperationType == searchDto.OperationType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchDto.ChangedBy))
+        {
+            query = query.Where(log => log.ChangedBy == searchDto.ChangedBy);
+        }
+
+        if (searchDto.FromDate.HasValue)
+        {
+            query = query.Where(log => log.ChangedAt >= searchDto.FromDate.Value);
+        }
+
+        if (searchDto.ToDate.HasValue)
+        {
+            query = query.Where(log => log.ChangedAt <= searchDto.ToDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
+        {
+            query = query.Where(log => 
+                log.EntityName.Contains(searchDto.SearchTerm) ||
+                log.PropertyName.Contains(searchDto.SearchTerm) ||
+                log.ChangedBy.Contains(searchDto.SearchTerm) ||
+                (log.OldValue != null && log.OldValue.Contains(searchDto.SearchTerm)) ||
+                (log.NewValue != null && log.NewValue.Contains(searchDto.SearchTerm)));
+        }
+
+        // Get total count
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply pagination
+        var skip = (searchDto.Page - 1) * searchDto.PageSize;
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(skip)
+            .Take(searchDto.PageSize)
+            .Select(log => new DTOs.Audit.AuditTrailResponseDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<DTOs.Audit.AuditTrailResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = searchDto.Page,
             PageSize = searchDto.PageSize
         };
-
-        return results;
     }
 
     /// <summary>
     /// Gets audit trail statistics.
     /// </summary>
-    public async Task<AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
+    public async Task<DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
         CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken); // Simulate async operation
+        var now = DateTime.UtcNow;
+        var today = now.Date;
+        var weekStart = now.AddDays(-(int)now.DayOfWeek);
 
-        // In a real implementation, this would calculate statistics from audit logs
-        var statistics = new AuditTrailStatisticsDto
+        var totalEntries = await _context.EntityChangeLogs.CountAsync(cancellationToken);
+        var todayEntries = await _context.EntityChangeLogs.CountAsync(log => log.ChangedAt >= today, cancellationToken);
+        var thisWeekEntries = await _context.EntityChangeLogs.CountAsync(log => log.ChangedAt >= weekStart, cancellationToken);
+        var superAdminEntries = await _context.EntityChangeLogs.CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
+        var deletedEntries = await _context.EntityChangeLogs.CountAsync(log => log.OperationType == "Delete", cancellationToken);
+
+        return new DTOs.Audit.AuditTrailStatisticsDto
         {
-            TotalOperations = 0,
-            SuccessfulOperations = 0,
-            FailedOperations = 0,
-            CriticalOperations = 0,
-            OperationsToday = 0,
-            OperationsThisWeek = 0,
-            OperationsThisMonth = 0,
-            OperationsByType = new Dictionary<string, int>(),
-            OperationsByUser = new Dictionary<string, int>(),
-            OperationsByTenant = new Dictionary<string, int>(),
-            RecentTrends = new List<AuditTrendDto>(),
-            LastUpdated = DateTime.UtcNow
+            TotalEntries = totalEntries,
+            TodayEntries = todayEntries,
+            ThisWeekEntries = thisWeekEntries,
+            SuperAdminEntries = superAdminEntries,
+            DeletedEntries = deletedEntries
         };
-
-        return statistics;
     }
 
     /// <summary>
