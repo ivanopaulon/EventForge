@@ -40,17 +40,19 @@ async function showAuditDetail(logId) {
 }
 
 // Export audit logs to CSV
-async function exportAuditLog() {
+async function exportAuditLog(event) {
     const form = document.getElementById('auditFilterForm');
     const formData = new FormData(form);
     
     // Build query string from current filters
     const params = new URLSearchParams(formData);
     
+    // Get button reference before try block
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    
     try {
         // Show loading indicator
-        const btn = event.target.closest('button');
-        const originalHTML = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Exporting...';
         
@@ -83,9 +85,8 @@ async function exportAuditLog() {
         showToast('Failed to export audit log. Please try again.', 'danger');
         
         // Restore button
-        const btn = event.target.closest('button');
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-download"></i> Export CSV';
+        btn.innerHTML = originalHTML;
     }
 }
 
