@@ -822,7 +822,16 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             // SaveChanges will handle transaction atomicity
             await _context.SaveChangesAsync(cancellationToken);
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
+            
+            // Log audit entry (best effort - don't fail session close if audit fails)
+            try
+            {
+                await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogWarning(auditEx, "Failed to log audit entry for session {SessionId}, but session was closed successfully", sessionId);
+            }
 
             _logger.LogInformation("Closed sale session {SessionId}", sessionId);
 

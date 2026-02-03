@@ -20,6 +20,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
 @inject ISalesService SalesService
+@inject ILogger<POS> Logger
 
 <PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading" 
@@ -1029,9 +1030,10 @@
                 await _shortcutsModule.InvokeVoidAsync("cleanup");
                 await _shortcutsModule.DisposeAsync();
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore errors during disposal
+                // Log but don't throw during disposal - component is being torn down
+                Logger.LogWarning(ex, "Error cleaning up POS keyboard shortcuts during disposal");
             }
         }
         
