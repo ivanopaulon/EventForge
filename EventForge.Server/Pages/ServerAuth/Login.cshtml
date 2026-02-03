@@ -279,8 +279,8 @@
                             console.warn('serverToken cookie may not have been set correctly');
                         }
                         
-                        // Redirect to settings
-                        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/settings';
+                        // Redirect to Dashboard
+                        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/Dashboard/Index';
                         window.location.href = returnUrl;
                     } catch (error) {
                         console.error('Error setting serverToken cookie:', error);

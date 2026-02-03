@@ -34,32 +34,37 @@
                         <span>Monitoring</span>
                     </div>
                     <a href="/dashboard" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path == "/dashboard" || Context.Request.Path == "/Dashboard/Index" ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard", StringComparison.OrdinalIgnoreCase) && !Context.Request.Path.StartsWithSegments("/dashboard/", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-house-fill me-2"></i>
                         <span>Overview</span>
                     </a>
+                    <a href="/dashboard/settings" 
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/settings", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-gear me-2"></i>
+                        <span>Settings</span>
+                    </a>
                     <a href="/dashboard/health" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/health") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/health", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-heart-pulse-fill me-2"></i>
                         <span>Health Checks</span>
                     </a>
                     <a href="/dashboard/performance" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/performance") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/performance", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-lightning-fill me-2"></i>
                         <span>Performance</span>
                     </a>
                     <a href="/dashboard/logs" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/logs") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/logs", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-file-text-fill me-2"></i>
                         <span>Logs</span>
                     </a>
                     <a href="/dashboard/maintenance" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/maintenance") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/maintenance", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-tools me-2"></i>
                         <span>Maintenance</span>
                     </a>
                     <a href="/dashboard/auditlog" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/auditlog") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/auditlog", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-clock-history me-2"></i>
                         <span>Audit Log</span>
                     </a>
@@ -72,27 +77,27 @@
                         <span>Multi-Tenant</span>
                     </div>
                     <a href="/dashboard/tenants" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/tenant") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/tenant", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-building me-2"></i>
                         <span>Tenants</span>
                     </a>
                     <a href="/dashboard/users" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/user") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/user", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-people-fill me-2"></i>
                         <span>Users</span>
                     </a>
                     <a href="/dashboard/licenses" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/license") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/license", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-card-checklist me-2"></i>
                         <span>Licenses</span>
                     </a>
                     <a href="/dashboard/roles" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/role") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/role", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-shield-lock-fill me-2"></i>
                         <span>Roles & Permissions</span>
                     </a>
                     <a href="/dashboard/branding" 
-                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/branding") ? "active" : "")">
+                       class="list-group-item list-group-item-action bg-dark text-white border-0 @(Context.Request.Path.StartsWithSegments("/dashboard/branding", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <i class="bi bi-palette me-2"></i>
                         <span>Branding</span>
                     </a>
