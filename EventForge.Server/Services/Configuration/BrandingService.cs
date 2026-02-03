@@ -122,7 +122,7 @@ public class BrandingService : IBrandingService
             var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = CacheDuration,
-                Size = 1  // OBBLIGATORIO quando SizeLimit è impostato in Program.cs
+                Size = 1  // REQUIRED when SizeLimit is set in Program.cs
             };
             _cache.Set(cacheKey, branding, cacheOptions);
 

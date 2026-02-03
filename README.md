@@ -216,7 +216,7 @@ Run the following SQL commands in SQL Server Management Studio (SSMS) or Azure D
 
 ```sql
 -- Create login for SQL Server authentication
-CREATE LOGIN vsapp WITH PASSWORD = 'pass123!';
+CREATE LOGIN vsapp WITH PASSWORD = 'YourSecurePasswordHere!';
 
 -- Switch to your database
 USE EventData1;
@@ -235,7 +235,7 @@ Edit your `EventForge.Server/appsettings.json` (or `appsettings.overrides.json` 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=EventData1;User Id=vsapp;Password=pass123!;TrustServerCertificate=True;"
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=EventData1;User Id=vsapp;Password=YourSecurePasswordHere!;TrustServerCertificate=True;"
   }
 }
 ```
