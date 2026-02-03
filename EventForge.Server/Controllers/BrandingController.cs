@@ -44,7 +44,7 @@ public class BrandingController : BaseApiController
         try
         {
             // Use current tenant if not specified
-            var targetTenantId = tenantId ?? _tenantContext.TenantId;
+            var targetTenantId = tenantId ?? _tenantContext.CurrentTenantId;
 
             var branding = await _brandingService.GetBrandingAsync(targetTenantId, ct);
 
@@ -125,7 +125,7 @@ public class BrandingController : BaseApiController
             }
 
             // Validate tenant access
-            if (_tenantContext.TenantId != tenantId && !_tenantContext.IsSuperAdmin)
+            if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
             {
                 _logger.LogWarning("User {Username} attempted to update branding for unauthorized tenant {TenantId}", 
                     GetCurrentUser(), tenantId);
@@ -172,7 +172,7 @@ public class BrandingController : BaseApiController
         try
         {
             // Validate tenant access
-            if (_tenantContext.TenantId != tenantId && !_tenantContext.IsSuperAdmin)
+            if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
             {
                 _logger.LogWarning("User {Username} attempted to delete branding for unauthorized tenant {TenantId}", 
                     GetCurrentUser(), tenantId);
@@ -223,7 +223,7 @@ public class BrandingController : BaseApiController
             // Validate tenant access if tenant-specific upload
             if (tenantId.HasValue)
             {
-                if (_tenantContext.TenantId != tenantId && !_tenantContext.IsSuperAdmin)
+                if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
                 {
                     _logger.LogWarning("User {Username} attempted to upload logo for unauthorized tenant {TenantId}", 
                         GetCurrentUser(), tenantId);
