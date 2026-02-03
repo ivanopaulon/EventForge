@@ -33,6 +33,7 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using EventForge.Server.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -44,10 +45,6 @@ using System.Text;
 
 public static class ServiceCollectionExtensions
 {
-    // Authentication scheme constants
-    private const string CookieScheme = "ServerCookie";
-    private const string MixedScheme = "Mixed";
-
     /// <summary>
     /// Configura Serilog con fallback su file se il database non � disponibile.
     /// </summary>
@@ -472,7 +469,7 @@ public static class ServiceCollectionExtensions
         // Configure JWT authentication
         _ = services.AddAuthentication(options =>
         {
-            options.DefaultScheme = MixedScheme;
+            options.DefaultScheme = AuthenticationSchemes.Mixed;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         })
         .AddJwtBearer(options =>
@@ -520,7 +517,7 @@ public static class ServiceCollectionExtensions
                 }
             };
         })
-        .AddCookie(CookieScheme, options =>
+        .AddCookie(AuthenticationSchemes.ServerCookie, options =>
         {
             options.Cookie.Name = "serverToken";
             options.LoginPath = "/ServerAuth/Login";
@@ -533,18 +530,18 @@ public static class ServiceCollectionExtensions
 
             options.Events = new CookieAuthenticationEvents
             {
-                OnValidatePrincipal = async context =>
+                OnValidatePrincipal = context =>
                 {
                     // Validate the cookie and claims
                     if (context.Principal?.Identity?.IsAuthenticated != true)
                     {
                         context.RejectPrincipal();
                     }
-                    await Task.CompletedTask;
+                    return Task.CompletedTask;
                 }
             };
         })
-        .AddPolicyScheme(MixedScheme, "JWT or Cookie", options =>
+        .AddPolicyScheme(AuthenticationSchemes.Mixed, "JWT or Cookie", options =>
         {
             options.ForwardDefaultSelector = context =>
             {
@@ -552,7 +549,7 @@ public static class ServiceCollectionExtensions
                 if (context.Request.Path.StartsWithSegments("/Dashboard") ||
                     context.Request.Path.StartsWithSegments("/ServerAuth"))
                 {
-                    return CookieScheme;
+                    return AuthenticationSchemes.ServerCookie;
                 }
 
                 // If the request has Authorization header, use JWT
@@ -562,7 +559,7 @@ public static class ServiceCollectionExtensions
                 }
 
                 // Default: Cookie for Razor Pages
-                return CookieScheme;
+                return AuthenticationSchemes.ServerCookie;
             };
         });
     }

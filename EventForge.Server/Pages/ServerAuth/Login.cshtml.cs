@@ -1,4 +1,5 @@
 using EventForge.DTOs.Auth;
+using EventForge.Server.Auth;
 using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -11,8 +12,6 @@ namespace EventForge.Server.Pages.ServerAuth;
 [AllowAnonymous]
 public class LoginModel : PageModel
 {
-    private const string CookieScheme = "ServerCookie";
-    
     private readonly Services.Auth.IAuthenticationService _authService;
     private readonly ILogger<LoginModel> _logger;
 
@@ -84,7 +83,7 @@ public class LoginModel : PageModel
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieScheme);
+            var claimsIdentity = new ClaimsIdentity(claims, AuthenticationSchemes.ServerCookie);
             var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
 
             var authProperties = new AuthenticationProperties
@@ -95,7 +94,7 @@ public class LoginModel : PageModel
             };
 
             // Sign in with Cookie Authentication
-            await HttpContext.SignInAsync(CookieScheme, claimsPrincipal, authProperties);
+            await HttpContext.SignInAsync(AuthenticationSchemes.ServerCookie, claimsPrincipal, authProperties);
 
             _logger.LogInformation(
                 "User {Username} from tenant {TenantCode} logged in successfully",
@@ -113,7 +112,7 @@ public class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostLogoutAsync()
     {
-        await HttpContext.SignOutAsync(CookieScheme);
+        await HttpContext.SignOutAsync(AuthenticationSchemes.ServerCookie);
         return RedirectToPage("/ServerAuth/Login");
     }
 }
