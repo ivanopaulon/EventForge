@@ -782,7 +782,7 @@ public class TenantService : ITenantService
         }
     }
 
-    public async Task<PagedResult<AuditTrailResponseDto>> GetAuditTrailAsync(
+    public async Task<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditTrailAsync(
         Guid? tenantId = null,
         AuditOperationType? operationType = null,
         int pageNumber = 1,
@@ -820,7 +820,7 @@ public class TenantService : ITenantService
                 .OrderByDescending(at => at.PerformedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(at => new AuditTrailResponseDto
+                .Select(at => new EventForge.DTOs.SuperAdmin.AuditTrailResponseDto
                 {
                     Id = at.Id,
                     OperationType = at.OperationType,
@@ -842,7 +842,7 @@ public class TenantService : ITenantService
                 })
                 .ToListAsync();
 
-            return new PagedResult<AuditTrailResponseDto>
+            return new PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>
             {
                 Items = items,
                 TotalCount = totalCount,

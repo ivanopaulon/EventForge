@@ -90,8 +90,8 @@ public interface ILogManagementService
     /// <param name="searchDto">Search and filter parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated audit logs</returns>
-    Task<PagedResult<AuditTrailResponseDto>> GetAuditLogsAsync(
-        AuditTrailSearchDto searchDto,
+    Task<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditLogsAsync(
+        EventForge.DTOs.SuperAdmin.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -99,7 +99,7 @@ public interface ILogManagementService
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Audit trail statistics</returns>
-    Task<AuditTrailStatisticsDto> GetAuditStatisticsAsync(CancellationToken cancellationToken = default);
+    Task<EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto> GetAuditStatisticsAsync(CancellationToken cancellationToken = default);
 
     #endregion
 

@@ -376,8 +376,8 @@ public class AuditLogService : IAuditLogService
     /// <summary>
     /// Searches audit trail with advanced filtering.
     /// </summary>
-    public async Task<PagedResult<DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(
-        DTOs.Audit.AuditTrailSearchDto searchDto,
+    public async Task<PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(
+        EventForge.DTOs.Audit.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
         var query = _context.EntityChangeLogs.AsQueryable();
@@ -432,7 +432,7 @@ public class AuditLogService : IAuditLogService
             .OrderByDescending(log => log.ChangedAt)
             .Skip(skip)
             .Take(searchDto.PageSize)
-            .Select(log => new DTOs.Audit.AuditTrailResponseDto
+            .Select(log => new EventForge.DTOs.Audit.AuditTrailResponseDto
             {
                 Id = log.Id,
                 EntityName = log.EntityName,
@@ -447,7 +447,7 @@ public class AuditLogService : IAuditLogService
             })
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<DTOs.Audit.AuditTrailResponseDto>
+        return new PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>
         {
             Items = items,
             TotalCount = totalCount,
@@ -459,7 +459,7 @@ public class AuditLogService : IAuditLogService
     /// <summary>
     /// Gets audit trail statistics.
     /// </summary>
-    public async Task<DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
+    public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
         CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
@@ -472,7 +472,7 @@ public class AuditLogService : IAuditLogService
         var superAdminEntries = await _context.EntityChangeLogs.CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
         var deletedEntries = await _context.EntityChangeLogs.CountAsync(log => log.OperationType == "Delete", cancellationToken);
 
-        return new DTOs.Audit.AuditTrailStatisticsDto
+        return new EventForge.DTOs.Audit.AuditTrailStatisticsDto
         {
             TotalEntries = totalEntries,
             TodayEntries = todayEntries,
