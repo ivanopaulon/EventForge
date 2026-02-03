@@ -11,11 +11,11 @@ namespace EventForge.Server.Pages.ServerAuth;
 [AllowAnonymous]
 public class LoginModel : PageModel
 {
-    private readonly IAuthenticationService _authService;
+    private readonly Services.Auth.IAuthenticationService _authService;
     private readonly ILogger<LoginModel> logger;
 
     public LoginModel(
-        IAuthenticationService authService,
+        Services.Auth.IAuthenticationService authService,
         ILogger<LoginModel> logger)
     {
         _authService = authService;
