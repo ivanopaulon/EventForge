@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventForge.Server.Pages.Dashboard;
@@ -5,6 +6,7 @@ namespace EventForge.Server.Pages.Dashboard;
 /// <summary>
 /// Dashboard overview page - displays high-level server status and metrics.
 /// </summary>
+[Authorize(Roles = "SuperAdmin")]
 public class IndexModel : PageModel
 {
     /// <summary>
