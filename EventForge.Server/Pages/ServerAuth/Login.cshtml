@@ -261,16 +261,33 @@
                     // Save token to localStorage
                     localStorage.setItem('serverToken', data.token);
                     
-                    // Also save token to cookie for server-side middleware check
-                    // Set cookie with path=/, HttpOnly=false (needs to be accessible by JS for logout)
-                    // Expires in 7 days (same as typical JWT expiry)
-                    const expiryDate = new Date();
-                    expiryDate.setDate(expiryDate.getDate() + 7);
-                    document.cookie = `serverToken=${data.token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
-
-                    // Redirect to settings
-                    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/settings';
-                    window.location.href = returnUrl;
+                    try {
+                        // Also save token to cookie for server-side middleware check
+                        // Set cookie with path=/, HttpOnly=false (needs to be accessible by JS for logout)
+                        // Expires in 7 days (same as typical JWT expiry)
+                        const expiryDate = new Date();
+                        expiryDate.setDate(expiryDate.getDate() + 7);
+                        
+                        // Use SameSite=Lax to allow cookie during top-level navigation (redirect)
+                        // Secure flag requires HTTPS (ignored in localhost non-HTTPS)
+                        const cookieValue = `serverToken=${data.token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Lax; Secure`;
+                        document.cookie = cookieValue;
+                        
+                        // Verify cookie was set
+                        const cookieCheck = document.cookie.includes('serverToken=');
+                        if (!cookieCheck) {
+                            console.warn('serverToken cookie may not have been set correctly');
+                        }
+                        
+                        // Redirect to settings
+                        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/settings';
+                        window.location.href = returnUrl;
+                    } catch (error) {
+                        console.error('Error setting serverToken cookie:', error);
+                        showError('Login succeeded but session setup failed. Please try again.');
+                        submitBtn.disabled = false;
+                        loading.classList.remove('show');
+                    }
                 } else {
                     // Try to parse error response
                     let errorMessage = 'Invalid credentials';

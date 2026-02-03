@@ -449,16 +449,24 @@ app.UseWhen(
     {
         appBuilder.Use(async (context, next) =>
         {
+            // Get logger
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            
             // Check if token exists in cookie (set by login page)
             var token = context.Request.Cookies["serverToken"];
             
             // If no token, redirect to login with return URL
             if (string.IsNullOrEmpty(token))
             {
+                logger.LogWarning("Access to /settings denied: serverToken cookie missing. User-Agent: {UserAgent}", 
+                    context.Request.Headers["User-Agent"].ToString());
+                
                 var returnUrl = context.Request.Path + context.Request.QueryString;
                 context.Response.Redirect($"/ServerAuth/Login?returnUrl={Uri.EscapeDataString(returnUrl)}");
                 return;
             }
+            
+            logger.LogDebug("Access to /settings granted: serverToken cookie present (length: {Length})", token.Length);
             
             // Token exists, allow access (API endpoints will validate the token properly)
             await next();
