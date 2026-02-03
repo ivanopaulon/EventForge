@@ -30,8 +30,10 @@ using EventForge.Server.Services.Teams;
 using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.VatRates;
 using EventForge.Server.Services.Warehouse;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using EventForge.Server.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -467,9 +469,8 @@ public static class ServiceCollectionExtensions
         // Configure JWT authentication
         _ = services.AddAuthentication(options =>
         {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = AuthenticationSchemes.Mixed;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
         })
         .AddJwtBearer(options =>
         {
@@ -514,6 +515,51 @@ public static class ServiceCollectionExtensions
                 {
                     return Task.CompletedTask;
                 }
+            };
+        })
+        .AddCookie(AuthenticationSchemes.ServerCookie, options =>
+        {
+            options.Cookie.Name = "serverToken";
+            options.LoginPath = "/ServerAuth/Login";
+            options.AccessDeniedPath = "/ServerAuth/Login";
+            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.SlidingExpiration = true;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+
+            options.Events = new CookieAuthenticationEvents
+            {
+                OnValidatePrincipal = context =>
+                {
+                    // Validate the cookie and claims
+                    if (context.Principal?.Identity?.IsAuthenticated != true)
+                    {
+                        context.RejectPrincipal();
+                    }
+                    return Task.CompletedTask;
+                }
+            };
+        })
+        .AddPolicyScheme(AuthenticationSchemes.Mixed, "JWT or Cookie", options =>
+        {
+            options.ForwardDefaultSelector = context =>
+            {
+                // If the request is to /Dashboard or /ServerAuth, use Cookie
+                if (context.Request.Path.StartsWithSegments("/Dashboard") ||
+                    context.Request.Path.StartsWithSegments("/ServerAuth"))
+                {
+                    return AuthenticationSchemes.ServerCookie;
+                }
+
+                // If the request has Authorization header, use JWT
+                if (context.Request.Headers.ContainsKey("Authorization"))
+                {
+                    return JwtBearerDefaults.AuthenticationScheme;
+                }
+
+                // Default: Cookie for Razor Pages
+                return AuthenticationSchemes.ServerCookie;
             };
         });
     }

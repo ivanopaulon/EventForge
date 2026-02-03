@@ -169,22 +169,22 @@
             <div id="errorMessage" class="error-message"></div>
 
             <!-- Login Form -->
-            <form id="loginForm">
+            <form id="loginForm" method="post">
                 <div class="form-group">
-                    <label for="tenantId">Tenant</label>
-                    <select id="tenantId" name="tenantId" required>
+                    <label for="tenantSelect">Tenant</label>
+                    <select id="tenantSelect" name="TenantCode" asp-for="TenantCode" required>
                         <option value="">Select a tenant...</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" autocomplete="username" required />
+                    <input type="text" id="username" name="Username" asp-for="Username" autocomplete="username" placeholder="Enter username" required />
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" autocomplete="current-password" required />
+                    <input type="password" id="password" name="Password" asp-for="Password" autocomplete="current-password" placeholder="Enter password" required />
                 </div>
 
                 <button type="submit" id="submitBtn" class="btn btn-primary">Login</button>
@@ -205,125 +205,27 @@
                 const response = await fetch('/api/v1/auth/tenants');
                 const tenants = await response.json();
 
-                const select = document.getElementById('tenantId');
+                const select = document.getElementById('tenantSelect');
                 tenants.forEach(tenant => {
                     const option = document.createElement('option');
-                    option.value = tenant.id;
-                    option.textContent = tenant.name;
+                    option.value = tenant.code;
+                    option.textContent = `${tenant.displayName} (${tenant.code})`;
                     select.appendChild(option);
                 });
             } catch (error) {
-                showError('Failed to load tenants. Please refresh the page.');
-                console.error('Failed to load tenants:', error);
+                console.error('Error loading tenants:', error);
+                showError('Unable to load tenants');
             }
         }
 
-        // Handle form submission
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const submitBtn = document.getElementById('submitBtn');
-            const loading = document.getElementById('loading');
-            const errorMessage = document.getElementById('errorMessage');
-
-            // Get form values
-            const tenantId = document.getElementById('tenantId').value;
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            // Validate
-            if (!tenantId || !username || !password) {
-                showError('Please fill in all fields');
-                return;
-            }
-
-            // Disable button and show loading
-            submitBtn.disabled = true;
-            loading.classList.add('show');
-            errorMessage.classList.remove('show');
-
-            try {
-                const response = await fetch('/api/v1/auth/server-login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        tenantId,
-                        username,
-                        password
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-
-                    // Save token to localStorage
-                    localStorage.setItem('serverToken', data.token);
-                    
-                    try {
-                        // Also save token to cookie for server-side middleware check
-                        // Set cookie with path=/, HttpOnly=false (needs to be accessible by JS for logout)
-                        // Expires in 7 days (same as typical JWT expiry)
-                        const expiryDate = new Date();
-                        expiryDate.setDate(expiryDate.getDate() + 7);
-                        
-                        // Use SameSite=Lax to allow cookie during top-level navigation (redirect)
-                        // Secure flag requires HTTPS (ignored in localhost non-HTTPS)
-                        const cookieValue = `serverToken=${data.token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Lax; Secure`;
-                        document.cookie = cookieValue;
-                        
-                        // Verify cookie was set (check for exact cookie name with proper boundaries)
-                        const cookieCheck = document.cookie.split(';').some(c => c.trim().startsWith('serverToken='));
-                        if (!cookieCheck) {
-                            console.warn('serverToken cookie may not have been set correctly');
-                        }
-                        
-                        // Redirect to Dashboard
-                        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/Dashboard/Index';
-                        window.location.href = returnUrl;
-                    } catch (error) {
-                        console.error('Error setting serverToken cookie:', error);
-                        showError('Login succeeded but session setup failed. Please try again.');
-                        submitBtn.disabled = false;
-                        loading.classList.remove('show');
-                    }
-                } else {
-                    // Try to parse error response
-                    let errorMessage = 'Invalid credentials';
-                    try {
-                        const errorData = await response.json();
-                        if (errorData.detail) {
-                            errorMessage = errorData.detail;
-                        } else if (errorData.title) {
-                            errorMessage = errorData.title;
-                        }
-                    } catch (e) {
-                        // If parsing fails, use default error message
-                        console.error('Failed to parse error response:', e);
-                    }
-                    
-                    showError(errorMessage);
-                    submitBtn.disabled = false;
-                    loading.classList.remove('show');
-                }
-            } catch (error) {
-                showError('Login failed. Please try again.');
-                console.error('Login error:', error);
-                submitBtn.disabled = false;
-                loading.classList.remove('show');
-            }
-        });
-
-        // Show error message
         function showError(message) {
-            const errorMessage = document.getElementById('errorMessage');
-            errorMessage.textContent = message;
-            errorMessage.classList.add('show');
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
         }
 
-        // Load tenants on page load
-        loadTenants();
+        // Load tenants when page loads
+        document.addEventListener('DOMContentLoaded', loadTenants);
     </script>
 </body>
 </html>
