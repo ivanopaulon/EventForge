@@ -1,0 +1,112 @@
+@model EventForge.DTOs.Audit.EntityChangeLogDto
+
+<div class="audit-detail-content">
+    <!-- General Info -->
+    <div class="mb-4">
+        <h6 class="text-muted mb-3">GENERAL INFORMATION</h6>
+        <table class="table table-sm table-borderless">
+            <tbody>
+                <tr>
+                    <td class="text-muted" style="width: 120px;"><strong>Timestamp</strong></td>
+                    <td>@Model.ChangedAt.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                </tr>
+                <tr>
+                    <td class="text-muted"><strong>Entity</strong></td>
+                    <td><span class="badge bg-info">@Model.EntityName</span></td>
+                </tr>
+                <tr>
+                    <td class="text-muted"><strong>Entity ID</strong></td>
+                    <td>
+                        <code class="small">@Model.EntityId</code>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                onclick="navigator.clipboard.writeText('@Model.EntityId')"
+                                title="Copy to clipboard">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted"><strong>Operation</strong></td>
+                    <td>
+                        @{
+                            var operationClass = Model.OperationType switch
+                            {
+                                "Insert" => "bg-success",
+                                "Update" => "bg-warning text-dark",
+                                "Delete" => "bg-danger",
+                                _ => "bg-secondary"
+                            };
+                        }
+                        <span class="badge @operationClass">@Model.OperationType</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted"><strong>Changed By</strong></td>
+                    <td>@Model.ChangedBy</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Changed Property -->
+    <div class="mb-4">
+        <h6 class="text-muted mb-3">PROPERTY CHANGE</h6>
+        <table class="table table-sm">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 120px;">Property</th>
+                    <th>Old Value</th>
+                    <th>New Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code class="small">@Model.PropertyName</code></td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(Model.OldValue))
+                        {
+                            <span class="badge bg-secondary">@Model.OldValue</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted fst-italic">null</span>
+                        }
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(Model.NewValue))
+                        {
+                            <span class="badge bg-success">@Model.NewValue</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted fst-italic">null</span>
+                        }
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Metadata (if available) -->
+    @if (!string.IsNullOrEmpty(Model.EntityDisplayName))
+    {
+        <div class="mb-4">
+            <h6 class="text-muted mb-3">METADATA</h6>
+            <table class="table table-sm table-borderless">
+                <tbody>
+                    <tr>
+                        <td class="text-muted" style="width: 120px;"><strong>Display Name</strong></td>
+                        <td>@Model.EntityDisplayName</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <!-- Actions -->
+    <div class="d-grid">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="offcanvas">
+            <i class="bi bi-x-circle"></i> Close
+        </button>
+    </div>
+</div>
