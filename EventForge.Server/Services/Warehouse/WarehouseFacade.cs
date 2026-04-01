@@ -337,8 +337,8 @@ public class WarehouseFacade : IWarehouseFacade
             var stocks = await _context.Stocks
                 .AsNoTracking()
                 .Where(s => stockProductIds.Contains(s.ProductId) &&
-                           stockLocationIds.Contains(s.StorageLocationId) &&
-                           s.LotId == null) // Only get stock without lot for inventory
+                            stockLocationIds.Contains(s.StorageLocationId) &&
+                            s.LotId == null) // Only get stock without lot for inventory
                 .ToListAsync(cancellationToken);
 
             stocksDict = stocks.ToDictionary(s => (s.ProductId, s.StorageLocationId));
@@ -405,7 +405,7 @@ public class WarehouseFacade : IWarehouseFacade
 
         stopwatch.Stop();
         _logger.LogInformation(
-            "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. " +
+            "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. "+
             "Unique products: {ProductCount}, locations: {LocationCount}, stocks: {StockCount}",
             rowsList.Count, stopwatch.ElapsedMilliseconds,
             productsDict.Count, locationsDict.Count, stocksDict.Count);
@@ -905,7 +905,10 @@ public class WarehouseFacade : IWarehouseFacade
         }
         catch
         {
-            await transaction.RollbackAsync(cancellationToken);
+            // Use CancellationToken.None for rollback: the catch block is entered precisely when
+            // the original token is cancelled (e.g. client disconnect), so we must not pass the
+            // already-cancelled token or RollbackAsync will itself throw TaskCanceledException.
+            await transaction.RollbackAsync(CancellationToken.None);
             throw;
         }
     }
@@ -1078,7 +1081,10 @@ public class WarehouseFacade : IWarehouseFacade
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            // Use CancellationToken.None for rollback: the catch block is entered precisely when
+            // the original token is cancelled (e.g. client disconnect), so we must not pass the
+            // already-cancelled token or RollbackAsync will itself throw TaskCanceledException.
+            await transaction.RollbackAsync(CancellationToken.None);
             _logger.LogError(ex, "Bulk transfer failed and was rolled back");
 
             return new EventForge.DTOs.Bulk.BulkTransferResultDto
@@ -1102,4 +1108,3 @@ public class WarehouseFacade : IWarehouseFacade
     }
 
     #endregion
-}
