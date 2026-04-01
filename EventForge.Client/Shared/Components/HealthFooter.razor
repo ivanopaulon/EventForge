@@ -23,29 +23,12 @@
     - Auto-refresh health data every 30 seconds
 -->
 
-<!-- Compact Health Status Tab -->
-<div class="health-footer-minimal">
-    <div class="health-tab-compact" 
-         @onclick="OpenHealthDialog"
-         role="button"
-         tabindex="0"
-         @onkeypress="@(async (e) => { if (e.Key == "Enter" || e.Key == " ") await OpenHealthDialog(); })"
-         aria-label="@TranslationService.GetTranslation("health.openDialog", "View health status")"
-         title="@GetHealthStatusTitle()">
-        <MudIcon Icon="@GetOverallHealthIcon()" 
-                 Color="@GetOverallHealthColor()" 
-                 Size="Size.Small" />
-        <MudText Typo="Typo.caption" Class="health-status-text">
-            @if (!string.IsNullOrEmpty(_errorMessage))
-            {
-                <MudText Typo="Typo.caption" Color="Color.Error">Error</MudText>
-            }
-            else
-            {
-                @GetOverallHealthStatus()
-            }
-        </MudText>
-    </div>
+<!-- Floating Health Status Button -->
+<div class="hf-fab" @onclick="OpenHealthDialog" title="@GetHealthStatusTitle()">
+    <MudFab Color="@GetOverallHealthFabColor()" 
+            StartIcon="@Icons.Material.Filled.Monitor" 
+            Size="Size.Large" 
+            aria-label="@TranslationService.GetTranslation("health.openDialog", "View health status")" />
 </div>
 
 @code {
@@ -173,19 +156,6 @@
         return $"{TranslationService.GetTranslation("health.status", "Status")}: {GetOverallHealthStatus()}";
     }
 
-    private string GetOverallHealthIcon()
-    {
-        if (_healthData == null) return Icons.Material.Filled.Help;
-
-        return GetOverallHealthStatus().ToLower() switch
-        {
-            "healthy" => Icons.Material.Filled.CheckCircle,
-            "degraded" => Icons.Material.Filled.Warning,
-            "unhealthy" => Icons.Material.Filled.Error,
-            _ => Icons.Material.Filled.Help
-        };
-    }
-
     #region Health Status Helpers
 
     private Color GetStatusColor(string? status)
@@ -202,7 +172,7 @@
         };
     }
 
-    private Color GetOverallHealthColor()
+    private Color GetOverallHealthFabColor()
     {
         if (_healthData == null) return Color.Default;
 
@@ -219,7 +189,7 @@
         else if (statuses.Any(s => s?.ToLower() == "healthy"))
             return Color.Success;
         else
-            return Color.Info;
+            return Color.Default;
     }
 
     private string GetOverallHealthStatus()
@@ -287,68 +257,18 @@
 }
 
 <style>
-    .health-footer-minimal {
+    .hf-fab {
         position: fixed;
-        bottom: 0;
-        right: 16px;
+        bottom: 90px;
+        right: 24px;
         z-index: 1300;
-        pointer-events: none;
-    }
-
-    .health-tab-compact {
-        background: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-lines-default);
-        border-bottom: none;
-        border-radius: 8px 8px 0 0;
-        padding: 4px 8px;
         cursor: pointer;
-        pointer-events: auto;
-        transition: all 0.2s ease;
-        box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        user-select: none;
-        min-width: 80px;
     }
 
-    .health-tab-compact:hover {
-        background: var(--mud-palette-action-hover);
-        transform: translateY(-1px);
-        box-shadow: 0 -3px 6px rgba(0, 0, 0, 0.15);
-    }
-
-    .health-tab-compact:focus {
-        outline: 2px solid var(--mud-palette-primary);
-        outline-offset: 2px;
-    }
-
-    .health-status-text {
-        font-size: 0.75rem;
-        white-space: nowrap;
-    }
-
-    /* Dark theme adjustments */
-    @@media (prefers-color-scheme: dark) {
-        .health-tab-compact {
-            background: var(--mud-palette-dark-surface);
-            border-color: var(--mud-palette-dark-lines-default);
-        }
-    }
-
-    /* Mobile adjustments */
-    @@media (max-width: 768px) {
-        .health-footer-minimal {
-            right: 8px;
-        }
-        
-        .health-tab-compact {
-            padding: 3px 6px;
-            min-width: 70px;
-        }
-        
-        .health-status-text {
-            font-size: 0.7rem;
+    @@media (max-width: 420px) {
+        .hf-fab {
+            bottom: 82px;
+            right: 16px;
         }
     }
 </style>
