@@ -281,6 +281,34 @@ public class InventoryService : IInventoryService
         }
     }
 
+    public async Task<MergeInventoryDocumentsPreviewDto?> PreviewMergeInventoryDocumentsAsync(List<Guid> documentIds)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<List<Guid>, MergeInventoryDocumentsPreviewDto>(
+                $"{BaseUrl}/documents/merge-preview", documentIds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating merge preview for inventory documents");
+            return null;
+        }
+    }
+
+    public async Task<MergeInventoryDocumentsResultDto?> MergeInventoryDocumentsExtendedAsync(MergeInventoryDocumentsDto mergeDto)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<MergeInventoryDocumentsDto, MergeInventoryDocumentsResultDto>(
+                $"{BaseUrl}/documents/merge", mergeDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error merging inventory documents");
+            return null;
+        }
+    }
+
     public async Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId)
     {
         try

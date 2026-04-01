@@ -33,6 +33,18 @@ public interface IInventoryService
     Task<int> CancelAllOpenInventoriesAsync();
     Task<InventoryDocumentDto?> MergeInventoryDocumentsAsync(List<Guid> sourceDocumentIds, string? notes = null);
 
+    /// <summary>
+    /// Returns a preview of what would happen if the specified documents were merged.
+    /// Does NOT modify any data.
+    /// </summary>
+    Task<MergeInventoryDocumentsPreviewDto?> PreviewMergeInventoryDocumentsAsync(List<Guid> documentIds);
+
+    /// <summary>
+    /// Merges inventory documents using extended options (target document, notes).
+    /// Source documents are soft-deleted. Result document is finalized.
+    /// </summary>
+    Task<MergeInventoryDocumentsResultDto?> MergeInventoryDocumentsExtendedAsync(MergeInventoryDocumentsDto mergeDto);
+
     // Inventory Diagnostics
     Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId);
     Task<InventoryRepairResultDto?> AutoRepairInventoryDocumentAsync(Guid documentId, InventoryAutoRepairOptionsDto options);
