@@ -9,9 +9,14 @@
 <!-- Floating Action Button – visible when panel is closed or minimised -->
 @if (!_isPanelOpen || _isMinimised)
 {
-    <div class="fc-fab" @onclick="OpenPanel" title="Chat">
+    <div class="fc-fab">
         <MudBadge Content="@TotalUnread" Color="Color.Error" Overlap="true" Visible="@(TotalUnread > 0)" Max="99">
-            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Chat" Size="Size.Large" aria-label="Apri chat" />
+            <MudFab Color="Color.Primary"
+                    StartIcon="@Icons.Material.Filled.Chat"
+                    Size="Size.Large"
+                    OnClick="OpenPanel"
+                    title="Chat"
+                    aria-label="Apri chat" />
         </MudBadge>
     </div>
 }

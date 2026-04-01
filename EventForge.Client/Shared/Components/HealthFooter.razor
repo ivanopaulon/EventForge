@@ -24,10 +24,12 @@
 -->
 
 <!-- Floating Health Status Button -->
-<div class="hf-fab" @onclick="OpenHealthDialog" title="@GetHealthStatusTitle()">
+<div class="hf-fab">
     <MudFab Color="@GetOverallHealthFabColor()" 
             StartIcon="@Icons.Material.Filled.Monitor" 
-            Size="Size.Large" 
+            Size="Size.Large"
+            OnClick="OpenHealthDialog"
+            title="@GetHealthStatusTitle()"
             aria-label="@TranslationService.GetTranslation("health.openDialog", "View health status")" />
 </div>
 
