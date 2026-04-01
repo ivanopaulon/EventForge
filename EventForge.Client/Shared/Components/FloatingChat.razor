@@ -454,6 +454,9 @@
 </style>
 
 @code {
+    // ─── JS module ───────────────────────────────────────────────────────────
+    private IJSObjectReference? _jsModule;
+
     // ─── State ───────────────────────────────────────────────────────────────
     private bool _isPanelOpen;
     private bool _isMinimised;
@@ -495,6 +498,19 @@
         ChatService.ChatCreated += OnChatCreated;
         ChatService.MessageReceived += OnMessageReceived;
         ChatService.TypingIndicator += OnTypingIndicator;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./Shared/Components/FloatingChat.razor.js");
+            }
+            catch (Exception) { }
+        }
     }
 
     // ─── Panel lifecycle ──────────────────────────────────────────────────────
@@ -688,8 +704,12 @@
                     await Task.Delay(3000, token);
                     if (!token.IsCancellationRequested)
                     {
-                        _isTyping = false;
-                        await ChatService.UpdateTypingStatusAsync(chatId, false);
+                        await InvokeAsync(async () =>
+                        {
+                            _isTyping = false;
+                            try { await ChatService.UpdateTypingStatusAsync(chatId, false); }
+                            catch (Exception) { }
+                        });
                     }
                 }
                 catch (TaskCanceledException) { }
@@ -715,8 +735,8 @@
     {
         try
         {
-            await JS.InvokeVoidAsync("eval",
-                "var el=document.getElementById('fc-scroll');if(el)el.scrollTop=el.scrollHeight;");
+            if (_jsModule != null)
+                await _jsModule.InvokeVoidAsync("scrollToBottom", "fc-scroll");
         }
         catch (Exception) { }
     }
@@ -787,10 +807,16 @@
                     await Task.Delay(3000, cts.Token);
                     if (!cts.Token.IsCancellationRequested)
                     {
-                        _typingUsers.Remove(userId);
-                        _typingCts.Remove(userId);
-                        cts.Dispose();
-                        await InvokeAsync(StateHasChanged);
+                        await InvokeAsync(() =>
+                        {
+                            _typingUsers.Remove(userId);
+                            if (_typingCts.TryGetValue(userId, out var c))
+                            {
+                                _typingCts.Remove(userId);
+                                c.Dispose();
+                            }
+                            StateHasChanged();
+                        });
                     }
                 }
                 catch (TaskCanceledException) { }
@@ -866,8 +892,12 @@
     private static string GetAvatarHex(string name)
     {
         if (string.IsNullOrEmpty(name)) return AvatarColors[0];
-        var hash = Math.Abs(name.Aggregate(0, (acc, c) => acc * 31 + c)) % AvatarColors.Length;
-        return AvatarColors[hash];
+        unchecked
+        {
+            var hash = name.Aggregate(0, (acc, c) => acc * 31 + c);
+            // Use double-modulo to ensure a non-negative index even when hash is negative
+            return AvatarColors[((hash % AvatarColors.Length) + AvatarColors.Length) % AvatarColors.Length];
+        }
     }
 
     private static string FormatTime(DateTime dt)
@@ -890,6 +920,12 @@
         if (_selectedChat != null)
         {
             try { await RealtimeService.LeaveChatAsync(_selectedChat.Id); }
+            catch (Exception) { }
+        }
+
+        if (_jsModule != null)
+        {
+            try { await _jsModule.DisposeAsync(); }
             catch (Exception) { }
         }
     }
