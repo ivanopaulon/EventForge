@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace EventForge.Server.Swagger;
@@ -38,18 +38,11 @@ public class SwaggerAuthorizeCheckOperationFilter : IOperationFilter
 
         operation.Security ??= new List<OpenApiSecurityRequirement>();
 
-        var bearerScheme = new OpenApiSecurityScheme
-        {
-            Reference = new OpenApiReference
-            {
-                Type = ReferenceType.SecurityScheme,
-                Id = "Bearer"
-            }
-        };
+        var bearerScheme = new OpenApiSecuritySchemeReference("Bearer", null);
 
         operation.Security.Add(new OpenApiSecurityRequirement
         {
-            [bearerScheme] = new string[] { }
+            [bearerScheme] = new List<string>()
         });
     }
 }

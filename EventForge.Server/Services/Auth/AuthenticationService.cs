@@ -327,8 +327,9 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
+            var now = DateTime.UtcNow;
             var user = await _dbContext.Users
-                .Include(u => u.UserRoles.Where(ur => ur.IsCurrentlyValid))
+                .Include(u => u.UserRoles.Where(ur => ur.ExpiresAt == null || ur.ExpiresAt > now))
                     .ThenInclude(ur => ur.Role)
                         .ThenInclude(r => r.RolePermissions)
                             .ThenInclude(rp => rp.Permission)
@@ -406,8 +407,11 @@ public class AuthenticationService : IAuthenticationService
         try
         {
             // Load user with roles and permissions
+            // Note: IsCurrentlyValid is a computed C# property and cannot be translated to SQL by EF Core.
+            // We replicate its logic inline: a role assignment is valid if it has no expiration or has not yet expired.
+            var now = DateTime.UtcNow;
             var user = await _dbContext.Users
-                .Include(u => u.UserRoles.Where(ur => ur.IsCurrentlyValid))
+                .Include(u => u.UserRoles.Where(ur => ur.ExpiresAt == null || ur.ExpiresAt > now))
                     .ThenInclude(ur => ur.Role)
                         .ThenInclude(r => r.RolePermissions)
                             .ThenInclude(rp => rp.Permission)

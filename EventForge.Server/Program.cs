@@ -1,12 +1,9 @@
 using EventForge.Server.Middleware;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using StackExchange.Profiling;
 using System.Reflection;
-
-// NOTE: Using Swashbuckle.AspNetCore 6.x with Microsoft.OpenApi 1.x for compatibility.
-// Version 10.x uses Microsoft.OpenApi 2.x which has breaking changes.
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -231,9 +228,7 @@ builder.Services.AddSwaggerGen(c =>
     // Register operation filter to apply security only to [Authorize] endpoints
     c.OperationFilter<EventForge.Server.Swagger.SwaggerAuthorizeCheckOperationFilter>();
 
-    // TODO: Re-enable ProblemDetails schema mapping with Microsoft.OpenApi 2.x compatible syntax
-    // TODO: Re-enable FileUploadOperationFilter with Microsoft.OpenApi 2.x compatible syntax
-});
+    });
 
 builder.Services.AddCors(options =>
 {
