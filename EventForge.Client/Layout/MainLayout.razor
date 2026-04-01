@@ -49,20 +49,7 @@
         </MudTooltip>
         <MudSpacer />
         
-        @if (_isAuthenticated)
-        {
-            <!-- Font Preferences Button con migliore spaziatura -->
-            <MudTooltip Text="@TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font")">
-                <MudIconButton Icon="@Icons.Material.Filled.FontDownload"
-                               Color="Color.Inherit"
-                               OnClick="OpenFontPreferences"
-                               Size="Size.Medium"
-                               Class="me-4"
-                               aria-label="@TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font")" />
-            </MudTooltip>
-            <UserAccountMenu OnLogout="@HandleLogout" />
-        }
-        else
+        @if (!_isAuthenticated)
         {
             <!-- Login button for unauthenticated users -->
             <MudButton Variant="Variant.Text" 
@@ -104,6 +91,9 @@
 
 <!-- Floating Chat - always visible when authenticated -->
 <FloatingChat />
+
+<!-- Floating Profile - always visible when authenticated -->
+<FloatingProfile />
 
 @code {
     private bool _drawerOpen = true;
@@ -159,20 +149,6 @@
     private void OnFontPreferencesChanged()
     {
         InvokeAsync(StateHasChanged);
-    }
-
-    private async Task OpenFontPreferences()
-    {
-        var options = new DialogOptions 
-        { 
-            CloseOnEscapeKey = true, 
-            MaxWidth = MaxWidth.Small, 
-            FullWidth = true 
-        };
-        
-        await DialogService.ShowAsync<EventForge.Client.Shared.Components.Dialogs.FontPreferencesDialog>(
-            TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font"),
-            options);
     }
 
     private void OnLanguageChanged(object? sender, string newLanguage)
@@ -376,13 +352,6 @@
         }
         
         await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task HandleLogout()
-    {
-        // This method is called from UserAccountMenu component
-        // Default behavior is handled by the component itself
-        await Task.CompletedTask;
     }
 
     private async Task ShowLoginDialogAsync()
