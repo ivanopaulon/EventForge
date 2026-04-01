@@ -328,6 +328,11 @@
                                  @bind-SelectedItems="_selectedRows"
                                  AllowDragDropGrouping="true"
                                  ShowColumnConfiguration="true"
+                                 ShowExport="true"
+                                 ShowExportDialog="true"
+                                 ExcelFileName="@GetDocumentExcelFileName()"
+                                 IsDataFiltered="@(!string.IsNullOrEmpty(_searchQuery))"
+                                 TotalItemsCount="@(_currentDocument?.Rows?.Count ?? 0)"
                                  Dense="true"
                                  Hover="true"
                                  Striped="true"
@@ -1466,6 +1471,14 @@
         return count == total 
             ? TranslationService.GetTranslationFormatted("documents.showingAllRows", "Visualizzate tutte le {0} righe", total)
             : TranslationService.GetTranslationFormatted("documents.showingFilteredRows", "Visualizzate {0} di {1} righe", count, total);
+    }
+
+    private string GetDocumentExcelFileName()
+    {
+        if (_currentDocument == null) return "Righe_Documento";
+        var parts = new[] { _currentDocument.DocumentTypeName, _currentDocument.Series, _currentDocument.Number }
+            .Where(p => !string.IsNullOrWhiteSpace(p));
+        return string.Join("_", parts).Replace("/", "-").Replace(" ", "_");
     }
 
     // Panel state management

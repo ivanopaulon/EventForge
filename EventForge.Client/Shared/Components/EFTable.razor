@@ -7,6 +7,7 @@
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IHttpClientService HttpClientService
 
 @if (AllowDragDropGrouping && ServerData == null)
 {
@@ -82,7 +83,7 @@
           LoadingProgressColor="@LoadingProgressColor"
           SortLabel="@(TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna"))"
           Breakpoint="@Breakpoint"
-          RowsPerPage="@RowsPerPage"
+          RowsPerPage="@EffectiveRowsPerPage"
           AllowUnsorted="true">
     <ToolBarContent>
         @if (ToolBarContent != null)
@@ -113,6 +114,7 @@
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
                               Dense="true"
+                              Disabled="@IsToolbarDisabled"
                               Class="mr-2"
                               Style="max-width: 300px;" />
             }
@@ -122,6 +124,10 @@
                                Color="@(_filtersExpanded ? Color.Primary : Color.Default)"
                                OnClick="@ToggleFilters"
                                Size="Size.Small" />
+            }
+            @if (AdditionalToolbarContent != null)
+            {
+                @AdditionalToolbarContent
             }
             @if (ShowExport && ExportFormats.Any())
             {
@@ -133,7 +139,46 @@
                                    Disabled="_isExporting" />
                 </MudTooltip>
             }
-            @if (UseDefaultActions && OnAdd.HasDelegate)
+            @if (ShowSelectionBadge && MultiSelection && SelectedItems.Any())
+            {
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Class="mr-1">@SelectedItems.Count</MudChip>
+                @if (ShowBulkDelete && OnBulkDelete.HasDelegate)
+                {
+                    <MudTooltip Text="@TranslationService.GetTranslation("button.deleteSelected", "Elimina selezionati")">
+                        <MudIconButton Icon="@Icons.Material.Outlined.DeleteSweep"
+                                       Color="Color.Error"
+                                       OnClick="@HandleBulkDelete"
+                                       Disabled="@IsToolbarDisabled"
+                                       Size="Size.Small" />
+                    </MudTooltip>
+                }
+            }
+            @if (ShowRefresh && OnRefresh.HasDelegate)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation(RefreshTooltip, "Aggiorna dati")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                                   Color="Color.Primary"
+                                   OnClick="@HandleRefresh"
+                                   Disabled="@IsToolbarDisabled"
+                                   Variant="Variant.Outlined"
+                                   Size="Size.Small" />
+                </MudTooltip>
+            }
+            @if (ShowCreate && OnCreate.HasDelegate)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
+                    <MudButton StartIcon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
+                               Color="Color.Primary"
+                               OnClick="@HandleCreate"
+                               Disabled="@IsToolbarDisabled"
+                               Variant="Variant.Filled"
+                               Size="Size.Small"
+                               Class="ef-toolbar-button">
+                        @TranslationService.GetTranslation(CreateLabel, "Crea")
+                    </MudButton>
+                </MudTooltip>
+            }
+            @if (UseDefaultActions && OnAdd.HasDelegate && !ShowCreate)
             {
                 <MudIconButton Icon="@Icons.Material.Outlined.Add"
                                Color="Color.Primary"
@@ -235,7 +280,7 @@
         }
     </NoRecordsContent>
     <PagerContent>
-        @if (ShowInternalPager)
+        @if (EffectiveShowPager)
         {
             @if (PagerContent != null)
             {
@@ -306,6 +351,28 @@
     [Parameter] public EventCallback<string> OnExport { get; set; }
     [Parameter] public bool EnableExcelExport { get; set; } = true;
     [Parameter] public string ExcelFileName { get; set; } = "Export";
+
+    // Toolbar management parameters (replaces ManagementTableToolbar)
+    [Parameter] public bool ShowRefresh { get; set; } = false;
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public string RefreshTooltip { get; set; } = "tooltip.refresh";
+    [Parameter] public bool ShowCreate { get; set; } = false;
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public string CreateTooltip { get; set; } = "tooltip.create";
+    [Parameter] public string CreateLabel { get; set; } = "button.create";
+    [Parameter] public string CreateIcon { get; set; } = string.Empty;
+    [Parameter] public bool ShowBulkDelete { get; set; } = false;
+    [Parameter] public EventCallback OnBulkDelete { get; set; }
+    [Parameter] public bool ShowSelectionBadge { get; set; } = false;
+    [Parameter] public bool IsToolbarDisabled { get; set; } = false;
+    [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
+
+    // Performance: page size used when Virtualize=true (MudTable v8 does not support DOM virtualization)
+    [Parameter] public int VirtualizePageSize { get; set; } = 50;
+
+    private bool IsVirtualizingWithPager => Virtualize && RowsPerPage == int.MaxValue;
+    private int EffectiveRowsPerPage => IsVirtualizingWithPager ? VirtualizePageSize : RowsPerPage;
+    private bool EffectiveShowPager => ShowInternalPager || IsVirtualizingWithPager;
     
     /// <summary>
     /// Se true, mostra dialog di selezione colonne prima dell'export.
@@ -890,6 +957,24 @@
         }
     }
 
+    private async Task HandleRefresh()
+    {
+        if (OnRefresh.HasDelegate)
+            await OnRefresh.InvokeAsync();
+    }
+
+    private async Task HandleCreate()
+    {
+        if (OnCreate.HasDelegate)
+            await OnCreate.InvokeAsync();
+    }
+
+    private async Task HandleBulkDelete()
+    {
+        if (OnBulkDelete.HasDelegate)
+            await OnBulkDelete.InvokeAsync();
+    }
+
     private async Task HandleExport(string format)
     {
         if (OnExport.HasDelegate)
@@ -905,7 +990,7 @@
         {
             _isExporting = true;
             StateHasChanged();
-            
+
             var displayItems = GetDisplayItems().ToList();
             if (!displayItems.Any())
             {
@@ -914,16 +999,18 @@
                     Severity.Warning);
                 return;
             }
-            
+
+            var excelFileName = !string.IsNullOrEmpty(ExcelFileName) ? ExcelFileName : Title ?? "Export";
+
             var columns = _columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order)
-                .Select(c => new { PropertyName = c.PropertyName, DisplayName = c.DisplayName, NumberFormat = GetExcelFormat(c.PropertyName), IsVisible = true }).ToList();
-            
+                .Select(c => new { propertyName = ToCamelCase(c.PropertyName), displayName = c.DisplayName, numberFormat = GetExcelFormat(c.PropertyName), isVisible = true }).ToList();
+
             var exportData = new
             {
                 data = displayItems,
                 options = new
                 {
-                    fileName = !string.IsNullOrEmpty(ExcelFileName) ? ExcelFileName : Title ?? "Export",
+                    fileName = excelFileName,
                     sheetName = Title ?? "Data",
                     columns,
                     formatting = new { headerBackgroundColor = "#1976D2", headerFontColor = "#FFFFFF", headerBold = true, headerBorders = true, alternateRowColors = true, alternateRowColor = "#F5F5F5", dataBorders = true },
@@ -932,23 +1019,15 @@
                     addAutoFilter = true
                 }
             };
-            
-            var response = await Http.PostAsJsonAsync("/api/v1/export/excel", exportData);
-            if (response.IsSuccessStatusCode)
-            {
-                var bytes = await response.Content.ReadAsByteArrayAsync();
-                var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"Export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-                await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
-                    Severity.Success);
-            }
-            else
-            {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("export.failed", "Export fallito"), 
-                    Severity.Error);
-            }
+
+            var stream = await HttpClientService.PostStreamAsync("api/v1/export/excel", exportData);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"{excelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", bytes);
+            Snackbar.Add(
+                TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
+                Severity.Success);
         }
         catch (Exception ex)
         {
@@ -963,12 +1042,11 @@
             StateHasChanged();
         }
     }
-    
+
     private async Task HandleExportToExcelAdvanced(List<Export.ExportColumnConfig> selectedColumns)
     {
-        // IMPORTANTE: GetDisplayItems() ritorna i dati FILTRATI!
         var displayItems = GetDisplayItems().ToList();
-        
+
         if (!displayItems.Any())
         {
             Snackbar.Add(
@@ -976,20 +1054,22 @@
                 Severity.Warning);
             return;
         }
-        
+
+        var excelFileName = !string.IsNullOrEmpty(ExcelFileName) ? ExcelFileName : Title ?? "Export";
+
         var exportData = new
         {
-            data = displayItems, // DATI FILTRATI!
+            data = displayItems,
             options = new
             {
-                fileName = !string.IsNullOrEmpty(ExcelFileName) ? ExcelFileName : Title ?? "Export",
+                fileName = excelFileName,
                 sheetName = Title ?? "Data",
                 columns = selectedColumns.Select(c => new 
                 { 
-                    PropertyName = c.PropertyName, 
-                    DisplayName = c.DisplayName, 
-                    NumberFormat = c.NumberFormat, 
-                    IsVisible = true 
+                    propertyName = ToCamelCase(c.PropertyName), 
+                    displayName = c.DisplayName, 
+                    numberFormat = c.NumberFormat, 
+                    isVisible = true 
                 }).ToList(),
                 formatting = new 
                 { 
@@ -1006,31 +1086,21 @@
                 addAutoFilter = true
             }
         };
-        
-        var response = await Http.PostAsJsonAsync("/api/v1/export/excel", exportData);
-        
-        if (response.IsSuccessStatusCode)
-        {
-            var bytes = await response.Content.ReadAsByteArrayAsync();
-            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') 
-                ?? $"{ExcelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-            
-            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
-            
-            Snackbar.Add(
-                TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
-                Severity.Success);
-        }
-        else
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            Logger.LogError("Excel export failed: {Error}", error);
-            
-            Snackbar.Add(
-                TranslationService.GetTranslation("export.failed", "Export fallito"), 
-                Severity.Error);
-        }
+
+        var stream = await HttpClientService.PostStreamAsync("api/v1/export/excel", exportData);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        var bytes = ms.ToArray();
+
+        await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"{excelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", bytes);
+
+        Snackbar.Add(
+            TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
+            Severity.Success);
     }
+
+    private static string ToCamelCase(string name) =>
+        string.IsNullOrEmpty(name) ? name : char.ToLowerInvariant(name[0]) + name[1..];
     
     private async Task HandleExportToCsv(List<Export.ExportColumnConfig> selectedColumns)
     {

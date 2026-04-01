@@ -45,32 +45,20 @@
                      ShowExportDialog="true"
                      ExcelFileName="Punti_Cassa"
                      IsDataFiltered="@HasActiveFilters()"
-                     TotalItemsCount="@_items.Count">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h5">
-                        @TranslationService.GetTranslation("store.posList", "Punti Cassa")
-                    </MudText>
-                    <MudSpacer />
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("common.search", "Cerca")"
-                                  Placeholder="@TranslationService.GetTranslation("store.searchPos", "Cerca per nome, location...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Class="ef-input" />
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedItems.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateTooltip="store.createNewPos"
-                                            IsDisabled="_isLoadingData"
-                                            OnRefresh="@LoadDataAsync"
-                                            OnCreate="@CreateNew"
-                                            OnDelete="@DeleteSelected" />
-                </ToolBarContent>
+                     TotalItemsCount="@_items.Count"
+                     Title="@TranslationService.GetTranslation("store.posList", "Punti Cassa")"
+                     ShowSearch="true"
+                     SearchPlaceholder="@TranslationService.GetTranslation("common.search", "Cerca")"
+                     OnSearch="@OnSearchChanged"
+                     ShowSelectionBadge="true"
+                     ShowRefresh="true"
+                     OnRefresh="@LoadDataAsync"
+                     ShowCreate="true"
+                     OnCreate="@CreateNew"
+                     CreateTooltip="store.createNewPos"
+                     ShowBulkDelete="true"
+                     OnBulkDelete="@DeleteSelected"
+                     IsToolbarDisabled="@_isLoadingData">
                 <HeaderContent Context="columnConfigurations">
                     @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                     {
@@ -415,24 +403,10 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
         _currentPage = 1;
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-
-        try
-        {
-            await Task.Delay(300, token);
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        _searchTerm = term;
     }
 
     private async Task OnPageChanged(int page)

@@ -46,37 +46,20 @@
                  ExcelFileName="AnagraficheAziendali"
                  IsDataFiltered="@HasActiveFilters()"
                  TotalItemsCount="@_allBusinessParties.Count"
-                 OnRowClick="@HandleRowClick">
-            <ToolBarContent>
-                <!-- SECTION 1: Title -->
-                <MudText Typo="Typo.h5">
-                    @GetPageTitle()
-                </MudText>
-                <MudSpacer />
-                
-                <!-- SECTION 2: Search -->
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("businessparty.search", "Cerca")"
-                              Placeholder="@TranslationService.GetTranslation("businessparty.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
-                
-                <!-- SECTION 3: Toolbar Actions -->
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedBusinessParties.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="businessparty.createNew"
-                                        IsDisabled="_isLoadingBusinessParties"
-                                        OnRefresh="@LoadBusinessPartiesAsync"
-                                        OnCreate="@CreateBusinessParty"
-                                        OnDelete="@DeleteSelectedBusinessParties" />
-            </ToolBarContent>
+                 OnRowClick="@HandleRowClick"
+                 Title="@GetPageTitle()"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("businessparty.search", "Cerca")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadBusinessPartiesAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreateBusinessParty"
+                 CreateTooltip="businessparty.createNew"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedBusinessParties"
+                 IsToolbarDisabled="@_isLoadingBusinessParties">
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -532,25 +515,9 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _searchTerm = term;
     }
 
     private void CreateBusinessParty()

@@ -40,12 +40,18 @@
                      IsLoading="_isLoadingCounters"
                      ComponentKey="DocumentCounterManagement"
                      InitialColumnConfigurations="_initialColumns"
-                     AllowDragDropGrouping="true">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h5">
-                        @TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")
-                    </MudText>
-                    <MudSpacer />
+                     AllowDragDropGrouping="true"
+                     Title="@TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")"
+                     ShowSelectionBadge="true"
+                     ShowRefresh="true"
+                     OnRefresh="@LoadCountersAsync"
+                     ShowCreate="true"
+                     OnCreate="@OpenCreateDialog"
+                     CreateTooltip="documentCounter.create"
+                     ShowBulkDelete="true"
+                     OnBulkDelete="@DeleteSelectedCounters"
+                     IsToolbarDisabled="@_isLoadingCounters">
+                <AdditionalToolbarContent>
                     <MudSelect T="Guid?" 
                                Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
                                Class="ef-select"
@@ -61,17 +67,7 @@
                             }
                         }
                     </MudSelect>
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedCounters.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateTooltip="documentCounter.create"
-                                            IsDisabled="_isLoadingCounters"
-                                            OnRefresh="@LoadCountersAsync"
-                                            OnCreate="@OpenCreateDialog"
-                                            OnDelete="@DeleteSelectedCounters" />
-                </ToolBarContent>
+                </AdditionalToolbarContent>
                 <HeaderContent Context="columnConfigurations">
                     @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                     {

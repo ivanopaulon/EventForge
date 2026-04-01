@@ -98,25 +98,16 @@
                  ShowExportDialog="true"
                  ExcelFileName="GiacenzeMagazzino"
                  IsDataFiltered="@HasActiveFilters()"
-                 TotalItemsCount="@((int)_totalCount)">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")
-                </MudText>
-                <MudSpacer />
-                
-                @* Search field - keep in toolbar for quick access *@
-                <MudTextField @bind-Value="_filters.SearchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("stock.search", "Cerca prodotti")"
-                              Placeholder="@TranslationService.GetTranslation("stock.searchPlaceholder", "Inserisci nome o codice prodotto...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
-                
-                @* Advanced Filters Button *@
+                 TotalItemsCount="@((int)_totalCount)"
+                 Title="@TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("stock.search", "Cerca prodotti")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadStockOverviewAsync"
+                 IsToolbarDisabled="@_isLoadingStock">
+            <AdditionalToolbarContent>
                 <MudButton StartIcon="@Icons.Material.Outlined.FilterList"
                            OnClick="OpenFiltersDialog"
                            Variant="Variant.Outlined"
@@ -130,15 +121,11 @@
                         </MudChip>
                     }
                 </MudButton>
-                
-                @* Detailed/Aggregated View Switch *@
                 <MudSwitch @bind-Value="_filters.DetailedView"
                            @bind-Value:after="OnViewChanged"
                            Label="@(_filters.DetailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
                            Color="Color.Info"
                            Class="ml-2" />
-                
-                @* Selection and bulk operations toolbar *@
                 @if (_selectedStockItems.Any())
                 {
                     <MudButtonGroup Variant="Variant.Outlined" Class="ml-2">
@@ -152,15 +139,7 @@
                         </MudButton>
                     </MudButtonGroup>
                 }
-                
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedStockItems.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="false"
-                                        ShowDelete="false"
-                                        IsDisabled="_isLoadingStock"
-                                        OnRefresh="@LoadStockOverviewAsync" />
-            </ToolBarContent>
+            </AdditionalToolbarContent>
             
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
@@ -969,26 +948,10 @@
     /// <summary>
     /// Handles search term changes with debouncing.
     /// </summary>
-    private async Task OnSearchChanged()
+    private async Task OnSearchChanged(string term)
     {
-        // Cancel and dispose previous debounce token to prevent memory leak
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts?.Dispose();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(SearchDebounceMs, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                await OnFilterChangedAsync();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation - expected behavior
-        }
+        _filters.SearchTerm = term;
+        await OnFilterChangedAsync();
     }
 
     /// <summary>

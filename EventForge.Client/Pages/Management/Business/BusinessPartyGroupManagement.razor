@@ -85,33 +85,20 @@
                  IsLoading="_isLoadingGroups"
                  ComponentKey="BusinessPartyGroupManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="@(!_isReorderMode)">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("businessPartyGroup.management", "Gestione Gruppi Business Party")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("businessPartyGroup.search", "Cerca gruppi")"
-                              Placeholder="@TranslationService.GetTranslation("businessPartyGroup.searchPlaceholder", "Inserisci nome o codice...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Disabled="_isReorderMode"
-                              Class="ef-input" />
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedGroups.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="businessPartyGroup.createNew"
-                                        IsDisabled="@(_isLoadingGroups || _isReorderMode)"
-                                        OnRefresh="@LoadGroupsAsync"
-                                        OnCreate="@CreateGroup"
-                                        OnDelete="@DeleteSelectedGroups" />
-            </ToolBarContent>
+                 AllowDragDropGrouping="@(!_isReorderMode)"
+                 Title="@TranslationService.GetTranslation("businessPartyGroup.management", "Gestione Gruppi Business Party")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("businessPartyGroup.search", "Cerca gruppi")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadGroupsAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreateGroup"
+                 CreateTooltip="businessPartyGroup.createNew"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedGroups"
+                 IsToolbarDisabled="@(_isLoadingGroups || _isReorderMode)">
             <HeaderContent Context="columnConfigurations">
                 @if (_isReorderMode)
                 {
@@ -724,25 +711,9 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _searchTerm = term;
     }
 
     private async Task OnPageChanged(int page)

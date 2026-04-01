@@ -44,34 +44,24 @@
                  ExcelFileName="Prodotti"
                  IsDataFiltered="@HasActiveFilters()"
                  TotalItemsCount="@_products.Count"
-                 OnRowClick="@HandleRowClick">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("product.search", "Cerca prodotti")"
-                              Placeholder="@TranslationService.GetTranslation("product.searchPlaceholder", "Inserisci nome...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
+                 OnRowClick="@HandleRowClick"
+                 Title="@TranslationService.GetTranslation("product.management", "Gestione Prodotti")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("product.search", "Cerca prodotti")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadProductsAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreateProduct"
+                 CreateTooltip="product.createNew"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedProducts"
+                 IsToolbarDisabled="@_isLoadingProducts">
+            <AdditionalToolbarContent>
                 <GenerateProductsButton />
                 <EventForge.Client.Components.ProductManagement.DevToolsButton Count="10" />
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedProducts.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="product.createNew"
-                                        IsDisabled="_isLoadingProducts"
-                                        OnRefresh="@LoadProductsAsync"
-                                        OnCreate="@CreateProduct"
-                                        OnDelete="@DeleteSelectedProducts" />
-            </ToolBarContent>
+            </AdditionalToolbarContent>
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -411,25 +401,9 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _searchTerm = term;
     }
 
     private void CreateProduct()
