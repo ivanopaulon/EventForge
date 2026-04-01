@@ -11,7 +11,7 @@ namespace EventForge.Client.Services
     /// 
     /// This ensures that:
     /// - Users NEVER have to re-login during active work sessions
-    /// - The session only expires after TRUE inactivity (no navigation, no API calls for 4 hours)
+    /// - The session only expires after TRUE inactivity (no navigation, no API calls for 10 hours)
     /// - Token expiration acts as a safety buffer, not an active session timeout
     /// 
     /// The token is also refreshed on:
@@ -53,8 +53,8 @@ namespace EventForge.Client.Services
 
     public class SessionKeepaliveService : ISessionKeepaliveService
     {
-        private const int KEEPALIVE_INTERVAL_MINUTES = 3;
-        private const int WARNING_THRESHOLD_MINUTES = 15; // Trigger urgent refresh below 15 minutes (UI shows warning only at < 10 min)
+        private const int KEEPALIVE_INTERVAL_MINUTES = 3; // Refresh interval is much shorter than token lifetime to ensure sliding expiration
+        private const int WARNING_THRESHOLD_MINUTES = 15; // Trigger urgent refresh below 15 minutes (UI shows warning only at <= 10 min)
         private const int MAX_RETRIES = 3;
         private const int INITIAL_RETRY_DELAY_MS = 1000; // 1 second
 
@@ -244,12 +244,17 @@ namespace EventForge.Client.Services
                 _logger.LogError(errorMessage);
                 OnRefreshFailure?.Invoke(errorMessage);
 
-                // If we have too many consecutive failures, stop the service
+                // If we have too many consecutive failures, log critically but keep the service running
                 if (_consecutiveFailures >= 5)
                 {
-                    _logger.LogCritical("Too many consecutive failures ({Count}), stopping SessionKeepaliveService", 
+                    _logger.LogCritical("Too many consecutive failures ({Count}), but SessionKeepaliveService will keep retrying", 
                         _consecutiveFailures);
-                    Stop();
+                }
+
+                // Emit OnSessionWarning when token is close to expiry AND refresh has been failing
+                if (timeToExpiry.HasValue && timeToExpiry.Value.TotalMinutes < WARNING_THRESHOLD_MINUTES)
+                {
+                    OnSessionWarning?.Invoke((int)timeToExpiry.Value.TotalMinutes);
                 }
             }
             catch (OperationCanceledException)
