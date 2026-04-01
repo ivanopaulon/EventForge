@@ -1108,3 +1108,4 @@ public class WarehouseFacade : IWarehouseFacade
     }
 
     #endregion
+}

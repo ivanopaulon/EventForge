@@ -632,7 +632,19 @@
             {
                 ItemsToApply = _selectedItems.Select(x => x.StockId).ToList(),
                 Reason = reason,
-                CreateAdjustmentMovements = createAdjustmentMovements
+                CreateAdjustmentMovements = createAdjustmentMovements,
+                // Pass the original preview filters so the server recalculates with the same scope
+                ReconciliationFilters = new StockReconciliationRequestDto
+                {
+                    FromDate = _fromDate,
+                    ToDate = _toDate,
+                    WarehouseId = _selectedWarehouseId,
+                    LocationId = _selectedLocationId,
+                    ProductId = _selectedProduct?.Id,
+                    IncludeDocuments = _includeDocuments,
+                    IncludeInventories = _includeInventories,
+                    DiscrepancyThreshold = _discrepancyThreshold
+                }
             };
 
             var result = await StockReconciliationService.ApplyReconciliationAsync(request);

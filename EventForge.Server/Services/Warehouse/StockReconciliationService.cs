@@ -40,6 +40,12 @@ public class StockReconciliationService : IStockReconciliationService
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
+            // Server-side date validation
+            if (request.FromDate.HasValue && request.ToDate.HasValue && request.FromDate > request.ToDate)
+            {
+                throw new ArgumentException("FromDate cannot be after ToDate.");
+            }
+
             _logger.LogInformation("Starting stock reconciliation calculation for tenant {TenantId}", currentTenantId);
 
             var result = new StockReconciliationResultDto();
@@ -72,10 +78,89 @@ public class StockReconciliationService : IStockReconciliationService
 
             _logger.LogInformation("Found {Count} stock records to reconcile", stocks.Count);
 
-            // Process each stock
+            if (stocks.Count == 0)
+            {
+                result.Summary = CalculateSummary(result.Items);
+                return result;
+            }
+
+            // Batch pre-load all relevant data to avoid N+1 queries.
+            var productIds = stocks.Select(s => s.ProductId).Distinct().ToList();
+            var locationIds = stocks.Select(s => s.StorageLocationId).Distinct().ToList();
+
+            // Batch load inventory document rows (only closed inventory documents)
+            var allInventoryRows = new List<Data.Entities.Documents.DocumentRow>();
+            if (request.IncludeInventories)
+            {
+                var invQuery = _context.DocumentRows
+                    .AsNoTracking()
+                    .Include(dr => dr.DocumentHeader)
+                        .ThenInclude(dh => dh!.DocumentType)
+                    .Where(dr => dr.TenantId == currentTenantId.Value &&
+                                !dr.IsDeleted &&
+                                dr.ProductId.HasValue && productIds.Contains(dr.ProductId.Value) &&
+                                dr.LocationId.HasValue && locationIds.Contains(dr.LocationId.Value) &&
+                                dr.DocumentHeader != null &&
+                                dr.DocumentHeader.DocumentType != null &&
+                                dr.DocumentHeader.DocumentType.IsInventoryDocument &&
+                                dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed);
+
+                if (request.FromDate.HasValue)
+                    invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
+                if (request.ToDate.HasValue)
+                    invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date <= request.ToDate.Value);
+
+                allInventoryRows = await invQuery.ToListAsync(cancellationToken);
+            }
+
+            // Batch load regular (non-inventory) document rows in Open or Closed status.
+            // We do NOT apply the per-stock effectiveFromDate here; it is applied in-memory per stock.
+            var allDocumentRows = new List<Data.Entities.Documents.DocumentRow>();
+            if (request.IncludeDocuments)
+            {
+                var docQuery = _context.DocumentRows
+                    .AsNoTracking()
+                    .Include(dr => dr.DocumentHeader)
+                        .ThenInclude(dh => dh!.DocumentType)
+                    .Where(dr => dr.TenantId == currentTenantId.Value &&
+                                !dr.IsDeleted &&
+                                dr.ProductId.HasValue && productIds.Contains(dr.ProductId.Value) &&
+                                dr.LocationId.HasValue && locationIds.Contains(dr.LocationId.Value) &&
+                                dr.DocumentHeader != null &&
+                                dr.DocumentHeader.DocumentType != null &&
+                                !dr.DocumentHeader.DocumentType.IsInventoryDocument &&
+                                (dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Open ||
+                                 dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed));
+
+                if (request.FromDate.HasValue)
+                    docQuery = docQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
+                if (request.ToDate.HasValue)
+                    docQuery = docQuery.Where(dr => dr.DocumentHeader!.Date <= request.ToDate.Value);
+
+                allDocumentRows = await docQuery.ToListAsync(cancellationToken);
+            }
+
+            // Batch load manual stock movements.
+            // We do NOT apply the per-stock effectiveFromDate here; it is applied in-memory per stock.
+            var manualMovQuery = _context.StockMovements
+                .AsNoTracking()
+                .Where(sm => sm.TenantId == currentTenantId.Value &&
+                            !sm.IsDeleted &&
+                            productIds.Contains(sm.ProductId) &&
+                            (sm.FromLocationId.HasValue && locationIds.Contains(sm.FromLocationId.Value) ||
+                             sm.ToLocationId.HasValue && locationIds.Contains(sm.ToLocationId.Value)));
+
+            if (request.FromDate.HasValue)
+                manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate >= request.FromDate.Value);
+            if (request.ToDate.HasValue)
+                manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate <= request.ToDate.Value);
+
+            var allManualMovements = await manualMovQuery.ToListAsync(cancellationToken);
+
+            // Process each stock using pre-loaded in-memory data
             foreach (var stock in stocks)
             {
-                var item = await CalculateStockItemAsync(stock, request, currentTenantId.Value, cancellationToken);
+                var item = CalculateStockItem(stock, request, allInventoryRows, allDocumentRows, allManualMovements);
 
                 // Filter by discrepancies if requested
                 if (!request.OnlyWithDiscrepancies || item.Severity != ReconciliationSeverity.Correct)
@@ -99,11 +184,15 @@ public class StockReconciliationService : IStockReconciliationService
         }
     }
 
-    private async Task<StockReconciliationItemDto> CalculateStockItemAsync(
+    /// <summary>
+    /// Calculates the reconciliation item for a single stock record using pre-loaded in-memory data.
+    /// </summary>
+    private StockReconciliationItemDto CalculateStockItem(
         Data.Entities.Warehouse.Stock stock,
         StockReconciliationRequestDto request,
-        Guid tenantId,
-        CancellationToken cancellationToken)
+        List<Data.Entities.Documents.DocumentRow> allInventoryRows,
+        List<Data.Entities.Documents.DocumentRow> allDocumentRows,
+        List<Data.Entities.Warehouse.StockMovement> allManualMovements)
     {
         var item = new StockReconciliationItemDto
         {
@@ -120,38 +209,58 @@ public class StockReconciliationService : IStockReconciliationService
         var sourceMovements = new List<StockMovementSourceDto>();
         DateTime? effectiveFromDate = request.FromDate;
 
-        // 1. Check for inventory movement first (it replaces the starting quantity)
-        StockMovementSourceDto? inventoryMovement = null;
+        // 1. Find the most recent closed inventory document for this stock (replaces starting quantity)
         if (request.IncludeInventories)
         {
-            inventoryMovement = await GetLastInventoryMovementAsync(
-                stock.ProductId,
-                stock.StorageLocationId,
-                request.FromDate,
-                request.ToDate,
-                tenantId,
-                cancellationToken);
+            var lastInventoryRow = allInventoryRows
+                .Where(dr => dr.ProductId == stock.ProductId && dr.LocationId == stock.StorageLocationId)
+                .OrderByDescending(dr => dr.DocumentHeader!.Date)
+                .FirstOrDefault();
 
-            if (inventoryMovement != null)
+            if (lastInventoryRow != null)
             {
-                sourceMovements.Add(inventoryMovement);
-                // Inventory replaces the calculated quantity and sets new effective starting point
-                calculatedQuantity = inventoryMovement.Quantity;
-                effectiveFromDate = inventoryMovement.Date;
+                sourceMovements.Add(new StockMovementSourceDto
+                {
+                    Type = "Inventory",
+                    Reference = $"{lastInventoryRow.DocumentHeader!.DocumentType!.Code}-{lastInventoryRow.DocumentHeader.Number}",
+                    Quantity = lastInventoryRow.Quantity,
+                    Date = lastInventoryRow.DocumentHeader.Date,
+                    IsReplacement = true
+                });
+                // Inventory snapshot replaces the calculated quantity and advances the effective start date
+                calculatedQuantity = lastInventoryRow.Quantity;
+                effectiveFromDate = lastInventoryRow.DocumentHeader.Date;
                 item.TotalInventories = 1;
+
+                if (request.StartingQuantity.HasValue && request.StartingQuantity.Value != 0m)
+                {
+                    _logger.LogDebug(
+                        "StartingQuantity {Qty} overridden by inventory document for product {ProductId} at location {LocationId}",
+                        request.StartingQuantity.Value, stock.ProductId, stock.StorageLocationId);
+                }
             }
         }
 
-        // 2. Process document movements from effective starting date
+        // 2. Apply non-inventory document movements (carico/scarico) from the effective start date.
+        //    Draft and Cancelled documents are excluded; inventory documents are excluded to avoid double-counting.
         if (request.IncludeDocuments)
         {
-            var documentMovements = await GetDocumentMovementsAsync(
-                stock.ProductId,
-                stock.StorageLocationId,
-                effectiveFromDate,
-                request.ToDate,
-                tenantId,
-                cancellationToken);
+            var documentMovements = allDocumentRows
+                .Where(dr => dr.ProductId == stock.ProductId &&
+                             dr.LocationId == stock.StorageLocationId &&
+                             (effectiveFromDate == null || dr.DocumentHeader!.Date >= effectiveFromDate.Value))
+                .Select(dr => new StockMovementSourceDto
+                {
+                    Type = "Document",
+                    Reference = $"{dr.DocumentHeader!.DocumentType!.Code}-{dr.DocumentHeader.Number}",
+                    // Use Math.Abs to guard against negative quantities stored in the DB
+                    Quantity = dr.DocumentHeader.DocumentType.IsStockIncrease
+                        ? Math.Abs(dr.Quantity)
+                        : -Math.Abs(dr.Quantity),
+                    Date = dr.DocumentHeader.Date,
+                    IsReplacement = false
+                })
+                .ToList();
 
             foreach (var movement in documentMovements)
             {
@@ -162,14 +271,24 @@ public class StockReconciliationService : IStockReconciliationService
             item.TotalDocuments = documentMovements.Count;
         }
 
-        // 3. Process manual stock movements from effective starting date
-        var manualMovements = await GetManualMovementsAsync(
-            stock.ProductId,
-            stock.StorageLocationId,
-            effectiveFromDate,
-            request.ToDate,
-            tenantId,
-            cancellationToken);
+        // 3. Apply manual stock movements (transfers, adjustments) from the effective start date.
+        //    Quantities are always stored as positive values; the sign is determined by the location role.
+        var manualMovements = allManualMovements
+            .Where(sm => sm.ProductId == stock.ProductId &&
+                         (sm.FromLocationId == stock.StorageLocationId || sm.ToLocationId == stock.StorageLocationId) &&
+                         (effectiveFromDate == null || sm.MovementDate >= effectiveFromDate.Value))
+            .Select(sm => new StockMovementSourceDto
+            {
+                Type = "Manual",
+                Reference = sm.Reference ?? "Manual Adjustment",
+                // Inbound when this location is the destination; outbound when it is the source
+                Quantity = sm.ToLocationId == stock.StorageLocationId
+                    ? Math.Abs(sm.Quantity)
+                    : -Math.Abs(sm.Quantity),
+                Date = sm.MovementDate,
+                IsReplacement = false
+            })
+            .ToList();
 
         foreach (var movement in manualMovements)
         {
@@ -183,7 +302,6 @@ public class StockReconciliationService : IStockReconciliationService
         item.CalculatedQuantity = calculatedQuantity;
         item.Difference = calculatedQuantity - stock.Quantity;
 
-        // Fix percentage calculation: use the larger of current or calculated as base
         var baseValue = Math.Max(Math.Abs(item.CurrentQuantity), Math.Abs(calculatedQuantity));
         item.DifferencePercentage = baseValue != 0
             ? Math.Abs(item.Difference) / baseValue * 100
@@ -199,162 +317,37 @@ public class StockReconciliationService : IStockReconciliationService
         return item;
     }
 
-    private async Task<List<StockMovementSourceDto>> GetDocumentMovementsAsync(
-        Guid productId,
-        Guid locationId,
-        DateTime? fromDate,
-        DateTime? toDate,
-        Guid tenantId,
-        CancellationToken cancellationToken)
-    {
-        var query = _context.DocumentRows
-            .AsNoTracking()
-            .Include(dr => dr.DocumentHeader)
-                .ThenInclude(dh => dh!.DocumentType)
-            .Where(dr => dr.TenantId == tenantId &&
-                        !dr.IsDeleted &&
-                        dr.ProductId == productId &&
-                        dr.LocationId == locationId &&
-                        dr.DocumentHeader != null &&
-                        dr.DocumentHeader.DocumentType != null);
-
-        if (fromDate.HasValue)
-        {
-            query = query.Where(dr => dr.DocumentHeader!.Date >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(dr => dr.DocumentHeader!.Date <= toDate.Value);
-        }
-
-        var documentRows = await query.ToListAsync(cancellationToken);
-
-        return documentRows.Select(dr => new StockMovementSourceDto
-        {
-            Type = "Document",
-            Reference = $"{dr.DocumentHeader!.DocumentType!.Code}-{dr.DocumentHeader.Number}",
-            Quantity = dr.DocumentHeader.DocumentType.IsStockIncrease
-                ? dr.Quantity
-                : -dr.Quantity,
-            Date = dr.DocumentHeader.Date,
-            IsReplacement = false
-        }).ToList();
-    }
-
-    private async Task<StockMovementSourceDto?> GetLastInventoryMovementAsync(
-        Guid productId,
-        Guid locationId,
-        DateTime? fromDate,
-        DateTime? toDate,
-        Guid tenantId,
-        CancellationToken cancellationToken)
-    {
-        // Query for the last finalized inventory document within the date range
-        // Uses IsInventoryDocument property to identify inventory document types
-        var query = _context.DocumentRows
-            .AsNoTracking()
-            .Include(dr => dr.DocumentHeader)
-                .ThenInclude(dh => dh!.DocumentType)
-            .Where(dr => dr.TenantId == tenantId &&
-                        !dr.IsDeleted &&
-                        dr.ProductId == productId &&
-                        dr.LocationId == locationId &&
-                        dr.DocumentHeader != null &&
-                        dr.DocumentHeader.DocumentType != null &&
-                        dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                        dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed);
-
-        // Apply date filters
-        if (fromDate.HasValue)
-        {
-            query = query.Where(dr => dr.DocumentHeader!.Date >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(dr => dr.DocumentHeader!.Date <= toDate.Value);
-        }
-
-        var lastInventoryRow = await query
-            .OrderByDescending(dr => dr.DocumentHeader!.Date)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (lastInventoryRow == null)
-            return null;
-
-        return new StockMovementSourceDto
-        {
-            Type = "Inventory",
-            Reference = $"{lastInventoryRow.DocumentHeader!.DocumentType!.Code}-{lastInventoryRow.DocumentHeader.Number}",
-            Quantity = lastInventoryRow.Quantity, // Counted quantity
-            Date = lastInventoryRow.DocumentHeader.Date,
-            IsReplacement = true // Indicates this replaces the stock quantity
-        };
-    }
-
-    private async Task<List<StockMovementSourceDto>> GetManualMovementsAsync(
-        Guid productId,
-        Guid locationId,
-        DateTime? fromDate,
-        DateTime? toDate,
-        Guid tenantId,
-        CancellationToken cancellationToken)
-    {
-        var query = _context.StockMovements
-            .AsNoTracking()
-            .Where(sm => sm.TenantId == tenantId &&
-                        !sm.IsDeleted &&
-                        sm.ProductId == productId &&
-                        (sm.FromLocationId == locationId || sm.ToLocationId == locationId));
-
-        if (fromDate.HasValue)
-        {
-            query = query.Where(sm => sm.MovementDate >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(sm => sm.MovementDate <= toDate.Value);
-        }
-
-        var movements = await query.ToListAsync(cancellationToken);
-
-        return movements.Select(sm => new StockMovementSourceDto
-        {
-            Type = "Manual",
-            Reference = sm.Reference ?? "Manual Adjustment",
-            Quantity = sm.ToLocationId == locationId ? sm.Quantity : -sm.Quantity,
-            Date = sm.MovementDate,
-            IsReplacement = false
-        }).ToList();
-    }
-
     private static ReconciliationSeverity DetermineSeverity(
         decimal currentQuantity,
         decimal calculatedQuantity,
         decimal differencePercentage,
         decimal threshold)
     {
-        // Missing: Current is 0 but calculated is > 0
+        // Missing: physical stock is zero but movements indicate stock should exist
         if (currentQuantity == 0 && calculatedQuantity > 0)
         {
             return ReconciliationSeverity.Missing;
         }
 
-        // Correct: No difference
+        // Phantom: physical stock exists but movements show zero or negative (data integrity issue)
+        if (currentQuantity > 0 && calculatedQuantity <= 0)
+        {
+            return ReconciliationSeverity.Major;
+        }
+
+        // Correct: no difference
         if (currentQuantity == calculatedQuantity)
         {
             return ReconciliationSeverity.Correct;
         }
 
-        // Major: Difference > threshold
+        // Major: difference exceeds threshold
         if (differencePercentage > threshold)
         {
             return ReconciliationSeverity.Major;
         }
 
-        // Minor: Difference <= threshold
+        // Minor: difference within threshold
         return ReconciliationSeverity.Minor;
     }
 
@@ -393,8 +386,9 @@ public class StockReconciliationService : IStockReconciliationService
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                // First, recalculate to get current values
-                var recalcRequest = new StockReconciliationRequestDto
+                // Recalculate using the exact same filters that produced the preview shown to the user.
+                // This ensures the quantities being applied match what was displayed.
+                var recalcRequest = request.ReconciliationFilters ?? new StockReconciliationRequestDto
                 {
                     IncludeDocuments = true,
                     IncludeInventories = true
@@ -446,7 +440,7 @@ public class StockReconciliationService : IStockReconciliationService
                         result.MovementsCreated++;
                     }
 
-                    // Audit log
+                    // Audit log — include the reconciliation reason for a complete audit trail
                     await _auditLogService.LogEntityChangeAsync(
                         entityName: "Stock",
                         entityId: stock.Id,
@@ -455,7 +449,7 @@ public class StockReconciliationService : IStockReconciliationService
                         oldValue: oldQuantity.ToString(),
                         newValue: newQuantity.ToString(),
                         changedBy: currentUser,
-                        entityDisplayName: $"{stock.Product?.Name ?? "Unknown"} @ {stock.StorageLocation?.Code ?? "Unknown"}",
+                        entityDisplayName: $"{stock.Product?.Name ?? "Unknown"} @ {stock.StorageLocation?.Code ?? "Unknown"} - {request.Reason}",
                         cancellationToken: cancellationToken);
                 }
 
@@ -486,30 +480,12 @@ public class StockReconciliationService : IStockReconciliationService
         }
     }
 
-    public async Task<byte[]> ExportReconciliationReportAsync(
+    public Task<byte[]> ExportReconciliationReportAsync(
         StockReconciliationRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger.LogInformation("Exporting reconciliation report");
-
-            // Calculate reconciliation
-            var reconciliation = await CalculateReconciledStockAsync(request, cancellationToken);
-
-            // TODO: Implement Excel export using EPPlus or ClosedXML
-            // For now, this feature is not implemented and returns empty array
-            // This should be enhanced in a future iteration to generate a proper Excel file
-            // with Summary, Details, and Movements sheets
-            await Task.CompletedTask;
-
-            _logger.LogWarning("Excel export not yet implemented - returning empty array");
-            return Array.Empty<byte>();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error exporting reconciliation report");
-            throw;
-        }
+        // TODO: Implement Excel export using EPPlus or ClosedXML with Summary, Details, and Movements sheets
+        _logger.LogWarning("Excel export not yet implemented - returning empty array");
+        return Task.FromResult(Array.Empty<byte>());
     }
 }
