@@ -2,6 +2,7 @@
 @inherits LayoutComponentBase
 @using EventForge.Client.Constants
 @using EventForge.DTOs.Configuration
+@using EventForge.Client.Shared.Components
 @inject IAuthService AuthService
 @inject ISessionKeepaliveService SessionKeepaliveService
 @inject IThemeService ThemeService
@@ -100,6 +101,9 @@
 
 <!-- Global Loading Dialog - centralized modal loading component -->
 <GlobalLoadingDialog />
+
+<!-- Floating Chat - always visible when authenticated -->
+<FloatingChat />
 
 @code {
     private bool _drawerOpen = true;
