@@ -760,6 +760,30 @@ public interface IWarehouseFacade
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
     Task UpdateDocumentStatusesBatchAsync(List<(Guid DocumentId, DocumentStatus Status, string Notes)> updates, string currentUser, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Returns a preview of what would happen if the specified inventory documents were merged.
+    /// Does NOT modify any data. Used to present a confirmation step to the user before executing the merge.
+    /// </summary>
+    /// <param name="documentIds">List of inventory document IDs to preview merge for (minimum 2 required).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<MergeInventoryDocumentsPreviewDto> PreviewMergeInventoryDocumentsAsync(
+        List<Guid> documentIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Merges multiple inventory documents into one closed document.
+    /// The resulting document is set to Closed status; all other source documents are soft-deleted.
+    /// Row merging logic: rows with same ProductId + LocationId are merged by summing quantities.
+    /// </summary>
+    /// <param name="mergeDto">Merge request containing source document IDs and optional target document ID.
+    /// If TargetDocumentId is set, it must be included in SourceDocumentIds and becomes the base document.</param>
+    /// <param name="currentUser">Username performing the operation (for audit trail).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<MergeInventoryDocumentsResultDto> MergeInventoryDocumentsAsync(
+        MergeInventoryDocumentsDto mergeDto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Inventory Validation Operations

@@ -686,6 +686,202 @@ public class WarehouseFacade : IWarehouseFacade
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<MergeInventoryDocumentsPreviewDto> PreviewMergeInventoryDocumentsAsync(
+        List<Guid> documentIds,
+        CancellationToken cancellationToken = default)
+    {
+        var documents = await _context.DocumentHeaders
+            .Include(d => d.Rows)
+            .Include(d => d.SourceWarehouse)
+            .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var preview = new MergeInventoryDocumentsPreviewDto();
+        var warnings = new List<string>();
+
+        foreach (var doc in documents)
+        {
+            var rowCount = doc.Rows?.Count(r => !r.IsDeleted) ?? 0;
+            preview.SourceDocuments.Add(new MergeSourceDocumentSummaryDto
+            {
+                Id = doc.Id,
+                Number = doc.Number,
+                Status = doc.Status.ToString(),
+                RowCount = rowCount,
+                WarehouseId = doc.SourceWarehouseId,
+                WarehouseName = doc.SourceWarehouse?.Name,
+                InventoryDate = doc.Date
+            });
+        }
+
+        var allRows = documents.SelectMany(d => d.Rows?.Where(r => !r.IsDeleted) ?? Enumerable.Empty<EventForge.Server.Data.Entities.Documents.DocumentRow>()).ToList();
+        preview.TotalInputRows = allRows.Count;
+
+        var groupedByKey = allRows
+            .GroupBy(r => new { ProductId = r.ProductId ?? Guid.Empty, LocationId = r.LocationId ?? Guid.Empty })
+            .ToList();
+
+        preview.EstimatedOutputRows = groupedByKey.Count;
+        preview.RowsToMerge = groupedByKey.Count(g => g.Count() > 1);
+        preview.RowsToCopy = groupedByKey.Count(g => g.Count() == 1);
+
+        var warehouseIds = documents.Select(d => d.SourceWarehouseId).Distinct().ToList();
+        preview.WarehouseIds = warehouseIds;
+        preview.SameWarehouse = warehouseIds.Count == 1;
+
+        if (!preview.SameWarehouse)
+        {
+            warnings.Add("I documenti selezionati appartengono a magazzini diversi. Le righe verranno accorpate indipendentemente dal magazzino.");
+        }
+
+        if (preview.RowsToMerge > 0)
+        {
+            warnings.Add($"{preview.RowsToMerge} righe con stesso prodotto e ubicazione verranno accorpate sommando le quantità.");
+        }
+
+        preview.Warnings = warnings;
+
+        return preview;
+    }
+
+    public async Task<MergeInventoryDocumentsResultDto> MergeInventoryDocumentsAsync(
+        MergeInventoryDocumentsDto mergeDto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        using var transaction = await BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
+
+        try
+        {
+            if (mergeDto.SourceDocumentIds.Count == 0)
+                throw new ArgumentException("SourceDocumentIds must contain at least one document ID.", nameof(mergeDto));
+
+            var documents = await _context.DocumentHeaders
+                .Include(d => d.Rows)
+                .Where(d => mergeDto.SourceDocumentIds.Contains(d.Id) && !d.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            // Determine target document
+            var targetId = mergeDto.TargetDocumentId ?? mergeDto.SourceDocumentIds.First();
+            var targetDocument = documents.FirstOrDefault(d => d.Id == targetId);
+            if (targetDocument == null)
+                throw new InvalidOperationException($"Target document {targetId} not found.");
+
+            var sourceDocs = documents.Where(d => d.Id != targetId).ToList();
+
+            var result = new MergeInventoryDocumentsResultDto
+            {
+                MergedDocumentId = targetDocument.Id,
+                MergedDocumentNumber = targetDocument.Number
+            };
+
+            var now = DateTime.UtcNow;
+            int mergedRows = 0;
+            int copiedRows = 0;
+            var warnings = new List<string>();
+
+            // Merge rows from source documents into target
+            var targetRows = targetDocument.Rows?.Where(r => !r.IsDeleted).ToList() ?? new List<EventForge.Server.Data.Entities.Documents.DocumentRow>();
+
+            foreach (var sourceDoc in sourceDocs)
+            {
+                var sourceRows = sourceDoc.Rows?.Where(r => !r.IsDeleted).ToList() ?? new List<EventForge.Server.Data.Entities.Documents.DocumentRow>();
+
+                foreach (var sourceRow in sourceRows)
+                {
+                    var existingTargetRow = targetRows.FirstOrDefault(r =>
+                        r.ProductId == sourceRow.ProductId &&
+                        r.LocationId == sourceRow.LocationId);
+
+                    if (existingTargetRow != null)
+                    {
+                        // Merge: sum quantities
+                        existingTargetRow.Quantity += sourceRow.Quantity;
+                        existingTargetRow.ModifiedAt = now;
+                        existingTargetRow.ModifiedBy = currentUser;
+                        if (!string.IsNullOrWhiteSpace(sourceRow.Notes))
+                        {
+                            existingTargetRow.Notes = string.IsNullOrWhiteSpace(existingTargetRow.Notes)
+                                ? sourceRow.Notes
+                                : $"{existingTargetRow.Notes}; {sourceRow.Notes}";
+                        }
+                        mergedRows++;
+                    }
+                    else
+                    {
+                        // Copy: add new row to target
+                        var newRow = new EventForge.Server.Data.Entities.Documents.DocumentRow
+                        {
+                            Id = Guid.NewGuid(),
+                            DocumentHeaderId = targetDocument.Id,
+                            ProductId = sourceRow.ProductId,
+                            ProductCode = sourceRow.ProductCode,
+                            Description = sourceRow.Description,
+                            LocationId = sourceRow.LocationId,
+                            Quantity = sourceRow.Quantity,
+                            UnitOfMeasure = sourceRow.UnitOfMeasure,
+                            Notes = sourceRow.Notes,
+                            TenantId = targetDocument.TenantId,
+                            CreatedAt = now,
+                            CreatedBy = currentUser,
+                            ModifiedAt = now,
+                            ModifiedBy = currentUser
+                        };
+                        _context.DocumentRows.Add(newRow);
+                        targetRows.Add(newRow);
+                        copiedRows++;
+                    }
+                }
+            }
+
+            // Append optional notes to target document
+            if (!string.IsNullOrWhiteSpace(mergeDto.Notes))
+            {
+                targetDocument.Notes = string.IsNullOrWhiteSpace(targetDocument.Notes)
+                    ? mergeDto.Notes
+                    : $"{targetDocument.Notes}; {mergeDto.Notes}";
+            }
+
+            // Finalize the target document
+            targetDocument.Status = EventForge.DTOs.Common.DocumentStatus.Closed;
+            targetDocument.ClosedAt = now;
+            targetDocument.ModifiedAt = now;
+            targetDocument.ModifiedBy = currentUser;
+
+            // Soft delete all source documents (not the target)
+            var softDeletedIds = new List<Guid>();
+            foreach (var sourceDoc in sourceDocs)
+            {
+                var mergedIntoNote = $"[Accorpato in {targetDocument.Number}]";
+                sourceDoc.IsDeleted = true;
+                sourceDoc.DeletedAt = now;
+                sourceDoc.DeletedBy = currentUser;
+                sourceDoc.Notes = string.IsNullOrWhiteSpace(sourceDoc.Notes)
+                    ? mergedIntoNote
+                    : $"{sourceDoc.Notes} {mergedIntoNote}";
+                sourceDoc.ModifiedAt = now;
+                sourceDoc.ModifiedBy = currentUser;
+                softDeletedIds.Add(sourceDoc.Id);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            result.TotalRows = targetRows.Count;
+            result.MergedRows = mergedRows;
+            result.CopiedRows = copiedRows;
+            result.SoftDeletedDocumentIds = softDeletedIds;
+            result.Warnings = warnings;
+
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     #endregion
 
     #region Inventory Validation Operations
