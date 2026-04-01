@@ -3178,21 +3178,22 @@ public class WarehouseManagementController : BaseApiController
     }
 
     /// <summary>
-    /// Merges multiple open inventory documents into a single consolidated document.
-    /// Groups rows by (ProductId, LocationId, LotId) and sums quantities.
+    /// Returns a preview of the merge operation for the selected inventory documents.
+    /// Use this before calling /merge to show the user what will happen.
+    /// No data is modified by this call.
     /// </summary>
-    /// <param name="request">Merge request with source document IDs</param>
+    /// <param name="documentIds">List of inventory document IDs to preview</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Merged inventory document</returns>
-    /// <response code="200">Returns the merged inventory document</response>
+    /// <returns>Preview of the merge operation</returns>
+    /// <response code="200">Returns the merge preview</response>
     /// <response code="400">If validation fails</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
-    [HttpPost("inventory/documents/merge")]
-    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [HttpPost("inventory/documents/merge-preview")]
+    [ProducesResponseType(typeof(MergeInventoryDocumentsPreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> MergeInventoryDocuments(
-        [FromBody] MergeInventoryDocumentsDto request,
+    public async Task<IActionResult> PreviewMergeInventoryDocuments(
+        [FromBody] List<Guid> documentIds,
         CancellationToken cancellationToken = default)
     {
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -3200,160 +3201,80 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            // 1. Validations
-            if (request.SourceDocumentIds.Count < 2)
+            if (documentIds == null || documentIds.Count < 2)
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Invalid merge request",
-                    Detail = "At least 2 documents are required to merge",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                ModelState.AddModelError("documentIds", "At least 2 documents are required to preview a merge.");
+                return CreateValidationProblemDetails();
             }
 
-            // 2. Load source documents via facade
-            var documents = await _warehouseFacade.LoadDocumentsForMergeAsync(request.SourceDocumentIds, cancellationToken);
+            _logger.LogInformation("Previewing merge for {Count} inventory documents.", documentIds.Count);
 
-            if (documents.Count != request.SourceDocumentIds.Count)
+            var preview = await _warehouseFacade.PreviewMergeInventoryDocumentsAsync(documentIds, cancellationToken);
+
+            if (preview.SourceDocuments.Count != documentIds.Count)
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Invalid merge request",
-                    Detail = "One or more source documents not found",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                ModelState.AddModelError("documentIds", "One or more source documents not found.");
+                return CreateValidationProblemDetails();
             }
 
-            // 3. Verify all documents belong to the same warehouse
-            var warehouseId = documents.First().SourceWarehouseId;
-            if (documents.Any(d => d.SourceWarehouseId != warehouseId))
+            return Ok(preview);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while previewing merge for inventory documents.");
+            return CreateInternalServerErrorProblem("An error occurred while previewing the inventory document merge.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Merges the selected inventory documents into one finalized document.
+    /// Source documents (excluding the target/base) are soft-deleted.
+    /// Row merging: ProductId + LocationId matching => quantities summed.
+    /// </summary>
+    /// <param name="mergeDto">Merge request with source document IDs and optional target document ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result of the merge operation</returns>
+    /// <response code="200">Returns the merge result</response>
+    /// <response code="400">If validation fails</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/documents/merge")]
+    [ProducesResponseType(typeof(MergeInventoryDocumentsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> MergeInventoryDocuments(
+        [FromBody] MergeInventoryDocumentsDto mergeDto,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            if (!ModelState.IsValid)
+                return CreateValidationProblemDetails();
+
+            if (mergeDto.SourceDocumentIds.Count < 2)
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Invalid merge request",
-                    Detail = "All documents must belong to the same warehouse",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                ModelState.AddModelError("SourceDocumentIds", "At least 2 documents are required to merge.");
+                return CreateValidationProblemDetails();
             }
 
-            // 4. Verify all documents are in Open status
-            if (documents.Any(d => d.Status != DocumentStatus.Open))
+            if (mergeDto.TargetDocumentId.HasValue && !mergeDto.SourceDocumentIds.Contains(mergeDto.TargetDocumentId.Value))
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Invalid merge request",
-                    Detail = "All documents must be in Open status to be merged",
-                    Status = StatusCodes.Status400BadRequest
-                });
-            }
-
-            // 5. Create new destination document
-            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
-                _tenantContext.CurrentTenantId!.Value,
-                cancellationToken);
-
-            var systemBusinessPartyId = await _warehouseFacade.GetOrCreateSystemBusinessPartyAsync(
-                _tenantContext.CurrentTenantId!.Value,
-                cancellationToken);
-
-            var mergedDocNumber = $"INV-MERGED-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
-            var sourceDocNumbers = string.Join(", ", documents.Select(d => d.Number));
-
-            var createHeaderDto = new CreateDocumentHeaderDto
-            {
-                DocumentTypeId = inventoryDocType.Id,
-                Series = "INV",
-                Number = mergedDocNumber,
-                Date = DateTime.UtcNow,
-                BusinessPartyId = systemBusinessPartyId,
-                SourceWarehouseId = warehouseId,
-                Notes = $"Merged from: {sourceDocNumbers}. {request.Notes ?? ""}",
-                IsFiscal = false,
-                IsProforma = true
-            };
-
-            var mergedDocument = await _warehouseFacade.CreateDocumentHeaderAsync(
-                createHeaderDto,
-                GetCurrentUser(),
-                cancellationToken);
-
-            // 6. Group rows by (ProductId, LocationId) and sum quantities
-            var allRows = documents.SelectMany(d => d.Rows).ToList();
-
-            var groupedRows = allRows
-                .GroupBy(r => new
-                {
-                    ProductId = r.ProductId ?? Guid.Empty,
-                    LocationId = r.LocationId ?? Guid.Empty
-                })
-                .Select(g => new
-                {
-                    g.Key.ProductId,
-                    g.Key.LocationId,
-                    Quantity = g.Sum(r => r.Quantity),
-                    ProductCode = g.First().ProductCode,
-                    Description = g.First().Description,
-                    Notes = string.Join("; ", g.Where(r => !string.IsNullOrWhiteSpace(r.Notes)).Select(r => r.Notes).Distinct())
-                })
-                .Where(g => g.ProductId != Guid.Empty && g.LocationId != Guid.Empty)
-                .ToList();
-
-            // 7. Add merged rows to the new document
-            foreach (var group in groupedRows)
-            {
-                var createRowDto = new CreateDocumentRowDto
-                {
-                    DocumentHeaderId = mergedDocument.Id,
-                    ProductCode = group.ProductCode,
-                    ProductId = group.ProductId,
-                    LocationId = group.LocationId,
-                    Description = group.Description,
-                    Quantity = group.Quantity,
-                    Notes = group.Notes,
-                    UnitPrice = 0
-                };
-
-                await _warehouseFacade.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
+                ModelState.AddModelError("TargetDocumentId", "TargetDocumentId must be included in SourceDocumentIds. SourceDocumentIds should contain all documents to merge, including the target.");
+                return CreateValidationProblemDetails();
             }
 
             _logger.LogInformation(
-                "Merged {SourceCount} inventory documents into {MergedNumber}. " +
-                "Total rows: {TotalRows}, Unique rows: {UniqueRows}, Duplicates removed: {DuplicatesRemoved}",
-                documents.Count, mergedDocNumber, allRows.Count, groupedRows.Count, allRows.Count - groupedRows.Count);
+                "Merging {Count} inventory documents. Target: {TargetId}.",
+                mergeDto.SourceDocumentIds.Count,
+                mergeDto.TargetDocumentId?.ToString() ?? "(first in list)");
 
-            // 8. Cancel the source documents via facade
-            var statusUpdates = documents.Select(d => (
-                d.Id,
-                DocumentStatus.Cancelled,
-                $"{d.Notes ?? ""} [Merged into {mergedDocNumber}]"
-            )).ToList();
+            var result = await _warehouseFacade.MergeInventoryDocumentsAsync(mergeDto, GetCurrentUser(), cancellationToken);
 
-            await _warehouseFacade.UpdateDocumentStatusesBatchAsync(statusUpdates, GetCurrentUser(), cancellationToken);
-
-            // 9. Load the merged document with enriched rows
-            var resultDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(
-                mergedDocument.Id,
-                includeRows: true,
-                cancellationToken);
-
-            var enrichedRows = resultDocument!.Rows != null && resultDocument.Rows.Any()
-                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(resultDocument.Rows, cancellationToken)
-                : new List<InventoryDocumentRowDto>();
-
-            var result = new InventoryDocumentDto
-            {
-                Id = resultDocument.Id,
-                Number = resultDocument.Number,
-                Series = resultDocument.Series,
-                InventoryDate = resultDocument.Date,
-                WarehouseId = resultDocument.SourceWarehouseId,
-                WarehouseName = resultDocument.SourceWarehouseName,
-                Status = resultDocument.Status.ToString(),
-                Notes = resultDocument.Notes,
-                CreatedAt = resultDocument.CreatedAt,
-                CreatedBy = resultDocument.CreatedBy,
-                Rows = enrichedRows
-            };
+            _logger.LogInformation(
+                "Merged inventory documents into {MergedNumber}. TotalRows: {TotalRows}, MergedRows: {MergedRows}, CopiedRows: {CopiedRows}, SoftDeleted: {SoftDeleted}.",
+                result.MergedDocumentNumber, result.TotalRows, result.MergedRows, result.CopiedRows, result.SoftDeletedDocumentIds.Count);
 
             return Ok(result);
         }
