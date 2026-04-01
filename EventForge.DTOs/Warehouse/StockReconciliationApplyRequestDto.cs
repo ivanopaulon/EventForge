@@ -25,5 +25,11 @@ namespace EventForge.DTOs.Warehouse
         /// Whether to create adjustment movements for the changes (default: true)
         /// </summary>
         public bool CreateAdjustmentMovements { get; set; } = true;
+
+        /// <summary>
+        /// The original filters used when calculating the reconciliation preview.
+        /// When provided, the server uses the same filters to recalculate before applying.
+        /// </summary>
+        public StockReconciliationRequestDto? ReconciliationFilters { get; set; }
     }
 }
