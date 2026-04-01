@@ -14,8 +14,8 @@ public class ExportService : IExportService
     {
         _logger = logger;
 
-        // Set EPPlus license context (required for EPPlus 5+)
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        // Set EPPlus license context (required for EPPlus 8+)
+        ExcelPackage.License.SetNonCommercialPersonal("EventForge");
     }
 
     public async Task<byte[]> ExportToExcelAsync<T>(
