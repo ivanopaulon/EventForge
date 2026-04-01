@@ -844,6 +844,15 @@ public interface IWarehouseFacade
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
     Task<List<InventoryDocumentRowDto>> EnrichInventoryDocumentRowsAsync(IEnumerable<DocumentRowDto> rows, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Returns lightweight headers (no rows) of all Open inventory documents for the given tenant.
+    /// RowCount is calculated via SQL COUNT — no rows are loaded into memory.
+    /// </summary>
+    /// <param name="tenantId">Tenant identifier</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>List of lightweight inventory document header DTOs ordered by creation date descending</returns>
+    Task<List<InventoryDocumentHeaderDto>> GetOpenInventoryDocumentHeadersAsync(Guid tenantId, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Bulk Operations

@@ -214,6 +214,19 @@ public class InventoryService : IInventoryService
         }
     }
 
+    public async Task<List<InventoryDocumentHeaderDto>?> GetOpenInventoryDocumentHeadersAsync()
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<List<InventoryDocumentHeaderDto>>($"{BaseUrl}/documents/open-headers");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving open inventory document headers");
+            return null;
+        }
+    }
+
     public async Task<PagedResult<InventoryDocumentRowDto>?> GetInventoryDocumentRowsAsync(Guid documentId, int page = 1, int pageSize = 50)
     {
         try

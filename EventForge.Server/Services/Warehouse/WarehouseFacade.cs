@@ -413,6 +413,34 @@ public class WarehouseFacade : IWarehouseFacade
         return enrichedRows;
     }
 
+    public async Task<List<InventoryDocumentHeaderDto>> GetOpenInventoryDocumentHeadersAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var inventoryDocType = await GetOrCreateInventoryDocumentTypeAsync(tenantId, cancellationToken);
+
+        return await _context.DocumentHeaders
+            .AsNoTracking()
+            .Where(d => d.TenantId == tenantId
+                        && d.DocumentTypeId == inventoryDocType.Id
+                        && d.Status == DocumentStatus.Open
+                        && !d.IsDeleted)
+            .OrderByDescending(d => d.CreatedAt)
+            .Select(d => new InventoryDocumentHeaderDto
+            {
+                Id = d.Id,
+                Number = d.Number,
+                InventoryDate = d.Date,
+                Status = d.Status.ToString(),
+                WarehouseName = d.SourceWarehouse != null ? d.SourceWarehouse.Name : null,
+                RowCount = d.Rows.Count(r => !r.IsDeleted),
+                Notes = d.Notes,
+                CreatedAt = d.CreatedAt,
+                CreatedBy = d.CreatedBy
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     #endregion
 
     #region Inventory Row Management Operations
