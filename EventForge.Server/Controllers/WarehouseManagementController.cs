@@ -2702,6 +2702,37 @@ public class WarehouseManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Returns lightweight headers (no rows) of all Open inventory documents for the current tenant.
+    /// RowCount is calculated via SQL COUNT — no rows are loaded into memory, safe for any number of documents.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of lightweight open inventory document headers</returns>
+    /// <response code="200">Returns the list of open inventory document headers</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("inventory/documents/open-headers")]
+    [ProducesResponseType(typeof(List<InventoryDocumentHeaderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<List<InventoryDocumentHeaderDto>>> GetOpenInventoryDocumentHeaders(CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var headers = await _warehouseFacade.GetOpenInventoryDocumentHeadersAsync(
+                _tenantContext.CurrentTenantId!.Value,
+                cancellationToken);
+
+            return Ok(headers);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving open inventory document headers.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving open inventory document headers.", ex);
+        }
+    }
+
+    /// <summary>
     /// Cancels an inventory document without saving (changes status to "Cancelled").
     /// Does NOT apply stock adjustments.
     /// </summary>

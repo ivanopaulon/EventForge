@@ -28,6 +28,11 @@ public interface IInventoryService
 
     // Active inventory management methods
     Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync();
+    /// <summary>
+    /// Returns lightweight headers of all Open inventory documents.
+    /// Uses the open-headers endpoint that never loads rows — safe for any number of documents.
+    /// </summary>
+    Task<List<InventoryDocumentHeaderDto>?> GetOpenInventoryDocumentHeadersAsync();
     Task<bool> CancelInventoryDocumentAsync(Guid documentId);
     Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync();
     Task<int> CancelAllOpenInventoriesAsync();

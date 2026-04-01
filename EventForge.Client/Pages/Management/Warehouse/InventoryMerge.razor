@@ -34,7 +34,7 @@
         {
             <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
         }
-        else if (_openDocuments == null || !_openDocuments.Any())
+        else if (_openDocumentHeaders == null || !_openDocumentHeaders.Any())
         {
             <MudAlert Severity="Severity.Info" Class="mb-3">
                 Nessun inventario aperto disponibile per l'accorpamento.
@@ -42,8 +42,8 @@
         }
         else
         {
-            <MudTable T="InventoryDocumentDto"
-                      Items="_openDocuments"
+            <MudTable T="InventoryDocumentHeaderDto"
+                      Items="_openDocumentHeaders"
                       MultiSelection="true"
                       @bind-SelectedItems="_selectedDocuments"
                       Dense="true"
@@ -73,7 +73,7 @@
                         </MudChip>
                     </MudTd>
                     <MudTd DataLabel="N° Righe" Style="text-align:right">
-                        @(context.Rows?.Count ?? 0)
+                        @context.RowCount
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
@@ -85,7 +85,7 @@
             {
                 <MudAlert Severity="Severity.Info" Dense="true">
                     @_selectedDocuments.Count inventari selezionati —
-                    totale righe: <b>@_selectedDocuments.Sum(d => d.Rows?.Count ?? 0)</b>
+                    totale righe: <b>@_selectedDocuments.Sum(d => d.RowCount)</b>
                 </MudAlert>
             }
         }
@@ -110,7 +110,7 @@
                 {
                     <MudSelectItem Value="@((Guid?)doc.Id)">
                         @doc.Number — @doc.InventoryDate.ToString("dd/MM/yyyy")
-                        (@(doc.Rows?.Count ?? 0) righe)
+                        (@(doc.RowCount) righe)
                     </MudSelectItem>
                 }
             </MudSelect>
@@ -337,8 +337,8 @@
     private bool _previewLoading = false;
     private bool _merging = false;
 
-    private List<InventoryDocumentDto> _openDocuments = new();
-    private HashSet<InventoryDocumentDto> _selectedDocuments = new();
+    private List<InventoryDocumentHeaderDto> _openDocumentHeaders = new();
+    private HashSet<InventoryDocumentHeaderDto> _selectedDocuments = new();
     private Guid? _targetDocumentId = null;
     private string? _mergeNotes;
 
@@ -363,8 +363,8 @@
         _loading = true;
         try
         {
-            _openDocuments = await InventoryService.GetOpenInventoryDocumentsAsync()
-                             ?? new List<InventoryDocumentDto>();
+            _openDocumentHeaders = await InventoryService.GetOpenInventoryDocumentHeadersAsync()
+                             ?? new List<InventoryDocumentHeaderDto>();
         }
         catch (Exception ex)
         {
