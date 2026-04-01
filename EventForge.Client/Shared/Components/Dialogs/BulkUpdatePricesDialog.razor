@@ -332,7 +332,7 @@
     {
         if (_previewResult == null || !_isFormValid) return;
 
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("pricelist.confirmUpdate", "Conferma Aggiornamento"),
             $"{TranslationService.GetTranslation("pricelist.confirmUpdateMessage", "Confermi l'aggiornamento di")} {_previewResult.AffectedCount} {TranslationService.GetTranslation("pricelist.products", "prodotti")}?",
             yesText: TranslationService.GetTranslation("button.yes", "Sì"),

@@ -180,7 +180,7 @@
 
     private async Task DeleteAddressAsync(AddressDto address)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
             TranslationService.GetTranslation("businessParty.deleteAddressConfirm", "Sei sicuro di voler eliminare questo indirizzo?"),
             yesText: TranslationService.GetTranslation("button.delete", "Elimina"),

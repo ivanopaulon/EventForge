@@ -269,7 +269,7 @@
             return;
         }
 
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmFinalizeTitle", "Conferma Finalizzazione"),
             TranslationService.GetTranslation("warehouse.confirmFinalizeMessage", 
                 "Sei sicuro di voler finalizzare l'inventario {0}? Questa operazione applicherà tutti gli aggiustamenti di stock.", 

@@ -492,7 +492,7 @@
             "Sei sicuro di voler eliminare l'aliquota IVA '{0}'? Questa azione non può essere annullata.", 
             vatRate.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
@@ -581,7 +581,7 @@
             "Sei sicuro di voler {0} l'aliquota IVA '{1}'?", 
             actionText, vatRate.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
@@ -628,7 +628,7 @@
             "Sei sicuro di voler eliminare {0} aliquote IVA selezionate? Questa azione non può essere annullata.", 
             _selectedVatRates.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

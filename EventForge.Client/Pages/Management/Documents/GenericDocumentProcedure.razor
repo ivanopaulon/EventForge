@@ -1113,7 +1113,7 @@
             return;
         }
         
-        bool? confirmed = await DialogService.ShowMessageBox(
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
             TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1173,7 +1173,7 @@
             return;
         }
 
-        bool? confirmed = await DialogService.ShowMessageBox(
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.confirmDeleteRows", "Conferma Eliminazione"),
             TranslationService.GetTranslationFormatted("documents.confirmDeleteRowsMessage", "Sei sicuro di voler eliminare {0} righe?", _selectedRows.Count),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1283,7 +1283,7 @@
         confirmMessage += string.Join("\n", rowsToMerge.Select(r => $"- {r.Quantity} x {r.UnitPrice:C2} = {(r.Quantity * r.UnitPrice):C2}"));
         confirmMessage += $"\n\n{TranslationService.GetTranslation("documents.mergeRowsResult", "Risultato: Quantità totale = {0}", rowsToMerge.Sum(r => r.Quantity))}";
 
-        bool? confirmed = await DialogService.ShowMessageBox(
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.confirmMergeRows", "Conferma Unione Righe"),
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),

@@ -71,7 +71,7 @@
 
         <!-- Tabs Section -->
         <MudPaper Elevation="2" Class="pa-2">
-            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
+            <MudTabs Elevation="0" Rounded="false" TabPanelsClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
                 <MudTabPanel Text="@TranslationService.GetTranslation("warehouse.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
                     <MudForm @ref="_form">
                         <MudGrid>
@@ -505,7 +505,7 @@
         var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
         var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
 
-        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+        var result = await DialogService.ShowMessageBoxAsync(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
 
         if (result == true)
         {
@@ -576,7 +576,7 @@
         var yesText = TranslationService.GetTranslation("common.yes", "Sì");
         var noText = TranslationService.GetTranslation("common.no", "No");
 
-        var result = await DialogService.ShowMessageBox(title, message, yesText: yesText, noText: noText);
+        var result = await DialogService.ShowMessageBoxAsync(title, message, yesText: yesText, noText: noText);
 
         if (result == true)
         {

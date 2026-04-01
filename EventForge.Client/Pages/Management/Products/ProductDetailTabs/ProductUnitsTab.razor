@@ -175,7 +175,7 @@
 
     private async Task DeleteUnitAsync(ProductUnitDto unit)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
         TranslationService.GetTranslation("common.confirm", "Conferma"),
         TranslationService.GetTranslation("product.confirmDeleteUnit", "Sei sicuro di voler eliminare questa unità?"),
         yesText: TranslationService.GetTranslation("common.yes", "Sì"),

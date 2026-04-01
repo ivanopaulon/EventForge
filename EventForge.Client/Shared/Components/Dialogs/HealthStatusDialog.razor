@@ -1187,7 +1187,7 @@
             return;
 
         // Ask for confirmation
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("health.confirmTermination", "Confirm Termination"),
             TranslationService.GetTranslation("health.confirmTerminateAllOtherSessions", "Are you sure you want to terminate all other sessions? This action cannot be undone."),
             yesText: TranslationService.GetTranslation("common.yes", "Yes"),

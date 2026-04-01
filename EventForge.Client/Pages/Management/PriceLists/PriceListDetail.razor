@@ -103,7 +103,7 @@
 
             <!-- Tabs Section -->
             <MudPaper Elevation="2" Class="pa-2">
-                <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
+                <MudTabs Elevation="0" Rounded="false" TabPanelsClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
                     <!-- Tab 1: Info Generale -->
                     <MudTabPanel Text="@TranslationService.GetTranslation("pricelist.tab.info", "Info")" Icon="@Icons.Material.Filled.Info">
                         <MudGrid>
@@ -957,7 +957,7 @@
 
     private async Task DeleteEntry(PriceListEntryDto entry)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             "Conferma Eliminazione",
             $"Rimuovere '{entry.ProductName}' dal listino?",
             yesText: "Elimina", cancelText: "Annulla");
@@ -982,7 +982,7 @@
     {
         if (_selectedEntries.Count == 0) return;
 
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             "Conferma Eliminazione Massiva",
             $"Rimuovere {_selectedEntries.Count} prodotti dal listino?",
             yesText: "Elimina", cancelText: "Annulla");
@@ -1045,7 +1045,7 @@
 
     private async Task DeletePriceList()
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             "Conferma Eliminazione",
             $"Eliminare definitivamente il listino '{_priceList?.Name}'?",
             yesText: "Elimina", cancelText: "Annulla");
@@ -1175,7 +1175,7 @@
 
         if (result != null && !result.Canceled && result.Data is DuplicatePriceListResultDto duplicateResult)
         {
-            var confirm = await DialogService.ShowMessageBox(
+            var confirm = await DialogService.ShowMessageBoxAsync(
                 TranslationService.GetTranslation("pricelist.duplicateSuccess", "Listino Duplicato"),
                 $"{TranslationService.GetTranslation("pricelist.duplicateSuccessMessage", "Listino duplicato con successo")}\n\n" +
                 $"Prodotti copiati: {duplicateResult.CopiedPriceCount}/{duplicateResult.SourcePriceCount}\n" +

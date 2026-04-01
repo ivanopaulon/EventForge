@@ -380,6 +380,13 @@ namespace EventForge.Client.Services
                     {
                         var client = _httpClientFactory.CreateClient("ApiClient");
 
+                        // The refresh-token endpoint requires [Authorize], so we must send the current token
+                        if (!string.IsNullOrEmpty(currentToken))
+                        {
+                            client.DefaultRequestHeaders.Authorization =
+                                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", currentToken);
+                        }
+
                         if (attempt > 1)
                         {
                             _logger.LogInformation("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode", 

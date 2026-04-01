@@ -410,7 +410,7 @@
             "Sei sicuro di voler eliminare il gruppo '{0}'? Questa azione non può essere annullata.",
             item.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
@@ -453,7 +453,7 @@
             "Sei sicuro di voler eliminare {0} gruppi selezionati? Questa azione non può essere annullata.",
             nonSystemGroups.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

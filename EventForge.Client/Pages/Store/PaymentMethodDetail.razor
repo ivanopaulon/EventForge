@@ -490,7 +490,7 @@
         var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
         var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
 
-        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+        var result = await DialogService.ShowMessageBoxAsync(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
 
         if (result == true)
         {

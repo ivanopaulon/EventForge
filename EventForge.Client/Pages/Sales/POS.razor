@@ -493,7 +493,7 @@
         // Confirm removal for significant items
         if (item.Quantity > 1 || item.TotalAmount > 50)
         {
-            bool? confirm = await DialogService.ShowMessageBox(
+            bool? confirm = await DialogService.ShowMessageBoxAsync(
                 TranslationService.GetTranslation("common.confirm", "Conferma"),
                 TranslationService.GetTranslation("sales.confirmRemoveItem", 
                     "Rimuovere {0} (x{1}) per {2}?", 
@@ -592,7 +592,7 @@
 
     private async Task ClearCartAsync()
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
             TranslationService.GetTranslation("sales.clearCartConfirm", "Sei sicuro di voler svuotare il carrello?"),
             yesText: TranslationService.GetTranslation("sales.clearCart", "Svuota"),
@@ -718,7 +718,7 @@
         if (!ViewModel.HasActiveSession)
             return;
 
-        bool? confirm = await DialogService.ShowMessageBox(
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
             TranslationService.GetTranslation("sales.cancelSessionConfirm", "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -903,7 +903,7 @@
             CloseButton = true
         };
         
-        var dialog = DialogService.Show<SplitPaymentDialog>(
+        var dialog = await DialogService.ShowAsync<SplitPaymentDialog>(
             TranslationService.GetTranslation("sales.split.title", "Dividi Conto"), 
             parameters, 
             options);
@@ -932,7 +932,7 @@
             CloseButton = true
         };
         
-        var dialog = DialogService.Show<MergeSessionsDialog>(
+        var dialog = await DialogService.ShowAsync<MergeSessionsDialog>(
             TranslationService.GetTranslation("sales.merge.title", "Unisci Sessioni"), 
             parameters, 
             options);

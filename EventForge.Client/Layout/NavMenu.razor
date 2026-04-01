@@ -1,4 +1,4 @@
-Ôªø@using EventForge.DTOs.Notifications
+@using EventForge.DTOs.Notifications
 @using EventForge.DTOs.Chat
 @using EventForge.Client.Services
 @inject IAuthService AuthService
@@ -40,7 +40,7 @@
                 <MudNavLink Href="/settings/unit-of-measures"
                             Icon="@Icons.Material.Outlined.Straighten" 
                             Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unit√† di Misura")
+                    @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unit‡ di Misura")
                 </MudNavLink>
                 <MudNavLink Href="/management/classification-nodes"
                             Icon="@Icons.Material.Outlined.AccountTree" 
@@ -184,7 +184,7 @@
             </MudNavGroup>
 
             <!-- Financial Management Group -->
-            <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilit√†")" 
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilit‡")" 
                          Icon="@Icons.Material.Outlined.AccountBalance" 
                          Expanded="false">
                 <MudNavLink Href="/financial/vat-rates" 
@@ -438,7 +438,7 @@
             // For now, show a simple message. This could be expanded to a custom component
             var message = TranslationService.GetTranslation("tour.selectMessage", "Visit the specific sections (Notifications, Chat, SuperAdmin) and click 'Take a Tour' to start an interactive walkthrough of that feature.");
             
-            await DialogService.ShowMessageBox(
+            await DialogService.ShowMessageBoxAsync(
                 TranslationService.GetTranslation("nav.interactiveTour", "Interactive Tour"),
                 message,
                 TranslationService.GetTranslation("common.ok", "OK"),
@@ -467,7 +467,7 @@
 
             var message = TranslationService.GetTranslation("onboarding.centerMessage", "Tutorial Center: Access step-by-step guides for each feature. You can reset your progress and replay tutorials at any time. Visit Notifications, Chat, or SuperAdmin sections and click 'Quick Start' to begin.");
             
-            await DialogService.ShowMessageBox(
+            await DialogService.ShowMessageBoxAsync(
                 TranslationService.GetTranslation("nav.tutorialCenter", "Tutorial Center"),
                 message,
                 TranslationService.GetTranslation("common.ok", "OK"),

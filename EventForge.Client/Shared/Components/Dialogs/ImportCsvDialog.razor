@@ -29,8 +29,8 @@
                     
                     <MudFileUpload T="IBrowserFile" OnFilesChanged="OnFileSelected" MaximumFileCount="1" 
                                    Accept=".csv">
-                        <ActivatorContent>
-                            <MudPaper Outlined="true" Class="pa-8 d-flex flex-column align-center" Style="border-style: dashed;">
+                        <CustomContent Context="fileUpload">
+                            <MudPaper Outlined="true" Class="pa-8 d-flex flex-column align-center" Style="border-style: dashed; cursor: pointer;" @onclick="@fileUpload.OpenFilePickerAsync">
                                 <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
                                 <MudText Typo="Typo.body1">
                                     @TranslationService.GetTranslation("csvImport.dragDrop", "Trascina il file qui o clicca per selezionare")
@@ -39,7 +39,7 @@
                                     @TranslationService.GetTranslation("csvImport.fileLimit", "File CSV, max 10 MB")
                                 </MudText>
                             </MudPaper>
-                        </ActivatorContent>
+                        </CustomContent>
                     </MudFileUpload>
 
                     @if (_selectedFile != null)

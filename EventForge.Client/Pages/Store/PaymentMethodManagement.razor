@@ -459,7 +459,7 @@
             "Sei sicuro di voler eliminare il metodo di pagamento '{0}'? Questa azione non può essere annullata.", 
             paymentMethod.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
@@ -514,7 +514,7 @@
             "Sei sicuro di voler eliminare {0} metodi di pagamento selezionati? Questa azione non può essere annullata.", 
             _selectedPaymentMethods.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

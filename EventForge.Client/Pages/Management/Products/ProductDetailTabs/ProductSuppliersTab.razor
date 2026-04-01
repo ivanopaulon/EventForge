@@ -192,7 +192,7 @@
 
     private async Task DeleteSupplierAsync(ProductSupplierDto supplier)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
         TranslationService.GetTranslation("common.confirm", "Conferma"),
         TranslationService.GetTranslation("product.confirmDeleteSupplier", "Sei sicuro di voler eliminare questo fornitore?"),
         yesText: TranslationService.GetTranslation("common.yes", "Sì"),

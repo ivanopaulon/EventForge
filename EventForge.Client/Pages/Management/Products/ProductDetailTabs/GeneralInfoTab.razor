@@ -125,16 +125,16 @@
                                        Accept="image/*"
                                        @bind-Files="_selectedImage"
                                        MaximumFileCount="1">
-                            <ActivatorContent>
-                                <MudButton HtmlTag="label"
-                                           Variant="Variant.Filled"
+                            <CustomContent Context="fileUpload">
+                                <MudButton Variant="Variant.Filled"
                                            Color="Color.Primary"
                                            StartIcon="@Icons.Material.Filled.CloudUpload"
                                            FullWidth="true"
-                                           Disabled="_isUploadingImage">
+                                           Disabled="_isUploadingImage"
+                                           OnClick="@fileUpload.OpenFilePickerAsync">
                                     @TranslationService.GetTranslation("product.selectImage", "Seleziona Immagine")
                                 </MudButton>
-                            </ActivatorContent>
+                            </CustomContent>
                         </MudFileUpload>
 
                         <MudButton OnClick="@UploadImage"

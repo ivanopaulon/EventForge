@@ -491,7 +491,7 @@
 
     private async Task DeleteDocumentType(DocumentTypeDto documentType)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("action.confirm", "Conferma"),
             TranslationService.GetTranslation("documentType.confirmDelete", $"Sei sicuro di voler eliminare il tipo documento '{documentType.Name}'?"),
             yesText: TranslationService.GetTranslation("action.delete", "Elimina"),
@@ -556,7 +556,7 @@
             "Sei sicuro di voler eliminare {0} tipi documento selezionati? Questa azione non può essere annullata.", 
             _selectedDocumentTypes.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

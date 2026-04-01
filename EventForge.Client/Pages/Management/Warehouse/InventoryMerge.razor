@@ -403,7 +403,7 @@
 
     private async Task ConfirmAndMergeAsync()
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             "Conferma accorpamento",
             $"Stai per accorpare {_selectedDocuments.Count} inventari in uno solo. " +
             "Gli altri verranno soft-eliminati. Continuare?",

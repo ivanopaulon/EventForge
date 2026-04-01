@@ -520,7 +520,7 @@
 
     private async Task DeleteDocument(Guid documentId)
     {
-        bool? confirmed = await DialogService.ShowMessageBox(
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.confirmDelete", "Conferma Eliminazione"),
             TranslationService.GetTranslation("documents.confirmDeleteMessage", "Sei sicuro di voler eliminare questo documento?"),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -594,7 +594,7 @@
             "Sei sicuro di voler eliminare {0} documenti selezionati? Questa azione non può essere annullata.", 
             _selectedDocuments.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

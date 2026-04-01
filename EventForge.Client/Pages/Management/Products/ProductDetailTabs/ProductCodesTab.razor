@@ -155,7 +155,7 @@
 
     private async Task DeleteCodeAsync(ProductCodeDto code)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
         TranslationService.GetTranslation("common.confirm", "Conferma"),
         TranslationService.GetTranslation("product.confirmDeleteCode", "Sei sicuro di voler eliminare questo codice?"),
         yesText: TranslationService.GetTranslation("common.yes", "Sì"),

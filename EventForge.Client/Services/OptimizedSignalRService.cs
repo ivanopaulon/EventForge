@@ -19,6 +19,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     // Connection management
     private readonly ConcurrentDictionary<string, HubConnection> _connections;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _connectionLocks;
+    private readonly ConcurrentDictionary<string, bool> _retryInProgress;
     private readonly Timer _connectionHealthTimer;
     private readonly Timer _eventBatchTimer;
 
@@ -78,6 +79,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
         _connections = new ConcurrentDictionary<string, HubConnection>();
         _connectionLocks = new ConcurrentDictionary<string, SemaphoreSlim>();
+        _retryInProgress = new ConcurrentDictionary<string, bool>();
         _eventQueue = new ConcurrentQueue<BatchedEvent>();
         _lastEventTime = new ConcurrentDictionary<string, DateTime>();
 
@@ -159,7 +161,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start SignalR {ConnectionKey} connection", connectionKey);
-            _ = Task.Run(() => ScheduleRetryAsync(connectionKey, hubPath));
+            // Retry is handled via the connection.Closed event or the calling ScheduleRetryAsync loop.
+            // Do NOT spawn a second ScheduleRetryAsync here to avoid duplicate retry loops.
         }
         finally
         {
@@ -448,9 +451,19 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     /// <summary>
     /// Schedules connection retry with exponential backoff.
+    /// Only one retry loop per connection key is allowed to run at a time.
     /// </summary>
     private async Task ScheduleRetryAsync(string connectionKey, string hubPath)
     {
+        // Prevent duplicate concurrent retry loops for the same connection
+        if (!_retryInProgress.TryAdd(connectionKey, true))
+        {
+            _logger.LogDebug("Retry already in progress for {ConnectionKey}, skipping duplicate", connectionKey);
+            return;
+        }
+
+        try
+        {
         var retryCount = 0;
         var delay = _retryConfig.InitialDelay;
 
@@ -472,9 +485,21 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             try
             {
                 await StartConnectionAsync(connectionKey, hubPath);
-                _logger.LogInformation("Successfully reconnected {ConnectionKey} after {RetryCount} retries",
-                    connectionKey, retryCount);
-                return; // Success
+
+                // Verify the connection actually succeeded before declaring victory
+                if (_connections.TryGetValue(connectionKey, out var conn) &&
+                    conn.State == HubConnectionState.Connected)
+                {
+                    _logger.LogInformation("Successfully reconnected {ConnectionKey} after {RetryCount} retries",
+                        connectionKey, retryCount);
+                    return; // Success
+                }
+
+                // StartConnectionAsync swallowed an exception; treat as failure and retry
+                retryCount++;
+                delay = TimeSpan.FromMilliseconds(Math.Min(
+                    delay.TotalMilliseconds * _retryConfig.BackoffMultiplier,
+                    _retryConfig.MaxDelay.TotalMilliseconds));
             }
             catch (Exception ex)
             {
@@ -491,6 +516,11 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
         _logger.LogError("Failed to reconnect {ConnectionKey} after {MaxRetries} attempts with delays: 2s, 4s, 8s, 16s, 30s",
             connectionKey, _retryConfig.MaxRetries);
+        }
+        finally
+        {
+            _retryInProgress.TryRemove(connectionKey, out _);
+        }
     }
 
     #endregion

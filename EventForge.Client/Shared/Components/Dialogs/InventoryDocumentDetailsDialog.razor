@@ -394,7 +394,7 @@
             "Sei sicuro di voler finalizzare il documento '{0}'? Una volta finalizzato, il documento non potrà più essere modificato e gli aggiustamenti di stock verranno applicati.", 
             Document.Number);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),

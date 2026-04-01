@@ -351,7 +351,7 @@
 
     private async Task DeleteSessionAsync(SaleSessionDto session)
     {
-        bool? confirm = await DialogService.ShowMessageBox(
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("sales.deleteSession", "Elimina Sessione"),
             TranslationService.GetTranslation("sales.confirmDeleteSession", "Sei sicuro di voler eliminare questa sessione? Questa azione è irreversibile."),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
