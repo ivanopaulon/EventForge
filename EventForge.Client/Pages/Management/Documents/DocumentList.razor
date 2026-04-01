@@ -453,21 +453,23 @@
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private void ClearFilters()
+    private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
         _activeQuickFilter = null;
         _selectedDocumentTypeId = null;
         _selectedStatus = null;
-        StateHasChanged();
+        _currentPage = 1;
+        await LoadDocumentsAsync();
     }
 
     /// <summary>
     /// Called when filter changes to trigger refresh.
     /// </summary>
-    private void OnFilterChanged()
+    private async Task OnFilterChanged()
     {
-        StateHasChanged();
+        _currentPage = 1;
+        await LoadDocumentsAsync();
     }
 
     /// <summary>

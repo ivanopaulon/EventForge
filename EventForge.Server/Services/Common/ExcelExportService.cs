@@ -43,29 +43,35 @@ public class ExcelExportService : IExcelExportService
                 for (int colIndex = 0; colIndex < visibleColumns.Count; colIndex++)
                 {
                     var column = visibleColumns[colIndex];
-                    var property = properties.FirstOrDefault(p => p.Name == column.PropertyName);
 
-                    if (property != null)
+                    object? value;
+                    if (item is IDictionary<string, object> dict)
                     {
-                        var cell = worksheet.Cell(excelRow, colIndex + 1);
-                        var value = property.GetValue(item);
-                        // Set cell value - handle null by converting to empty string
-                        if (value != null)
-                            cell.Value = XLCellValue.FromObject(value);
-                        else
-                            cell.Value = string.Empty;
-
-                        if (!string.IsNullOrEmpty(column.NumberFormat))
-                            cell.Style.NumberFormat.Format = column.NumberFormat;
-
-                        if (options.Formatting.AlternateRowColors && excelRow % 2 == 0)
-                        {
-                            cell.Style.Fill.BackgroundColor = XLColor.FromHtml(options.Formatting.AlternateRowColor);
-                        }
-
-                        if (options.Formatting.DataBorders)
-                            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                        dict.TryGetValue(column.PropertyName, out var rawValue);
+                        value = UnwrapJsonElement(rawValue);
                     }
+                    else
+                    {
+                        var property = properties.FirstOrDefault(p => p.Name == column.PropertyName);
+                        value = property?.GetValue(item);
+                    }
+
+                    var cell = worksheet.Cell(excelRow, colIndex + 1);
+                    if (value != null)
+                        cell.Value = XLCellValue.FromObject(value);
+                    else
+                        cell.Value = string.Empty;
+
+                    if (!string.IsNullOrEmpty(column.NumberFormat))
+                        cell.Style.NumberFormat.Format = column.NumberFormat;
+
+                    if (options.Formatting.AlternateRowColors && excelRow % 2 == 0)
+                    {
+                        cell.Style.Fill.BackgroundColor = XLColor.FromHtml(options.Formatting.AlternateRowColor);
+                    }
+
+                    if (options.Formatting.DataBorders)
+                        cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                 }
             }
 
@@ -88,4 +94,18 @@ public class ExcelExportService : IExcelExportService
             return stream.ToArray();
         }, cancellationToken);
     }
+
+    private static object? UnwrapJsonElement(object? raw) => raw switch
+    {
+        System.Text.Json.JsonElement el => el.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.String => el.GetString(),
+            System.Text.Json.JsonValueKind.Number => el.TryGetDouble(out var d) ? d : (object?)el.ToString(),
+            System.Text.Json.JsonValueKind.True => true,
+            System.Text.Json.JsonValueKind.False => false,
+            System.Text.Json.JsonValueKind.Null => null,
+            _ => el.ToString()
+        },
+        _ => raw
+    };
 }

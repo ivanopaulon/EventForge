@@ -3,6 +3,8 @@
 @using EventForge.Client.Services
 @inject ITranslationService TranslationService
 @inject IInventoryService InventoryService
+@inject IHttpClientService HttpClientService
+@inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 @inject ILogger<InventoryViewDialog> Logger
 @inject IDialogService DialogService
@@ -120,7 +122,9 @@
                              Hover="true"
                              ReadOnly="true"
                              Elevation="2"
-                             Class="mb-4">
+                             Class="mb-4"
+                             Virtualize="true"
+                             Height="450px">
                     <Columns>
                         <PropertyColumn Property="x => x.ProductCode" 
                                       Title="@TranslationService.GetTranslation("product.code", "Codice")" />
@@ -181,6 +185,13 @@
                 @TranslationService.GetTranslation("warehouse.finalizeInventory", "Finalizza")
             </MudButton>
         }
+        <MudButton StartIcon="@Icons.Material.Outlined.FileDownload"
+                   Color="Color.Info"
+                   Variant="Variant.Outlined"
+                   OnClick="ExportToExcel"
+                   Disabled="_isLoading || _document == null || _document.Rows.Count == 0">
+            @TranslationService.GetTranslation("common.exportExcel", "Esporta Excel")
+        </MudButton>
         <MudSpacer />
         <MudButton OnClick="Close" 
                    Variant="Variant.Text"
@@ -316,5 +327,80 @@
     private void Close()
     {
         MudDialog.Close(DialogResult.Ok(false));
+    }
+
+    private async Task ExportToExcel()
+    {
+        if (_document == null || _document.Rows.Count == 0)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.noRows", "Nessuna riga presente"), Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            var columns = new[]
+            {
+                new { PropertyName = "nr",                 DisplayName = "N\u00b0",             NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "productCode",        DisplayName = "Codice",         NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "productName",        DisplayName = "Prodotto",       NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "locationName",       DisplayName = "Ubicazione",     NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "quantity",           DisplayName = "Quantit\u00e0",   NumberFormat = "#,##0.00",   IsVisible = true },
+                new { PropertyName = "previousQuantity",   DisplayName = "Qt\u00e0 Prec.",  NumberFormat = "#,##0.00",   IsVisible = true },
+                new { PropertyName = "adjustmentQuantity", DisplayName = "Rettifica",      NumberFormat = "+#,##0.00;-#,##0.00;0", IsVisible = true },
+                new { PropertyName = "lotCode",            DisplayName = "Lotto",          NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "notes",              DisplayName = "Note",           NumberFormat = (string?)null, IsVisible = true }
+            };
+
+            var data = _document.Rows.Select((r, i) => new Dictionary<string, object?>
+            {
+                ["nr"]                 = i + 1,
+                ["productCode"]        = r.ProductCode,
+                ["productName"]        = r.ProductName,
+                ["locationName"]       = r.LocationName,
+                ["quantity"]           = r.Quantity,
+                ["previousQuantity"]   = r.PreviousQuantity.HasValue ? (object?)r.PreviousQuantity.Value : null,
+                ["adjustmentQuantity"] = r.AdjustmentQuantity.HasValue ? (object?)r.AdjustmentQuantity.Value : null,
+                ["lotCode"]            = r.LotCode,
+                ["notes"]              = r.Notes
+            }).ToList();
+
+            var request = new
+            {
+                options = new
+                {
+                    FileName = $"Inventario_{_document.Number}",
+                    SheetName = "Inventario",
+                    Columns = columns,
+                    AutoFitColumns = true,
+                    FreezeHeader = true,
+                    AddAutoFilter = true
+                },
+                data
+            };
+
+            var responseStream = await HttpClientService.PostStreamAsync("api/v1/export/excel", request);
+            using var ms = new MemoryStream();
+            await responseStream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            var fileName = $"Inventario_{_document.Number}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
+
+            Snackbar.Add(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting inventory {DocumentId}", _document?.Id);
+            Snackbar.Add(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
     }
 }

@@ -784,8 +784,9 @@ public class WarehouseFacade : IWarehouseFacade
             if (mergeDto.SourceDocumentIds.Count == 0)
                 throw new ArgumentException("SourceDocumentIds must contain at least one document ID.", nameof(mergeDto));
 
+            // Load document headers WITHOUT rows to avoid tracking potentially thousands of
+            // source rows in the EF change tracker, which was causing SaveChangesAsync timeouts.
             var documents = await _context.DocumentHeaders
-                .Include(d => d.Rows)
                 .Where(d => mergeDto.SourceDocumentIds.Contains(d.Id) && !d.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -796,6 +797,7 @@ public class WarehouseFacade : IWarehouseFacade
                 throw new InvalidOperationException($"Target document {targetId} not found.");
 
             var sourceDocs = documents.Where(d => d.Id != targetId).ToList();
+            var sourceDocIds = sourceDocs.Select(d => d.Id).ToList();
 
             var result = new MergeInventoryDocumentsResultDto
             {
@@ -808,22 +810,32 @@ public class WarehouseFacade : IWarehouseFacade
             int copiedRows = 0;
             var warnings = new List<string>();
 
-            // Merge rows from source documents into target
-            var targetRows = targetDocument.Rows?.Where(r => !r.IsDeleted).ToList() ?? new List<EventForge.Server.Data.Entities.Documents.DocumentRow>();
+            // Load ONLY target rows WITH change tracking (these may be updated).
+            var targetRows = await _context.DocumentRows
+                .Where(r => r.DocumentHeaderId == targetId && !r.IsDeleted)
+                .ToListAsync(cancellationToken);
 
-            foreach (var sourceDoc in sourceDocs)
+            // Build an O(1) lookup by (ProductId, LocationId) to replace the O(n) FirstOrDefault scan.
+            var targetRowLookup = new Dictionary<(Guid?, Guid?), EventForge.Server.Data.Entities.Documents.DocumentRow>(targetRows.Count);
+            foreach (var row in targetRows)
+                targetRowLookup.TryAdd((row.ProductId, row.LocationId), row);
+
+            var newRows = new List<EventForge.Server.Data.Entities.Documents.DocumentRow>();
+
+            if (sourceDocIds.Count > 0)
             {
-                var sourceRows = sourceDoc.Rows?.Where(r => !r.IsDeleted).ToList() ?? new List<EventForge.Server.Data.Entities.Documents.DocumentRow>();
+                // Load ALL source rows in one query WITHOUT tracking (read-only input).
+                var sourceRows = await _context.DocumentRows
+                    .AsNoTracking()
+                    .Where(r => sourceDocIds.Contains(r.DocumentHeaderId) && !r.IsDeleted)
+                    .ToListAsync(cancellationToken);
 
                 foreach (var sourceRow in sourceRows)
                 {
-                    var existingTargetRow = targetRows.FirstOrDefault(r =>
-                        r.ProductId == sourceRow.ProductId &&
-                        r.LocationId == sourceRow.LocationId);
-
-                    if (existingTargetRow != null)
+                    var key = (sourceRow.ProductId, sourceRow.LocationId);
+                    if (targetRowLookup.TryGetValue(key, out var existingTargetRow))
                     {
-                        // Merge: sum quantities
+                        // Merge: sum quantities into the already-tracked entity.
                         existingTargetRow.Quantity += sourceRow.Quantity;
                         existingTargetRow.ModifiedAt = now;
                         existingTargetRow.ModifiedBy = currentUser;
@@ -837,11 +849,11 @@ public class WarehouseFacade : IWarehouseFacade
                     }
                     else
                     {
-                        // Copy: add new row to target
+                        // Copy: new row in target.
                         var newRow = new EventForge.Server.Data.Entities.Documents.DocumentRow
                         {
                             Id = Guid.NewGuid(),
-                            DocumentHeaderId = targetDocument.Id,
+                            DocumentHeaderId = targetId,
                             ProductId = sourceRow.ProductId,
                             ProductCode = sourceRow.ProductCode,
                             Description = sourceRow.Description,
@@ -855,12 +867,17 @@ public class WarehouseFacade : IWarehouseFacade
                             ModifiedAt = now,
                             ModifiedBy = currentUser
                         };
-                        _context.DocumentRows.Add(newRow);
+                        newRows.Add(newRow);
                         targetRows.Add(newRow);
+                        // Keep lookup current so subsequent source rows with the same key merge correctly.
+                        targetRowLookup[key] = newRow;
                         copiedRows++;
                     }
                 }
             }
+
+            if (newRows.Count > 0)
+                _context.DocumentRows.AddRange(newRows);
 
             // Append optional notes to target document
             if (!string.IsNullOrWhiteSpace(mergeDto.Notes))
@@ -870,9 +887,8 @@ public class WarehouseFacade : IWarehouseFacade
                     : $"{targetDocument.Notes}; {mergeDto.Notes}";
             }
 
-            // Finalize the target document
-            targetDocument.Status = EventForge.DTOs.Common.DocumentStatus.Closed;
-            targetDocument.ClosedAt = now;
+            // Keep the target document Open so it remains visible in the inventory procedure
+            // and can be finalized normally via the standard finalize workflow.
             targetDocument.ModifiedAt = now;
             targetDocument.ModifiedBy = currentUser;
 
@@ -1108,3 +1124,4 @@ public class WarehouseFacade : IWarehouseFacade
     }
 
     #endregion
+}

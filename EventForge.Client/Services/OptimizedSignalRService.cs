@@ -185,7 +185,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         var connection = new HubConnectionBuilder()
             .WithUrl(hubUrl, options =>
             {
-                options.AccessTokenProvider = () => Task.FromResult(token!);
+                // Use a dynamic provider so every reconnect attempt fetches the latest valid token
+                // instead of reusing the token captured at connection-creation time.
+                options.AccessTokenProvider = () => _authService.GetAccessTokenAsync();
                 // Optimize for mobile and high-load scenarios
                 options.SkipNegotiation = true;
                 options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
@@ -394,6 +396,13 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     private async void CheckConnectionHealthAsync(object? state)
     {
+        // Skip recovery entirely if the user session has expired
+        if (!await _authService.IsAuthenticatedAsync())
+        {
+            _logger.LogDebug("Skipping connection health check: user is not authenticated");
+            return;
+        }
+
         var healthCheckTasks = _connections.Select(async kvp =>
         {
             var (key, connection) = kvp;
@@ -451,6 +460,14 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 connectionKey, delay.TotalSeconds);
 
             await Task.Delay(delay);
+
+            // Stop retrying if the user session has expired — no point reconnecting with an invalid token
+            if (!await _authService.IsAuthenticatedAsync())
+            {
+                _logger.LogWarning("Stopping reconnect retries for {ConnectionKey}: user session has expired",
+                    connectionKey);
+                return;
+            }
 
             try
             {

@@ -74,6 +74,11 @@ namespace EventForge.Client.Services
             {
                 await LoadTokenFromStorageAsync();
             }
+            // Clear in-memory token if it has expired since it was loaded
+            if (!string.IsNullOrEmpty(_accessToken) && IsTokenExpired(_accessToken))
+            {
+                _accessToken = null;
+            }
             return _accessToken;
         }
 
