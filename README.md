@@ -198,6 +198,7 @@ Always provide translated tooltips for better accessibility:
 - **AuthService** - Authentication and authorization
 - **ThemeService** - Multi-theme management with 6 color palettes
 - **StockMovementService** - Automatic warehouse stock management with document lifecycle integration ([Learn more](docs/AUTOMATIC_STOCK_MOVEMENTS.md))
+- **SessionKeepaliveService** - Sliding session expiration: automatically refreshes JWT tokens every 3 minutes to prevent session timeout during active use. Session expires only after 10 hours of true inactivity. ([Learn more](docs/features/session-management.md))
 
 ## 🚀 Getting Started
 

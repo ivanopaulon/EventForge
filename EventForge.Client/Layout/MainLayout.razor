@@ -432,16 +432,16 @@
         
         InvokeAsync(() =>
         {
-            // Show a discreet warning only if truly critical (< 10 minutes)
-            if (minutesRemaining < 10)
+            // Show warning only when truly critical (<= 10 minutes remaining)
+            if (minutesRemaining <= 10)
             {
                 Snackbar.Add(
                     TranslationService.GetTranslation("session.expiringWarning", 
-                        $"The session will expire in {minutesRemaining} minutes. Renewal is in progress..."),
+                        $"Sessione in scadenza tra {minutesRemaining} min. Salva il lavoro. / Session expiring in {minutesRemaining} min. Save your work."),
                     Severity.Warning,
                     config =>
                     {
-                        config.VisibleStateDuration = 5000;
+                        config.VisibleStateDuration = 8000;
                         config.ShowCloseIcon = true;
                     }
                 );
