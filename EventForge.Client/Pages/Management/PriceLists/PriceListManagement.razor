@@ -46,33 +46,24 @@
                      ExcelFileName="Listini"
                      IsDataFiltered="@HasActiveFilters()"
                      TotalItemsCount="@_items.Count"
-                     OnRowClick="@HandleRowClick">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h5">
-                        @TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")
-                    </MudText>
-                    <MudSpacer />
-                    <MudTextField @bind-Value="_searchTerm"
-                                  Placeholder="@TranslationService.GetTranslation("common.search", "Cerca...")"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  IconSize="Size.Medium"
-                                  Immediate="true"
-                                  DebounceInterval="300"
-                                  Clearable="true"
-                                  Class="mr-2"
-                                  Style="max-width: 300px;" />
+                     OnRowClick="@HandleRowClick"
+                     Title="@TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")"
+                     ShowSearch="true"
+                     SearchPlaceholder="@TranslationService.GetTranslation("common.search", "Cerca...")"
+                     OnSearch="@OnSearchChanged"
+                     ShowSelectionBadge="true"
+                     ShowRefresh="true"
+                     OnRefresh="@LoadDataAsync"
+                     ShowCreate="true"
+                     OnCreate="@OpenCreateDialog"
+                     CreateLabel="pricelist.create"
+                     CreateTooltip="pricelist.create"
+                     IsToolbarDisabled="@_isLoadingData">
+                <AdditionalToolbarContent>
                     <MudSwitch @bind-Value="_onlyDefault"
                                Label="@TranslationService.GetTranslation("pricelist.onlyDefault", "Solo Default")"
                                Color="Color.Primary"
                                Class="mr-2" />
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Outlined.Add"
-                               OnClick="@OpenCreateDialog"
-                               Disabled="_isLoadingData">
-                        @TranslationService.GetTranslation("pricelist.create", "Nuovo Listino")
-                    </MudButton>
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Success"
                                StartIcon="@Icons.Material.Filled.PriceChange"
@@ -111,11 +102,7 @@
                             @TranslationService.GetTranslation("common.delete", "Elimina") (@_selectedItems.Count)
                         </MudButton>
                     }
-                    <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
-                                   Color="Color.Default"
-                                   OnClick="@LoadDataAsync"
-                                   Disabled="_isLoadingData" />
-                </ToolBarContent>
+                </AdditionalToolbarContent>
                 <HeaderContent Context="columnConfigurations">
                     @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                     {
@@ -486,25 +473,9 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            // Expected when debounce is cancelled
-        }
+        _searchTerm = term;
     }
 
     private void OnFilterChanged()

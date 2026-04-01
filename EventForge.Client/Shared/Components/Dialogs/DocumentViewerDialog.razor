@@ -1,7 +1,10 @@
 @using EventForge.DTOs.Documents
 @using EventForge.Client.Services
 @inject IDocumentHeaderService DocumentHeaderService
+@inject IHttpClientService HttpClientService
+@inject IJSRuntime JSRuntime
 @inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
 @inject ILogger<DocumentViewerDialog> Logger
 
 <MudDialog>
@@ -30,7 +33,7 @@
 
                     @if (_document.Rows?.Any() == true)
                     {
-                        <MudTable Items="_document.Rows" Dense="true" Hover="true" Striped="true">
+                        <MudTable Items="_document.Rows" Dense="true" Hover="true" Striped="true" Height="400px" FixedHeader="true" RowsPerPage="100">
                             <HeaderContent>
                                 <MudTh>@TranslationService.GetTranslation("field.product", "Prodotto")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.unitOfMeasure", "UM")</MudTh>
@@ -56,6 +59,16 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
+        @if (_document?.Rows?.Any() == true)
+        {
+            <MudButton StartIcon="@Icons.Material.Outlined.FileDownload"
+                       Color="Color.Info"
+                       Variant="Variant.Outlined"
+                       OnClick="ExportToExcel"
+                       Disabled="_isLoading">
+                @TranslationService.GetTranslation("common.exportExcel", "Esporta Excel")
+            </MudButton>
+        }
         <MudButton OnClick="Close">@TranslationService.GetTranslation("common.close","Chiudi")</MudButton>
     </DialogActions>
 </MudDialog>
@@ -92,4 +105,75 @@
     }
 
     private void Close() => MudDialog.Close();
+
+    private async Task ExportToExcel()
+    {
+        if (_document?.Rows == null || !_document.Rows.Any()) return;
+
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            var columns = new[]
+            {
+                new { PropertyName = "nr",          DisplayName = "N\u00b0",       NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "productCode", DisplayName = "Codice",    NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "description", DisplayName = "Descrizione",NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "uom",         DisplayName = "UM",         NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "quantity",    DisplayName = "Quantit\u00e0", NumberFormat = "#,##0.00",   IsVisible = true },
+                new { PropertyName = "unitPrice",   DisplayName = "Prezzo",     NumberFormat = "#,##0.00\u20ac",IsVisible = true },
+                new { PropertyName = "discount",    DisplayName = "Sconto %",   NumberFormat = "#,##0.00",   IsVisible = true },
+                new { PropertyName = "vatRate",     DisplayName = "IVA %",      NumberFormat = "#,##0.00",   IsVisible = true },
+                new { PropertyName = "lineTotal",   DisplayName = "Totale",     NumberFormat = "#,##0.00\u20ac",IsVisible = true }
+            };
+
+            var data = _document.Rows.Select((r, i) => new Dictionary<string, object?>
+            {
+                ["nr"]          = i + 1,
+                ["productCode"] = r.ProductCode,
+                ["description"] = r.Description,
+                ["uom"]         = r.UnitOfMeasure,
+                ["quantity"]    = r.Quantity,
+                ["unitPrice"]   = r.UnitPrice,
+                ["discount"]    = r.LineDiscount,
+                ["vatRate"]     = r.VatRate,
+                ["lineTotal"]   = r.LineTotal
+            }).ToList();
+
+            var request = new
+            {
+                options = new
+                {
+                    FileName = $"Documento_{_document.Number}",
+                    SheetName = "Righe",
+                    Columns = columns,
+                    AutoFitColumns = true,
+                    FreezeHeader = true,
+                    AddAutoFilter = true
+                },
+                data
+            };
+
+            var responseStream = await HttpClientService.PostStreamAsync("api/v1/export/excel", request);
+            using var ms = new MemoryStream();
+            await responseStream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            var fileName = $"Documento_{_document.Number}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
+
+            Snackbar.Add(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting document {DocumentId}", DocumentHeaderId);
+            Snackbar.Add(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
 }

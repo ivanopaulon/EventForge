@@ -23,9 +23,18 @@ public class PerformanceTelemetryMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var sw = Stopwatch.StartNew();
-        var path = context.Request.Path.Value;
+        var path = context.Request.Path.Value ?? string.Empty;
         var method = context.Request.Method;
+
+        // Skip SignalR hubs: the middleware measures the entire WebSocket connection lifetime,
+        // not just the HTTP handshake, producing false-positive slow-request alerts.
+        if (path.StartsWith("/hubs/", StringComparison.OrdinalIgnoreCase))
+        {
+            await _next(context);
+            return;
+        }
+
+        var sw = Stopwatch.StartNew();
 
         // Register callback to add header BEFORE response starts
         context.Response.OnStarting(() =>

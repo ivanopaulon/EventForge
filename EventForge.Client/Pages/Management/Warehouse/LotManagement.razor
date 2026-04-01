@@ -46,21 +46,19 @@
                  ShowExportDialog="true"
                  ExcelFileName="Lotti"
                  IsDataFiltered="@HasActiveFilters()"
-                 TotalItemsCount="@_lots.Count">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchText"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("common.search", "Cerca")"
-                              Placeholder="@TranslationService.GetTranslation("warehouse.searchPlaceholder", "Cerca per codice...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
+                 TotalItemsCount="@_lots.Count"
+                 Title="@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("common.search", "Cerca")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@RefreshData"
+                 ShowCreate="true"
+                 OnCreate="@OpenCreateDialog"
+                 CreateTooltip="common.create"
+                 IsToolbarDisabled="@_isLoadingLots">
+            <AdditionalToolbarContent>
                 <MudSelect @bind-Value="_selectedStatus"
                            @bind-Value:after="OnFilterChanged"
                            Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
@@ -73,16 +71,7 @@
                     <MudSelectItem Value="@("Expired")">@TranslationService.GetTranslation("warehouse.expired", "Scaduto")</MudSelectItem>
                     <MudSelectItem Value="@("Recalled")">@TranslationService.GetTranslation("warehouse.recalled", "Richiamato")</MudSelectItem>
                 </MudSelect>
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedLots.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="false"
-                                        CreateTooltip="common.create"
-                                        IsDisabled="_isLoadingLots"
-                                        OnRefresh="@RefreshData"
-                                        OnCreate="@OpenCreateDialog" />
-            </ToolBarContent>
+            </AdditionalToolbarContent>
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -469,25 +458,9 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _searchText = term;
     }
 
     private void OnFilterChanged()

@@ -209,7 +209,8 @@ public interface IDocumentHeaderService
     /// Called when a user disconnects.
     /// </summary>
     /// <param name="connectionId">SignalR connection ID</param>
-    Task ReleaseAllLocksForConnectionAsync(string connectionId);
+    /// <param name="tenantId">Optional tenant ID from hub claims (bypasses request-scoped tenant context which is unavailable during SignalR disconnect)</param>
+    Task ReleaseAllLocksForConnectionAsync(string connectionId, Guid? tenantId = null);
 
     /// <summary>
     /// Gets lock information for a document.

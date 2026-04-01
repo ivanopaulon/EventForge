@@ -168,7 +168,7 @@
 
     private async Task DeleteReferenceAsync(ReferenceDto reference)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
             TranslationService.GetTranslation("businessParty.deleteReferenceConfirm", "Sei sicuro di voler eliminare questa persona di riferimento?"),
             yesText: TranslationService.GetTranslation("button.delete", "Elimina"),

@@ -261,7 +261,7 @@
                          "Sei sicuro di voler eliminare {0}? Questa azione non può essere annullata.",
                          ItemDisplayName ?? TranslationService.GetTranslation("common.thisItem", "questo elemento"));
 
-        var result = await DialogService.ShowMessageBox(
+        var result = await DialogService.ShowMessageBoxAsync(
             title,
             message,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

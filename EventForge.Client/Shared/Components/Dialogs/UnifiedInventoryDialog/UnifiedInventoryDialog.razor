@@ -364,7 +364,7 @@
         // Check for unsaved changes
         if (State.HasUnsavedChanges)
         {
-            var confirmed = await DialogService.ShowMessageBox(
+            var confirmed = await DialogService.ShowMessageBoxAsync(
                 TranslationService.GetTranslation("common.unsavedChanges", "Modifiche Non Salvate"),
                 TranslationService.GetTranslation("warehouse.discardChangesMessage", "Ci sono modifiche non salvate. Vuoi uscire senza salvare?"),
                 yesText: TranslationService.GetTranslation("common.yes", "Sì"),

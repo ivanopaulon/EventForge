@@ -47,21 +47,21 @@
                      ShowExportDialog="true"
                      ExcelFileName="Trasferimenti"
                      IsDataFiltered="@HasActiveFilters()"
-                     TotalItemsCount="@_transferOrders.Count">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h5">
-                        @TranslationService.GetTranslation("transferOrder.title", "Transfer Orders")
-                    </MudText>
-                    <MudSpacer />
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("common.search", "Search")"
-                                  Placeholder="@TranslationService.GetTranslation("transferOrder.searchPlaceholder", "Number or reference...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Class="ef-input" />
+                     TotalItemsCount="@_transferOrders.Count"
+                     Title="@TranslationService.GetTranslation("transferOrder.title", "Transfer Orders")"
+                     ShowSearch="true"
+                     SearchPlaceholder="@TranslationService.GetTranslation("common.search", "Search")"
+                     OnSearch="@OnSearchChanged"
+                     ShowSelectionBadge="true"
+                     ShowRefresh="true"
+                     OnRefresh="@LoadTransferOrdersAsync"
+                     ShowCreate="true"
+                     OnCreate="@CreateTransferOrder"
+                     CreateTooltip="transferOrder.createTooltip"
+                     ShowBulkDelete="true"
+                     OnBulkDelete="@CancelSelectedOrders"
+                     IsToolbarDisabled="@_isLoadingTransferOrders">
+                <AdditionalToolbarContent>
                     <MudSelect @bind-Value="_selectedSourceWarehouseId"
                                @bind-Value:after="OnFilterChanged"
                                Label="@TranslationService.GetTranslation("transferOrder.sourceWarehouse", "Source Warehouse")"
@@ -102,17 +102,7 @@
                         <MudSelectItem Value="@("Completed")">@TranslationService.GetTranslation("transferOrder.status.completed", "Completed")</MudSelectItem>
                         <MudSelectItem Value="@("Cancelled")">@TranslationService.GetTranslation("transferOrder.status.cancelled", "Cancelled")</MudSelectItem>
                     </MudSelect>
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedTransferOrders.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateTooltip="@TranslationService.GetTranslation("transferOrder.createTooltip", "Create Transfer Order")"
-                                            IsDisabled="_isLoadingTransferOrders"
-                                            OnRefresh="@LoadTransferOrdersAsync"
-                                            OnCreate="@CreateTransferOrder"
-                                            OnDelete="@CancelSelectedOrders" />
-                </ToolBarContent>
+                </AdditionalToolbarContent>
                 <HeaderContent Context="columnConfigurations">
                     @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                     {
@@ -490,27 +480,11 @@
     /// <summary>
     /// Handles search changes with debounce
     /// </summary>
-    private async Task OnSearchChanged()
+    private async Task OnSearchChanged(string term)
     {
-        _currentPage = 1; // Reset to page 1 when search changes
-        
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                await LoadTransferOrdersAsync();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _currentPage = 1;
+        _searchTerm = term;
+        await LoadTransferOrdersAsync();
     }
 
     /// <summary>
@@ -597,7 +571,7 @@
     /// </summary>
     private async Task CancelOrder(TransferOrderDto order)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("transferOrder.cancelDialog", "Cancel Transfer Order"),
             TranslationService.GetTranslation("transferOrder.cancelConfirm", "Are you sure you want to cancel transfer order {0}?", order.Number),
             yesText: TranslationService.GetTranslation("transferOrder.cancelYes", "Cancel Order"),
@@ -640,7 +614,7 @@
             ? TranslationService.GetTranslation("transferOrder.cancelMultipleConfirm", "Are you sure you want to cancel {0} selected transfer orders? This action cannot be undone.", pendingOrders.Count)
             : TranslationService.GetTranslation("transferOrder.cancelMultiplePartialConfirm", "Only {0} of {1} selected orders are pending and can be cancelled. Continue?", pendingOrders.Count, _selectedTransferOrders.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("transferOrder.cancelMultipleYes", "Cancel Orders"),

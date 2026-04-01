@@ -40,21 +40,21 @@
                  IsLoading="_isLoadingPaymentMethods"
                  ComponentKey="PaymentMethodManagement"
                  InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("paymentMethod.management", "Gestione Metodi di Pagamento")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("paymentMethod.search", "Cerca metodi")"
-                              Placeholder="@TranslationService.GetTranslation("paymentMethod.searchPlaceholder", "Inserisci codice o nome...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
+                 AllowDragDropGrouping="true"
+                 Title="@TranslationService.GetTranslation("paymentMethod.management", "Gestione Metodi di Pagamento")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("paymentMethod.search", "Cerca metodi")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadPaymentMethodsAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreatePaymentMethod"
+                 CreateTooltip="paymentMethod.createNew"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedPaymentMethods"
+                 IsToolbarDisabled="@_isLoadingPaymentMethods">
+            <AdditionalToolbarContent>
                 <MudSelect @bind-Value="_statusFilter"
                            Label="@TranslationService.GetTranslation("common.status", "Stato")"
                            Variant="Variant.Outlined"
@@ -64,17 +64,7 @@
                     <MudSelectItem Value="@("Active")">@TranslationService.GetTranslation("common.active", "Attivi")</MudSelectItem>
                     <MudSelectItem Value="@("Inactive")">@TranslationService.GetTranslation("common.inactive", "Inattivi")</MudSelectItem>
                 </MudSelect>
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedPaymentMethods.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="paymentMethod.createNew"
-                                        IsDisabled="_isLoadingPaymentMethods"
-                                        OnRefresh="@LoadPaymentMethodsAsync"
-                                        OnCreate="@CreatePaymentMethod"
-                                        OnDelete="@DeleteSelectedPaymentMethods" />
-            </ToolBarContent>
+            </AdditionalToolbarContent>
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -447,25 +437,9 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _searchTerm = term;
     }
 
     private void CreatePaymentMethod()
@@ -485,7 +459,7 @@
             "Sei sicuro di voler eliminare il metodo di pagamento '{0}'? Questa azione non può essere annullata.", 
             paymentMethod.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
@@ -540,7 +514,7 @@
             "Sei sicuro di voler eliminare {0} metodi di pagamento selezionati? Questa azione non può essere annullata.", 
             _selectedPaymentMethods.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

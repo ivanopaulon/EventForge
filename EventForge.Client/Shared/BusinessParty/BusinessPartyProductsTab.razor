@@ -147,9 +147,9 @@
                     {
                         <div>
                             <MudText Typo="Typo.h6" Class="mb-2">@TranslationService.GetTranslation("product.topByValue", "Top Prodotti per Valore")</MudText>
-                            <MudChart ChartType="ChartType.Bar"
+                            <MudChart T="double" ChartType="ChartType.Bar"
                                      ChartSeries="@_chartSeries"
-                                     XAxisLabels="@_chartLabels.ToArray()"
+                                     ChartLabels="@_chartLabels.ToArray()"
                                      Width="100%"
                                      Height="350px" />
                         </div>
@@ -203,7 +203,7 @@
     private BusinessPartyProductAnalysisDto? _selectedProduct;
 
     private List<BusinessPartyProductAnalysisDto> _chartData = new();
-    private List<ChartSeries> _chartSeries = new();
+    private List<ChartSeries<double>> _chartSeries = new();
     private List<string> _chartLabels = new();
 
     protected override async Task OnParametersSetAsync()
@@ -264,17 +264,17 @@
     {
         _chartLabels = _chartData.Take(10).Select(p => p.ProductCode ?? p.ProductName ?? "N/A").ToList();
         
-        _chartSeries = new List<ChartSeries>
+        _chartSeries = new List<ChartSeries<double>>
         {
-            new ChartSeries
+            new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("product.purchases", "Acquisti"),
-                Data = _chartData.Take(10).Select(p => (double)p.ValuePurchased).ToArray()
+                Data = new ChartData<double>(_chartData.Take(10).Select(p => (double)p.ValuePurchased).ToArray())
             },
-            new ChartSeries
+            new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("product.sales", "Vendite"),
-                Data = _chartData.Take(10).Select(p => (double)p.ValueSold).ToArray()
+                Data = new ChartData<double>(_chartData.Take(10).Select(p => (double)p.ValueSold).ToArray())
             }
         };
     }

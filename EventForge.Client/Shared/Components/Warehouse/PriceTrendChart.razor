@@ -57,9 +57,9 @@
         }
 
         <!-- Chart -->
-        <MudChart ChartType="ChartType.Line"
+        <MudChart T="double" ChartType="ChartType.Line"
                   ChartSeries="@_series"
-                  XAxisLabels="@_xAxisLabels"
+                  ChartLabels="@_xAxisLabels"
                   Width="100%"
                   Height="350px"
                   ChartOptions="@_chartOptions">
@@ -83,9 +83,9 @@
     [Parameter]
     public Guid? ProductId { get; set; }
 
-    private List<ChartSeries> _series = new();
+    private List<ChartSeries<double>> _series = new();
     private string[] _xAxisLabels = Array.Empty<string>();
-    private ChartOptions _chartOptions = new();
+    private LineChartOptions _chartOptions = new();
 
     private string GetSubtitle()
     {
@@ -154,28 +154,28 @@
             .ToArray();
 
         // Create series with two lines: Purchase Prices and Sale Prices
-        _series = new List<ChartSeries>();
+        _series = new List<ChartSeries<double>>();
 
         if (PriceTrend.PurchasePrices.Any())
         {
-            _series.Add(new ChartSeries
+            _series.Add(new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("price.purchase", "Prezzi Acquisto"),
-                Data = purchasePriceData
+                Data = new ChartData<double>(purchasePriceData)
             });
         }
 
         if (PriceTrend.SalePrices.Any())
         {
-            _series.Add(new ChartSeries
+            _series.Add(new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("price.sale", "Prezzi Vendita"),
-                Data = salePriceData
+                Data = new ChartData<double>(salePriceData)
             });
         }
 
         // Configure chart options
-        _chartOptions = new ChartOptions
+        _chartOptions = new LineChartOptions
         {
             YAxisTicks = 10,
             YAxisLines = true,

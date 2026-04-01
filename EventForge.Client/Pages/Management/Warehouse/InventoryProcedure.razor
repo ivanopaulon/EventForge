@@ -967,7 +967,7 @@
 
     private async Task HandleInventoryFinalized(InventoryDocumentDto inventory)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmFinalizeTitle", "Conferma Finalizzazione"),
             TranslationService.GetTranslation("warehouse.confirmFinalizeMessage", "Sei sicuro di voler finalizzare l'inventario {0}? Questa operazione applicherà tutti gli aggiustamenti di stock.", inventory.Number),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1032,7 +1032,7 @@
 
     private async Task HandleInventoryCancelled(InventoryDocumentDto inventory)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmCancelTitle", "Conferma Chiusura"),
             TranslationService.GetTranslation("warehouse.confirmCancelMessage", "ATTENZIONE: Sei sicuro di voler chiudere l'inventario {0} senza salvare? Tutti i dati raccolti andranno persi.", inventory.Number),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1089,7 +1089,7 @@
 
     private async Task HandleFinalizeAll()
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmFinalizeAllTitle", "Conferma Finalizzazione Multipla"),
             TranslationService.GetTranslation("warehouse.confirmFinalizeAllMessage", "Sei sicuro di voler finalizzare TUTTI i {0} inventari aperti? Questa operazione applicherà tutti gli aggiustamenti di stock per ciascun inventario.", _openInventories.Count),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1146,7 +1146,7 @@
 
     private async Task HandleCancelAll()
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmCancelAllTitle", "Conferma Chiusura Multipla"),
             TranslationService.GetTranslation("warehouse.confirmCancelAllMessage", "ATTENZIONE: Sei sicuro di voler chiudere TUTTI i {0} inventari aperti senza salvare? TUTTI i dati raccolti andranno persi.", _openInventories.Count),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1679,7 +1679,7 @@
         if (_currentDocument == null)
             return;
 
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmFinalize", "Conferma Finalizzazione"),
             TranslationService.GetTranslation("warehouse.finalizeMessage", 
                 "Confermi di voler finalizzare l'inventario? Verranno applicati tutti gli aggiustamenti di stock per {0} articoli.", 
@@ -1752,7 +1752,7 @@
         if (_currentDocument == null)
             return;
 
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmCancel", "Conferma Annullamento"),
             TranslationService.GetTranslation("warehouse.cancelMessage", 
                 "Confermi di voler annullare la sessione di inventario? Tutti i dati inseriti ({0} articoli) andranno persi.", 
@@ -1785,7 +1785,7 @@
             return;
 
         // Conferma dall'utente
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmSimulation", "Conferma Simulazione"),
             TranslationService.GetTranslation("warehouse.simulationWarning", 
                 "Questa operazione inserirà una riga per ogni prodotto attivo nel documento di inventario corrente. L'operazione potrebbe richiedere alcuni minuti. Continuare?"),
@@ -2256,7 +2256,7 @@
         if (_currentDocument == null)
             return;
 
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmDelete", "Conferma Eliminazione"),
             TranslationService.GetTranslation("warehouse.deleteRowMessage", "Confermi di voler eliminare la riga per il prodotto '{0}'?", row.ProductName),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),

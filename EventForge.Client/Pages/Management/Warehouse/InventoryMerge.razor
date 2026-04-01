@@ -403,7 +403,7 @@
 
     private async Task ConfirmAndMergeAsync()
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             "Conferma accorpamento",
             $"Stai per accorpare {_selectedDocuments.Count} inventari in uno solo. " +
             "Gli altri verranno soft-eliminati. Continuare?",
@@ -463,7 +463,7 @@
     private static Color GetStatusColor(string? status) => status switch
     {
         "Open"      => Color.Warning,
-        "Finalized" => Color.Success,
+        "Closed"    => Color.Success,
         "Cancelled" => Color.Error,
         _           => Color.Default,
     };

@@ -44,32 +44,20 @@
                  ExcelFileName="NatureIVA"
                  IsDataFiltered="@HasActiveFilters()"
                  TotalItemsCount="@_vatNatures.Count"
-                 OnRowClick="@HandleRowClick">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("financial.vatNatureManagement", "Gestione Nature IVA")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("financial.searchVatNatures", "Cerca nature IVA")"
-                              Placeholder="@TranslationService.GetTranslation("financial.searchNaturePlaceholder", "Inserisci codice o nome...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedVatNatures.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="financial.createNewVatNature"
-                                        IsDisabled="_isLoadingVatNatures"
-                                        OnRefresh="@LoadVatNaturesAsync"
-                                        OnCreate="@CreateVatNature"
-                                        OnDelete="@DeleteSelectedVatNatures" />
-            </ToolBarContent>
+                 OnRowClick="@HandleRowClick"
+                 Title="@TranslationService.GetTranslation("financial.vatNatureManagement", "Gestione Nature IVA")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("financial.searchVatNatures", "Cerca nature IVA")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadVatNaturesAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreateVatNature"
+                 CreateTooltip="financial.createNewVatNature"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedVatNatures"
+                 IsToolbarDisabled="@_isLoadingVatNatures">
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -430,25 +418,9 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _searchTerm = term;
     }
 
     private async Task OnPageChanged(int page)
@@ -474,7 +446,7 @@
             "Sei sicuro di voler eliminare la natura IVA '{0}'? Questa azione non può essere annullata.", 
             vatNature.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
@@ -529,7 +501,7 @@
             "Sei sicuro di voler eliminare {0} nature IVA selezionate? Questa azione non può essere annullata.", 
             _selectedVatNatures.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

@@ -328,6 +328,11 @@
                                  @bind-SelectedItems="_selectedRows"
                                  AllowDragDropGrouping="true"
                                  ShowColumnConfiguration="true"
+                                 ShowExport="true"
+                                 ShowExportDialog="true"
+                                 ExcelFileName="@GetDocumentExcelFileName()"
+                                 IsDataFiltered="@(!string.IsNullOrEmpty(_searchQuery))"
+                                 TotalItemsCount="@(_currentDocument?.Rows?.Count ?? 0)"
                                  Dense="true"
                                  Hover="true"
                                  Striped="true"
@@ -1108,7 +1113,7 @@
             return;
         }
         
-        bool? confirmed = await DialogService.ShowMessageBox(
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
             TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1168,7 +1173,7 @@
             return;
         }
 
-        bool? confirmed = await DialogService.ShowMessageBox(
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.confirmDeleteRows", "Conferma Eliminazione"),
             TranslationService.GetTranslationFormatted("documents.confirmDeleteRowsMessage", "Sei sicuro di voler eliminare {0} righe?", _selectedRows.Count),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1278,7 +1283,7 @@
         confirmMessage += string.Join("\n", rowsToMerge.Select(r => $"- {r.Quantity} x {r.UnitPrice:C2} = {(r.Quantity * r.UnitPrice):C2}"));
         confirmMessage += $"\n\n{TranslationService.GetTranslation("documents.mergeRowsResult", "Risultato: Quantità totale = {0}", rowsToMerge.Sum(r => r.Quantity))}";
 
-        bool? confirmed = await DialogService.ShowMessageBox(
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.confirmMergeRows", "Conferma Unione Righe"),
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -1466,6 +1471,14 @@
         return count == total 
             ? TranslationService.GetTranslationFormatted("documents.showingAllRows", "Visualizzate tutte le {0} righe", total)
             : TranslationService.GetTranslationFormatted("documents.showingFilteredRows", "Visualizzate {0} di {1} righe", count, total);
+    }
+
+    private string GetDocumentExcelFileName()
+    {
+        if (_currentDocument == null) return "Righe_Documento";
+        var parts = new[] { _currentDocument.DocumentTypeName, _currentDocument.Series, _currentDocument.Number }
+            .Where(p => !string.IsNullOrWhiteSpace(p));
+        return string.Join("_", parts).Replace("/", "-").Replace(" ", "_");
     }
 
     // Panel state management

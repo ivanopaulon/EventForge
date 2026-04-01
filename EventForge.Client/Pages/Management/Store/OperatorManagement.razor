@@ -45,32 +45,20 @@
                      ShowExportDialog="true"
                      ExcelFileName="Operatori"
                      IsDataFiltered="@HasActiveFilters()"
-                     TotalItemsCount="@_items.Count">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h5">
-                        @TranslationService.GetTranslation("store.operatorsList", "Operatori")
-                    </MudText>
-                    <MudSpacer />
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("common.search", "Cerca")"
-                                  Placeholder="@TranslationService.GetTranslation("store.searchOperators", "Cerca per nome, username, email...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Class="ef-input" />
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedItems.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateTooltip="store.createNewOperator"
-                                            IsDisabled="_isLoadingData"
-                                            OnRefresh="@LoadDataAsync"
-                                            OnCreate="@CreateNew"
-                                            OnDelete="@DeleteSelected" />
-                </ToolBarContent>
+                     TotalItemsCount="@_items.Count"
+                     Title="@TranslationService.GetTranslation("store.operatorsList", "Operatori")"
+                     ShowSearch="true"
+                     SearchPlaceholder="@TranslationService.GetTranslation("common.search", "Cerca")"
+                     OnSearch="@OnSearchChanged"
+                     ShowSelectionBadge="true"
+                     ShowRefresh="true"
+                     OnRefresh="@LoadDataAsync"
+                     ShowCreate="true"
+                     OnCreate="@CreateNew"
+                     CreateTooltip="store.createNewOperator"
+                     ShowBulkDelete="true"
+                     OnBulkDelete="@DeleteSelected"
+                     IsToolbarDisabled="@_isLoadingData">
                 <HeaderContent Context="columnConfigurations">
                     @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                     {
@@ -393,24 +381,10 @@
         NavigationManager.NavigateTo($"/store/operators/{args.Item.Id}");
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
         _currentPage = 1;
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-
-        try
-        {
-            await Task.Delay(300, token);
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        _searchTerm = term;
     }
 
     private async Task OnPageChanged(int page)
@@ -436,7 +410,7 @@
             "Sei sicuro di voler eliminare l'operatore '{0}'? Questa azione non può essere annullata.",
             item.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
@@ -471,7 +445,7 @@
             "Sei sicuro di voler eliminare {0} operatori selezionati? Questa azione non può essere annullata.",
             _selectedItems.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

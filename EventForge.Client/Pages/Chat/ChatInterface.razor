@@ -869,7 +869,7 @@
     /// </summary>
     private async Task DeleteMessage(ChatMessageDto message)
     {
-        var result = await DialogService.ShowMessageBox(
+        var result = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("chat.confirmDelete", "Confirm Delete"),
             TranslationService.GetTranslation("chat.confirmDeleteMessage", "Are you sure you want to delete this message?"),
             TranslationService.GetTranslation("common.delete", "Delete"),

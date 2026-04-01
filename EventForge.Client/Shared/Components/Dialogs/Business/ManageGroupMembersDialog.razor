@@ -120,13 +120,14 @@
                         <MudFileUpload T="IBrowserFile" 
                                        OnFilesChanged="ParseCsvFile"
                                        Accept=".csv">
-                            <ActivatorContent>
+                            <CustomContent Context="fileUpload">
                                 <MudButton Variant="Variant.Filled"
                                            Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                                           OnClick="@fileUpload.OpenFilePickerAsync">
                                     Carica File CSV
                                 </MudButton>
-                            </ActivatorContent>
+                            </CustomContent>
                         </MudFileUpload>
                         
                         @if (_csvFileName != null)

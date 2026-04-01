@@ -21,14 +21,15 @@
                     </MudText>
                     
                     <MudFileUpload T="IBrowserFile" Accept=".csv" FilesChanged="@OnFileSelected" MaximumFileCount="1">
-                        <ActivatorContent>
+                        <CustomContent Context="fileUpload">
                             <MudButton Variant="Variant.Filled"
                                       Color="Color.Primary"
                                       StartIcon="@Icons.Material.Filled.CloudUpload"
-                                      Disabled="@_isProcessing">
+                                      Disabled="@_isProcessing"
+                                      OnClick="@fileUpload.OpenFilePickerAsync">
                                 @TranslationService.GetTranslation("documents.importCsv", "Import CSV")
                             </MudButton>
-                        </ActivatorContent>
+                        </CustomContent>
                     </MudFileUpload>
                     
                     @if (_selectedFile != null)

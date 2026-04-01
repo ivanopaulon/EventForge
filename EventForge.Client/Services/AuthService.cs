@@ -74,6 +74,11 @@ namespace EventForge.Client.Services
             {
                 await LoadTokenFromStorageAsync();
             }
+            // Clear in-memory token if it has expired since it was loaded
+            if (!string.IsNullOrEmpty(_accessToken) && IsTokenExpired(_accessToken))
+            {
+                _accessToken = null;
+            }
             return _accessToken;
         }
 
@@ -374,6 +379,13 @@ namespace EventForge.Client.Services
                     try
                     {
                         var client = _httpClientFactory.CreateClient("ApiClient");
+
+                        // The refresh-token endpoint requires [Authorize], so we must send the current token
+                        if (!string.IsNullOrEmpty(currentToken))
+                        {
+                            client.DefaultRequestHeaders.Authorization =
+                                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", currentToken);
+                        }
 
                         if (attempt > 1)
                         {

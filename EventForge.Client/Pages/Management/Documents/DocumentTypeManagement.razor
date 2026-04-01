@@ -46,21 +46,21 @@
                  ShowExportDialog="true"
                  ExcelFileName="Tipi_Documento"
                  IsDataFiltered="@HasActiveFilters()"
-                 TotalItemsCount="@_documentTypes.Count">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("documentType.management", "Gestione Tipi Documento")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("documentType.search", "Cerca tipi documento")"
-                              Placeholder="@TranslationService.GetTranslation("documentType.searchPlaceholder", "Inserisci nome o codice...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
+                 TotalItemsCount="@_documentTypes.Count"
+                 Title="@TranslationService.GetTranslation("documentType.management", "Gestione Tipi Documento")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("documentType.search", "Cerca tipi documento")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadDocumentTypesAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreateDocumentType"
+                 CreateTooltip="documentType.createNew"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedDocumentTypes"
+                 IsToolbarDisabled="@_isLoadingDocumentTypes">
+            <AdditionalToolbarContent>
                 <MudSwitch @bind-Value="_showOnlyFiscal"
                            @bind-Value:after="OnFilterChanged"
                            Label="@TranslationService.GetTranslation("documentType.onlyFiscal", "Solo fiscali")"
@@ -71,17 +71,7 @@
                            Label="@TranslationService.GetTranslation("documentType.onlyStockIncrease", "Solo aumento stock")"
                            Color="Color.Success"
                            Class="ml-2" />
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedDocumentTypes.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="documentType.createNew"
-                                        IsDisabled="_isLoadingDocumentTypes"
-                                        OnRefresh="@LoadDocumentTypesAsync"
-                                        OnCreate="@CreateDocumentType"
-                                        OnDelete="@DeleteSelectedDocumentTypes" />
-            </ToolBarContent>
+            </AdditionalToolbarContent>
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -428,26 +418,10 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private async Task OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token);
-            if (!token.IsCancellationRequested)
-            {
-                await SaveFilterStateAsync();
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _searchTerm = term;
+        await SaveFilterStateAsync();
     }
 
     // Filter state persistence
@@ -517,7 +491,7 @@
 
     private async Task DeleteDocumentType(DocumentTypeDto documentType)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("action.confirm", "Conferma"),
             TranslationService.GetTranslation("documentType.confirmDelete", $"Sei sicuro di voler eliminare il tipo documento '{documentType.Name}'?"),
             yesText: TranslationService.GetTranslation("action.delete", "Elimina"),
@@ -582,7 +556,7 @@
             "Sei sicuro di voler eliminare {0} tipi documento selezionati? Questa azione non può essere annullata.", 
             _selectedDocumentTypes.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

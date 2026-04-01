@@ -195,7 +195,7 @@
 
     private async Task DeleteContactAsync(ContactDto contact)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
             TranslationService.GetTranslation("businessParty.deleteContactConfirm", "Sei sicuro di voler eliminare questo contatto?"),
             yesText: TranslationService.GetTranslation("button.delete", "Elimina"),

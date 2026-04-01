@@ -403,7 +403,7 @@
 
     private async Task DeleteProductSupplier(ProductSupplierDto productSupplier)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
             TranslationService.GetTranslation("productSupplier.deleteConfirm", "Sei sicuro di voler eliminare questa associazione?"),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),

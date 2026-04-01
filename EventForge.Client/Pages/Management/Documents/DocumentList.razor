@@ -4,6 +4,7 @@
 @using EventForge.DTOs.Documents
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Extensions
+@using EventForge.Client.Services
 @using MudBlazor
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IDocumentHeaderService DocumentHeaderService
@@ -14,6 +15,7 @@
 @inject ILogger<DocumentList> Logger
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IHttpClientService HttpClientService
 
 <PageTitle>@TranslationService.GetTranslation("documents.list", "Elenco Documenti")</PageTitle>
 
@@ -86,6 +88,13 @@
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Closed">@TranslationService.GetTranslation("status.closed", "Chiuso")</MudSelectItem>
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Cancelled">@TranslationService.GetTranslation("status.cancelled", "Annullato")</MudSelectItem>
                 </MudSelect>
+                <MudTooltip Text="@GetExportTooltip()">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Download"
+                                   Color="Color.Default"
+                                   Size="Size.Small"
+                                   OnClick="@ExportToExcelAsync"
+                                   Disabled="@(_isLoading || _isExporting)" />
+                </MudTooltip>
                 <ManagementTableToolbar ShowSelectionBadge="true"
                                         SelectedCount="@_selectedDocuments.Count"
                                         ShowRefresh="true"
@@ -453,21 +462,23 @@
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private void ClearFilters()
+    private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
         _activeQuickFilter = null;
         _selectedDocumentTypeId = null;
         _selectedStatus = null;
-        StateHasChanged();
+        _currentPage = 1;
+        await LoadDocumentsAsync();
     }
 
     /// <summary>
     /// Called when filter changes to trigger refresh.
     /// </summary>
-    private void OnFilterChanged()
+    private async Task OnFilterChanged()
     {
-        StateHasChanged();
+        _currentPage = 1;
+        await LoadDocumentsAsync();
     }
 
     /// <summary>
@@ -509,7 +520,7 @@
 
     private async Task DeleteDocument(Guid documentId)
     {
-        bool? confirmed = await DialogService.ShowMessageBox(
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.confirmDelete", "Conferma Eliminazione"),
             TranslationService.GetTranslation("documents.confirmDeleteMessage", "Sei sicuro di voler eliminare questo documento?"),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
@@ -583,7 +594,7 @@
             "Sei sicuro di voler eliminare {0} documenti selezionati? Questa azione non può essere annullata.", 
             _selectedDocuments.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
@@ -669,5 +680,86 @@
             || _activeQuickFilter != null
             || _selectedDocumentTypeId.HasValue
             || _selectedStatus.HasValue;
+    }
+
+    private bool _isExporting = false;
+
+    private string GetExportTooltip() =>
+        _selectedDocuments.Any()
+            ? TranslationService.GetTranslation("tooltip.exportSelection", $"Esporta selezione ({_selectedDocuments.Count})")
+            : TranslationService.GetTranslation("tooltip.exportList", "Esporta elenco");
+
+    private async Task ExportToExcelAsync()
+    {
+        var itemsToExport = _selectedDocuments.Any()
+            ? _selectedDocuments.ToList()
+            : _filteredDocuments.ToList();
+
+        if (!itemsToExport.Any())
+        {
+            Snackbar.Add(TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"), Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _isExporting = true;
+            StateHasChanged();
+
+            var columns = new[]
+            {
+                new { PropertyName = "numero",  DisplayName = "Numero",  NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "tipo",    DisplayName = "Tipo",    NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "data",    DisplayName = "Data",    NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "cliente", DisplayName = "Cliente", NumberFormat = (string?)null, IsVisible = true },
+                new { PropertyName = "importo", DisplayName = "Importo", NumberFormat = "#,##0.00",    IsVisible = true },
+                new { PropertyName = "stato",   DisplayName = "Stato",   NumberFormat = (string?)null, IsVisible = true }
+            };
+
+            var data = itemsToExport.Select(d => new Dictionary<string, object?>
+            {
+                ["numero"]  = string.IsNullOrEmpty(d.Series) ? d.Number : $"{d.Series}/{d.Number}",
+                ["tipo"]    = d.DocumentTypeName,
+                ["data"]    = d.Date.ToLocalTime().ToString("dd/MM/yyyy"),
+                ["cliente"] = d.BusinessPartyName ?? d.CustomerName ?? "-",
+                ["importo"] = (object?)d.TotalGrossAmount,
+                ["stato"]   = TranslationService.GetTranslation($"documents.status.{d.Status.ToString().ToLower()}", d.Status.ToString())
+            }).ToList();
+
+            var exportLabel = _selectedDocuments.Any() ? "selezione" : "elenco";
+            var fileName = $"Documenti_{exportLabel}_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+            var request = new
+            {
+                options = new
+                {
+                    FileName = fileName,
+                    SheetName = "Documenti",
+                    Columns = columns,
+                    AutoFitColumns = true,
+                    FreezeHeader = true,
+                    AddAutoFilter = true
+                },
+                data
+            };
+
+            var responseStream = await HttpClientService.PostStreamAsync("api/v1/export/excel", request);
+            using var ms = new MemoryStream();
+            await responseStream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"{fileName}.xlsx", bytes);
+            Snackbar.Add(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting documents");
+            Snackbar.Add(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"), Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
+        }
     }
 }

@@ -46,32 +46,20 @@
                  ExcelFileName="AliquoteIVA"
                  IsDataFiltered="@HasActiveFilters()"
                  TotalItemsCount="@_vatRates.Count"
-                 OnRowClick="@HandleRowClick">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
-                              Placeholder="@TranslationService.GetTranslation("financial.searchPlaceholder", "Inserisci nome...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedVatRates.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="financial.createNewVatRate"
-                                        IsDisabled="_isLoadingVatRates"
-                                        OnRefresh="@LoadVatRatesAsync"
-                                        OnCreate="@CreateVatRate"
-                                        OnDelete="@DeleteSelectedVatRates" />
-            </ToolBarContent>
+                 OnRowClick="@HandleRowClick"
+                 Title="@TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadVatRatesAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreateVatRate"
+                 CreateTooltip="financial.createNewVatRate"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedVatRates"
+                 IsToolbarDisabled="@_isLoadingVatRates">
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -469,11 +457,10 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        _currentPage = 1; // Reset to page 1 when search changes
-        await Task.Delay(300); // Debounce
-        StateHasChanged();
+        _currentPage = 1;
+        _searchTerm = term;
     }
 
     private async Task OnPageChanged(int page)
@@ -505,7 +492,7 @@
             "Sei sicuro di voler eliminare l'aliquota IVA '{0}'? Questa azione non può essere annullata.", 
             vatRate.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
@@ -594,7 +581,7 @@
             "Sei sicuro di voler {0} l'aliquota IVA '{1}'?", 
             actionText, vatRate.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
@@ -641,7 +628,7 @@
             "Sei sicuro di voler eliminare {0} aliquote IVA selezionate? Questa azione non può essere annullata.", 
             _selectedVatRates.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

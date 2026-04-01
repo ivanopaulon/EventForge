@@ -63,8 +63,9 @@ public class DocumentCollaborationHub : Hub
 
         if (userId.HasValue)
         {
-            // Release all locks for this connection
-            await _documentHeaderService.ReleaseAllLocksForConnectionAsync(Context.ConnectionId);
+            var tenantId = GetCurrentTenantId();
+            // Pass tenantId from claims: ITenantContext is request-scoped and unavailable during hub disconnect
+            await _documentHeaderService.ReleaseAllLocksForConnectionAsync(Context.ConnectionId, tenantId);
 
             _logger.LogInformation(
                 "User {UserId} disconnected from document collaboration hub. Locks released for connection {ConnectionId}.",

@@ -204,7 +204,7 @@
         var productName = GetProductName(item.ComponentProductId);
         var message = $"{TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare questo componente?")} ({productName})";
 
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
         TranslationService.GetTranslation("common.confirm", "Conferma"),
         message,
         yesText: TranslationService.GetTranslation("common.yes", "Sì"),

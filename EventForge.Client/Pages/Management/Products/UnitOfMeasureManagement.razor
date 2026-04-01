@@ -44,32 +44,20 @@
                  ExcelFileName="UnitaDiMisura"
                  IsDataFiltered="@HasActiveFilters()"
                  TotalItemsCount="@_unitOfMeasures.Count"
-                 OnRowClick="@HandleRowClick">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("um.search", "Cerca unità di misura")"
-                              Placeholder="@TranslationService.GetTranslation("um.searchPlaceholder", "Inserisci nome o simbolo...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="ef-input" />
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedUMs.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="um.createNew"
-                                        IsDisabled="_isLoadingUMs"
-                                        OnRefresh="@LoadUMsAsync"
-                                        OnCreate="@CreateUM"
-                                        OnDelete="@DeleteSelectedUMs" />
-            </ToolBarContent>
+                 OnRowClick="@HandleRowClick"
+                 Title="@TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation("um.search", "Cerca unità di misura")"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadUMsAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreateUM"
+                 CreateTooltip="um.createNew"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedUMs"
+                 IsToolbarDisabled="@_isLoadingUMs">
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
@@ -451,25 +439,9 @@
         StateHasChanged();
     }
 
-    private async Task OnSearchChanged()
+    private void OnSearchChanged(string term)
     {
-        // Cancel previous debounce if any
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-        
-        try
-        {
-            await Task.Delay(300, token); // Debounce with cancellation
-            if (!token.IsCancellationRequested)
-            {
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow cancellation
-        }
+        _searchTerm = term;
     }
 
     private async Task OnPageChanged(int page)
@@ -490,7 +462,7 @@
 
     private async Task DeleteUM(UMDto um)
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("um.deleteTitle", "Conferma Eliminazione"),
             TranslationService.GetTranslation("um.deleteMessage", "Sei sicuro di voler eliminare l'unità di misura '{0}'?", um.Name),
             yesText: TranslationService.GetTranslation("button.delete", "Elimina"),
@@ -558,7 +530,7 @@
             "Sei sicuro di voler {0} l'unità di misura '{1}'?", 
             actionText, um.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
@@ -605,7 +577,7 @@
             "Sei sicuro di voler eliminare {0} unità di misura selezionate? Questa azione non può essere annullata.", 
             _selectedUMs.Count);
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
             confirmMessage,
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),

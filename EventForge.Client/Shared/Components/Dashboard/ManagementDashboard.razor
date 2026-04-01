@@ -349,14 +349,14 @@ New implementations should use QuickFilters instead.
         };
     }
 
-    private List<ChartSeries> GetChartSeries(List<ChartDataPoint> chartData)
+    private List<ChartSeries<double>> GetChartSeries(List<ChartDataPoint> chartData)
     {
-        return new List<ChartSeries>
+        return new List<ChartSeries<double>>
         {
-            new ChartSeries
+            new ChartSeries<double>
             {
                 Name = "Value",
-                Data = chartData.Select(d => d.Value).ToArray()
+                Data = new ChartData<double>(chartData.Select(d => d.Value).ToArray())
             }
         };
     }

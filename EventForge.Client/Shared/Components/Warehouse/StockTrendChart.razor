@@ -51,9 +51,9 @@
         </MudStack>
 
         <!-- Chart -->
-        <MudChart ChartType="ChartType.Line"
+        <MudChart T="double" ChartType="ChartType.Line"
                   ChartSeries="@_series"
-                  XAxisLabels="@_xAxisLabels"
+                  ChartLabels="@_xAxisLabels"
                   Width="100%"
                   Height="350px"
                   ChartOptions="@_chartOptions">
@@ -77,9 +77,9 @@
     [Parameter]
     public Guid? ProductId { get; set; }
 
-    private List<ChartSeries> _series = new();
+    private List<ChartSeries<double>> _series = new();
     private string[] _xAxisLabels = Array.Empty<string>();
-    private ChartOptions _chartOptions = new();
+    private LineChartOptions _chartOptions = new();
 
     private string GetSubtitle()
     {
@@ -150,27 +150,27 @@
         var stockLevelData = allDates.Select(date => stockLevelDict.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
 
         // Prepare series with three separate lines: Carichi, Scarichi, and Giacenza
-        _series = new List<ChartSeries>
+        _series = new List<ChartSeries<double>>
         {
-            new ChartSeries
+            new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("stock.stockLevel", "Giacenza"),
-                Data = stockLevelData
+                Data = new ChartData<double>(stockLevelData)
             },
-            new ChartSeries
+            new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("stock.increases", "Carichi"),
-                Data = increasesData
+                Data = new ChartData<double>(increasesData)
             },
-            new ChartSeries
+            new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("stock.decreases", "Scarichi"),
-                Data = decreasesData
+                Data = new ChartData<double>(decreasesData)
             }
         };
 
         // Configure chart options
-        _chartOptions = new ChartOptions
+        _chartOptions = new LineChartOptions
         {
             YAxisTicks = 10,
             YAxisLines = true,

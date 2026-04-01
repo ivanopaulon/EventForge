@@ -1763,20 +1763,19 @@ public class DocumentHeaderService : IDocumentHeaderService
     /// Releases all locks held by a specific SignalR connection.
     /// Called when a user disconnects.
     /// </summary>
-    public async Task ReleaseAllLocksForConnectionAsync(string connectionId)
+    public async Task ReleaseAllLocksForConnectionAsync(string connectionId, Guid? tenantId = null)
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
-            {
-                _logger.LogWarning("Cannot release locks without a tenant context.");
-                return;
-            }
+            var effectiveTenantId = tenantId ?? _tenantContext.CurrentTenantId;
 
-            var documents = await _context.DocumentHeaders
-                .Where(d => d.LockConnectionId == connectionId && d.TenantId == tenantId.Value && !d.IsDeleted)
-                .ToListAsync();
+            var query = _context.DocumentHeaders
+                .Where(d => d.LockConnectionId == connectionId && !d.IsDeleted);
+
+            if (effectiveTenantId.HasValue)
+                query = query.Where(d => d.TenantId == effectiveTenantId.Value);
+
+            var documents = await query.ToListAsync();
 
             if (documents.Any())
             {

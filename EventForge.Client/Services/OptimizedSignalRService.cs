@@ -19,6 +19,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     // Connection management
     private readonly ConcurrentDictionary<string, HubConnection> _connections;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _connectionLocks;
+    private readonly ConcurrentDictionary<string, bool> _retryInProgress;
     private readonly Timer _connectionHealthTimer;
     private readonly Timer _eventBatchTimer;
 
@@ -78,6 +79,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
         _connections = new ConcurrentDictionary<string, HubConnection>();
         _connectionLocks = new ConcurrentDictionary<string, SemaphoreSlim>();
+        _retryInProgress = new ConcurrentDictionary<string, bool>();
         _eventQueue = new ConcurrentQueue<BatchedEvent>();
         _lastEventTime = new ConcurrentDictionary<string, DateTime>();
 
@@ -159,7 +161,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start SignalR {ConnectionKey} connection", connectionKey);
-            _ = Task.Run(() => ScheduleRetryAsync(connectionKey, hubPath));
+            // Retry is handled via the connection.Closed event or the calling ScheduleRetryAsync loop.
+            // Do NOT spawn a second ScheduleRetryAsync here to avoid duplicate retry loops.
         }
         finally
         {
@@ -185,7 +188,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         var connection = new HubConnectionBuilder()
             .WithUrl(hubUrl, options =>
             {
-                options.AccessTokenProvider = () => Task.FromResult(token!);
+                // Use a dynamic provider so every reconnect attempt fetches the latest valid token
+                // instead of reusing the token captured at connection-creation time.
+                options.AccessTokenProvider = () => _authService.GetAccessTokenAsync();
                 // Optimize for mobile and high-load scenarios
                 options.SkipNegotiation = true;
                 options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
@@ -394,6 +399,13 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     private async void CheckConnectionHealthAsync(object? state)
     {
+        // Skip recovery entirely if the user session has expired
+        if (!await _authService.IsAuthenticatedAsync())
+        {
+            _logger.LogDebug("Skipping connection health check: user is not authenticated");
+            return;
+        }
+
         var healthCheckTasks = _connections.Select(async kvp =>
         {
             var (key, connection) = kvp;
@@ -439,9 +451,19 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     /// <summary>
     /// Schedules connection retry with exponential backoff.
+    /// Only one retry loop per connection key is allowed to run at a time.
     /// </summary>
     private async Task ScheduleRetryAsync(string connectionKey, string hubPath)
     {
+        // Prevent duplicate concurrent retry loops for the same connection
+        if (!_retryInProgress.TryAdd(connectionKey, true))
+        {
+            _logger.LogDebug("Retry already in progress for {ConnectionKey}, skipping duplicate", connectionKey);
+            return;
+        }
+
+        try
+        {
         var retryCount = 0;
         var delay = _retryConfig.InitialDelay;
 
@@ -452,12 +474,32 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
             await Task.Delay(delay);
 
+            // Stop retrying if the user session has expired — no point reconnecting with an invalid token
+            if (!await _authService.IsAuthenticatedAsync())
+            {
+                _logger.LogWarning("Stopping reconnect retries for {ConnectionKey}: user session has expired",
+                    connectionKey);
+                return;
+            }
+
             try
             {
                 await StartConnectionAsync(connectionKey, hubPath);
-                _logger.LogInformation("Successfully reconnected {ConnectionKey} after {RetryCount} retries",
-                    connectionKey, retryCount);
-                return; // Success
+
+                // Verify the connection actually succeeded before declaring victory
+                if (_connections.TryGetValue(connectionKey, out var conn) &&
+                    conn.State == HubConnectionState.Connected)
+                {
+                    _logger.LogInformation("Successfully reconnected {ConnectionKey} after {RetryCount} retries",
+                        connectionKey, retryCount);
+                    return; // Success
+                }
+
+                // StartConnectionAsync swallowed an exception; treat as failure and retry
+                retryCount++;
+                delay = TimeSpan.FromMilliseconds(Math.Min(
+                    delay.TotalMilliseconds * _retryConfig.BackoffMultiplier,
+                    _retryConfig.MaxDelay.TotalMilliseconds));
             }
             catch (Exception ex)
             {
@@ -474,6 +516,11 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
         _logger.LogError("Failed to reconnect {ConnectionKey} after {MaxRetries} attempts with delays: 2s, 4s, 8s, 16s, 30s",
             connectionKey, _retryConfig.MaxRetries);
+        }
+        finally
+        {
+            _retryInProgress.TryRemove(connectionKey, out _);
+        }
     }
 
     #endregion
