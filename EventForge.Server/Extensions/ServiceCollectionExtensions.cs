@@ -201,8 +201,13 @@ public static class ServiceCollectionExtensions
 
             _ = services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
             {
-                _ = options.UseSqlServer(connectionString)
-                       .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
+                _ = options.UseSqlServer(connectionString, sqlOptions =>
+                    {
+                        // Configure split query behavior to avoid cartesian explosion with multiple includes
+                        // This prevents EF Core warnings about loading related collections
+                        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                    })
+                    .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
             });
         }
         catch (Exception ex)
