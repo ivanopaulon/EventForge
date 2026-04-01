@@ -190,7 +190,6 @@ namespace EventForge.Client.Shared.Components
 
             try
             {
-                // Note: ProductService.SearchProductsAsync doesn't accept CancellationToken
                 var result = await ProductService.SearchProductsAsync(searchTerm, MaxResults);
 
                 if (result == null)
@@ -199,7 +198,16 @@ namespace EventForge.Client.Shared.Components
                     return Array.Empty<ProductDto>();
                 }
 
-                return result.SearchResults ?? new List<ProductDto>();
+                // When the server finds an exact code match it returns only ExactMatch (SearchResults is empty).
+                // Include the exact match product in the autocomplete list so it is visible to the user.
+                if (result.IsExactCodeMatch && result.ExactMatch?.Product != null)
+                {
+                    var combined = new List<ProductDto> { result.ExactMatch.Product };
+                    combined.AddRange(result.SearchResults);
+                    return combined;
+                }
+
+                return result.SearchResults;
             }
             catch (Exception ex)
             {
@@ -213,9 +221,11 @@ namespace EventForge.Client.Shared.Components
         /// </summary>
         private async Task HandleSearchKeyDown(KeyboardEventArgs e)
         {
-            if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_searchText) && SearchMode.HasFlag(ProductSearchMode.Barcode))
+            if (e.Key == "Enter" && SearchMode.HasFlag(ProductSearchMode.Barcode))
             {
-                await SearchByBarcode(_searchText);
+                var currentText = _autocomplete?.Text;
+                if (!string.IsNullOrWhiteSpace(currentText))
+                    await SearchByBarcode(currentText);
             }
         }
 

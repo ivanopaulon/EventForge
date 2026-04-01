@@ -215,11 +215,12 @@ public class BusinessPartyService : IBusinessPartyService
                 );
             }
 
-            // Search by name or tax code (case-insensitive)
+            // Search by name, tax code or VAT number (case-insensitive)
             var businessParties = await query
                 .Where(bp =>
                     EF.Functions.Like(bp.Name, $"%{searchTerm}%") ||
-                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode, $"%{searchTerm}%"))
+                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode, $"%{searchTerm}%")) ||
+                    (bp.VatNumber != null && EF.Functions.Like(bp.VatNumber, $"%{searchTerm}%"))
                 )
                 .OrderBy(bp => bp.Name)
                 .Take(pageSize)

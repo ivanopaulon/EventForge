@@ -1,0 +1,19 @@
+[1mdiff --git a/EventForge.Server/Services/Business/BusinessPartyService.cs b/EventForge.Server/Services/Business/BusinessPartyService.cs[m
+[1mindex 0f8f87a9..339c5afc 100644[m
+[1m--- a/EventForge.Server/Services/Business/BusinessPartyService.cs[m
+[1m+++ b/EventForge.Server/Services/Business/BusinessPartyService.cs[m
+[36m@@ -215,11 +215,12 @@[m [mpublic class BusinessPartyService : IBusinessPartyService[m
+                 );[m
+             }[m
+ [m
+[31m-            // Search by name or tax code (case-insensitive)[m
+[32m+[m[32m            // Search by name, tax code or VAT number (case-insensitive)[m
+             var businessParties = await query[m
+                 .Where(bp =>[m
+                     EF.Functions.Like(bp.Name, $"%{searchTerm}%") ||[m
+[31m-                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode, $"%{searchTerm}%"))[m
+[32m+[m[32m                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode, $"%{searchTerm}%")) ||[m
+[32m+[m[32m                    (bp.VatNumber != null && EF.Functions.Like(bp.VatNumber, $"%{searchTerm}%"))[m
+                 )[m
+                 .OrderBy(bp => bp.Name)[m
+                 .Take(pageSize)[m
