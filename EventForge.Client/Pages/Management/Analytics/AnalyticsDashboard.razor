@@ -556,11 +556,12 @@
     {
         _activePeriod = period;
         var today = DateTime.Today;
+        // All ranges are inclusive: DateFrom..DateTo, so "7 days" = today-6 days through today (7 days total).
         (_filter.DateFrom, _filter.DateTo) = period switch
         {
-            "today" => ((DateTime?)today, (DateTime?)today),
-            "7d"    => ((DateTime?)today.AddDays(-6), (DateTime?)today),
-            "30d"   => ((DateTime?)today.AddDays(-29), (DateTime?)today),
+            "today" => ((DateTime?)today,               (DateTime?)today),
+            "7d"    => ((DateTime?)today.AddDays(-6),   (DateTime?)today),
+            "30d"   => ((DateTime?)today.AddDays(-29),  (DateTime?)today),
             "6m"    => ((DateTime?)today.AddMonths(-6), (DateTime?)today),
             _       => (_filter.DateFrom, _filter.DateTo)
         };
