@@ -73,6 +73,14 @@ public class Promotion : AuditableEntity
     public int CurrentUses { get; set; } = 0;
 
     /// <summary>
+    /// Optimistic concurrency token managed automatically by the database.
+    /// Used by EF Core to detect concurrent updates and avoid race conditions
+    /// when incrementing <see cref="CurrentUses"/> against <see cref="MaxUses"/>.
+    /// </summary>
+    [Timestamp]
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
+    /// <summary>
     /// List of rules associated with this promotion.
     /// </summary>
     [Display(Name = "Rules", Description = "List of rules associated with this promotion.")]
