@@ -920,7 +920,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             currentUser: "test");
 
         // Act
-        var result = await _documentHeaderService.DeleteDocumentRowAsync(documentRow.Id);
+        var result = await _documentHeaderService.DeleteDocumentRowAsync(documentRow.Id, "test");
 
         // Assert
         Assert.True(result);

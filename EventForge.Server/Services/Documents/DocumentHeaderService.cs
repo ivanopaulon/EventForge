@@ -986,8 +986,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return null;
             }
 
-            // Store old quantity for compensating movement calculation
-            var oldQuantity = row.Quantity;
+            // Store old base quantity for compensating movement calculation
+            var oldBaseQuantity = row.BaseQuantity ?? row.Quantity;
             var oldProductId = row.ProductId;
 
             // Update row properties
@@ -1034,7 +1034,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                 row.ProductId.HasValue &&
                 row.ProductId == oldProductId)
             {
-                var delta = row.Quantity - oldQuantity;
+                var newBaseQuantity = row.BaseQuantity ?? row.Quantity;
+                var delta = newBaseQuantity - oldBaseQuantity;
                 if (delta != 0)
                 {
                     var documentDateUtc = DateTime.SpecifyKind(row.DocumentHeader.Date, DateTimeKind.Utc);
@@ -1076,7 +1077,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                             unitCost: row.UnitPrice,
                                             documentHeaderId: row.DocumentHeader.Id,
                                             documentRowId: row.Id,
-                                            notes: $"Compensating movement: quantity increased from {oldQuantity} to {row.Quantity}",
+                                            notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
                                             currentUser: currentUser,
                                             movementDate: documentDateUtc,
                                             cancellationToken: cancellationToken);
@@ -1089,7 +1090,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                             quantity: delta,
                                             documentHeaderId: row.DocumentHeader.Id,
                                             documentRowId: row.Id,
-                                            notes: $"Compensating movement: quantity increased from {oldQuantity} to {row.Quantity}",
+                                            notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
                                             currentUser: currentUser,
                                             movementDate: documentDateUtc,
                                             cancellationToken: cancellationToken);
@@ -1107,7 +1108,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                             quantity: absDelta,
                                             documentHeaderId: row.DocumentHeader.Id,
                                             documentRowId: row.Id,
-                                            notes: $"Compensating movement: quantity decreased from {oldQuantity} to {row.Quantity}",
+                                            notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
                                             currentUser: currentUser,
                                             movementDate: documentDateUtc,
                                             cancellationToken: cancellationToken);
@@ -1121,7 +1122,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                             unitCost: row.UnitPrice,
                                             documentHeaderId: row.DocumentHeader.Id,
                                             documentRowId: row.Id,
-                                            notes: $"Compensating movement: quantity decreased from {oldQuantity} to {row.Quantity}",
+                                            notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
                                             currentUser: currentUser,
                                             movementDate: documentDateUtc,
                                             cancellationToken: cancellationToken);
@@ -1150,6 +1151,7 @@ public class DocumentHeaderService : IDocumentHeaderService
     /// </summary>
     public async Task<bool> DeleteDocumentRowAsync(
         Guid rowId,
+        string currentUser,
         CancellationToken cancellationToken = default)
     {
         try
@@ -1164,8 +1166,6 @@ public class DocumentHeaderService : IDocumentHeaderService
                 _logger.LogWarning("Document row {RowId} not found for deletion.", rowId);
                 return false;
             }
-
-            var currentUser = "System"; // Default, should be passed in ideally
 
             // If document is approved, create compensating movement before deleting row
             if (row.DocumentHeader != null &&
@@ -1278,17 +1278,6 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return;
             }
 
-            // Check if movements already exist for this document
-            var existingMovements = await _context.StockMovements
-                .Where(sm => sm.DocumentHeaderId == documentHeader.Id && !sm.IsDeleted)
-                .AnyAsync(cancellationToken);
-
-            if (existingMovements)
-            {
-                _logger.LogInformation("Stock movements already exist for document {DocumentHeaderId}. Skipping.", documentHeader.Id);
-                return;
-            }
-
             // Ensure document date is in UTC for stock movements
             var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
 
@@ -1297,6 +1286,18 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             foreach (var row in documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue))
             {
+                // Per-row guard: skip only this row if its movement already exists
+                var rowMovementExists = await _context.StockMovements
+                    .AnyAsync(sm => sm.DocumentRowId == row.Id && !sm.IsDeleted, cancellationToken);
+
+                if (rowMovementExists)
+                {
+                    _logger.LogInformation(
+                        "Stock movement already exists for row {RowId} in document {DocumentHeaderId}. Skipping this row.",
+                        row.Id, documentHeader.Id);
+                    continue;
+                }
+
                 // Determine the warehouse location to use
                 Guid? warehouseLocationId = null;
 

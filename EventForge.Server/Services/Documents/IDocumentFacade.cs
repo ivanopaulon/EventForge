@@ -724,11 +724,13 @@ public interface IDocumentFacade
     /// Deletes a document row (soft delete).
     /// </summary>
     /// <param name="rowId">Document row unique identifier</param>
+    /// <param name="currentUser">Current user performing the deletion</param>
     /// <param name="cancellationToken">Cancellation token for async operation</param>
     /// <returns>True if deleted, false if not found</returns>
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
     Task<bool> DeleteDocumentRowAsync(
         Guid rowId,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     // Document Type operations

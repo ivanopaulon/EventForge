@@ -524,7 +524,8 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var success = await _documentFacade.DeleteDocumentRowAsync(rowId, cancellationToken);
+            var currentUser = GetCurrentUser();
+            var success = await _documentFacade.DeleteDocumentRowAsync(rowId, currentUser, cancellationToken);
 
             if (!success)
             {
