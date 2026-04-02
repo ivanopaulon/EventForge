@@ -68,6 +68,17 @@ namespace EventForge.DTOs.PriceLists
         public int MaxQuantity { get; set; }
 
         /// <summary>
+        /// Optional unit of measure identifier for this price entry.
+        /// When set, this price applies only for the specified unit of measure.
+        /// </summary>
+        public Guid? UnitOfMeasureId { get; set; }
+
+        /// <summary>
+        /// Display name of the unit of measure (populated from navigation property).
+        /// </summary>
+        public string? UnitOfMeasureName { get; set; }
+
+        /// <summary>
         /// Additional notes for the price list entry.
         /// </summary>
         public string? Notes { get; set; }

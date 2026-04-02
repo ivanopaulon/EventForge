@@ -63,6 +63,13 @@ namespace EventForge.DTOs.PriceLists
         public int MaxQuantity { get; set; }
 
         /// <summary>
+        /// Optional unit of measure identifier for this price entry.
+        /// When set, this price applies only for the specified unit of measure.
+        /// </summary>
+        [Display(Name = "Unit Of Measure", Description = "Optional unit of measure for this price entry.")]
+        public Guid? UnitOfMeasureId { get; set; }
+
+        /// <summary>
         /// Additional notes for the price list entry.
         /// </summary>
         [MaxLength(500, ErrorMessage = "The notes cannot exceed 500 characters.")]
