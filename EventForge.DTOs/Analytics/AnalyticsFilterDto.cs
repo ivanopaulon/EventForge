@@ -1,4 +1,5 @@
-namespace EventForge.DTOs.Analytics;
+namespace EventForge.DTOs.Analytics
+{
 
 /// <summary>
 /// Filter parameters for analytics queries.
