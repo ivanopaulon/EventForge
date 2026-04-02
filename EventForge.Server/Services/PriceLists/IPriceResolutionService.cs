@@ -29,5 +29,16 @@ namespace EventForge.Server.Services.PriceLists
             Guid? forcedPriceListId = null,
             PriceListDirection? direction = null,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Resolves prices for multiple products in a single batch operation.
+        /// Items are processed in parallel for performance.
+        /// </summary>
+        /// <param name="request">Batch request containing list of items to resolve</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Batch response with results and errors per item key</returns>
+        Task<BatchPriceResolutionResponse> ResolvePricesBatchAsync(
+            BatchPriceResolutionRequest request,
+            CancellationToken cancellationToken = default);
     }
 }

@@ -76,4 +76,18 @@ public class PriceResolutionService : IPriceResolutionService
 
         return query;
     }
+
+    public async Task<BatchPriceResolutionResponse?> ResolvePricesBatchAsync(BatchPriceResolutionRequest request)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<BatchPriceResolutionRequest, BatchPriceResolutionResponse>(
+                "api/v1/PriceLists/resolve-prices", request);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resolving batch prices for {Count} items", request.Items.Count);
+            return null;
+        }
+    }
 }

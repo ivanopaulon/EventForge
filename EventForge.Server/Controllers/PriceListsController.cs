@@ -306,4 +306,44 @@ public class PriceListsController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while resolving the price.", ex);
         }
     }
+
+    /// <summary>
+    /// Risolve i prezzi per più prodotti in una singola chiamata batch.
+    /// Ogni item può avere parametri di contesto diversi (documento, business party, listino forzato).
+    /// </summary>
+    /// <param name="request">Request con lista di item da risolvere (max 100)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Risultati con prezzo risolto per ogni item (key), errori separati</returns>
+    /// <response code="200">Restituisce i prezzi risolti con metadati</response>
+    /// <response code="400">Se i parametri della richiesta non sono validi</response>
+    /// <response code="500">Se si verifica un errore interno del server</response>
+    [HttpPost("resolve-prices")]
+    [ProducesResponseType(typeof(BatchPriceResolutionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BatchPriceResolutionResponse>> ResolvePricesBatchAsync(
+        [FromBody] BatchPriceResolutionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var result = await _priceResolutionService.ResolvePricesBatchAsync(request, cancellationToken);
+
+            _logger.LogInformation(
+                "Batch price resolution: {Total} items processed, {Succeeded} succeeded, {Failed} failed",
+                result.TotalProcessed, result.TotalSucceeded, result.TotalFailed);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during batch price resolution with {Count} items", request.Items.Count);
+            return CreateInternalServerErrorProblem("An error occurred during batch price resolution.", ex);
+        }
+    }
 }

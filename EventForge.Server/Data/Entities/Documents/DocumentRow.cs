@@ -227,6 +227,14 @@ public class DocumentRow : AuditableEntity
     public string? PriceNotes { get; set; }
 
     /// <summary>
+    /// JSON serializzato delle promozioni applicate a questa riga.
+    /// Contiene una lista di AppliedPromotionSummary con ID, nome, tipo e sconto applicato.
+    /// Null se nessuna promozione è stata applicata.
+    /// </summary>
+    [Display(Name = "Applied Promotions JSON", Description = "JSON-serialized list of promotions applied to this row.")]
+    public string? AppliedPromotionsJSON { get; set; }
+
+    /// <summary>
     /// Sort order for the row in the document.
     /// </summary>
     [Display(Name = "Sort Order", Description = "Sort order for the row in the document.")]

@@ -28,4 +28,11 @@ public interface IPriceResolutionService
         Guid? businessPartyId = null,
         Guid? forcedPriceListId = null,
         PriceListDirection? direction = null);
+
+    /// <summary>
+    /// Resolves prices for multiple products in a single batch HTTP call.
+    /// </summary>
+    /// <param name="request">Batch request with items to resolve</param>
+    /// <returns>Batch response with results per key and errors</returns>
+    Task<BatchPriceResolutionResponse?> ResolvePricesBatchAsync(BatchPriceResolutionRequest request);
 }
