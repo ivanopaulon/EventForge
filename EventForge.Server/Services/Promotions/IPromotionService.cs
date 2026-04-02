@@ -63,4 +63,24 @@ public interface IPromotionService
         string? salesChannel = null,
         DateTime? orderDateTime = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validates a coupon code and returns the matching promotion if valid and within usage limits.
+    /// Returns null if the coupon is invalid, expired, or has reached MaxUses.
+    /// </summary>
+    /// <param name="couponCode">The coupon code to validate.</param>
+    /// <param name="customerId">Optional customer ID for customer-specific promotions.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The matching <see cref="PromotionDto"/> if valid; otherwise null.</returns>
+    Task<PromotionDto?> ValidateCouponAsync(string couponCode, Guid? customerId = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atomically increments the usage counter for a promotion, respecting MaxUses limits.
+    /// Uses optimistic concurrency with retry to handle concurrent requests.
+    /// Returns true if the increment succeeded, false if MaxUses was already reached.
+    /// </summary>
+    /// <param name="promotionId">The ID of the promotion to increment.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the increment succeeded; false if MaxUses was already reached.</returns>
+    Task<bool> IncrementUsageAsync(Guid promotionId, CancellationToken cancellationToken = default);
 }

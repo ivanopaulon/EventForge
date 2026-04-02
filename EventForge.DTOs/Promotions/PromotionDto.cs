@@ -42,6 +42,16 @@ namespace EventForge.DTOs.Promotions
         public int? MaxUses { get; set; }
 
         /// <summary>
+        /// Number of times this promotion has been used.
+        /// </summary>
+        public int CurrentUses { get; set; }
+
+        /// <summary>
+        /// Remaining uses for this promotion. Null if there is no usage limit.
+        /// </summary>
+        public int? RemainingUses => MaxUses.HasValue ? MaxUses.Value - CurrentUses : null;
+
+        /// <summary>
         /// Coupon code required to activate the promotion.
         /// </summary>
         public string? CouponCode { get; set; }
