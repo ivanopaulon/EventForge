@@ -614,6 +614,7 @@ public class StockMovementService : IStockMovementService
             if (stock != null)
             {
                 stock.Quantity -= movement.Quantity;
+                stock.LastMovementDate = DateTime.UtcNow;
                 stock.ModifiedAt = DateTime.UtcNow;
             }
         }
@@ -641,6 +642,7 @@ public class StockMovementService : IStockMovementService
                     LotId = movement.LotId,
                     Quantity = movement.Quantity,
                     ReservedQuantity = 0,
+                    LastMovementDate = DateTime.UtcNow,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = movement.UserId ?? "System"
                 };
@@ -649,6 +651,7 @@ public class StockMovementService : IStockMovementService
             else
             {
                 stock.Quantity += movement.Quantity;
+                stock.LastMovementDate = DateTime.UtcNow;
                 stock.ModifiedAt = DateTime.UtcNow;
             }
         }
@@ -666,10 +669,31 @@ public class StockMovementService : IStockMovementService
                                            && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
                                          cancellationToken);
 
-                if (stock != null)
+                if (stock == null)
+                {
+                    if (movement.ToLocationId.HasValue) // positive adjustment: create new stock entry
+                    {
+                        stock = new Stock
+                        {
+                            Id = Guid.NewGuid(),
+                            TenantId = currentTenantId,
+                            ProductId = movement.ProductId,
+                            StorageLocationId = movement.ToLocationId.Value,
+                            LotId = movement.LotId,
+                            Quantity = movement.Quantity,
+                            ReservedQuantity = 0,
+                            LastMovementDate = DateTime.UtcNow,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = movement.UserId ?? "System"
+                        };
+                        _ = _context.Stocks.Add(stock);
+                    }
+                }
+                else
                 {
                     var adjustmentQuantity = movement.ToLocationId.HasValue ? movement.Quantity : -movement.Quantity;
                     stock.Quantity += adjustmentQuantity;
+                    stock.LastMovementDate = DateTime.UtcNow;
                     stock.ModifiedAt = DateTime.UtcNow;
                 }
             }

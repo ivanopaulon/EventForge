@@ -113,7 +113,7 @@ public class StockService : IStockService
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
-                .FirstOrDefaultAsync(s => s.ProductId == id && s.TenantId == currentTenantId.Value, cancellationToken);
+                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
             return stock?.ToStockDto();
         }
@@ -828,7 +828,7 @@ public class StockService : IStockService
                             .Include(s => s.StorageLocation)
                                 .ThenInclude(sl => sl!.Warehouse)
                             .Include(s => s.Lot)
-                            .Where(s => s.ProductId == p.Id && s.TenantId == currentTenantId.Value && s.IsActive)
+                            .Where(s => s.ProductId == p.Id && s.TenantId == currentTenantId.Value)
                             .DefaultIfEmpty()
                         select new StockLocationDetail
                         {
@@ -860,7 +860,7 @@ public class StockService : IStockService
                     .Include(s => s.StorageLocation)
                         .ThenInclude(sl => sl!.Warehouse)
                     .Include(s => s.Lot)
-                    .Where(s => s.TenantId == currentTenantId.Value && s.IsActive);
+                    .Where(s => s.TenantId == currentTenantId.Value);
 
                 query = stockQuery.Select(s => new StockLocationDetail
                 {

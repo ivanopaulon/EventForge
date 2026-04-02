@@ -414,16 +414,13 @@ public class StockReconciliationService : IStockReconciliationService
                     var newQuantity = item.CalculatedQuantity;
                     var adjustment = newQuantity - oldQuantity;
 
-                    // Update stock quantity
-                    stock.Quantity = newQuantity;
-                    stock.ModifiedAt = DateTime.UtcNow;
-                    stock.ModifiedBy = currentUser;
-
                     result.UpdatedCount++;
                     result.UpdatedStockIds.Add(stock.Id);
                     result.TotalAdjustmentValue += Math.Abs(adjustment);
 
-                    // Create adjustment movement if requested
+                    // Create adjustment movement if requested.
+                    // Note: ProcessAdjustmentMovementAsync already updates stock levels via UpdateStockLevelsForMovementAsync,
+                    // so we only set stock.Quantity directly when not creating a movement to avoid double-applying the delta.
                     if (request.CreateAdjustmentMovements && adjustment != 0)
                     {
                         await _stockMovementService.ProcessAdjustmentMovementAsync(
@@ -438,6 +435,13 @@ public class StockReconciliationService : IStockReconciliationService
                             cancellationToken: cancellationToken);
 
                         result.MovementsCreated++;
+                        stock.ModifiedBy = currentUser;
+                    }
+                    else if (adjustment != 0)
+                    {
+                        stock.Quantity = newQuantity;
+                        stock.ModifiedAt = DateTime.UtcNow;
+                        stock.ModifiedBy = currentUser;
                     }
 
                     // Audit log — include the reconciliation reason for a complete audit trail
