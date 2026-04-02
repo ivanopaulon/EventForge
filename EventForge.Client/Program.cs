@@ -121,6 +121,7 @@ builder.Services.AddScoped<IModelService, ModelService>();
 builder.Services.AddScoped<ILookupCacheService, LookupCacheService>();
 builder.Services.AddScoped<IPriceListService, PriceListService>();
 builder.Services.AddScoped<IPriceResolutionService, PriceResolutionService>();
+builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();
 
 // Add DevTools services
 builder.Services.AddScoped<IDevToolsService, DevToolsService>();
