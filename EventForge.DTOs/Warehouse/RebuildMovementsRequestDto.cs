@@ -41,4 +41,10 @@ public class RebuildMovementsRequestDto
     /// Values map to EventForge.DTOs.Common.DocumentStatus: Draft=0, Open=1, Closed=2, Cancelled=3.
     /// </summary>
     public List<int>? DocumentStatuses { get; set; }
+
+    /// <summary>
+    /// If true, existing movements linked to a document row are updated (date, quantity, type, location)
+    /// instead of skipped. Default: true.
+    /// </summary>
+    public bool UpdateExisting { get; set; } = true;
 }

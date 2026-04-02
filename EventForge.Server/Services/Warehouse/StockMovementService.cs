@@ -276,46 +276,57 @@ public class StockMovementService : IStockMovementService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var movements = new List<StockMovement>();
+        // Process in chunks to keep each SaveChangesAsync batch manageable.
+        // The custom SaveChangesAsync generates one EntityChangeLog row per property per entity;
+        // large batches produce thousands of audit INSERTs that exceed SQL Server limits.
+        const int chunkSize = 25;
+        var allMovements = new List<StockMovement>();
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        foreach (var createDto in createDtos)
+        foreach (var chunk in createDtos.Chunk(chunkSize))
         {
-            var movement = new StockMovement
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId,
-                MovementType = Enum.Parse<StockMovementType>(createDto.MovementType),
-                ProductId = createDto.ProductId,
-                LotId = createDto.LotId,
-                SerialId = createDto.SerialId,
-                FromLocationId = createDto.FromLocationId,
-                ToLocationId = createDto.ToLocationId,
-                Quantity = createDto.Quantity,
-                UnitCost = createDto.UnitCost,
-                MovementDate = createDto.MovementDate,
-                DocumentRowId = createDto.DocumentRowId,
-                Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
-                    ? reasonEnum
-                    : StockMovementReason.Other,
-                Notes = createDto.Notes,
-                UserId = currentUser,
-                Status = MovementStatus.Completed,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
+            var movements = new List<StockMovement>();
 
-            movements.Add(movement);
-            await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
+            foreach (var createDto in chunk)
+            {
+                var movement = new StockMovement
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = currentTenantId,
+                    MovementType = Enum.Parse<StockMovementType>(createDto.MovementType),
+                    ProductId = createDto.ProductId,
+                    LotId = createDto.LotId,
+                    SerialId = createDto.SerialId,
+                    FromLocationId = createDto.FromLocationId,
+                    ToLocationId = createDto.ToLocationId,
+                    Quantity = createDto.Quantity,
+                    UnitCost = createDto.UnitCost,
+                    MovementDate = createDto.MovementDate,
+                    DocumentHeaderId = createDto.DocumentHeaderId,
+                    DocumentRowId = createDto.DocumentRowId,
+                    Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
+                        ? reasonEnum
+                        : StockMovementReason.Other,
+                    Notes = createDto.Notes,
+                    UserId = currentUser,
+                    Status = MovementStatus.Completed,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = currentUser
+                };
+
+                movements.Add(movement);
+                await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
+            }
+
+            _context.StockMovements.AddRange(movements);
+            _ = await _context.SaveChangesAsync(cancellationToken);
+            allMovements.AddRange(movements);
         }
 
-        _context.StockMovements.AddRange(movements);
-        _ = await _context.SaveChangesAsync(cancellationToken);
-
         _ = await _auditLogService.LogEntityChangeAsync("StockMovement", Guid.Empty, "BatchCreated", "BatchCreate",
-            null, $"Created {movements.Count} stock movements", currentUser);
+            null, $"Created {allMovements.Count} stock movements", currentUser);
 
-        return movements.Select(m => m.ToStockMovementDto());
+        return allMovements.Select(m => m.ToStockMovementDto());
     }
 
     public async Task<StockMovementDto> ProcessInboundMovementAsync(

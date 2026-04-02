@@ -43,6 +43,11 @@ namespace EventForge.DTOs.Warehouse
         public bool IncludeInventories { get; set; } = true;
 
         /// <summary>
+        /// Include stock movements (manual transfers, adjustments, document-linked) in calculation (default: true)
+        /// </summary>
+        public bool IncludeStockMovements { get; set; } = true;
+
+        /// <summary>
         /// Only return items with discrepancies (default: false)
         /// </summary>
         public bool OnlyWithDiscrepancies { get; set; } = false;

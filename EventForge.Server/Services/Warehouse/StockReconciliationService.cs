@@ -142,20 +142,24 @@ public class StockReconciliationService : IStockReconciliationService
 
             // Batch load manual stock movements.
             // We do NOT apply the per-stock effectiveFromDate here; it is applied in-memory per stock.
-            var manualMovQuery = _context.StockMovements
-                .AsNoTracking()
-                .Where(sm => sm.TenantId == currentTenantId.Value &&
-                            !sm.IsDeleted &&
-                            productIds.Contains(sm.ProductId) &&
-                            (sm.FromLocationId.HasValue && locationIds.Contains(sm.FromLocationId.Value) ||
-                             sm.ToLocationId.HasValue && locationIds.Contains(sm.ToLocationId.Value)));
+            var allManualMovements = new List<StockMovement>();
+            if (request.IncludeStockMovements)
+            {
+                var manualMovQuery = _context.StockMovements
+                    .AsNoTracking()
+                    .Where(sm => sm.TenantId == currentTenantId.Value &&
+                                !sm.IsDeleted &&
+                                productIds.Contains(sm.ProductId) &&
+                                (sm.FromLocationId.HasValue && locationIds.Contains(sm.FromLocationId.Value) ||
+                                 sm.ToLocationId.HasValue && locationIds.Contains(sm.ToLocationId.Value)));
 
-            if (request.FromDate.HasValue)
-                manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate >= request.FromDate.Value);
-            if (request.ToDate.HasValue)
-                manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate <= request.ToDate.Value);
+                if (request.FromDate.HasValue)
+                    manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate >= request.FromDate.Value);
+                if (request.ToDate.HasValue)
+                    manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate <= request.ToDate.Value);
 
-            var allManualMovements = await manualMovQuery.ToListAsync(cancellationToken);
+                allManualMovements = await manualMovQuery.ToListAsync(cancellationToken);
+            }
 
             // Process each stock using pre-loaded in-memory data
             foreach (var stock in stocks)
@@ -599,6 +603,10 @@ public class StockReconciliationService : IStockReconciliationService
                 g => g.First().Id,
                 cancellationToken);
 
+        // Phase 1 (in-memory): build the lists of movements to create and update
+        var movementsToCreate = new List<(CreateStockMovementDto Dto, Guid DocHeaderId, string? DocNumber, Guid DocRowId, Guid? ProductId, string? ProductName, decimal Quantity, bool IsInbound)>();
+        var movementsToUpdate = new List<(CreateStockMovementDto Dto, Guid DocHeaderId, string? DocNumber, Guid DocRowId, Guid? ProductId, string? ProductName, decimal Quantity, bool IsInbound)>();
+
         foreach (var documentHeader in documentHeaders)
         {
             if (documentHeader.DocumentType == null || documentHeader.Rows == null)
@@ -610,8 +618,10 @@ public class StockReconciliationService : IStockReconciliationService
             {
                 result.RowsScanned++;
 
-                // Per-row guard: check if a movement already exists for this row
-                if (rowIdsWithMovement.Contains(row.Id))
+                bool alreadyExists = rowIdsWithMovement.Contains(row.Id);
+
+                // Quick skip for existing movements when update is not requested
+                if (alreadyExists && !request.UpdateExisting)
                 {
                     result.RowsAlreadyHadMovement++;
                     result.Items.Add(new RebuildMovementsRowResultDto
@@ -629,30 +639,26 @@ public class StockReconciliationService : IStockReconciliationService
 
                 bool isInbound = documentHeader.DocumentType.IsStockIncrease;
 
-                // Determine storage location ID
                 Guid? storageLocationId = null;
 
                 if (row.LocationId.HasValue)
                 {
-                    // Row has an explicit storage location
                     storageLocationId = row.LocationId.Value;
                 }
                 else
                 {
-                    // Determine warehouse ID, then find first storage location in it (from pre-fetched cache)
                     Guid? warehouseId = isInbound
                         ? row.DestinationWarehouseId ?? documentHeader.DestinationWarehouseId ?? documentHeader.DocumentType.DefaultWarehouseId
                         : row.SourceWarehouseId ?? documentHeader.SourceWarehouseId ?? documentHeader.DocumentType.DefaultWarehouseId;
 
                     if (warehouseId.HasValue && storageLocationsByWarehouse.TryGetValue(warehouseId.Value, out var locId))
-                    {
                         storageLocationId = locId;
-                    }
                 }
 
                 if (!storageLocationId.HasValue)
                 {
                     result.RowsSkippedNoLocation++;
+                    if (alreadyExists) result.RowsAlreadyHadMovement++;
                     result.Items.Add(new RebuildMovementsRowResultDto
                     {
                         DocumentHeaderId = documentHeader.Id,
@@ -661,7 +667,7 @@ public class StockReconciliationService : IStockReconciliationService
                         ProductId = row.ProductId,
                         ProductName = row.Product?.Name,
                         Quantity = row.BaseQuantity ?? row.Quantity,
-                        Status = "SkippedNoLocation"
+                        Status = alreadyExists ? "AlreadyExists" : "SkippedNoLocation"
                     });
                     continue;
                 }
@@ -669,82 +675,334 @@ public class StockReconciliationService : IStockReconciliationService
                 var quantity = row.BaseQuantity ?? row.Quantity;
                 var movementDate = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
 
-                if (!request.DryRun)
+                var dto = new CreateStockMovementDto
                 {
-                    try
+                    MovementType = (isInbound ? StockMovementType.Inbound : StockMovementType.Outbound).ToString(),
+                    ProductId = row.ProductId!.Value,
+                    FromLocationId = isInbound ? null : storageLocationId,
+                    ToLocationId = isInbound ? storageLocationId : null,
+                    Quantity = quantity,
+                    DocumentHeaderId = documentHeader.Id,
+                    DocumentRowId = row.Id,
+                    Notes = alreadyExists
+                        ? $"Aggiornamento movimento per documento {documentHeader.Number} riga {row.Id}"
+                        : $"Rebuilt missing movement for document {documentHeader.Number} row {row.Id}",
+                    Reason = isInbound ? "Purchase" : "Sale",
+                    MovementDate = movementDate
+                };
+
+                if (alreadyExists)
+                    movementsToUpdate.Add((dto, documentHeader.Id, documentHeader.Number, row.Id, row.ProductId, row.Product?.Name, quantity, isInbound));
+                else
+                    movementsToCreate.Add((dto, documentHeader.Id, documentHeader.Number, row.Id, row.ProductId, row.Product?.Name, quantity, isInbound));
+            }
+        }
+
+        // Phase 2: batch DB operations
+
+        // Phase 2a: Update existing movements (UpdateExisting = true)
+        if (movementsToUpdate.Count > 0)
+        {
+            if (!request.DryRun)
+            {
+                // Batch-load existing StockMovement entities by DocumentRowId
+                var rowIdsToUpdate = movementsToUpdate.Select(m => m.DocRowId).ToHashSet();
+                var existingByRowId = await _context.StockMovements
+                    .Where(sm => sm.DocumentRowId.HasValue && rowIdsToUpdate.Contains(sm.DocumentRowId!.Value) && !sm.IsDeleted)
+                    .ToDictionaryAsync(sm => sm.DocumentRowId!.Value, cancellationToken);
+
+                // Pre-load all stock records that may need adjustment
+                var updateProductIds = movementsToUpdate.Select(m => m.Dto.ProductId).ToHashSet();
+                var updateLocationIds = movementsToUpdate
+                    .SelectMany(m => new[] { m.Dto.FromLocationId, m.Dto.ToLocationId })
+                    .Where(id => id.HasValue).Select(id => id!.Value).ToHashSet();
+                foreach (var ex in existingByRowId.Values)
+                {
+                    if (ex.FromLocationId.HasValue) updateLocationIds.Add(ex.FromLocationId.Value);
+                    if (ex.ToLocationId.HasValue) updateLocationIds.Add(ex.ToLocationId.Value);
+                }
+
+                var stocksForUpdate = await _context.Stocks
+                    .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted
+                                && updateProductIds.Contains(s.ProductId)
+                                && updateLocationIds.Contains(s.StorageLocationId))
+                    .ToListAsync(cancellationToken);
+                var stockForUpdateByKey = stocksForUpdate.ToDictionary(s => (s.ProductId, s.StorageLocationId));
+
+                const int updateChunkSize = 25;
+                var updatedCount = 0;
+                try
+                {
+                    foreach (var updateChunk in movementsToUpdate.Chunk(updateChunkSize))
                     {
-                        if (isInbound)
+                        foreach (var (dto, docHeaderId, docNumber, docRowId, productId, productName, quantity, isInbound) in updateChunk)
                         {
-                            await _stockMovementService.ProcessInboundMovementAsync(
-                                productId: row.ProductId!.Value,
-                                toLocationId: storageLocationId.Value,
-                                quantity: quantity,
-                                lotId: null,
-                                serialId: null,
-                                documentHeaderId: documentHeader.Id,
-                                documentRowId: row.Id,
-                                notes: $"Rebuilt missing movement for document {documentHeader.Number} row {row.Id}",
-                                currentUser: currentUser,
-                                movementDate: movementDate,
-                                cancellationToken: CancellationToken.None);
+                            if (!existingByRowId.TryGetValue(docRowId, out var existing))
+                            {
+                                result.Errors++;
+                                result.Items.Add(new RebuildMovementsRowResultDto
+                                {
+                                    DocumentHeaderId = docHeaderId,
+                                    DocumentNumber = docNumber,
+                                    DocumentRowId = docRowId,
+                                    ProductId = productId,
+                                    ProductName = productName,
+                                    Quantity = quantity,
+                                    Status = "Error",
+                                    ErrorMessage = "Movimento esistente non trovato durante l'aggiornamento.",
+                                    MovementType = isInbound ? "Inbound" : "Outbound"
+                                });
+                                continue;
+                            }
+
+                            var newType = Enum.Parse<StockMovementType>(dto.MovementType);
+                            var oldQty = existing.Quantity;
+                            var oldType = existing.MovementType;
+                            var oldFrom = existing.FromLocationId;
+                            var oldTo = existing.ToLocationId;
+
+                            bool needsStockAdjust = oldQty != dto.Quantity
+                                || oldType != newType
+                                || oldFrom != dto.FromLocationId
+                                || oldTo != dto.ToLocationId;
+
+                            if (needsStockAdjust)
+                            {
+                                ApplyMovementStockDelta(stockForUpdateByKey, existing.ProductId, oldType, oldFrom, oldTo, oldQty, reverse: true);
+                                ApplyMovementStockDelta(stockForUpdateByKey, existing.ProductId, newType, dto.FromLocationId, dto.ToLocationId, dto.Quantity, reverse: false);
+                                existing.Quantity = dto.Quantity;
+                                existing.MovementType = newType;
+                                existing.FromLocationId = dto.FromLocationId;
+                                existing.ToLocationId = dto.ToLocationId;
+                            }
+
+                            existing.MovementDate = dto.MovementDate;
+                            existing.Notes = dto.Notes;
+                            existing.ModifiedAt = DateTime.UtcNow;
+                            existing.ModifiedBy = currentUser ?? "System";
+                            updatedCount++;
                         }
-                        else
+
+                        _ = await _context.SaveChangesAsync(cancellationToken);
+                    }
+
+                    result.MovementsUpdated += updatedCount;
+                    foreach (var m in movementsToUpdate.Where(_ => updatedCount > 0 || result.Errors == 0))
+                    {
+                        if (existingByRowId.ContainsKey(m.DocRowId))
                         {
-                            await _stockMovementService.ProcessOutboundMovementAsync(
-                                productId: row.ProductId!.Value,
-                                fromLocationId: storageLocationId.Value,
-                                quantity: quantity,
-                                lotId: null,
-                                serialId: null,
-                                documentHeaderId: documentHeader.Id,
-                                documentRowId: row.Id,
-                                notes: $"Rebuilt missing movement for document {documentHeader.Number} row {row.Id}",
-                                currentUser: currentUser,
-                                movementDate: movementDate,
-                                cancellationToken: CancellationToken.None);
+                            result.Items.Add(new RebuildMovementsRowResultDto
+                            {
+                                DocumentHeaderId = m.DocHeaderId,
+                                DocumentNumber = m.DocNumber,
+                                DocumentRowId = m.DocRowId,
+                                ProductId = m.ProductId,
+                                ProductName = m.ProductName,
+                                Quantity = m.Quantity,
+                                Status = "Updated",
+                                MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                            });
                         }
                     }
-                    catch (Exception ex)
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in batch movement update during rebuild");
+                    result.Errors += movementsToUpdate.Count - updatedCount;
+                    foreach (var m in movementsToUpdate)
                     {
-                        _logger.LogError(ex, "Error creating rebuilt movement for document {DocumentId} row {RowId}",
-                            documentHeader.Id, row.Id);
-                        result.Errors++;
-                        result.Items.Add(new RebuildMovementsRowResultDto
+                        if (!result.Items.Any(i => i.DocumentRowId == m.DocRowId))
                         {
-                            DocumentHeaderId = documentHeader.Id,
-                            DocumentNumber = documentHeader.Number,
-                            DocumentRowId = row.Id,
-                            ProductId = row.ProductId,
-                            ProductName = row.Product?.Name,
-                            Quantity = quantity,
-                            Status = "Error",
-                            ErrorMessage = ex.Message,
-                            MovementType = isInbound ? "Inbound" : "Outbound"
-                        });
-                        continue;
+                            result.Items.Add(new RebuildMovementsRowResultDto
+                            {
+                                DocumentHeaderId = m.DocHeaderId,
+                                DocumentNumber = m.DocNumber,
+                                DocumentRowId = m.DocRowId,
+                                ProductId = m.ProductId,
+                                ProductName = m.ProductName,
+                                Quantity = m.Quantity,
+                                Status = "Error",
+                                ErrorMessage = ex.Message,
+                                MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                            });
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // DryRun: report what would be updated
+                result.MovementsUpdated += movementsToUpdate.Count;
+                foreach (var m in movementsToUpdate)
+                {
+                    result.Items.Add(new RebuildMovementsRowResultDto
+                    {
+                        DocumentHeaderId = m.DocHeaderId,
+                        DocumentNumber = m.DocNumber,
+                        DocumentRowId = m.DocRowId,
+                        ProductId = m.ProductId,
+                        ProductName = m.ProductName,
+                        Quantity = m.Quantity,
+                        Status = "Updated",
+                        MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                    });
+                }
+            }
+        }
+
+        // Phase 2b: Create missing movements
+        if (movementsToCreate.Count > 0)
+        {
+            if (!request.DryRun)
+            {
+                // Pre-fetch stocks for all outbound (productId, locationId) pairs in a single query,
+                // then batch-create zero-quantity records where missing to avoid per-row roundtrips.
+                var outboundMovements = movementsToCreate.Where(m => !m.IsInbound).ToList();
+                if (outboundMovements.Count > 0)
+                {
+                    var outboundProductIds = outboundMovements.Select(m => m.Dto.ProductId).ToHashSet();
+                    var outboundLocationIds = outboundMovements.Select(m => m.Dto.FromLocationId!.Value).ToHashSet();
+
+                    var existingStockKeys = (await _context.Stocks
+                        .Where(s => s.TenantId == currentTenantId.Value
+                                    && !s.IsDeleted
+                                    && outboundProductIds.Contains(s.ProductId)
+                                    && outboundLocationIds.Contains(s.StorageLocationId))
+                        .Select(s => new { s.ProductId, s.StorageLocationId })
+                        .ToListAsync(cancellationToken))
+                        .Select(s => (s.ProductId, s.StorageLocationId))
+                        .ToHashSet();
+
+                    var missingStockPairs = outboundMovements
+                        .Select(m => (ProductId: m.Dto.ProductId, LocationId: m.Dto.FromLocationId!.Value))
+                        .Distinct()
+                        .Where(pair => !existingStockKeys.Contains((pair.ProductId, pair.LocationId)))
+                        .ToList();
+
+                    if (missingStockPairs.Count > 0)
+                    {
+                        _logger.LogWarning(
+                            "Rebuild: creating {Count} zero-quantity stock record(s) for outbound movements with no existing stock.",
+                            missingStockPairs.Count);
+
+                        _context.Stocks.AddRange(missingStockPairs.Select(pair => new Stock
+                        {
+                            TenantId = currentTenantId.Value,
+                            ProductId = pair.ProductId,
+                            StorageLocationId = pair.LocationId,
+                            Quantity = 0,
+                            ReservedQuantity = 0,
+                            LastMovementDate = DateTime.UtcNow,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = currentUser ?? "System"
+                        }));
+                        await _context.SaveChangesAsync(cancellationToken);
                     }
                 }
 
-                result.MovementsCreated++;
-                result.Items.Add(new RebuildMovementsRowResultDto
+                // Batch create all movements: single SaveChangesAsync + single audit log entry
+                try
                 {
-                    DocumentHeaderId = documentHeader.Id,
-                    DocumentNumber = documentHeader.Number,
-                    DocumentRowId = row.Id,
-                    ProductId = row.ProductId,
-                    ProductName = row.Product?.Name,
-                    Quantity = quantity,
-                    Status = "Created",
-                    MovementType = isInbound ? "Inbound" : "Outbound"
-                });
+                    await _stockMovementService.CreateMovementsBatchAsync(
+                        movementsToCreate.Select(m => m.Dto),
+                        currentUser,
+                        cancellationToken);
+
+                    result.MovementsCreated += movementsToCreate.Count;
+                    foreach (var m in movementsToCreate)
+                    {
+                        result.Items.Add(new RebuildMovementsRowResultDto
+                        {
+                            DocumentHeaderId = m.DocHeaderId,
+                            DocumentNumber = m.DocNumber,
+                            DocumentRowId = m.DocRowId,
+                            ProductId = m.ProductId,
+                            ProductName = m.ProductName,
+                            Quantity = m.Quantity,
+                            Status = "Created",
+                            MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in batch movement creation during rebuild");
+                    result.Errors += movementsToCreate.Count;
+                    foreach (var m in movementsToCreate)
+                    {
+                        result.Items.Add(new RebuildMovementsRowResultDto
+                        {
+                            DocumentHeaderId = m.DocHeaderId,
+                            DocumentNumber = m.DocNumber,
+                            DocumentRowId = m.DocRowId,
+                            ProductId = m.ProductId,
+                            ProductName = m.ProductName,
+                            Quantity = m.Quantity,
+                            Status = "Error",
+                            ErrorMessage = ex.Message,
+                            MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                        });
+                    }
+                }
+            }
+            else
+            {
+                // DryRun: report what would be created without executing any DB writes
+                result.MovementsCreated += movementsToCreate.Count;
+                foreach (var m in movementsToCreate)
+                {
+                    result.Items.Add(new RebuildMovementsRowResultDto
+                    {
+                        DocumentHeaderId = m.DocHeaderId,
+                        DocumentNumber = m.DocNumber,
+                        DocumentRowId = m.DocRowId,
+                        ProductId = m.ProductId,
+                        ProductName = m.ProductName,
+                        Quantity = m.Quantity,
+                        Status = "Created",
+                        MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                    });
+                }
             }
         }
 
         _logger.LogInformation(
-            "RebuildMissingMovements: scanned {docs} documents, {rows} rows. Created: {created}, AlreadyExists: {exists}, SkippedNoLocation: {skipped}, Errors: {errors}. DryRun={dryRun}",
-            result.DocumentsScanned, result.RowsScanned, result.MovementsCreated,
+            "RebuildMissingMovements: scanned {docs} documents, {rows} rows. Created: {created}, Updated: {updated}, AlreadyExists: {exists}, SkippedNoLocation: {skipped}, Errors: {errors}. DryRun={dryRun}",
+            result.DocumentsScanned, result.RowsScanned, result.MovementsCreated, result.MovementsUpdated,
             result.RowsAlreadyHadMovement, result.RowsSkippedNoLocation, result.Errors, result.IsDryRun);
 
         return result;
+    }
+
+    /// <summary>
+    /// Applies or reverses the stock-level impact of a movement on the pre-loaded stock dictionary.
+    /// Used when updating existing movements to keep stock quantities consistent.
+    /// </summary>
+    private static void ApplyMovementStockDelta(
+        Dictionary<(Guid ProductId, Guid LocationId), Stock> stockByKey,
+        Guid productId,
+        StockMovementType movementType,
+        Guid? fromLocationId,
+        Guid? toLocationId,
+        decimal quantity,
+        bool reverse)
+    {
+        decimal sign = reverse ? -1m : 1m;
+
+        if ((movementType == StockMovementType.Inbound || movementType == StockMovementType.Transfer)
+            && toLocationId.HasValue
+            && stockByKey.TryGetValue((productId, toLocationId.Value), out var toStock))
+        {
+            toStock.Quantity += sign * quantity;
+            toStock.ModifiedAt = DateTime.UtcNow;
+        }
+
+        if ((movementType == StockMovementType.Outbound || movementType == StockMovementType.Transfer)
+            && fromLocationId.HasValue
+            && stockByKey.TryGetValue((productId, fromLocationId.Value), out var fromStock))
+        {
+            fromStock.Quantity -= sign * quantity;
+            fromStock.ModifiedAt = DateTime.UtcNow;
+        }
     }
 }

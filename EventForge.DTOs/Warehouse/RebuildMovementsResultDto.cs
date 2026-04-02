@@ -36,6 +36,11 @@ public class RebuildMovementsResultDto
     public int MovementsCreated { get; set; }
 
     /// <summary>
+    /// Number of rows for which an existing movement was updated (or would be updated in dry-run).
+    /// </summary>
+    public int MovementsUpdated { get; set; }
+
+    /// <summary>
     /// Number of rows that encountered an error during movement creation.
     /// </summary>
     public int Errors { get; set; }
@@ -59,7 +64,7 @@ public class RebuildMovementsRowResultDto
     public decimal Quantity { get; set; }
 
     /// <summary>
-    /// Status of this row: "Created", "AlreadyExists", "SkippedNoLocation", "Error".
+    /// Status of this row: "Created", "Updated", "AlreadyExists", "SkippedNoLocation", "Error".
     /// </summary>
     public string Status { get; set; } = string.Empty;
 

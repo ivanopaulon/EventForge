@@ -18,6 +18,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<StockOverview> Logger
 @inject IJSRuntime JSRuntime
+@inject IStockReconciliationService StockReconciliationService
 @implements IDisposable
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingStock"
@@ -126,6 +127,29 @@
                            Label="@(_filters.DetailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
                            Color="Color.Info"
                            Class="ml-2" />
+                <MudTooltip Text="@TranslationService.GetTranslation("stock.calculateReconciliation", "Calcola la quantità teorica da movimenti e mostrala in tabella")">
+                    <MudButton StartIcon="@(_isCalculatingReconciliation ? null : Icons.Material.Outlined.Calculate)"
+                               OnClick="CalculateReconciliationAsync"
+                               Variant="Variant.Outlined"
+                               Color="@(_reconciliationCalculated ? Color.Success : Color.Default)"
+                               Disabled="_isCalculatingReconciliation"
+                               Class="ml-2">
+                        @if (_isCalculatingReconciliation)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                        }
+                        @TranslationService.GetTranslation("stock.calcReconciliation", "Riconciliazione")
+                    </MudButton>
+                </MudTooltip>
+                <MudTooltip Text="@TranslationService.GetTranslation("stock.rebuildMovements", "Ricostruisce i movimenti mancanti dai documenti approvati/chiusi")">
+                    <MudButton StartIcon="@Icons.Material.Outlined.BuildCircle"
+                               OnClick="OpenRebuildMovementsDialogAsync"
+                               Variant="Variant.Outlined"
+                               Color="Color.Secondary"
+                               Class="ml-2">
+                        @TranslationService.GetTranslation("stock.rebuildMovements.button", "Ricostruisci Movimenti")
+                    </MudButton>
+                </MudTooltip>
                 @if (_selectedStockItems.Any())
                 {
                     <MudButtonGroup Variant="Variant.Outlined" Class="ml-2">
@@ -208,6 +232,17 @@
                     {
                         <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
                             <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "ReconciledQty")
+                    {
+                        <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="ReconciledQty" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTh Style="text-align:right;">
+                                <div class="d-flex align-center justify-end gap-1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Calculate" Size="Size.Small" />
+                                    @TranslationService.GetTranslation("field.reconciledQty", "Qtà Riconciliata")
+                                </div>
+                            </MudTh>
                         </EFTableColumnHeader>
                     }
                 }
@@ -356,6 +391,42 @@
                                     @TranslationService.GetTranslation($"stock.status.{stockStatus}", stockStatus.ToString())
                                 </MudChip>
                             </MudTooltip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ReconciledQty")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reconciledQty", "Qtà Riconciliata")" Style="text-align:right;">
+                            @if (_reconciliationData.TryGetValue(item.StockId, out var recon))
+                            {
+                                var delta = recon.CalculatedQuantity - item.Quantity;
+                                <div class="d-flex flex-column align-end gap-0">
+                                    <MudTooltip Text="@TranslationService.GetTranslationFormatted("stock.reconciledQtyTooltip", "Qtà calcolata dai movimenti: {0:N2}. Differenza: {1:+0.##;-0.##;0}", recon.CalculatedQuantity, delta)">
+                                        <MudText Typo="Typo.body2" Style="font-weight:600; cursor:pointer;"
+                                                 @onclick="@(() => OpenFullEditPopoverWithReconciledQty(item, recon.CalculatedQuantity))">
+                                            @recon.CalculatedQuantity.ToString("N2")
+                                        </MudText>
+                                    </MudTooltip>
+                                    @if (delta != 0)
+                                    {
+                                        <MudText Typo="Typo.caption"
+                                                 Color="@(delta > 0 ? Color.Success : Color.Error)">
+                                            @(delta > 0 ? "+" : "")@delta.ToString("N2")
+                                        </MudText>
+                                    }
+                                </div>
+                            }
+                            else if (_reconciliationCalculated)
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">—</MudText>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="@TranslationService.GetTranslation("stock.calcReconciliationHint", "Clicca 'Riconciliazione' nella toolbar per calcolare")">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("stock.notCalculated", "N/C")
+                                    </MudText>
+                                </MudTooltip>
+                            }
                         </MudTd>
                     }
                 }
@@ -722,6 +793,11 @@
     // EFTable reference
     private EFTable<StockLocationDetail> _efTable = null!;
 
+    // Reconciliation overlay state
+    private Dictionary<Guid, StockReconciliationItemDto> _reconciliationData = new();
+    private bool _isCalculatingReconciliation = false;
+    private bool _reconciliationCalculated = false;
+
     // Column configuration for EFTable
     // Default view shows core columns only (ProductCode, ProductName, WarehouseName, LocationCode, Quantity, Available, Status)
     // Secondary columns (LotCode, Reserved, ReorderPoint, SafetyStock) hidden by default to reduce clutter
@@ -737,7 +813,8 @@
         new() { PropertyName = "Available", DisplayName = "Disponibile", IsVisible = true, Order = 7, IsSearchable = false },
         new() { PropertyName = "ReorderPoint", DisplayName = "Punto Riordino", IsVisible = false, Order = 8, IsSearchable = false }, // Hidden by default
         new() { PropertyName = "SafetyStock", DisplayName = "Scorta Sicurezza", IsVisible = false, Order = 9, IsSearchable = false }, // Hidden by default
-        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 10, IsSearchable = false }
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 10, IsSearchable = false },
+        new() { PropertyName = "ReconciledQty", DisplayName = "Qtà Riconciliata", IsVisible = false, Order = 11, IsSearchable = false } // Hidden by default, populated via reconciliation
     };
 
     private EventCallback<HashSet<StockLocationDetail>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StockLocationDetail>>(this, OnSelectedItemsChanged);
@@ -1069,6 +1146,126 @@
         {
             await OnFilterChangedAsync();
         }
+    }
+
+    /// <summary>
+    /// Opens the step-by-step dialog to rebuild missing stock movements from documents.
+    /// After closing, reloads stock data if any movements were created.
+    /// </summary>
+    private async Task OpenRebuildMovementsDialogAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            ["InitialWarehouseId"] = _filters.WarehouseId
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = false
+        };
+
+        var dialog = await DialogService.ShowAsync<RebuildMovementsDialog>(
+            string.Empty,
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is RebuildMovementsResultDto applyResult
+            && (applyResult.MovementsCreated > 0 || applyResult.MovementsUpdated > 0))
+        {
+            var msg = applyResult.MovementsCreated > 0 && applyResult.MovementsUpdated > 0
+                ? TranslationService.GetTranslationFormatted("stock.rebuildMovements.reloadingBoth",
+                    "{0} creato/i, {1} aggiornato/i — ricarico le giacenze.", applyResult.MovementsCreated, applyResult.MovementsUpdated)
+                : applyResult.MovementsCreated > 0
+                    ? TranslationService.GetTranslationFormatted("stock.rebuildMovements.reloading",
+                        "{0} movimento/i creati — ricarico le giacenze.", applyResult.MovementsCreated)
+                    : TranslationService.GetTranslationFormatted("stock.rebuildMovements.reloadingUpdated",
+                        "{0} movimento/i aggiornati — ricarico le giacenze.", applyResult.MovementsUpdated);
+            Snackbar.Add(msg, Severity.Success);
+            _reconciliationData.Clear();
+            _reconciliationCalculated = false;
+            await LoadStockOverviewAsync();
+        }
+    }
+
+    /// <summary>
+    /// Calls the reconciliation calculation API for items visible in the current page
+    /// and stores the result in <see cref="_reconciliationData"/> to display as an overlay column.
+    /// Activates the "Qtà Riconciliata" column automatically.
+    /// </summary>
+    private async Task CalculateReconciliationAsync()
+    {
+        _isCalculatingReconciliation = true;
+        try
+        {
+            var request = new StockReconciliationRequestDto
+            {
+                WarehouseId = _filters.WarehouseId,
+                LocationId = _filters.LocationId,
+                IncludeDocuments = true,
+                IncludeInventories = true,
+                OnlyWithDiscrepancies = false
+            };
+
+            var result = await StockReconciliationService.CalculateReconciliationAsync(request);
+            if (result?.Items != null)
+            {
+                _reconciliationData = result.Items.ToDictionary(i => i.StockId);
+                _reconciliationCalculated = true;
+
+                // Auto-enable the ReconciledQty column if it is currently hidden
+                if (_efTable?.ColumnConfigurations != null)
+                {
+                    var col = _efTable.ColumnConfigurations.FirstOrDefault(c => c.PropertyName == "ReconciledQty");
+                    if (col != null && !col.IsVisible)
+                        col.IsVisible = true;
+                }
+
+                var discrepancies = result.Items.Count(i => i.Severity != ReconciliationSeverity.Correct);
+                if (discrepancies > 0)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslationFormatted("stock.reconciliationDone",
+                            "Riconciliazione completata: {0} discrepanz{1} trovat{1}.",
+                            discrepancies, discrepancies == 1 ? "a" : "e"),
+                        Severity.Warning);
+                }
+                else
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("stock.reconciliationOk", "Riconciliazione completata: nessuna discrepanza trovata."),
+                        Severity.Success);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error calculating stock reconciliation");
+            Snackbar.Add(
+                TranslationService.GetTranslation("stock.reconciliationError", "Errore nel calcolo della riconciliazione"),
+                Severity.Error);
+        }
+        finally
+        {
+            _isCalculatingReconciliation = false;
+        }
+    }
+
+    /// <summary>
+    /// Opens the full edit popover pre-filled with the reconciled (calculated) quantity,
+    /// so the operator can apply it with a single click.
+    /// </summary>
+    private async Task OpenFullEditPopoverWithReconciledQty(StockLocationDetail item, decimal reconciledQty)
+    {
+        await OpenFullEditPopover(item, new MouseEventArgs());
+        _editingNewQuantity = reconciledQty;
+        _editingReason = StockAdjustmentReason.ManualCorrection;
+        _editingNotes = TranslationService.GetTranslation("stock.reconciledAdjustmentNote", "Rettifica da riconciliazione movimenti");
+        UpdateEditingValidation();
     }
 
     /// <summary>
