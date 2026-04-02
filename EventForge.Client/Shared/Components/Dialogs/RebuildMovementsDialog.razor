@@ -106,6 +106,10 @@
                                      Label="@TranslationService.GetTranslation("rebuildMovements.approved", "Approvato")" />
                         <MudCheckBox @bind-Value="_includePending" Dense="true" Color="Color.Warning"
                                      Label="@TranslationService.GetTranslation("rebuildMovements.pending", "In Attesa")" />
+                        <MudCheckBox @bind-Value="_includeRejected" Dense="true" Color="Color.Error"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.rejected", "Rifiutato")" />
+                        <MudCheckBox @bind-Value="_includeNoneApproval" Dense="true" Color="Color.Default"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.approvalNone", "Nessuna")" />
                     </div>
                 </MudItem>
                 <MudItem xs="12" sm="6">
@@ -117,6 +121,10 @@
                                      Label="@TranslationService.GetTranslation("rebuildMovements.closed", "Chiuso")" />
                         <MudCheckBox @bind-Value="_includeOpen" Dense="true" Color="Color.Info"
                                      Label="@TranslationService.GetTranslation("rebuildMovements.open", "Aperto")" />
+                        <MudCheckBox @bind-Value="_includeDraft" Dense="true" Color="Color.Default"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.draft", "Bozza")" />
+                        <MudCheckBox @bind-Value="_includeCancelled" Dense="true" Color="Color.Error"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.cancelled", "Annullato")" />
                     </div>
                 </MudItem>
 
@@ -409,8 +417,12 @@
     private Guid? _documentTypeId;
     private bool _includeApproved = true;
     private bool _includePending = false;
+    private bool _includeRejected = false;
+    private bool _includeNoneApproval = false;
     private bool _includeClosed = true;
     private bool _includeOpen = false;
+    private bool _includeDraft = false;
+    private bool _includeCancelled = false;
     private bool _updateExisting = true;
 
     // ── Reference data ──
@@ -495,12 +507,16 @@
     private RebuildMovementsRequestDto BuildRequest(bool dryRun)
     {
         var approvalStatuses = new List<int>();
-        if (_includeApproved) approvalStatuses.Add(2); // ApprovalStatus.Approved
-        if (_includePending) approvalStatuses.Add(1);  // ApprovalStatus.Pending
+        if (_includeApproved) approvalStatuses.Add(2);      // ApprovalStatus.Approved
+        if (_includePending) approvalStatuses.Add(1);       // ApprovalStatus.Pending
+        if (_includeRejected) approvalStatuses.Add(3);      // ApprovalStatus.Rejected
+        if (_includeNoneApproval) approvalStatuses.Add(0);  // ApprovalStatus.None
 
         var documentStatuses = new List<int>();
-        if (_includeClosed) documentStatuses.Add(2);   // DocumentStatus.Closed
-        if (_includeOpen) documentStatuses.Add(1);     // DocumentStatus.Open
+        if (_includeClosed) documentStatuses.Add(2);        // DocumentStatus.Closed
+        if (_includeOpen) documentStatuses.Add(1);          // DocumentStatus.Open
+        if (_includeDraft) documentStatuses.Add(0);         // DocumentStatus.Draft
+        if (_includeCancelled) documentStatuses.Add(3);     // DocumentStatus.Cancelled
 
         return new RebuildMovementsRequestDto
         {
