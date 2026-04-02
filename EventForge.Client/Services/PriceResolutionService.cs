@@ -25,11 +25,12 @@ public class PriceResolutionService : IPriceResolutionService
         Guid? documentHeaderId = null,
         Guid? businessPartyId = null,
         Guid? forcedPriceListId = null,
-        PriceListDirection? direction = null)
+        PriceListDirection? direction = null,
+        decimal quantity = 1m)
     {
         try
         {
-            var queryString = BuildQueryString(productId, documentHeaderId, businessPartyId, forcedPriceListId, direction);
+            var queryString = BuildQueryString(productId, documentHeaderId, businessPartyId, forcedPriceListId, direction, quantity);
             var result = await _httpClientService.GetAsync<PriceResolutionResult>($"{BaseUrl}?{queryString}");
 
             return result ?? new PriceResolutionResult
@@ -58,7 +59,8 @@ public class PriceResolutionService : IPriceResolutionService
         Guid? documentHeaderId,
         Guid? businessPartyId,
         Guid? forcedPriceListId,
-        PriceListDirection? direction)
+        PriceListDirection? direction,
+        decimal quantity)
     {
         var query = $"productId={productId}";
 
@@ -73,6 +75,9 @@ public class PriceResolutionService : IPriceResolutionService
 
         if (direction.HasValue)
             query += $"&direction={direction.Value}";
+
+        if (quantity != 1m)
+            query += $"&quantity={quantity}";
 
         return query;
     }

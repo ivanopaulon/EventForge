@@ -22,12 +22,13 @@ namespace EventForge.Server.Services.PriceLists
             Guid? businessPartyId = null,
             Guid? forcedPriceListId = null,
             PriceListDirection? direction = null,
+            decimal quantity = 1m,
             CancellationToken cancellationToken = default)
         {
             // Try priority 1: Forced price list ID parameter
             if (forcedPriceListId.HasValue)
             {
-                var forcedResult = await TryGetPriceFromPriceListAsync(productId, forcedPriceListId.Value, cancellationToken);
+                var forcedResult = await TryGetPriceFromPriceListAsync(productId, forcedPriceListId.Value, quantity, cancellationToken);
                 if (forcedResult != null)
                 {
                     forcedResult.Source = "ParameterList";
@@ -45,7 +46,7 @@ namespace EventForge.Server.Services.PriceLists
 
                 if (documentHeader?.PriceListId.HasValue == true)
                 {
-                    var docResult = await TryGetPriceFromPriceListAsync(productId, documentHeader.PriceListId.Value, cancellationToken);
+                    var docResult = await TryGetPriceFromPriceListAsync(productId, documentHeader.PriceListId.Value, quantity, cancellationToken);
                     if (docResult != null)
                     {
                         docResult.Source = "DocumentList";
@@ -78,7 +79,7 @@ namespace EventForge.Server.Services.PriceLists
 
                     if (partyPriceListId.HasValue)
                     {
-                        var partyResult = await TryGetPriceFromPriceListAsync(productId, partyPriceListId.Value, cancellationToken);
+                        var partyResult = await TryGetPriceFromPriceListAsync(productId, partyPriceListId.Value, quantity, cancellationToken);
                         if (partyResult != null)
                         {
                             partyResult.Source = "PartyList";
@@ -101,7 +102,7 @@ namespace EventForge.Server.Services.PriceLists
 
                 if (generalPriceList != null)
                 {
-                    var generalResult = await TryGetPriceFromPriceListAsync(productId, generalPriceList.Id, cancellationToken);
+                    var generalResult = await TryGetPriceFromPriceListAsync(productId, generalPriceList.Id, quantity, cancellationToken);
                     if (generalResult != null)
                     {
                         generalResult.Source = "GeneralList";
@@ -159,6 +160,7 @@ namespace EventForge.Server.Services.PriceLists
                         item.BusinessPartyId,
                         item.ForcedPriceListId,
                         item.Direction,
+                        item.Quantity,
                         cancellationToken);
                     return (item.Key, Result: result, Error: (BatchPriceResolutionError?)null);
                 }
@@ -195,16 +197,21 @@ namespace EventForge.Server.Services.PriceLists
         }
 
         /// <summary>
-        /// Tries to get price from a specific price list
+        /// Tries to get price from a specific price list, filtering by quantity brackets (MinQuantity/MaxQuantity).
+        /// When multiple entries match, the most specific bracket (highest MinQuantity) is selected.
         /// </summary>
         private async Task<PriceResolutionResult?> TryGetPriceFromPriceListAsync(
             Guid productId,
             Guid priceListId,
+            decimal quantity,
             CancellationToken cancellationToken)
         {
             var priceListEntry = await _context.PriceListEntries
                 .Include(ple => ple.PriceList)
-                .FirstOrDefaultAsync(ple => ple.PriceListId == priceListId && ple.ProductId == productId, cancellationToken);
+                .Where(ple => ple.PriceListId == priceListId && ple.ProductId == productId
+                    && ple.MinQuantity <= quantity && (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity))
+                .OrderByDescending(ple => ple.MinQuantity)
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (priceListEntry != null)
             {

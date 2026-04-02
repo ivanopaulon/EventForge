@@ -467,4 +467,172 @@ public class PriceResolutionServiceTests : IDisposable
     {
         _context?.Dispose();
     }
+
+    [Fact]
+    public async Task ResolvePriceAsync_WithQuantityInBracket_ReturnsMatchingEntry()
+    {
+        // Arrange: price list with two quantity brackets
+        var priceListId = Guid.NewGuid();
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "Quantity Bracket List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        // Bracket 1: qty 1-9 → price 100
+        var entry1 = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 100m,
+            MinQuantity = 1,
+            MaxQuantity = 9,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        // Bracket 2: qty 10+ → price 80
+        var entry2 = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 80m,
+            MinQuantity = 10,
+            MaxQuantity = 0, // no upper limit
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.AddRange(entry1, entry2);
+        await _context.SaveChangesAsync();
+
+        // Act: qty=5 should hit bracket 1 (price 100)
+        var result5 = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, quantity: 5m);
+
+        // Act: qty=10 should hit bracket 2 (price 80)
+        var result10 = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, quantity: 10m);
+
+        // Assert
+        Assert.NotNull(result5);
+        Assert.Equal(100m, result5.Price);
+        Assert.True(result5.IsPriceFromList);
+
+        Assert.NotNull(result10);
+        Assert.Equal(80m, result10.Price);
+        Assert.True(result10.IsPriceFromList);
+    }
+
+    [Fact]
+    public async Task ResolvePriceAsync_QuantityOutsideAllBrackets_FallsBackToDefaultPrice()
+    {
+        // Arrange: price list with a bracket that requires qty >= 5
+        var priceListId = Guid.NewGuid();
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "High Qty List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        var entry = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 70m,
+            MinQuantity = 5,
+            MaxQuantity = 0,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.Add(entry);
+        await _context.SaveChangesAsync();
+
+        // Act: qty=2 doesn't match any bracket → fall back to DefaultPrice
+        var result = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, quantity: 2m);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(100m, result.Price); // product DefaultPrice
+        Assert.Equal("DefaultPrice", result.Source);
+        Assert.False(result.IsPriceFromList);
+    }
+
+    [Fact]
+    public async Task ResolvePriceAsync_MultipleMatchingBrackets_SelectsMostSpecific()
+    {
+        // Arrange: overlapping entries — only possible when one bracket is contained in another.
+        // The rule says: pick highest MinQuantity (most specific).
+        var priceListId = Guid.NewGuid();
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "Overlapping Brackets List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        // Generic: qty 1+ → price 100
+        var entryGeneric = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 100m,
+            MinQuantity = 1,
+            MaxQuantity = 0,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        // Specific: qty 10+ → price 75
+        var entrySpecific = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 75m,
+            MinQuantity = 10,
+            MaxQuantity = 0,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.AddRange(entryGeneric, entrySpecific);
+        await _context.SaveChangesAsync();
+
+        // Act: qty=15 matches both; most specific (MinQuantity=10) should win
+        var result = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, quantity: 15m);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(75m, result.Price);
+        Assert.True(result.IsPriceFromList);
+    }
 }
