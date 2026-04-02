@@ -23,12 +23,13 @@ namespace EventForge.Server.Services.PriceLists
             Guid? forcedPriceListId = null,
             PriceListDirection? direction = null,
             decimal quantity = 1m,
+            Guid? unitOfMeasureId = null,
             CancellationToken cancellationToken = default)
         {
             // Try priority 1: Forced price list ID parameter
             if (forcedPriceListId.HasValue)
             {
-                var forcedResult = await TryGetPriceFromPriceListAsync(productId, forcedPriceListId.Value, quantity, cancellationToken);
+                var forcedResult = await TryGetPriceFromPriceListAsync(productId, forcedPriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
                 if (forcedResult != null)
                 {
                     forcedResult.Source = "ParameterList";
@@ -46,7 +47,7 @@ namespace EventForge.Server.Services.PriceLists
 
                 if (documentHeader?.PriceListId.HasValue == true)
                 {
-                    var docResult = await TryGetPriceFromPriceListAsync(productId, documentHeader.PriceListId.Value, quantity, cancellationToken);
+                    var docResult = await TryGetPriceFromPriceListAsync(productId, documentHeader.PriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
                     if (docResult != null)
                     {
                         docResult.Source = "DocumentList";
@@ -79,7 +80,7 @@ namespace EventForge.Server.Services.PriceLists
 
                     if (partyPriceListId.HasValue)
                     {
-                        var partyResult = await TryGetPriceFromPriceListAsync(productId, partyPriceListId.Value, quantity, cancellationToken);
+                        var partyResult = await TryGetPriceFromPriceListAsync(productId, partyPriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
                         if (partyResult != null)
                         {
                             partyResult.Source = "PartyList";
@@ -102,7 +103,7 @@ namespace EventForge.Server.Services.PriceLists
 
                 if (generalPriceList != null)
                 {
-                    var generalResult = await TryGetPriceFromPriceListAsync(productId, generalPriceList.Id, quantity, cancellationToken);
+                    var generalResult = await TryGetPriceFromPriceListAsync(productId, generalPriceList.Id, quantity, unitOfMeasureId, cancellationToken);
                     if (generalResult != null)
                     {
                         generalResult.Source = "GeneralList";
@@ -161,6 +162,7 @@ namespace EventForge.Server.Services.PriceLists
                         item.ForcedPriceListId,
                         item.Direction,
                         item.Quantity,
+                        item.UnitOfMeasureId,
                         cancellationToken);
                     return (item.Key, Result: result, Error: (BatchPriceResolutionError?)null);
                 }
@@ -197,21 +199,56 @@ namespace EventForge.Server.Services.PriceLists
         }
 
         /// <summary>
-        /// Tries to get price from a specific price list, filtering by quantity brackets (MinQuantity/MaxQuantity).
+        /// Tries to get price from a specific price list, filtering by quantity brackets (MinQuantity/MaxQuantity)
+        /// and optionally by unit of measure (UoM).
+        /// <para>
+        /// UoM resolution strategy:
+        /// <list type="bullet">
+        ///   <item><description>When <paramref name="unitOfMeasureId"/> is specified: UoM-specific entries are tried first, then entries with no UoM constraint as fallback.</description></item>
+        ///   <item><description>When <paramref name="unitOfMeasureId"/> is not specified: entries with no UoM constraint are tried first, then any entry as final fallback.</description></item>
+        /// </list>
+        /// </para>
         /// When multiple entries match, the most specific bracket (highest MinQuantity) is selected.
+        /// The result includes the applied quantity bracket and UoM from the matched entry.
         /// </summary>
         private async Task<PriceResolutionResult?> TryGetPriceFromPriceListAsync(
             Guid productId,
             Guid priceListId,
             decimal quantity,
+            Guid? unitOfMeasureId,
             CancellationToken cancellationToken)
         {
-            var priceListEntry = await _context.PriceListEntries
+            // Build base query: match product, price list and quantity bracket
+            var baseQuery = _context.PriceListEntries
                 .Include(ple => ple.PriceList)
                 .Where(ple => ple.PriceListId == priceListId && ple.ProductId == productId
-                    && ple.MinQuantity <= quantity && (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity))
+                    && ple.MinQuantity <= quantity && (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity));
+
+            PriceListEntry? priceListEntry = null;
+
+            if (unitOfMeasureId.HasValue)
+            {
+                // Priority 1: entry matching the requested UoM
+                priceListEntry = await baseQuery
+                    .Where(ple => ple.UnitOfMeasureId == unitOfMeasureId.Value)
+                    .OrderByDescending(ple => ple.MinQuantity)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            // Priority 2 (fallback when UoM specified but not found, or primary when no UoM requested):
+            // entries with no UoM constraint
+            priceListEntry ??= await baseQuery
+                .Where(ple => ple.UnitOfMeasureId == null)
                 .OrderByDescending(ple => ple.MinQuantity)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            // Priority 3 (only when no UoM was requested): accept any UoM-specific entry
+            if (priceListEntry == null && !unitOfMeasureId.HasValue)
+            {
+                priceListEntry = await baseQuery
+                    .OrderByDescending(ple => ple.MinQuantity)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
 
             if (priceListEntry != null)
             {
@@ -222,7 +259,10 @@ namespace EventForge.Server.Services.PriceLists
                     PriceListName = priceListEntry.PriceList?.Name,
                     OriginalPrice = priceListEntry.Price,
                     IsPriceFromList = true,
-                    Source = "Unknown" // Will be set by caller
+                    Source = "Unknown", // Will be set by caller
+                    AppliedUnitOfMeasureId = priceListEntry.UnitOfMeasureId,
+                    AppliedMinQuantity = priceListEntry.MinQuantity,
+                    AppliedMaxQuantity = priceListEntry.MaxQuantity
                 };
             }
 

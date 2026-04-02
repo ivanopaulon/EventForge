@@ -1,4 +1,5 @@
 using EventForge.DTOs.Common;
+using EventForge.DTOs.PriceLists;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
@@ -635,4 +636,432 @@ public class PriceResolutionServiceTests : IDisposable
         Assert.Equal(75m, result.Price);
         Assert.True(result.IsPriceFromList);
     }
+
+    #region ResolvePricesBatchAsync Tests
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_WithSingleItem_ReturnsResult()
+    {
+        // Arrange
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>
+            {
+                new BatchPriceResolutionItem
+                {
+                    Key = "item-1",
+                    ProductId = _productId,
+                    Quantity = 1m
+                }
+            }
+        };
+
+        // Act
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.Equal(1, response.TotalProcessed);
+        Assert.Equal(1, response.TotalSucceeded);
+        Assert.Equal(0, response.TotalFailed);
+        Assert.True(response.Results.ContainsKey("item-1"));
+        Assert.Empty(response.Errors);
+    }
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_WithMultipleItems_ReturnsAllResults()
+    {
+        // Arrange: seed a price list with an entry for the test product
+        var priceListId = Guid.NewGuid();
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "Batch Test List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+        var entry = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 88m,
+            MinQuantity = 1,
+            MaxQuantity = 0,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.Add(entry);
+        await _context.SaveChangesAsync();
+
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>
+            {
+                new BatchPriceResolutionItem { Key = "k1", ProductId = _productId, ForcedPriceListId = priceListId, Quantity = 1m },
+                new BatchPriceResolutionItem { Key = "k2", ProductId = _productId, ForcedPriceListId = priceListId, Quantity = 5m },
+                new BatchPriceResolutionItem { Key = "k3", ProductId = Guid.NewGuid(), Quantity = 1m }  // Unknown product → default 0
+            }
+        };
+
+        // Act
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert
+        Assert.Equal(3, response.TotalProcessed);
+        Assert.Equal(3, response.TotalSucceeded);
+        Assert.Equal(0, response.TotalFailed);
+        Assert.Equal(88m, response.Results["k1"].Price);
+        Assert.Equal(88m, response.Results["k2"].Price);
+        Assert.Equal(0m, response.Results["k3"].Price);   // Unknown product → 0 fallback
+    }
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_WithDuplicateKeys_BothKeysPresent()
+    {
+        // Arrange: two items with the same key but different quantities
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>
+            {
+                new BatchPriceResolutionItem { Key = "dup", ProductId = _productId, Quantity = 1m },
+                new BatchPriceResolutionItem { Key = "dup", ProductId = _productId, Quantity = 2m }
+            }
+        };
+
+        // Act: the batch runs both; the second result overwrites the first for the same key
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert: totals reflect both items were processed
+        Assert.Equal(2, response.TotalProcessed);
+        Assert.Equal(0, response.TotalFailed);
+    }
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_EmptyItems_ReturnsEmptyResponse()
+    {
+        // Arrange
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>()
+        };
+
+        // Act
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert
+        Assert.Equal(0, response.TotalProcessed);
+        Assert.Equal(0, response.TotalSucceeded);
+        Assert.Equal(0, response.TotalFailed);
+        Assert.Empty(response.Results);
+        Assert.Empty(response.Errors);
+    }
+
+    #endregion
+
+    #region UoM Filter Tests (A3)
+
+    [Fact]
+    public async Task ResolvePriceAsync_WithMatchingUoM_ReturnsUoMSpecificEntry()
+    {
+        // Arrange: two entries for the same product/list — one with UoM, one without
+        var priceListId = Guid.NewGuid();
+        var uomId = Guid.NewGuid();
+
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "UoM Price List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        // Entry without UoM → generic price
+        var entryNoUom = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 100m,
+            UnitOfMeasureId = null,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        // Entry with UoM → UoM-specific price
+        var entryWithUom = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 90m,
+            UnitOfMeasureId = uomId,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.AddRange(entryNoUom, entryWithUom);
+        await _context.SaveChangesAsync();
+
+        // Act: resolve with UoM specified
+        var result = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, unitOfMeasureId: uomId);
+
+        // Assert: UoM-specific entry is preferred
+        Assert.NotNull(result);
+        Assert.Equal(90m, result.Price);
+        Assert.True(result.IsPriceFromList);
+        Assert.Equal(uomId, result.AppliedUnitOfMeasureId);
+    }
+
+    [Fact]
+    public async Task ResolvePriceAsync_WithUoMButNoMatchingEntry_FallsBackToEntryWithoutUoM()
+    {
+        // Arrange: only one entry without UoM
+        var priceListId = Guid.NewGuid();
+        var requestedUomId = Guid.NewGuid();
+
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "UoM Fallback List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        var entryNoUom = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 95m,
+            UnitOfMeasureId = null,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.Add(entryNoUom);
+        await _context.SaveChangesAsync();
+
+        // Act: request with UoM that has no matching entry
+        var result = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, unitOfMeasureId: requestedUomId);
+
+        // Assert: falls back to the entry without UoM constraint
+        Assert.NotNull(result);
+        Assert.Equal(95m, result.Price);
+        Assert.True(result.IsPriceFromList);
+        Assert.Null(result.AppliedUnitOfMeasureId);
+    }
+
+    [Fact]
+    public async Task ResolvePriceAsync_WithoutUoM_IgnoresUoMFilterAndReturnsFirstMatch()
+    {
+        // Arrange: entry without UoM constraint
+        var priceListId = Guid.NewGuid();
+
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "No-UoM List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        var entry = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 120m,
+            UnitOfMeasureId = null,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.Add(entry);
+        await _context.SaveChangesAsync();
+
+        // Act: no UoM specified
+        var result = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, unitOfMeasureId: null);
+
+        // Assert: price resolved normally, no UoM applied
+        Assert.NotNull(result);
+        Assert.Equal(120m, result.Price);
+        Assert.True(result.IsPriceFromList);
+        Assert.Null(result.AppliedUnitOfMeasureId);
+    }
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_WithUoMInItem_PassesUoMToResolution()
+    {
+        // Arrange: price list with UoM-specific entry
+        var priceListId = Guid.NewGuid();
+        var uomId = Guid.NewGuid();
+
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "Batch UoM List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        var entryNoUom = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 100m,
+            UnitOfMeasureId = null,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        var entryWithUom = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 85m,
+            UnitOfMeasureId = uomId,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.AddRange(entryNoUom, entryWithUom);
+        await _context.SaveChangesAsync();
+
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>
+            {
+                new BatchPriceResolutionItem { Key = "no-uom", ProductId = _productId, ForcedPriceListId = priceListId, Quantity = 1m, UnitOfMeasureId = null },
+                new BatchPriceResolutionItem { Key = "with-uom", ProductId = _productId, ForcedPriceListId = priceListId, Quantity = 1m, UnitOfMeasureId = uomId }
+            }
+        };
+
+        // Act
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert
+        Assert.Equal(100m, response.Results["no-uom"].Price);
+        Assert.Equal(85m, response.Results["with-uom"].Price);
+        Assert.Equal(uomId, response.Results["with-uom"].AppliedUnitOfMeasureId);
+        Assert.Null(response.Results["no-uom"].AppliedUnitOfMeasureId);
+    }
+
+    #endregion
+
+    #region Applied Quantity Range in Result Tests (A4)
+
+    [Fact]
+    public async Task ResolvePriceAsync_WithQuantityBracket_ResultContainsAppliedMinMaxQuantity()
+    {
+        // Arrange: price list with two quantity brackets
+        var priceListId = Guid.NewGuid();
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "Qty Range Result List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        // Bracket: qty 1-9 → price 100
+        var entry1 = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 100m,
+            MinQuantity = 1,
+            MaxQuantity = 9,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        // Bracket: qty 10+ → price 80
+        var entry2 = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 80m,
+            MinQuantity = 10,
+            MaxQuantity = 0,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.AddRange(entry1, entry2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result5 = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, quantity: 5m);
+        var result10 = await _service.ResolvePriceAsync(_productId, forcedPriceListId: priceListId, quantity: 10m);
+
+        // Assert: bracket 1 applied for qty=5
+        Assert.Equal(100m, result5.Price);
+        Assert.Equal(1, result5.AppliedMinQuantity);
+        Assert.Equal(9, result5.AppliedMaxQuantity);
+
+        // Assert: bracket 2 applied for qty=10
+        Assert.Equal(80m, result10.Price);
+        Assert.Equal(10, result10.AppliedMinQuantity);
+        Assert.Equal(0, result10.AppliedMaxQuantity);
+    }
+
+    [Fact]
+    public async Task ResolvePriceAsync_DefaultPriceFallback_AppliedQuantityRangeIsNull()
+    {
+        // Act: no price list available → falls back to product DefaultPrice
+        var result = await _service.ResolvePriceAsync(_productId);
+
+        // Assert: no quantity range was applied
+        Assert.Equal(100m, result.Price);
+        Assert.Equal("DefaultPrice", result.Source);
+        Assert.Null(result.AppliedMinQuantity);
+        Assert.Null(result.AppliedMaxQuantity);
+    }
+
+    #endregion
 }

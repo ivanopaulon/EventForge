@@ -83,4 +83,13 @@ public interface IPromotionService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if the increment succeeded; false if MaxUses was already reached.</returns>
     Task<bool> IncrementUsageAsync(Guid promotionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Serializes a collection of applied promotions into a JSON string suitable for
+    /// storing in <c>DocumentRow.AppliedPromotionsJSON</c>.
+    /// Returns <c>null</c> when <paramref name="appliedPromotions"/> is empty.
+    /// </summary>
+    /// <param name="appliedPromotions">The promotions applied to a single document row.</param>
+    /// <returns>A JSON string, or <c>null</c> if no promotions were applied.</returns>
+    string? SerializeAppliedPromotionsJson(IEnumerable<AppliedPromotionDto> appliedPromotions);
 }

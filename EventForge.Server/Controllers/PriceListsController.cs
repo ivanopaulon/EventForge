@@ -256,6 +256,7 @@ public class PriceListsController : BaseApiController
     /// <param name="forcedPriceListId">ID del listino forzato (opzionale)</param>
     /// <param name="direction">Direzione del listino (Input=acquisto, Output=vendita)</param>
     /// <param name="quantity">Quantità per il filtro fascia MinQuantity/MaxQuantity (default 1)</param>
+    /// <param name="unitOfMeasureId">Unità di misura per filtrare le voci di listino per UoM (opzionale). Se specificata, preferisce le voci con quella UoM; fallback alle voci senza UoM</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Risultato della risoluzione del prezzo con metadati</returns>
     /// <response code="200">Restituisce il prezzo risolto con metadati</response>
@@ -274,6 +275,7 @@ public class PriceListsController : BaseApiController
         [FromQuery] Guid? forcedPriceListId = null,
         [FromQuery] PriceListDirection? direction = null,
         [FromQuery] decimal quantity = 1m,
+        [FromQuery] Guid? unitOfMeasureId = null,
         CancellationToken cancellationToken = default)
     {
         if (productId == Guid.Empty)
@@ -290,6 +292,7 @@ public class PriceListsController : BaseApiController
                 forcedPriceListId,
                 direction,
                 quantity,
+                unitOfMeasureId,
                 cancellationToken);
 
             _logger.LogInformation(
