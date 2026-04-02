@@ -143,6 +143,10 @@ namespace EventForge.Client.Shared.Components
         private bool _showNotFoundPrompt = false;
         private string _notFoundBarcode = string.Empty;
 
+        // Reset tracking: detect when parent clears SelectedProduct (e.g. after adding to POS cart)
+        private ProductDto? _previousSelectedProduct;
+        private bool _shouldFocusAfterProductAdded;
+
         #endregion
 
         #region Lifecycle Methods
@@ -155,6 +159,14 @@ namespace EventForge.Client.Shared.Components
 
         protected override void OnParametersSet()
         {
+            // When parent resets SelectedProduct to null (e.g. product added to POS cart)
+            // clear the search text and schedule autocomplete focus for next render
+            if (_previousSelectedProduct != null && SelectedProduct == null)
+            {
+                _searchText = string.Empty;
+                _shouldFocusAfterProductAdded = true;
+            }
+            _previousSelectedProduct = SelectedProduct;
             UpdateDisplayValues();
         }
 
@@ -163,6 +175,13 @@ namespace EventForge.Client.Shared.Components
             if (firstRender && AutoFocus && _autocomplete != null && SelectedProduct == null)
             {
                 await Task.Delay(100); // Small delay to ensure rendering is complete
+                await _autocomplete.FocusAsync();
+            }
+
+            if (_shouldFocusAfterProductAdded && _autocomplete != null && SelectedProduct == null)
+            {
+                _shouldFocusAfterProductAdded = false;
+                await Task.Delay(50);
                 await _autocomplete.FocusAsync();
             }
         }

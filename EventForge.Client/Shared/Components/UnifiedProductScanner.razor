@@ -66,6 +66,7 @@
                          @ref="_autocomplete"
                          Value="SelectedProduct"
                          ValueChanged="@OnProductSelectionChangedAsync"
+                         @bind-Text="_searchText"
                          SearchFunc="@SearchProductsAsync"
                          ToStringFunc="@(p => p?.Name ?? string.Empty)"
                          Variant="Variant.Outlined"

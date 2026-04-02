@@ -2429,16 +2429,26 @@ public class ProductService : IProductService
                 return result;
             }
 
-            // Step 3: Text search in Name, ShortDescription, Description, Brand.Name (case-insensitive)
-            var searchResults = await _context.Products
+            // Step 3: Text search in Name, ShortDescription, Description, Brand.Name (case-insensitive, multi-word AND logic)
+            var searchWords = queryTrimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            var textQuery = _context.Products
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Brand)
                 .Include(p => p.VatRate)
-                .Where(p => p.Status == EntityProductStatus.Active &&
-                    (EF.Functions.Like(p.Name, $"%{queryTrimmed}%") ||
-                     (p.ShortDescription != null && EF.Functions.Like(p.ShortDescription, $"%{queryTrimmed}%")) ||
-                     (p.Description != null && EF.Functions.Like(p.Description, $"%{queryTrimmed}%")) ||
-                     (p.Brand != null && EF.Functions.Like(p.Brand.Name, $"%{queryTrimmed}%"))))
+                .Where(p => p.Status == EntityProductStatus.Active);
+
+            foreach (var word in searchWords)
+            {
+                var w = word;
+                textQuery = textQuery.Where(p =>
+                    EF.Functions.Like(p.Name, $"%{w}%") ||
+                    (p.ShortDescription != null && EF.Functions.Like(p.ShortDescription, $"%{w}%")) ||
+                    (p.Description != null && EF.Functions.Like(p.Description, $"%{w}%")) ||
+                    (p.Brand != null && EF.Functions.Like(p.Brand.Name, $"%{w}%")));
+            }
+
+            var searchResults = await textQuery
                 .Take(maxResults)
                 .ToListAsync(cancellationToken);
 

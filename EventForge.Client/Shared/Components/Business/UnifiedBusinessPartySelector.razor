@@ -67,6 +67,7 @@
                              @ref="_autocomplete"
                              Value="SelectedBusinessParty"
                              ValueChanged="@OnBusinessPartySelectionChangedAsync"
+                             @bind-Text="_searchText"
                              SearchFunc="@SearchBusinessPartiesAsync"
                              ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
                              Variant="Variant.Outlined"

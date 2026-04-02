@@ -215,13 +215,20 @@ public class BusinessPartyService : IBusinessPartyService
                 );
             }
 
-            // Search by name, tax code or VAT number (case-insensitive)
+            // Search by name, tax code or VAT number (case-insensitive, multi-word AND logic)
+            var searchWords = searchTerm.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            foreach (var word in searchWords)
+            {
+                var w = word;
+                query = query.Where(bp =>
+                    EF.Functions.Like(bp.Name, $"%{w}%") ||
+                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode, $"%{w}%")) ||
+                    (bp.VatNumber != null && EF.Functions.Like(bp.VatNumber, $"%{w}%"))
+                );
+            }
+
             var businessParties = await query
-                .Where(bp =>
-                    EF.Functions.Like(bp.Name, $"%{searchTerm}%") ||
-                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode, $"%{searchTerm}%")) ||
-                    (bp.VatNumber != null && EF.Functions.Like(bp.VatNumber, $"%{searchTerm}%"))
-                )
                 .OrderBy(bp => bp.Name)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
