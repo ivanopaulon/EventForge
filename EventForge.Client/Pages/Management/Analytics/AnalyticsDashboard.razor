@@ -22,18 +22,57 @@
 
         <!-- Filter bar -->
         <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <!-- Quick period presets -->
+            <MudStack Row="true" Spacing="1" Class="mb-3" Wrap="Wrap.Wrap">
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="align-self-center mr-2">
+                    @TranslationService.GetTranslation("analytics.quickPeriod", "Periodo rapido:")
+                </MudText>
+                <MudButton Variant="@(_activePeriod == "today" ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => SetQuickPeriod("today"))">
+                    @TranslationService.GetTranslation("analytics.period.today", "Oggi")
+                </MudButton>
+                <MudButton Variant="@(_activePeriod == "7d" ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => SetQuickPeriod("7d"))">
+                    @TranslationService.GetTranslation("analytics.period.last7days", "Ultimi 7gg")
+                </MudButton>
+                <MudButton Variant="@(_activePeriod == "30d" ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => SetQuickPeriod("30d"))">
+                    @TranslationService.GetTranslation("analytics.period.last30days", "Ultimi 30gg")
+                </MudButton>
+                <MudButton Variant="@(_activePeriod == "6m" ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => SetQuickPeriod("6m"))">
+                    @TranslationService.GetTranslation("analytics.period.last6months", "Ultimi 6 mesi")
+                </MudButton>
+                <MudButton Variant="@(_activePeriod == "custom" ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           OnClick="@(() => _activePeriod = "custom")">
+                    @TranslationService.GetTranslation("analytics.period.custom", "Personalizzato")
+                </MudButton>
+            </MudStack>
+
+            <MudDivider Class="mb-3" />
+
             <MudGrid Spacing="2" AlignItems="Center">
                 <MudItem xs="12" sm="6" md="3">
                     <MudDatePicker Label="@TranslationService.GetTranslation("analytics.dateFrom", "Data inizio")"
                                    Date="_filter.DateFrom"
-                                   DateChanged="@(v => { _filter.DateFrom = v; })"
+                                   DateChanged="@(v => { _filter.DateFrom = v; _activePeriod = "custom"; })"
                                    DateFormat="dd/MM/yyyy"
                                    Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
                     <MudDatePicker Label="@TranslationService.GetTranslation("analytics.dateTo", "Data fine")"
                                    Date="_filter.DateTo"
-                                   DateChanged="@(v => { _filter.DateTo = v; })"
+                                   DateChanged="@(v => { _filter.DateTo = v; _activePeriod = "custom"; })"
                                    DateFormat="dd/MM/yyyy"
                                    Clearable="true" />
                 </MudItem>
@@ -351,6 +390,7 @@
 @code {
     private bool _isLoading = true;
     private bool _isLoadingData;
+    private string _activePeriod = "6m";
 
     private AnalyticsFilterDto _filter = new()
     {
@@ -508,6 +548,22 @@
                 Name = TranslationService.GetTranslation("analytics.pricing.manualOverrides", "Override Manuali"),
                 Data = new ChartData<double>(_pricingData.ManualOverridesTrend.Select(p => (double)p.Count).ToArray())
             }
+        };
+    }
+
+    /// <summary>Sets a quick period preset and updates the filter dates.</summary>
+    private void SetQuickPeriod(string period)
+    {
+        _activePeriod = period;
+        var today = DateTime.Today;
+        // All ranges are inclusive: DateFrom..DateTo, so "7 days" = today-6 days through today (7 days total).
+        (_filter.DateFrom, _filter.DateTo) = period switch
+        {
+            "today" => ((DateTime?)today,               (DateTime?)today),
+            "7d"    => ((DateTime?)today.AddDays(-6),   (DateTime?)today),
+            "30d"   => ((DateTime?)today.AddDays(-29),  (DateTime?)today),
+            "6m"    => ((DateTime?)today.AddMonths(-6), (DateTime?)today),
+            _       => (_filter.DateFrom, _filter.DateTo)
         };
     }
 }
