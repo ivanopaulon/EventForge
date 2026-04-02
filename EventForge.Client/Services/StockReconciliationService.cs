@@ -99,7 +99,7 @@ public class StockReconciliationService : IStockReconciliationService
     {
         try
         {
-            return await _httpClientService.PostAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
+            return await _httpClientService.PostLongRunningAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
                 $"{BaseUrl}/rebuild-movements/execute", request);
         }
         catch (Exception ex)

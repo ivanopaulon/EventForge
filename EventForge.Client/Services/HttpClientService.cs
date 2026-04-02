@@ -33,6 +33,12 @@ public interface IHttpClientService
     Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Performs a POST request with JSON payload using the long-running client (10-minute timeout).
+    /// Use for operations that may take several minutes (e.g. bulk rebuild).
+    /// </summary>
+    Task<TResponse?> PostLongRunningAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Performs a POST request without expecting a response body.
     /// </summary>
     Task PostAsync<TRequest>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
@@ -284,9 +290,27 @@ public class HttpClientService : IHttpClientService
         }
     }
 
-    private async Task<HttpClient> GetConfiguredHttpClientAsync()
+    public async Task<TResponse?> PostLongRunningAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        var httpClient = await GetConfiguredHttpClientAsync("LongRunningApiClient");
+
+        try
+        {
+            _logger.LogDebug("POST (long-running) request to {Endpoint}", endpoint);
+
+            var response = await httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
+            return await HandleResponseAsync<TResponse>(response, endpoint);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "POST long-running request failed for endpoint {Endpoint}", endpoint);
+            throw;
+        }
+    }
+
+    private async Task<HttpClient> GetConfiguredHttpClientAsync(string clientName = "ApiClient")
+    {
+        var httpClient = _httpClientFactory.CreateClient(clientName);
 
         // Ensure authentication header is set
         var token = await _authService.GetAccessTokenAsync();

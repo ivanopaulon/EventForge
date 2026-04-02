@@ -29,6 +29,16 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
 });
 
+// Long-running client for operations that may take several minutes (e.g. rebuild movements)
+builder.Services.AddHttpClient("LongRunningApiClient", client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
+    client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
+});
+
 // Configure StaticClient for translation files and static assets
 // BaseAddress is set to the host base URL which is known at build time in Blazor WASM
 builder.Services.AddHttpClient("StaticClient", client =>

@@ -3490,8 +3490,11 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             request.DryRun = false; // force execute
+            // Use CancellationToken.None for write operations: once the rebuild begins
+            // committing movements we must not abort mid-flight if the client disconnects
+            // or times out, as that would leave stock data in an inconsistent state.
             var result = await _warehouseFacade.RebuildMissingMovementsFromDocumentsAsync(
-                request, GetCurrentUser(), cancellationToken);
+                request, GetCurrentUser(), CancellationToken.None);
             return Ok(result);
         }
         catch (ArgumentException ex)
