@@ -378,6 +378,30 @@ public class PromotionService : IPromotionService
             _logger.LogInformation("Promotion application completed. Original: {Original}, Final: {Final}, Discount: {Discount}",
                 result.OriginalTotal, result.FinalTotal, result.TotalDiscountAmount);
 
+            // Step 8: Increment usage counters for applied promotions (best-effort, non-blocking)
+            var appliedPromotionIds = result.CartItems
+                .SelectMany(ci => ci.AppliedPromotions)
+                .Select(ap => ap.PromotionId)
+                .Distinct()
+                .ToList();
+
+            foreach (var promotionId in appliedPromotionIds)
+            {
+                try
+                {
+                    var incremented = await IncrementUsageAsync(promotionId, cancellationToken);
+                    if (!incremented)
+                    {
+                        _logger.LogWarning("Could not increment usage for promotion {PromotionId} (MaxUses reached or not found).", promotionId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Usage tracking failure must NOT block the order - log and continue
+                    _logger.LogError(ex, "Error incrementing usage for promotion {PromotionId}.", promotionId);
+                }
+            }
+
             return result;
         }
         catch (Exception ex)
