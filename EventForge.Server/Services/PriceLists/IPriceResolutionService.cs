@@ -20,6 +20,7 @@ namespace EventForge.Server.Services.PriceLists
         /// <param name="businessPartyId">Optional business party ID (to get default price list)</param>
         /// <param name="forcedPriceListId">Optional forced price list ID (overrides all)</param>
         /// <param name="direction">Price list direction (Input for purchase, Output for sales)</param>
+        /// <param name="quantity">Quantity used for MinQuantity/MaxQuantity bracket filtering (default 1)</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Price resolution result with price and metadata</returns>
         Task<PriceResolutionResult> ResolvePriceAsync(
@@ -28,6 +29,7 @@ namespace EventForge.Server.Services.PriceLists
             Guid? businessPartyId = null,
             Guid? forcedPriceListId = null,
             PriceListDirection? direction = null,
+            decimal quantity = 1m,
             CancellationToken cancellationToken = default);
 
         /// <summary>

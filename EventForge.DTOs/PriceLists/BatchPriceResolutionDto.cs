@@ -57,6 +57,11 @@ public class BatchPriceResolutionItem
     /// Price list direction: Input = purchase, Output = sales.
     /// </summary>
     public PriceListDirection? Direction { get; set; }
+
+    /// <summary>
+    /// Quantity for MinQuantity/MaxQuantity bracket filtering. Defaults to 1.
+    /// </summary>
+    public decimal Quantity { get; set; } = 1m;
 }
 
 /// <summary>

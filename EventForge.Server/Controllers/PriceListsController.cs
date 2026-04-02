@@ -255,6 +255,7 @@ public class PriceListsController : BaseApiController
     /// <param name="businessPartyId">ID del Business Party (opzionale)</param>
     /// <param name="forcedPriceListId">ID del listino forzato (opzionale)</param>
     /// <param name="direction">Direzione del listino (Input=acquisto, Output=vendita)</param>
+    /// <param name="quantity">Quantità per il filtro fascia MinQuantity/MaxQuantity (default 1)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Risultato della risoluzione del prezzo con metadati</returns>
     /// <response code="200">Restituisce il prezzo risolto con metadati</response>
@@ -272,6 +273,7 @@ public class PriceListsController : BaseApiController
         [FromQuery] Guid? businessPartyId = null,
         [FromQuery] Guid? forcedPriceListId = null,
         [FromQuery] PriceListDirection? direction = null,
+        [FromQuery] decimal quantity = 1m,
         CancellationToken cancellationToken = default)
     {
         if (productId == Guid.Empty)
@@ -287,6 +289,7 @@ public class PriceListsController : BaseApiController
                 businessPartyId,
                 forcedPriceListId,
                 direction,
+                quantity,
                 cancellationToken);
 
             _logger.LogInformation(

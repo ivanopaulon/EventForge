@@ -1098,7 +1098,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 productId: product.Id,
                 documentHeaderId: DocumentHeaderId,
                 businessPartyId: _state.DocumentHeader?.BusinessPartyId,
-                direction: direction
+                direction: direction,
+                quantity: _model.Quantity
             );
 
             // 3. Populate metadata in document row
