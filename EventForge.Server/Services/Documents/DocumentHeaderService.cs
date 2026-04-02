@@ -273,12 +273,81 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             var documentHeader = await _context.DocumentHeaders
                 .Include(dh => dh.Rows)
+                .Include(dh => dh.DocumentType)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader == null)
             {
                 _logger.LogWarning("Document header with ID {Id} not found for deletion.", id);
                 return false;
+            }
+
+            // If the document is approved and DocumentType is available, generate compensating movements BEFORE delete
+            if (documentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved
+                && documentHeader.DocumentType != null)
+            {
+                var compensatingCount = 0;
+                var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
+
+                foreach (var row in documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue))
+                {
+                    Guid? warehouseLocationId = documentHeader.DocumentType.IsStockIncrease
+                        ? row.DestinationWarehouseId ?? documentHeader.DestinationWarehouseId ?? documentHeader.DocumentType.DefaultWarehouseId
+                        : row.SourceWarehouseId ?? documentHeader.SourceWarehouseId ?? documentHeader.DocumentType.DefaultWarehouseId;
+
+                    if (!warehouseLocationId.HasValue)
+                    {
+                        _logger.LogWarning("No warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping compensating movement.", row.Id, id);
+                        continue;
+                    }
+
+                    var storageLocation = await _context.StorageLocations
+                        .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (storageLocation == null)
+                    {
+                        _logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping compensating movement.", warehouseLocationId, row.Id);
+                        continue;
+                    }
+
+                    var quantity = row.BaseQuantity ?? row.Quantity;
+                    var notes = $"Compensating movement: document {documentHeader.Id} deleted by {currentUser}";
+
+                    if (documentHeader.DocumentType.IsStockIncrease)
+                    {
+                        // Original was Inbound → compensating is Outbound
+                        await _stockMovementService.ProcessOutboundMovementAsync(
+                            productId: row.ProductId!.Value,
+                            fromLocationId: storageLocation.Id,
+                            quantity: quantity,
+                            documentHeaderId: documentHeader.Id,
+                            documentRowId: row.Id,
+                            notes: notes,
+                            currentUser: currentUser,
+                            movementDate: documentDateUtc,
+                            cancellationToken: cancellationToken);
+                    }
+                    else
+                    {
+                        // Original was Outbound → compensating is Inbound
+                        await _stockMovementService.ProcessInboundMovementAsync(
+                            productId: row.ProductId!.Value,
+                            toLocationId: storageLocation.Id,
+                            quantity: quantity,
+                            unitCost: row.UnitPrice,
+                            documentHeaderId: documentHeader.Id,
+                            documentRowId: row.Id,
+                            notes: notes,
+                            currentUser: currentUser,
+                            movementDate: documentDateUtc,
+                            cancellationToken: cancellationToken);
+                    }
+
+                    compensatingCount++;
+                }
+
+                _logger.LogInformation("Created {Count} compensating stock movements before deleting document {DocumentHeaderId}.", compensatingCount, id);
             }
 
             documentHeader.IsDeleted = true;
