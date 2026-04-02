@@ -1,48 +1,5 @@
 @page "/warehouse/stock-management"
-@page "/warehouse/stock-management/{InitialTab}"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
-@inject ITranslationService TranslationService
 
-<MudText Typo="Typo.h4" Class="mb-4">
-    @TranslationService.GetTranslation("stockManagement.title", "Gestione Magazzino - Giacenze")
-</MudText>
-
-<MudTabs @bind-ActivePanelIndex="_activeTabIndex"
-         Elevation="2"
-         Rounded="true"
-         ApplyEffectsToContainer="true"
-         PanelClass="pa-0">
-
-    <MudTabPanel Text="@TranslationService.GetTranslation("stockManagement.tab.overview", "Situazione Giacenze")"
-                 Icon="@Icons.Material.Outlined.Inventory2">
-        <StockOverview IsEmbedded="true"
-                       OnVerifyReconciliation="@SwitchToReconciliationTab" />
-    </MudTabPanel>
-
-    <MudTabPanel Text="@TranslationService.GetTranslation("stockManagement.tab.reconciliation", "Riconciliazione Magazzino")"
-                 Icon="@Icons.Material.Outlined.CompareArrows">
-        <StockReconciliation IsEmbedded="true" />
-    </MudTabPanel>
-
-</MudTabs>
-
-@code {
-    [Parameter] public string? InitialTab { get; set; }
-
-    private int _activeTabIndex = 0;
-
-    protected override void OnParametersSet()
-    {
-        _activeTabIndex = InitialTab?.ToLower() switch
-        {
-            "reconciliation" => 1,
-            _ => 0
-        };
-    }
-
-    private void SwitchToReconciliationTab()
-    {
-        _activeTabIndex = 1;
-    }
-}
+<StockOverview IsEmbedded="true" />

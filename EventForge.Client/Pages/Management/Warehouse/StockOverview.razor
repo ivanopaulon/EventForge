@@ -106,7 +106,7 @@
                  OnSearch="@OnSearchChanged"
                  ShowSelectionBadge="true"
                  ShowRefresh="true"
-                 OnRefresh="@LoadStockOverviewAsync"
+                 OnRefresh="@LoadAndReconcileAsync"
                  IsToolbarDisabled="@_isLoadingStock">
             <AdditionalToolbarContent>
                 <MudButton StartIcon="@Icons.Material.Outlined.FilterList"
@@ -127,20 +127,6 @@
                            Label="@(_filters.DetailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
                            Color="Color.Info"
                            Class="ml-2" />
-                <MudTooltip Text="@TranslationService.GetTranslation("stock.calculateReconciliation", "Calcola la quantità teorica da movimenti e mostrala in tabella")">
-                    <MudButton StartIcon="@(_isCalculatingReconciliation ? null : Icons.Material.Outlined.Calculate)"
-                               OnClick="CalculateReconciliationAsync"
-                               Variant="Variant.Outlined"
-                               Color="@(_reconciliationCalculated ? Color.Success : Color.Default)"
-                               Disabled="_isCalculatingReconciliation"
-                               Class="ml-2">
-                        @if (_isCalculatingReconciliation)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
-                        }
-                        @TranslationService.GetTranslation("stock.calcReconciliation", "Riconciliazione")
-                    </MudButton>
-                </MudTooltip>
                 <MudTooltip Text="@TranslationService.GetTranslation("stock.rebuildMovements", "Ricostruisce i movimenti mancanti dai documenti approvati/chiusi")">
                     <MudButton StartIcon="@Icons.Material.Outlined.BuildCircle"
                                OnClick="OpenRebuildMovementsDialogAsync"
@@ -814,7 +800,7 @@
         new() { PropertyName = "ReorderPoint", DisplayName = "Punto Riordino", IsVisible = false, Order = 8, IsSearchable = false }, // Hidden by default
         new() { PropertyName = "SafetyStock", DisplayName = "Scorta Sicurezza", IsVisible = false, Order = 9, IsSearchable = false }, // Hidden by default
         new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 10, IsSearchable = false },
-        new() { PropertyName = "ReconciledQty", DisplayName = "Qtà Riconciliata", IsVisible = false, Order = 11, IsSearchable = false } // Hidden by default, populated via reconciliation
+        new() { PropertyName = "ReconciledQty", DisplayName = "Qtà Riconciliata", IsVisible = true, Order = 11, IsSearchable = false }
     };
 
     private EventCallback<HashSet<StockLocationDetail>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<StockLocationDetail>>(this, OnSelectedItemsChanged);
@@ -934,6 +920,7 @@
                 LoadWarehousesAsync(),
                 LoadStockOverviewAsync()
             );
+            await CalculateReconciliationAsync();
         }
         catch (Exception ex)
         {
@@ -1186,10 +1173,18 @@
                     : TranslationService.GetTranslationFormatted("stock.rebuildMovements.reloadingUpdated",
                         "{0} movimento/i aggiornati — ricarico le giacenze.", applyResult.MovementsUpdated);
             Snackbar.Add(msg, Severity.Success);
-            _reconciliationData.Clear();
-            _reconciliationCalculated = false;
-            await LoadStockOverviewAsync();
+            await LoadAndReconcileAsync();
         }
+    }
+
+    /// <summary>
+    /// Reloads stock data and then recalculates reconciliation.
+    /// Used by the refresh button and after rebuild operations.
+    /// </summary>
+    private async Task LoadAndReconcileAsync()
+    {
+        await LoadStockOverviewAsync();
+        await CalculateReconciliationAsync();
     }
 
     /// <summary>
@@ -1208,6 +1203,7 @@
                 LocationId = _filters.LocationId,
                 IncludeDocuments = true,
                 IncludeInventories = true,
+                IncludeStockMovements = true,
                 OnlyWithDiscrepancies = false
             };
 
