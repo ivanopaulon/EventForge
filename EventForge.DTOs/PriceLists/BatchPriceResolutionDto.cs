@@ -62,6 +62,12 @@ public class BatchPriceResolutionItem
     /// Quantity for MinQuantity/MaxQuantity bracket filtering. Defaults to 1.
     /// </summary>
     public decimal Quantity { get; set; } = 1m;
+
+    /// <summary>
+    /// Optional unit of measure ID to filter price list entries by UoM.
+    /// When specified, entries matching this UoM are preferred; falls back to entries without UoM if none found.
+    /// </summary>
+    public Guid? UnitOfMeasureId { get; set; }
 }
 
 /// <summary>

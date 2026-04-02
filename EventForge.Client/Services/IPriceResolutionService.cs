@@ -22,6 +22,7 @@ public interface IPriceResolutionService
     /// <param name="forcedPriceListId">Optional forced price list ID (overrides all)</param>
     /// <param name="direction">Price list direction (Input for purchase, Output for sales)</param>
     /// <param name="quantity">Quantity for MinQuantity/MaxQuantity bracket filtering (default 1)</param>
+    /// <param name="unitOfMeasureId">Optional unit of measure ID; when specified, entries matching this UoM are preferred with fallback to entries without UoM</param>
     /// <returns>Price resolution result with price and metadata</returns>
     Task<PriceResolutionResult> ResolvePriceAsync(
         Guid productId,
@@ -29,7 +30,8 @@ public interface IPriceResolutionService
         Guid? businessPartyId = null,
         Guid? forcedPriceListId = null,
         PriceListDirection? direction = null,
-        decimal quantity = 1m);
+        decimal quantity = 1m,
+        Guid? unitOfMeasureId = null);
 
     /// <summary>
     /// Resolves prices for multiple products in a single batch HTTP call.
