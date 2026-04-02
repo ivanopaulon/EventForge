@@ -150,8 +150,8 @@
                                         <tr>
                                             <td>@p.Rank</td>
                                             <td>@p.ProductName</td>
-                                            <td>@p.Quantity.ToString("N2")</td>
-                                            <td>@p.Revenue.ToString("N2")</td>
+                                            <td>@p.TotalQuantity.ToString("N2")</td>
+                                            <td>@p.TotalRevenue.ToString("N2")</td>
                                             <td>@p.TotalDiscount.ToString("N2")</td>
                                         </tr>
                                     }
@@ -242,8 +242,8 @@
                                     {
                                         <tr>
                                             <td>@p.Rank</td>
-                                            <td>@p.Name</td>
-                                            <td>@p.TotalUses</td>
+                                            <td>@p.PromotionName</td>
+                                            <td>@p.UsageCount</td>
                                             <td>@p.TotalSavings.ToString("N2")</td>
                                         </tr>
                                     }
@@ -460,13 +460,13 @@
             return;
         }
 
-        _salesLabels = _salesData.SalesTrend.Select(p => p.Label).ToArray();
+        _salesLabels = _salesData.SalesTrend.Select(p => p.Date).ToArray();
         _salesSeries = new List<ChartSeries<double>>
         {
             new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("analytics.sales.totalRevenue", "Fatturato"),
-                Data = new ChartData<double>(_salesData.SalesTrend.Select(p => p.Value).ToArray())
+                Data = new ChartData<double>(_salesData.SalesTrend.Select(p => (double)p.TotalAmount).ToArray())
             }
         };
     }
@@ -480,13 +480,13 @@
             return;
         }
 
-        _promotionLabels = _promotionData.UsageTrend.Select(p => p.Label).ToArray();
+        _promotionLabels = _promotionData.UsageTrend.Select(p => p.Date).ToArray();
         _promotionSeries = new List<ChartSeries<double>>
         {
             new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("analytics.uses", "Utilizzi"),
-                Data = new ChartData<double>(_promotionData.UsageTrend.Select(p => p.Value).ToArray())
+                Data = new ChartData<double>(_promotionData.UsageTrend.Select(p => (double)p.UsageCount).ToArray())
             }
         };
     }
@@ -500,13 +500,13 @@
             return;
         }
 
-        _pricingLabels = _pricingData.ManualOverridesTrend.Select(p => p.Label).ToArray();
+        _pricingLabels = _pricingData.ManualOverridesTrend.Select(p => p.Date).ToArray();
         _pricingSeries = new List<ChartSeries<double>>
         {
             new ChartSeries<double>
             {
                 Name = TranslationService.GetTranslation("analytics.pricing.manualOverrides", "Override Manuali"),
-                Data = new ChartData<double>(_pricingData.ManualOverridesTrend.Select(p => p.Value).ToArray())
+                Data = new ChartData<double>(_pricingData.ManualOverridesTrend.Select(p => (double)p.Count).ToArray())
             }
         };
     }

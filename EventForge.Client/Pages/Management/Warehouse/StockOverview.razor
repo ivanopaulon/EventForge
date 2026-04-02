@@ -367,6 +367,12 @@
                                            Size="Size.Small"
                                            OnClick="@((e) => OpenFullEditPopover(item, e))" />
                         </MudTooltip>
+                        <MudTooltip Text="@TranslationService.GetTranslation("stock.verifyReconciliation", "Verifica riconciliazione")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.ManageSearch"
+                                           Color="Color.Secondary"
+                                           Size="Size.Small"
+                                           OnClick="HandleVerifyReconciliation" />
+                        </MudTooltip>
                         <ActionButtonGroup EntityName="@item.ProductName"
                                            ItemDisplayName="@item.ProductName"
                                            ShowView="false"
@@ -607,6 +613,17 @@
         MaxWidth = MaxWidth.False
     };
     
+    /// <summary>
+    /// When true the component is embedded inside another page (e.g. StockManagement tabs)
+    /// and should not redirect on initialisation.
+    /// </summary>
+    [Parameter] public bool IsEmbedded { get; set; }
+
+    /// <summary>
+    /// Event raised when the user clicks the "Verifica" (reconciliation) button for a stock row.
+    /// </summary>
+    [Parameter] public EventCallback OnVerifyReconciliation { get; set; }
+
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingStock = false;
@@ -794,10 +811,29 @@
     }
 
     /// <summary>
+    /// Navigates to the reconciliation tab (or page) when the "Verifica" button is clicked.
+    /// When embedded inside StockManagement tabs, raises the event to switch tabs;
+    /// otherwise navigates to the standalone reconciliation page.
+    /// </summary>
+    private async Task HandleVerifyReconciliation()
+    {
+        if (IsEmbedded)
+            await OnVerifyReconciliation.InvokeAsync();
+        else
+            NavigationManager.NavigateTo("/warehouse/stock-management/reconciliation");
+    }
+
+    /// <summary>
     /// Component initialization.
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
+        if (!IsEmbedded)
+        {
+            NavigationManager.NavigateTo("/warehouse/stock-management", replace: true);
+            return;
+        }
+
         try
         {
             // Initialize dashboard metrics

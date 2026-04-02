@@ -29,4 +29,16 @@ public class RebuildMovementsRequestDto
     /// If true, only preview what would be created without actually creating movements.
     /// </summary>
     public bool DryRun { get; set; } = false;
+
+    /// <summary>
+    /// Document approval statuses to include. If null or empty, defaults to Approved only.
+    /// Values map to Data.Entities.Documents.ApprovalStatus: None=0, Pending=1, Approved=2, Rejected=3.
+    /// </summary>
+    public List<int>? ApprovalStatuses { get; set; }
+
+    /// <summary>
+    /// Document statuses to include. If null or empty, defaults to Closed only.
+    /// Values map to EventForge.DTOs.Common.DocumentStatus: Draft=0, Open=1, Closed=2, Cancelled=3.
+    /// </summary>
+    public List<int>? DocumentStatuses { get; set; }
 }
