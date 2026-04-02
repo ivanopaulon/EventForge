@@ -34,5 +34,23 @@ namespace EventForge.DTOs.PriceLists
         /// Source of the price: "ParameterList", "DocumentList", "PartyList", "GeneralList", "DefaultPrice"
         /// </summary>
         public string Source { get; set; } = "DefaultPrice";
+
+        /// <summary>
+        /// Unit of measure applied when resolving this price (from the matching PriceListEntry).
+        /// Null if the price came from the product default price or no UoM-specific entry was matched.
+        /// </summary>
+        public Guid? AppliedUnitOfMeasureId { get; set; }
+
+        /// <summary>
+        /// Minimum quantity of the quantity bracket that was applied.
+        /// Null if the price came from the product default price.
+        /// </summary>
+        public int? AppliedMinQuantity { get; set; }
+
+        /// <summary>
+        /// Maximum quantity of the quantity bracket that was applied (0 = no upper limit).
+        /// Null if the price came from the product default price.
+        /// </summary>
+        public int? AppliedMaxQuantity { get; set; }
     }
 }

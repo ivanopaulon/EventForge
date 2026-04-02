@@ -21,6 +21,7 @@ namespace EventForge.Server.Services.PriceLists
         /// <param name="forcedPriceListId">Optional forced price list ID (overrides all)</param>
         /// <param name="direction">Price list direction (Input for purchase, Output for sales)</param>
         /// <param name="quantity">Quantity used for MinQuantity/MaxQuantity bracket filtering (default 1)</param>
+        /// <param name="unitOfMeasureId">Optional unit of measure ID; when specified, entries matching this UoM are preferred with fallback to entries without UoM</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Price resolution result with price and metadata</returns>
         Task<PriceResolutionResult> ResolvePriceAsync(
@@ -30,6 +31,7 @@ namespace EventForge.Server.Services.PriceLists
             Guid? forcedPriceListId = null,
             PriceListDirection? direction = null,
             decimal quantity = 1m,
+            Guid? unitOfMeasureId = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
