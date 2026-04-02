@@ -67,6 +67,12 @@ public class Promotion : AuditableEntity
     public bool IsCombinable { get; set; } = true;
 
     /// <summary>
+    /// Number of times this promotion has been used.
+    /// </summary>
+    [Display(Name = "Current Uses", Description = "Number of times this promotion has been used.")]
+    public int CurrentUses { get; set; } = 0;
+
+    /// <summary>
     /// List of rules associated with this promotion.
     /// </summary>
     [Display(Name = "Rules", Description = "List of rules associated with this promotion.")]

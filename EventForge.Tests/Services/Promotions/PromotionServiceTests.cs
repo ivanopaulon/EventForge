@@ -278,5 +278,250 @@ namespace EventForge.Tests.Services.Promotions
             _context.Dispose();
             _memoryCache.Dispose();
         }
+
+        #region ValidateCouponAsync Tests
+
+        [Fact]
+        public async Task ValidateCouponAsync_WithValidCoupon_ReturnsPromotionDto()
+        {
+            // Arrange
+            var promotionId = Guid.NewGuid();
+            var promotion = new Promotion
+            {
+                Id = promotionId,
+                Name = "Summer Sale",
+                CouponCode = "SUMMER10",
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddDays(1),
+                MaxUses = 100,
+                CurrentUses = 5,
+                TenantId = _tenantId,
+                IsActive = true
+            };
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _promotionService.ValidateCouponAsync("SUMMER10");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(promotionId, result.Id);
+            Assert.Equal("Summer Sale", result.Name);
+            Assert.Equal(5, result.CurrentUses);
+            Assert.Equal(95, result.RemainingUses);
+        }
+
+        [Fact]
+        public async Task ValidateCouponAsync_WithCaseInsensitiveCoupon_ReturnsPromotionDto()
+        {
+            // Arrange
+            var promotion = new Promotion
+            {
+                Id = Guid.NewGuid(),
+                Name = "Case Test",
+                CouponCode = "UPPER10",
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddDays(1),
+                TenantId = _tenantId,
+                IsActive = true
+            };
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _promotionService.ValidateCouponAsync("upper10");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("Case Test", result.Name);
+        }
+
+        [Fact]
+        public async Task ValidateCouponAsync_WithExpiredPromotion_ReturnsNull()
+        {
+            // Arrange
+            var promotion = new Promotion
+            {
+                Id = Guid.NewGuid(),
+                Name = "Expired Promo",
+                CouponCode = "EXPIRED",
+                StartDate = DateTime.UtcNow.AddDays(-10),
+                EndDate = DateTime.UtcNow.AddDays(-1),
+                TenantId = _tenantId,
+                IsActive = true
+            };
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _promotionService.ValidateCouponAsync("EXPIRED");
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task ValidateCouponAsync_WithMaxUsesReached_ReturnsNull()
+        {
+            // Arrange
+            var promotion = new Promotion
+            {
+                Id = Guid.NewGuid(),
+                Name = "Limited Promo",
+                CouponCode = "LIMITED",
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddDays(1),
+                MaxUses = 10,
+                CurrentUses = 10,
+                TenantId = _tenantId,
+                IsActive = true
+            };
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _promotionService.ValidateCouponAsync("LIMITED");
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task ValidateCouponAsync_WithNullMaxUses_ReturnsPromotion()
+        {
+            // Arrange
+            var promotion = new Promotion
+            {
+                Id = Guid.NewGuid(),
+                Name = "Unlimited Promo",
+                CouponCode = "UNLIMITED",
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddDays(1),
+                MaxUses = null,
+                CurrentUses = 999,
+                TenantId = _tenantId,
+                IsActive = true
+            };
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _promotionService.ValidateCouponAsync("UNLIMITED");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Null(result.RemainingUses);
+        }
+
+        [Fact]
+        public async Task ValidateCouponAsync_WithEmptyCouponCode_ReturnsNull()
+        {
+            // Act
+            var result = await _promotionService.ValidateCouponAsync(string.Empty);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        #endregion
+
+        #region IncrementUsageAsync Tests
+
+        [Fact]
+        public async Task IncrementUsageAsync_WithValidPromotion_IncrementsCounter()
+        {
+            // Arrange
+            var promotionId = Guid.NewGuid();
+            var promotion = new Promotion
+            {
+                Id = promotionId,
+                Name = "Increment Test",
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddDays(1),
+                MaxUses = 10,
+                CurrentUses = 3,
+                TenantId = _tenantId,
+                IsActive = true
+            };
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _promotionService.IncrementUsageAsync(promotionId);
+
+            // Assert
+            Assert.True(result);
+            var updated = await _context.Promotions.FindAsync(promotionId);
+            Assert.Equal(4, updated!.CurrentUses);
+        }
+
+        [Fact]
+        public async Task IncrementUsageAsync_WithMaxUsesReached_ReturnsFalse()
+        {
+            // Arrange
+            var promotionId = Guid.NewGuid();
+            var promotion = new Promotion
+            {
+                Id = promotionId,
+                Name = "MaxUses Test",
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddDays(1),
+                MaxUses = 5,
+                CurrentUses = 5,
+                TenantId = _tenantId,
+                IsActive = true
+            };
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _promotionService.IncrementUsageAsync(promotionId);
+
+            // Assert
+            Assert.False(result);
+            var unchanged = await _context.Promotions.FindAsync(promotionId);
+            Assert.Equal(5, unchanged!.CurrentUses);
+        }
+
+        [Fact]
+        public async Task IncrementUsageAsync_WithNullMaxUses_IncrementsUnlimited()
+        {
+            // Arrange
+            var promotionId = Guid.NewGuid();
+            var promotion = new Promotion
+            {
+                Id = promotionId,
+                Name = "Unlimited Increment Test",
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddDays(1),
+                MaxUses = null,
+                CurrentUses = 999,
+                TenantId = _tenantId,
+                IsActive = true
+            };
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _promotionService.IncrementUsageAsync(promotionId);
+
+            // Assert
+            Assert.True(result);
+            var updated = await _context.Promotions.FindAsync(promotionId);
+            Assert.Equal(1000, updated!.CurrentUses);
+        }
+
+        [Fact]
+        public async Task IncrementUsageAsync_WithNonExistentPromotion_ReturnsFalse()
+        {
+            // Act
+            var result = await _promotionService.IncrementUsageAsync(Guid.NewGuid());
+
+            // Assert
+            Assert.False(result);
+        }
+
+        #endregion
     }
 }

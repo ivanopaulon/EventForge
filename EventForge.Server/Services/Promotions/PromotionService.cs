@@ -283,6 +283,7 @@ public class PromotionService : IPromotionService
             EndDate = promotion.EndDate,
             MinOrderAmount = promotion.MinOrderAmount,
             MaxUses = promotion.MaxUses,
+            CurrentUses = promotion.CurrentUses,
             CouponCode = promotion.CouponCode,
             Priority = promotion.Priority,
             IsCombinable = promotion.IsCombinable,
@@ -1131,6 +1132,120 @@ public class PromotionService : IPromotionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving applicable promotion rules.");
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<PromotionDto?> ValidateCouponAsync(string couponCode, Guid? customerId = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(couponCode))
+            {
+                _logger.LogDebug("ValidateCouponAsync called with null or empty coupon code.");
+                return null;
+            }
+
+            var now = DateTime.UtcNow;
+            var normalizedCode = couponCode.Trim().ToUpperInvariant();
+
+            var promotion = await _context.Promotions
+                .Where(p => !p.IsDeleted && p.IsActive &&
+                            p.CouponCode != null &&
+                            p.CouponCode.ToUpper() == normalizedCode &&
+                            p.StartDate <= now && p.EndDate >= now)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (promotion == null)
+            {
+                _logger.LogInformation("Coupon code '{CouponCode}' is invalid, expired, or not found.", couponCode);
+                return null;
+            }
+
+            if (promotion.MaxUses.HasValue && promotion.CurrentUses >= promotion.MaxUses.Value)
+            {
+                _logger.LogInformation("Coupon code '{CouponCode}' has reached its maximum uses limit ({MaxUses}).", couponCode, promotion.MaxUses.Value);
+                return null;
+            }
+
+            _logger.LogInformation("Coupon code '{CouponCode}' validated successfully for promotion '{PromotionName}' ({PromotionId}).", couponCode, promotion.Name, promotion.Id);
+
+            _ = await _auditLogService.TrackEntityChangesAsync(promotion, "ValidateCoupon", "System", null, cancellationToken);
+
+            return MapToPromotionDto(promotion);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating coupon code '{CouponCode}'.", couponCode);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> IncrementUsageAsync(Guid promotionId, CancellationToken cancellationToken = default)
+    {
+        const int maxRetries = 3;
+
+        try
+        {
+            var promotion = await _context.Promotions
+                .Where(p => p.Id == promotionId && !p.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (promotion == null)
+            {
+                _logger.LogWarning("Promotion with ID {PromotionId} not found for usage increment.", promotionId);
+                return false;
+            }
+
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                if (promotion.MaxUses.HasValue && promotion.CurrentUses >= promotion.MaxUses.Value)
+                {
+                    _logger.LogInformation("Promotion {PromotionId} has reached its maximum uses limit ({MaxUses}).", promotionId, promotion.MaxUses.Value);
+                    return false;
+                }
+
+                promotion.CurrentUses++;
+
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                    _ = await _auditLogService.TrackEntityChangesAsync(promotion, "IncrementUsage", "System", null, cancellationToken);
+                    _logger.LogInformation("Successfully incremented usage for promotion {PromotionId}. CurrentUses: {CurrentUses}.", promotionId, promotion.CurrentUses);
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    _logger.LogWarning(ex, "Concurrency conflict while incrementing usage for promotion {PromotionId}. Attempt {Attempt}/{MaxRetries}.", promotionId, attempt + 1, maxRetries);
+
+                    if (attempt >= maxRetries - 1)
+                    {
+                        _logger.LogError(ex, "Failed to increment usage for promotion {PromotionId} after {MaxRetries} attempts.", promotionId, maxRetries);
+                        throw;
+                    }
+
+                    var entry = ex.Entries.FirstOrDefault();
+                    if (entry != null)
+                    {
+                        await entry.ReloadAsync(cancellationToken);
+                        promotion = (Promotion)entry.Entity;
+                    }
+                }
+            }
+
+            // Unreachable in practice: the loop always returns true, returns false on limit reached,
+            // or throws on exhausted retries; required to satisfy the compiler.
+            return false;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error incrementing usage for promotion {PromotionId}.", promotionId);
             throw;
         }
     }

@@ -1885,6 +1885,41 @@ public class ProductManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Validates a coupon code and returns the promotion details if valid.
+    /// </summary>
+    /// <param name="request">The coupon validation request containing the coupon code and optional customer ID.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Promotion details if the coupon is valid; 404 if invalid, expired, or max uses reached.</returns>
+    /// <response code="200">Returns the promotion details for the valid coupon</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="404">If the coupon is invalid, expired, or has reached its usage limit</response>
+    [HttpPost("promotions/validate-coupon")]
+    [ProducesResponseType(typeof(PromotionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PromotionDto>> ValidateCoupon(
+        [FromBody] ValidateCouponRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        try
+        {
+            var promotion = await _promotionService.ValidateCouponAsync(request.CouponCode, request.CustomerId, cancellationToken);
+            if (promotion == null)
+                return CreateNotFoundProblem($"Coupon code '{request.CouponCode}' is invalid, expired, or has reached its usage limit.");
+
+            return Ok(promotion);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while validating coupon code '{CouponCode}'.", request.CouponCode);
+            return CreateInternalServerErrorProblem("An error occurred while validating the coupon code.", ex);
+        }
+    }
+
     #endregion
 
     #region Barcode Generation
