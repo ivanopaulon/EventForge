@@ -40,7 +40,7 @@
                 <MudNavLink Href="/settings/unit-of-measures"
                             Icon="@Icons.Material.Outlined.Straighten" 
                             Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unità di Misura")
+                    @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unitï¿½ di Misura")
                 </MudNavLink>
                 <MudNavLink Href="/management/classification-nodes"
                             Icon="@Icons.Material.Outlined.AccountTree" 
@@ -181,10 +181,15 @@
                             IconColor="Color.Tertiary">
                     @TranslationService.GetTranslation("menu.pricelists", "Listini Prezzi")
                 </MudNavLink>
+                <MudNavLink Href="/management/promotions"
+                            Icon="@Icons.Material.Outlined.LocalOffer"
+                            IconColor="Color.Secondary">
+                    @TranslationService.GetTranslation("menu.promotions", "Promozioni")
+                </MudNavLink>
             </MudNavGroup>
 
             <!-- Financial Management Group -->
-            <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilità")" 
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilitï¿½")" 
                          Icon="@Icons.Material.Outlined.AccountBalance" 
                          Expanded="false">
                 <MudNavLink Href="/financial/vat-rates" 

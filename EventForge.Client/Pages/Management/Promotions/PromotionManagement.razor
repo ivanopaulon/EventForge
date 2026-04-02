@@ -1,0 +1,551 @@
+@page "/management/promotions"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Promotions
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Extensions
+@using MudBlazor
+@using EventForge.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject IPromotionClientService PromotionService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IJSRuntime JSRuntime
+@inject ILogger<PromotionManagement> Logger
+
+<PageLoadingOverlay Visible="_isLoading || _isLoadingData"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="promotion-page-root">
+        <!-- Quick Filters -->
+        <QuickFilters TItem="PromotionDto"
+                      Items="_items"
+                      Filters="_quickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
+
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                     TItem="PromotionDto"
+                     Items="_filteredItems"
+                     MultiSelection="true"
+                     SelectedItems="_selectedItems"
+                     SelectedItemsChanged="_selectedItemsChangedCallback"
+                     IsLoading="_isLoadingData"
+                     ComponentKey="PromotionManagement"
+                     InitialColumnConfigurations="_initialColumns"
+                     AllowDragDropGrouping="true"
+                     ShowExport="true"
+                     ShowExportDialog="true"
+                     ExcelFileName="Promozioni"
+                     IsDataFiltered="@HasActiveFilters()"
+                     TotalItemsCount="@_items.Count"
+                     OnRowClick="@HandleRowClick"
+                     Title="@TranslationService.GetTranslation("promotion.management.title", "Gestione Promozioni")"
+                     ShowSearch="true"
+                     SearchPlaceholder="@TranslationService.GetTranslation("common.search", "Cerca...")"
+                     OnSearch="@OnSearchChanged"
+                     ShowSelectionBadge="true"
+                     ShowRefresh="true"
+                     OnRefresh="@LoadDataAsync"
+                     ShowCreate="true"
+                     OnCreate="@OpenCreateDialog"
+                     CreateLabel="promotion.create"
+                     CreateTooltip="promotion.create"
+                     IsToolbarDisabled="@_isLoadingData">
+                <AdditionalToolbarContent>
+                    <MudSwitch @bind-Value="_onlyActive"
+                               Label="@TranslationService.GetTranslation("promotion.onlyActive", "Solo attive")"
+                               Color="Color.Primary"
+                               Class="mr-2" />
+                    @if (_selectedItems.Count > 0)
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Outlined.Delete"
+                                   OnClick="@BulkDelete"
+                                   Disabled="_isLoadingData">
+                            @TranslationService.GetTranslation("common.delete", "Elimina") (@_selectedItems.Count)
+                        </MudButton>
+                    }
+                </AdditionalToolbarContent>
+
+                <HeaderContent Context="columnConfigurations">
+                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                    {
+                        @if (column.PropertyName == "Name")
+                        {
+                            <EFTableColumnHeader TItem="PromotionDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "StartDate")
+                        {
+                            <EFTableColumnHeader TItem="PromotionDto" PropertyName="StartDate" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.StartDate))">@TranslationService.GetTranslation("field.startDate", "Inizio")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "EndDate")
+                        {
+                            <EFTableColumnHeader TItem="PromotionDto" PropertyName="EndDate" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.EndDate))">@TranslationService.GetTranslation("field.endDate", "Fine")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "Priority")
+                        {
+                            <EFTableColumnHeader TItem="PromotionDto" PropertyName="Priority" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.Priority))">@TranslationService.GetTranslation("field.priority", "Priorità")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "MaxUses")
+                        {
+                            <EFTableColumnHeader TItem="PromotionDto" PropertyName="MaxUses" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.MaxUses ?? int.MaxValue))">@TranslationService.GetTranslation("field.maxUses", "Utilizzi")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "CouponCode")
+                        {
+                            <EFTableColumnHeader TItem="PromotionDto" PropertyName="CouponCode" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.CouponCode ?? string.Empty))">@TranslationService.GetTranslation("field.couponCode", "Coupon")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "IsCombinable")
+                        {
+                            <EFTableColumnHeader TItem="PromotionDto" PropertyName="IsCombinable" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.IsCombinable))">@TranslationService.GetTranslation("field.isCombinable", "Combinabile")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                        else if (column.PropertyName == "CreatedAt")
+                        {
+                            <EFTableColumnHeader TItem="PromotionDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<PromotionDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                            </EFTableColumnHeader>
+                        }
+                    }
+                    <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+
+                <RowTemplate Context="item">
+                    @{
+                        var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                        var isExpired = item.EndDate < DateTime.UtcNow;
+                        var isExpiringSoon = !isExpired && item.EndDate <= DateTime.UtcNow.AddDays(7);
+                    }
+                    @foreach (var column in visibleColumns)
+                    {
+                        @if (column.PropertyName == "Name")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                <div class="d-flex align-center gap-1 flex-wrap">
+                                    <MudText Typo="Typo.body2">@item.Name</MudText>
+                                    @if (item.IsCombinable)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" title="@TranslationService.GetTranslation("promotion.combinable", "Combinabile")">C</MudChip>
+                                    }
+                                    @if (!string.IsNullOrEmpty(item.CouponCode))
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Outlined.LocalOffer" Size="Size.Small" Color="Color.Secondary" title="@TranslationService.GetTranslation("promotion.hasCoupon", "Ha coupon")" />
+                                    }
+                                </div>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "StartDate")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.startDate", "Inizio")">
+                                <div class="d-flex align-center gap-1">
+                                    @if (isExpired)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" title="@TranslationService.GetTranslation("promotion.expired", "Scaduta")" />
+                                    }
+                                    <MudText Typo="Typo.body2">@item.StartDate.ToShortDateString()</MudText>
+                                </div>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "EndDate")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.endDate", "Fine")">
+                                <div class="d-flex align-center gap-1">
+                                    @if (isExpired)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" title="@TranslationService.GetTranslation("promotion.expired", "Scaduta")" />
+                                    }
+                                    else if (isExpiringSoon)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" title="@TranslationService.GetTranslation("promotion.expiringSoon", "In scadenza")" />
+                                    }
+                                    <MudText Typo="Typo.body2">@item.EndDate.ToShortDateString()</MudText>
+                                </div>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "Priority")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.priority", "Priorità")">
+                                <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(item.Priority)">
+                                    @item.Priority
+                                </MudChip>
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "MaxUses")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.maxUses", "Utilizzi")">
+                                @if (item.MaxUses.HasValue)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                                        @item.CurrentUses / @item.MaxUses
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2">∞</MudText>
+                                }
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "CouponCode")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.couponCode", "Coupon")">
+                                @if (!string.IsNullOrEmpty(item.CouponCode))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.LocalOffer" Color="Color.Secondary">
+                                        @item.CouponCode
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2">-</MudText>
+                                }
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "IsCombinable")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.isCombinable", "Combinabile")">
+                                @if (item.IsCombinable)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+                                }
+                            </MudTd>
+                        }
+                        else if (column.PropertyName == "CreatedAt")
+                        {
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                                <MudText Typo="Typo.body2">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                            </MudTd>
+                        }
+                    }
+                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                        <ActionButtonGroup EntityName="@item.Name"
+                                           ItemDisplayName="@item.Name"
+                                           ShowView="false"
+                                           ShowEdit="true"
+                                           ShowAuditLog="true"
+                                           ShowToggleStatus="false"
+                                           ShowDelete="true"
+                                           OnEdit="@(() => EditItem(item))"
+                                           OnAuditLog="@(() => ViewAuditLog(item))"
+                                           OnDelete="@(() => DeleteItem(item))" />
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                        <MudIcon Icon="@Icons.Material.Outlined.LocalOffer" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                        <MudText Typo="Typo.h6" Class="mb-2">
+                            @(_items.Any() ?
+                                TranslationService.GetTranslation("promotion.noMatchFilters", "Nessuna promozione corrisponde ai filtri applicati") :
+                                TranslationService.GetTranslation("promotion.noFound", "Nessuna promozione trovata"))
+                        </MudText>
+                        @if (_items.Any())
+                        {
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Outlined.Clear"
+                                       OnClick="@ClearFilters">
+                                @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                            </MudButton>
+                        }
+                    </div>
+                </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
+
+@code {
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new()
+    {
+        FullScreen = true,
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingData = false;
+
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private bool _onlyActive = false;
+
+    // Quick Filters
+    private List<QuickFilter<PromotionDto>> _quickFilters = new()
+    {
+        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutte le promozioni" },
+        new() { Id = "active", Label = "Attive", Predicate = p => p.IsCurrentlyActive, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Promozioni attive" },
+        new() { Id = "expired", Label = "Scadute", Predicate = p => p.EndDate < DateTime.UtcNow, Color = Color.Error, Icon = Icons.Material.Outlined.EventBusy, Description = "Promozioni scadute" },
+        new() { Id = "expiring", Label = "In scadenza", Predicate = p => p.IsCurrentlyActive && p.EndDate <= DateTime.UtcNow.AddDays(7), Color = Color.Warning, Icon = Icons.Material.Outlined.AccessTime, Description = "In scadenza entro 7 giorni" },
+        new() { Id = "coupon", Label = "Con coupon", Predicate = p => !string.IsNullOrEmpty(p.CouponCode), Color = Color.Secondary, Icon = Icons.Material.Outlined.LocalOffer, Description = "Promozioni con codice coupon" },
+        new() { Id = "combinable", Label = "Combinabili", Predicate = p => p.IsCombinable, Color = Color.Info, Icon = Icons.Material.Outlined.MergeType, Description = "Promozioni combinabili" }
+    };
+
+    private QuickFilter<PromotionDto>? _activeQuickFilter;
+
+    // Data collections
+    private List<PromotionDto> _items = new();
+    private HashSet<PromotionDto> _selectedItems = new();
+
+    // EFTable reference
+    private EFTable<PromotionDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+        new() { PropertyName = "StartDate", DisplayName = "Inizio", IsVisible = true, Order = 1, IsSearchable = false },
+        new() { PropertyName = "EndDate", DisplayName = "Fine", IsVisible = true, Order = 2, IsSearchable = false },
+        new() { PropertyName = "Priority", DisplayName = "Priorità", IsVisible = true, Order = 3, IsSearchable = false },
+        new() { PropertyName = "MaxUses", DisplayName = "Utilizzi", IsVisible = true, Order = 4, IsSearchable = false },
+        new() { PropertyName = "CouponCode", DisplayName = "Coupon", IsVisible = true, Order = 5, IsSearchable = false },
+        new() { PropertyName = "IsCombinable", DisplayName = "Combinabile", IsVisible = true, Order = 6, IsSearchable = false },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = false, Order = 7, IsSearchable = false },
+    };
+
+    private EventCallback<HashSet<PromotionDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<PromotionDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered items based on search criteria.
+    /// </summary>
+    private IEnumerable<PromotionDto> _filteredItems
+    {
+        get
+        {
+            var filtered = _items.AsEnumerable();
+
+            if (_activeQuickFilter?.Predicate != null)
+                filtered = filtered.Where(_activeQuickFilter.Predicate);
+
+            if (!string.IsNullOrEmpty(_searchTerm))
+                filtered = filtered.Where(p => p.MatchesSearchInColumns(_searchTerm,
+                    _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)));
+
+            if (_onlyActive)
+                filtered = filtered.Where(p => p.IsCurrentlyActive);
+
+            return filtered;
+        }
+    }
+
+    private void OnSelectedItemsChanged(HashSet<PromotionDto> items)
+    {
+        _selectedItems = items;
+        StateHasChanged();
+    }
+
+    private void HandleRowClick(TableRowClickEventArgs<PromotionDto> args)
+    {
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"/management/promotions/{args.Item.Id}", "_blank");
+            return;
+        }
+        NavigationManager.NavigateTo($"/management/promotions/{args.Item.Id}");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading promotions page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _isLoadingData = true;
+            var result = await PromotionService.GetPagedAsync(1, 100);
+            _items = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("promotion.loadingError", "Errore nel caricamento delle promozioni: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading promotions");
+        }
+        finally
+        {
+            _isLoadingData = false;
+        }
+    }
+
+    private void HandleQuickFilter(QuickFilter<PromotionDto>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _onlyActive = false;
+        _activeQuickFilter = null;
+        StateHasChanged();
+    }
+
+    private void OnSearchChanged(string term)
+    {
+        _searchTerm = term;
+    }
+
+    private bool HasActiveFilters() =>
+        !string.IsNullOrEmpty(_searchTerm) || _onlyActive || _activeQuickFilter != null;
+
+    private void EditItem(PromotionDto item)
+    {
+        NavigationManager.NavigateTo($"/management/promotions/{item.Id}");
+    }
+
+    private async Task ViewAuditLog(PromotionDto item)
+    {
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "Promotion" },
+            { x => x.EntityId, item.Id },
+            { x => x.EntityName, item.Name }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
+    }
+
+    private async Task DeleteItem(PromotionDto item)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("promotion.confirmDelete",
+            "Sei sicuro di voler eliminare la promozione '{0}'? Questa azione non può essere annullata.", item.Name);
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await PromotionService.DeleteAsync(item.Id);
+                _items.RemoveAll(p => p.Id == item.Id);
+                Snackbar.Add(TranslationService.GetTranslationFormatted("promotion.deleted",
+                    "Promozione '{0}' eliminata con successo.", item.Name), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("promotion.deleteError", "Errore nell'eliminazione della promozione: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting promotion {Id}", item.Id);
+            }
+        }
+    }
+
+    private async Task BulkDelete()
+    {
+        if (_selectedItems.Count == 0) return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("promotion.confirmDeleteMultiple",
+            "Sei sicuro di voler eliminare {0} promozioni selezionate? Questa azione non può essere annullata.", _selectedItems.Count);
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            var deletedCount = 0;
+            var failedCount = 0;
+
+            foreach (var promo in _selectedItems.ToList())
+            {
+                try
+                {
+                    await PromotionService.DeleteAsync(promo.Id);
+                    _items.RemoveAll(p => p.Id == promo.Id);
+                    deletedCount++;
+                }
+                catch (Exception ex)
+                {
+                    failedCount++;
+                    Logger.LogError(ex, "Error deleting promotion {Id} during bulk delete", promo.Id);
+                }
+            }
+
+            _selectedItems.Clear();
+
+            if (deletedCount > 0)
+                Snackbar.Add(TranslationService.GetTranslationFormatted("promotion.bulkDeleted",
+                    "{0} promozioni eliminate con successo.", deletedCount), Severity.Success);
+
+            if (failedCount > 0)
+                Snackbar.Add(TranslationService.GetTranslationFormatted("promotion.bulkDeleteErrors",
+                    "{0} promozioni non eliminabili.", failedCount), Severity.Warning);
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        NavigationManager.NavigateTo("/management/promotions/new");
+    }
+
+    private Color GetPriorityColor(int priority) => priority switch
+    {
+        <= 10 => Color.Error,
+        <= 50 => Color.Warning,
+        _ => Color.Info
+    };
+
+    private async Task ShowLoginDialogAsync()
+    {
+        await AuthenticationDialogService.ShowLoginDialogAsync();
+    }
+}
