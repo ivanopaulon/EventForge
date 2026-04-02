@@ -181,10 +181,12 @@ public interface IDocumentHeaderService
     /// Deletes a document row (soft delete).
     /// </summary>
     /// <param name="rowId">Document row ID</param>
+    /// <param name="currentUser">Current user performing the deletion</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if deleted, false if not found</returns>
     Task<bool> DeleteDocumentRowAsync(
         Guid rowId,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     /// <summary>

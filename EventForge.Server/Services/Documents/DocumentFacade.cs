@@ -545,9 +545,10 @@ public class DocumentFacade : IDocumentFacade
     /// <inheritdoc />
     public async Task<bool> DeleteDocumentRowAsync(
         Guid rowId,
+        string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.DeleteDocumentRowAsync(rowId, cancellationToken);
+        return await _documentHeaderService.DeleteDocumentRowAsync(rowId, currentUser, cancellationToken);
     }
 
     // Document Type operations
