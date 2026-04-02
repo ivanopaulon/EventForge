@@ -533,7 +533,8 @@ namespace EventForge.Tests.Services.Promotions
         public void SerializeAppliedPromotionsJson_WithNullInput_ReturnsNull()
         {
             // Act
-            var result = _promotionService.SerializeAppliedPromotionsJson(null!);
+            IEnumerable<AppliedPromotionDto>? appliedPromotions = null;
+            var result = _promotionService.SerializeAppliedPromotionsJson(appliedPromotions!);
 
             // Assert
             Assert.Null(result);

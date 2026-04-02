@@ -24,7 +24,8 @@ public class AppliedPromotionSnapshot
     public decimal DiscountAmount { get; set; }
 
     /// <summary>
-    /// Percentage discount applied by this promotion, if applicable.
+    /// Percentage discount applied by this promotion.
+    /// <c>null</c> when the promotion is not percentage-based (e.g. fixed-amount discounts).
     /// </summary>
     public decimal? DiscountPercentage { get; set; }
 
