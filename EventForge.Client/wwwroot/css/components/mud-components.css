@@ -174,3 +174,30 @@
     margin: 4px 0 !important;
 }
 
+/* ----------- EFTable – sticky page-level column headers ----------- */
+/*
+ * When EFTable is rendered with StickyHeader="true", the class
+ * "ef-table-sticky-header" is applied to the MudTable wrapper.
+ * thead th elements are made sticky relative to the viewport,
+ * offset by the AppBar height (48px) so they appear just below it.
+ */
+.ef-table-sticky-header .mud-table-head th {
+    position: sticky;
+    top: 48px;
+    z-index: 3;
+    background-color: var(--mud-palette-surface, #fff);
+}
+
+/* Ensure the sticky header is also opaque in dark mode */
+.mud-dark .ef-table-sticky-header .mud-table-head th {
+    background-color: var(--mud-palette-surface, #1e1e1e);
+}
+
+/* ----------- Floating Scroll-to-Top button ----------- */
+.ef-scroll-to-top {
+    position: fixed;
+    bottom: 96px;   /* above the HealthFooter (~80px) with 16px gap */
+    right: 20px;
+    z-index: 1200;
+}
+

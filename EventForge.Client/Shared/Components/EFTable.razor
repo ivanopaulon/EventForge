@@ -84,7 +84,8 @@
           SortLabel="@(TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna"))"
           Breakpoint="@Breakpoint"
           RowsPerPage="@EffectiveRowsPerPage"
-          AllowUnsorted="true">
+          AllowUnsorted="true"
+          Class="@(StickyHeader ? "ef-table-sticky-header" : string.Empty)">
     <ToolBarContent>
         @if (ToolBarContent != null)
         {
@@ -415,6 +416,11 @@
     [Parameter] public bool Striped { get; set; } = true;
     [Parameter] public bool Dense { get; set; } = true;
     [Parameter] public bool FixedHeader { get; set; } = false;
+    /// <summary>
+    /// When true, column headers stick to the top of the viewport (below the AppBar)
+    /// as the user scrolls the page. Does not require a fixed Height on the table.
+    /// </summary>
+    [Parameter] public bool StickyHeader { get; set; } = false;
     [Parameter] public string? Height { get; set; }
     [Parameter] public string? MaxHeight { get; set; }
     [Parameter] public bool IsLoading { get; set; }
