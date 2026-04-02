@@ -1014,6 +1014,11 @@ public class DocumentHeaderService : IDocumentHeaderService
             row.BaseQuantity = updateDto.BaseQuantity;
             row.BaseUnitPrice = updateDto.BaseUnitPrice;
             row.BaseUnitOfMeasureId = updateDto.BaseUnitOfMeasureId;
+            row.IsPriceManual = updateDto.IsPriceManual;
+            row.AppliedPriceListId = updateDto.AppliedPriceListId;
+            row.OriginalPriceFromPriceList = updateDto.OriginalPriceFromPriceList;
+            row.PriceNotes = updateDto.PriceNotes;
+            row.AppliedPromotionsJSON = updateDto.AppliedPromotionsJSON;
             row.ModifiedBy = currentUser;
             row.ModifiedAt = DateTime.UtcNow;
 

@@ -988,6 +988,11 @@ public partial class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<DocumentRow>()
             .HasIndex(dr => dr.AppliedPriceListId)
             .HasDatabaseName("IX_DocumentRows_AppliedPriceListId");
+
+        _ = modelBuilder.Entity<DocumentRow>()
+            .Property(dr => dr.AppliedPromotionsJSON)
+            .HasMaxLength(4000)
+            .IsRequired(false);
     }
 
     /// <summary>

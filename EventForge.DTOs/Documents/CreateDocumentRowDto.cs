@@ -170,5 +170,17 @@ namespace EventForge.DTOs.Documents
         /// Indicates if the price was manually modified by the user.
         /// </summary>
         public bool IsPriceManual { get; set; } = false;
+
+        /// <summary>
+        /// Notes about the price (e.g., 'Manual price agreed with customer').
+        /// </summary>
+        [StringLength(500, ErrorMessage = "Price notes cannot exceed 500 characters.")]
+        public string? PriceNotes { get; set; }
+
+        /// <summary>
+        /// JSON-serialized list of promotions applied to this row (optional, set by promotion engine).
+        /// </summary>
+        [StringLength(4000, ErrorMessage = "Applied promotions JSON cannot exceed 4000 characters.")]
+        public string? AppliedPromotionsJSON { get; set; }
     }
 }

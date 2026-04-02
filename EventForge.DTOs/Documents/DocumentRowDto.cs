@@ -191,5 +191,31 @@ namespace EventForge.DTOs.Documents
         /// Base unit of measure identifier.
         /// </summary>
         public Guid? BaseUnitOfMeasureId { get; set; }
+
+        /// <summary>
+        /// Indicates if the price was manually set by the user.
+        /// </summary>
+        public bool IsPriceManual { get; set; }
+
+        /// <summary>
+        /// ID of the price list from which the price is derived (null if manual).
+        /// </summary>
+        public Guid? AppliedPriceListId { get; set; }
+
+        /// <summary>
+        /// Original price from the price list before any manual modifications.
+        /// </summary>
+        public decimal? OriginalPriceFromPriceList { get; set; }
+
+        /// <summary>
+        /// Notes about the price (e.g., 'Manual price agreed with customer').
+        /// </summary>
+        public string? PriceNotes { get; set; }
+
+        /// <summary>
+        /// JSON-serialized list of promotions applied to this row.
+        /// Null if no promotions were applied.
+        /// </summary>
+        public string? AppliedPromotionsJSON { get; set; }
     }
 }

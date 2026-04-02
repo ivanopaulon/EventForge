@@ -139,6 +139,61 @@ namespace EventForge.Server.Services.PriceLists
             };
         }
 
+        /// <inheritdoc/>
+        public async Task<BatchPriceResolutionResponse> ResolvePricesBatchAsync(
+            BatchPriceResolutionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var response = new BatchPriceResolutionResponse
+            {
+                TotalProcessed = request.Items.Count
+            };
+
+            var tasks = request.Items.Select(async item =>
+            {
+                try
+                {
+                    var result = await ResolvePriceAsync(
+                        item.ProductId,
+                        item.DocumentHeaderId,
+                        item.BusinessPartyId,
+                        item.ForcedPriceListId,
+                        item.Direction,
+                        cancellationToken);
+                    return (item.Key, Result: result, Error: (BatchPriceResolutionError?)null);
+                }
+                catch (Exception ex)
+                {
+                    var error = new BatchPriceResolutionError
+                    {
+                        Key = item.Key,
+                        ProductId = item.ProductId,
+                        ErrorMessage = ex.Message
+                    };
+                    return (item.Key, Result: (PriceResolutionResult?)null, Error: (BatchPriceResolutionError?)error);
+                }
+            });
+
+            var results = await Task.WhenAll(tasks);
+
+            foreach (var (key, result, error) in results)
+            {
+                if (error != null)
+                {
+                    response.Errors.Add(error);
+                }
+                else if (result != null)
+                {
+                    response.Results[key] = result;
+                }
+            }
+
+            response.TotalSucceeded = response.Results.Count;
+            response.TotalFailed = response.Errors.Count;
+
+            return response;
+        }
+
         /// <summary>
         /// Tries to get price from a specific price list
         /// </summary>

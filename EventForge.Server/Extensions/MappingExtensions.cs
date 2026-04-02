@@ -166,7 +166,12 @@ public static class MappingExtensions
             DiscountTotal = entity.DiscountTotal,
             BaseQuantity = entity.BaseQuantity,
             BaseUnitPrice = entity.BaseUnitPrice,
-            BaseUnitOfMeasureId = entity.BaseUnitOfMeasureId
+            BaseUnitOfMeasureId = entity.BaseUnitOfMeasureId,
+            IsPriceManual = entity.IsPriceManual,
+            AppliedPriceListId = entity.AppliedPriceListId,
+            OriginalPriceFromPriceList = entity.OriginalPriceFromPriceList,
+            PriceNotes = entity.PriceNotes,
+            AppliedPromotionsJSON = entity.AppliedPromotionsJSON
         };
     }
 
@@ -203,7 +208,12 @@ public static class MappingExtensions
             StationId = dto.StationId,
             BaseQuantity = dto.BaseQuantity,
             BaseUnitPrice = dto.BaseUnitPrice,
-            BaseUnitOfMeasureId = dto.BaseUnitOfMeasureId
+            BaseUnitOfMeasureId = dto.BaseUnitOfMeasureId,
+            AppliedPriceListId = dto.AppliedPriceListId,
+            OriginalPriceFromPriceList = dto.OriginalPriceFromPriceList,
+            IsPriceManual = dto.IsPriceManual,
+            PriceNotes = dto.PriceNotes,
+            AppliedPromotionsJSON = dto.AppliedPromotionsJSON
         };
     }
 
