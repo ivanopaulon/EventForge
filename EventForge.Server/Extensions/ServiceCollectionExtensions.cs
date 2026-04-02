@@ -339,6 +339,9 @@ public static class ServiceCollectionExtensions
         // Register promotion services
         _ = services.AddScoped<IPromotionService, PromotionService>();
 
+        // Register analytics services
+        _ = services.AddScoped<EventForge.Server.Services.Analytics.IAnalyticsService, EventForge.Server.Services.Analytics.AnalyticsService>();
+
         // Register retail cart session services
         _ = services.AddScoped<IRetailCartSessionService, RetailCartSessionService>();
 
