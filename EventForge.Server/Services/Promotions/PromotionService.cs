@@ -1,6 +1,7 @@
 using EventForge.DTOs.Promotions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.Json;
 
 namespace EventForge.Server.Services.Promotions;
 
@@ -1272,5 +1273,30 @@ public class PromotionService : IPromotionService
             _logger.LogError(ex, "Error incrementing usage for promotion {PromotionId}.", promotionId);
             throw;
         }
+    }
+
+    /// <inheritdoc/>
+    public string? SerializeAppliedPromotionsJson(IEnumerable<AppliedPromotionDto> appliedPromotions)
+    {
+        var list = appliedPromotions?.ToList();
+        if (list == null || list.Count == 0)
+        {
+            return null;
+        }
+
+        var snapshots = list.Select(ap => new AppliedPromotionSnapshot
+        {
+            PromotionId = ap.PromotionId,
+            PromotionName = ap.PromotionName,
+            DiscountAmount = ap.DiscountAmount,
+            DiscountPercentage = ap.DiscountPercentage,
+            PromotionType = ap.RuleType
+        }).ToList();
+
+        return JsonSerializer.Serialize(snapshots, new JsonSerializerOptions
+        {
+            WriteIndented = false,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
     }
 }

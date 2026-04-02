@@ -1,4 +1,7 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Promotions;
+using DtoPromotionRuleType = EventForge.DTOs.Common.PromotionRuleType;
+using EntityPromotionRuleType = EventForge.Server.Data.Entities.Promotions.PromotionRuleType;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Promotions;
 using EventForge.Server.Services.Audit;
@@ -223,7 +226,7 @@ namespace EventForge.Tests.Services.Promotions
                     {
                         Id = ruleId,
                         PromotionId = promotionId,
-                        RuleType = PromotionRuleType.Discount,
+                        RuleType = EntityPromotionRuleType.Discount,
                         DiscountPercentage = 10m,
                         TenantId = _tenantId,
                         IsActive = true
@@ -520,6 +523,131 @@ namespace EventForge.Tests.Services.Promotions
 
             // Assert
             Assert.False(result);
+        }
+
+        #endregion
+
+        #region SerializeAppliedPromotionsJson Tests
+
+        [Fact]
+        public void SerializeAppliedPromotionsJson_WithNullInput_ReturnsNull()
+        {
+            // Act
+            var result = _promotionService.SerializeAppliedPromotionsJson(null!);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void SerializeAppliedPromotionsJson_WithEmptyList_ReturnsNull()
+        {
+            // Act
+            var result = _promotionService.SerializeAppliedPromotionsJson(new List<AppliedPromotionDto>());
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void SerializeAppliedPromotionsJson_WithSinglePromotion_ReturnsValidJson()
+        {
+            // Arrange
+            var appliedPromotions = new List<AppliedPromotionDto>
+            {
+                new AppliedPromotionDto
+                {
+                    PromotionId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    PromotionName = "Summer Sale",
+                    DiscountAmount = 10m,
+                    DiscountPercentage = 20m,
+                    RuleType = DtoPromotionRuleType.Discount
+                }
+            };
+
+            // Act
+            var result = _promotionService.SerializeAppliedPromotionsJson(appliedPromotions);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Contains("promotionId", result);
+            Assert.Contains("Summer Sale", result);
+            Assert.Contains("10", result);
+
+            // Verify it deserializes back correctly
+            var snapshots = System.Text.Json.JsonSerializer.Deserialize<List<AppliedPromotionSnapshot>>(result,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            Assert.NotNull(snapshots);
+            Assert.Single(snapshots);
+            Assert.Equal("Summer Sale", snapshots[0].PromotionName);
+            Assert.Equal(10m, snapshots[0].DiscountAmount);
+            Assert.Equal(20m, snapshots[0].DiscountPercentage);
+            Assert.Equal(DtoPromotionRuleType.Discount, snapshots[0].PromotionType);
+        }
+
+        [Fact]
+        public void SerializeAppliedPromotionsJson_WithMultiplePromotions_SerializesAll()
+        {
+            // Arrange
+            var appliedPromotions = new List<AppliedPromotionDto>
+            {
+                new AppliedPromotionDto
+                {
+                    PromotionId = Guid.NewGuid(),
+                    PromotionName = "Promo A",
+                    DiscountAmount = 5m,
+                    RuleType = DtoPromotionRuleType.CartAmountDiscount
+                },
+                new AppliedPromotionDto
+                {
+                    PromotionId = Guid.NewGuid(),
+                    PromotionName = "Promo B",
+                    DiscountAmount = 15m,
+                    DiscountPercentage = 10m,
+                    RuleType = DtoPromotionRuleType.CategoryDiscount
+                }
+            };
+
+            // Act
+            var result = _promotionService.SerializeAppliedPromotionsJson(appliedPromotions);
+
+            // Assert
+            Assert.NotNull(result);
+            var snapshots = System.Text.Json.JsonSerializer.Deserialize<List<AppliedPromotionSnapshot>>(result,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            Assert.NotNull(snapshots);
+            Assert.Equal(2, snapshots.Count);
+        }
+
+        #endregion
+
+        #region Promotion RowVersion Tests
+
+        [Fact]
+        public async Task Promotion_RowVersion_IsNotNullAfterSave()
+        {
+            // Arrange
+            var promotionId = Guid.NewGuid();
+            var promotion = new EventForge.Server.Data.Entities.Promotions.Promotion
+            {
+                Id = promotionId,
+                Name = "Version Test Promo",
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(10),
+                TenantId = _tenantId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
+            };
+            _context.Promotions.Add(promotion);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var saved = await _context.Promotions.FindAsync(promotionId);
+
+            // Assert: RowVersion is present (may be empty array on InMemory but property exists)
+            Assert.NotNull(saved);
+            Assert.NotNull(saved.RowVersion);
         }
 
         #endregion

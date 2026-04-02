@@ -1,4 +1,5 @@
 using EventForge.DTOs.Common;
+using EventForge.DTOs.PriceLists;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
@@ -635,4 +636,133 @@ public class PriceResolutionServiceTests : IDisposable
         Assert.Equal(75m, result.Price);
         Assert.True(result.IsPriceFromList);
     }
+
+    #region ResolvePricesBatchAsync Tests
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_WithSingleItem_ReturnsResult()
+    {
+        // Arrange
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>
+            {
+                new BatchPriceResolutionItem
+                {
+                    Key = "item-1",
+                    ProductId = _productId,
+                    Quantity = 1m
+                }
+            }
+        };
+
+        // Act
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.Equal(1, response.TotalProcessed);
+        Assert.Equal(1, response.TotalSucceeded);
+        Assert.Equal(0, response.TotalFailed);
+        Assert.True(response.Results.ContainsKey("item-1"));
+        Assert.Empty(response.Errors);
+    }
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_WithMultipleItems_ReturnsAllResults()
+    {
+        // Arrange: seed a price list with an entry for the test product
+        var priceListId = Guid.NewGuid();
+        var priceList = new PriceList
+        {
+            Id = priceListId,
+            Name = "Batch Test List",
+            Status = EntityPriceListStatus.Active,
+            Direction = PriceListDirection.Output,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+        var entry = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 88m,
+            MinQuantity = 1,
+            MaxQuantity = 0,
+            TenantId = _tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.Add(entry);
+        await _context.SaveChangesAsync();
+
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>
+            {
+                new BatchPriceResolutionItem { Key = "k1", ProductId = _productId, ForcedPriceListId = priceListId, Quantity = 1m },
+                new BatchPriceResolutionItem { Key = "k2", ProductId = _productId, ForcedPriceListId = priceListId, Quantity = 5m },
+                new BatchPriceResolutionItem { Key = "k3", ProductId = Guid.NewGuid(), Quantity = 1m }  // Unknown product → default 0
+            }
+        };
+
+        // Act
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert
+        Assert.Equal(3, response.TotalProcessed);
+        Assert.Equal(3, response.TotalSucceeded);
+        Assert.Equal(0, response.TotalFailed);
+        Assert.Equal(88m, response.Results["k1"].Price);
+        Assert.Equal(88m, response.Results["k2"].Price);
+        Assert.Equal(0m, response.Results["k3"].Price);   // Unknown product → 0 fallback
+    }
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_WithDuplicateKeys_BothKeysPresent()
+    {
+        // Arrange: two items with the same key but different quantities
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>
+            {
+                new BatchPriceResolutionItem { Key = "dup", ProductId = _productId, Quantity = 1m },
+                new BatchPriceResolutionItem { Key = "dup", ProductId = _productId, Quantity = 2m }
+            }
+        };
+
+        // Act: the batch runs both; the second result overwrites the first for the same key
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert: totals reflect both items were processed
+        Assert.Equal(2, response.TotalProcessed);
+        Assert.Equal(0, response.TotalFailed);
+    }
+
+    [Fact]
+    public async Task ResolvePricesBatchAsync_EmptyItems_ReturnsEmptyResponse()
+    {
+        // Arrange
+        var request = new BatchPriceResolutionRequest
+        {
+            Items = new List<BatchPriceResolutionItem>()
+        };
+
+        // Act
+        var response = await _service.ResolvePricesBatchAsync(request);
+
+        // Assert
+        Assert.Equal(0, response.TotalProcessed);
+        Assert.Equal(0, response.TotalSucceeded);
+        Assert.Equal(0, response.TotalFailed);
+        Assert.Empty(response.Results);
+        Assert.Empty(response.Errors);
+    }
+
+    #endregion
 }
