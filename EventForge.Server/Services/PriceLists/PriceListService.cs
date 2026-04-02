@@ -304,6 +304,7 @@ public class PriceListService : IPriceListService
         try
         {
             var entries = await _context.PriceListEntries
+                .Include(ple => ple.UnitOfMeasure)
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .OrderBy(ple => ple.ProductId)
                 .ToListAsync(cancellationToken);
@@ -322,6 +323,7 @@ public class PriceListService : IPriceListService
         try
         {
             var entry = await _context.PriceListEntries
+                .Include(ple => ple.UnitOfMeasure)
                 .Where(ple => ple.Id == id && !ple.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -362,6 +364,7 @@ public class PriceListService : IPriceListService
                 IsDiscountable = createPriceListEntryDto.IsDiscountable,
                 MinQuantity = createPriceListEntryDto.MinQuantity,
                 MaxQuantity = createPriceListEntryDto.MaxQuantity,
+                UnitOfMeasureId = createPriceListEntryDto.UnitOfMeasureId,
                 Notes = createPriceListEntryDto.Notes,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
@@ -403,6 +406,7 @@ public class PriceListService : IPriceListService
             }
 
             var entry = await _context.PriceListEntries
+                .Include(ple => ple.UnitOfMeasure)
                 .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
 
             if (entry == null)
@@ -418,6 +422,7 @@ public class PriceListService : IPriceListService
             entry.IsDiscountable = updatePriceListEntryDto.IsDiscountable;
             entry.MinQuantity = updatePriceListEntryDto.MinQuantity;
             entry.MaxQuantity = updatePriceListEntryDto.MaxQuantity;
+            entry.UnitOfMeasureId = updatePriceListEntryDto.UnitOfMeasureId;
             entry.Notes = updatePriceListEntryDto.Notes;
             entry.ModifiedBy = currentUser;
             entry.ModifiedAt = DateTime.UtcNow;
@@ -602,6 +607,8 @@ public class PriceListService : IPriceListService
             IsDiscountable = entry.IsDiscountable,
             MinQuantity = entry.MinQuantity,
             MaxQuantity = entry.MaxQuantity,
+            UnitOfMeasureId = entry.UnitOfMeasureId,
+            UnitOfMeasureName = entry.UnitOfMeasure?.Name,
             Notes = entry.Notes,
             CreatedAt = entry.CreatedAt,
             CreatedBy = entry.CreatedBy,
