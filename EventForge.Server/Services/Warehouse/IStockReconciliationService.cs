@@ -41,4 +41,15 @@ public interface IStockReconciliationService
     Task<byte[]> ExportReconciliationReportAsync(
         StockReconciliationRequestDto request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Rebuilds missing stock movements from approved/closed documents.
+    /// Scans all approved or closed documents and creates stock movements for rows
+    /// that do not yet have a corresponding movement (identified by DocumentRowId).
+    /// If DryRun is true, only previews what would be done without creating movements.
+    /// </summary>
+    Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(
+        RebuildMovementsRequestDto request,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }

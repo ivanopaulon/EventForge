@@ -492,4 +492,250 @@ public class StockReconciliationService : IStockReconciliationService
         _logger.LogWarning("Excel export not yet implemented - returning empty array");
         return Task.FromResult(Array.Empty<byte>());
     }
+
+    public async Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(
+        RebuildMovementsRequestDto request,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        if (request.FromDate.HasValue && request.ToDate.HasValue && request.FromDate > request.ToDate)
+        {
+            throw new ArgumentException("FromDate cannot be after ToDate.");
+        }
+
+        var result = new RebuildMovementsResultDto { IsDryRun = request.DryRun };
+
+        // Build query on DocumentHeaders
+        var headersQuery = _context.DocumentHeaders
+            .AsNoTracking()
+            .Include(dh => dh.DocumentType)
+            .Include(dh => dh.Rows!.Where(r => !r.IsDeleted))
+                .ThenInclude(r => r.Product)
+            .Where(dh => dh.TenantId == currentTenantId.Value
+                      && !dh.IsDeleted
+                      && (dh.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved
+                          || dh.Status == EventForge.DTOs.Common.DocumentStatus.Closed));
+
+        if (request.FromDate.HasValue)
+            headersQuery = headersQuery.Where(dh => dh.Date >= request.FromDate.Value);
+
+        if (request.ToDate.HasValue)
+            headersQuery = headersQuery.Where(dh => dh.Date <= request.ToDate.Value);
+
+        if (request.WarehouseId.HasValue)
+            headersQuery = headersQuery.Where(dh =>
+                dh.SourceWarehouseId == request.WarehouseId.Value ||
+                dh.DestinationWarehouseId == request.WarehouseId.Value);
+
+        if (request.DocumentTypeId.HasValue)
+            headersQuery = headersQuery.Where(dh => dh.DocumentTypeId == request.DocumentTypeId.Value);
+
+        var documentHeaders = await headersQuery.ToListAsync(cancellationToken);
+        result.DocumentsScanned = documentHeaders.Count;
+
+        if (documentHeaders.Count == 0)
+        {
+            return result;
+        }
+
+        // Collect all eligible row IDs up-front to batch the movement-existence check
+        var allEligibleRows = documentHeaders
+            .Where(dh => dh.DocumentType != null && dh.Rows != null)
+            .SelectMany(dh => dh.Rows!.Where(r => !r.IsDeleted && r.ProductId.HasValue))
+            .ToList();
+
+        var allRowIds = allEligibleRows.Select(r => r.Id).ToHashSet();
+
+        // Batch query: which of these rows already have a movement?
+        var rowIdsWithMovement = await _context.StockMovements
+            .AsNoTracking()
+            .Where(sm => sm.DocumentRowId.HasValue && allRowIds.Contains(sm.DocumentRowId!.Value) && !sm.IsDeleted)
+            .Select(sm => sm.DocumentRowId!.Value)
+            .Distinct()
+            .ToHashSetAsync(cancellationToken);
+
+        // Pre-fetch all storage locations for warehouses referenced by these documents
+        var allWarehouseIds = documentHeaders
+            .Where(dh => dh.DocumentType != null)
+            .SelectMany(dh => new[]
+            {
+                dh.SourceWarehouseId,
+                dh.DestinationWarehouseId,
+                dh.DocumentType!.DefaultWarehouseId
+            })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .ToHashSet();
+
+        // Also add row-level warehouse IDs
+        foreach (var row in allEligibleRows)
+        {
+            if (row.SourceWarehouseId.HasValue) allWarehouseIds.Add(row.SourceWarehouseId.Value);
+            if (row.DestinationWarehouseId.HasValue) allWarehouseIds.Add(row.DestinationWarehouseId.Value);
+        }
+
+        // Batch: fetch first storage location per warehouse
+        var storageLocationsByWarehouse = await _context.StorageLocations
+            .AsNoTracking()
+            .Where(sl => allWarehouseIds.Contains(sl.WarehouseId) && !sl.IsDeleted)
+            .GroupBy(sl => sl.WarehouseId)
+            .ToDictionaryAsync(
+                g => g.Key,
+                g => g.First().Id,
+                cancellationToken);
+
+        foreach (var documentHeader in documentHeaders)
+        {
+            if (documentHeader.DocumentType == null || documentHeader.Rows == null)
+                continue;
+
+            var eligibleRows = documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue).ToList();
+
+            foreach (var row in eligibleRows)
+            {
+                result.RowsScanned++;
+
+                // Per-row guard: check if a movement already exists for this row
+                if (rowIdsWithMovement.Contains(row.Id))
+                {
+                    result.RowsAlreadyHadMovement++;
+                    result.Items.Add(new RebuildMovementsRowResultDto
+                    {
+                        DocumentHeaderId = documentHeader.Id,
+                        DocumentNumber = documentHeader.Number,
+                        DocumentRowId = row.Id,
+                        ProductId = row.ProductId,
+                        ProductName = row.Product?.Name,
+                        Quantity = row.BaseQuantity ?? row.Quantity,
+                        Status = "AlreadyExists"
+                    });
+                    continue;
+                }
+
+                bool isInbound = documentHeader.DocumentType.IsStockIncrease;
+
+                // Determine storage location ID
+                Guid? storageLocationId = null;
+
+                if (row.LocationId.HasValue)
+                {
+                    // Row has an explicit storage location
+                    storageLocationId = row.LocationId.Value;
+                }
+                else
+                {
+                    // Determine warehouse ID, then find first storage location in it (from pre-fetched cache)
+                    Guid? warehouseId = isInbound
+                        ? row.DestinationWarehouseId ?? documentHeader.DestinationWarehouseId ?? documentHeader.DocumentType.DefaultWarehouseId
+                        : row.SourceWarehouseId ?? documentHeader.SourceWarehouseId ?? documentHeader.DocumentType.DefaultWarehouseId;
+
+                    if (warehouseId.HasValue && storageLocationsByWarehouse.TryGetValue(warehouseId.Value, out var locId))
+                    {
+                        storageLocationId = locId;
+                    }
+                }
+
+                if (!storageLocationId.HasValue)
+                {
+                    result.RowsSkippedNoLocation++;
+                    result.Items.Add(new RebuildMovementsRowResultDto
+                    {
+                        DocumentHeaderId = documentHeader.Id,
+                        DocumentNumber = documentHeader.Number,
+                        DocumentRowId = row.Id,
+                        ProductId = row.ProductId,
+                        ProductName = row.Product?.Name,
+                        Quantity = row.BaseQuantity ?? row.Quantity,
+                        Status = "SkippedNoLocation"
+                    });
+                    continue;
+                }
+
+                var quantity = row.BaseQuantity ?? row.Quantity;
+                var movementDate = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
+
+                if (!request.DryRun)
+                {
+                    try
+                    {
+                        if (isInbound)
+                        {
+                            await _stockMovementService.ProcessInboundMovementAsync(
+                                productId: row.ProductId!.Value,
+                                toLocationId: storageLocationId.Value,
+                                quantity: quantity,
+                                lotId: null,
+                                serialId: null,
+                                documentHeaderId: documentHeader.Id,
+                                documentRowId: row.Id,
+                                notes: $"Rebuilt missing movement for document {documentHeader.Number} row {row.Id}",
+                                currentUser: currentUser,
+                                movementDate: movementDate,
+                                cancellationToken: cancellationToken);
+                        }
+                        else
+                        {
+                            await _stockMovementService.ProcessOutboundMovementAsync(
+                                productId: row.ProductId!.Value,
+                                fromLocationId: storageLocationId.Value,
+                                quantity: quantity,
+                                lotId: null,
+                                serialId: null,
+                                documentHeaderId: documentHeader.Id,
+                                documentRowId: row.Id,
+                                notes: $"Rebuilt missing movement for document {documentHeader.Number} row {row.Id}",
+                                currentUser: currentUser,
+                                movementDate: movementDate,
+                                cancellationToken: cancellationToken);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error creating rebuilt movement for document {DocumentId} row {RowId}",
+                            documentHeader.Id, row.Id);
+                        result.Errors++;
+                        result.Items.Add(new RebuildMovementsRowResultDto
+                        {
+                            DocumentHeaderId = documentHeader.Id,
+                            DocumentNumber = documentHeader.Number,
+                            DocumentRowId = row.Id,
+                            ProductId = row.ProductId,
+                            ProductName = row.Product?.Name,
+                            Quantity = quantity,
+                            Status = "Error",
+                            ErrorMessage = ex.Message,
+                            MovementType = isInbound ? "Inbound" : "Outbound"
+                        });
+                        continue;
+                    }
+                }
+
+                result.MovementsCreated++;
+                result.Items.Add(new RebuildMovementsRowResultDto
+                {
+                    DocumentHeaderId = documentHeader.Id,
+                    DocumentNumber = documentHeader.Number,
+                    DocumentRowId = row.Id,
+                    ProductId = row.ProductId,
+                    ProductName = row.Product?.Name,
+                    Quantity = quantity,
+                    Status = "Created",
+                    MovementType = isInbound ? "Inbound" : "Outbound"
+                });
+            }
+        }
+
+        _logger.LogInformation(
+            "RebuildMissingMovements: scanned {docs} documents, {rows} rows. Created: {created}, AlreadyExists: {exists}, SkippedNoLocation: {skipped}, Errors: {errors}. DryRun={dryRun}",
+            result.DocumentsScanned, result.RowsScanned, result.MovementsCreated,
+            result.RowsAlreadyHadMovement, result.RowsSkippedNoLocation, result.Errors, result.IsDryRun);
+
+        return result;
+    }
 }

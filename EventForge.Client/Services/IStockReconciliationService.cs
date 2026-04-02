@@ -21,4 +21,16 @@ public interface IStockReconciliationService
     /// Exports stock reconciliation data to Excel format.
     /// </summary>
     Task<byte[]?> ExportReconciliationAsync(StockReconciliationRequestDto request);
+
+    /// <summary>
+    /// Previews which stock movements would be rebuilt from approved/closed documents (dry-run).
+    /// Does NOT create any movements.
+    /// </summary>
+    Task<RebuildMovementsResultDto?> RebuildMovementsPreviewAsync(RebuildMovementsRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Rebuilds missing stock movements from approved/closed documents.
+    /// Creates stock movements for document rows that do not yet have a corresponding movement.
+    /// </summary>
+    Task<RebuildMovementsResultDto?> RebuildMovementsExecuteAsync(RebuildMovementsRequestDto request, CancellationToken cancellationToken = default);
 }

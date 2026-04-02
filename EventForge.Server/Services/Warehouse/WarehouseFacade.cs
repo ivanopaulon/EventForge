@@ -250,6 +250,9 @@ public class WarehouseFacade : IWarehouseFacade
     public Task<StockReconciliationResultDto> CalculateReconciledStockAsync(StockReconciliationRequestDto request, CancellationToken cancellationToken = default)
         => _stockReconciliationService.CalculateReconciledStockAsync(request, cancellationToken);
 
+    public Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(RebuildMovementsRequestDto request, string currentUser, CancellationToken cancellationToken = default)
+        => _stockReconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, currentUser, cancellationToken);
+
     #endregion
 
     #region Export Operations

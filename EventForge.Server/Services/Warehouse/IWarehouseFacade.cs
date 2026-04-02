@@ -586,6 +586,15 @@ public interface IWarehouseFacade
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
     Task<StockReconciliationResultDto> CalculateReconciledStockAsync(StockReconciliationRequestDto request, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Rebuilds missing stock movements from approved/closed documents.
+    /// </summary>
+    /// <param name="request">Rebuild request parameters</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>Result with counts of created, skipped, and failed movements</returns>
+    Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(RebuildMovementsRequestDto request, string currentUser, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Export Operations

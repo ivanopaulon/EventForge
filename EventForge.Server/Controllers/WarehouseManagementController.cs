@@ -3437,13 +3437,80 @@ public class WarehouseManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Previews which stock movements would be rebuilt from approved/closed documents (dry-run).
+    /// Does NOT create any movements - returns a preview of what would be created.
+    /// </summary>
+    /// <param name="request">Rebuild request with optional filters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Preview result showing rows that would have movements created</returns>
+    [HttpPost("stock-reconciliation/rebuild-movements/preview")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(RebuildMovementsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RebuildMovementsPreview(
+        [FromBody] RebuildMovementsRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            request.DryRun = true; // force dry-run for preview
+            var result = await _warehouseFacade.RebuildMissingMovementsFromDocumentsAsync(
+                request, GetCurrentUser(), cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error previewing rebuild of missing stock movements");
+            return CreateInternalServerErrorProblem("An error occurred while previewing stock movement rebuild.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds missing stock movements from approved/closed documents.
+    /// Creates stock movements for document rows that do not yet have a corresponding movement.
+    /// </summary>
+    /// <param name="request">Rebuild request with optional filters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result showing created, skipped, and failed movements</returns>
+    [HttpPost("stock-reconciliation/rebuild-movements/execute")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(RebuildMovementsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RebuildMovementsExecute(
+        [FromBody] RebuildMovementsRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            request.DryRun = false; // force execute
+            var result = await _warehouseFacade.RebuildMissingMovementsFromDocumentsAsync(
+                request, GetCurrentUser(), cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error executing rebuild of missing stock movements");
+            return CreateInternalServerErrorProblem("An error occurred while executing stock movement rebuild.", ex);
+        }
+    }
+
     #endregion
 
     #region Export Operations
 
     /// <summary>
     /// Export all warehouses to Excel or CSV (Admin/SuperAdmin only)
-    /// </summary>
     /// <param name="format">Export format: excel or csv (default: excel)</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>File download (Excel or CSV)</returns>

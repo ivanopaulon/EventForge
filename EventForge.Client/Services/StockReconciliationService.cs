@@ -80,4 +80,32 @@ public class StockReconciliationService : IStockReconciliationService
             return null;
         }
     }
+
+    public async Task<RebuildMovementsResultDto?> RebuildMovementsPreviewAsync(RebuildMovementsRequestDto request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
+                $"{BaseUrl}/rebuild-movements/preview", request);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error previewing rebuild of missing stock movements");
+            return null;
+        }
+    }
+
+    public async Task<RebuildMovementsResultDto?> RebuildMovementsExecuteAsync(RebuildMovementsRequestDto request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
+                $"{BaseUrl}/rebuild-movements/execute", request);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error executing rebuild of missing stock movements");
+            return null;
+        }
+    }
 }
