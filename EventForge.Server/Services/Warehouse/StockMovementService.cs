@@ -261,7 +261,14 @@ public class StockMovementService : IStockMovementService
         _ = await _auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Created", "Create",
             null, $"Created stock movement: {movement.MovementType}", currentUser);
 
-        return (await GetMovementByIdAsync(movement.Id, cancellationToken))!;
+        // Load navigation properties needed for DTO mapping
+        await _context.Entry(movement).Reference(m => m.Product).LoadAsync(cancellationToken);
+        await _context.Entry(movement).Reference(m => m.Lot).LoadAsync(cancellationToken);
+        await _context.Entry(movement).Reference(m => m.Serial).LoadAsync(cancellationToken);
+        await _context.Entry(movement).Reference(m => m.FromLocation).LoadAsync(cancellationToken);
+        await _context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
+
+        return movement.ToStockMovementDto();
     }
 
     public async Task<IEnumerable<StockMovementDto>> CreateMovementsBatchAsync(
@@ -437,9 +444,16 @@ public class StockMovementService : IStockMovementService
             throw new InvalidOperationException($"Stock movement {movementId} not found");
         }
 
+        var reversedMovementType = originalMovement.MovementType switch
+        {
+            StockMovementType.Inbound => StockMovementType.Outbound,
+            StockMovementType.Outbound => StockMovementType.Inbound,
+            _ => originalMovement.MovementType // Transfer, Adjustment unchanged
+        };
+
         var reverseDto = new CreateStockMovementDto
         {
-            MovementType = originalMovement.MovementType.ToString(),
+            MovementType = reversedMovementType.ToString(),
             ProductId = originalMovement.ProductId,
             FromLocationId = originalMovement.ToLocationId,
             ToLocationId = originalMovement.FromLocationId,
@@ -593,7 +607,14 @@ public class StockMovementService : IStockMovementService
         _ = await _auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Status", "Execute",
             "Planned", "Completed", currentUser);
 
-        return (await GetMovementByIdAsync(movement.Id, cancellationToken))!;
+        // Load navigation properties needed for DTO mapping
+        await _context.Entry(movement).Reference(m => m.Product).LoadAsync(cancellationToken);
+        await _context.Entry(movement).Reference(m => m.Lot).LoadAsync(cancellationToken);
+        await _context.Entry(movement).Reference(m => m.Serial).LoadAsync(cancellationToken);
+        await _context.Entry(movement).Reference(m => m.FromLocation).LoadAsync(cancellationToken);
+        await _context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
+
+        return movement.ToStockMovementDto();
     }
 
     private async Task UpdateStockLevelsForMovementAsync(StockMovement movement, CancellationToken cancellationToken)
@@ -611,12 +632,18 @@ public class StockMovementService : IStockMovementService
                                        && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
                                      cancellationToken);
 
-            if (stock != null)
+            if (stock == null)
             {
-                stock.Quantity -= movement.Quantity;
-                stock.LastMovementDate = DateTime.UtcNow;
-                stock.ModifiedAt = DateTime.UtcNow;
+                _logger.LogWarning(
+                    "No stock record found for product {ProductId} at location {LocationId} during {MovementType} movement. Cannot process movement.",
+                    movement.ProductId, movement.FromLocationId.Value, movement.MovementType);
+                throw new InvalidOperationException(
+                    $"No stock record found for product {movement.ProductId} at location {movement.FromLocationId.Value}. Cannot process {movement.MovementType} movement.");
             }
+
+            stock.Quantity -= movement.Quantity;
+            stock.LastMovementDate = DateTime.UtcNow;
+            stock.ModifiedAt = DateTime.UtcNow;
         }
 
         // For inbound or transfer to, increase stock at destination location
