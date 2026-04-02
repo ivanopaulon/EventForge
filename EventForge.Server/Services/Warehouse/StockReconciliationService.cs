@@ -511,6 +511,15 @@ public class StockReconciliationService : IStockReconciliationService
 
         var result = new RebuildMovementsResultDto { IsDryRun = request.DryRun };
 
+        // Resolve effective status filters (defaults: Approved, Closed)
+        var approvalStatusFilter = (request.ApprovalStatuses != null && request.ApprovalStatuses.Count > 0)
+            ? request.ApprovalStatuses.Select(v => (Data.Entities.Documents.ApprovalStatus)v).ToList()
+            : new List<Data.Entities.Documents.ApprovalStatus> { Data.Entities.Documents.ApprovalStatus.Approved };
+
+        var documentStatusFilter = (request.DocumentStatuses != null && request.DocumentStatuses.Count > 0)
+            ? request.DocumentStatuses.Select(v => (EventForge.DTOs.Common.DocumentStatus)v).ToList()
+            : new List<EventForge.DTOs.Common.DocumentStatus> { EventForge.DTOs.Common.DocumentStatus.Closed };
+
         // Build query on DocumentHeaders
         var headersQuery = _context.DocumentHeaders
             .AsNoTracking()
@@ -519,8 +528,8 @@ public class StockReconciliationService : IStockReconciliationService
                 .ThenInclude(r => r.Product)
             .Where(dh => dh.TenantId == currentTenantId.Value
                       && !dh.IsDeleted
-                      && (dh.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved
-                          || dh.Status == EventForge.DTOs.Common.DocumentStatus.Closed));
+                      && (approvalStatusFilter.Contains(dh.ApprovalStatus)
+                          || documentStatusFilter.Contains(dh.Status)));
 
         if (request.FromDate.HasValue)
             headersQuery = headersQuery.Where(dh => dh.Date >= request.FromDate.Value);
@@ -677,7 +686,7 @@ public class StockReconciliationService : IStockReconciliationService
                                 notes: $"Rebuilt missing movement for document {documentHeader.Number} row {row.Id}",
                                 currentUser: currentUser,
                                 movementDate: movementDate,
-                                cancellationToken: cancellationToken);
+                                cancellationToken: CancellationToken.None);
                         }
                         else
                         {
@@ -692,7 +701,7 @@ public class StockReconciliationService : IStockReconciliationService
                                 notes: $"Rebuilt missing movement for document {documentHeader.Number} row {row.Id}",
                                 currentUser: currentUser,
                                 movementDate: movementDate,
-                                cancellationToken: cancellationToken);
+                                cancellationToken: CancellationToken.None);
                         }
                     }
                     catch (Exception ex)

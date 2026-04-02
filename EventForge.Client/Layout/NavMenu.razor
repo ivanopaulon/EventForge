@@ -68,16 +68,10 @@
                                  Icon="@Icons.Material.Outlined.Inventory2" 
                                  Expanded="false">
                         
-                        <MudNavLink Href="/warehouse/stock-overview" 
+                        <MudNavLink Href="/warehouse/stock-management" 
                                     Icon="@Icons.Material.Outlined.TableChart" 
                                     Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.stockOverview", "Situazione Giacenze")
-                        </MudNavLink>
-                        
-                        <MudNavLink Href="/warehouse/stock-reconciliation" 
-                                    Icon="@Icons.Material.Outlined.FactCheck" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.stockReconciliation", "Riconciliazione Giacenze")
+                            @TranslationService.GetTranslation("nav.stockManagement.unified", "Gestione Giacenze")
                         </MudNavLink>
                         
                         <MudNavLink Href="/warehouse/lot-management" 

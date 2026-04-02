@@ -16,6 +16,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<StockReconciliation> Logger
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
 <PageLoadingOverlay Visible="_isLoading"
                     Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...")" />
@@ -478,6 +479,34 @@
                                     }
                                 </MudSelect>
                             </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="int"
+                                           MultiSelection="true"
+                                           @bind-SelectedValues="_rebuildApprovalStatuses"
+                                           Label="@TranslationService.GetTranslation("field.approvalStatus", "Stato approvazione")"
+                                           Variant="Variant.Outlined"
+                                           AdornmentIcon="@Icons.Material.Outlined.Approval"
+                                           Adornment="Adornment.Start">
+                                    <MudSelectItem T="int" Value="0">@TranslationService.GetTranslation("approvalStatus.none", "Nessuno")</MudSelectItem>
+                                    <MudSelectItem T="int" Value="1">@TranslationService.GetTranslation("approvalStatus.pending", "In attesa")</MudSelectItem>
+                                    <MudSelectItem T="int" Value="2">@TranslationService.GetTranslation("approvalStatus.approved", "Approvato")</MudSelectItem>
+                                    <MudSelectItem T="int" Value="3">@TranslationService.GetTranslation("approvalStatus.rejected", "Rifiutato")</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="int"
+                                           MultiSelection="true"
+                                           @bind-SelectedValues="_rebuildDocumentStatuses"
+                                           Label="@TranslationService.GetTranslation("field.documentStatus", "Stato documento")"
+                                           Variant="Variant.Outlined"
+                                           AdornmentIcon="@Icons.Material.Outlined.Description"
+                                           Adornment="Adornment.Start">
+                                    <MudSelectItem T="int" Value="0">@TranslationService.GetTranslation("documentStatus.draft", "Bozza")</MudSelectItem>
+                                    <MudSelectItem T="int" Value="1">@TranslationService.GetTranslation("documentStatus.open", "Aperto")</MudSelectItem>
+                                    <MudSelectItem T="int" Value="2">@TranslationService.GetTranslation("documentStatus.closed", "Chiuso")</MudSelectItem>
+                                    <MudSelectItem T="int" Value="3">@TranslationService.GetTranslation("documentStatus.cancelled", "Annullato")</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
                         </MudGrid>
 
                         @* Action Buttons *@
@@ -639,6 +668,12 @@
     private bool _isExporting = false;
     private bool _isLoadingLocations = false;
 
+    /// <summary>
+    /// When true the component is embedded inside another page (e.g. StockManagement tabs)
+    /// and should not redirect on initialisation.
+    /// </summary>
+    [Parameter] public bool IsEmbedded { get; set; }
+
     // Filters
     private DateTime? _fromDate = null;
     private DateTime? _toDate = null;
@@ -662,6 +697,8 @@
     private DateTime? _rebuildToDate = null;
     private Guid? _rebuildWarehouseId = null;
     private Guid? _rebuildDocumentTypeId = null;
+    private IReadOnlyCollection<int> _rebuildApprovalStatuses = new List<int> { 2 }; // Default: Approved
+    private IReadOnlyCollection<int> _rebuildDocumentStatuses = new List<int> { 2 }; // Default: Closed
     private bool _isRebuildingPreview = false;
     private bool _isRebuildingExecute = false;
     private RebuildMovementsResultDto? _rebuildResult = null;
@@ -669,6 +706,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!IsEmbedded)
+        {
+            NavigationManager.NavigateTo("/warehouse/stock-management/reconciliation", replace: true);
+            return;
+        }
+
         try
         {
             // Preload dates: start of current year and today
@@ -1049,6 +1092,8 @@
                 ToDate = _rebuildToDate,
                 WarehouseId = _rebuildWarehouseId,
                 DocumentTypeId = _rebuildDocumentTypeId,
+                ApprovalStatuses = _rebuildApprovalStatuses.ToList(),
+                DocumentStatuses = _rebuildDocumentStatuses.ToList(),
                 DryRun = true
             };
 
@@ -1105,6 +1150,8 @@
                 ToDate = _rebuildToDate,
                 WarehouseId = _rebuildWarehouseId,
                 DocumentTypeId = _rebuildDocumentTypeId,
+                ApprovalStatuses = _rebuildApprovalStatuses.ToList(),
+                DocumentStatuses = _rebuildDocumentStatuses.ToList(),
                 DryRun = false
             };
 

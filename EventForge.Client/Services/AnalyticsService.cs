@@ -75,8 +75,8 @@ public class AnalyticsService : IAnalyticsService
         if (filter.DateTo.HasValue)
             queryParams.Add($"dateTo={filter.DateTo.Value:yyyy-MM-dd}");
 
-        if (filter.Top.HasValue)
-            queryParams.Add($"top={filter.Top.Value}");
+        if (filter.Top > 0)
+            queryParams.Add($"top={filter.Top}");
 
         if (!string.IsNullOrWhiteSpace(filter.GroupBy))
             queryParams.Add($"groupBy={filter.GroupBy}");

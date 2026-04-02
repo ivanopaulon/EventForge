@@ -18,3 +18,4 @@ public class AnalyticsFilterDto
     /// <summary>Grouping granularity: "day", "week", or "month" (default: "month").</summary>
     public string? GroupBy { get; set; } = "month";
 }
+}
