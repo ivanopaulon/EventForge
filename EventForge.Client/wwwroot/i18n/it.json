@@ -2488,7 +2488,9 @@
   },
   "nav": {
     "stockManagement": "Giacenze",
-    "stockReconciliation": "Riconciliazione Giacenze"
+    "stockReconciliation": "Riconciliazione Giacenze",
+    "registries": "Anagrafiche",
+    "commercial": "Commerciale"
   },
   "tour": {
     "chat": "Tour Chat",

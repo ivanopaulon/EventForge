@@ -2485,7 +2485,9 @@
   },
   "nav": {
     "stockManagement": "Stock",
-    "stockReconciliation": "Stock Reconciliation"
+    "stockReconciliation": "Stock Reconciliation",
+    "registries": "Registries",
+    "commercial": "Commercial"
   },
   "tour": {
     "chat": "Chat Tour",
