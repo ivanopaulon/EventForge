@@ -1,0 +1,445 @@
+@namespace EventForge.Client.Shared.Components
+@using EventForge.DTOs.Auth
+@using EventForge.DTOs.Tenants
+@using MudBlazor
+@inject IAuthService AuthService
+@inject IAuthenticationDialogService AuthDialogService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+@if (_isVisible)
+{
+    <MudOverlay Visible="_isVisible" DarkBackground="true" AutoClose="false"
+                Style="backdrop-filter: blur(3px);">
+        <div class="lov-card">
+            <!-- Status bar on top: color changes based on state -->
+            <div class="lov-status-bar" style="background: @_statusBarColor;"></div>
+
+            <div class="lov-body">
+                <!-- Left: logo with pulse animation -->
+                <div class="lov-logo-col">
+                    <img src="trace.svg" width="96" height="96"
+                         class="lov-logo anim-pulse" alt="EventForge logo" />
+                </div>
+
+                <!-- Right: title + form content -->
+                <div class="lov-content-col">
+                    <div class="lov-title">EventForge</div>
+                    <div class="lov-divider"></div>
+
+                    @if (_isLoadingTenants)
+                    {
+                        <!-- Tenant loading state -->
+                        <PageLoadingOverlay Visible="true"
+                                            Message="@TranslationService.GetTranslation("auth.connectingToServer", "Connessione al server...")"
+                                            ShowProgressLog="true"
+                                            ProgressMessages="@_tenantLoadMessages"
+                                            ProgressIntervalMs="1500" />
+                    }
+                    else if (_isChangePasswordMode)
+                    {
+                        <!-- Change password inline -->
+                        <ChangePasswordForm IsMandatory="_changePasswordIsMandatory"
+                                            OnCompleted="HandlePasswordChangeCompleted"
+                                            OnCancelled="HandlePasswordChangeCancelled" />
+                    }
+                    else
+                    {
+                        <!-- Login form -->
+                        <MudForm @ref="form" @bind-IsValid="@_isFormValid">
+                            <MudStack Spacing="3" Class="mt-2">
+                                @if (_tenants?.Any() == true)
+                                {
+                                    <MudSelect T="string" @bind-Value="_selectedTenantId"
+                                               Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
+                                               Variant="Variant.Outlined"
+                                               Required="true"
+                                               Dense="true"
+                                               Disabled="_isLoading">
+                                        @foreach (var t in _tenants)
+                                        {
+                                            <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                }
+                                else
+                                {
+                                    <MudAlert Severity="Severity.Warning">
+                                        @TranslationService.GetTranslation("auth.noTenantsAvailable", "Nessun tenant disponibile. Contatta l'amministratore.")
+                                    </MudAlert>
+                                }
+                                <MudTextField @bind-Value="_loginRequest.Username"
+                                              Label="@TranslationService.GetTranslation("auth.username", "Username")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              Disabled="_isLoading"
+                                              autocomplete="username"
+                                              InputType="InputType.Text"
+                                              Margin="Margin.Dense" />
+                                <MudTextField @bind-Value="_loginRequest.Password"
+                                              Label="@TranslationService.GetTranslation("auth.password", "Password")"
+                                              Variant="Variant.Outlined"
+                                              InputType="@_passwordInputType"
+                                              Required="true"
+                                              Disabled="_isLoading"
+                                              autocomplete="current-password"
+                                              Margin="Margin.Dense"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="@_passwordVisibilityIcon"
+                                              OnAdornmentClick="TogglePasswordVisibility" />
+                                <MudCheckBox T="bool" @bind-Value="_loginRequest.RememberMe"
+                                             Label="@TranslationService.GetTranslation("auth.rememberMe", "Ricordami")"
+                                             Disabled="_isLoading" />
+                            </MudStack>
+                        </MudForm>
+
+                        <MudStack Row="true" Spacing="2" Class="mt-4">
+                            <MudButton Variant="Variant.Text" Color="Color.Default"
+                                       OnClick="Cancel" Disabled="_isLoading">
+                                @TranslationService.GetTranslation("common.cancel", "Annulla")
+                            </MudButton>
+                            <MudSpacer />
+                            <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                                       OnClick="OpenChangePasswordInline" Disabled="_isLoading">
+                                @TranslationService.GetTranslation("auth.changePassword", "Cambia Password")
+                            </MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       OnClick="HandleLogin"
+                                       Disabled="@(!_isFormValid || _isLoading || _tenants?.Any() != true)">
+                                @TranslationService.GetTranslation("auth.login", "Accedi")
+                            </MudButton>
+                        </MudStack>
+                    }
+                </div>
+            </div>
+        </div>
+    </MudOverlay>
+}
+
+@code {
+    private bool _isVisible = false;
+    private bool _isFormValid = false;
+    private bool _isLoading = false;
+    private bool _isLoadingTenants = false;
+    private bool _isChangePasswordMode = false;
+    private bool _changePasswordIsMandatory = false;
+    private MudForm form = null!;
+    private readonly LoginRequestDto _loginRequest = new();
+    private List<TenantResponseDto> _tenants = new();
+    private string? _selectedTenantId;
+    private bool _passwordVisible = false;
+    private InputType _passwordInputType = InputType.Password;
+    private string _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
+    private TaskCompletionSource<bool>? _currentTcs;
+    private string _statusBarColor = "var(--mud-palette-primary)";
+    private const string SuccessStatusColor = "#66bb6a";
+
+    private static readonly IReadOnlyList<string> _tenantLoadMessages = new[]
+    {
+        "Connessione al server...",
+        "Recupero tenant disponibili...",
+        "Inizializzazione sessione..."
+    };
+
+    protected override void OnInitialized()
+    {
+        AuthDialogService.LoginRequested += OnLoginRequested;
+    }
+
+    private async Task OnLoginRequested(TaskCompletionSource<bool> tcs)
+    {
+        _currentTcs = tcs;
+        _isVisible = true;
+        _statusBarColor = "var(--mud-palette-primary)";
+        await InvokeAsync(StateHasChanged);
+        await LoadTenantsAsync();
+    }
+
+    private async Task LoadTenantsAsync()
+    {
+        _isLoadingTenants = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _tenants = (await AuthService.GetAvailableTenantsAsync()).ToList();
+            if (_tenants.Any())
+                _selectedTenantId ??= _tenants.First().Id.ToString();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.tenantsLoadError",
+                    "Errore nel caricamento dei tenant: {0}", ex.Message),
+                Severity.Error);
+            _tenants = new List<TenantResponseDto>();
+        }
+        finally
+        {
+            _isLoadingTenants = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        await form.Validate();
+        if (!_isFormValid) return;
+
+        if (string.IsNullOrWhiteSpace(_selectedTenantId))
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"),
+                Severity.Warning);
+            return;
+        }
+
+        _loginRequest.TenantCode = _selectedTenantId;
+        _isLoading = true;
+        _statusBarColor = "var(--mud-palette-primary)";
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await AuthService.LoginAsync(_loginRequest);
+            if (result != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("auth.loginSuccess", "Login effettuato con successo!"),
+                    Severity.Success);
+
+                if (result.MustChangePassword)
+                {
+                    HandleMustChangePassword();
+                }
+                else
+                {
+                    _statusBarColor = SuccessStatusColor; // green
+                    CloseOverlay(true);
+                }
+            }
+            else
+            {
+                _statusBarColor = "var(--mud-palette-error)";
+                Snackbar.Add(
+                    TranslationService.GetTranslation("auth.loginFailed", "Login fallito. Verifica le credenziali."),
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _statusBarColor = "var(--mud-palette-error)";
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.loginError", "Errore durante il login: {0}", ex.Message),
+                Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void HandleMustChangePassword()
+    {
+        _isChangePasswordMode = true;
+        _changePasswordIsMandatory = true;
+        _isLoading = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OpenChangePasswordInline()
+    {
+        _isChangePasswordMode = true;
+        _changePasswordIsMandatory = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandlePasswordChangeCompleted()
+    {
+        if (_changePasswordIsMandatory)
+        {
+            _statusBarColor = SuccessStatusColor;
+            CloseOverlay(true);
+        }
+        else
+        {
+            _isChangePasswordMode = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandlePasswordChangeCancelled()
+    {
+        if (_changePasswordIsMandatory)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("auth.passwordChangeRequired",
+                    "Cambio password obbligatorio. Effettua il logout."),
+                Severity.Warning);
+            await AuthService.LogoutAsync();
+            CloseOverlay(false);
+        }
+        else
+        {
+            _isChangePasswordMode = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Cancel()
+    {
+        CloseOverlay(false);
+    }
+
+    private void CloseOverlay(bool success)
+    {
+        _isVisible = false;
+        _isLoading = false;
+        _isLoadingTenants = false;
+        _isChangePasswordMode = false;
+        _isFormValid = false;
+        _loginRequest.Username = string.Empty;
+        _loginRequest.Password = string.Empty;
+        _selectedTenantId = null;
+        var tcs = _currentTcs;
+        _currentTcs = null;
+        InvokeAsync(StateHasChanged);
+        tcs?.SetResult(success);
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        if (_passwordVisible)
+        {
+            _passwordVisible = false;
+            _passwordInputType = InputType.Password;
+            _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
+        }
+        else
+        {
+            _passwordVisible = true;
+            _passwordInputType = InputType.Text;
+            _passwordVisibilityIcon = Icons.Material.Filled.Visibility;
+        }
+    }
+
+    public void Dispose()
+    {
+        AuthDialogService.LoginRequested -= OnLoginRequested;
+    }
+}
+
+<style>
+    .lov-card {
+        background: rgba(18, 18, 32, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        min-width: 340px;
+        max-width: 560px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .lov-status-bar {
+        height: 3px;
+        transition: background 0.4s ease;
+    }
+
+    .lov-body {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 20px 24px 20px 20px;
+    }
+
+    .lov-logo-col {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-top: 4px;
+    }
+
+    .lov-logo {
+        display: block;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+    }
+
+    .lov-content-col {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .lov-title {
+        color: white;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        line-height: 1.2;
+    }
+
+    .lov-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 2px 0 8px 0;
+    }
+
+    /* MudBlazor overrides inside overlay for dark background */
+    .lov-content-col .mud-input-label,
+    .lov-content-col .mud-input-outlined label {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .lov-content-col .mud-input-outlined .mud-input-outlined-border {
+        border-color: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .lov-content-col .mud-input-outlined input,
+    .lov-content-col .mud-input-outlined textarea {
+        color: white !important;
+    }
+
+    /* Pulse animation (same as plo) */
+    .anim-pulse {
+        animation: lov-pulse 1.8s infinite ease-in-out;
+    }
+
+    @@keyframes lov-pulse {
+        0%   { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
+        50%  { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(100, 160, 255, 0.6)); }
+        100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
+    }
+
+    /* Mobile */
+    @@media (max-width: 480px) {
+        .lov-card {
+            min-width: unset;
+            max-width: 92vw;
+            width: 92vw;
+        }
+
+        .lov-body {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+            padding: 16px;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .anim-pulse {
+            animation: none !important;
+        }
+    }
+</style>

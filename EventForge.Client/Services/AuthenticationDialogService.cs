@@ -1,5 +1,3 @@
-using MudBlazor;
-
 namespace EventForge.Client.Services;
 
 /// <summary>
@@ -7,27 +5,17 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class AuthenticationDialogService : IAuthenticationDialogService
 {
-    private readonly IDialogService _dialogService;
-
-    public AuthenticationDialogService(IDialogService dialogService)
-    {
-        _dialogService = dialogService;
-    }
+    public event Func<TaskCompletionSource<bool>, Task>? LoginRequested;
 
     public async Task<bool> ShowLoginDialogAsync()
     {
-        var options = new DialogOptions
-        {
-            CloseButton = false,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true,
-            BackdropClick = false,
-            NoHeader = false
-        };
+        var tcs = new TaskCompletionSource<bool>();
 
-        var dialog = await _dialogService.ShowAsync<Shared.Components.Dialogs.LoginDialog>("", options);
-        var result = await dialog.Result;
+        if (LoginRequested != null)
+            await LoginRequested.Invoke(tcs);
+        else
+            tcs.SetResult(false); // fallback: no overlay registered
 
-        return !result.Canceled;
+        return await tcs.Task;
     }
 }
