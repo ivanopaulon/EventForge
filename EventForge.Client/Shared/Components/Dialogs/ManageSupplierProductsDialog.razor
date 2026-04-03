@@ -8,8 +8,12 @@
 @inject ISnackbar Snackbar
 @inject ILogger<ManageSupplierProductsDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.LocalShipping"
+          Title="Gestione Prodotti Fornitore"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         @if (_isLoading)
         {
             <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
@@ -144,7 +148,7 @@
                 </NoRecordsContent>
             </EFTable>
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel" 
                    Variant="Variant.Text">
@@ -161,7 +165,7 @@
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 

@@ -3,24 +3,12 @@
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
 
-<MudDialog Options="@_dialogOptions">
-    <TitleContent>
-        @if (IsBillSettled)
-        {
-            <MudText Typo="Typo.h6" Color="Color.Success">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
-                @TranslationService.GetTranslation("sales.billSettled", "Conto Saldato")
-            </MudText>
-        }
-        else
-        {
-            <MudText Typo="Typo.h6">
-                <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" />
-                @TranslationService.GetTranslation("sales.payBill", "Paga Conto")
-            </MudText>
-        }
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Payment"
+          Title="Pagamento"
+          IsProcessing="false"
+          OnClose="Cancel"
+          MinWidth="min(600px, 95vw)">
+    <ChildContent>
         <!-- Dynamic Header Summary -->
         @if (IsBillSettled)
         {
@@ -212,19 +200,21 @@
             </MudAlert>
         }
 
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.CheckCircle"
                    OnClick="ConfirmPayments"
                    Disabled="@(!IsBillSettled)">
             @TranslationService.GetTranslation("sales.confirmPayments", "Conferma") (@TotalPaid.ToString("C"))
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

@@ -7,60 +7,21 @@
 @inject ILogger<RebuildMovementsDialog> Logger
 @implements IDisposable
 
-<MudDialog Style="min-width:min(750px,95vw);">
-    <TitleContent>
-        <div class="d-flex align-center gap-3 flex-grow-1">
-            <MudIcon Icon="@Icons.Material.Outlined.BuildCircle" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">
-                @TranslationService.GetTranslation("rebuildMovements.title", "Ricostruzione Movimenti da Documenti")
-            </MudText>
-            <MudSpacer />
-            <MudIconButton Icon="@Icons.Material.Outlined.Close"
-                           OnClick="Cancel"
-                           Size="Size.Small"
-                           Disabled="@_isLoading"
-                           title="@(TranslationService.GetTranslation("button.close", "Chiudi"))" />
-        </div>
-    </TitleContent>
-
-    <DialogContent>
-        @* ── Step indicator ── *@
-        <div class="d-flex align-center mb-5 px-1">
-            @foreach (var (label, idx) in new[] { ("1. Filtri", 0), ("2. Anteprima", 1), ("3. Applicazione", 2) })
-            {
-                var isActive = _step == idx;
-                var isDone = _step > idx;
-                <div class="d-flex align-center flex-grow-1 @(idx == 2 ? "" : "")">
-                    <div class="d-flex align-center gap-1">
-                        <MudAvatar Size="Size.Small"
-                                   Color="@(isDone ? Color.Success : isActive ? Color.Primary : Color.Default)"
-                                   Variant="@(isActive || isDone ? Variant.Filled : Variant.Outlined)">
-                            @if (isDone)
-                            {
-                                <MudIcon Icon="@Icons.Material.Outlined.Check" Size="Size.Small" />
-                            }
-                            else
-                            {
-                                @(idx + 1)
-                            }
-                        </MudAvatar>
-                        <MudText Typo="Typo.body2"
-                                 Color="@(isActive ? Color.Primary : isDone ? Color.Success : Color.Default)"
-                                 Style="@(isActive ? "font-weight:600" : "")">
-                            @label
-                        </MudText>
-                    </div>
-                    @if (idx < 2)
-                    {
-                        <MudDivider Class="mx-2 flex-grow-1" />
-                    }
-                </div>
-            }
-        </div>
-
-        @* ══════════════════════ STEP 1 — FILTRI ══════════════════════ *@
-        @if (_step == 0)
-        {
+<EFDialog Icon="@Icons.Material.Outlined.BuildCircle"
+          Title='@TranslationService.GetTranslation("rebuildMovements.title", "Ricostruzione Movimenti da Documenti")'
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
+        <MudStepper @ref="_stepper"
+                    ActiveIndex="@_step"
+                    ActiveIndexChanged="@(i => _step = i)"
+                    NonLinear="false"
+                    Color="Color.Primary"
+                    Variant="Variant.Filled"
+                    DisableAnimation="false"
+                    Style="min-height:0;">
+            <MudStep Title="Filtri" Icon="@Icons.Material.Outlined.Settings">
             <MudGrid Spacing="2">
                 <MudItem xs="12" sm="6">
                     <MudDatePicker @bind-Date="_fromDate"
@@ -145,11 +106,8 @@
                     </MudText>
                 </MudItem>
             </MudGrid>
-        }
-
-        @* ══════════════════════ STEP 2 — ANTEPRIMA ══════════════════════ *@
-        else if (_step == 1)
-        {
+            </MudStep>
+            <MudStep Title="Anteprima" Icon="@Icons.Material.Outlined.Preview">
             @if (_isLoading)
             {
                 <div class="d-flex flex-column align-center justify-center pa-8 gap-3">
@@ -260,11 +218,8 @@
                     </div>
                 }
             }
-        }
-
-        @* ══════════════════════ STEP 3 — APPLICAZIONE ══════════════════════ *@
-        else if (_step == 2)
-        {
+            </MudStep>
+            <MudStep Title="Applicazione" Icon="@Icons.Material.Outlined.PlayArrow">
             @if (_isLoading)
             {
                 <div class="d-flex flex-column align-center pa-4 gap-4">
@@ -387,8 +342,9 @@
                     </div>
                 }
             }
-        }
-    </DialogContent>
+            </MudStep>
+        </MudStepper>
+    </ChildContent>
 
     <DialogActions>
         @if (_step < 2 || _isLoading)
@@ -437,7 +393,7 @@
             </MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]
@@ -480,6 +436,7 @@
     private readonly List<string> _progressLog = new();
     private DateTimeOffset _applyStartTime;
     private CancellationTokenSource? _progressCts;
+    private MudStepper? _stepper;
 
     private static readonly string[] _progressMessages =
     [
