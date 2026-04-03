@@ -181,7 +181,7 @@
         {
             InvokeAsync(() =>
             {
-                // After 5s delay, show overlay if still disconnected
+                // After 2s delay, show overlay if still disconnected
                 var s = ConnectionMonitor.Status;
                 if (s == ConnectionStatus.Degraded || s == ConnectionStatus.Disconnected)
                 {
@@ -190,7 +190,7 @@
                     StateHasChanged();
                 }
             });
-        }, null, TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
+        }, null, TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
     }
 
     private void StartRestoredHideTimer()

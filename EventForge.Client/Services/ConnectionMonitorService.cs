@@ -30,7 +30,7 @@ public class ConnectionMonitorService : IConnectionMonitorService
     private readonly ILogger<ConnectionMonitorService> _logger;
     private Timer? _timer;
     private bool _isRunning;
-    private bool _hasCompletedFirstCheck = false;
+    private bool _signalRWasEverConnected = false;
 
     public ConnectionStatus Status { get; private set; } = ConnectionStatus.Unknown;
     public bool IsApiReachable { get; private set; } = true;
@@ -55,7 +55,7 @@ public class ConnectionMonitorService : IConnectionMonitorService
         if (_isRunning) return;
         _isRunning = true;
         _timer = new Timer(async _ => await CheckNowAsync(), null,
-            TimeSpan.FromSeconds(8), TimeSpan.FromSeconds(10));
+            TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(8));
     }
 
     public void Stop()
@@ -80,20 +80,26 @@ public class ConnectionMonitorService : IConnectionMonitorService
         }
 
         IsSignalRConnected = _realtimeService.IsChatConnected || _realtimeService.IsNotificationConnected;
+        if (IsSignalRConnected) _signalRWasEverConnected = true;
+
+        // Only treat SignalR as a problem if it was previously established.
+        // Before login, connections are never started so we must not flag them as broken.
+        var signalRProblem = !IsSignalRConnected && _signalRWasEverConnected;
 
         ConnectionStatus newStatus;
-        if (IsApiReachable && IsSignalRConnected)
+        if (IsApiReachable && !signalRProblem)
         {
             newStatus = ConnectionStatus.Connected;
             StatusMessage = null;
             DisconnectedSince = null;
         }
-        else if (!_hasCompletedFirstCheck)
+        else if (!IsApiReachable && signalRProblem)
         {
-            // Still in the very first check cycle: stay Unknown to avoid flash
-            newStatus = ConnectionStatus.Unknown;
+            newStatus = ConnectionStatus.Disconnected;
+            StatusMessage = "Server non raggiungibile";
+            if (DisconnectedSince == null) DisconnectedSince = DateTimeOffset.UtcNow;
         }
-        else if (!IsApiReachable && !IsSignalRConnected)
+        else if (!IsApiReachable)
         {
             newStatus = ConnectionStatus.Disconnected;
             StatusMessage = "Server non raggiungibile";
@@ -101,12 +107,12 @@ public class ConnectionMonitorService : IConnectionMonitorService
         }
         else
         {
+            // API OK but SignalR dropped after having been connected
             newStatus = ConnectionStatus.Degraded;
-            StatusMessage = !IsApiReachable ? "API non raggiungibile" : "Connessione real-time interrotta";
+            StatusMessage = "Connessione real-time interrotta";
             if (DisconnectedSince == null) DisconnectedSince = DateTimeOffset.UtcNow;
         }
 
-        _hasCompletedFirstCheck = true;
         Status = newStatus;
 
         if (newStatus != previousStatus)
