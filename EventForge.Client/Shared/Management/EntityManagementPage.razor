@@ -20,16 +20,6 @@
 @if (!_isLoading)
 {
     <div class="@Config.PageRootCssClass">
-        <!-- Quick Filters -->
-        @if (Config.QuickFilters != null && Config.QuickFilters.Any())
-        {
-            <QuickFilters TItem="TEntity"
-                          Items="_entities"
-                          Filters="Config.QuickFilters"
-                          OnFilterSelected="@HandleQuickFilter"
-                          ShowCount="true" />
-        }
-
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
                  TItem="TEntity"
@@ -60,6 +50,21 @@
                  ShowBulkDelete="true"
                  OnBulkDelete="@DeleteSelectedEntities"
                  IsToolbarDisabled="@_isLoadingEntities">
+            <AdditionalToolbarContent>
+                @if (Config.QuickFilters != null && Config.QuickFilters.Any())
+                {
+                    <QuickFilters TItem="TEntity"
+                                  Items="_entities"
+                                  Filters="Config.QuickFilters"
+                                  OnFilterSelected="@HandleQuickFilter"
+                                  ShowCount="true"
+                                  IsInToolbar="true" />
+                }
+                @if (AdditionalToolbarContent != null)
+                {
+                    @AdditionalToolbarContent
+                }
+            </AdditionalToolbarContent>
             <HeaderContent Context="columnConfigurations">
                 @if (HeaderContent != null)
                 {
@@ -125,6 +130,7 @@
     [Parameter] public RenderFragment<List<EFTableColumnConfiguration>>? HeaderContent { get; set; }
     [Parameter] public RenderFragment<(TEntity Item, List<EFTableColumnConfiguration> Cols)>? RowTemplate { get; set; }
     [Parameter] public RenderFragment? BelowTableContent { get; set; }
+    [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
 
     // Dialog options for fullscreen audit dialog
     private readonly DialogOptions _auditDialogOptions = new()
