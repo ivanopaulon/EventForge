@@ -94,6 +94,8 @@
         --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
         --mud-palette-divider:              rgba(255, 255, 255, 0.12);
         --mud-palette-overlay-dark:         rgba(0, 0, 0, 0.5);
+        --efd-color-primary-light:          rgba(100, 170, 255, 1);
+        --efd-color-primary-focus:          rgba(100, 160, 255, 0.9);
         color: rgba(255, 255, 255, 0.87);
 
         background: rgba(18, 18, 32, 0.92);
@@ -179,7 +181,7 @@
         background-color: #12121f !important;
         padding: 0 6px !important;
         border-radius: 2px;
-        color: rgba(100, 170, 255, 1) !important;
+        color: var(--efd-color-primary-light) !important;
         font-size: 0.75rem !important;
     }
 
@@ -196,7 +198,7 @@
 
     .efd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
     .efd-body .mud-input-outlined:focus-within fieldset {
-        border-color: rgba(100, 160, 255, 0.9) !important;
+        border-color: var(--efd-color-primary-focus) !important;
         border-width: 2px !important;
     }
 
