@@ -116,7 +116,7 @@
             @if (ShowFilters)
             {
                 <MudToggleIconButton @bind-Toggled="_filtersExpanded"
-                                     ToggledChanged="@OnFiltersToggledChanged"
+                                     @bind-Toggled:after="OnFiltersToggledChanged"
                                      Icon="@Icons.Material.Outlined.FilterList"
                                      ToggledIcon="@Icons.Material.Outlined.FilterListOff"
                                      Color="Color.Default"
@@ -838,7 +838,7 @@
         }
     }
 
-    private async Task OnFiltersToggledChanged(bool toggled)
+    private async Task OnFiltersToggledChanged()
     {
         // _filtersExpanded is already updated by @bind-Toggled
         if (OnToggleFilters.HasDelegate)
