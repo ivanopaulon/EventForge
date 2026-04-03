@@ -1,5 +1,6 @@
 using EventForge.DTOs.Business;
 using EventForge.Server.Filters;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Business;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,20 +42,16 @@ public class BusinessPartyGroupsController : BaseApiController
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BusinessPartyGroupDto>>> GetGroups(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
-        [FromQuery] DTOs.Common.BusinessPartyGroupType? groupType = null,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        [FromQuery] BusinessPartyGroupType? groupType = null,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _businessPartyGroupService.GetGroupsAsync(page, pageSize, groupType, cancellationToken);
+            var result = await _businessPartyGroupService.GetGroupsAsync(pagination.Page, pagination.PageSize, groupType, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -255,19 +252,15 @@ public class BusinessPartyGroupsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BusinessPartyGroupMemberDto>>> GetGroupMembers(
         Guid groupId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _businessPartyGroupService.GetGroupMembersAsync(groupId, page, pageSize, cancellationToken);
+            var result = await _businessPartyGroupService.GetGroupMembersAsync(groupId, pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
