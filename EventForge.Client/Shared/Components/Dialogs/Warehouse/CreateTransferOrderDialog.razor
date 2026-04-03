@@ -12,14 +12,12 @@
 @inject ITranslationService TranslationService
 @inject ILogger<CreateTransferOrderDialog> Logger
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
-            @TranslationService.GetTranslation("transferOrder.createDialog", "Crea Ordine di Trasferimento")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.SwapHoriz"
+          Title="Crea Ordine di Trasferimento"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudStack Spacing="3">
                 <!-- Warehouse Selection -->
@@ -205,9 +203,9 @@
                 </MudPaper>
             </MudStack>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined">
+        <MudButton OnClick="Cancel" Variant="Variant.Text">
             @TranslationService.GetTranslation("button.cancel", "Annulla")
         </MudButton>
         <MudButton Color="Color.Primary"
@@ -225,7 +223,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;

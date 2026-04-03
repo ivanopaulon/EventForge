@@ -5,8 +5,12 @@
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentBulkApprovalDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Approval"
+          Title="Approvazione Massiva Documenti"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         @if (!_isProcessing && _approvalResult == null && _statusResult == null)
         {
             <MudForm @ref="_form" @bind-IsValid="@_isValid">
@@ -172,7 +176,7 @@
                 </MudItem>
             </MudGrid>
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         @if (_approvalResult == null && _statusResult == null)
         {
@@ -194,7 +198,7 @@
             <MudButton Color="Color.Primary" OnClick="Close">@TranslationService.GetTranslation("button.close", "Chiudi")</MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

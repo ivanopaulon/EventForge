@@ -6,19 +6,11 @@
 @inject ITranslationService TranslationService
 @inject ILogger<GenerateFromDefaultPricesDialog> Logger
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
-    <TitleContent>
-        <div class="@DialogStyleConstants.Classes.DialogTitle">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.PriceChange" Class="mr-2" />
-                    @TranslationService.GetTranslation("pricelist.generateFromDefaults", "Genera Listino da Prezzi Default")
-                </MudText>
-            </MudStack>
-        </div>
-    </TitleContent>
-    
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.AutoAwesome"
+          Title="Genera da Prezzi di Default"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="_isValid">
             <MudStack Spacing="3">
                 
@@ -241,7 +233,7 @@
                 }
             </MudStack>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
         <MudButton OnClick="Cancel">
@@ -258,7 +250,7 @@
             @TranslationService.GetTranslation("pricelist.generate", "Genera Listino") (@(_previewData?.TotalProductsFound ?? 0))
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

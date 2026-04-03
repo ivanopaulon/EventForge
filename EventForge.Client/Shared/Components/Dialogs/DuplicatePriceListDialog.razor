@@ -7,18 +7,12 @@
 @inject ILogger<DuplicatePriceListDialog> Logger
 @inject NavigationManager NavigationManager
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
-    <TitleContent>
-        <div class="@DialogStyleConstants.Classes.DialogTitle">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.ContentCopy" Class="mr-2" />
-                    @TranslationService.GetTranslation("pricelist.duplicateTitle", "Duplica Listino")
-                </MudText>
-            </MudStack>
-        </div>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.ContentCopy"
+          Title="Duplica Listino"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <div class="ef-dialog-content">
             <PageLoadingOverlay Visible="_isLoading" Message="@_loadingMessage" />
 
@@ -250,7 +244,7 @@
                 </MudStack>
             </MudForm>
         </div>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel">
             @TranslationService.GetTranslation("button.cancel", "Annulla")
@@ -263,7 +257,7 @@
             @TranslationService.GetTranslation("pricelist.duplicateButton", "Duplica Listino")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
