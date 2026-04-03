@@ -168,15 +168,12 @@
             @if (ShowCreate && OnCreate.HasDelegate)
             {
                 <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
-                    <MudButton StartIcon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
-                               Color="Color.Primary"
-                               OnClick="@HandleCreate"
-                               Disabled="@IsToolbarDisabled"
-                               Variant="Variant.Filled"
-                               Size="Size.Small"
-                               Class="ef-toolbar-button">
-                        @TranslationService.GetTranslation(CreateLabel, "Crea")
-                    </MudButton>
+                    <MudIconButton Icon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
+                                   Color="Color.Primary"
+                                   OnClick="@HandleCreate"
+                                   Disabled="@IsToolbarDisabled"
+                                   Variant="Variant.Outlined"
+                                   Size="Size.Small" />
                 </MudTooltip>
             }
             @if (UseDefaultActions && OnAdd.HasDelegate && !ShowCreate)

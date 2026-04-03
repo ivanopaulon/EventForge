@@ -22,11 +22,14 @@
 {
     <div class="@Config.PageRootCssClass">
         <!-- Quick Filters -->
-        <QuickFilters TItem="TEntity"
-                      Items="_entities"
-                      Filters="Config.QuickFilters"
-                      OnFilterSelected="@HandleQuickFilter"
-                      ShowCount="true" />
+        @if (Config.QuickFilters != null && Config.QuickFilters.Any())
+        {
+            <QuickFilters TItem="TEntity"
+                          Items="_entities"
+                          Filters="Config.QuickFilters"
+                          OnFilterSelected="@HandleQuickFilter"
+                          ShowCount="true" />
+        }
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
