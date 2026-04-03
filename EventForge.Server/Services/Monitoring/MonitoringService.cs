@@ -78,7 +78,7 @@ public class MonitoringService : IMonitoringService
                     && p.TenantId == tenantId.Value
                     && p.MaxUses.HasValue
                     && p.MaxUses.Value > 0
-                    && p.CurrentUses * 100 / p.MaxUses.Value >= 80)
+                    && (double)p.CurrentUses * 100 / p.MaxUses.Value >= 80)
                 .OrderByDescending(p => p.CurrentUses)
                 .Take(topN)
                 .Select(p => new PromotionUsageItemDto

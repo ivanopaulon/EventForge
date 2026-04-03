@@ -1259,8 +1259,8 @@ public class PromotionService : IPromotionService
                         throw;
                     }
 
-                    // Exponential backoff: 50ms, 100ms, 200ms, …
-                    var delayMs = 50 * (1 << attempt);
+                    // Exponential backoff with cap: 50ms, 100ms, 200ms, … up to 500ms
+                    var delayMs = Math.Min(50 * (1 << attempt), 500);
                     await Task.Delay(delayMs, cancellationToken);
 
                     var entry = ex.Entries.FirstOrDefault();

@@ -1024,7 +1024,7 @@ public partial class EventForgeDbContext : DbContext
 
         // DocumentRows: partial/filtered index for rows with applied promotions
         _ = modelBuilder.Entity<DocumentRow>()
-            .HasIndex(dr => dr.AppliedPromotionsJSON)
+            .HasIndex(dr => new { dr.TenantId, dr.DocumentHeaderId })
             .HasDatabaseName("IX_DocumentRows_AppliedPromotionsJSON_NotNull")
             .HasFilter("[AppliedPromotionsJSON] IS NOT NULL");
 
