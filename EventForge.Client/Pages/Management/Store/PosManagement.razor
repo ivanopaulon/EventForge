@@ -57,7 +57,6 @@
                         </MudAvatar>
                         <div>
                             <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
                         </div>
                     </div>
                 </MudTd>
@@ -105,7 +104,7 @@
             PageTitleKey = "store.posManagement",
             PageTitleDefault = "Gestione Punti Cassa",
             EntityIcon = Icons.Material.Outlined.PointOfSale,
-            PageRootCssClass = "product-page-root",
+            PageRootCssClass = "management-page-root",
             BaseRoute = "/store/pos",
             ExcelFileName = "PuntiCassa",
             SearchPlaceholderKey = "common.search",
@@ -122,7 +121,7 @@
             BreadcrumbItems = new List<BreadcrumbItem>
             {
                 new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
-                new BreadcrumbItem("Store", null, disabled: true),
+                new BreadcrumbItem("Configurazione Store", null, disabled: true),
                 new BreadcrumbItem("Punti Cassa", null, disabled: true)
             },
             Columns = new()

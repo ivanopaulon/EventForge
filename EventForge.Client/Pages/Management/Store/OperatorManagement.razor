@@ -69,7 +69,6 @@
                         </MudAvatar>
                         <div>
                             <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
                         </div>
                     </div>
                 </MudTd>
@@ -129,7 +128,7 @@
             PageTitleKey = "store.operatorsList",
             PageTitleDefault = "Operatori",
             EntityIcon = Icons.Material.Outlined.Person,
-            PageRootCssClass = "product-page-root",
+            PageRootCssClass = "management-page-root",
             BaseRoute = "/store/operators",
             ExcelFileName = "Operatori",
             SearchPlaceholderKey = "common.search",
@@ -146,7 +145,7 @@
             BreadcrumbItems = new List<BreadcrumbItem>
             {
                 new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
-                new BreadcrumbItem("Store", null, disabled: true),
+                new BreadcrumbItem("Configurazione Store", null, disabled: true),
                 new BreadcrumbItem("Operatori", null, disabled: true)
             },
             Columns = new()

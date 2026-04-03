@@ -182,7 +182,7 @@
             PageTitleKey = "promotion.management.title",
             PageTitleDefault = "Gestione Promozioni",
             EntityIcon = Icons.Material.Outlined.LocalOffer,
-            PageRootCssClass = "product-page-root",
+            PageRootCssClass = "management-page-root",
             BaseRoute = "/management/promotions",
             ExcelFileName = "Promozioni",
             SearchPlaceholderKey = "common.search",
@@ -195,6 +195,7 @@
             BreadcrumbItems = new List<BreadcrumbItem>
             {
                 new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Commerciale", null, disabled: true),
                 new BreadcrumbItem("Promozioni", null, disabled: true)
             },
             Columns = new()
