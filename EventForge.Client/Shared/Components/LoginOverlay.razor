@@ -70,6 +70,7 @@
                                            Variant="Variant.Outlined"
                                            Required="true"
                                            Dense="true"
+                                           Margin="Margin.Dense"
                                            Disabled="_isLoading">
                                     @foreach (var t in _tenants)
                                     {
@@ -90,8 +91,8 @@
                                           Required="true"
                                           Disabled="_isLoading"
                                           autocomplete="username"
-                                          InputType="InputType.Text"
-                                          Margin="Margin.Dense" />
+                                          Margin="Margin.Dense"
+                                          InputType="InputType.Text" />
 
                             <MudTextField @bind-Value="_loginRequest.Password"
                                           Label="@TranslationService.GetTranslation("auth.password", "Password")"
@@ -380,8 +381,27 @@
 }
 
 <style>
-    /* ── Card ── */
+    /* ═══════════════════════════════════════════════════════════
+       CARD — sovrascrive le variabili MudBlazor per tema scuro.
+       Tutte le componenti MudBlazor figlie ereditano queste
+       variabili CSS e usano colori corretti senza bisogno di
+       ulteriori override specifici per classe.
+       ═══════════════════════════════════════════════════════════ */
     .lov-card {
+        --mud-palette-text-primary:        rgba(255, 255, 255, 0.87);
+        --mud-palette-text-secondary:      rgba(255, 255, 255, 0.60);
+        --mud-palette-text-disabled:       rgba(255, 255, 255, 0.38);
+        --mud-palette-background:          #12121f;
+        --mud-palette-surface:             #1c1c30;
+        --mud-palette-action-default:      rgba(255, 255, 255, 0.78);
+        --mud-palette-action-default-hover:rgba(255, 255, 255, 0.08);
+        --mud-palette-action-disabled:     rgba(255, 255, 255, 0.26);
+        --mud-palette-lines-default:       rgba(255, 255, 255, 0.12);
+        --mud-palette-lines-inputs:        rgba(255, 255, 255, 0.35);
+        --mud-palette-divider:             rgba(255, 255, 255, 0.12);
+        --mud-palette-overlay-dark:        rgba(0, 0, 0, 0.5);
+        color: rgba(255, 255, 255, 0.87);
+
         background: rgba(18, 18, 32, 0.92);
         border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 12px;
@@ -409,9 +429,7 @@
         padding: 20px 24px 16px 20px;
     }
 
-    .lov-logo-col {
-        flex-shrink: 0;
-    }
+    .lov-logo-col { flex-shrink: 0; }
 
     .lov-logo {
         display: block;
@@ -419,10 +437,7 @@
         filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
     }
 
-    .lov-title-col {
-        flex: 1;
-        min-width: 0;
-    }
+    .lov-title-col { flex: 1; min-width: 0; }
 
     .lov-title {
         color: white;
@@ -446,9 +461,14 @@
         line-height: 1.4;
     }
 
-    /* ── Corpo form (larghezza intera) ── */
+    /* ── Corpo form ── */
     .lov-form-body {
         padding: 0 24px 22px 24px;
+        color: rgba(255, 255, 255, 0.87);
+        /* Sovrascrive la variabile che MudBlazor usa come background degli input outlined.
+           In questo modo anche le regole interne più specifiche di MudBlazor ottengono
+           transparent senza dover listare ogni singola classe. */
+        --mud-palette-surface: transparent;
     }
 
     /* ── Stato di caricamento inline ── */
@@ -457,8 +477,6 @@
         align-items: center;
         gap: 12px;
         padding: 10px 0 6px 0;
-        color: rgba(255, 255, 255, 0.80);
-        font-size: 0.9rem;
     }
 
     .lov-loading-text {
@@ -466,64 +484,133 @@
         font-size: 0.9rem;
     }
 
-    /* ── Override MudBlazor: input su sfondo scuro ── */
-    .lov-form-body .mud-input-label,
-    .lov-form-body .mud-input-outlined .mud-input-label {
-        color: rgba(255, 255, 255, 0.75) !important;
+    /* ═══════════════════════════════════════════════════════════
+       INPUT FIELDS — fix background trasparente + colori testo.
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Tutti i wrapper MudBlazor: sfondo trasparente.
+       .mud-input e .mud-input-outlined ereditano background da
+       --mud-palette-surface (#1c1c30) che impostiamo su .lov-card;
+       senza questo override creano un box scuro che copre la label. */
+    .lov-form-body .mud-input,
+    .lov-form-body .mud-input-outlined,
+    .lov-form-body .mud-input-root,
+    .lov-form-body .mud-input-root-outlined,
+    .lov-form-body .mud-input-slot,
+    .lov-form-body .mud-input-control,
+    .lov-form-body .mud-input-control-input-container {
+        background-color: transparent !important;
     }
 
+    /* Overflow visible: la label con mud-shrink ha top:-9px e deve
+       poter uscire dal confine del container senza essere tagliata. */
+    .lov-form-body .mud-input-control,
+    .lov-form-body .mud-input-control-input-container,
+    .lov-form-body .mud-input,
+    .lov-form-body .mud-input-outlined {
+        overflow: visible !important;
+    }
+
+    /* Z-index: la label deve stare SOPRA il fieldset/border e tutti i wrapper */
+    .lov-form-body .mud-input-label {
+        z-index: 10 !important;
+        position: absolute !important;
+    }
+
+    /* Testo digitato dentro l'input */
+    .lov-form-body .mud-input-root input,
+    .lov-form-body .mud-input-root textarea,
     .lov-form-body .mud-input input,
     .lov-form-body .mud-input textarea {
-        color: white !important;
+        color: rgba(255, 255, 255, 0.87) !important;
         caret-color: white !important;
+        background-color: transparent !important;
     }
 
+    /* Colore testo input root */
+    .lov-form-body .mud-input-root,
+    .lov-form-body .mud-input-root-outlined {
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    /* Floating label: colore visibile e sfondo trasparente a riposo */
+    .lov-form-body label.mud-input-label,
+    .lov-form-body .mud-input-label {
+        color: rgba(255, 255, 255, 0.85) !important;
+        background-color: transparent !important;
+    }
+
+    /* Label sul bordo (mud-shrink): sfondo solido che copre il bordo fieldset */
+    .lov-form-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+        background-color: #12121f !important;
+        padding: 0 6px !important;
+        border-radius: 2px;
+        color: rgba(100, 170, 255, 1) !important;
+        font-size: 0.75rem !important;
+    }
+
+    /* Bordo outlined */
+    .lov-form-body .mud-input-outlined-border,
     .lov-form-body fieldset.mud-input-outlined-border,
     .lov-form-body .mud-input-outlined fieldset {
         border-color: rgba(255, 255, 255, 0.35) !important;
     }
 
+    .lov-form-body .mud-input-outlined:hover .mud-input-outlined-border,
     .lov-form-body .mud-input-outlined:hover fieldset {
-        border-color: rgba(255, 255, 255, 0.65) !important;
+        border-color: rgba(255, 255, 255, 0.70) !important;
     }
 
-    .lov-form-body .mud-input-outlined.mud-input-focused fieldset,
+    .lov-form-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
     .lov-form-body .mud-input-outlined:focus-within fieldset {
         border-color: rgba(100, 160, 255, 0.9) !important;
         border-width: 2px !important;
     }
 
-    .lov-form-body .mud-checkbox .mud-button-label {
-        color: rgba(255, 255, 255, 0.75) !important;
-    }
-
+    /* Icona adornment (occhio password) */
     .lov-form-body .mud-input-adornment .mud-icon-root,
-    .lov-form-body .mud-input-adornment button {
-        color: rgba(255, 255, 255, 0.6) !important;
+    .lov-form-body .mud-input-adornment .mud-icon-button {
+        color: rgba(255, 255, 255, 0.55) !important;
     }
 
-    .lov-form-body .mud-select-input,
-    .lov-form-body .mud-input-slot {
-        color: white !important;
+    /* ── MudSelect ── */
+    .lov-form-body .mud-select .mud-input-root,
+    .lov-form-body .mud-select-input {
+        color: rgba(255, 255, 255, 0.87) !important;
+        background-color: transparent !important;
     }
 
+    /* ── MudCheckBox — label "Ricordami" ── */
+    .lov-form-body .mud-checkbox .mud-button-label,
+    .lov-form-body .mud-checkbox-label,
+    .lov-form-body span.mud-button-label {
+        color: rgba(255, 255, 255, 0.80) !important;
+    }
+
+    .lov-form-body .mud-checkbox .mud-svg-icon,
+    .lov-form-body .mud-checkbox .mud-icon-root {
+        color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    /* ── MudAlert ── */
     .lov-form-body .mud-alert {
         background-color: rgba(255, 152, 0, 0.15) !important;
         color: rgba(255, 255, 255, 0.85) !important;
         border: 1px solid rgba(255, 152, 0, 0.4) !important;
     }
 
-    .lov-form-body .mud-button-outlined {
-        border-color: rgba(255, 255, 255, 0.4) !important;
-        color: rgba(255, 255, 255, 0.85) !important;
+    /* ── Bottoni ── */
+    .lov-form-body .mud-button-root.mud-button-text {
+        color: rgba(255, 255, 255, 0.60) !important;
     }
 
-    .lov-form-body .mud-button-text {
-        color: rgba(255, 255, 255, 0.6) !important;
-    }
-
-    .lov-form-body .mud-button-text:hover {
+    .lov-form-body .mud-button-root.mud-button-text:hover {
         background-color: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    .lov-form-body .mud-button-root.mud-button-outlined {
+        border-color: rgba(255, 255, 255, 0.40) !important;
         color: rgba(255, 255, 255, 0.85) !important;
     }
 
@@ -534,28 +621,16 @@
         100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
     }
 
-    .anim-pulse {
-        animation: lov-pulse 1.8s infinite ease-in-out;
-    }
+    .anim-pulse { animation: lov-pulse 1.8s infinite ease-in-out; }
 
     /* ── Mobile ── */
     @@media (max-width: 480px) {
-        .lov-card {
-            width: 92vw;
-        }
-
-        .lov-header {
-            padding: 16px 16px 12px 16px;
-        }
-
-        .lov-form-body {
-            padding: 0 16px 18px 16px;
-        }
+        .lov-card { width: 92vw; }
+        .lov-header { padding: 16px 16px 12px 16px; }
+        .lov-form-body { padding: 0 16px 18px 16px; }
     }
 
     @@media (prefers-reduced-motion: reduce) {
-        .anim-pulse {
-            animation: none !important;
-        }
+        .anim-pulse { animation: none !important; }
     }
 </style>
