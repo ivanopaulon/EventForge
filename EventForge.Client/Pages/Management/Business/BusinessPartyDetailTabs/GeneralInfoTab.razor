@@ -363,18 +363,23 @@
         if (_lookupResult == null || !_lookupResult.IsValid)
             return;
 
-        // Populate the form fields
-        if (!string.IsNullOrEmpty(_lookupResult.Name))
-            Party.Name = _lookupResult.Name;
+        // Capture and immediately clear to prevent duplicate executions
+        var result = _lookupResult;
+        _lookupResult = null;
 
-        // Keep the VAT number as entered by the user (already validated by VIES)
-        // It's already in Party.VatNumber from the input field
+        // Populate the form fields
+        if (!string.IsNullOrEmpty(result.Name))
+            Party.Name = result.Name;
 
         StateHasChanged();
         await NotifyUpdated();
 
+        bool hasAddress = !string.IsNullOrEmpty(result.Street) ||
+                          !string.IsNullOrEmpty(result.City) ||
+                          !string.IsNullOrEmpty(result.PostalCode);
+
         // Create address if party is already saved and we have address data
-        if (Party.Id != Guid.Empty && HasAddressData())
+        if (Party.Id != Guid.Empty && hasAddress)
         {
             try
             {
@@ -383,11 +388,11 @@
                     OwnerId = Party.Id,
                     OwnerType = "BusinessParty",
                     AddressType = AddressType.Legal,
-                    Street = _lookupResult.Street,
-                    City = _lookupResult.City,
-                    ZipCode = _lookupResult.PostalCode,
-                    Province = _lookupResult.Province,
-                    Country = GetCountryFromVatNumber(),
+                    Street = result.Street,
+                    City = result.City,
+                    ZipCode = result.PostalCode,
+                    Province = result.Province,
+                    Country = GetCountryFromVatNumber(result),
                     Notes = TranslationService.GetTranslation("address.viesNotes", "Indirizzo da ricerca P.IVA VIES")
                 };
 
@@ -408,7 +413,7 @@
                 );
             }
         }
-        else if (Party.Id == Guid.Empty && HasAddressData())
+        else if (Party.Id == Guid.Empty && hasAddress)
         {
             // Party is new (not yet saved)
             Snackbar.Add(
@@ -426,14 +431,7 @@
         }
     }
 
-    private bool HasAddressData()
-    {
-        return !string.IsNullOrEmpty(_lookupResult?.Street) ||
-               !string.IsNullOrEmpty(_lookupResult?.City) ||
-               !string.IsNullOrEmpty(_lookupResult?.PostalCode);
-    }
-
-    private string? GetCountryFromVatNumber()
+    private string? GetCountryFromVatNumber(VatLookupResultDto? lookupResult = null)
     {
         // Extract country from VAT number prefix (e.g., "IT" from "IT12345678901")
         if (!string.IsNullOrEmpty(Party.VatNumber) && Party.VatNumber.Length >= 2)
@@ -457,6 +455,6 @@
                 };
             }
         }
-        return _lookupResult?.CountryCode;
+        return lookupResult?.CountryCode;
     }
 }

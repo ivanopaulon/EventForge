@@ -289,12 +289,13 @@
         StateHasChanged();
     }
 
-    private async Task HandleAddressCreated()
+    private void HandleAddressCreated()
     {
-        // Refresh party to update address count
-        if (_party?.Id != Guid.Empty)
+        // Increment counter without reloading: a full reload would overwrite unsaved field changes (e.g. Name from VAT lookup)
+        if (_party != null)
         {
-            await LoadPartyAsync();
+            _party.AddressCount++;
+            StateHasChanged();
         }
     }
 

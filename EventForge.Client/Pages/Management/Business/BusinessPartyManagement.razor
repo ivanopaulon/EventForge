@@ -5,6 +5,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Extensions
+@using EventForge.Client.Services.External
 @using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
@@ -16,6 +17,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyManagement> Logger
 @inject IJSRuntime JSRuntime
+@inject IVatLookupService VatLookupService
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingBusinessParties"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -59,8 +61,27 @@
                  CreateTooltip="businessparty.createNew"
                  ShowBulkDelete="true"
                  OnBulkDelete="@DeleteSelectedBusinessParties"
-                 IsToolbarDisabled="@_isLoadingBusinessParties">
-            <HeaderContent Context="columnConfigurations">
+                       IsToolbarDisabled="@(_isLoadingBusinessParties || _isBulkVatUpdating)">
+                 <AdditionalToolbarContent>
+                     @if (_isBulkVatUpdating)
+                     {
+                         <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mr-2">
+                             <MudProgressCircular Size="Size.Small" Indeterminate="false" Value="@(_bulkVatTotal > 0 ? (int)((double)_bulkVatCurrent / _bulkVatTotal * 100) : 0)" Color="Color.Primary" />
+                             <MudText Typo="Typo.caption">@_bulkVatCurrent / @_bulkVatTotal</MudText>
+                         </MudStack>
+                     }
+                     else
+                     {
+                         <MudTooltip Text="@(_selectedBusinessParties.Count > 0 ? $"Aggiorna da P.IVA ({_selectedBusinessParties.Count(p => !string.IsNullOrWhiteSpace(p.VatNumber))} selezionati con P.IVA)" : "Aggiorna ragione sociale da P.IVA per tutti i business party")">
+                             <MudIconButton Icon="@Icons.Material.Outlined.ManageSearch"
+                                            Color="Color.Primary"
+                                            Size="Size.Small"
+                                            OnClick="@BulkVatUpdateAsync"
+                                            Disabled="@_isLoadingBusinessParties" />
+                         </MudTooltip>
+                     }
+                 </AdditionalToolbarContent>
+                 <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
                     @if (column.PropertyName == "Name")
@@ -277,6 +298,9 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingBusinessParties = false;
+    private bool _isBulkVatUpdating = false;
+    private int _bulkVatCurrent = 0;
+    private int _bulkVatTotal = 0;
 
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -744,7 +768,93 @@
         }
     }
 
-    // Helper methods for group badges
+    /// <summary>
+    /// Bulk-updates the Name of business parties using VIES VAT lookup.
+    /// Operates on selected parties if any are selected; otherwise on all parties with a VatNumber.
+    /// </summary>
+    private async Task BulkVatUpdateAsync()
+    {
+        var partiesToUpdate = (_selectedBusinessParties.Count > 0
+            ? _selectedBusinessParties.AsEnumerable()
+            : _allBusinessParties.AsEnumerable())
+            .Where(p => !string.IsNullOrWhiteSpace(p.VatNumber))
+            .ToList();
+
+        if (partiesToUpdate.Count == 0)
+        {
+            Snackbar.Add("Nessun business party con P.IVA da aggiornare.", Severity.Info);
+            return;
+        }
+
+        var scope = _selectedBusinessParties.Count > 0
+            ? $"{partiesToUpdate.Count} selezionati"
+            : $"tutti ({partiesToUpdate.Count})";
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Aggiornamento massivo da P.IVA",
+            $"Verranno aggiornati i dati anagrafici di {scope} business party tramite ricerca VIES. Continuare?",
+            yesText: "Avvia",
+            cancelText: "Annulla");
+
+        if (confirm != true) return;
+
+        _isBulkVatUpdating = true;
+        _bulkVatCurrent = 0;
+        _bulkVatTotal = partiesToUpdate.Count;
+        StateHasChanged();
+
+        int updated = 0, notFound = 0, failed = 0;
+
+        foreach (var party in partiesToUpdate)
+        {
+            _bulkVatCurrent++;
+            StateHasChanged();
+
+            try
+            {
+                var result = await VatLookupService.LookupAsync(party.VatNumber!);
+                if (result == null || !result.IsValid)
+                {
+                    notFound++;
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(result.Name) &&
+                    !string.Equals(result.Name, party.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    var updateDto = new UpdateBusinessPartyDto
+                    {
+                        PartyType = party.PartyType,
+                        Name = result.Name,
+                        TaxCode = party.TaxCode,
+                        VatNumber = party.VatNumber,
+                        SdiCode = party.SdiCode,
+                        Pec = party.Pec,
+                        Notes = party.Notes
+                    };
+                    await BusinessPartyService.UpdateBusinessPartyAsync(party.Id, updateDto);
+                    party.Name = result.Name;
+                    updated++;
+                }
+            }
+            catch (Exception ex)
+            {
+                failed++;
+                Logger.LogError(ex, "Bulk VAT update failed for party {PartyId}", party.Id);
+            }
+        }
+
+        _isBulkVatUpdating = false;
+
+        var msg = failed == 0
+            ? $"Aggiornamento completato: {updated} aggiornati, {notFound} non trovati su VIES."
+            : $"Aggiornamento completato: {updated} aggiornati, {notFound} non trovati, {failed} errori.";
+        Snackbar.Add(msg, failed == 0 ? Severity.Success : Severity.Warning);
+
+        StateHasChanged();
+    }
+
+
 
     /// <summary>
     /// Get sorted groups by priority (descending) and currently valid
