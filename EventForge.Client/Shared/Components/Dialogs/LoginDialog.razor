@@ -21,11 +21,11 @@
     </TitleContent>
     <DialogContent>
         <!-- Overlay during login submission -->
-        <PageLoadingOverlay IsVisible="_isLoading"
+        <PageLoadingOverlay Visible="_isLoading"
                             Message="@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")" />
 
         <!-- Overlay during initial tenant loading -->
-        <PageLoadingOverlay IsVisible="_isLoadingTenants"
+        <PageLoadingOverlay Visible="_isLoadingTenants"
                             Message="@TranslationService.GetTranslation("auth.connectingToServer", "Connessione al server...")" />
 
         @if (!_isLoadingTenants)

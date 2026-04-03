@@ -6,6 +6,7 @@
 @using EventForge.Client.Shared.Management
 @using EventForge.Client.Extensions
 @using MudBlazor
+@implements IDisposable
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
@@ -14,8 +15,11 @@
 @inject ITranslationService TranslationService
 @inject ILogger<EntityManagementPage<TEntity>> Logger
 
-<PageLoadingOverlay Visible="_isLoading || _isLoadingEntities"
-                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="@(_isLoading || _isLoadingEntities)"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))"
+                     ShowProgressLog="@Config.ShowLoadingProgressLog"
+                     ProgressMessages="@Config.LoadingProgressMessages"
+                     ShowElapsedTime="@Config.ShowLoadingElapsedTime" />
 
 @if (!_isLoading)
 {
@@ -69,7 +73,7 @@
                     <QuickFilters TItem="TEntity"
                                   Items="_entities"
                                   Filters="Config.QuickFilters"
-                                  OnFilterSelected="@HandleQuickFilter"
+                                  OnFilterSelected="@(async (f) => await HandleQuickFilter(f))"
                                   ShowCount="true"
                                   IsInToolbar="true" />
                 }
@@ -130,7 +134,7 @@
                         <MudButton Variant="Variant.Text"
                                    Color="Color.Primary"
                                    StartIcon="@Icons.Material.Outlined.Clear"
-                                   OnClick="@ClearFilters">
+                                   OnClick="@(async () => await ClearFilters())">
                             @TranslationService.GetTranslation("common.clearFilters", "Cancella filtri")
                         </MudButton>
                     }
@@ -154,6 +158,46 @@
     [Parameter] public RenderFragment<TEntity>? AdditionalRowActions { get; set; }
     [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
 
+    /// <summary>
+    /// Optional async callback invoked instead of the standard Service.GetPagedAsync call.
+    /// Use this for pages that load data from multiple services (e.g. StockOverview).
+    /// When provided, the component calls this delegate and expects it to populate data externally.
+    /// </summary>
+    [Parameter] public Func<Task>? OnCustomLoad { get; set; }
+
+    /// <summary>
+    /// Optional async callback invoked after OnInitializedAsync completes successfully.
+    /// Use this for post-init logic (e.g. reconciliation calculations in StockOverview).
+    /// </summary>
+    [Parameter] public Func<Task>? OnAfterInitialized { get; set; }
+
+    /// <summary>
+    /// Optional async callback invoked when a QuickFilter is selected.
+    /// When provided, it replaces the default client-side filter behavior (useful for server-side filtering).
+    /// </summary>
+    [Parameter] public Func<QuickFilter<TEntity>?, Task>? OnQuickFilterChanged { get; set; }
+
+    /// <summary>
+    /// Optional async callback invoked when filters are cleared.
+    /// When provided, it replaces the default ClearFilters behavior.
+    /// </summary>
+    [Parameter] public Func<Task>? OnClearFilters { get; set; }
+
+    /// <summary>
+    /// When true, OnInitializedAsync redirects to EmbeddedRedirectUrl if the page is not embedded.
+    /// </summary>
+    [Parameter] public bool IsEmbedded { get; set; } = true;
+
+    /// <summary>
+    /// URL to redirect to when IsEmbedded is false. Used by pages like StockOverview.
+    /// </summary>
+    [Parameter] public string? EmbeddedRedirectUrl { get; set; }
+
+    /// <summary>
+    /// Exposes the internal EFTable reference for advanced column manipulation from the parent page.
+    /// </summary>
+    public EFTable<TEntity>? EFTableRef => _efTable;
+
     // Dialog options for fullscreen audit dialog
     private readonly DialogOptions _auditDialogOptions = new()
     {
@@ -165,6 +209,15 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingEntities = false;
+
+    // CancellationToken for async operations
+    private CancellationTokenSource _cts = new();
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
 
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -199,10 +252,13 @@
         return true;
     }
 
-    private void HandleQuickFilter(QuickFilter<TEntity>? filter)
+    private async Task HandleQuickFilter(QuickFilter<TEntity>? filter)
     {
         _activeQuickFilter = filter;
-        StateHasChanged();
+        if (OnQuickFilterChanged != null)
+            await OnQuickFilterChanged(filter);
+        else
+            StateHasChanged();
     }
 
     private void OnSelectedItemsChanged(HashSet<TEntity> items)
@@ -221,6 +277,12 @@
     {
         try
         {
+            if (!IsEmbedded && !string.IsNullOrWhiteSpace(EmbeddedRedirectUrl))
+            {
+                NavigationManager.NavigateTo(EmbeddedRedirectUrl);
+                return;
+            }
+
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
@@ -228,6 +290,9 @@
                 return;
             }
             await LoadEntitiesAsync();
+
+            if (OnAfterInitialized != null)
+                await OnAfterInitialized();
         }
         catch (Exception ex)
         {
@@ -246,12 +311,31 @@
         try
         {
             _isLoadingEntities = true;
-            var result = await Service.GetPagedAsync(1, int.MaxValue);
-            if (result != null)
+            StateHasChanged();
+
+            if (OnCustomLoad != null)
             {
-                _entities = result.Items.ToList();
+                await OnCustomLoad();
+            }
+            else if (Config.UseServerSidePaging)
+            {
+                var result = await Service.GetPagedAsync(
+                    1,
+                    Config.DefaultPageSize,
+                    _searchTerm,
+                    null,
+                    _cts.Token);
+                if (result != null)
+                    _entities = result.Items.ToList();
+            }
+            else
+            {
+                var result = await Service.GetPagedAsync(1, int.MaxValue, ct: _cts.Token);
+                if (result != null)
+                    _entities = result.Items.ToList();
             }
         }
+        catch (OperationCanceledException) { /* navigazione away, ignorare */ }
         catch (Exception ex)
         {
             Snackbar.Add(TranslationService.GetTranslation(Config.LoadErrorMessageKey,
@@ -261,6 +345,7 @@
         finally
         {
             _isLoadingEntities = false;
+            StateHasChanged();
         }
     }
 
@@ -345,6 +430,8 @@
         {
             try
             {
+                _isLoadingEntities = true;
+                StateHasChanged();
                 var deletedCount = 0;
                 var failedCount = 0;
                 var deletedIds = new HashSet<Guid>();
@@ -354,7 +441,7 @@
                     try
                     {
                         var id = Config.GetId(entity);
-                        await Service.DeleteAsync(id);
+                        await Service.DeleteAsync(id, _cts.Token);
                         deletedIds.Add(id);
                         deletedCount++;
                     }
@@ -392,6 +479,11 @@
                     "Errore nell'eliminazione: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected {EntityType} items", Config.EntityTypeName);
             }
+            finally
+            {
+                _isLoadingEntities = false;
+                StateHasChanged();
+            }
         }
     }
 
@@ -416,7 +508,9 @@
         {
             try
             {
-                await Service.ToggleStatusAsync(Config.GetId(entity), !isActive);
+                _isLoadingEntities = true;
+                StateHasChanged();
+                await Service.ToggleStatusAsync(Config.GetId(entity), !isActive, _cts.Token);
                 StateHasChanged();
             }
             catch (Exception ex)
@@ -424,6 +518,11 @@
                 Snackbar.Add(TranslationService.GetTranslation("common.statusChangeError",
                     "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error toggling {EntityType} status {Id}", Config.EntityTypeName, Config.GetId(entity));
+            }
+            finally
+            {
+                _isLoadingEntities = false;
+                StateHasChanged();
             }
         }
     }
@@ -448,11 +547,14 @@
         _searchTerm = term;
     }
 
-    private void ClearFilters()
+    private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
         _activeQuickFilter = null;
-        StateHasChanged();
+        if (OnClearFilters != null)
+            await OnClearFilters();
+        else
+            StateHasChanged();
     }
 
     private bool HasActiveFilters()

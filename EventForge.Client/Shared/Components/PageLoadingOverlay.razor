@@ -1,56 +1,141 @@
 @using MudBlazor
+@implements IDisposable
 
-@if (IsVisible)
+@if (Visible)
 {
-    <MudOverlay @bind-Visible="IsVisible" DarkBackground AutoClose="false">
-        <MudStack AlignItems="AlignItems.Center">
-            <MudImage Src="@IconPath" Width="@Size" Height="@Size" Class="anim-pulse"></MudImage>
+    <MudOverlay Visible="@Visible" DarkBackground="true" AutoClose="false">
+        <MudStack AlignItems="AlignItems.Center" Style="min-width: 320px; max-width: 480px;">
+
+            <MudImage Src="@IconPath" Width="@Size" Height="@Size" Class="@AnimationClass" />
             <MudText Typo="Typo.h3" Style="color:white; font-weight:bold">
                 EventForge
             </MudText>
+
             @if (!string.IsNullOrEmpty(Message))
             {
                 <MudText Typo="Typo.h5" Style="color:white; font-weight:bold">@Message</MudText>
             }
+
+            @if (ShowProgressLog && _progressLog.Count > 0)
+            {
+                <MudPaper Outlined="true" Class="pa-3 mt-2" Style="width:100%; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2);">
+                    <MudStack Spacing="1">
+                        @for (var i = 0; i < _progressLog.Count; i++)
+                        {
+                            var logMsg = _progressLog[i];
+                            var logOpacity = i == 0 ? "1" : i == 1 ? "0.6" : "0.3";
+                            var isFirst = i == 0;
+                            <div class="d-flex align-center gap-2" style="opacity:@logOpacity">
+                                @if (isFirst)
+                                {
+                                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="MudBlazor.Size.Small" Color="Color.Success" />
+                                }
+                                <MudText Typo="Typo.body2"
+                                         Style="@(isFirst ? "color:white; font-weight:600" : "color:rgba(255,255,255,0.75)")">
+                                    @logMsg
+                                </MudText>
+                            </div>
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+
+            @if (ShowElapsedTime)
+            {
+                <MudText Typo="Typo.caption" Style="color:rgba(255,255,255,0.6)">
+                    ⏱ @((int)(DateTimeOffset.UtcNow - _startTime).TotalSeconds)s trascorsi
+                </MudText>
+            }
+
         </MudStack>
     </MudOverlay>
-
 }
 
 @code {
-    [Parameter] public bool IsVisible { get; set; }
-    
-    /// <summary>
-    /// Alias for IsVisible to support legacy usage. Use IsVisible instead.
-    /// </summary>
-    [Parameter] 
-    public bool Visible 
-    { 
-        get => IsVisible; 
-        set => IsVisible = value; 
-    }
-    
+    // ── Parametri esistenti (backward compatible) ──
+    [Parameter] public bool Visible { get; set; }
     [Parameter] public string? Message { get; set; }
+    [Parameter] public string IconPath { get; set; } = "trace.svg";
+    [Parameter] public int Size { get; set; } = 96;
+    [Parameter] public LoadingAnimationType Animation { get; set; } = LoadingAnimationType.Pulse;
 
-    // New customizable parameters
-    [Parameter] public string IconPath { get; set; } = "trace.svg"; // put in wwwroot
-    [Parameter] public int Size { get; set; } = 256; // px
-    [Parameter] public LoadingAnimationType Animation { get; set; } = LoadingAnimationType.Blink;
+    // ── Nuovi parametri opzionali ──
+    [Parameter] public bool ShowProgressLog { get; set; } = false;
+    [Parameter] public IReadOnlyList<string>? ProgressMessages { get; set; }
+    [Parameter] public bool ShowElapsedTime { get; set; } = false;
+    [Parameter] public int ProgressIntervalMs { get; set; } = 2500;
 
     private string AnimationClass => Animation switch
     {
         LoadingAnimationType.Blink => "anim-blink",
         LoadingAnimationType.Pulse => "anim-pulse",
         LoadingAnimationType.None => string.Empty,
-        _ => "anim-blink"
+        _ => "anim-pulse"
     };
 
-    public enum LoadingAnimationType
+    private readonly List<string> _progressLog = new();
+    private DateTimeOffset _startTime;
+    private CancellationTokenSource? _progressCts;
+    private bool _wasVisible = false;
+
+    public enum LoadingAnimationType { Blink, Pulse, None }
+
+    protected override void OnParametersSet()
     {
-        Blink,
-        Pulse,
-        None
+        if (Visible && !_wasVisible)
+        {
+            _startTime = DateTimeOffset.UtcNow;
+            _progressLog.Clear();
+            if (ShowProgressLog && ProgressMessages?.Count > 0)
+                StartProgressTracker();
+        }
+        else if (!Visible && _wasVisible)
+        {
+            StopProgressTracker();
+            _progressLog.Clear();
+        }
+        _wasVisible = Visible;
     }
+
+    private void StartProgressTracker()
+    {
+        StopProgressTracker();
+        _progressCts = new CancellationTokenSource();
+        _ = RunProgressTrackerAsync(_progressCts.Token);
+    }
+
+    private async Task RunProgressTrackerAsync(CancellationToken ct)
+    {
+        if (ProgressMessages == null || ProgressMessages.Count == 0) return;
+        var msgIndex = 0;
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                await Task.Delay(ProgressIntervalMs, ct);
+                var msg = ProgressMessages[msgIndex % ProgressMessages.Count];
+                _progressLog.Insert(0, msg);
+                if (_progressLog.Count > 3)
+                    _progressLog.RemoveAt(3);
+                msgIndex++;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (TaskCanceledException) { /* expected */ }
+    }
+
+    private void StopProgressTracker()
+    {
+        _progressCts?.Cancel();
+        _progressCts?.Dispose();
+        _progressCts = null;
+    }
+
+    public void Dispose() => StopProgressTracker();
 }
 
 <style>

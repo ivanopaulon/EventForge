@@ -11,7 +11,7 @@ public class PosManagementService : IEntityManagementService<StorePosDto>
     public PosManagementService(IStorePosService storePosService)
         => _storePosService = storePosService;
 
-    public async Task<PagedResult<StorePosDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<StorePosDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
         => await _storePosService.GetPagedAsync(page, pageSize);
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

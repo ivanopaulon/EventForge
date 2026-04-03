@@ -520,6 +520,67 @@ Per domande o suggerimenti di miglioramento, contattare il team di sviluppo fron
 
 ---
 
-**Versione documento**: 1.0  
-**Data**: 29 Ottobre 2025  
+## Nuovi Parametri (Versione 2.0)
+
+Il componente è stato potenziato con le seguenti funzionalità opzionali (tutte backward-compatible):
+
+### Parametri Aggiornati
+
+| Parametro | Tipo | Default | Descrizione |
+|---|---|---|---|
+| `Visible` | `bool` | `false` | Parametro principale per mostrare/nascondere l'overlay (sostituisce `IsVisible`) |
+| `Message` | `string?` | `null` | Messaggio da mostrare sotto il logo |
+| `IconPath` | `string` | `"trace.svg"` | Path dell'immagine logo |
+| `Size` | `int` | `96` | Dimensione del logo in pixel (ridotto da 256 per overlay con contenuto aggiuntivo) |
+| `Animation` | `LoadingAnimationType` | `Pulse` | Tipo di animazione del logo |
+| `ShowProgressLog` | `bool` | `false` | Mostra un pannello log con messaggi ciclici di progresso |
+| `ProgressMessages` | `IReadOnlyList<string>?` | `null` | Messaggi da ciclare nel progress log |
+| `ShowElapsedTime` | `bool` | `false` | Mostra il tempo trascorso dall'apertura dell'overlay |
+| `ProgressIntervalMs` | `int` | `2500` | Intervallo in ms tra i messaggi di progresso |
+
+### Utilizzo con Progress Log
+
+```razor
+<PageLoadingOverlay Visible="@_isLoading"
+                    Message="Caricamento in corso..."
+                    ShowProgressLog="true"
+                    ProgressMessages="@_progressMessages"
+                    ShowElapsedTime="true" />
+
+@code {
+    private readonly IReadOnlyList<string> _progressMessages = new[]
+    {
+        "Recupero dati dal server...",
+        "Applicazione filtri...",
+        "Preparazione tabella...",
+        "Quasi pronto..."
+    };
+}
+```
+
+### Utilizzo tramite `EntityManagementConfig`
+
+Quando si usa `EntityManagementPage`, è possibile configurare il progress log direttamente nella config:
+
+```csharp
+_config = new EntityManagementConfig<MyEntityDto>
+{
+    // ...
+    ShowLoadingProgressLog = true,
+    LoadingProgressMessages = new[] { "Caricamento dati...", "Applicazione filtri..." },
+    ShowLoadingElapsedTime = true,
+};
+```
+
+### Bug Fix in v2.0
+
+- **Fix**: Il parametro `Visible` è ora il parametro primario (non più `IsVisible`). Il vecchio `IsVisible` è stato rimosso per evitare conflitti di doppio parametro. Aggiornare i siti di utilizzo da `IsVisible="..."` a `Visible="..."`.
+- **Fix**: La classe CSS `AnimationClass` viene ora correttamente applicata al template `Class="@AnimationClass"` (in precedenza era calcolata ma mai usata).
+- **Fix**: L'overlay è gestito con `@if (Visible)` invece di `@bind-Visible` per evitare side effect indesiderati sulla chiusura.
+- **Nuovo**: Implementa `IDisposable` per cancellare correttamente il timer del progress tracker.
+
+---
+
+**Versione documento**: 2.0  
+**Data**: Aprile 2026  
 **Autore**: EventForge Development Team

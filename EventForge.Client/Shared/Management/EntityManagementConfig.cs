@@ -23,6 +23,30 @@ public class EntityManagementConfig<TEntity> where TEntity : class
     public string ExcelFileName { get; set; } = "Export";
     public bool ShowExport { get; set; } = true;
     public int DefaultPageSize { get; set; } = 20;
+
+    /// <summary>
+    /// When true, EntityManagementPage passes searchTerm and filters to GetPagedAsync
+    /// and delegates paging to the server. Default is false (client-side filtering).
+    /// </summary>
+    public bool UseServerSidePaging { get; set; } = false;
+
+    /// <summary>
+    /// Optional list of progress messages to show in the loading overlay progress log.
+    /// When null or empty, the overlay shows only the message without a log panel.
+    /// </summary>
+    public IReadOnlyList<string>? LoadingProgressMessages { get; set; }
+
+    /// <summary>
+    /// When true, the loading overlay shows a progress log panel with cycling messages.
+    /// Requires LoadingProgressMessages to be populated.
+    /// </summary>
+    public bool ShowLoadingProgressLog { get; set; } = false;
+
+    /// <summary>
+    /// When true, the loading overlay shows an elapsed time indicator.
+    /// </summary>
+    public bool ShowLoadingElapsedTime { get; set; } = false;
+
     public List<QuickFilter<TEntity>> QuickFilters { get; set; } = new();
     public bool ShowEdit { get; set; } = true;
     public bool ShowDelete { get; set; } = true;

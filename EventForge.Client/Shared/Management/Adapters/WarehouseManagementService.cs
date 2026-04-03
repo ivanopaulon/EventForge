@@ -11,7 +11,7 @@ public class WarehouseManagementService : IEntityManagementService<StorageFacili
     public WarehouseManagementService(IWarehouseService warehouseService)
         => _warehouseService = warehouseService;
 
-    public async Task<PagedResult<StorageFacilityDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<StorageFacilityDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
     {
         var result = await _warehouseService.GetStorageFacilitiesAsync(page, pageSize);
         return result ?? new PagedResult<StorageFacilityDto>

@@ -4,7 +4,18 @@ namespace EventForge.Client.Shared.Management;
 
 public interface IEntityManagementService<TEntity> where TEntity : class
 {
-    Task<PagedResult<TEntity>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default);
+    /// <summary>
+    /// Retrieves a paged result. When <paramref name="searchTerm"/> or <paramref name="filters"/> are provided
+    /// and <see cref="EntityManagementConfig{TEntity}.UseServerSidePaging"/> is true, implementations should
+    /// forward them to the server. Default implementations may ignore them (client-side filtering).
+    /// </summary>
+    Task<PagedResult<TEntity>> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? searchTerm = null,
+        Dictionary<string, object?>? filters = null,
+        CancellationToken ct = default);
+
     Task DeleteAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
