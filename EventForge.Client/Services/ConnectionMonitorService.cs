@@ -1,4 +1,3 @@
-using EventForge.Client.Services;
 using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.Services;
