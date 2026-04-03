@@ -1,0 +1,20 @@
+@using MudBlazor
+
+<div class="d-flex align-center gap-3 flex-grow-1">
+    <MudIcon Icon="@Icon" Color="Color.Primary" />
+    <MudText Typo="Typo.h6" Style="color:white;">@Title</MudText>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                   OnClick="OnClose"
+                   Size="Size.Small"
+                   Disabled="@IsProcessing"
+                   Style="color:rgba(255,255,255,0.7);"
+                   title="Chiudi" />
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = Icons.Material.Outlined.Edit;
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public bool IsProcessing { get; set; } = false;
+    [Parameter] public EventCallback OnClose { get; set; }
+}
