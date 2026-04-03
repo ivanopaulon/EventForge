@@ -342,6 +342,9 @@ public static class ServiceCollectionExtensions
         // Register analytics services
         _ = services.AddScoped<EventForge.Server.Services.Analytics.IAnalyticsService, EventForge.Server.Services.Analytics.AnalyticsService>();
 
+        // Register monitoring services (Sprint 4 — Fase 6 Optimization)
+        _ = services.AddScoped<EventForge.Server.Services.Monitoring.IMonitoringService, EventForge.Server.Services.Monitoring.MonitoringService>();
+
         // Register retail cart session services
         _ = services.AddScoped<IRetailCartSessionService, RetailCartSessionService>();
 

@@ -206,6 +206,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureSalesAndOtherRelationships(modelBuilder);
         ConfigureDailySequence(modelBuilder);
         ConfigurePriceApplicationMode(modelBuilder);
+        ConfigurePerformanceIndexes(modelBuilder);
     }
 
     private static void ConfigureTenantEntity(ModelBuilder modelBuilder)
@@ -994,6 +995,52 @@ public partial class EventForgeDbContext : DbContext
             .Property(dr => dr.AppliedPromotionsJSON)
             .HasMaxLength(4000)
             .IsRequired(false);
+    }
+
+    /// <summary>
+    /// Configures performance-oriented indexes for Sprint 4 — Optimization (Fase 6).
+    /// These composite and filtered indexes accelerate multi-tenant queries on hot paths.
+    /// </summary>
+    private static void ConfigurePerformanceIndexes(ModelBuilder modelBuilder)
+    {
+        // DocumentHeaders: composite index on TenantId + Date for date-range queries per tenant
+        _ = modelBuilder.Entity<DocumentHeader>()
+            .HasIndex(dh => new { dh.TenantId, dh.Date })
+            .HasDatabaseName("IX_DocumentHeaders_TenantId_Date");
+
+        // DocumentRows: composite indexes for multi-tenant lookups by parent document and product
+        _ = modelBuilder.Entity<DocumentRow>()
+            .HasIndex(dr => new { dr.TenantId, dr.DocumentHeaderId })
+            .HasDatabaseName("IX_DocumentRows_TenantId_DocumentHeaderId");
+
+        _ = modelBuilder.Entity<DocumentRow>()
+            .HasIndex(dr => new { dr.TenantId, dr.ProductId })
+            .HasDatabaseName("IX_DocumentRows_TenantId_ProductId");
+
+        // DocumentRows: index on IsPriceManual for pricing audit queries
+        _ = modelBuilder.Entity<DocumentRow>()
+            .HasIndex(dr => dr.IsPriceManual)
+            .HasDatabaseName("IX_DocumentRows_IsPriceManual");
+
+        // DocumentRows: partial/filtered index for rows with applied promotions
+        _ = modelBuilder.Entity<DocumentRow>()
+            .HasIndex(dr => dr.AppliedPromotionsJSON)
+            .HasDatabaseName("IX_DocumentRows_AppliedPromotionsJSON_NotNull")
+            .HasFilter("[AppliedPromotionsJSON] IS NOT NULL");
+
+        // Promotions: composite indexes for active-promotion lookups and date-range checks
+        _ = modelBuilder.Entity<Promotion>()
+            .HasIndex(p => new { p.TenantId, p.IsActive })
+            .HasDatabaseName("IX_Promotions_TenantId_IsActive");
+
+        _ = modelBuilder.Entity<Promotion>()
+            .HasIndex(p => new { p.TenantId, p.StartDate, p.EndDate })
+            .HasDatabaseName("IX_Promotions_TenantId_StartDate_EndDate");
+
+        // PriceLists: composite index for priority-ordered lookups per tenant
+        _ = modelBuilder.Entity<PriceList>()
+            .HasIndex(pl => new { pl.TenantId, pl.Priority })
+            .HasDatabaseName("IX_PriceLists_TenantId_Priority");
     }
 
     /// <summary>

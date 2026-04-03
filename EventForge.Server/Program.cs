@@ -137,6 +137,10 @@ builder.Services.AddScoped<EventForge.Server.Services.Configuration.IBrandingSer
 builder.Services.AddScoped<EventForge.Server.Services.Dashboard.IServerStatusService, EventForge.Server.Services.Dashboard.ServerStatusService>();
 builder.Services.AddScoped<EventForge.Server.Services.Dashboard.IPerformanceMetricsService, EventForge.Server.Services.Dashboard.PerformanceMetricsService>();
 
+// Register Monitoring services (Sprint 4 — Fase 6 Optimization)
+builder.Services.AddSingleton<EventForge.Server.Services.Monitoring.IMonitoringMetricsService, EventForge.Server.Services.Monitoring.MonitoringMetricsService>();
+builder.Services.AddScoped<EventForge.Server.Services.Monitoring.IMonitoringService, EventForge.Server.Services.Monitoring.MonitoringService>();
+
 // Register Hosted Services
 builder.Services.AddHostedService<EventForge.Server.HostedServices.LogCleanupService>();
 builder.Services.AddHostedService<EventForge.Server.HostedServices.PerformanceCollectorService>();
