@@ -121,10 +121,12 @@
             }
             @if (ShowFilters)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.FilterList"
-                               Color="@(_filtersExpanded ? Color.Primary : Color.Default)"
-                               OnClick="@ToggleFilters"
-                               Size="Size.Small" />
+                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.filters", "Filtri")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.FilterList"
+                                   Color="@(_filtersExpanded ? Color.Primary : Color.Default)"
+                                   OnClick="@ToggleFilters"
+                                   Size="Size.Small" />
+                </MudTooltip>
             }
             @if (AdditionalToolbarContent != null)
             {
@@ -161,7 +163,6 @@
                                    Color="Color.Primary"
                                    OnClick="@HandleRefresh"
                                    Disabled="@IsToolbarDisabled"
-                                   Variant="Variant.Outlined"
                                    Size="Size.Small" />
                 </MudTooltip>
             }
@@ -172,16 +173,17 @@
                                    Color="Color.Primary"
                                    OnClick="@HandleCreate"
                                    Disabled="@IsToolbarDisabled"
-                                   Variant="Variant.Outlined"
                                    Size="Size.Small" />
                 </MudTooltip>
             }
             @if (UseDefaultActions && OnAdd.HasDelegate && !ShowCreate)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.Add"
-                               Color="Color.Primary"
-                               OnClick="@HandleAdd"
-                               Size="Size.Small" />
+                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.add", "Aggiungi")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Add"
+                                   Color="Color.Primary"
+                                   OnClick="@HandleAdd"
+                                   Size="Size.Small" />
+                </MudTooltip>
             }
             @if (Actions != null && Actions.Any())
             {
