@@ -30,7 +30,7 @@ public class ConnectionMonitorService : IConnectionMonitorService
     private readonly ILogger<ConnectionMonitorService> _logger;
     private Timer? _timer;
     private bool _isRunning;
-    private bool _hasHadFirstSuccessfulCheck = false;
+    private bool _hasCompletedFirstCheck = false;
 
     public ConnectionStatus Status { get; private set; } = ConnectionStatus.Unknown;
     public bool IsApiReachable { get; private set; } = true;
@@ -87,7 +87,11 @@ public class ConnectionMonitorService : IConnectionMonitorService
             newStatus = ConnectionStatus.Connected;
             StatusMessage = null;
             DisconnectedSince = null;
-            _hasHadFirstSuccessfulCheck = true;
+        }
+        else if (!_hasCompletedFirstCheck)
+        {
+            // Still in the very first check cycle: stay Unknown to avoid flash
+            newStatus = ConnectionStatus.Unknown;
         }
         else if (!IsApiReachable && !IsSignalRConnected)
         {
@@ -102,9 +106,7 @@ public class ConnectionMonitorService : IConnectionMonitorService
             if (DisconnectedSince == null) DisconnectedSince = DateTimeOffset.UtcNow;
         }
 
-        if (!_hasHadFirstSuccessfulCheck && newStatus != ConnectionStatus.Connected)
-            newStatus = ConnectionStatus.Unknown;
-
+        _hasCompletedFirstCheck = true;
         Status = newStatus;
 
         if (newStatus != previousStatus)
