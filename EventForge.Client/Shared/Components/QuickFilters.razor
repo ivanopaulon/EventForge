@@ -2,15 +2,15 @@
 
 @if (Filters != null && Filters.Any())
 {
-    <MudPaper Class="pa-2 mb-2 quick-filters-wrapper" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
-        <MudChipSet T="string" 
-                    @bind-SelectedValue="_selectedValue" 
+    <div class="@($"quick-filters-wrapper{(IsInToolbar ? " in-toolbar" : "")}")">
+        <MudChipSet T="string"
+                    @bind-SelectedValue="_selectedValue"
                     Filter="true"
                     Mandatory="false">
             @foreach (var filter in Filters)
             {
                 <MudChip T="string"
-                         Value="@filter.Id" 
+                         Value="@filter.Id"
                          Color="@filter.Color"
                          Icon="@filter.Icon"
                          Variant="Variant.Outlined"
@@ -20,7 +20,7 @@
                 </MudChip>
             }
         </MudChipSet>
-    </MudPaper>
+    </div>
 }
 
 @code {
@@ -43,6 +43,11 @@
     /// Indica se mostrare il conteggio degli elementi per ogni filtro.
     /// </summary>
     [Parameter] public bool ShowCount { get; set; } = true;
+
+    /// <summary>
+    /// Quando true, il componente si adatta per l'uso dentro una toolbar (layout compatto, nessun wrapper MudPaper).
+    /// </summary>
+    [Parameter] public bool IsInToolbar { get; set; } = false;
     
     private string? _selectedValue;
     private string? _previousSelectedValue;
