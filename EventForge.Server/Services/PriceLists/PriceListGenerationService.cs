@@ -349,7 +349,9 @@ public class PriceListGenerationService : IPriceListGenerationService
             throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
         }
 
-        if (dto.ToDate.Date > DateTime.UtcNow.Date)
+        // Allow dates up to "tomorrow UTC" to accommodate clients in UTC+ timezones where local
+        // "today" can be one calendar day ahead of the server's UTC date.
+        if (dto.ToDate.Date > DateTime.UtcNow.Date.AddDays(1))
         {
             throw new InvalidOperationException("La data di fine non può essere nel futuro");
         }
@@ -457,7 +459,9 @@ public class PriceListGenerationService : IPriceListGenerationService
             throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
         }
 
-        if (dto.ToDate.Date > DateTime.UtcNow.Date)
+        // Allow dates up to "tomorrow UTC" to accommodate clients in UTC+ timezones where local
+        // "today" can be one calendar day ahead of the server's UTC date.
+        if (dto.ToDate.Date > DateTime.UtcNow.Date.AddDays(1))
         {
             throw new InvalidOperationException("La data di fine non può essere nel futuro");
         }

@@ -303,7 +303,8 @@ public class AnalyticsService : IAnalyticsService
 
             if (!headersRaw.Any())
             {
-                _logger.LogDebug("Sales analytics: no documents found, returning empty dashboard");
+                _logger.LogInformation("Sales analytics: no documents found for tenant {TenantId} in range [{DateFrom}, {DateTo}]",
+                    tenantId, dateFrom, dateTo);
                 return new SalesAnalyticsDashboardDto
                 {
                     SalesTrend = new List<SalesTrendDto>(),
@@ -322,7 +323,8 @@ public class AnalyticsService : IAnalyticsService
             var totalRevenue = headersRaw.Sum(h => h.Amount);
             if (totalRevenue == 0m)
             {
-                _logger.LogDebug("Sales analytics: TotalNetAmount is 0 on all headers, falling back to DocumentRows sum");
+                _logger.LogInformation("Sales analytics: TotalNetAmount is 0 on all {Count} headers for tenant {TenantId}, falling back to DocumentRows sum",
+                    headersRaw.Count, tenantId);
                 var rowsRevenue = await _context.DocumentRows
                     .Where(r => !r.IsDeleted
                         && r.TenantId == tenantId.Value
