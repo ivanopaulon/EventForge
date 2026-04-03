@@ -275,8 +275,8 @@ public class AnalyticsService : IAnalyticsService
 
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
-            var dateFrom = filter.DateFrom ?? now.AddMonths(-12);
-            var dateTo = filter.DateTo ?? now;
+            var dateFrom = (filter.DateFrom ?? now.AddMonths(-12)).Date;
+            var dateTo = (filter.DateTo ?? now).Date.AddDays(1).AddTicks(-1);
 
             // Sales trend from DocumentHeaders (exclude cancelled)
             var headersRaw = await _context.DocumentHeaders
@@ -292,7 +292,48 @@ public class AnalyticsService : IAnalyticsService
                 })
                 .ToListAsync(ct);
 
+            // Debug: log before-filter count only when debug logging is enabled to avoid extra DB round-trip in production
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                var totalDocsInRange = await _context.DocumentHeaders
+                    .CountAsync(h => !h.IsDeleted && h.TenantId == tenantId.Value && h.Date >= dateFrom && h.Date <= dateTo, ct);
+                _logger.LogDebug("Sales analytics: {TotalDocsInRange} documents in range [{DateFrom}, {DateTo}] (pre-filter); {HeadersCount} non-cancelled; TotalNetAmount={TotalAmount}",
+                    totalDocsInRange, dateFrom, dateTo, headersRaw.Count, headersRaw.Sum(h => h.Amount));
+            }
+
+            if (!headersRaw.Any())
+            {
+                _logger.LogDebug("Sales analytics: no documents found, returning empty dashboard");
+                return new SalesAnalyticsDashboardDto
+                {
+                    SalesTrend = new List<SalesTrendDto>(),
+                    TopProducts = new List<TopProductDto>(),
+                    TotalRevenue = 0m,
+                    TotalDocuments = 0,
+                    AverageOrderValue = 0m,
+                    DateFrom = dateFrom,
+                    DateTo = dateTo
+                };
+            }
+
             var groupBy = filter.GroupBy?.ToLowerInvariant() ?? "month";
+
+            // If all headers have TotalNetAmount == 0, fallback to sum(UnitPrice * Quantity) from rows
+            var totalRevenue = headersRaw.Sum(h => h.Amount);
+            if (totalRevenue == 0m)
+            {
+                _logger.LogDebug("Sales analytics: TotalNetAmount is 0 on all headers, falling back to DocumentRows sum");
+                var rowsRevenue = await _context.DocumentRows
+                    .Where(r => !r.IsDeleted
+                        && r.TenantId == tenantId.Value
+                        && r.DocumentHeader != null
+                        && r.DocumentHeader.Status != DocumentStatus.Cancelled
+                        && r.DocumentHeader.Date >= dateFrom
+                        && r.DocumentHeader.Date <= dateTo)
+                    .SumAsync(r => r.UnitPrice * r.Quantity, ct);
+                totalRevenue = rowsRevenue;
+            }
+
             var salesTrend = GroupTrend(headersRaw.Select(h => (h.Date, h.Amount)), groupBy)
                 .Select(g => new SalesTrendDto
                 {
@@ -345,7 +386,6 @@ public class AnalyticsService : IAnalyticsService
                 })
                 .ToList();
 
-            var totalRevenue = headersRaw.Sum(h => h.Amount);
             var totalDocs = headersRaw.Count;
 
             var result = new SalesAnalyticsDashboardDto

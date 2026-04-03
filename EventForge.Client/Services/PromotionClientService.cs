@@ -111,4 +111,63 @@ public class PromotionClientService : IPromotionClientService
             throw;
         }
     }
+
+    public async Task<IEnumerable<PromotionRuleDto>> GetRulesAsync(Guid promotionId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.GetAsync<IEnumerable<PromotionRuleDto>>($"{BaseUrl}/{promotionId}/rules", ct);
+            return result ?? Enumerable.Empty<PromotionRuleDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving rules for promotion {PromotionId}", promotionId);
+            throw;
+        }
+    }
+
+    public async Task<PromotionRuleDto> AddRuleAsync(Guid promotionId, CreatePromotionRuleDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<CreatePromotionRuleDto, PromotionRuleDto>($"{BaseUrl}/{promotionId}/rules", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to create promotion rule");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding rule to promotion {PromotionId}", promotionId);
+            throw;
+        }
+    }
+
+    public async Task<PromotionRuleDto?> UpdateRuleAsync(Guid promotionId, Guid ruleId, UpdatePromotionRuleDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _httpClientService.PutAsync<UpdatePromotionRuleDto, PromotionRuleDto>($"{BaseUrl}/{promotionId}/rules/{ruleId}", dto, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating rule {RuleId} for promotion {PromotionId}", ruleId, promotionId);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteRuleAsync(Guid promotionId, Guid ruleId, CancellationToken ct = default)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{promotionId}/rules/{ruleId}", ct);
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting rule {RuleId} for promotion {PromotionId}", ruleId, promotionId);
+            throw;
+        }
+    }
 }

@@ -1311,4 +1311,175 @@ public class PromotionService : IPromotionService
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
     }
+
+    public async Task<IEnumerable<PromotionRuleDto>> GetPromotionRulesAsync(Guid promotionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var rules = await _context.PromotionRules
+                .Where(r => r.PromotionId == promotionId && !r.IsDeleted)
+                .OrderBy(r => r.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            return rules.Select(MapToPromotionRuleDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving rules for promotion {PromotionId}.", promotionId);
+            throw;
+        }
+    }
+
+    public async Task<PromotionRuleDto> AddPromotionRuleAsync(Guid promotionId, CreatePromotionRuleDto createDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(createDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+                throw new InvalidOperationException("Tenant context is required.");
+
+            var promotion = await _context.Promotions
+                .Where(p => p.Id == promotionId && !p.IsDeleted && p.TenantId == currentTenantId.Value)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (promotion == null)
+                throw new InvalidOperationException($"Promotion {promotionId} not found.");
+
+            if (!Enum.TryParse<Data.Entities.Promotions.PromotionRuleType>(createDto.RuleType, true, out var ruleType))
+                throw new InvalidOperationException($"Invalid rule type: {createDto.RuleType}");
+
+            var rule = new Data.Entities.Promotions.PromotionRule
+            {
+                Id = Guid.NewGuid(),
+                PromotionId = promotionId,
+                TenantId = currentTenantId.Value,
+                RuleType = ruleType,
+                DiscountPercentage = createDto.DiscountPercentage,
+                DiscountAmount = createDto.DiscountAmount,
+                RequiredQuantity = createDto.RequiredQuantity,
+                FreeQuantity = createDto.FreeQuantity,
+                FixedPrice = createDto.FixedPrice,
+                MinOrderAmount = createDto.MinOrderAmount,
+                IsCombinable = createDto.IsCombinable,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUser
+            };
+
+            _context.PromotionRules.Add(rule);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            InvalidatePromotionCache();
+            _logger.LogInformation("Rule {RuleId} added to promotion {PromotionId} by {User}.", rule.Id, promotionId, currentUser);
+
+            return MapToPromotionRuleDto(rule);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding rule to promotion {PromotionId}.", promotionId);
+            throw;
+        }
+    }
+
+    public async Task<PromotionRuleDto?> UpdatePromotionRuleAsync(Guid promotionId, Guid ruleId, UpdatePromotionRuleDto updateDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(updateDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var rule = await _context.PromotionRules
+                .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (rule == null)
+            {
+                _logger.LogWarning("Rule {RuleId} for promotion {PromotionId} not found.", ruleId, promotionId);
+                return null;
+            }
+
+            if (!Enum.TryParse<Data.Entities.Promotions.PromotionRuleType>(updateDto.RuleType, true, out var ruleType))
+                throw new InvalidOperationException($"Invalid rule type: {updateDto.RuleType}");
+
+            rule.RuleType = ruleType;
+            rule.DiscountPercentage = updateDto.DiscountPercentage;
+            rule.DiscountAmount = updateDto.DiscountAmount;
+            rule.RequiredQuantity = updateDto.RequiredQuantity;
+            rule.FreeQuantity = updateDto.FreeQuantity;
+            rule.FixedPrice = updateDto.FixedPrice;
+            rule.MinOrderAmount = updateDto.MinOrderAmount;
+            rule.IsCombinable = updateDto.IsCombinable;
+            rule.ModifiedAt = DateTime.UtcNow;
+            rule.ModifiedBy = currentUser;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            InvalidatePromotionCache();
+            _logger.LogInformation("Rule {RuleId} for promotion {PromotionId} updated by {User}.", ruleId, promotionId, currentUser);
+
+            return MapToPromotionRuleDto(rule);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating rule {RuleId} for promotion {PromotionId}.", ruleId, promotionId);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeletePromotionRuleAsync(Guid promotionId, Guid ruleId, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var rule = await _context.PromotionRules
+                .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (rule == null)
+            {
+                _logger.LogWarning("Rule {RuleId} for promotion {PromotionId} not found.", ruleId, promotionId);
+                return false;
+            }
+
+            rule.IsDeleted = true;
+            rule.ModifiedAt = DateTime.UtcNow;
+            rule.ModifiedBy = currentUser;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            InvalidatePromotionCache();
+            _logger.LogInformation("Rule {RuleId} for promotion {PromotionId} deleted by {User}.", ruleId, promotionId, currentUser);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting rule {RuleId} for promotion {PromotionId}.", ruleId, promotionId);
+            throw;
+        }
+    }
+
+    private static PromotionRuleDto MapToPromotionRuleDto(Data.Entities.Promotions.PromotionRule rule)
+    {
+        return new PromotionRuleDto
+        {
+            Id = rule.Id,
+            PromotionId = rule.PromotionId,
+            RuleType = rule.RuleType.ToString(),
+            DiscountPercentage = rule.DiscountPercentage,
+            DiscountAmount = rule.DiscountAmount,
+            RequiredQuantity = rule.RequiredQuantity,
+            FreeQuantity = rule.FreeQuantity,
+            FixedPrice = rule.FixedPrice,
+            MinOrderAmount = rule.MinOrderAmount,
+            IsCombinable = rule.IsCombinable,
+            CreatedAt = rule.CreatedAt,
+            CreatedBy = rule.CreatedBy,
+            ModifiedAt = rule.ModifiedAt,
+            ModifiedBy = rule.ModifiedBy
+        };
+    }
 }

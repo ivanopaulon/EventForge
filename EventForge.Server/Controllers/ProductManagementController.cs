@@ -1920,6 +1920,177 @@ public class ProductManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Gets all rules for a promotion.
+    /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Collection of promotion rules</returns>
+    /// <response code="200">Returns the list of rules</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("promotions/{id:guid}/rules")]
+    [ProducesResponseType(typeof(IEnumerable<PromotionRuleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<PromotionRuleDto>>> GetPromotionRules(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var rules = await _promotionService.GetPromotionRulesAsync(id, cancellationToken);
+            return Ok(rules);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving rules for promotion {PromotionId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving promotion rules.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Adds a new rule to a promotion.
+    /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="createDto">Rule creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created rule</returns>
+    /// <response code="201">Rule created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the promotion is not found</response>
+    [HttpPost("promotions/{id:guid}/rules")]
+    [ProducesResponseType(typeof(PromotionRuleDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PromotionRuleDto>> AddPromotionRule(
+        Guid id,
+        [FromBody] CreatePromotionRuleDto createDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var rule = await _promotionService.AddPromotionRuleAsync(id, createDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetPromotionRules), new { id }, rule);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while adding rule to promotion {PromotionId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while adding the promotion rule.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing promotion rule.
+    /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="ruleId">Rule ID</param>
+    /// <param name="updateDto">Rule update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated rule</returns>
+    /// <response code="200">Rule updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the rule is not found</response>
+    [HttpPut("promotions/{id:guid}/rules/{ruleId:guid}")]
+    [ProducesResponseType(typeof(PromotionRuleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PromotionRuleDto>> UpdatePromotionRule(
+        Guid id,
+        Guid ruleId,
+        [FromBody] UpdatePromotionRuleDto updateDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var rule = await _promotionService.UpdatePromotionRuleAsync(id, ruleId, updateDto, currentUser, cancellationToken);
+            if (rule == null)
+                return CreateNotFoundProblem($"Rule with ID {ruleId} not found for promotion {id}.");
+
+            return Ok(rule);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating rule {RuleId} for promotion {PromotionId}.", ruleId, id);
+            return CreateInternalServerErrorProblem("An error occurred while updating the promotion rule.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a promotion rule.
+    /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="ruleId">Rule ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Rule deleted successfully</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the rule is not found</response>
+    [HttpDelete("promotions/{id:guid}/rules/{ruleId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeletePromotionRule(
+        Guid id,
+        Guid ruleId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _promotionService.DeletePromotionRuleAsync(id, ruleId, currentUser, cancellationToken);
+            if (!success)
+                return CreateNotFoundProblem($"Rule with ID {ruleId} not found for promotion {id}.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting rule {RuleId} for promotion {PromotionId}.", ruleId, id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the promotion rule.", ex);
+        }
+    }
+
     #endregion
 
     #region Barcode Generation
