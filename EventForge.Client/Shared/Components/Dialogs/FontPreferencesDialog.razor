@@ -3,8 +3,12 @@
 @inject IFontPreferencesService FontPreferencesService
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.TextFormat"
+          Title="@TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font")"
+          IsProcessing="false"
+          MinWidth="min(700px, 95vw)"
+          OnClose="Cancel">
+    <ChildContent>
         <MudStack Spacing="4">
             <!-- Preset Veloci -->
             <MudText Typo="Typo.h6">@TranslationService.GetTranslation("fontPreferences.presets", "Preset Veloci")</MudText>
@@ -299,18 +303,18 @@
                 </MudTabs>
             </MudPaper>
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Reset" StartIcon="@Icons.Material.Filled.Refresh">
+        <MudButton OnClick="Reset" StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Text">
             @TranslationService.GetTranslation("common.reset", "Reset")
         </MudButton>
         <MudSpacer />
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" StartIcon="@Icons.Material.Filled.Save">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
