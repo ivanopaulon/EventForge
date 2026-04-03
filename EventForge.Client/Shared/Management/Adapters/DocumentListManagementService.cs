@@ -51,7 +51,7 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
             Items = Array.Empty<DocumentHeaderDto>(),
             TotalCount = 0,
             Page = page,
-            PageSize = pageSize
+            PageSize = queryParams.PageSize
         };
     }
 

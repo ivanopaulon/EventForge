@@ -10,6 +10,7 @@
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
+@inject ILogger<DocumentList> Logger
 
 
 <PageTitle>@TranslationService.GetTranslation("documents.list", "Elenco Documenti")</PageTitle>
@@ -230,8 +231,9 @@
             var allTypes = await DocumentTypeService.GetAllDocumentTypesAsync();
             _documentTypes = allTypes?.ToList() ?? new();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading document types");
             Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"), Severity.Error);
         }
     }
@@ -272,8 +274,9 @@
                 Snackbar.Add(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"), Severity.Error);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error closing document {DocumentId}", documentId);
             Snackbar.Add(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"), Severity.Error);
         }
     }
