@@ -277,8 +277,11 @@ public class StockReconciliationService : IStockReconciliationService
 
         // 3. Apply manual stock movements (transfers, adjustments) from the effective start date.
         //    Quantities are always stored as positive values; the sign is determined by the location role.
+        //    When documents are already included (IncludeDocuments=true), skip movements that were
+        //    generated from a document row to avoid double-counting the same quantity.
         var manualMovements = allManualMovements
             .Where(sm => sm.ProductId == stock.ProductId &&
+                         (!request.IncludeDocuments || !sm.DocumentRowId.HasValue) &&
                          (sm.FromLocationId == stock.StorageLocationId || sm.ToLocationId == stock.StorageLocationId) &&
                          (effectiveFromDate == null || sm.MovementDate >= effectiveFromDate.Value))
             .Select(sm => new StockMovementSourceDto
@@ -859,51 +862,6 @@ public class StockReconciliationService : IStockReconciliationService
         {
             if (!request.DryRun)
             {
-                // Pre-fetch stocks for all outbound (productId, locationId) pairs in a single query,
-                // then batch-create zero-quantity records where missing to avoid per-row roundtrips.
-                var outboundMovements = movementsToCreate.Where(m => !m.IsInbound).ToList();
-                if (outboundMovements.Count > 0)
-                {
-                    var outboundProductIds = outboundMovements.Select(m => m.Dto.ProductId).ToHashSet();
-                    var outboundLocationIds = outboundMovements.Select(m => m.Dto.FromLocationId!.Value).ToHashSet();
-
-                    var existingStockKeys = (await _context.Stocks
-                        .Where(s => s.TenantId == currentTenantId.Value
-                                    && !s.IsDeleted
-                                    && outboundProductIds.Contains(s.ProductId)
-                                    && outboundLocationIds.Contains(s.StorageLocationId))
-                        .Select(s => new { s.ProductId, s.StorageLocationId })
-                        .ToListAsync(cancellationToken))
-                        .Select(s => (s.ProductId, s.StorageLocationId))
-                        .ToHashSet();
-
-                    var missingStockPairs = outboundMovements
-                        .Select(m => (ProductId: m.Dto.ProductId, LocationId: m.Dto.FromLocationId!.Value))
-                        .Distinct()
-                        .Where(pair => !existingStockKeys.Contains((pair.ProductId, pair.LocationId)))
-                        .ToList();
-
-                    if (missingStockPairs.Count > 0)
-                    {
-                        _logger.LogWarning(
-                            "Rebuild: creating {Count} zero-quantity stock record(s) for outbound movements with no existing stock.",
-                            missingStockPairs.Count);
-
-                        _context.Stocks.AddRange(missingStockPairs.Select(pair => new Stock
-                        {
-                            TenantId = currentTenantId.Value,
-                            ProductId = pair.ProductId,
-                            StorageLocationId = pair.LocationId,
-                            Quantity = 0,
-                            ReservedQuantity = 0,
-                            LastMovementDate = DateTime.UtcNow,
-                            CreatedAt = DateTime.UtcNow,
-                            CreatedBy = currentUser ?? "System"
-                        }));
-                        await _context.SaveChangesAsync(cancellationToken);
-                    }
-                }
-
                 // Batch create all movements: single SaveChangesAsync + single audit log entry
                 try
                 {
@@ -1034,10 +992,18 @@ public class StockReconciliationService : IStockReconciliationService
     }
 
     /// <summary>
-    /// Recalculates stock levels from the complete movement history for the given
-    /// product/location pairs and upserts the Stock table accordingly.
-    /// Handles deduplication of Stock rows that may have been inserted in parallel
-    /// by an earlier phase of the rebuild.
+    /// Phase 3 post-rebuild stock cleanup:
+    ///  - Deduplicates Stock rows created in parallel by Phase 2 (soft-deletes extras).
+    ///  - Refreshes <see cref="Stock.LastMovementDate"/> on the canonical row so the UI
+    ///    shows an up-to-date timestamp.
+    ///  - For product/location pairs where Phase 2 could not find any existing Stock row
+    ///    (e.g. the Stock table was externally reset), computes the movement-based net and
+    ///    creates a new record capped at 0 to avoid persisting negative balances when the
+    ///    document history is incomplete.
+    /// NOTE: The quantity of any <em>existing</em> Stock row is intentionally NOT overridden
+    /// here — Phase 2 (<see cref="UpdateStockLevelsForMovementAsync"/>) already applied the
+    /// correct delta.  Overriding with an all-time movement net would erase any initial
+    /// inventory that was set outside the document system.
     /// </summary>
     private async Task RecalculateStockForAffectedPairsAsync(
         HashSet<(Guid ProductId, Guid LocationId)> pairs,
@@ -1048,37 +1014,7 @@ public class StockReconciliationService : IStockReconciliationService
         var productIds = pairs.Select(p => p.ProductId).ToHashSet();
         var locationIds = pairs.Select(p => p.LocationId).ToHashSet();
 
-        // Movements that bring stock INTO a location
-        var inboundTotals = await _context.StockMovements
-            .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
-                         && sm.ToLocationId.HasValue
-                         && productIds.Contains(sm.ProductId)
-                         && locationIds.Contains(sm.ToLocationId.Value))
-            .GroupBy(sm => new { sm.ProductId, LocationId = sm.ToLocationId!.Value })
-            .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => sm.Quantity) })
-            .ToListAsync(cancellationToken);
-
-        // Movements that take stock FROM a location
-        var outboundTotals = await _context.StockMovements
-            .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
-                         && sm.FromLocationId.HasValue
-                         && productIds.Contains(sm.ProductId)
-                         && locationIds.Contains(sm.FromLocationId.Value))
-            .GroupBy(sm => new { sm.ProductId, LocationId = sm.FromLocationId!.Value })
-            .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => sm.Quantity) })
-            .ToListAsync(cancellationToken);
-
-        // Compute net quantity per (ProductId, LocationId)
-        var netByPair = new Dictionary<(Guid, Guid), decimal>();
-        foreach (var item in inboundTotals)
-            netByPair[(item.ProductId, item.LocationId)] = item.Total;
-        foreach (var item in outboundTotals)
-        {
-            var key = (item.ProductId, item.LocationId);
-            netByPair[key] = netByPair.GetValueOrDefault(key, 0m) - item.Total;
-        }
-
-        // Load all active Stock records for the affected pairs
+        // Load all active Stock records for the affected pairs.
         var existingStocks = await _context.Stocks
             .Where(s => s.TenantId == tenantId
                         && productIds.Contains(s.ProductId)
@@ -1089,15 +1025,50 @@ public class StockReconciliationService : IStockReconciliationService
             .GroupBy(s => (s.ProductId, s.StorageLocationId))
             .ToDictionary(g => g.Key, g => g.ToList());
 
+        // Pairs that have no Stock record at all — Phase 2 could not update what didn't exist.
+        var missingPairs = pairs.Where(p => !stocksByKey.ContainsKey(p)).ToHashSet();
+
+        // For missing pairs only: compute net from movement history.
+        var netForMissingPairs = new Dictionary<(Guid, Guid), decimal>();
+        if (missingPairs.Count > 0)
+        {
+            var missingProductIds = missingPairs.Select(p => p.ProductId).ToHashSet();
+            var missingLocationIds = missingPairs.Select(p => p.LocationId).ToHashSet();
+
+            var inboundTotals = await _context.StockMovements
+                .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
+                             && sm.ToLocationId.HasValue
+                             && missingProductIds.Contains(sm.ProductId)
+                             && missingLocationIds.Contains(sm.ToLocationId.Value))
+                .GroupBy(sm => new { sm.ProductId, LocationId = sm.ToLocationId!.Value })
+                .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => sm.Quantity) })
+                .ToListAsync(cancellationToken);
+
+            var outboundTotals = await _context.StockMovements
+                .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
+                             && sm.FromLocationId.HasValue
+                             && missingProductIds.Contains(sm.ProductId)
+                             && missingLocationIds.Contains(sm.FromLocationId.Value))
+                .GroupBy(sm => new { sm.ProductId, LocationId = sm.FromLocationId!.Value })
+                .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => sm.Quantity) })
+                .ToListAsync(cancellationToken);
+
+            foreach (var item in inboundTotals)
+                netForMissingPairs[(item.ProductId, item.LocationId)] = item.Total;
+            foreach (var item in outboundTotals)
+            {
+                var key = (item.ProductId, item.LocationId);
+                netForMissingPairs[key] = netForMissingPairs.GetValueOrDefault(key, 0m) - item.Total;
+            }
+        }
+
         foreach (var pair in pairs)
         {
-            var netQty = netByPair.GetValueOrDefault(pair, 0m);
-
             if (stocksByKey.TryGetValue(pair, out var stocks))
             {
-                // Update the canonical record; soft-delete any duplicates created by earlier phases
+                // Phase 2 already updated the canonical record's quantity correctly.
+                // Only refresh the movement timestamp and soft-delete any duplicate rows.
                 var primary = stocks[0];
-                primary.Quantity = netQty;
                 primary.LastMovementDate = DateTime.UtcNow;
                 primary.ModifiedAt = DateTime.UtcNow;
                 primary.ModifiedBy = currentUser ?? "System";
@@ -1109,9 +1080,11 @@ public class StockReconciliationService : IStockReconciliationService
                     stocks[i].DeletedBy = currentUser ?? "System";
                 }
             }
-            else if (netQty != 0m)
+            else
             {
-                // No stock record exists yet — create one with the recalculated quantity
+                // No stock record exists — create from movement net.
+                // Cap at 0 to avoid negative balances when outbound-only document history is incomplete.
+                var netQty = Math.Max(0m, netForMissingPairs.GetValueOrDefault(pair, 0m));
                 _context.Stocks.Add(new Stock
                 {
                     TenantId = tenantId,

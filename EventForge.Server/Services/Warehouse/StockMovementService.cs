@@ -315,7 +315,7 @@ public class StockMovementService : IStockMovementService
                 };
 
                 movements.Add(movement);
-                await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
+                await UpdateStockLevelsForMovementAsync(movement, cancellationToken, throwOnMissingSourceStock: false);
             }
 
             _context.StockMovements.AddRange(movements);
@@ -628,7 +628,7 @@ public class StockMovementService : IStockMovementService
         return movement.ToStockMovementDto();
     }
 
-    private async Task UpdateStockLevelsForMovementAsync(StockMovement movement, CancellationToken cancellationToken)
+    private async Task UpdateStockLevelsForMovementAsync(StockMovement movement, CancellationToken cancellationToken, bool throwOnMissingSourceStock = true)
     {
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
@@ -654,10 +654,12 @@ public class StockMovementService : IStockMovementService
             if (stock == null)
             {
                 _logger.LogWarning(
-                    "No stock record found for product {ProductId} at location {LocationId} during {MovementType} movement. Cannot process movement.",
+                    "No stock record found for product {ProductId} at location {LocationId} during {MovementType} movement. Stock update skipped.",
                     movement.ProductId, movement.FromLocationId.Value, movement.MovementType);
-                throw new InvalidOperationException(
-                    $"No stock record found for product {movement.ProductId} at location {movement.FromLocationId.Value}. Cannot process {movement.MovementType} movement.");
+                if (throwOnMissingSourceStock)
+                    throw new InvalidOperationException(
+                        $"No stock record found for product {movement.ProductId} at location {movement.FromLocationId.Value}. Cannot process {movement.MovementType} movement.");
+                return;
             }
 
             stock.Quantity -= movement.Quantity;
