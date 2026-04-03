@@ -198,90 +198,92 @@
                             </MudPaper>
 
                             <!-- Members List -->
-                            @if (_isLoadingMembers)
-                            {
-                                <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-                            }
-                            else if (_members == null || !_members.Any())
-                            {
-                                <MudAlert Severity="Severity.Info">
-                                    Nessun membro nel gruppo. Aggiungi membri utilizzando i pulsanti sopra.
-                                </MudAlert>
-                            }
-                            else
-                            {
-                                <MudSimpleTable Striped="true" Dense="false" Hover="true">
-                                    <thead>
-                                        <tr>
-                                            <th>Business Party</th>
-                                            <th>Tipo</th>
-                                            <th>Membro Dal</th>
-                                            <th>Membro Fino</th>
-                                            <th>Stato</th>
-                                            <th>Priorità</th>
-                                            <th>Azioni</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var member in _members)
-                                        {
-                                            <tr>
-                                                <td>
-                                                    <MudStack Spacing="0">
-                                                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                                                            @member.BusinessPartyName
-                                                            @if (member.IsFeatured)
-                                                            {
-                                                                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" Class="ml-1" />
-                                                            }
-                                                        </MudText>
-                                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                            @member.BusinessPartyId
-                                                        </MudText>
-                                                    </MudStack>
-                                                </td>
-                                                <td>
-                                                    <MudChip T="string" Size="Size.Small" Color="@GetBusinessPartyTypeColor(member.BusinessPartyType)">
-                                                        @GetBusinessPartyTypeLabel(member.BusinessPartyType)
-                                                    </MudChip>
-                                                </td>
-                                                <td>
-                                                    <MudText Typo="Typo.body2">
-                                                        @(member.MemberSince?.ToString("dd/MM/yyyy") ?? "-")
-                                                    </MudText>
-                                                </td>
-                                                <td>
-                                                    <MudText Typo="Typo.body2">
-                                                        @(member.MemberUntil?.ToString("dd/MM/yyyy") ?? "∞")
-                                                    </MudText>
-                                                </td>
-                                                <td>
-                                                    <MudChip T="string" Size="Size.Small" Color="@GetMemberStatusColor(member.Status)">
-                                                        @GetMemberStatusLabel(member.Status)
-                                                    </MudChip>
-                                                </td>
-                                                <td>
-                                                    <MudText Typo="Typo.body2">
-                                                        @(member.OverridePriority?.ToString() ?? "-")
-                                                    </MudText>
-                                                </td>
-                                                <td>
-                                                    <MudStack Row="true" Spacing="1">
-                                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                                                       Color="Color.Primary" 
-                                                                       Size="Size.Small"
-                                                                       OnClick="@(() => OpenEditMemberDialog(member))" />
-                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                                                       Color="Color.Error" 
-                                                                       Size="Size.Small"
-                                                                       OnClick="@(() => RemoveMember(member.BusinessPartyId))" />
-                                                    </MudStack>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </MudSimpleTable>
-                            }
+                            <EFTable TItem="BusinessPartyGroupMemberDto"
+                                     Items="@_members"
+                                     Dense="true"
+                                     Hover="true"
+                                     Striped="true"
+                                     FixedHeader="true"
+                                     Height="60vh"
+                                     IsLoading="@_isLoadingMembers"
+                                     ShowSearch="false"
+                                     ShowFilters="false"
+                                     ShowRefresh="false"
+                                     ShowCreate="false"
+                                     ShowExport="false"
+                                     ShowColumnConfiguration="false"
+                                     ShowFooter="false"
+                                     AllowDragDropGrouping="false"
+                                     ComponentKey="business-party-group-members"
+                                     InitialColumnConfigurations="@_memberColumns">
+                                <HeaderContent Context="columns">
+                                    <MudTh>Business Party</MudTh>
+                                    <MudTh>Tipo</MudTh>
+                                    <MudTh>Membro Dal</MudTh>
+                                    <MudTh>Membro Fino</MudTh>
+                                    <MudTh>Stato</MudTh>
+                                    <MudTh>Priorità</MudTh>
+                                    <MudTh>Azioni</MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="member">
+                                    <MudTd DataLabel="Business Party">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                                @member.BusinessPartyName
+                                                @if (member.IsFeatured)
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" Class="ml-1" />
+                                                }
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @member.BusinessPartyId
+                                            </MudText>
+                                        </MudStack>
+                                    </MudTd>
+                                    <MudTd DataLabel="Tipo">
+                                        <MudChip T="string" Size="Size.Small" Color="@GetBusinessPartyTypeColor(member.BusinessPartyType)">
+                                            @GetBusinessPartyTypeLabel(member.BusinessPartyType)
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd DataLabel="Membro Dal">
+                                        <MudText Typo="Typo.body2">
+                                            @(member.MemberSince?.ToString("dd/MM/yyyy") ?? "-")
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Membro Fino">
+                                        <MudText Typo="Typo.body2">
+                                            @(member.MemberUntil?.ToString("dd/MM/yyyy") ?? "∞")
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Stato">
+                                        <MudChip T="string" Size="Size.Small" Color="@GetMemberStatusColor(member.Status)">
+                                            @GetMemberStatusLabel(member.Status)
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd DataLabel="Priorità">
+                                        <MudText Typo="Typo.body2">
+                                            @(member.OverridePriority?.ToString() ?? "-")
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Azioni">
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                           Color="Color.Primary"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => OpenEditMemberDialog(member))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Color="Color.Error"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => RemoveMember(member.BusinessPartyId))" />
+                                        </MudStack>
+                                    </MudTd>
+                                </RowTemplate>
+                                <NoRecordsContent>
+                                    <MudAlert Severity="Severity.Info">
+                                        Nessun membro nel gruppo. Aggiungi membri utilizzando i pulsanti sopra.
+                                    </MudAlert>
+                                </NoRecordsContent>
+                            </EFTable>
                         </MudStack>
                     </MudTabPanel>
                 }
@@ -311,6 +313,16 @@
 
     // Members
     private List<BusinessPartyGroupMemberDto>? _members;
+
+    private readonly List<EFTableColumnConfiguration> _memberColumns = new()
+    {
+        new() { PropertyName = "BusinessPartyName",   DisplayName = "Business Party", Order = 0 },
+        new() { PropertyName = "BusinessPartyType",   DisplayName = "Tipo",           Order = 1 },
+        new() { PropertyName = "MemberSince",         DisplayName = "Membro Dal",     Order = 2 },
+        new() { PropertyName = "MemberUntil",         DisplayName = "Membro Fino",    Order = 3 },
+        new() { PropertyName = "Status",              DisplayName = "Stato",          Order = 4 },
+        new() { PropertyName = "OverridePriority",    DisplayName = "Priorità",       Order = 5 },
+    };
 
     protected override async Task OnParametersSetAsync()
     {

@@ -160,64 +160,67 @@
                             </div>
                         </MudPaper>
 
-                        @if (_loadingModels)
-                        {
-                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
-                            <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
-                                @TranslationService.GetTranslation("common.loading", "Caricamento...")
-                            </MudText>
-                        }
-                        else if (_models?.Any() == true)
-                        {
-                            <MudTable Items="_models" Hover="true" Dense="false" Striped="true" FixedHeader="true" Height="60vh">
-                                <HeaderContent>
-                                    <MudTh><MudTableSortLabel SortBy="new Func<ModelDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                                    <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
-                                    <MudTh>@TranslationService.GetTranslation("field.mpn", "MPN")</MudTh>
-                                    <MudTh><MudTableSortLabel SortBy="new Func<ModelDto, object>(x => x.CreatedAt)">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
-                                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-                                </HeaderContent>
-                                <RowTemplate>
-                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@context.Name</MudTd>
-                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
-                                        @if (!string.IsNullOrWhiteSpace(context.Description))
-                                        {
-                                            <span>@(context.Description.Length > 50 ? context.Description.Substring(0, 50) + "..." : context.Description)</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="mud-text-secondary">-</span>
-                                        }
-                                    </MudTd>
-                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.mpn", "MPN")">@(context.ManufacturerPartNumber ?? "-")</MudTd>
-                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
-                                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right;">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                                      Color="Color.Primary" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => OpenEditModelDialog(context))"
-                                                      title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                                      Color="Color.Error" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => DeleteModel(context.Id))"
-                                                      title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
-                                    </MudTd>
-                                </RowTemplate>
-                                <NoRecordsContent>
-                                    <MudText Class="pa-4">@TranslationService.GetTranslation("messages.noModels", "Nessun modello disponibile")</MudText>
-                                </NoRecordsContent>
-                            </MudTable>
-                        }
-                        else
-                        {
-                            <MudPaper Elevation="0" Class="pa-4 text-center">
-                                <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Large" Class="mb-2 mud-text-secondary" />
-                                <MudText Typo="Typo.body1" Class="mud-text-secondary">
-                                    @TranslationService.GetTranslation("messages.noModels", "Nessun modello disponibile")
-                                </MudText>
-                            </MudPaper>
-                        }
+                        <EFTable TItem="ModelDto"
+                                 Items="@(_models ?? Enumerable.Empty<ModelDto>())"
+                                 Hover="true"
+                                 Dense="false"
+                                 Striped="true"
+                                 FixedHeader="true"
+                                 Height="60vh"
+                                 IsLoading="@_loadingModels"
+                                 ShowSearch="false"
+                                 ShowFilters="false"
+                                 ShowRefresh="false"
+                                 ShowCreate="false"
+                                 ShowExport="false"
+                                 ShowColumnConfiguration="false"
+                                 ShowFooter="false"
+                                 AllowDragDropGrouping="false"
+                                 ComponentKey="brand-detail-models"
+                                 InitialColumnConfigurations="@_modelColumns">
+                            <HeaderContent Context="columns">
+                                <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.mpn", "MPN")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTh>
+                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="context">
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@context.Name</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                                    @if (!string.IsNullOrWhiteSpace(context.Description))
+                                    {
+                                        <span>@(context.Description.Length > 50 ? context.Description.Substring(0, 50) + "..." : context.Description)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="mud-text-secondary">-</span>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.mpn", "MPN")">@(context.ManufacturerPartNumber ?? "-")</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                  Color="Color.Primary"
+                                                  Size="Size.Small"
+                                                  OnClick="@(() => OpenEditModelDialog(context))"
+                                                  title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                  Color="Color.Error"
+                                                  Size="Size.Small"
+                                                  OnClick="@(() => DeleteModel(context.Id))"
+                                                  title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-4">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Large" Class="mb-2 mud-text-secondary" />
+                                    <MudText Typo="Typo.body1" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("messages.noModels", "Nessun modello disponibile")
+                                    </MudText>
+                                </MudStack>
+                            </NoRecordsContent>
+                        </EFTable>
                     </MudTabPanel>
                 }
             </MudTabs>
@@ -237,6 +240,14 @@
 
     private IEnumerable<ModelDto>? _models;
     private bool _loadingModels = false;
+
+    private readonly List<EFTableColumnConfiguration> _modelColumns = new()
+    {
+        new() { PropertyName = "Name",                   DisplayName = "Nome",        Order = 0 },
+        new() { PropertyName = "Description",            DisplayName = "Descrizione", Order = 1 },
+        new() { PropertyName = "ManufacturerPartNumber", DisplayName = "MPN",         Order = 2 },
+        new() { PropertyName = "CreatedAt",              DisplayName = "Creato il",   Order = 3 },
+    };
 
     // Snapshot for unsaved detection
     private string _originalBrandSnapshot = string.Empty;
