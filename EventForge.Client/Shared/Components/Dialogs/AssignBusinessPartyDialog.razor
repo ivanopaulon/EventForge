@@ -7,18 +7,12 @@
 @inject ITranslationService TranslationService
 @inject ILogger<AssignBusinessPartyDialog> Logger
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
-    <TitleContent>
-        <div class="@DialogStyleConstants.Classes.DialogTitle">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.PersonAdd" Class="mr-2" />
-                    @TranslationService.GetTranslation("pricelist.assignBusinessParty", "Assegna Partner Commerciale")
-                </MudText>
-            </MudStack>
-        </div>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Business"
+          Title="Assegna Anagrafica"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <!-- BusinessParty Selection -->
@@ -59,6 +53,7 @@
                     <MudNumericField @bind-Value="_model.OverridePriority"
                                      Label="@TranslationService.GetTranslation("pricelist.overridePriority", "Priorità Personalizzata")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      Min="0"
                                      Max="100"
                                      Clearable="true"
@@ -72,6 +67,7 @@
                     <MudNumericField @bind-Value="_model.GlobalDiscountPercentage"
                                      Label="@TranslationService.GetTranslation("pricelist.globalDiscount", "Sconto Globale %")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      Min="-100"
                                      Max="100"
                                      Step="0.01m"
@@ -87,6 +83,7 @@
                     <MudDatePicker @bind-Date="_validFrom"
                                    Label="@TranslationService.GetTranslation("pricelist.specificValidFrom", "Validità Da")"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    Clearable="true"
                                    Adornment="Adornment.Start"
                                    AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
@@ -96,6 +93,7 @@
                     <MudDatePicker @bind-Date="_validTo"
                                    Label="@TranslationService.GetTranslation("pricelist.specificValidTo", "Validità A")"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    Clearable="true"
                                    Adornment="Adornment.Start"
                                    AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
@@ -106,6 +104,7 @@
                     <MudTextField @bind-Value="_model.Notes"
                                   Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   Lines="3"
                                   MaxLength="500"
                                   Counter="500"
@@ -147,12 +146,16 @@
                 }
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
             @TranslationService.GetTranslation("button.cancel", "Annulla")
         </MudButton>
-        <MudButton Color="Color.Primary" 
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
                    Disabled="@(!_isValid || _selectedBusinessParty == null || _isSaving)" 
                    OnClick="Submit">
             @if (_isSaving)
@@ -165,7 +168,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }

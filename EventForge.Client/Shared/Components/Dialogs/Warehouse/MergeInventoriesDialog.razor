@@ -3,14 +3,12 @@
 @inject IInventoryService InventoryService
 @inject ISnackbar Snackbar
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.MergeType" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.MergeType"
+          Title="Unisci Inventari"
+          IsProcessing="false"
+          OnClose="Cancel"
+          MinWidth="min(600px, 95vw)">
+    <ChildContent>
         <MudAlert Severity="Severity.Info" Class="mb-4">
             @TranslationService.GetTranslation("warehouse.mergeInventoriesHint", 
                 "Gli inventari selezionati verranno accorpati in un unico documento. Le righe con lo stesso prodotto e ubicazione verranno sommate.")
@@ -47,6 +45,7 @@
             <MudTextField @bind-Value="_notes"
                           Label="@TranslationService.GetTranslation("common.notes", "Note")"
                           Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           Lines="3"
                           Class="mt-4" />
         }
@@ -56,19 +55,22 @@
                 @TranslationService.GetTranslation("warehouse.noInventoriesSelected", "Nessun inventario selezionato")
             </MudAlert>
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.MergeType"
                    OnClick="MergeDocuments"
                    Disabled="@(SelectedInventories.Count < 2)">
             @TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

@@ -4,15 +4,12 @@
 @inject ISnackbar Snackbar
 @inject ILogger<EditGroupMemberDialog> Logger
 
-<MudDialog>
-    <TitleContent>
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-            <MudIcon Icon="@Icons.Material.Filled.Edit" />
-            <MudText Typo="Typo.h6">Modifica Membro Gruppo</MudText>
-        </MudStack>
-    </TitleContent>
-    
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.ManageAccounts"
+          Title="Modifica Membro Gruppo"
+          IsProcessing="false"
+          OnClose="Cancel"
+          MinWidth="min(600px, 95vw)">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
             <MudStack Spacing="3">
                 <!-- BP Info (read-only) -->
@@ -40,12 +37,14 @@
                                    Label="Membro Dal" 
                                    Required="true"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    HelperText="Data di inizio appartenenza al gruppo" />
                     
                     <MudDatePicker @bind-Date="_memberUntil" 
                                    Label="Membro Fino" 
                                    Clearable="true"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    HelperText="Data di fine appartenenza (opzionale)" />
                 </MudStack>
                 
@@ -55,6 +54,7 @@
                 <MudSelect @bind-Value="_status" 
                            Label="Stato Membro"
                            Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
                            HelperText="Stato corrente del membro nel gruppo">
                     <MudSelectItem Value="BusinessPartyGroupMemberStatus.Active">
                         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
@@ -91,6 +91,7 @@
                                      Min="0" 
                                      Max="100"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      HelperText="Priorità personalizzata per questo membro (0-100)" />
                     
                     <MudSwitch @bind-Value="_isFeatured" 
@@ -109,6 +110,7 @@
                               MaxLength="500"
                               Counter="500"
                               Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
                               HelperText="Note aggiuntive sull'appartenenza al gruppo" />
                 
                 <MudDivider />
@@ -145,22 +147,23 @@
                 </MudPaper>
             </MudStack>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
         <MudButton OnClick="Cancel" 
-                   Variant="Variant.Text">
+                   Variant="Variant.Text"
+                   Disabled="false">
             Annulla
         </MudButton>
         <MudButton Color="Color.Primary" 
                    OnClick="Submit" 
                    Disabled="@(!_isFormValid)"
                    Variant="Variant.Filled"
-                   StartIcon="@Icons.Material.Filled.Save">
+                   StartIcon="@Icons.Material.Outlined.Save">
             Salva Modifiche
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 

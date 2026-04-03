@@ -6,20 +6,13 @@
 @inject ISnackbar Snackbar
 @inject ILogger<ProductNotFoundDialog> Logger
 
-<MudDialog>
-    <TitleContent>
-        <div class="ef-dialog-title">
-            <MudIcon Icon="@DialogStyleConstants.Icons.SearchOff" 
-                     Color="Color.Primary" 
-                     Size="Size.Medium" />
-            <MudText Typo="Typo.h6">
-                @TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato") - @Barcode
-            </MudText>
-        </div>
-    </TitleContent>
-    <DialogContent>
-        <div class="ef-dialog-content">
-            <PageLoadingOverlay Visible="_isLoading"
+<EFDialog Icon="@Icons.Material.Outlined.SearchOff"
+          Title="@($"{TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto Non Trovato")} - {Barcode}")"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(600px, 95vw)">
+    <ChildContent>
+        <PageLoadingOverlay Visible="_isLoading"
                                 Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
             <MudText Typo="Typo.body1" Class="mb-3">
@@ -61,6 +54,7 @@
                                    @ref="_codeTypeSelect"
                                    Label="@TranslationService.GetTranslation("products.codeType", "Tipo Codice")"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    Required="true"
                                    RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                    Adornment="Adornment.Start"
@@ -79,6 +73,7 @@
                         <MudTextField @bind-Value="_createCodeDto.Code"
                                       Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                       Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
                                       Required="true"
                                       RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                       MaxLength="100"
@@ -94,6 +89,7 @@
                                       @ref="_altDescriptionField"
                                       Label="@TranslationService.GetTranslation("products.alternativeDescription", "Descrizione Alternativa")"
                                       Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
                                       Lines="2"
                                       MaxLength="200"
                                       Counter="200"
@@ -114,47 +110,45 @@
                 @TranslationService.GetTranslation("warehouse.noProductSelectedHint", "Non hai trovato il prodotto? Creane uno nuovo:")
             </MudText>
         }
-        </div>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <div class="ef-dialog-actions">
-            <MudButton StartIcon="@Icons.Material.Outlined.SkipNext"
-                      Color="Color.Default"
-                      Variant="Variant.Outlined"
-                      OnClick="@(() => SelectAction("skip"))">
-                @TranslationService.GetTranslation("sales.skipAndContinue", "Salta e Continua")
-            </MudButton>
-            
-            <MudSpacer />
+        <MudButton StartIcon="@Icons.Material.Outlined.SkipNext"
+                  Color="Color.Default"
+                  Variant="Variant.Outlined"
+                  OnClick="@(() => SelectAction("skip"))">
+            @TranslationService.GetTranslation("sales.skipAndContinue", "Salta e Continua")
+        </MudButton>
+        
+        <MudSpacer />
 
-            <MudButton OnClick="Cancel" 
-                       Color="Color.Default" 
-                       Variant="Variant.Outlined">
-                @TranslationService.GetTranslation("common.cancel", "Annulla")
+        <MudButton OnClick="Cancel" 
+                   Color="Color.Default" 
+                   Variant="Variant.Text"
+                   Disabled="@_isLoading">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        
+        @if (_selectedProduct == null)
+        {
+            <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                      Color="Color.Primary"
+                      Variant="Variant.Filled"
+                      OnClick="CreateNewProduct">
+                @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
             </MudButton>
-            
-            @if (_selectedProduct == null)
-            {
-                <MudButton StartIcon="@DialogStyleConstants.Icons.Add"
-                          Color="Color.Primary"
-                          Variant="Variant.Filled"
-                          OnClick="CreateNewProduct">
-                    @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
-                </MudButton>
-            }
-            else
-            {
-                <MudButton StartIcon="@Icons.Material.Outlined.Link"
-                          Color="Color.Primary"
-                          Variant="Variant.Filled"
-                          OnClick="AssignBarcodeToProduct"
-                          Disabled="@(!_isFormValid || _isLoading)">
-                    @TranslationService.GetTranslation("warehouse.assignAndContinue", "Assegna e Continua")
-                </MudButton>
-            }
-        </div>
+        }
+        else
+        {
+            <MudButton StartIcon="@Icons.Material.Outlined.Link"
+                      Color="Color.Primary"
+                      Variant="Variant.Filled"
+                      OnClick="AssignBarcodeToProduct"
+                      Disabled="@(!_isFormValid || _isLoading)">
+                @TranslationService.GetTranslation("warehouse.assignAndContinue", "Assegna e Continua")
+            </MudButton>
+        }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 

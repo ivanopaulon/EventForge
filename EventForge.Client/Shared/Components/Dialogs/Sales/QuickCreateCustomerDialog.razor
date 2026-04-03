@@ -11,14 +11,12 @@
 @inject ISnackbar Snackbar
 @inject ILogger<QuickCreateCustomerDialog> Logger
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.PersonAdd" Class="mr-2" />
-            @TranslationService.GetTranslation("sales.quickCreateCustomer", "Creazione Rapida Cliente")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.PersonAdd"
+          Title="Nuovo Cliente"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <PageLoadingOverlay Visible="_isLoading"
                             Message="@TranslationService.GetTranslation("common.saving", "Salvataggio...")" />
 
@@ -33,6 +31,7 @@
                     <MudTextField @bind-Value="_model.Name"
                                   Label="@($"{TranslationService.GetTranslation("field.name", "Nome/Ragione Sociale")} *")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   Required="true"
                                   RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                   MaxLength="200"
@@ -47,6 +46,7 @@
                     <MudTextField @bind-Value="_model.TaxCode"
                                   Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="16"
                                   Counter="16"
                                   Validation="@(ValidateTaxCode)"
@@ -61,6 +61,7 @@
                         <MudTextField @bind-Value="_vatNumber"
                                       Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
                                       Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
                                       Placeholder="IT12345678901"
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Outlined.Business"
@@ -122,6 +123,7 @@
                     <MudTextField @bind-Value="_emailValue"
                                   Label="@TranslationService.GetTranslation("field.email", "Email")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   InputType="InputType.Email"
                                   MaxLength="100"
                                   Validation="@(new EmailAddressAttribute())"
@@ -135,6 +137,7 @@
                     <MudTextField @bind-Value="_phoneValue"
                                   Label="@TranslationService.GetTranslation("field.phone", "Telefono")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="20"
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Outlined.Phone"
@@ -146,6 +149,7 @@
                     <MudTextField @bind-Value="_addressStreet"
                                   Label="@TranslationService.GetTranslation("field.address", "Indirizzo")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="100"
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Outlined.Home"
@@ -157,6 +161,7 @@
                     <MudTextField @bind-Value="_addressCity"
                                   Label="@TranslationService.GetTranslation("field.city", "Città")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="50"
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Outlined.LocationCity"
@@ -168,6 +173,7 @@
                     <MudTextField @bind-Value="_addressZipCode"
                                   Label="@TranslationService.GetTranslation("field.zipCode", "CAP")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="10"
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Outlined.Mail"
@@ -175,11 +181,12 @@
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel"
                    Color="Color.Default"
-                   Variant="Variant.Outlined">
+                   Variant="Variant.Text"
+                   Disabled="@_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
 
@@ -191,7 +198,7 @@
             @TranslationService.GetTranslation("sales.saveAndSelect", "Salva e Seleziona")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

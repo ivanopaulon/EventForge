@@ -7,21 +7,12 @@
 @inject ILogger<ManageGroupMembersDialog> Logger
 @inject IJSRuntime JSRuntime
 
-<MudDialog>
-    <TitleContent>
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-            <MudIcon Icon="@Icons.Material.Filled.GroupAdd" />
-            <MudText Typo="Typo.h6">Gestione Membri Gruppo</MudText>
-            @if (GetValidBusinessParties().Any())
-            {
-                <MudChip T="string" Size="Size.Small" Color="Color.Primary">
-                    @GetValidBusinessParties().Count() @(GetValidBusinessParties().Count() == 1 ? "nuovo" : "nuovi")
-                </MudChip>
-            }
-        </MudStack>
-    </TitleContent>
-    
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Group"
+          Title="Gestione Membri Gruppo"
+          IsProcessing="false"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <MudStack Spacing="3">
             <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
                 <!-- Tab 1: Selezione Manuale -->
@@ -200,12 +191,14 @@
                                    Label="Membro Dal" 
                                    Required="true"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    HelperText="Data di inizio appartenenza al gruppo" />
                     
                     <MudDatePicker @bind-Date="_memberUntil" 
                                    Label="Membro Fino"
                                    Clearable="true"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    HelperText="Data di fine appartenenza (opzionale)"
                                    MinDate="_memberSince" />
                     
@@ -218,7 +211,8 @@
                     
                     <MudSelect @bind-Value="_status" 
                                Label="Stato"
-                               Variant="Variant.Outlined">
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
                         <MudSelectItem Value="BusinessPartyGroupMemberStatus.Active">Attivo</MudSelectItem>
                         <MudSelectItem Value="BusinessPartyGroupMemberStatus.Suspended">Sospeso</MudSelectItem>
                     </MudSelect>
@@ -234,6 +228,7 @@
                                      Min="0" 
                                      Max="100"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      HelperText="Priorità personalizzata per questi membri (0-100)" />
                     
                     <MudTextField @bind-Value="_notes" 
@@ -242,15 +237,17 @@
                                   MaxLength="500"
                                   Counter="500"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   HelperText="Note aggiuntive sull'appartenenza al gruppo" />
                 </MudStack>
             </MudPaper>
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
         <MudButton OnClick="Cancel" 
-                   Variant="Variant.Text">
+                   Variant="Variant.Text"
+                   Disabled="false">
             Annulla
         </MudButton>
         <MudButton Color="Color.Primary" 
@@ -261,7 +258,7 @@
             Aggiungi @GetValidBusinessParties().Count() @(GetValidBusinessParties().Count() == 1 ? "Membro" : "Membri")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 
