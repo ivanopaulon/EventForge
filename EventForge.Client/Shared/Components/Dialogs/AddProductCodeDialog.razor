@@ -6,8 +6,11 @@
 @inject ITranslationService TranslationService
 @inject ILogger<AddProductCodeDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.QrCode"
+          Title="Nuovo/Modifica Codice Prodotto"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
@@ -15,6 +18,7 @@
                                @bind-Value="_model.CodeType"
                                Label="@($"{TranslationService.GetTranslation("field.codeType", "Tipo Codice")} *")"
                                Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
                                Required="true"
                                RequiredError="@TranslationService.GetTranslation("validation.codeTypeRequired", "Il tipo è obbligatorio")">
                         <MudSelectItem Value="@("SKU")">SKU</MudSelectItem>
@@ -32,6 +36,7 @@
                     <MudTextField @bind-Value="_model.Code"
                                   Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   Required="true"
                                   RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
                                   MaxLength="100"
@@ -43,6 +48,7 @@
                                @bind-Value="_model.ProductUnitId"
                                Label="@TranslationService.GetTranslation("field.productUnit", "Unità di Misura (Opzionale)")"
                                Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
                                Clearable="true">
                         @foreach (var unit in ProductUnits)
                         {
@@ -58,6 +64,7 @@
                     <MudTextField @bind-Value="_model.AlternativeDescription"
                                   Label="@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione Alternativa")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="200" />
                 </MudItem>
 
@@ -66,6 +73,7 @@
                                @bind-Value="_model.Status"
                                Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
                                Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
                                Required="true">
                         <MudSelectItem Value="@ProductCodeStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
                         <MudSelectItem Value="@ProductCodeStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
@@ -74,10 +82,18 @@
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isSaving)" OnClick="Submit">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   Disabled="@(!_isValid || _isSaving)"
+                   OnClick="Submit">
             @if (_isSaving)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
@@ -89,7 +105,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

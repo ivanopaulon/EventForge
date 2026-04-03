@@ -1,7 +1,10 @@
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.ViewColumn"
+          Title="Configurazione Colonne"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
         <MudStack Spacing="3">
             @if (AllowGrouping)
             {
@@ -49,6 +52,7 @@
                     <MudSelect T="string"
                                Label="@TranslationService.GetTranslation("table.addGroupLevel", "Aggiungi livello raggruppamento")"
                                Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
                                Value="@((string?)null)"
                                ValueChanged="@AddGroup"
                                Class="mt-2">
@@ -104,16 +108,21 @@
                     "Usa le frecce per riordinare le colonne. Deseleziona per nascondere una colonna. La seconda casella rende la colonna ricercabile.")
             </MudText>
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   OnClick="Submit">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }

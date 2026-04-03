@@ -5,19 +5,11 @@
 @inject ISnackbar Snackbar
 @inject ILogger<CreatePriceListDialog> Logger
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
-    <TitleContent>
-        <div class="@DialogStyleConstants.Classes.DialogTitle">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.AddCircleOutline" Class="mr-2" />
-                    @TranslationService.GetTranslation("pricelist.create", "Nuovo Listino")
-                </MudText>
-            </MudStack>
-        </div>
-    </TitleContent>
-    <DialogContent>
-        <div class="ef-dialog-content">
+<EFDialog Icon="@Icons.Material.Outlined.PlaylistAdd"
+          Title="Nuovo Listino Prezzi"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel">
+    <ChildContent>
             <PageLoadingOverlay Visible="_isLoading" />
 
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
@@ -35,6 +27,7 @@
                                 <MudTextField @bind-Value="_model.Name"
                                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                               Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
                                               Required="true"
                                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                               MaxLength="100"
@@ -46,6 +39,7 @@
                                 <MudTextField @bind-Value="_model.Description"
                                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                               Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
                                               Lines="3"
                                               MaxLength="500"
                                               Counter="500"
@@ -67,6 +61,7 @@
                                 <MudSelect @bind-Value="_model.Status"
                                            Label="@($"{TranslationService.GetTranslation("common.status", "Stato")} *")"
                                            Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
                                            Required="true"
                                            Adornment="Adornment.Start"
                                            AdornmentIcon="@Icons.Material.Outlined.ToggleOn">
@@ -82,6 +77,7 @@
                                 <MudNumericField @bind-Value="_model.Priority"
                                                  Label="@TranslationService.GetTranslation("field.priority", "Priorità")"
                                                  Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
                                                  Min="0"
                                                  Max="100"
                                                  HelperText="@TranslationService.GetTranslation("pricelist.priorityHelper", "0 = priorità massima")"
@@ -108,6 +104,7 @@
                                 <MudDatePicker @bind-Date="_validFromDate"
                                                Label="@TranslationService.GetTranslation("field.validFrom", "Valido Da")"
                                                Variant="Variant.Outlined"
+                                               Margin="Margin.Dense"
                                                Editable="true"
                                                DateFormat="dd/MM/yyyy"
                                                Adornment="Adornment.Start"
@@ -117,6 +114,7 @@
                                 <MudDatePicker @bind-Date="_validToDate"
                                                Label="@TranslationService.GetTranslation("field.validTo", "Valido Fino")"
                                                Variant="Variant.Outlined"
+                                               Margin="Margin.Dense"
                                                Editable="true"
                                                DateFormat="dd/MM/yyyy"
                                                Adornment="Adornment.Start"
@@ -135,6 +133,7 @@
                         <MudTextField @bind-Value="_model.Notes"
                                       Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                       Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
                                       Lines="4"
                                       MaxLength="1000"
                                       Counter="1000"
@@ -144,23 +143,23 @@
 
                 </MudStack>
             </MudForm>
-        </div>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel" 
                    Variant="Variant.Text" 
-                   Color="Color.Default">
+                   Color="Color.Default"
+                   Disabled="@_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton OnClick="Create" 
                    Variant="Variant.Filled" 
                    Color="Color.Primary"
                    Disabled="@(!_isFormValid || _isLoading)"
-                   StartIcon="@Icons.Material.Filled.Save">
+                   StartIcon="@Icons.Material.Outlined.Save">
             @TranslationService.GetTranslation("common.create", "Crea")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

@@ -2,15 +2,12 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Discount" Class="mr-2" />
-            @TranslationService.GetTranslation("sales.globalDiscountTitle", "Sconto Globale Carrello")
-        </MudText>
-    </TitleContent>
+<EFDialog Icon="@Icons.Material.Outlined.Discount"
+          Title="Sconto Globale"
+          IsProcessing="false"
+          OnClose="Cancel">
     
-    <DialogContent>
+    <ChildContent>
         <MudStack Spacing="3">
             
             <MudAlert Severity="Severity.Info" Dense="true">
@@ -20,6 +17,7 @@
             <MudNumericField @bind-Value="_discountPercent"
                              Label="@TranslationService.GetTranslation("sales.discountPercent", "Percentuale Sconto")"
                              Variant="Variant.Outlined"
+                             Margin="Margin.Dense"
                              Min="0"
                              Max="100"
                              Step="5"
@@ -35,10 +33,14 @@
             }
             
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
         <MudButton Color="Color.Warning" 
                    Variant="Variant.Filled" 
                    OnClick="Submit"
@@ -46,7 +48,7 @@
             @TranslationService.GetTranslation("sales.apply", "Applica")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

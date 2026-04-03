@@ -5,14 +5,18 @@
 @inject ITranslationService TranslationService
 @inject ILogger<StorageLocationDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Warehouse"
+          Title="@(IsCreateMode ? "Nuova Ubicazione" : "Modifica Ubicazione")"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_model.Code"
                                   Label="@($"{TranslationService.GetTranslation("warehouse.locationCode", "Codice")} *")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   Required="true"
                                   RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
                                   MaxLength="30"
@@ -24,6 +28,7 @@
                     <MudTextField @bind-Value="_model.Description"
                                   Label="@TranslationService.GetTranslation("warehouse.locationDescription", "Descrizione")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="100" />
                 </MudItem>
 
@@ -31,6 +36,7 @@
                     <MudTextField @bind-Value="_model.Zone"
                                   Label="@TranslationService.GetTranslation("warehouse.zone", "Zona")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="20" />
                 </MudItem>
 
@@ -38,6 +44,7 @@
                     <MudTextField @bind-Value="_model.Floor"
                                   Label="@TranslationService.GetTranslation("warehouse.floor", "Piano")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="10" />
                 </MudItem>
 
@@ -45,6 +52,7 @@
                     <MudTextField @bind-Value="_model.Row"
                                   Label="@TranslationService.GetTranslation("warehouse.row", "Fila")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="10" />
                 </MudItem>
 
@@ -52,6 +60,7 @@
                     <MudTextField @bind-Value="_model.Column"
                                   Label="@TranslationService.GetTranslation("warehouse.column", "Colonna")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="10" />
                 </MudItem>
 
@@ -59,6 +68,7 @@
                     <MudTextField @bind-Value="_model.Level"
                                   Label="@TranslationService.GetTranslation("warehouse.level", "Livello")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="10" />
                 </MudItem>
 
@@ -66,6 +76,7 @@
                     <MudNumericField @bind-Value="_model.Capacity"
                                      Label="@TranslationService.GetTranslation("warehouse.capacity", "Capacità")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      Min="0" />
                 </MudItem>
 
@@ -85,15 +96,24 @@
                     <MudTextField @bind-Value="_model.Notes"
                                   Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   Lines="3"
                                   MaxLength="200" />
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isSaving)" OnClick="Submit">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   Disabled="@(!_isValid || _isSaving)"
+                   OnClick="Submit">
             @if (_isSaving)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
@@ -105,7 +125,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

@@ -2,14 +2,11 @@
 @using EventForge.Client.Services.Documents
 @using MudBlazor
 
-<MudDialog MaxWidth="MaxWidth.ExtraLarge" FullWidth="true">
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Upload" Class="mr-2" />
-            @TranslationService.GetTranslation("documents.batchImport", "Batch Import")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.UploadFile"
+          Title="Importazione Batch"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel">
+    <ChildContent>
         <MudStack Spacing="3">
             
             @if (_importResult == null)
@@ -113,9 +110,9 @@
             }
             
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="@_isProcessing">
             @TranslationService.GetTranslation("common.cancel", "Cancel")
         </MudButton>
         
@@ -137,4 +134,4 @@
             </MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>

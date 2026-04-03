@@ -6,20 +6,11 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@(IsEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Inventory)" Class="mr-2" />
-            @(IsEditMode 
-                ? TranslationService.GetTranslation("warehouse.editRow", "Modifica Riga Inventario")
-                : TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario"))
-            @if (_localProduct != null)
-            {
-                <span>- @_localProduct.Name</span>
-            }
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Inventory2"
+          Title="@(IsEditMode ? TranslationService.GetTranslation("warehouse.editRow", "Modifica Riga Inventario") : TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario"))"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
         <MudStack Spacing="3">
             <!-- Product Quick Info Component with inline editing -->
             @if (_localProduct != null)
@@ -61,6 +52,7 @@
                         <MudTextField Value="@_locationDisplayText"
                                      Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      ReadOnly="true"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Outlined.LocationOn" />
@@ -72,6 +64,7 @@
                                    @bind-Value="@_selectedLocationId"
                                    Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    Required="true"
                                    RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                    Adornment="Adornment.Start"
@@ -105,6 +98,7 @@
                     <MudTextField @bind-Value="_notes"
                                  Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  Lines="2"
                                  MaxLength="200"
                                  Counter="200"
@@ -114,9 +108,11 @@
                 </MudStack>
             </MudForm>
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Color="Color.Default">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton OnClick="Submit" 
@@ -129,7 +125,7 @@
                 : TranslationService.GetTranslation("warehouse.addToInventory", "Aggiungi al Documento"))
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

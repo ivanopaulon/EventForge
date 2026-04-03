@@ -2,14 +2,11 @@
 @using EventForge.DTOs.Warehouse
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.BuildCircle" Class="mr-2" />
-            @TranslationService.GetTranslation("inventory.diagnostics.autoRepairOptions", "Opzioni Correzione Automatica")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.BuildCircle"
+          Title="Opzioni Riparazione Automatica"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
         <MudStack Spacing="3">
             <MudSwitch @bind-Value="_options.MergeDuplicates"
                        Color="Color.Primary"
@@ -35,18 +32,21 @@
                 @TranslationService.GetTranslation("inventory.diagnostics.autoRepairNote", "Le opzioni selezionate verranno applicate al documento inventario.")
             </MudAlert>
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
                    OnClick="Apply">
             @TranslationService.GetTranslation("common.apply", "Applica")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

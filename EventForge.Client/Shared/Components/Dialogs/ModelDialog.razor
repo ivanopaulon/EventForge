@@ -5,14 +5,18 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ModelDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Category"
+          Title="@(_isEditMode ? "Modifica Modello" : "Nuovo Modello")"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12">
                     <MudTextField Value="@_brandName"
                                  Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  ReadOnly="true" />
                 </MudItem>
                 
@@ -20,6 +24,7 @@
                     <MudTextField @bind-Value="_name"
                                  Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  Required="true"
                                  MaxLength="200" />
                 </MudItem>
@@ -28,6 +33,7 @@
                     <MudTextField @bind-Value="_description"
                                  Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  Lines="3"
                                  MaxLength="1000" />
                 </MudItem>
@@ -36,16 +42,27 @@
                     <MudTextField @bind-Value="_manufacturerPartNumber"
                                  Label="@TranslationService.GetTranslation("field.mpn", "MPN")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  MaxLength="100" />
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" Disabled="@(!_isValid)" OnClick="Save">@TranslationService.GetTranslation("button.save", "Salva")</MudButton>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   Disabled="@(!_isValid)"
+                   OnClick="Save">
+            @TranslationService.GetTranslation("button.save", "Salva")
+        </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

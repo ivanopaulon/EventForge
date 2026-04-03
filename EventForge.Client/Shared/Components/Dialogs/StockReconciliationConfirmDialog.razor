@@ -2,8 +2,11 @@
 @using EventForge.DTOs.Warehouse
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Checklist"
+          Title="Conferma Riconciliazione"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
         <MudPaper Class="pa-4 mb-4" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
             <div class="d-flex align-center gap-2 mb-3">
                 <MudIcon Icon="@Icons.Material.Outlined.Warning" Color="Color.Warning" Size="Size.Large" />
@@ -79,6 +82,7 @@
             <MudTextField @bind-Value="_reason"
                           Label="@($"{TranslationService.GetTranslation("stockReconciliation.reason", "Reason")} *")"
                           Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           Lines="3"
                           Required="true"
                           RequiredError="@TranslationService.GetTranslation("stockReconciliation.reasonRequired", "Reason is required")"
@@ -91,9 +95,11 @@
                        Label="@TranslationService.GetTranslation("stockReconciliation.createAdjustmentMovements", "Create adjustment movements")"
                        Color="Color.Primary" />
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
             @TranslationService.GetTranslation("button.cancel", "Annulla")
         </MudButton>
         <MudButton Color="Color.Warning"
@@ -104,7 +110,7 @@
             @TranslationService.GetTranslation("stockReconciliation.confirmDialog.confirmButton", "✓ Confirm Application")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

@@ -3,15 +3,12 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Download" Class="mr-2" />
-            @TranslationService.GetTranslation("export.dialogTitle", "Esporta dati")
-        </MudText>
-    </TitleContent>
+<EFDialog Icon="@Icons.Material.Outlined.FileDownload"
+          Title="Esporta Dati"
+          IsProcessing="false"
+          OnClose="Cancel">
     
-    <DialogContent>
+    <ChildContent>
         <MudStack Spacing="3">
             <!-- Column Selection Section -->
             <div>
@@ -93,10 +90,12 @@
                 </MudRadioGroup>
             </div>
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton Color="Color.Primary" 
@@ -107,7 +106,7 @@
             @TranslationService.GetTranslation("export.confirm", "Esporta")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
