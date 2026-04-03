@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using EventForge.Client.Shared.Components;
 
@@ -41,6 +42,38 @@ public class EntityManagementConfig<TEntity> where TEntity : class
     /// When provided and returning false, delete is blocked with a warning message.
     /// </summary>
     public Func<TEntity, bool>? CanDelete { get; set; }
+
+    /// <summary>
+    /// Optional predicate to determine if a specific entity is editable.
+    /// When null, all entities are considered editable (if ShowEdit = true).
+    /// When provided and returning false, the Edit button is disabled for that row.
+    /// </summary>
+    public Func<TEntity, bool>? CanEdit { get; set; }
+
+    /// <summary>
+    /// Translation key for the Edit button tooltip. Default: "common.edit".
+    /// </summary>
+    public string EditTooltipKey { get; set; } = "common.edit";
+
+    /// <summary>
+    /// Translation key for the Delete button tooltip. Default: "common.delete".
+    /// </summary>
+    public string DeleteTooltipKey { get; set; } = "common.delete";
+
+    /// <summary>
+    /// Translation key for the View button tooltip. Default: "common.view".
+    /// </summary>
+    public string ViewTooltipKey { get; set; } = "common.view";
+
+    /// <summary>
+    /// Translation key for the AuditLog button tooltip. Default: "common.auditLog".
+    /// </summary>
+    public string AuditLogTooltipKey { get; set; } = "common.auditLog";
+
+    /// <summary>
+    /// Override of the loading content. When null, the standard PageLoadingOverlay is used.
+    /// </summary>
+    public RenderFragment? CustomLoadingContent { get; set; }
 
     /// <summary>
     /// Translation key for the warning message shown when CanDelete returns false.
