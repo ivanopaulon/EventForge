@@ -3499,7 +3499,12 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Richiesta non valida",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
         }
         catch (Exception ex)
         {

@@ -391,7 +391,7 @@ public class HttpClientService : IHttpClientService
             HttpStatusCode.Unauthorized => "Non autorizzato. Effettua l'accesso e riprova.",
             HttpStatusCode.Forbidden => detail ?? "Non hai i permessi necessari per questa operazione. Verifica la tua licenza e i permessi assegnati.",
             HttpStatusCode.NotFound => "La risorsa richiesta non è stata trovata.",
-            HttpStatusCode.BadRequest => detail ?? "Richiesta non valida. Verifica i dati inseriti.",
+            HttpStatusCode.BadRequest => detail ?? problemDetails?.Title ?? "Richiesta non valida. Verifica i dati inseriti.",
             HttpStatusCode.InternalServerError => "Errore interno del server. Riprova più tardi.",
             HttpStatusCode.ServiceUnavailable => "Servizio temporaneamente non disponibile.",
             (HttpStatusCode)429 => detail ?? "Limite di chiamate API superato. Riprova più tardi o aggiorna la tua licenza.",

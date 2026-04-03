@@ -727,7 +727,11 @@ public class StockReconciliationService : IStockReconciliationService
                                 && updateProductIds.Contains(s.ProductId)
                                 && updateLocationIds.Contains(s.StorageLocationId))
                     .ToListAsync(cancellationToken);
-                var stockForUpdateByKey = stocksForUpdate.ToDictionary(s => (s.ProductId, s.StorageLocationId));
+                // Use GroupBy instead of ToDictionary to safely handle duplicate (ProductId, StorageLocationId)
+                // pairs that may exist in the DB from previous buggy runs (no unique constraint on Stocks).
+                var stockForUpdateByKey = stocksForUpdate
+                    .GroupBy(s => (s.ProductId, s.StorageLocationId))
+                    .ToDictionary(g => g.Key, g => g.First());
 
                 const int updateChunkSize = 25;
                 var updatedCount = 0;
