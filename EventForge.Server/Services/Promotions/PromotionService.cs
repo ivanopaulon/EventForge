@@ -1,4 +1,5 @@
 using EventForge.DTOs.Promotions;
+using EventForge.Server.Services.Monitoring;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json;
@@ -15,14 +16,16 @@ public class PromotionService : IPromotionService
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<PromotionService> _logger;
     private readonly IMemoryCache _cache;
+    private readonly IMonitoringMetricsService _monitoringMetrics;
 
-    public PromotionService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<PromotionService> logger, IMemoryCache cache)
+    public PromotionService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<PromotionService> logger, IMemoryCache cache, IMonitoringMetricsService monitoringMetrics)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        _monitoringMetrics = monitoringMetrics ?? throw new ArgumentNullException(nameof(monitoringMetrics));
     }
 
     public async Task<PagedResult<PromotionDto>> GetPromotionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
@@ -297,6 +300,7 @@ public class PromotionService : IPromotionService
 
     public async Task<PromotionApplicationResultDto> ApplyPromotionRulesAsync(ApplyPromotionRulesDto applyDto, CancellationToken cancellationToken = default)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             _logger.LogDebug("Starting promotion rule application for {ItemCount} cart items", applyDto.CartItems.Count);
@@ -403,10 +407,14 @@ public class PromotionService : IPromotionService
                 }
             }
 
+            sw.Stop();
+            _monitoringMetrics.RecordPricingOperation(true, sw.Elapsed.TotalMilliseconds);
             return result;
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            _monitoringMetrics.RecordPricingOperation(false, sw.Elapsed.TotalMilliseconds);
             _logger.LogError(ex, "Error applying promotion rules");
             return new PromotionApplicationResultDto
             {
@@ -1250,6 +1258,10 @@ public class PromotionService : IPromotionService
                         _logger.LogError(ex, "Failed to increment usage for promotion {PromotionId} after {MaxRetries} attempts.", promotionId, maxRetries);
                         throw;
                     }
+
+                    // Exponential backoff with cap: 50ms, 100ms, 200ms, … up to 500ms
+                    var delayMs = Math.Min(50 * (1 << attempt), 500);
+                    await Task.Delay(delayMs, cancellationToken);
 
                     var entry = ex.Entries.FirstOrDefault();
                     if (entry != null)

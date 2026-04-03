@@ -5,6 +5,7 @@ using EntityPromotionRuleType = EventForge.Server.Data.Entities.Promotions.Promo
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Promotions;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Monitoring;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ namespace EventForge.Tests.Services.Promotions
         private readonly Mock<ITenantContext> _mockTenantContext;
         private readonly Mock<ILogger<PromotionService>> _mockLogger;
         private readonly IMemoryCache _memoryCache;
+        private readonly Mock<IMonitoringMetricsService> _mockMonitoringMetrics;
         private readonly PromotionService _promotionService;
         private readonly Guid _tenantId = Guid.NewGuid();
 
@@ -41,6 +43,7 @@ namespace EventForge.Tests.Services.Promotions
             _mockTenantContext = new Mock<ITenantContext>();
             _mockLogger = new Mock<ILogger<PromotionService>>();
             _memoryCache = new MemoryCache(new MemoryCacheOptions());
+            _mockMonitoringMetrics = new Mock<IMonitoringMetricsService>();
 
             // Setup tenant context
             _ = _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
@@ -51,7 +54,8 @@ namespace EventForge.Tests.Services.Promotions
                 _mockAuditLogService.Object,
                 _mockTenantContext.Object,
                 _mockLogger.Object,
-                _memoryCache);
+                _memoryCache,
+                _mockMonitoringMetrics.Object);
         }
 
         [Fact]

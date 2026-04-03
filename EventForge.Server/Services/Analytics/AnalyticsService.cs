@@ -1,4 +1,5 @@
 using EventForge.DTOs.Analytics;
+using EventForge.Server.Services.Monitoring;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -13,6 +14,7 @@ public class AnalyticsService : IAnalyticsService
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<AnalyticsService> _logger;
     private readonly IMemoryCache _cache;
+    private readonly IMonitoringMetricsService _monitoringMetrics;
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
 
@@ -20,12 +22,14 @@ public class AnalyticsService : IAnalyticsService
         EventForgeDbContext context,
         ITenantContext tenantContext,
         ILogger<AnalyticsService> logger,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IMonitoringMetricsService monitoringMetrics)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        _monitoringMetrics = monitoringMetrics ?? throw new ArgumentNullException(nameof(monitoringMetrics));
     }
 
     /// <inheritdoc/>
@@ -41,7 +45,11 @@ public class AnalyticsService : IAnalyticsService
 
             var cacheKey = $"analytics_promotions_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
             if (_cache.TryGetValue(cacheKey, out PromotionAnalyticsDashboardDto? cached) && cached is not null)
+            {
+                _monitoringMetrics.RecordCacheLookup(true);
                 return cached;
+            }
+            _monitoringMetrics.RecordCacheLookup(false);
 
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
@@ -142,7 +150,11 @@ public class AnalyticsService : IAnalyticsService
 
             var cacheKey = $"analytics_pricing_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
             if (_cache.TryGetValue(cacheKey, out PricingAnalyticsDashboardDto? cached) && cached is not null)
+            {
+                _monitoringMetrics.RecordCacheLookup(true);
                 return cached;
+            }
+            _monitoringMetrics.RecordCacheLookup(false);
 
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
@@ -255,7 +267,11 @@ public class AnalyticsService : IAnalyticsService
 
             var cacheKey = $"analytics_sales_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
             if (_cache.TryGetValue(cacheKey, out SalesAnalyticsDashboardDto? cached) && cached is not null)
+            {
+                _monitoringMetrics.RecordCacheLookup(true);
                 return cached;
+            }
+            _monitoringMetrics.RecordCacheLookup(false);
 
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
