@@ -148,7 +148,7 @@
         <MudButton OnClick="Cancel" 
                    Variant="Variant.Text" 
                    Color="Color.Default"
-                   Disabled="@_isLoading">
+                   Disabled="_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton OnClick="Create" 
