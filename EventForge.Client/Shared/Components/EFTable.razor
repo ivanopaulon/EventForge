@@ -11,15 +11,15 @@
 
 @if (AllowDragDropGrouping && ServerData == null)
 {
-    <MudPaper Elevation="0" Class="mb-2 pa-3" Style="border: 2px dashed var(--mud-palette-lines-default); min-height: 50px; background-color: var(--mud-palette-surface);">
+    <MudPaper Elevation="0" Class="mb-2 pa-3" Style="border: 2px dashed var(--mud-palette-lines-default); height: 56px; background-color: var(--mud-palette-surface);">
         <div @ondragover="@HandleGroupPanelDragOver"
              @ondragover:preventDefault="true"
              @ondrop="@HandleGroupPanelDrop"
              @ondrop:preventDefault="true"
-             style="min-height: 40px;">
+             style="height: 32px; display: flex; align-items: center;">
             @if (_groupByProperties.Count == 0)
             {
-                <div class="d-flex align-center justify-center" style="height: 40px;">
+                <div class="d-flex align-center justify-center" style="height: 32px;">
                     <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" Size="Size.Small" Class="mr-2 mud-text-secondary" />
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
                         @TranslationService.GetTranslation("table.dragColumnToGroup", "Trascina qui un'intestazione di colonna per raggruppare")
