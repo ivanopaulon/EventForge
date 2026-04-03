@@ -11,9 +11,10 @@
 @if (_isVisible)
 {
     <MudOverlay Visible="_isVisible" DarkBackground="true" AutoClose="false"
-                Style="backdrop-filter: blur(3px);">
+                Style="backdrop-filter: blur(3px); z-index: 9999;">
         <div class="lov-card">
-            <!-- Progress bar on top: indeterminate during loading/login, matches PageLoadingOverlay style -->
+
+            @* Barra di progresso in cima *@
             <div class="lov-progress">
                 <MudProgressLinear Color="@_progressColor"
                                    Indeterminate="@_progressIndeterminate"
@@ -22,106 +23,118 @@
                                    Style="height:3px; border-radius: 4px 4px 0 0; margin:0;" />
             </div>
 
-            <div class="lov-body">
-                <!-- Left: logo with pulse animation -->
+            @* Header: logo + titolo (stesso pattern di ConnectionLostOverlay) *@
+            <div class="lov-header">
                 <div class="lov-logo-col">
-                    <img src="trace.svg" width="96" height="96"
+                    <img src="trace.svg" width="72" height="72"
                          class="lov-logo anim-pulse" alt="EventForge logo" />
                 </div>
-
-                <!-- Right: title + form content -->
-                <div class="lov-content-col">
+                <div class="lov-title-col">
                     <div class="lov-title">EventForge</div>
                     <div class="lov-divider"></div>
                     @if (!string.IsNullOrEmpty(_subtitle))
                     {
-                        <div class="lov-message">@_subtitle</div>
-                    }
-
-                    @if (_isLoadingTenants)
-                    {
-                        <!-- Tenant loading state -->
-                        <PageLoadingOverlay Visible="true"
-                                            Message="@TranslationService.GetTranslation("auth.connectingToServer", "Connessione al server...")"
-                                            ShowProgressLog="true"
-                                            ProgressMessages="@_tenantLoadMessages"
-                                            ProgressIntervalMs="1500" />
-                    }
-                    else if (_isChangePasswordMode)
-                    {
-                        <!-- Change password inline -->
-                        <ChangePasswordForm IsMandatory="_changePasswordIsMandatory"
-                                            OnCompleted="HandlePasswordChangeCompleted"
-                                            OnCancelled="HandlePasswordChangeCancelled" />
-                    }
-                    else
-                    {
-                        <!-- Login form -->
-                        <MudForm @ref="form" @bind-IsValid="@_isFormValid">
-                            <MudStack Spacing="3" Class="mt-2">
-                                @if (_tenants?.Any() == true)
-                                {
-                                    <MudSelect T="string" @bind-Value="_selectedTenantId"
-                                               Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
-                                               Variant="Variant.Outlined"
-                                               Required="true"
-                                               Dense="true"
-                                               Disabled="_isLoading">
-                                        @foreach (var t in _tenants)
-                                        {
-                                            <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
-                                        }
-                                    </MudSelect>
-                                }
-                                else
-                                {
-                                    <MudAlert Severity="Severity.Warning">
-                                        @TranslationService.GetTranslation("auth.noTenantsAvailable", "Nessun tenant disponibile. Contatta l'amministratore.")
-                                    </MudAlert>
-                                }
-                                <MudTextField @bind-Value="_loginRequest.Username"
-                                              Label="@TranslationService.GetTranslation("auth.username", "Username")"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              Disabled="_isLoading"
-                                              autocomplete="username"
-                                              InputType="InputType.Text"
-                                              Margin="Margin.Dense" />
-                                <MudTextField @bind-Value="_loginRequest.Password"
-                                              Label="@TranslationService.GetTranslation("auth.password", "Password")"
-                                              Variant="Variant.Outlined"
-                                              InputType="@_passwordInputType"
-                                              Required="true"
-                                              Disabled="_isLoading"
-                                              autocomplete="current-password"
-                                              Margin="Margin.Dense"
-                                              Adornment="Adornment.End"
-                                              AdornmentIcon="@_passwordVisibilityIcon"
-                                              OnAdornmentClick="TogglePasswordVisibility" />
-                                <MudCheckBox T="bool" @bind-Value="_loginRequest.RememberMe"
-                                             Label="@TranslationService.GetTranslation("auth.rememberMe", "Ricordami")"
-                                             Disabled="_isLoading" />
-                            </MudStack>
-                        </MudForm>
-
-                        <MudStack Row="true" Spacing="2" Class="mt-4">
-                            <MudButton Variant="Variant.Text" Color="Color.Default"
-                                       OnClick="Cancel" Disabled="_isLoading">
-                                @TranslationService.GetTranslation("common.cancel", "Annulla")
-                            </MudButton>
-                            <MudSpacer />
-                            <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                                       OnClick="OpenChangePasswordInline" Disabled="_isLoading">
-                                @TranslationService.GetTranslation("auth.changePassword", "Cambia Password")
-                            </MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                                       OnClick="HandleLogin"
-                                       Disabled="@(!_isFormValid || _isLoading || _tenants?.Any() != true)">
-                                @TranslationService.GetTranslation("auth.login", "Accedi")
-                            </MudButton>
-                        </MudStack>
+                        <div class="lov-subtitle">@_subtitle</div>
                     }
                 </div>
+            </div>
+
+            @* Corpo: occupa tutta la larghezza della card *@
+            <div class="lov-form-body">
+
+                @if (_isLoadingTenants)
+                {
+                    @* Stato di caricamento inline — nessun overlay annidato *@
+                    <div class="lov-loading-inline">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary"
+                                             Style="width:22px;height:22px;flex-shrink:0;" />
+                        <span class="lov-loading-text">@_subtitle</span>
+                    </div>
+                }
+                else if (_isChangePasswordMode)
+                {
+                    <ChangePasswordForm IsMandatory="_changePasswordIsMandatory"
+                                        OnCompleted="HandlePasswordChangeCompleted"
+                                        OnCancelled="HandlePasswordChangeCancelled" />
+                }
+                else
+                {
+                    @* Form di login *@
+                    <MudForm @ref="form" @bind-IsValid="@_isFormValid">
+                        <MudStack Spacing="2">
+
+                            @if (_tenants?.Any() == true)
+                            {
+                                <MudSelect T="string" @bind-Value="_selectedTenantId"
+                                           Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
+                                           Variant="Variant.Outlined"
+                                           Required="true"
+                                           Dense="true"
+                                           Disabled="_isLoading">
+                                    @foreach (var t in _tenants)
+                                    {
+                                        <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Warning" Dense="true">
+                                    @TranslationService.GetTranslation("auth.noTenantsAvailable", "Nessun tenant disponibile. Contatta l'amministratore.")
+                                </MudAlert>
+                            }
+
+                            <MudTextField @bind-Value="_loginRequest.Username"
+                                          Label="@TranslationService.GetTranslation("auth.username", "Username")"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          Disabled="_isLoading"
+                                          autocomplete="username"
+                                          InputType="InputType.Text"
+                                          Margin="Margin.Dense" />
+
+                            <MudTextField @bind-Value="_loginRequest.Password"
+                                          Label="@TranslationService.GetTranslation("auth.password", "Password")"
+                                          Variant="Variant.Outlined"
+                                          InputType="@_passwordInputType"
+                                          Required="true"
+                                          Disabled="_isLoading"
+                                          autocomplete="current-password"
+                                          Margin="Margin.Dense"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@_passwordVisibilityIcon"
+                                          OnAdornmentClick="TogglePasswordVisibility" />
+
+                            <MudCheckBox T="bool" @bind-Value="_loginRequest.RememberMe"
+                                         Label="@TranslationService.GetTranslation("auth.rememberMe", "Ricordami")"
+                                         Disabled="_isLoading" />
+
+                        </MudStack>
+                    </MudForm>
+
+                    <MudStack Row="true" Spacing="2" Class="mt-4">
+                        <MudButton Variant="Variant.Text" Color="Color.Default"
+                                   OnClick="Cancel" Disabled="_isLoading">
+                            @TranslationService.GetTranslation("common.cancel", "Annulla")
+                        </MudButton>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                                   OnClick="OpenChangePasswordInline" Disabled="_isLoading">
+                            @TranslationService.GetTranslation("auth.changePassword", "Cambia Password")
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="HandleLogin"
+                                   Disabled="@(!_isFormValid || _isLoading || _tenants?.Any() != true)">
+                            @if (_isLoading)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true"
+                                                     Style="width:18px;height:18px;margin-right:6px;" />
+                            }
+                            @TranslationService.GetTranslation("auth.login", "Accedi")
+                        </MudButton>
+                    </MudStack>
+                }
+
             </div>
         </div>
     </MudOverlay>
@@ -367,38 +380,37 @@
 }
 
 <style>
+    /* ── Card ── */
     .lov-card {
         background: rgba(18, 18, 32, 0.92);
         border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 12px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
         backdrop-filter: blur(8px);
-        min-width: 340px;
-        max-width: 560px;
+        width: 420px;
+        max-width: 95vw;
         overflow: hidden;
         display: flex;
         flex-direction: column;
     }
 
+    /* ── Barra progresso ── */
     .lov-progress {
         line-height: 0;
         font-size: 0;
     }
 
-    .lov-body {
+    /* ── Header: logo + titolo ── */
+    .lov-header {
         display: flex;
         flex-direction: row;
-        align-items: flex-start;
-        gap: 20px;
-        padding: 20px 24px 20px 20px;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px 16px 20px;
     }
 
     .lov-logo-col {
         flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding-top: 4px;
     }
 
     .lov-logo {
@@ -407,12 +419,9 @@
         filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
     }
 
-    .lov-content-col {
+    .lov-title-col {
         flex: 1;
         min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
     }
 
     .lov-title {
@@ -427,107 +436,120 @@
     .lov-divider {
         height: 1px;
         background: rgba(255, 255, 255, 0.15);
-        margin: 2px 0 8px 0;
+        margin: 5px 0 7px 0;
     }
 
-    .lov-message {
-        color: rgba(255, 255, 255, 0.82);
-        font-size: 0.9rem;
+    .lov-subtitle {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.88rem;
         font-weight: 500;
         line-height: 1.4;
     }
 
-    /* Force white/light text for all MudBlazor inputs inside the overlay */
-    .lov-content-col .mud-input-label,
-    .lov-content-col .mud-input-outlined .mud-input-label {
+    /* ── Corpo form (larghezza intera) ── */
+    .lov-form-body {
+        padding: 0 24px 22px 24px;
+    }
+
+    /* ── Stato di caricamento inline ── */
+    .lov-loading-inline {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0 6px 0;
+        color: rgba(255, 255, 255, 0.80);
+        font-size: 0.9rem;
+    }
+
+    .lov-loading-text {
+        color: rgba(255, 255, 255, 0.80);
+        font-size: 0.9rem;
+    }
+
+    /* ── Override MudBlazor: input su sfondo scuro ── */
+    .lov-form-body .mud-input-label,
+    .lov-form-body .mud-input-outlined .mud-input-label {
         color: rgba(255, 255, 255, 0.75) !important;
     }
 
-    .lov-content-col .mud-input input,
-    .lov-content-col .mud-input textarea {
+    .lov-form-body .mud-input input,
+    .lov-form-body .mud-input textarea {
         color: white !important;
         caret-color: white !important;
     }
 
-    .lov-content-col fieldset.mud-input-outlined-border,
-    .lov-content-col .mud-input-outlined fieldset {
+    .lov-form-body fieldset.mud-input-outlined-border,
+    .lov-form-body .mud-input-outlined fieldset {
         border-color: rgba(255, 255, 255, 0.35) !important;
     }
 
-    .lov-content-col .mud-input-outlined:hover fieldset {
+    .lov-form-body .mud-input-outlined:hover fieldset {
         border-color: rgba(255, 255, 255, 0.65) !important;
     }
 
-    .lov-content-col .mud-input-outlined.mud-input-focused fieldset,
-    .lov-content-col .mud-input-outlined:focus-within fieldset {
+    .lov-form-body .mud-input-outlined.mud-input-focused fieldset,
+    .lov-form-body .mud-input-outlined:focus-within fieldset {
         border-color: rgba(100, 160, 255, 0.9) !important;
         border-width: 2px !important;
     }
 
-    /* Checkbox label */
-    .lov-content-col .mud-checkbox .mud-button-label {
+    .lov-form-body .mud-checkbox .mud-button-label {
         color: rgba(255, 255, 255, 0.75) !important;
     }
 
-    /* Password visibility toggle icon */
-    .lov-content-col .mud-input-adornment .mud-icon-root,
-    .lov-content-col .mud-input-adornment button {
+    .lov-form-body .mud-input-adornment .mud-icon-root,
+    .lov-form-body .mud-input-adornment button {
         color: rgba(255, 255, 255, 0.6) !important;
     }
 
-    /* MudSelect dropdown text */
-    .lov-content-col .mud-select-input,
-    .lov-content-col .mud-input-slot {
+    .lov-form-body .mud-select-input,
+    .lov-form-body .mud-input-slot {
         color: white !important;
     }
 
-    /* MudAlert inside overlay */
-    .lov-content-col .mud-alert {
+    .lov-form-body .mud-alert {
         background-color: rgba(255, 152, 0, 0.15) !important;
         color: rgba(255, 255, 255, 0.85) !important;
         border: 1px solid rgba(255, 152, 0, 0.4) !important;
     }
 
-    /* Button styling for dark background */
-    .lov-content-col .mud-button-outlined {
+    .lov-form-body .mud-button-outlined {
         border-color: rgba(255, 255, 255, 0.4) !important;
         color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    .lov-content-col .mud-button-text {
+    .lov-form-body .mud-button-text {
         color: rgba(255, 255, 255, 0.6) !important;
     }
 
-    .lov-content-col .mud-button-text:hover {
+    .lov-form-body .mud-button-text:hover {
         background-color: rgba(255, 255, 255, 0.08) !important;
         color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    /* Pulse animation (same as plo) */
-    .anim-pulse {
-        animation: lov-pulse 1.8s infinite ease-in-out;
-    }
-
+    /* ── Animazione logo ── */
     @@keyframes lov-pulse {
         0%   { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
         50%  { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(100, 160, 255, 0.6)); }
         100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
     }
 
-    /* Mobile */
+    .anim-pulse {
+        animation: lov-pulse 1.8s infinite ease-in-out;
+    }
+
+    /* ── Mobile ── */
     @@media (max-width: 480px) {
         .lov-card {
-            min-width: unset;
-            max-width: 92vw;
             width: 92vw;
         }
 
-        .lov-body {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 12px;
-            padding: 16px;
+        .lov-header {
+            padding: 16px 16px 12px 16px;
+        }
+
+        .lov-form-body {
+            padding: 0 16px 18px 16px;
         }
     }
 

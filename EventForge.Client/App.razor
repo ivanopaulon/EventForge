@@ -2,14 +2,12 @@
 
 @using EventForge.Client.Layout
 @using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.Shared.Components.Drawers
 
 
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IServiceProvider ServiceProvider
-@inject IDialogService DialogService
 @inject IAuthenticationDialogService AuthenticationDialogService
 @implements IDisposable
 
@@ -118,30 +116,10 @@
 
     private async Task ShowLoginDialog()
     {
-        var options = new DialogOptions 
-        { 
-            CloseButton = false,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true,
-            BackdropClick = false,
-            NoHeader = false
-        };
-
-        var dialog = await DialogService.ShowAsync<LoginDialog>("", options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            // Reset flag to allow showing dialog again if needed
-            _loginDialogShown = false;
-            // Refresh the page state after successful login
+        var success = await AuthenticationDialogService.ShowLoginDialogAsync();
+        _loginDialogShown = false;
+        if (success)
             StateHasChanged();
-        }
-        else
-        {
-            // If dialog was canceled, reset flag so it can be shown again
-            _loginDialogShown = false;
-        }
     }
 
     public void Dispose()
