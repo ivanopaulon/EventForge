@@ -3,23 +3,26 @@
 @if (Filters != null && Filters.Any())
 {
     <div class="@($"quick-filters-wrapper{(IsInToolbar ? " in-toolbar" : "")}")">
-        <MudChipSet T="string"
-                    @bind-SelectedValue="_selectedValue"
-                    Filter="true"
-                    Mandatory="false">
-            @foreach (var filter in Filters)
+        @foreach (var filter in Filters)
+        {
+            var isActive = _activeFilterId == filter.Id;
+            <MudToggleIconButton Toggled="@isActive"
+                                 ToggledChanged="@((v) => OnToggleFilter(filter, v))"
+                                 Icon="@(filter.Icon ?? Icons.Material.Outlined.FilterList)"
+                                 ToggledIcon="@(filter.Icon ?? Icons.Material.Outlined.FilterList)"
+                                 Color="@Color.Default"
+                                 ToggledColor="@filter.Color"
+                                 Size="Size.Small"
+                                 Title="@(filter.Description ?? filter.Label)" />
+            @if (!string.IsNullOrEmpty(filter.Label))
             {
-                <MudChip T="string"
-                         Value="@filter.Id"
-                         Color="@filter.Color"
-                         Icon="@filter.Icon"
-                         Variant="Variant.Outlined"
-                         Size="Size.Small"
-                         Title="@filter.Description">
+                <MudText Typo="Typo.caption"
+                         Class="@($"quick-filter-label{(isActive ? " active" : "")}")"
+                         @onclick="@(() => OnToggleFilter(filter, !isActive))">
                     @filter.Label@if (ShowCount) { <text>&nbsp;(@GetFilterCount(filter))</text> }
-                </MudChip>
+                </MudText>
             }
-        </MudChipSet>
+        }
     </div>
 }
 
@@ -49,8 +52,7 @@
     /// </summary>
     [Parameter] public bool IsInToolbar { get; set; } = false;
     
-    private string? _selectedValue;
-    private string? _previousSelectedValue;
+    private string? _activeFilterId;
     
     private int GetFilterCount(QuickFilter<TItem> filter)
     {
@@ -60,22 +62,17 @@
         return Items.Count(filter.Predicate);
     }
     
-    protected override async Task OnParametersSetAsync()
+    private async Task OnToggleFilter(QuickFilter<TItem> filter, bool toggled)
     {
-        // Detect change in selected value and trigger callback
-        if (_selectedValue != _previousSelectedValue)
+        if (toggled)
         {
-            _previousSelectedValue = _selectedValue;
-            
-            if (string.IsNullOrEmpty(_selectedValue))
-            {
-                await OnFilterSelected.InvokeAsync(null);
-            }
-            else
-            {
-                var filter = Filters?.FirstOrDefault(f => f.Id == _selectedValue);
-                await OnFilterSelected.InvokeAsync(filter);
-            }
+            _activeFilterId = filter.Id;
+            await OnFilterSelected.InvokeAsync(filter);
+        }
+        else
+        {
+            _activeFilterId = null;
+            await OnFilterSelected.InvokeAsync(null);
         }
     }
 }
