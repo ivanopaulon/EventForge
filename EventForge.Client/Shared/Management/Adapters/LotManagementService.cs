@@ -17,7 +17,7 @@ public class LotManagementService : IEntityManagementService<LotDto>
     public LotManagementService(ILotService lotService)
         => _lotService = lotService;
 
-    public async Task<PagedResult<LotDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<LotDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
     {
         var result = await _lotService.GetLotsAsync(1, int.MaxValue);
         var list = result?.Items?.ToList() ?? new List<LotDto>();

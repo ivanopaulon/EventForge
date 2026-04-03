@@ -19,7 +19,7 @@ public class TransferOrderManagementService : IEntityManagementService<TransferO
     public TransferOrderManagementService(ITransferOrderService service)
         => _service = service;
 
-    public async Task<PagedResult<TransferOrderDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<TransferOrderDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
     {
         var result = await _service.GetTransferOrdersAsync(1, int.MaxValue, cancellationToken: ct);
         var list = result?.Items?.ToList() ?? new List<TransferOrderDto>();

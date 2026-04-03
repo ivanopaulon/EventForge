@@ -312,3 +312,55 @@ Le seguenti funzionalità sono pianificate per la Fase 3 del refactoring:
 - **`GetDetailRoute`**: override della rotta di dettaglio per casi in cui la destinazione è diversa da `{BaseRoute}/{id}`
 
 Fino all'implementazione della Fase 3, il comportamento al click sulla riga è disabilitato per default (nessuna navigazione automatica).
+
+---
+
+## 10. Estensioni Hook e Server-Side Paging
+
+### Nuovi parametri `[Parameter]`
+
+| Parametro | Tipo | Default | Descrizione |
+|---|---|---|---|
+| `OnCustomLoad` | `Func<Task>?` | `null` | Sostituisce la chiamata standard a `Service.GetPagedAsync`. Utile per pagine che caricano dati da più servizi. |
+| `OnAfterInitialized` | `Func<Task>?` | `null` | Callback invocato dopo `OnInitializedAsync`. Utile per logica post-init (es. calcoli di riconciliazione). |
+| `OnQuickFilterChanged` | `Func<QuickFilter<TEntity>?, Task>?` | `null` | Sostituisce il filtro client-side quando un QuickFilter viene selezionato. Utile per filtri server-side. |
+| `OnClearFilters` | `Func<Task>?` | `null` | Sostituisce il comportamento di `ClearFilters`. Utile per reset server-side. |
+| `IsEmbedded` | `bool` | `true` | Quando `false`, redirige a `EmbeddedRedirectUrl`. |
+| `EmbeddedRedirectUrl` | `string?` | `null` | URL di redirect quando `IsEmbedded = false`. |
+| `EFTableRef` | `EFTable<TEntity>?` | (computed) | Espone il riferimento interno alla tabella per manipolazioni avanzate delle colonne. |
+
+### Server-Side Paging
+
+Aggiungere `UseServerSidePaging = true` nella `EntityManagementConfig` per delegare il paging al server:
+
+```csharp
+_config = new EntityManagementConfig<MyEntityDto>
+{
+    // ...
+    UseServerSidePaging = true,
+    DefaultPageSize = 50,
+    ShowLoadingProgressLog = true,
+    LoadingProgressMessages = new[] { "Caricamento dati...", "Applicazione filtri...", "Preparazione tabella..." },
+    ShowLoadingElapsedTime = true,
+};
+```
+
+In modalità server-side, `LoadEntitiesAsync` passa `searchTerm`, `DefaultPageSize` e il token di cancellazione a `GetPagedAsync`. Gli adapter esistenti ignorano i nuovi parametri (backward compatible).
+
+### Pagine Complesse con `OnCustomLoad`
+
+Per pagine che caricano dati da più servizi (es. `StockOverview`):
+
+```razor
+<EntityManagementPage TEntity="StockLocationDetail"
+                      Config="_config"
+                      Service="_service"
+                      OnCustomLoad="@LoadAllDataAsync"
+                      OnAfterInitialized="@CalculateReconciliationAsync"
+                      IsEmbedded="@IsEmbedded"
+                      EmbeddedRedirectUrl="/warehouse/stock-management"
+                      OnQuickFilterChanged="@HandleQuickFilterServerSide"
+                      OnClearFilters="@ClearFiltersAndReload">
+    ...
+</EntityManagementPage>
+```

@@ -11,7 +11,7 @@ public class DocumentTypeManagementService : IEntityManagementService<DocumentTy
     public DocumentTypeManagementService(IDocumentTypeService documentTypeService)
         => _documentTypeService = documentTypeService;
 
-    public async Task<PagedResult<DocumentTypeDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<DocumentTypeDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
     {
         var items = await _documentTypeService.GetAllDocumentTypesAsync();
         var list = items?.ToList() ?? new List<DocumentTypeDto>();

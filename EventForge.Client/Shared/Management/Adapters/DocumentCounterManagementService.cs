@@ -15,7 +15,7 @@ public class DocumentCounterManagementService : IEntityManagementService<Documen
     public DocumentCounterManagementService(IDocumentCounterService service)
         => _service = service;
 
-    public async Task<PagedResult<DocumentCounterDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<DocumentCounterDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
     {
         var items = await _service.GetAllDocumentCountersAsync();
         var list = items?.ToList() ?? new List<DocumentCounterDto>();

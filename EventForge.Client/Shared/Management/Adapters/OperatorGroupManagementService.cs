@@ -11,7 +11,7 @@ public class OperatorGroupManagementService : IEntityManagementService<StoreUser
     public OperatorGroupManagementService(IStoreUserGroupService storeUserGroupService)
         => _storeUserGroupService = storeUserGroupService;
 
-    public async Task<PagedResult<StoreUserGroupDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<StoreUserGroupDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
         => await _storeUserGroupService.GetPagedAsync(page, pageSize);
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

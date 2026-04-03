@@ -11,7 +11,7 @@ public class PromotionManagementService : IEntityManagementService<PromotionDto>
     public PromotionManagementService(IPromotionClientService promotionService)
         => _promotionService = promotionService;
 
-    public async Task<PagedResult<PromotionDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<PromotionDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
         => await _promotionService.GetPagedAsync(page, pageSize, ct);
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

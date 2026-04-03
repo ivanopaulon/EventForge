@@ -11,7 +11,7 @@ public class UnitOfMeasureManagementService : IEntityManagementService<UMDto>
     public UnitOfMeasureManagementService(IUMService umService)
         => _umService = umService;
 
-    public async Task<PagedResult<UMDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<UMDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
         => await _umService.GetUMsAsync(page, pageSize, ct);
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
