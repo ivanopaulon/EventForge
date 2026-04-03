@@ -3,51 +3,63 @@
 
 @if (Visible)
 {
-    <MudOverlay Visible="@Visible" DarkBackground="true" AutoClose="false">
-        <MudStack AlignItems="AlignItems.Center" Style="min-width: 320px; max-width: 480px;">
+    <MudOverlay Visible="@Visible" DarkBackground="true" AutoClose="false" Style="backdrop-filter: blur(4px);">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2" Style="min-width: 340px; max-width: 500px; padding: 16px;">
 
-            <MudImage Src="@IconPath" Width="@Size" Height="@Size" Class="@AnimationClass" />
-            <MudText Typo="Typo.h3" Style="color:white; font-weight:bold">
+            <MudImage Src="@IconPath" Width="@Size" Height="@Size" Class="@AnimationClass"
+                      Style="filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5));" />
+
+            <MudText Typo="Typo.h4" Style="color:white; font-weight:800; letter-spacing:1px; text-shadow: 0 2px 8px rgba(0,0,0,0.4);">
                 EventForge
             </MudText>
 
             @if (!string.IsNullOrEmpty(Message))
             {
-                <MudText Typo="Typo.h5" Style="color:white; font-weight:bold">@Message</MudText>
+                <MudText Typo="Typo.subtitle1" Style="color:rgba(255,255,255,0.85); font-weight:500; text-align:center;">
+                    @Message
+                </MudText>
+            }
+
+            @if (ShowProgressLog || ShowElapsedTime)
+            {
+                <MudDivider Style="border-color: rgba(255,255,255,0.15); width: 100%; margin: 4px 0;" />
             }
 
             @if (ShowProgressLog && _progressLog.Count > 0)
             {
-                <MudPaper Outlined="true" Class="pa-3 mt-2" Style="width:100%; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2);">
+                <div style="width:100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 12px 16px;">
                     <MudStack Spacing="1">
                         @for (var i = 0; i < _progressLog.Count; i++)
                         {
                             var logMsg = _progressLog[i];
-                            var logOpacity = i == 0 ? "1" : i == 1 ? "0.6" : "0.3";
                             var isFirst = i == 0;
-                            <div class="d-flex align-center gap-2" style="opacity:@logOpacity">
-                                @if (isFirst)
-                                {
-                                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="Color.Primary" />
-                                }
-                                else
-                                {
-                                    <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="MudBlazor.Size.Small" Color="Color.Success" />
-                                }
+                            var opacity = isFirst ? "1.0" : i == 1 ? "0.55" : "0.28";
+                            <div class="plo-log-row @(isFirst ? "plo-log-active" : "")" style="opacity:@opacity; transition: opacity 0.4s ease;">
+                                <div style="width:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    @if (isFirst)
+                                    {
+                                        <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="Color.Primary" Style="width:16px; height:16px;" />
+                                    }
+                                    else
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="MudBlazor.Size.Small" Style="color: #66bb6a; font-size: 16px;" />
+                                    }
+                                </div>
                                 <MudText Typo="Typo.body2"
-                                         Style="@(isFirst ? "color:white; font-weight:600" : "color:rgba(255,255,255,0.75)")">
+                                         Style="@(isFirst ? "color:white; font-weight:600;" : "color:rgba(255,255,255,0.75);")">
                                     @logMsg
                                 </MudText>
                             </div>
                         }
                     </MudStack>
-                </MudPaper>
+                </div>
             }
 
             @if (ShowElapsedTime)
             {
-                <MudText Typo="Typo.caption" Style="color:rgba(255,255,255,0.6)">
-                    ⏱ @((int)(DateTimeOffset.UtcNow - _startTime).TotalSeconds)s trascorsi
+                var elapsed = (int)(DateTimeOffset.UtcNow - _startTime).TotalSeconds;
+                <MudText Typo="Typo.caption" Style="color:rgba(255,255,255,0.5); font-size: 0.72rem; margin-top: 2px;">
+                    ⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")
                 </MudText>
             }
 
@@ -56,33 +68,39 @@
 }
 
 @code {
-    // ── Parametri esistenti (backward compatible) ──
     [Parameter] public bool Visible { get; set; }
+
+    [Parameter]
+    public bool IsVisible
+    {
+        get => Visible;
+        set => Visible = value;
+    }
+
     [Parameter] public string? Message { get; set; }
     [Parameter] public string IconPath { get; set; } = "trace.svg";
     [Parameter] public int Size { get; set; } = 96;
     [Parameter] public LoadingAnimationType Animation { get; set; } = LoadingAnimationType.Pulse;
-
-    // ── Nuovi parametri opzionali ──
     [Parameter] public bool ShowProgressLog { get; set; } = false;
     [Parameter] public IReadOnlyList<string>? ProgressMessages { get; set; }
     [Parameter] public bool ShowElapsedTime { get; set; } = false;
     [Parameter] public int ProgressIntervalMs { get; set; } = 2500;
 
+    public enum LoadingAnimationType { Blink, Pulse, None }
+
     private string AnimationClass => Animation switch
     {
         LoadingAnimationType.Blink => "anim-blink",
         LoadingAnimationType.Pulse => "anim-pulse",
-        LoadingAnimationType.None => string.Empty,
-        _ => "anim-pulse"
+        LoadingAnimationType.None  => string.Empty,
+        _                          => "anim-pulse"
     };
 
     private readonly List<string> _progressLog = new();
     private DateTimeOffset _startTime;
     private CancellationTokenSource? _progressCts;
+    private System.Threading.Timer? _elapsedTimer;
     private bool _wasVisible = false;
-
-    public enum LoadingAnimationType { Blink, Pulse, None }
 
     protected override void OnParametersSet()
     {
@@ -90,12 +108,17 @@
         {
             _startTime = DateTimeOffset.UtcNow;
             _progressLog.Clear();
+
             if (ShowProgressLog && ProgressMessages?.Count > 0)
                 StartProgressTracker();
+
+            if (ShowElapsedTime)
+                StartElapsedTimer();
         }
         else if (!Visible && _wasVisible)
         {
             StopProgressTracker();
+            StopElapsedTimer();
             _progressLog.Clear();
         }
         _wasVisible = Visible;
@@ -116,16 +139,15 @@
         {
             while (!ct.IsCancellationRequested)
             {
-                await Task.Delay(ProgressIntervalMs, ct);
                 var msg = ProgressMessages[msgIndex % ProgressMessages.Count];
                 _progressLog.Insert(0, msg);
-                if (_progressLog.Count > 3)
-                    _progressLog.RemoveAt(3);
+                if (_progressLog.Count > 3) _progressLog.RemoveAt(3);
                 msgIndex++;
                 await InvokeAsync(StateHasChanged);
+                await Task.Delay(ProgressIntervalMs, ct);
             }
         }
-        catch (TaskCanceledException) { /* expected */ }
+        catch (TaskCanceledException) { }
     }
 
     private void StopProgressTracker()
@@ -135,62 +157,69 @@
         _progressCts = null;
     }
 
-    public void Dispose() => StopProgressTracker();
+    private void StartElapsedTimer()
+    {
+        StopElapsedTimer();
+        _elapsedTimer = new System.Threading.Timer(_ =>
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+    }
+
+    private void StopElapsedTimer()
+    {
+        if (_elapsedTimer != null)
+        {
+            _elapsedTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            _elapsedTimer.Dispose();
+            _elapsedTimer = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        StopProgressTracker();
+        StopElapsedTimer();
+    }
 }
 
 <style>
-    .page-loading-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.35);
+    .plo-log-row {
         display: flex;
         align-items: center;
-        justify-content: center;
-        z-index: 9998; /* below dialogs but above page content */
+        gap: 10px;
+        padding: 3px 0;
+        transition: opacity 0.4s ease;
     }
 
-    .page-loading-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 16px 24px;
-        border-radius: 8px;
-        backdrop-filter: blur(2px);
+    .plo-log-active {
+        border-left: 2px solid rgba(100, 160, 255, 0.7);
+        padding-left: 8px;
+        margin-left: -8px;
     }
 
-    .loading-icon {
-        display: block;
-        object-fit: contain;
-    }
-
-    /* Blink animation: quick on/off visibility */
     .anim-blink {
-        animation: blink 1.2s infinite ease-in-out;
+        animation: plo-blink 1.2s infinite ease-in-out;
     }
 
-    @@keyframes blink {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.15; transform: scale(0.98); }
+    @@keyframes plo-blink {
+        0%, 100% { opacity: 1;    transform: scale(1);    }
+        50%       { opacity: 0.15; transform: scale(0.98); }
     }
 
-    /* Pulse animation: soft scale + glow */
     .anim-pulse {
-        animation: pulse 1.6s infinite ease-in-out;
-        filter: drop-shadow(0 0 6px rgba(0,0,0,0.15));
+        animation: plo-pulse 1.8s infinite ease-in-out;
     }
 
-    @@keyframes pulse {
-        0% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.06); opacity: 0.9; }
-        100% { transform: scale(1); opacity: 1; }
+    @@keyframes plo-pulse {
+        0%   { transform: scale(1);    opacity: 1;    filter: drop-shadow(0 0 12px rgba(100,160,255,0.35)); }
+        50%  { transform: scale(1.07); opacity: 0.88; filter: drop-shadow(0 0 20px rgba(100,160,255,0.55)); }
+        100% { transform: scale(1);    opacity: 1;    filter: drop-shadow(0 0 12px rgba(100,160,255,0.35)); }
     }
 
     @@media (prefers-reduced-motion: reduce) {
         .anim-blink, .anim-pulse {
             animation: none !important;
-            transition: none !important;
         }
     }
 </style>
