@@ -1,5 +1,4 @@
 using EventForge.DTOs.Products.SupplierSuggestion;
-using System.Net.Http.Json;
 
 namespace EventForge.Client.Services;
 
@@ -8,14 +7,14 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class SupplierSuggestionService : ISupplierSuggestionService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<SupplierSuggestionService> _logger;
 
     public SupplierSuggestionService(
-        HttpClient httpClient,
+        IHttpClientService httpClientService,
         ILogger<SupplierSuggestionService> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -23,16 +22,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/api/v1/supplier-suggestions/products/{productId}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<SupplierSuggestionResponse>();
-            }
-
-            _logger.LogWarning("Failed to get supplier suggestions for product {ProductId}. Status: {StatusCode}",
-                productId, response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<SupplierSuggestionResponse>($"api/v1/supplier-suggestions/products/{productId}");
         }
         catch (Exception ex)
         {
@@ -52,17 +42,9 @@ public class SupplierSuggestionService : ISupplierSuggestionService
                 Reason = reason
             };
 
-            var response = await _httpClient.PostAsJsonAsync(
-                $"/api/v1/supplier-suggestions/products/{productId}/apply", request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-
-            _logger.LogWarning("Failed to apply suggested supplier {SupplierId} for product {ProductId}. Status: {StatusCode}",
-                supplierId, productId, response.StatusCode);
-            return false;
+            await _httpClientService.PostAsync<ApplySuggestionRequest, object>(
+                $"api/v1/supplier-suggestions/products/{productId}/apply", request);
+            return true;
         }
         catch (Exception ex)
         {
@@ -76,16 +58,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/api/v1/supplier-suggestions/suppliers/{supplierId}/reliability");
-
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<SupplierReliabilityResponse>();
-            }
-
-            _logger.LogWarning("Failed to get reliability for supplier {SupplierId}. Status: {StatusCode}",
-                supplierId, response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<SupplierReliabilityResponse>($"api/v1/supplier-suggestions/suppliers/{supplierId}/reliability");
         }
         catch (Exception ex)
         {
