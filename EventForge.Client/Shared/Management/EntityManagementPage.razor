@@ -1,0 +1,462 @@
+@typeparam TEntity where TEntity : class
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
+@using EventForge.Client.Shared.Management
+@using EventForge.Client.Extensions
+@using MudBlazor
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<EntityManagementPage<TEntity>> Logger
+@inject IJSRuntime JSRuntime
+
+<PageLoadingOverlay Visible="_isLoading || _isLoadingEntities"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+@if (!_isLoading)
+{
+    <div class="@Config.PageRootCssClass">
+        <!-- Quick Filters -->
+        <QuickFilters TItem="TEntity"
+                      Items="_entities"
+                      Filters="Config.QuickFilters"
+                      OnFilterSelected="@HandleQuickFilter"
+                      ShowCount="true" />
+
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="TEntity"
+                 Items="_filteredEntities"
+                 MultiSelection="true"
+                 SelectedItems="_selectedEntities"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingEntities"
+                 ComponentKey="@Config.ComponentKey"
+                 InitialColumnConfigurations="Config.Columns"
+                 AllowDragDropGrouping="true"
+                 ShowExport="@Config.ShowExport"
+                 ShowExportDialog="@Config.ShowExport"
+                 ExportFormats="@(new List<string> { "Excel" })"
+                 ExcelFileName="@Config.ExcelFileName"
+                 IsDataFiltered="@HasActiveFilters()"
+                 TotalItemsCount="@_entities.Count"
+                 OnRowClick="@HandleRowClick"
+                 Title="@TranslationService.GetTranslation(Config.PageTitleKey, Config.PageTitleDefault)"
+                 ShowSearch="true"
+                 SearchPlaceholder="@TranslationService.GetTranslation(Config.SearchPlaceholderKey, Config.SearchPlaceholderDefault)"
+                 OnSearch="@OnSearchChanged"
+                 ShowSelectionBadge="true"
+                 ShowRefresh="true"
+                 OnRefresh="@LoadEntitiesAsync"
+                 ShowCreate="true"
+                 OnCreate="@CreateEntity"
+                 CreateTooltip="@Config.CreateTooltip"
+                 ShowBulkDelete="true"
+                 OnBulkDelete="@DeleteSelectedEntities"
+                 IsToolbarDisabled="@_isLoadingEntities">
+            <HeaderContent Context="columnConfigurations">
+                @if (HeaderContent != null)
+                {
+                    @HeaderContent(columnConfigurations)
+                }
+            </HeaderContent>
+
+            <RowTemplate Context="item">
+                @{
+                    var visibleCols = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList()
+                        ?? Config.Columns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @if (RowTemplate != null)
+                {
+                    @RowTemplate((Item: item, Cols: visibleCols))
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <ActionButtonGroup EntityName="@Config.GetDisplayName(item)"
+                                       ItemDisplayName="@Config.GetDisplayName(item)"
+                                       ShowView="@Config.ShowView"
+                                       ShowEdit="@Config.ShowEdit"
+                                       ShowAuditLog="@Config.ShowAuditLog"
+                                       ShowToggleStatus="@Config.ShowToggleStatus"
+                                       ShowDelete="@Config.ShowDelete"
+                                       IsActive="@(Config.GetIsActive?.Invoke(item) ?? true)"
+                                       OnEdit="@(() => EditEntity(Config.GetId(item)))"
+                                       OnAuditLog="@(() => ViewAuditLog(item))"
+                                       OnToggleStatus="@(() => ToggleEntityStatus(item))"
+                                       OnDelete="@(() => DeleteEntity(item))" />
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Config.EntityIcon" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_entities.Any() ?
+                            TranslationService.GetTranslation("common.noRecordsMatchFilters", "Nessun elemento corrisponde ai filtri applicati") :
+                            TranslationService.GetTranslation("common.noRecordsFound", "Nessun elemento trovato"))
+                    </MudText>
+                    @if (_entities.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("common.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+
+            <!-- Pagination -->
+            @if (_pagedResult != null)
+            {
+                <MudDivider Class="my-4" />
+                <div class="d-flex justify-center align-center flex-wrap gap-4">
+                    @if (_pagedResult.TotalPages > 1)
+                    {
+                        <MudPagination Count="@_pagedResult.TotalPages"
+                                       Selected="@_currentPage"
+                                       Color="Color.Primary"
+                                       Size="Size.Medium"
+                                       ShowFirstButton="true"
+                                       ShowLastButton="true"
+                                       SelectedChanged="@OnPageChanged" />
+                    }
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @if (_pagedResult.TotalPages > 1)
+                        {
+                            @TranslationService.GetTranslation("pagination.info",
+                                "Pagina {0} di {1} - Totale: {2}",
+                                _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
+                        }
+                        else
+                        {
+                            @TranslationService.GetTranslation("pagination.singlePage",
+                                "Totale: {0}",
+                                _pagedResult.TotalCount)
+                        }
+                    </MudText>
+                </div>
+            }
+
+            @BelowTableContent
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public EntityManagementConfig<TEntity> Config { get; set; } = null!;
+    [Parameter, EditorRequired] public IEntityManagementService<TEntity> Service { get; set; } = null!;
+    [Parameter] public RenderFragment<List<EFTableColumnConfiguration>>? HeaderContent { get; set; }
+    [Parameter] public RenderFragment<(TEntity Item, List<EFTableColumnConfiguration> Cols)>? RowTemplate { get; set; }
+    [Parameter] public RenderFragment? BelowTableContent { get; set; }
+
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new()
+    {
+        FullScreen = true,
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingEntities = false;
+
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private QuickFilter<TEntity>? _activeQuickFilter;
+
+    // Pagination state
+    private PagedResult<TEntity>? _pagedResult;
+    private int _currentPage = 1;
+
+    // Data collections
+    private List<TEntity> _entities = new();
+    private HashSet<TEntity> _selectedEntities = new();
+
+    // EFTable reference
+    private EFTable<TEntity> _efTable = null!;
+
+    private EventCallback<HashSet<TEntity>> _selectedItemsChangedCallback =>
+        EventCallback.Factory.Create<HashSet<TEntity>>(this, OnSelectedItemsChanged);
+
+    private IEnumerable<TEntity> _filteredEntities =>
+        _entities.Where(FilterEntity);
+
+    private bool FilterEntity(TEntity entity)
+    {
+        if (_activeQuickFilter?.Predicate != null)
+        {
+            if (!_activeQuickFilter.Predicate(entity))
+                return false;
+        }
+
+        if (!entity.MatchesSearchInColumns(
+            _searchTerm,
+            Config.Columns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
+            return false;
+
+        return true;
+    }
+
+    private void HandleQuickFilter(QuickFilter<TEntity>? filter)
+    {
+        _activeQuickFilter = filter;
+        StateHasChanged();
+    }
+
+    private void OnSelectedItemsChanged(HashSet<TEntity> items)
+    {
+        _selectedEntities = items;
+        StateHasChanged();
+    }
+
+    private void HandleRowClick(TableRowClickEventArgs<TEntity> args)
+    {
+        var id = Config.GetId(args.Item);
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            JSRuntime.InvokeVoidAsync("open", $"{Config.BaseRoute}/{id}", "_blank");
+            return;
+        }
+        NavigationManager.NavigateTo($"{Config.BaseRoute}/{id}");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+            await LoadEntitiesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation(Config.LoadErrorMessageKey,
+                "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading {EntityType} page", Config.EntityTypeName);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadEntitiesAsync()
+    {
+        try
+        {
+            _isLoadingEntities = true;
+            _pagedResult = await Service.GetPagedAsync(_currentPage, Config.DefaultPageSize);
+            if (_pagedResult != null)
+            {
+                _entities = _pagedResult.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation(Config.LoadErrorMessageKey,
+                "Errore nel caricamento: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading {EntityType} list", Config.EntityTypeName);
+        }
+        finally
+        {
+            _isLoadingEntities = false;
+        }
+    }
+
+    private void CreateEntity()
+    {
+        NavigationManager.NavigateTo($"{Config.BaseRoute}/new");
+    }
+
+    private void EditEntity(Guid id)
+    {
+        NavigationManager.NavigateTo($"{Config.BaseRoute}/{id}");
+    }
+
+    private async Task DeleteEntity(TEntity entity)
+    {
+        var displayName = Config.GetDisplayName(entity);
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation(Config.DeleteConfirmMessageKey,
+            "Sei sicuro di voler eliminare '{0}'? Questa azione non può essere annullata.", displayName);
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await Service.DeleteAsync(Config.GetId(entity));
+                _entities.Remove(entity);
+                Snackbar.Add(TranslationService.GetTranslation(Config.DeleteSuccessMessageKey,
+                    "Elemento eliminato con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation(Config.DeleteErrorMessageKey,
+                    "Errore nell'eliminazione: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting {EntityType} {Id}", Config.EntityTypeName, Config.GetId(entity));
+            }
+        }
+    }
+
+    private async Task DeleteSelectedEntities()
+    {
+        if (_selectedEntities.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted(Config.BulkDeleteConfirmMessageKey,
+            "Sei sicuro di voler eliminare {0} elementi selezionati? Questa azione non può essere annullata.",
+            _selectedEntities.Count);
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+
+                foreach (var entity in _selectedEntities.ToList())
+                {
+                    try
+                    {
+                        await Service.DeleteAsync(Config.GetId(entity));
+                        _entities.RemoveAll(e => Config.GetId(e) == Config.GetId(entity));
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting {EntityType} {Id}", Config.EntityTypeName, Config.GetId(entity));
+                    }
+                }
+
+                _selectedEntities.Clear();
+
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted(Config.BulkDeleteSuccessMessageKey,
+                        "{0} elementi eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("common.bulkDeletePartial",
+                        "{0} elementi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslationFormatted(Config.DeleteErrorMessageKey,
+                    "Errore nell'eliminazione: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected {EntityType} items", Config.EntityTypeName);
+            }
+        }
+    }
+
+    private async Task ToggleEntityStatus(TEntity entity)
+    {
+        var isActive = Config.GetIsActive?.Invoke(entity) ?? true;
+        var actionText = isActive
+            ? TranslationService.GetTranslation("common.deactivate", "disattivare")
+            : TranslationService.GetTranslation("common.activate", "attivare");
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("common.confirmStatusChange",
+            "Sei sicuro di voler {0} '{1}'?", actionText, Config.GetDisplayName(entity));
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await Service.ToggleStatusAsync(Config.GetId(entity), !isActive);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("common.statusChangeError",
+                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error toggling {EntityType} status {Id}", Config.EntityTypeName, Config.GetId(entity));
+            }
+        }
+    }
+
+    private async Task ViewAuditLog(TEntity entity)
+    {
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, Config.EntityTypeName },
+            { x => x.EntityId, Config.GetId(entity) },
+            { x => x.EntityName, Config.GetDisplayName(entity) }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
+    }
+
+    private void OnSearchChanged(string term)
+    {
+        _currentPage = 1;
+        _searchTerm = term;
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _currentPage = page;
+        await LoadEntitiesAsync();
+    }
+
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _activeQuickFilter = null;
+        StateHasChanged();
+    }
+
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrWhiteSpace(_searchTerm) || _activeQuickFilter != null;
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            await OnInitializedAsync();
+        }
+    }
+}
