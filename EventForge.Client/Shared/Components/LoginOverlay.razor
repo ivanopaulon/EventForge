@@ -142,6 +142,7 @@
     private InputType _passwordInputType = InputType.Password;
     private string _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
     private TaskCompletionSource<bool>? _currentTcs;
+    private const string SubtitleLoginError = "Credenziali non valide. Riprova.";
     private Color _progressColor = Color.Primary;
     private bool _progressIndeterminate = false;
     private double _progressValue = 0;
@@ -244,7 +245,7 @@
                 _progressIndeterminate = false;
                 _progressValue = 100;
                 _progressColor = Color.Error;
-                _subtitle = "Credenziali non valide. Riprova.";
+                _subtitle = SubtitleLoginError;
                 Snackbar.Add(
                     TranslationService.GetTranslation("auth.loginFailed", "Login fallito. Verifica le credenziali."),
                     Severity.Error);
@@ -255,7 +256,7 @@
             _progressIndeterminate = false;
             _progressValue = 100;
             _progressColor = Color.Error;
-            _subtitle = "Credenziali non valide. Riprova.";
+            _subtitle = SubtitleLoginError;
             Snackbar.Add(
                 TranslationService.GetTranslation("auth.loginError", "Errore durante il login: {0}", ex.Message),
                 Severity.Error);
