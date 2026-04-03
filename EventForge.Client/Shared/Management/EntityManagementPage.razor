@@ -491,8 +491,7 @@
                     {
                         var id = Config.GetId(entity);
                         await Service.DeleteAsync(id, _cts.Token);
-                        var existing = _entities.FirstOrDefault(e => Config.GetId(e) == id);
-                        if (existing != null) _entities.Remove(existing);
+                        _entities.RemoveAll(e => Config.GetId(e) == id);
                         deletedCount++;
                         RefreshFilteredEntities();
                         StateHasChanged();
@@ -504,8 +503,6 @@
                         Logger.LogError(ex, "Error deleting {EntityType} {Id}", Config.EntityTypeName, Config.GetId(entity));
                     }
                 }
-
-                _selectedEntities.Clear();
 
                 if (failedCount == 0 && skippedCount == 0)
                 {
