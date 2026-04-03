@@ -78,15 +78,17 @@ main {
 ::deep .mud-layout {
     height: 100vh;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Main content area fills remaining height without page scroll */
+/* Main content area fills remaining height via flex — no hardcoded pixel offsets */
 ::deep .mud-main-content {
     flex: 1;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 64px);
+    min-height: 0;
     box-sizing: border-box;
 }
 

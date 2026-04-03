@@ -12,6 +12,8 @@ public class PaymentMethodManagementService : IEntityManagementService<PaymentMe
         => _paymentMethodService = paymentMethodService;
 
     public async Task<PagedResult<PaymentMethodDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
+        // searchTerm and filters are intentionally ignored here because UseServerSidePaging=false;
+        // filtering and search are handled client-side by EntityManagementPage.
         => await _paymentMethodService.GetPagedAsync(page, pageSize);
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
