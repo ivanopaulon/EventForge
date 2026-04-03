@@ -92,4 +92,24 @@ public interface IPromotionService
     /// <param name="appliedPromotions">The promotions applied to a single document row.</param>
     /// <returns>A JSON string, or <c>null</c> if no promotions were applied.</returns>
     string? SerializeAppliedPromotionsJson(IEnumerable<AppliedPromotionDto> appliedPromotions);
+
+    /// <summary>
+    /// Gets all rules for a promotion.
+    /// </summary>
+    Task<IEnumerable<PromotionRuleDto>> GetPromotionRulesAsync(Guid promotionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a new rule to a promotion.
+    /// </summary>
+    Task<PromotionRuleDto> AddPromotionRuleAsync(Guid promotionId, CreatePromotionRuleDto createDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing promotion rule.
+    /// </summary>
+    Task<PromotionRuleDto?> UpdatePromotionRuleAsync(Guid promotionId, Guid ruleId, UpdatePromotionRuleDto updateDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a promotion rule (soft delete).
+    /// </summary>
+    Task<bool> DeletePromotionRuleAsync(Guid promotionId, Guid ruleId, string currentUser, CancellationToken cancellationToken = default);
 }

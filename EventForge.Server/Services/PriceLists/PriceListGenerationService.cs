@@ -1,4 +1,5 @@
 using EventForge.DTOs.PriceLists;
+using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
@@ -12,15 +13,18 @@ public class PriceListGenerationService : IPriceListGenerationService
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<PriceListGenerationService> _logger;
+    private readonly ITenantContext _tenantContext;
 
     public PriceListGenerationService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
-        ILogger<PriceListGenerationService> logger)
+        ILogger<PriceListGenerationService> logger,
+        ITenantContext tenantContext)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region Price List Generation from Products
@@ -33,24 +37,16 @@ public class PriceListGenerationService : IPriceListGenerationService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        // 1. Validazione e recupero TenantId da un prodotto esistente
-        // Prima troviamo almeno un prodotto per ottenere il TenantId
-        var anyProduct = await _context.Products
-            .Where(p => !p.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (anyProduct == null)
-        {
-            throw new InvalidOperationException("Nessun prodotto disponibile nel sistema");
-        }
-
-        var tenantId = anyProduct.TenantId;
+        // 1. Recupero TenantId dal contesto multi-tenant
+        var tenantId = _tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for price list generation.");
 
         // 2. Validazione EventId se specificato
         if (dto.EventId.HasValue)
         {
             var eventExists = await _context.Events
-                .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId && !e.IsDeleted, cancellationToken);
+                .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
 
             if (!eventExists)
             {
@@ -60,7 +56,7 @@ public class PriceListGenerationService : IPriceListGenerationService
 
         // 3. Query prodotti con filtri
         var query = _context.Products
-            .Where(p => p.TenantId == tenantId && !p.IsDeleted);
+            .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
 
         // Filtro prodotti attivi
         if (dto.OnlyActiveProducts)
@@ -96,10 +92,10 @@ public class PriceListGenerationService : IPriceListGenerationService
         var priceList = new PriceList
         {
             Id = Guid.NewGuid(),
-            TenantId = tenantId,
+            TenantId = tenantId.Value,
             Name = dto.Name,
             Description = dto.Description ?? string.Empty,
-            Code = dto.Code ?? await GenerateUniquePriceListCodeAsync(tenantId, cancellationToken),
+            Code = dto.Code ?? await GenerateUniquePriceListCodeAsync(tenantId.Value, cancellationToken),
             Type = dto.Type,
             Direction = dto.Direction,
             Priority = dto.Priority,
@@ -147,7 +143,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                 ProductId = product.Id,
                 Price = price,
                 Status = PriceListEntryStatus.Active,
-                TenantId = tenantId,
+                TenantId = tenantId.Value,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
                 ModifiedBy = currentUser,
@@ -165,7 +161,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             {
                 // Verifica che il BusinessParty esista
                 var businessPartyExists = await _context.BusinessParties
-                    .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == tenantId && !bp.IsDeleted, cancellationToken);
+                    .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == tenantId.Value && !bp.IsDeleted, cancellationToken);
 
                 if (!businessPartyExists)
                 {
@@ -178,7 +174,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                     PriceListId = priceList.Id,
                     BusinessPartyId = businessPartyId,
                     Status = PriceListBusinessPartyStatus.Active,
-                    TenantId = tenantId,
+                    TenantId = tenantId.Value,
                     CreatedBy = currentUser,
                     CreatedAt = DateTime.UtcNow,
                     ModifiedBy = currentUser,
@@ -213,23 +209,16 @@ public class PriceListGenerationService : IPriceListGenerationService
         GeneratePriceListFromProductsDto dto,
         CancellationToken cancellationToken = default)
     {
-        // Validazione e recupero TenantId
-        var anyProduct = await _context.Products
-            .Where(p => !p.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (anyProduct == null)
-        {
-            throw new InvalidOperationException("Nessun prodotto disponibile nel sistema");
-        }
-
-        var tenantId = anyProduct.TenantId;
+        // Recupero TenantId dal contesto multi-tenant
+        var tenantId = _tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for price list generation.");
 
         // Validazione EventId se specificato
         if (dto.EventId.HasValue)
         {
             var eventExists = await _context.Events
-                .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId && !e.IsDeleted, cancellationToken);
+                .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
 
             if (!eventExists)
             {
@@ -239,7 +228,7 @@ public class PriceListGenerationService : IPriceListGenerationService
 
         // Query prodotti con stessa logica di GenerateFromProductPricesAsync
         var query = _context.Products
-            .Where(p => p.TenantId == tenantId && !p.IsDeleted);
+            .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
 
         if (dto.OnlyActiveProducts)
         {
@@ -360,7 +349,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
         }
 
-        if (dto.ToDate > DateTime.UtcNow)
+        if (dto.ToDate.Date > DateTime.UtcNow.Date)
         {
             throw new InvalidOperationException("La data di fine non può essere nel futuro");
         }
@@ -428,7 +417,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                         dh.BusinessPartyId == dto.SupplierId &&
                         dh.Date >= dto.FromDate &&
                         dh.Date <= dto.ToDate &&
-                        dh.DocumentType!.IsStockIncrease)
+                        dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
             .CountAsync(cancellationToken);
 
         return new GeneratePriceListPreviewDto
@@ -468,7 +457,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
         }
 
-        if (dto.ToDate > DateTime.UtcNow)
+        if (dto.ToDate.Date > DateTime.UtcNow.Date)
         {
             throw new InvalidOperationException("La data di fine non può essere nel futuro");
         }
@@ -515,7 +504,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                         dh.BusinessPartyId == dto.SupplierId &&
                         dh.Date >= dto.FromDate &&
                         dh.Date <= dto.ToDate &&
-                        dh.DocumentType!.IsStockIncrease)
+                        dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
             .CountAsync(cancellationToken);
 
         // Salva metadati
@@ -706,7 +695,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                         dh.BusinessPartyId == supplierId &&
                         dh.Date >= fromDate &&
                         dh.Date <= toDate &&
-                        dh.DocumentType!.IsStockIncrease)
+                        dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
             .CountAsync(cancellationToken);
 
         return new GeneratePriceListPreviewDto
@@ -866,7 +855,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                         dh.BusinessPartyId == supplierId &&
                         dh.Date >= fromDate &&
                         dh.Date <= toDate &&
-                        dh.DocumentType!.IsStockIncrease)
+                        dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
             .CountAsync(cancellationToken);
 
         // Aggiorna metadati listino
@@ -940,7 +929,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                         dr.DocumentHeader!.BusinessPartyId == supplierId &&
                         dr.DocumentHeader.Date >= fromDate &&
                         dr.DocumentHeader.Date <= toDate &&
-                        dr.DocumentHeader.DocumentType!.IsStockIncrease &&
+                        dr.DocumentHeader.DocumentType != null && dr.DocumentHeader.DocumentType.IsStockIncrease &&
                         dr.ProductId != null &&
                         dr.UnitPrice > 0);
 
