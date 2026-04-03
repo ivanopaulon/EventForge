@@ -636,12 +636,20 @@ public class StockMovementService : IStockMovementService
         if ((movement.MovementType == StockMovementType.Outbound || movement.MovementType == StockMovementType.Transfer)
             && movement.FromLocationId.HasValue)
         {
-            var stock = await _context.Stocks
-                .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
-                                       && s.ProductId == movement.ProductId
-                                       && s.StorageLocationId == movement.FromLocationId.Value
-                                       && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
-                                     cancellationToken);
+            // Check the local change-tracker first so that batch operations within the same
+            // SaveChanges cycle see entities that were added or modified but not yet flushed.
+            var stock = _context.Stocks.Local
+                            .FirstOrDefault(s => !s.IsDeleted
+                                              && s.TenantId == currentTenantId
+                                              && s.ProductId == movement.ProductId
+                                              && s.StorageLocationId == movement.FromLocationId.Value
+                                              && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value))
+                        ?? await _context.Stocks
+                            .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
+                                                   && s.ProductId == movement.ProductId
+                                                   && s.StorageLocationId == movement.FromLocationId.Value
+                                                   && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
+                                                 cancellationToken);
 
             if (stock == null)
             {
@@ -661,12 +669,18 @@ public class StockMovementService : IStockMovementService
         if ((movement.MovementType == StockMovementType.Inbound || movement.MovementType == StockMovementType.Transfer)
             && movement.ToLocationId.HasValue)
         {
-            var stock = await _context.Stocks
-                .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
-                                       && s.ProductId == movement.ProductId
-                                       && s.StorageLocationId == movement.ToLocationId.Value
-                                       && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
-                                     cancellationToken);
+            var stock = _context.Stocks.Local
+                            .FirstOrDefault(s => !s.IsDeleted
+                                              && s.TenantId == currentTenantId
+                                              && s.ProductId == movement.ProductId
+                                              && s.StorageLocationId == movement.ToLocationId.Value
+                                              && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value))
+                        ?? await _context.Stocks
+                            .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
+                                                   && s.ProductId == movement.ProductId
+                                                   && s.StorageLocationId == movement.ToLocationId.Value
+                                                   && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
+                                                 cancellationToken);
 
             if (stock == null)
             {
@@ -700,12 +714,18 @@ public class StockMovementService : IStockMovementService
             var locationId = movement.ToLocationId ?? movement.FromLocationId;
             if (locationId.HasValue)
             {
-                var stock = await _context.Stocks
-                    .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
-                                           && s.ProductId == movement.ProductId
-                                           && s.StorageLocationId == locationId.Value
-                                           && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
-                                         cancellationToken);
+                var stock = _context.Stocks.Local
+                                .FirstOrDefault(s => !s.IsDeleted
+                                                  && s.TenantId == currentTenantId
+                                                  && s.ProductId == movement.ProductId
+                                                  && s.StorageLocationId == locationId.Value
+                                                  && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value))
+                            ?? await _context.Stocks
+                                .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
+                                                       && s.ProductId == movement.ProductId
+                                                       && s.StorageLocationId == locationId.Value
+                                                       && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
+                                                     cancellationToken);
 
                 if (stock == null)
                 {

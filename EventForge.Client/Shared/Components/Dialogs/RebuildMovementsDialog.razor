@@ -5,14 +5,21 @@
 @inject IDocumentTypeService DocumentTypeService
 @inject ITranslationService TranslationService
 @inject ILogger<RebuildMovementsDialog> Logger
+@implements IDisposable
 
 <MudDialog Style="min-width:min(750px,95vw);">
     <TitleContent>
-        <div class="d-flex align-center gap-3">
+        <div class="d-flex align-center gap-3 flex-grow-1">
             <MudIcon Icon="@Icons.Material.Outlined.BuildCircle" Color="Color.Primary" />
             <MudText Typo="Typo.h6">
                 @TranslationService.GetTranslation("rebuildMovements.title", "Ricostruzione Movimenti da Documenti")
             </MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                           OnClick="Cancel"
+                           Size="Size.Small"
+                           Disabled="@_isLoading"
+                           title="@(TranslationService.GetTranslation("button.close", "Chiudi"))" />
         </div>
     </TitleContent>
 
@@ -260,11 +267,47 @@
         {
             @if (_isLoading)
             {
-                <div class="d-flex flex-column align-center justify-center pa-8 gap-3">
-                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-                    <MudText Typo="Typo.body1">
-                        @TranslationService.GetTranslation("rebuildMovements.applying", "Creazione movimenti in corso...")
-                    </MudText>
+                <div class="d-flex flex-column align-center pa-4 gap-4">
+                    <div class="d-flex align-center gap-3">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                        <div>
+                            <MudText Typo="Typo.body1">
+                                @TranslationService.GetTranslation("rebuildMovements.applying", "Creazione movimenti in corso...")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslationFormatted("rebuildMovements.elapsed", "{0}s trascorsi",
+                                    (int)(DateTimeOffset.UtcNow - _applyStartTime).TotalSeconds)
+                            </MudText>
+                        </div>
+                    </div>
+                    @if (_progressLog.Count > 0)
+                    {
+                        <MudPaper Outlined="true" Class="pa-3" Style="width:100%; min-height:90px;">
+                            <div class="d-flex flex-column gap-2">
+                                @for (var i = 0; i < _progressLog.Count; i++)
+                                {
+                                    var logMsg = _progressLog[i];
+                                    var logOpacity = i == 0 ? "1" : i == 1 ? "0.65" : "0.35";
+                                    var isFirst = i == 0;
+                                    <div class="d-flex align-center gap-2" style="opacity:@logOpacity">
+                                        @if (isFirst)
+                                        {
+                                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="Size.Small" Color="Color.Success" />
+                                        }
+                                        <MudText Typo="Typo.body2"
+                                                 Color="@(isFirst ? Color.Primary : Color.Default)"
+                                                 Style="@(isFirst ? "font-weight:600" : "")">
+                                            @logMsg
+                                        </MudText>
+                                    </div>
+                                }
+                            </div>
+                        </MudPaper>
+                    }
                 </div>
             }
             else if (_applyResult != null)
@@ -433,6 +476,25 @@
     private RebuildMovementsResultDto? _previewResult;
     private RebuildMovementsResultDto? _applyResult;
 
+    // ── Progress tracking ──
+    private readonly List<string> _progressLog = new();
+    private DateTimeOffset _applyStartTime;
+    private CancellationTokenSource? _progressCts;
+
+    private static readonly string[] _progressMessages =
+    [
+        "Caricamento intestazioni documento...",
+        "Verifica movimenti già esistenti...",
+        "Ricerca ubicazioni di magazzino...",
+        "Pianificazione movimenti da creare/aggiornare...",
+        "Aggiornamento movimenti esistenti...",
+        "Creazione nuovi movimenti di magazzino...",
+        "Salvataggio modifiche su database...",
+        "Aggiornamento giacenze prodotti...",
+        "Verifica coerenza dati...",
+        "Completamento operazione batch..."
+    ];
+
     // ── Computed helpers (avoid nested quotes in Razor attributes) ──
     private const string StatusCreated = "Created";
     private const string StatusError = "Error";
@@ -488,6 +550,9 @@
         _step = 2;
         _isLoading = true;
         _applyResult = null;
+        _progressLog.Clear();
+        _applyStartTime = DateTimeOffset.UtcNow;
+        _ = StartProgressTrackerAsync();
         StateHasChanged();
         try
         {
@@ -500,9 +565,39 @@
         }
         finally
         {
+            StopProgressTracker();
             _isLoading = false;
         }
     }
+
+    private async Task StartProgressTrackerAsync()
+    {
+        _progressCts = new CancellationTokenSource();
+        var msgIndex = 0;
+        try
+        {
+            while (!_progressCts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(2500, _progressCts.Token);
+                var msg = _progressMessages[msgIndex % _progressMessages.Length];
+                _progressLog.Insert(0, msg);
+                if (_progressLog.Count > 3)
+                    _progressLog.RemoveAt(3);
+                msgIndex++;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (TaskCanceledException) { /* expected */ }
+    }
+
+    private void StopProgressTracker()
+    {
+        _progressCts?.Cancel();
+        _progressCts?.Dispose();
+        _progressCts = null;
+    }
+
+    public void Dispose() => StopProgressTracker();
 
     private RebuildMovementsRequestDto BuildRequest(bool dryRun)
     {
@@ -531,7 +626,11 @@
         };
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private void Cancel()
+    {
+        if (_isLoading) return;
+        MudDialog.Cancel();
+    }
 
     /// <summary>Returns the apply result so the caller can refresh stock data if movements were created.</summary>
     private void Close() => MudDialog.Close(DialogResult.Ok(_applyResult));
