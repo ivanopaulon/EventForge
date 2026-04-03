@@ -16,8 +16,7 @@
           OnClose="Cancel"
           MinWidth="min(750px, 95vw)">
     <ChildContent>
-        <div class="ef-dialog-content">
-            <PageLoadingOverlay Visible="_isLoading" />
+        <PageLoadingOverlay Visible="_isLoading" />
 
             @if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
             {
@@ -114,7 +113,6 @@
 
                 </MudStack>
             </MudForm>
-        </div>
     </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel" 

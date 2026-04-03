@@ -16,8 +16,7 @@
           OnClose="Cancel"
           MinWidth="min(750px, 95vw)">
     <ChildContent>
-        <div class="ef-dialog-content">
-            <PageLoadingOverlay Visible="_isLoading" />
+        <PageLoadingOverlay Visible="_isLoading" />
 
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudStack Spacing="3">
@@ -142,7 +141,6 @@
 
                 </MudStack>
             </MudForm>
-        </div>
     </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel" 

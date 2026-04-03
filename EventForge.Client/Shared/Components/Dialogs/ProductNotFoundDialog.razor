@@ -12,8 +12,7 @@
           OnClose="Cancel"
           MinWidth="min(600px, 95vw)">
     <ChildContent>
-        <div class="ef-dialog-content">
-            <PageLoadingOverlay Visible="_isLoading"
+        <PageLoadingOverlay Visible="_isLoading"
                                 Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
             <MudText Typo="Typo.body1" Class="mb-3">
@@ -111,7 +110,6 @@
                 @TranslationService.GetTranslation("warehouse.noProductSelectedHint", "Non hai trovato il prodotto? Creane uno nuovo:")
             </MudText>
         }
-        </div>
     </ChildContent>
     <DialogActions>
         <MudButton StartIcon="@Icons.Material.Outlined.SkipNext"
