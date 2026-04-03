@@ -5,57 +5,71 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ReferenceDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Person"
+          Title="@(_isEditMode
+              ? TranslationService.GetTranslation("reference.editTitle", "Modifica Riferimento")
+              : TranslationService.GetTranslation("reference.addTitle", "Nuovo Riferimento"))"
+          IsProcessing="_isProcessing"
+          OnClose="Cancel">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_firstName"
                                  Label="@($"{TranslationService.GetTranslation("field.firstName", "Nome")} *")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  Required="true"
                                  MaxLength="50" />
                 </MudItem>
-                
+
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_lastName"
                                  Label="@($"{TranslationService.GetTranslation("field.lastName", "Cognome")} *")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  Required="true"
                                  MaxLength="50" />
                 </MudItem>
-                
+
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_department"
                                  Label="@TranslationService.GetTranslation("field.department", "Dipartimento/Ruolo")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  MaxLength="50" />
                 </MudItem>
-                
+
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_notes"
                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  Lines="3"
                                  MaxLength="100" />
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_isValid || _isProcessing)">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isProcessing">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   OnClick="Submit"
+                   Disabled="@(!_isValid || _isProcessing)">
             @if (_isProcessing)
             {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="width:18px;height:18px;margin-right:6px;" />
             }
-            else
-            {
-                @TranslationService.GetTranslation("button.save", "Salva")
-            }
+            @TranslationService.GetTranslation("button.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 

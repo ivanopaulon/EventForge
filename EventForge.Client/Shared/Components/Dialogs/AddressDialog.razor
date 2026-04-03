@@ -5,80 +5,97 @@
 @inject ITranslationService TranslationService
 @inject ILogger<AddressDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.LocationOn"
+          Title="@(_isEditMode
+              ? TranslationService.GetTranslation("address.editTitle", "Modifica Indirizzo")
+              : TranslationService.GetTranslation("address.addTitle", "Nuovo Indirizzo"))"
+          IsProcessing="_isProcessing"
+          OnClose="Cancel">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12">
                     <MudSelect @bind-Value="_addressType"
                               Label="@TranslationService.GetTranslation("field.addressType", "Tipo Indirizzo")"
                               Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
                               Required="true">
                         <MudSelectItem Value="@AddressType.Legal">@TranslationService.GetTranslation("addressType.legal", "Legale")</MudSelectItem>
                         <MudSelectItem Value="@AddressType.Operational">@TranslationService.GetTranslation("addressType.operational", "Operativo")</MudSelectItem>
                         <MudSelectItem Value="@AddressType.Destination">@TranslationService.GetTranslation("addressType.destination", "Destinazione")</MudSelectItem>
                     </MudSelect>
                 </MudItem>
-                
+
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_street"
                                  Label="@TranslationService.GetTranslation("field.street", "Via")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  MaxLength="100" />
                 </MudItem>
-                
+
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_city"
                                  Label="@TranslationService.GetTranslation("field.city", "Città")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  MaxLength="50" />
                 </MudItem>
-                
+
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_zipCode"
                                  Label="@TranslationService.GetTranslation("field.zipCode", "CAP")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  MaxLength="10" />
                 </MudItem>
-                
+
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_province"
                                  Label="@TranslationService.GetTranslation("field.province", "Provincia")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  MaxLength="50" />
                 </MudItem>
-                
+
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_country"
                                  Label="@TranslationService.GetTranslation("field.country", "Paese")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  MaxLength="50" />
                 </MudItem>
-                
+
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_notes"
                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                  Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
                                  Lines="3"
                                  MaxLength="100" />
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_isValid || _isProcessing)">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isProcessing">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   OnClick="Submit"
+                   Disabled="@(!_isValid || _isProcessing)">
             @if (_isProcessing)
             {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="width:18px;height:18px;margin-right:6px;" />
             }
-            else
-            {
-                @TranslationService.GetTranslation("button.save", "Salva")
-            }
+            @TranslationService.GetTranslation("button.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 
