@@ -1,0 +1,19 @@
+using EventForge.Client.Services.Sales;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.Sales;
+
+namespace EventForge.Client.Shared.Management.Adapters;
+
+public class PaymentMethodManagementService : IEntityManagementService<PaymentMethodDto>
+{
+    private readonly IPaymentMethodService _paymentMethodService;
+
+    public PaymentMethodManagementService(IPaymentMethodService paymentMethodService)
+        => _paymentMethodService = paymentMethodService;
+
+    public async Task<PagedResult<PaymentMethodDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
+        => await _paymentMethodService.GetPagedAsync(page, pageSize);
+
+    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+        => await _paymentMethodService.DeleteAsync(id);
+}

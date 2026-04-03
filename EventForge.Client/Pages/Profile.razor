@@ -8,7 +8,7 @@
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 
-<PageTitle>@TranslationService.GetTranslation("profile.title", "My Profile") - EventForge</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("profile.title", "Profilo") - EventForge</PageTitle>
 
 @if (_isLoading)
 {
@@ -16,134 +16,140 @@
 }
 else if (!_isAuthenticated)
 {
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-        <MudPaper Class="pa-2 pa-sm-3 pa-md-4" Elevation="4">
-            <MudGrid Justify="Justify.Center">
-                <MudItem xs="12">
-                    <div class="d-flex flex-column align-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
-                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Access Denied")</MudText>
-                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
-                            @TranslationService.GetTranslation("auth.authenticationRequired", "You must be logged in to view your profile.")
-                        </MudText>
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Primary" 
-                                   StartIcon="@Icons.Material.Filled.Login"
-                                   OnClick="ShowLoginDialog">
-                            @TranslationService.GetTranslation("auth.goToLogin", "Go to Login")
-                        </MudButton>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-    </MudContainer>
+    <div class="d-flex flex-column align-center justify-center" style="height:100%; padding: 2rem;">
+        <MudIcon Icon="@Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" />
+        <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-3">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
+        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4" Color="Color.Secondary">
+            @TranslationService.GetTranslation("auth.authenticationRequired", "Devi effettuare il login per visualizzare il profilo.")
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Login" OnClick="ShowLoginDialog">
+            @TranslationService.GetTranslation("auth.goToLogin", "Accedi")
+        </MudButton>
+    </div>
 }
 else if (_profile != null)
 {
-    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-        <MudText Typo="Typo.h4" Class="mb-4">
-            <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" Size="Size.Medium" />
-            @TranslationService.GetTranslation("profile.title", "My Profile")
-        </MudText>
-
-        <!-- Profile Header with Avatar -->
-        <MudCard Elevation="2" Class="mb-4">
-            <MudCardContent>
-                <MudGrid>
-                    <MudItem xs="12" md="3" Class="d-flex flex-column align-center">
-                        <MudAvatar Size="Size.Large" Style="width: 120px; height: 120px; font-size: 48px;" Class="mb-3">
-                            @if (!string.IsNullOrEmpty(_profile.AvatarUrl))
-                            {
-                                <MudImage Src="@_profile.AvatarUrl" Alt="@_profile.FullName" />
-                            }
-                            else
-                            {
-                                @GetUserInitials()
-                            }
-                        </MudAvatar>
-                        <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.gif" FilesChanged="OnAvatarSelected">
-                            <CustomContent Context="fileUpload">
-                                <MudButton Variant="Variant.Outlined"
-                                           Color="Color.Primary"
-                                           Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.CloudUpload"
-                                           OnClick="@fileUpload.OpenFilePickerAsync">
-                                    @TranslationService.GetTranslation("profile.uploadAvatar", "Upload Avatar")
-                                </MudButton>
-                            </CustomContent>
-                        </MudFileUpload>
-                        @if (!string.IsNullOrEmpty(_profile.AvatarUrl))
+    <div class="profile-layout">
+        <!-- Sidebar -->
+        <MudPaper Elevation="0" Class="profile-sidebar" Style="border-right: 1px solid var(--mud-palette-divider);">
+            <!-- Avatar & Identity -->
+            <div class="d-flex flex-column align-center pa-4 pb-2">
+                <MudAvatar Style="width:88px;height:88px;font-size:2rem;background:var(--mud-palette-primary);color:#fff;" Class="mb-3">
+                    @if (!string.IsNullOrEmpty(_profile.AvatarUrl))
+                    {
+                        <MudImage Src="@_profile.AvatarUrl" Alt="@_profile.FullName" />
+                    }
+                    else
+                    {
+                        @GetUserInitials()
+                    }
+                </MudAvatar>
+                <MudText Typo="Typo.subtitle1" Align="Align.Center" Style="font-weight:600;">@_profile.FullName</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center" Class="mb-2">@_profile.Email</MudText>
+                @if (_profile.Roles?.Any() == true)
+                {
+                    <div class="d-flex flex-wrap justify-center ga-1 mb-3">
+                        @foreach (var role in _profile.Roles)
                         {
-                            <MudButton Variant="Variant.Text"
-                                       Color="Color.Error"
-                                       Size="Size.Small"
-                                       StartIcon="@Icons.Material.Filled.Delete"
-                                       OnClick="DeleteAvatar"
-                                       Class="mt-2">
-                                @TranslationService.GetTranslation("profile.removeAvatar", "Remove")
-                            </MudButton>
+                            <MudChip T="string" Color="@GetRoleColor(role)" Size="Size.Small" Variant="Variant.Filled">@role</MudChip>
                         }
-                    </MudItem>
-                    <MudItem xs="12" md="9">
-                        <MudText Typo="Typo.h5" Class="mb-2">@_profile.FullName</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-1">@_profile.Email</MudText>
-                        @if (_profile.Roles?.Any() == true)
-                        {
-                            <div class="d-flex flex-wrap ga-1 mb-2">
-                                @foreach (var role in _profile.Roles)
-                                {
-                                    <MudChip T="string" Color="@GetRoleColor(role)" Size="Size.Small" Variant="Variant.Filled">
-                                        @role
-                                    </MudChip>
-                                }
-                            </div>
-                        }
+                    </div>
+                }
+                <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.gif" FilesChanged="OnAvatarSelected">
+                    <CustomContent Context="fileUpload">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.CloudUpload"
+                                   OnClick="@fileUpload.OpenFilePickerAsync">
+                            @TranslationService.GetTranslation("profile.uploadAvatar", "Cambia Avatar")
+                        </MudButton>
+                    </CustomContent>
+                </MudFileUpload>
+                @if (!string.IsNullOrEmpty(_profile.AvatarUrl))
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAvatar" Class="mt-1">
+                        @TranslationService.GetTranslation("profile.removeAvatar", "Rimuovi")
+                    </MudButton>
+                }
+            </div>
+            <MudDivider />
+            <!-- Meta info -->
+            <div class="pa-3">
+                <div class="d-flex align-center mb-1">
+                    <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("profile.memberSince", "Membro dal") @_profile.CreatedAt.ToString("dd/MM/yyyy")
+                    </MudText>
+                </div>
+                @if (_profile.LastLoginAt.HasValue)
+                {
+                    <div class="d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Outlined.Login" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("profile.memberSince", "Member since") @_profile.CreatedAt.ToString("yyyy-MM-dd")
+                            @TranslationService.GetTranslation("profile.lastLogin", "Ultimo accesso") @_profile.LastLoginAt.Value.ToString("dd/MM/yyyy HH:mm")
                         </MudText>
-                        @if (_profile.LastLoginAt.HasValue)
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @TranslationService.GetTranslation("profile.lastLogin", "Last login") @_profile.LastLoginAt.Value.ToString("yyyy-MM-dd HH:mm")
-                            </MudText>
-                        }
-                    </MudItem>
-                </MudGrid>
-            </MudCardContent>
-        </MudCard>
+                    </div>
+                }
+            </div>
+            <MudDivider />
+            <!-- Tab nav -->
+            <MudNavMenu>
+                <MudNavLink Icon="@Icons.Material.Outlined.Person"
+                            OnClick="@(() => _activeTab = 0)"
+                            Class="@(_activeTab == 0 ? "mud-selected" : "")">
+                    @TranslationService.GetTranslation("profile.information", "Informazioni")
+                </MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Outlined.Lock"
+                            OnClick="@(() => _activeTab = 1)"
+                            Class="@(_activeTab == 1 ? "mud-selected" : "")">
+                    @TranslationService.GetTranslation("profile.security", "Sicurezza")
+                </MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Outlined.Notifications"
+                            OnClick="@(() => _activeTab = 2)"
+                            Class="@(_activeTab == 2 ? "mud-selected" : "")">
+                    @TranslationService.GetTranslation("profile.notifications", "Notifiche")
+                </MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Outlined.DevicesOther"
+                            OnClick="@(() => _activeTab = 3)"
+                            Class="@(_activeTab == 3 ? "mud-selected" : "")">
+                    @TranslationService.GetTranslation("profile.sessions", "Sessioni")
+                </MudNavLink>
+            </MudNavMenu>
+        </MudPaper>
 
-        <!-- Tabs for Profile Sections -->
-        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4">
-            <!-- Tab 1: Information -->
-            <MudTabPanel Text="@TranslationService.GetTranslation("profile.information", "Information")" Icon="@Icons.Material.Filled.Info">
+        <!-- Main content -->
+        <div class="profile-content pa-4" style="overflow-y:auto;">
+            @if (_activeTab == 0)
+            {
+                <!-- Information Tab -->
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Person" Class="mr-2" Size="Size.Small" />
+                    @TranslationService.GetTranslation("profile.information", "Informazioni Personali")
+                </MudText>
                 <MudGrid Spacing="3">
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_updateProfile.FirstName"
-                                      Label="@TranslationService.GetTranslation("field.firstName", "First Name")"
-                                      Variant="Variant.Outlined"
-                                      Required="true" />
+                                      Label="@TranslationService.GetTranslation("field.firstName", "Nome")"
+                                      Variant="Variant.Outlined" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_updateProfile.LastName"
-                                      Label="@TranslationService.GetTranslation("field.lastName", "Last Name")"
-                                      Variant="Variant.Outlined"
-                                      Required="true" />
+                                      Label="@TranslationService.GetTranslation("field.lastName", "Cognome")"
+                                      Variant="Variant.Outlined" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_updateProfile.Email"
                                       Label="@TranslationService.GetTranslation("field.email", "Email")"
-                                      Variant="Variant.Outlined"
-                                      InputType="InputType.Email"
-                                      Required="true" />
+                                      Variant="Variant.Outlined" InputType="InputType.Email" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_updateProfile.PhoneNumber"
-                                      Label="@TranslationService.GetTranslation("field.phoneNumber", "Phone Number")"
+                                      Label="@TranslationService.GetTranslation("field.phoneNumber", "Telefono")"
                                       Variant="Variant.Outlined" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudSelect T="string" @bind-Value="_updateProfile.PreferredLanguage"
-                                   Label="@TranslationService.GetTranslation("field.preferredLanguage", "Preferred Language")"
+                                   Label="@TranslationService.GetTranslation("field.preferredLanguage", "Lingua preferita")"
                                    Variant="Variant.Outlined">
                             <MudSelectItem T="string" Value="@("it")">Italiano</MudSelectItem>
                             <MudSelectItem T="string" Value="@("en")">English</MudSelectItem>
@@ -153,141 +159,139 @@ else if (_profile != null)
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_updateProfile.TimeZone"
-                                      Label="@TranslationService.GetTranslation("field.timeZone", "Time Zone")"
-                                      Variant="Variant.Outlined"
-                                      Placeholder="Europe/Rome" />
+                                      Label="@TranslationService.GetTranslation("field.timeZone", "Fuso orario")"
+                                      Variant="Variant.Outlined" Placeholder="Europe/Rome" />
                     </MudItem>
                     <MudItem xs="12" Class="d-flex justify-end">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Save"
-                                   OnClick="UpdateProfile"
-                                   Disabled="_isSaving">
+                                   OnClick="UpdateProfile" Disabled="_isSaving">
                             @if (_isSaving)
                             {
                                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Saving...")</MudText>
+                                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
                             }
                             else
                             {
-                                @TranslationService.GetTranslation("common.save", "Save Changes")
+                                @TranslationService.GetTranslation("common.save", "Salva modifiche")
                             }
                         </MudButton>
                     </MudItem>
                 </MudGrid>
-            </MudTabPanel>
-
-            <!-- Tab 2: Security -->
-            <MudTabPanel Text="@TranslationService.GetTranslation("profile.security", "Security")" Icon="@Icons.Material.Filled.Lock">
-                <MudText Typo="Typo.h6" Class="mb-4">@TranslationService.GetTranslation("profile.changePassword", "Change Password")</MudText>
+            }
+            else if (_activeTab == 1)
+            {
+                <!-- Security Tab -->
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Lock" Class="mr-2" Size="Size.Small" />
+                    @TranslationService.GetTranslation("profile.changePassword", "Cambio Password")
+                </MudText>
                 <MudGrid Spacing="3">
                     <MudItem xs="12">
                         <MudTextField @bind-Value="_changePassword.CurrentPassword"
-                                      Label="@TranslationService.GetTranslation("field.currentPassword", "Current Password")"
-                                      Variant="Variant.Outlined"
-                                      InputType="InputType.Password"
-                                      Required="true" />
+                                      Label="@TranslationService.GetTranslation("field.currentPassword", "Password attuale")"
+                                      Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_changePassword.NewPassword"
-                                      Label="@TranslationService.GetTranslation("field.newPassword", "New Password")"
-                                      Variant="Variant.Outlined"
-                                      InputType="InputType.Password"
-                                      Required="true" />
+                                      Label="@TranslationService.GetTranslation("field.newPassword", "Nuova password")"
+                                      Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_changePassword.ConfirmPassword"
-                                      Label="@TranslationService.GetTranslation("field.confirmPassword", "Confirm Password")"
-                                      Variant="Variant.Outlined"
-                                      InputType="InputType.Password"
-                                      Required="true" />
+                                      Label="@TranslationService.GetTranslation("field.confirmPassword", "Conferma password")"
+                                      Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
                     </MudItem>
                     <MudItem xs="12" Class="d-flex justify-end">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Save"
-                                   OnClick="ChangePassword"
-                                   Disabled="_isSaving">
-                            @TranslationService.GetTranslation("profile.changePassword", "Change Password")
+                                   OnClick="ChangePassword" Disabled="_isSaving">
+                            @TranslationService.GetTranslation("profile.changePassword", "Cambia Password")
                         </MudButton>
                     </MudItem>
                 </MudGrid>
                 @if (_profile.PasswordChangedAt.HasValue)
                 {
                     <MudAlert Severity="Severity.Info" Class="mt-4">
-                        @TranslationService.GetTranslation("profile.passwordLastChanged", "Password last changed") @_profile.PasswordChangedAt.Value.ToString("yyyy-MM-dd HH:mm")
+                        @TranslationService.GetTranslation("profile.passwordLastChanged", "Ultima modifica password:")
+                        @_profile.PasswordChangedAt.Value.ToString("dd/MM/yyyy HH:mm")
                     </MudAlert>
                 }
-            </MudTabPanel>
-
-            <!-- Tab 3: Notifications -->
-            <MudTabPanel Text="@TranslationService.GetTranslation("profile.notifications", "Notifications")" Icon="@Icons.Material.Filled.Notifications">
-                <MudText Typo="Typo.h6" Class="mb-4">@TranslationService.GetTranslation("profile.notificationPreferences", "Notification Preferences")</MudText>
+            }
+            else if (_activeTab == 2)
+            {
+                <!-- Notifications Tab -->
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Notifications" Class="mr-2" Size="Size.Small" />
+                    @TranslationService.GetTranslation("profile.notificationPreferences", "Preferenze Notifiche")
+                </MudText>
                 <MudGrid Spacing="3">
                     <MudItem xs="12">
                         <MudSwitch @bind-Value="_notificationPreferences.EmailNotificationsEnabled"
-                                   Label="@TranslationService.GetTranslation("profile.emailNotifications", "Email Notifications")"
+                                   Label="@TranslationService.GetTranslation("profile.emailNotifications", "Notifiche Email")"
                                    Color="Color.Primary" />
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("profile.emailNotificationsDescription", "Receive notifications via email")
+                            @TranslationService.GetTranslation("profile.emailNotificationsDescription", "Ricevi notifiche via email")
                         </MudText>
                     </MudItem>
                     <MudItem xs="12">
                         <MudSwitch @bind-Value="_notificationPreferences.PushNotificationsEnabled"
-                                   Label="@TranslationService.GetTranslation("profile.pushNotifications", "Push Notifications")"
+                                   Label="@TranslationService.GetTranslation("profile.pushNotifications", "Notifiche Push")"
                                    Color="Color.Primary" />
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("profile.pushNotificationsDescription", "Receive push notifications on your device")
+                            @TranslationService.GetTranslation("profile.pushNotificationsDescription", "Ricevi notifiche push sul dispositivo")
                         </MudText>
                     </MudItem>
                     <MudItem xs="12">
                         <MudSwitch @bind-Value="_notificationPreferences.InAppNotificationsEnabled"
-                                   Label="@TranslationService.GetTranslation("profile.inAppNotifications", "In-App Notifications")"
+                                   Label="@TranslationService.GetTranslation("profile.inAppNotifications", "Notifiche In-App")"
                                    Color="Color.Primary" />
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("profile.inAppNotificationsDescription", "Show notifications within the application")
+                            @TranslationService.GetTranslation("profile.inAppNotificationsDescription", "Mostra notifiche nell'applicazione")
                         </MudText>
                     </MudItem>
                     <MudItem xs="12" Class="d-flex justify-end">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Save"
-                                   OnClick="UpdateNotificationPreferences"
-                                   Disabled="_isSaving">
-                            @TranslationService.GetTranslation("common.save", "Save Changes")
+                                   OnClick="UpdateNotificationPreferences" Disabled="_isSaving">
+                            @TranslationService.GetTranslation("common.save", "Salva modifiche")
                         </MudButton>
                     </MudItem>
                 </MudGrid>
-            </MudTabPanel>
-
-            <!-- Tab 4: Sessions -->
-            <MudTabPanel Text="@TranslationService.GetTranslation("profile.sessions", "Sessions")" Icon="@Icons.Material.Filled.DevicesOther">
-                <MudText Typo="Typo.h6" Class="mb-4">@TranslationService.GetTranslation("profile.activeSessions", "Active Sessions")</MudText>
-                <MudTable Items="@_activeSessions" Hover="true" Breakpoint="Breakpoint.Sm" Loading="_isLoadingSessions" LoadingProgressColor="Color.Primary">
+            }
+            else if (_activeTab == 3)
+            {
+                <!-- Sessions Tab -->
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.DevicesOther" Class="mr-2" Size="Size.Small" />
+                    @TranslationService.GetTranslation("profile.activeSessions", "Sessioni Attive")
+                </MudText>
+                <MudTable Items="@_activeSessions" Hover="true" Breakpoint="Breakpoint.Sm"
+                          Loading="_isLoadingSessions" LoadingProgressColor="Color.Primary">
                     <HeaderContent>
                         <MudTh>@TranslationService.GetTranslation("field.browser", "Browser")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("field.device", "Device")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("field.ipAddress", "IP Address")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("field.loginTime", "Login Time")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("common.actions", "Actions")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("field.device", "Dispositivo")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("field.ipAddress", "IP")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("field.loginTime", "Accesso")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.browser", "Browser")">@context.Browser</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.device", "Device")">@context.OperatingSystem - @context.DeviceType</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.ipAddress", "IP Address")">@context.IpAddress</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.loginTime", "Login Time")">@context.LoginTime.ToString("yyyy-MM-dd HH:mm")</MudTd>
+                        <MudTd DataLabel="Browser">@context.Browser</MudTd>
+                        <MudTd DataLabel="Dispositivo">@context.OperatingSystem - @context.DeviceType</MudTd>
+                        <MudTd DataLabel="IP">@context.IpAddress</MudTd>
+                        <MudTd DataLabel="Accesso">@context.LoginTime.ToString("dd/MM/yyyy HH:mm")</MudTd>
                         <MudTd>
                             @if (!context.IsCurrentSession)
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                               Color="Color.Error"
-                                               Size="Size.Small"
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small"
                                                OnClick="@(() => TerminateSession(context.Id))"
-                                               aria-label="@TranslationService.GetTranslation("profile.terminateSession", "Terminate Session")" />
+                                               aria-label="@TranslationService.GetTranslation("profile.terminateSession", "Termina sessione")" />
                             }
                             else
                             {
-                                <MudChip T="string" Color="Color.Success" Size="Size.Small">@TranslationService.GetTranslation("profile.current", "Current")</MudChip>
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">
+                                    @TranslationService.GetTranslation("profile.current", "Corrente")
+                                </MudChip>
                             }
                         </MudTd>
                     </RowTemplate>
@@ -295,18 +299,18 @@ else if (_profile != null)
 
                 @if (_activeSessions.Count > 1)
                 {
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error"
                                StartIcon="@Icons.Material.Filled.RemoveCircleOutline"
-                               OnClick="TerminateAllOtherSessions"
-                               Class="mt-3">
-                        @TranslationService.GetTranslation("profile.terminateAllOtherSessions", "Terminate All Other Sessions")
+                               OnClick="TerminateAllOtherSessions" Class="mt-3">
+                        @TranslationService.GetTranslation("profile.terminateAllOtherSessions", "Termina tutte le altre sessioni")
                     </MudButton>
                 }
 
                 <MudDivider Class="my-4" />
 
-                <MudText Typo="Typo.h6" Class="mb-4">@TranslationService.GetTranslation("profile.loginHistory", "Login History")</MudText>
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    @TranslationService.GetTranslation("profile.loginHistory", "Cronologia Accessi")
+                </MudText>
                 <MudExpansionPanels>
                     @foreach (var entry in _loginHistory)
                     {
@@ -316,29 +320,28 @@ else if (_profile != null)
                                     <div>
                                         <MudIcon Icon="@(entry.WasSuccessful ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)"
                                                  Color="@(entry.WasSuccessful ? Color.Success : Color.Error)"
-                                                 Size="Size.Small"
-                                                 Class="mr-2" />
-                                        @entry.LoginTime.ToString("yyyy-MM-dd HH:mm")
+                                                 Size="Size.Small" Class="mr-2" />
+                                        @entry.LoginTime.ToString("dd/MM/yyyy HH:mm")
                                     </div>
                                     <MudChip T="string" Color="@(entry.WasSuccessful ? Color.Success : Color.Error)" Size="Size.Small">
-                                        @(entry.WasSuccessful ? TranslationService.GetTranslation("common.success", "Success") : TranslationService.GetTranslation("common.failed", "Failed"))
+                                        @(entry.WasSuccessful ? TranslationService.GetTranslation("common.success", "Successo") : TranslationService.GetTranslation("common.failed", "Fallito"))
                                     </MudChip>
                                 </div>
                             </TitleContent>
                             <ChildContent>
                                 <MudGrid>
                                     <MudItem xs="6" sm="4">
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("field.browser", "Browser")</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Browser</MudText>
                                         <MudText>@entry.Browser</MudText>
                                     </MudItem>
                                     <MudItem xs="6" sm="4">
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("field.ipAddress", "IP Address")</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">IP</MudText>
                                         <MudText>@entry.IpAddress</MudText>
                                     </MudItem>
                                     @if (!entry.WasSuccessful && !string.IsNullOrEmpty(entry.FailureReason))
                                     {
                                         <MudItem xs="12">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("field.reason", "Reason")</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Motivo</MudText>
                                             <MudText Color="Color.Error">@entry.FailureReason</MudText>
                                         </MudItem>
                                     }
@@ -347,16 +350,50 @@ else if (_profile != null)
                         </MudExpansionPanel>
                     }
                 </MudExpansionPanels>
-            </MudTabPanel>
-        </MudTabs>
-    </MudContainer>
+            }
+        </div>
+    </div>
 }
 
+<style>
+    .profile-layout {
+        display: flex;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .profile-sidebar {
+        width: 260px;
+        min-width: 220px;
+        max-width: 280px;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+
+    .profile-content {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    @@media (max-width: 768px) {
+        .profile-layout {
+            flex-direction: column;
+        }
+
+        .profile-sidebar {
+            width: 100%;
+            max-width: 100%;
+        }
+    }
+</style>
 @code {
     private bool _isLoading = true;
     private bool _isAuthenticated = false;
     private bool _isSaving = false;
     private bool _isLoadingSessions = false;
+    private int _activeTab = 0;
     private UserProfileDto? _profile;
     private UpdateProfileDto _updateProfile = new();
     private ChangePasswordDto _changePassword = new();

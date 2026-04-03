@@ -68,6 +68,28 @@ main {
     color: #F1F3F5 !important;
 }
 
+/* No page-level scroll: body must not exceed viewport height */
+::deep html, ::deep body {
+    height: 100%;
+    overflow: hidden;
+}
+
+/* MudLayout must fill the full viewport */
+::deep .mud-layout {
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Main content area fills remaining height without page scroll */
+::deep .mud-main-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 64px);
+    box-sizing: border-box;
+}
+
 /* AppBar personalizzata con gradiente e ombra */
 ::deep .ef-appbar {
     background: linear-gradient(90deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%) !important;
@@ -77,12 +99,12 @@ main {
 
 /* Drawer con stile moderno */
 ::deep .ef-drawer {
-    background-color: var(--mud-palette-surface) !important;
+    background-color: var(--mud-palette-drawer-background) !important;
     border-right: 1px solid var(--mud-palette-divider);
 }
 
 ::deep .ef-drawer .mud-drawer-content {
-    background-color: var(--mud-palette-background);
+    background-color: var(--mud-palette-drawer-background);
 }
 
 /* Menu toggle button con migliore interattività */
