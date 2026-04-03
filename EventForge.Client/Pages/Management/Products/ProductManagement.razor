@@ -12,10 +12,6 @@
 <EntityManagementPage TEntity="ProductDto"
                       Config="_config"
                       Service="_service">
-    <AdditionalToolbarContent>
-        <GenerateProductsButton />
-        <EventForge.Client.Components.ProductManagement.DevToolsButton Count="10" />
-    </AdditionalToolbarContent>
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {

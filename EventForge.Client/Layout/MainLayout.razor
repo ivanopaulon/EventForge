@@ -331,6 +331,9 @@
     {
         Logger.LogDebug("Navigation detected: {Uri}", e.Location);
         
+        // Close the drawer on navigation (DrawerVariant.Responsive handles desktop visibility)
+        _drawerOpen = false;
+        
         // Trigger token refresh on every navigation (sliding expiration)
         if (await AuthService.IsAuthenticatedAsync())
         {

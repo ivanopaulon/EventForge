@@ -26,7 +26,8 @@
             <!-- Catalogo (Product Management) -->
             <MudNavGroup title="@TranslationService.GetTranslation("nav.catalog", "Catalogo")" 
                          Icon="@Icons.Material.Outlined.Inventory" 
-                         Expanded="false">
+                         Expanded="@(_openGroup == "catalog")"
+                         ExpandedChanged="@(v => OnGroupExpanded("catalog", v))">
                 <MudNavLink Href="/product-management/products"
                             Icon="@Icons.Material.Outlined.Inventory2" 
                             Match="NavLinkMatch.All">
@@ -40,7 +41,7 @@
                 <MudNavLink Href="/settings/unit-of-measures"
                             Icon="@Icons.Material.Outlined.Straighten" 
                             Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unit� di Misura")
+                    @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unità di Misura")
                 </MudNavLink>
                 <MudNavLink Href="/management/classification-nodes"
                             Icon="@Icons.Material.Outlined.AccountTree" 
@@ -54,7 +55,8 @@
             {
                 <MudNavGroup title="@TranslationService.GetTranslation("nav.warehouseManagement", "Magazzino")" 
                              Icon="@Icons.Material.Outlined.Warehouse" 
-                             Expanded="false">
+                             Expanded="@(_openGroup == "warehouse")"
+                             ExpandedChanged="@(v => OnGroupExpanded("warehouse", v))">
                     
                     <!-- 1. Magazzini -->
                     <MudNavLink Href="/warehouse/facilities" 
@@ -63,26 +65,21 @@
                         @TranslationService.GetTranslation("nav.facilities", "Magazzini")
                     </MudNavLink>
                     
-                    <!-- 2. Giacenze (New Submenu) -->
-                    <MudNavGroup title="@TranslationService.GetTranslation("nav.stockManagement", "Giacenze")" 
-                                 Icon="@Icons.Material.Outlined.Inventory2" 
-                                 Expanded="false">
-                        
-                        <MudNavLink Href="/warehouse/stock-management" 
-                                    Icon="@Icons.Material.Outlined.TableChart" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.stockManagement.unified", "Gestione Giacenze")
-                        </MudNavLink>
-                        
-                        <MudNavLink Href="/warehouse/lot-management" 
-                                    Icon="@Icons.Material.Outlined.QrCode" 
-                                    Match="NavLinkMatch.All">
-                            @TranslationService.GetTranslation("nav.lotManagement", "Gestione Lotti")
-                        </MudNavLink>
-                        
-                    </MudNavGroup>
+                    <!-- 2. Giacenze -->
+                    <MudNavLink Href="/warehouse/stock-management" 
+                                Icon="@Icons.Material.Outlined.Inventory2" 
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.stockManagement", "Giacenze")
+                    </MudNavLink>
                     
-                    <!-- 3. Inventari (Restructured Submenu) -->
+                    <!-- 3. Lotti -->
+                    <MudNavLink Href="/warehouse/lot-management" 
+                                Icon="@Icons.Material.Outlined.QrCode" 
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.lotManagement", "Lotti")
+                    </MudNavLink>
+                    
+                    <!-- 4. Inventari -->
                     <MudNavGroup title="@TranslationService.GetTranslation("nav.inventoryManagement", "Inventari")" 
                                  Icon="@Icons.Material.Outlined.Checklist" 
                                  Expanded="false">
@@ -107,7 +104,7 @@
                         
                     </MudNavGroup>
                     
-                    <!-- 4. Trasferimenti -->
+                    <!-- 5. Trasferimenti -->
                     <MudNavLink Href="/warehouse/transfers" 
                                 Icon="@Icons.Material.Outlined.CompareArrows" 
                                 Match="NavLinkMatch.All">
@@ -122,7 +119,8 @@
             {
                 <MudNavGroup title="@TranslationService.GetTranslation("nav.documentManagement", "Documenti")" 
                              Icon="@Icons.Material.Outlined.Description" 
-                             Expanded="false">
+                             Expanded="@(_openGroup == "documents")"
+                             ExpandedChanged="@(v => OnGroupExpanded("documents", v))">
                     <MudNavLink Href="/documents/list" 
                                 Icon="@Icons.Material.Outlined.ListAlt" 
                                 Match="NavLinkMatch.All">
@@ -149,7 +147,8 @@
             <!-- Anagrafiche Group -->
             <MudNavGroup title="@TranslationService.GetTranslation("nav.registries", "Anagrafiche")" 
                          Icon="@Icons.Material.Outlined.PeopleAlt" 
-                         Expanded="false">
+                         Expanded="@(_openGroup == "registries")"
+                         ExpandedChanged="@(v => OnGroupExpanded("registries", v))">
                 <MudNavLink Href="/business/parties"
                             Icon="@Icons.Material.Outlined.Business" 
                             Match="NavLinkMatch.All">
@@ -165,33 +164,31 @@
             <!-- Commerciale Group -->
             <MudNavGroup title="@TranslationService.GetTranslation("nav.commercial", "Commerciale")" 
                          Icon="@Icons.Material.Outlined.Storefront" 
-                         Expanded="false">
+                         Expanded="@(_openGroup == "commercial")"
+                         ExpandedChanged="@(v => OnGroupExpanded("commercial", v))">
                 <MudNavLink Href="/management/pricelists"
-                            Icon="@Icons.Material.Filled.PriceCheck"
-                            IconColor="Color.Tertiary">
+                            Icon="@Icons.Material.Filled.PriceCheck">
                     @TranslationService.GetTranslation("menu.pricelists", "Listini Prezzi")
                 </MudNavLink>
                 <MudNavLink Href="/management/promotions"
-                            Icon="@Icons.Material.Outlined.LocalOffer"
-                            IconColor="Color.Secondary">
+                            Icon="@Icons.Material.Outlined.LocalOffer">
                     @TranslationService.GetTranslation("menu.promotions", "Promozioni")
                 </MudNavLink>
                 <MudNavLink Href="/management/analytics"
-                            Icon="@Icons.Material.Filled.Analytics"
-                            IconColor="Color.Info">
+                            Icon="@Icons.Material.Filled.Analytics">
                     @TranslationService.GetTranslation("menu.analytics", "Analytics")
                 </MudNavLink>
                 <MudNavLink Href="/management/monitoring"
-                            Icon="@Icons.Material.Filled.MonitorHeart"
-                            IconColor="Color.Warning">
+                            Icon="@Icons.Material.Filled.MonitorHeart">
                     @TranslationService.GetTranslation("menu.monitoring", "Monitoring")
                 </MudNavLink>
             </MudNavGroup>
 
             <!-- Financial Management Group -->
-            <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilit�")" 
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilità")" 
                          Icon="@Icons.Material.Outlined.AccountBalance" 
-                         Expanded="false">
+                         Expanded="@(_openGroup == "financial")"
+                         ExpandedChanged="@(v => OnGroupExpanded("financial", v))">
                 <MudNavLink Href="/financial/vat-rates" 
                             Icon="@Icons.Material.Outlined.Percent" 
                             Match="NavLinkMatch.All">
@@ -214,7 +211,8 @@
             <!-- Store Settings -->
             <MudNavGroup title="@TranslationService.GetTranslation("nav.storeSettings", "Configurazione Store")" 
                          Icon="@Icons.Material.Outlined.Settings" 
-                         Expanded="false">
+                         Expanded="@(_openGroup == "store")"
+                         ExpandedChanged="@(v => OnGroupExpanded("store", v))">
                 <MudNavLink Href="/store/payment-methods" 
                             Icon="@Icons.Material.Outlined.Payment" 
                             Match="NavLinkMatch.All">
@@ -250,7 +248,6 @@
         </MudNavLink>
     }
 </MudNavMenu>
-
 @code {
     private bool _isAuthenticated = false;
     private bool _isAdmin = false;
@@ -259,6 +256,15 @@
     private bool _canManageWarehouse = false;
     private int _unreadNotificationCount = 0;
     private int _unreadMessageCount = 0;
+    private string? _openGroup = null;
+
+    private void OnGroupExpanded(string groupId, bool expanded)
+    {
+        if (expanded)
+            _openGroup = groupId;
+        else if (_openGroup == groupId)
+            _openGroup = null;
+    }
 
     protected override async Task OnInitializedAsync()
     {

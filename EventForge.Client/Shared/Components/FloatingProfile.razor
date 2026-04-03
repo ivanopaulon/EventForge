@@ -14,26 +14,11 @@
     <!-- Floating Profile Button -->
     <div class="fp-fab">
         <MudFab Color="Color.Secondary"
-                Size="Size.Large"
+                Size="Size.Medium"
+                Icon="@Icons.Material.Filled.AccountCircle"
                 OnClick="ToggleDialog"
                 title="@TranslationService.GetTranslation("navigation.profile", "Profilo")"
-                aria-label="@TranslationService.GetTranslation("navigation.profile", "Profilo")">
-            <ChildContent>
-                @if (!string.IsNullOrEmpty(_currentUser?.AvatarUrl))
-                {
-                    <MudAvatar Size="Size.Small" Style="width:28px;height:28px;">
-                        <MudImage Src="@_currentUser.AvatarUrl" Alt="Avatar" />
-                    </MudAvatar>
-                }
-                else
-                {
-                    <MudAvatar Size="Size.Small"
-                               Style="@($"background-color:{GetAvatarColor()};color:#fff;width:28px;height:28px;font-size:0.75rem;")">
-                        @GetUserInitials()
-                    </MudAvatar>
-                }
-            </ChildContent>
-        </MudFab>
+                aria-label="@TranslationService.GetTranslation("navigation.profile", "Profilo")" />
     </div>
 
     @if (_isDialogOpen)
@@ -182,14 +167,14 @@
 <style>
     .fp-fab {
         position: fixed;
-        bottom: 168px;
+        bottom: 96px;
         right: 24px;
         z-index: 1300;
     }
 
     .fp-dialog {
         position: fixed;
-        bottom: 236px;
+        bottom: 156px;
         right: 24px;
         width: 240px;
         z-index: 1300;
@@ -204,12 +189,12 @@
 
     @@media (max-width: 420px) {
         .fp-fab {
-            bottom: 158px;
+            bottom: 86px;
             right: 16px;
         }
 
         .fp-dialog {
-            bottom: 226px;
+            bottom: 146px;
             right: 16px;
             width: calc(100vw - 32px);
         }

@@ -174,55 +174,21 @@
     margin: 4px 0 !important;
 }
 
-/* ----------- EFTable – sticky page-level column headers ----------- */
+/* ----------- EFTable – column headers (non-sticky) ----------- */
 /*
- * When EFTable is rendered with StickyHeader="true", the class
- * "ef-table-sticky-header" is applied to the MudTable wrapper.
- *
- * ROOT CAUSE OF PREVIOUS BUG:
- * MudBlazor sets overflow:auto on .mud-table-container. When a child element
- * has position:sticky, the browser uses the nearest scrolling ancestor —
- * which is .mud-table-container, NOT the viewport. So top:112px was measured
- * from the top of that div, causing headers to appear over the second row.
- *
- * FIX:
- * 1. Reset overflow on .mud-table-container to "visible" so the browser
- *    treats the viewport as the scroll reference for sticky positioning.
- * 2. Make the entire thead sticky (toolbar row + header row together),
- *    offset only by the AppBar height (48px).
- * 3. Each th inside the sticky thead also needs position:sticky + top:48px
- *    so individual cells don't collapse out of the sticky context.
+ * Sticky header behavior has been removed. Column headers remain visible
+ * but scroll with the table content rather than staying fixed.
+ * Background color and box-shadow are preserved for visual consistency.
  */
 
-/* Step 1: allow sticky to reference the viewport, not the inner div */
-.ef-table-sticky-header .mud-table-container {
-    overflow: visible !important;
-}
-
-/* Step 2: stick the entire thead block below the AppBar */
-.ef-table-sticky-header .mud-table-head {
-    position: sticky;
-    top: 48px; /* AppBar height */
-    z-index: 4;
-}
-
-/* Step 3: each th must also be sticky so cells don't escape the sticky row */
 .ef-table-sticky-header .mud-table-head th {
-    position: sticky;
-    top: 48px; /* AppBar height */
-    z-index: 3;
     background-color: var(--mud-palette-surface, #fff);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* visual separation from rows */
 }
 
-/* Ensure the sticky header is also opaque in dark mode */
+/* Ensure header cells are also styled in dark mode */
 .mud-dark .ef-table-sticky-header .mud-table-head th {
     background-color: var(--mud-palette-surface, #1e1e1e);
-}
-
-/* Give body rows enough scroll-margin so anchored rows are not obscured */
-.ef-table-sticky-header .mud-table-body tr {
-    scroll-margin-top: 120px; /* 48px AppBar + ~56px thead + 16px safe margin */
 }
 
 /* ----------- Floating Scroll-to-Top button ----------- */
