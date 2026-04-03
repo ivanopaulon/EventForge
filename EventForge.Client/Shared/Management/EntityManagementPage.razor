@@ -112,11 +112,17 @@
                                        ShowToggleStatus="@Config.ShowToggleStatus"
                                        ShowDelete="@Config.ShowDelete"
                                        IsActive="@(Config.GetIsActive?.Invoke(item) ?? true)"
+                                       CanEdit="@(Config.CanEdit == null || Config.CanEdit(item))"
+                                       CanDelete="@(Config.CanDelete == null || Config.CanDelete(item))"
                                        OnView="@(() => ViewEntity(Config.GetId(item)))"
                                        OnEdit="@(() => EditEntity(Config.GetId(item)))"
                                        OnAuditLog="@(() => ViewAuditLog(item))"
                                        OnToggleStatus="@(() => ToggleEntityStatus(item))"
                                        OnDelete="@(() => DeleteEntity(item))" />
+                    @if (AdditionalRowActions != null)
+                    {
+                        @AdditionalRowActions(item)
+                    }
                 </MudTd>
             </RowTemplate>
 
@@ -154,6 +160,7 @@
     [Parameter] public RenderFragment<List<EFTableColumnConfiguration>>? HeaderContent { get; set; }
     [Parameter] public RenderFragment<(TEntity Item, List<EFTableColumnConfiguration> Cols)>? RowTemplate { get; set; }
     [Parameter] public RenderFragment? BelowTableContent { get; set; }
+    [Parameter] public RenderFragment<TEntity>? AdditionalRowActions { get; set; }
     [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
 
     // Dialog options for fullscreen audit dialog
