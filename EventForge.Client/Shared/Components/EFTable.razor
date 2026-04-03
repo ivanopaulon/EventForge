@@ -94,17 +94,6 @@
         else
         {
             @* Built-in toolbar when no custom toolbar is provided *@
-            @if (!string.IsNullOrEmpty(Title))
-            {
-                <MudStack Row="false" Spacing="0">
-                    <MudText Typo="Typo.h5">@Title</MudText>
-                    @if (!string.IsNullOrEmpty(Subtitle))
-                    {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Subtitle</MudText>
-                    }
-                </MudStack>
-            }
-            <MudSpacer />
             @if (ShowSearch)
             {
                 <MudTextField @bind-Value="_searchTerm"
@@ -116,9 +105,13 @@
                               Clearable="true"
                               Dense="true"
                               Disabled="@IsToolbarDisabled"
-                              Class="mr-2"
-                              Style="max-width: 300px; margin-top: 0; margin-bottom: 0;"
+                              Class="mr-2 flex-grow-1"
+                              Style="margin-top: 0; margin-bottom: 0;"
                               Margin="Margin.Dense" />
+            }
+            @if (!ShowSearch)
+            {
+                <MudSpacer />
             }
             @if (ShowFilters)
             {
