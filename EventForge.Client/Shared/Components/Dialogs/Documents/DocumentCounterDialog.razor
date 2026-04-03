@@ -5,13 +5,17 @@
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentCounterDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Pin"
+          Title="@(_isEditMode ? "Modifica Contatore" : "Nuovo Contatore")"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12">
                     <MudSelect T="Guid" 
                                Class="ef-select"
+                               Margin="Margin.Dense"
                                @bind-Value="_model.DocumentTypeId"
                                Label="@($"{TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")} *")"
                                Required="true"
@@ -29,6 +33,7 @@
                 <MudItem xs="12" md="6">
                     <MudTextField T="string"
                                   Class="ef-input"
+                                  Margin="Margin.Dense"
                                   @bind-Value="_model.Series"
                                   Label="@($"{TranslationService.GetTranslation("documentCounter.series", "Serie")} *")"
                                   Required="true"
@@ -40,6 +45,7 @@
                 <MudItem xs="12" md="6">
                     <MudNumericField T="int?"
                                      Class="ef-input"
+                                     Margin="Margin.Dense"
                                      @bind-Value="_model.Year"
                                      Label="@TranslationService.GetTranslation("documentCounter.year", "Anno")"
                                      Min="2000"
@@ -51,6 +57,7 @@
                 <MudItem xs="12" md="6">
                     <MudTextField T="string"
                                   Class="ef-input"
+                                  Margin="Margin.Dense"
                                   @bind-Value="_model.Prefix"
                                   Label="@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")"
                                   MaxLength="10"
@@ -60,6 +67,7 @@
                 <MudItem xs="12" md="6">
                     <MudNumericField T="int"
                                      Class="ef-input"
+                                     Margin="Margin.Dense"
                                      @bind-Value="_model.PaddingLength"
                                      Label="@($"{TranslationService.GetTranslation("documentCounter.paddingLength", "Lunghezza Padding")} *")"
                                      Min="1"
@@ -73,6 +81,7 @@
                     <MudItem xs="12" md="6">
                         <MudNumericField T="int"
                                          Class="ef-input"
+                                         Margin="Margin.Dense"
                                          @bind-Value="_updateModel.CurrentValue"
                                          Label="@($"{TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")} *")"
                                          Min="0"
@@ -84,6 +93,7 @@
                 <MudItem xs="12">
                     <MudTextField T="string"
                                   Class="ef-input"
+                                  Margin="Margin.Dense"
                                   @bind-Value="_model.FormatPattern"
                                   Label="@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern Formato")"
                                   MaxLength="50"
@@ -101,6 +111,7 @@
                 <MudItem xs="12">
                     <MudTextField T="string"
                                   Class="ef-input"
+                                  Margin="Margin.Dense"
                                   @bind-Value="_model.Notes"
                                   Label="@TranslationService.GetTranslation("common.notes", "Note")"
                                   Lines="3"
@@ -108,13 +119,16 @@
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
-        <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
                    OnClick="SaveAsync"
                    Disabled="@(!_isValid || _isSaving)">
             @if (_isSaving)
@@ -128,7 +142,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

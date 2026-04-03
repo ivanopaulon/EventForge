@@ -2,14 +2,11 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="mr-2" />
-            @TranslationService.GetTranslation("sales.priceCheck", "Verifica Prezzo")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.PriceCheck"
+          Title="Verifica Prezzo"
+          IsProcessing="false"
+          OnClose="Close">
+    <ChildContent>
         @if (Product != null)
         {
             <MudPaper Elevation="1" Class="pa-4">
@@ -54,9 +51,11 @@
                 }
             </MudPaper>
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Close">
+        <MudButton OnClick="Close"
+                   Variant="Variant.Text"
+                   Disabled="false">
             @TranslationService.GetTranslation("common.close", "Chiudi")
         </MudButton>
         @if (ShowAddToCartButton)
@@ -69,7 +68,7 @@
             </MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

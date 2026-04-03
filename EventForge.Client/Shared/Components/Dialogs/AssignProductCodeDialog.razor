@@ -6,14 +6,11 @@
 @inject ISnackbar Snackbar
 @inject ILogger<AssignProductCodeDialog> Logger
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Link" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.assignCodeToProduct", "Assegna Codice a Prodotto")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.QrCode2"
+          Title="Assegna Codice Prodotto"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel">
+    <ChildContent>
         <MudAlert Severity="Severity.Info" Class="mb-4">
             @TranslationService.GetTranslation("warehouse.codeWillBeAssigned", "Il codice {0} sarà assegnato al prodotto selezionato", Code)
         </MudAlert>
@@ -22,6 +19,7 @@
             <MudTextField Value="@Code"
                           Label="@TranslationService.GetTranslation("field.code", "Codice")"
                           Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           ReadOnly="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Outlined.QrCode" />
@@ -57,11 +55,16 @@
                 </MudPaper>
             }
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
                    OnClick="Submit"
                    Disabled="@(_selectedProduct == null || _isSaving)">
             @if (_isSaving)
@@ -74,7 +77,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

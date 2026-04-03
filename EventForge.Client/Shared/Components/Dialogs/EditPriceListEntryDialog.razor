@@ -8,19 +8,12 @@
 @inject ISnackbar Snackbar
 @inject ILogger<EditPriceListEntryDialog> Logger
 
-<MudDialog MaxWidth="MaxWidth.Medium" FullWidth="true">
-    <TitleContent>
-        <div class="@DialogStyleConstants.Classes.DialogTitle">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.Settings" Class="mr-2" />
-                    @TranslationService.GetTranslation("pricelist.editEntry", "Modifica Voce Listino")
-                </MudText>
-            </MudStack>
-        </div>
-    </TitleContent>
-    <DialogContent>
-        <div class="ef-dialog-content">
+<EFDialog Icon="@Icons.Material.Outlined.PriceChange"
+          Title="Modifica Voce Listino"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
             <PageLoadingOverlay Visible="_isLoading" />
 
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
@@ -48,6 +41,7 @@
                                 <MudNumericField @bind-Value="_model.Price"
                                                  Label="@($"{TranslationService.GetTranslation("field.price", "Prezzo")} *")"
                                                  Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
                                                  Required="true"
                                                  Min="0"
                                                  Step="0.01M"
@@ -59,6 +53,7 @@
                                 <MudTextField @bind-Value="_model.Currency"
                                               Label="@TranslationService.GetTranslation("field.currency", "Valuta")"
                                               Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
                                               MaxLength="3" />
                             </MudItem>
                         </MudGrid>
@@ -75,6 +70,7 @@
                                 <MudNumericField @bind-Value="_model.MinQuantity"
                                                  Label="@TranslationService.GetTranslation("field.minQuantity", "Qtà Minima")"
                                                  Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
                                                  Min="1"
                                                  HelperText="@TranslationService.GetTranslation("pricelist.minQuantityHint", "Quantità minima per applicare il prezzo")" />
                             </MudItem>
@@ -82,6 +78,7 @@
                                 <MudNumericField @bind-Value="_model.MaxQuantity"
                                                  Label="@TranslationService.GetTranslation("field.maxQuantity", "Qtà Massima")"
                                                  Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
                                                  Min="0"
                                                  HelperText="@TranslationService.GetTranslation("pricelist.maxQuantityHint", "0 = nessun limite")" />
                             </MudItem>
@@ -106,6 +103,7 @@
                                            @bind-Value="_model.UnitOfMeasureId"
                                            Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
                                            Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
                                            Clearable="true"
                                            AdornmentIcon="@Icons.Material.Outlined.Scale"
                                            Adornment="Adornment.Start"
@@ -135,12 +133,14 @@
                                 <MudNumericField @bind-Value="_model.Score"
                                                  Label="@TranslationService.GetTranslation("field.score", "Score")"
                                                  Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
                                                  Min="0" Max="100" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudSelect @bind-Value="_model.Status"
                                            Label="@TranslationService.GetTranslation("common.status", "Stato")"
                                            Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
                                            Adornment="Adornment.Start"
                                            AdornmentIcon="@Icons.Material.Outlined.ToggleOn">
                                     <MudSelectItem Value="PriceListEntryStatus.Active">
@@ -165,6 +165,7 @@
                                 <MudTextField @bind-Value="_model.Notes"
                                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                               Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
                                               Lines="2"
                                               MaxLength="500" />
                             </MudItem>
@@ -173,8 +174,7 @@
 
                 </MudStack>
             </MudForm>
-        </div>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel"
                    Variant="Variant.Text"
@@ -185,12 +185,12 @@
         <MudButton OnClick="Save"
                    Variant="Variant.Filled"
                    Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Save"
+                   StartIcon="@Icons.Material.Outlined.Save"
                    Disabled="@(!_isFormValid || _isSaving || _quantityRangeError)">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     /// <summary>The price list entry to edit.</summary>

@@ -2,14 +2,11 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
-            @TranslationService.GetTranslation("sales.editNotes", "Modifica Note")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Notes"
+          Title="Note Articolo"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
         @if (Item != null)
         {
             <!-- Item Context -->
@@ -45,23 +42,27 @@
                       @ref="_notesField"
                       Label="@TranslationService.GetTranslation("common.notes", "Note personalizzate")"
                       Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
                       Lines="4"
                       AutoFocus="true"
                       HelperText="@TranslationService.GetTranslation("sales.ctrlEnterToSave", "Ctrl+Enter per salvare")"
                       @onkeydown="@HandleKeyDown"
                       Class="mb-3" />
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
-        <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
                    OnClick="Save">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

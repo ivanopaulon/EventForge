@@ -7,8 +7,11 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ProductUnitDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Scale"
+          Title="@(_isEditMode ? "Modifica Unità Prodotto" : "Nuova Unità Prodotto")"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
@@ -16,6 +19,7 @@
                                @bind-Value="_model.UnitType"
                                Label="@($"{TranslationService.GetTranslation("field.unitType", "Tipo Unità")} *")"
                                Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
                                Required="true"
                                RequiredError="@TranslationService.GetTranslation("validation.unitTypeRequired", "Il tipo è obbligatorio")">
                         <MudSelectItem Value="@("Base")">@TranslationService.GetTranslation("unitType.base", "Base")</MudSelectItem>
@@ -31,6 +35,7 @@
                                @bind-Value="_model.UnitOfMeasureId"
                                Label="@($"{TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")} *")"
                                Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
                                Required="true"
                                RequiredError="@TranslationService.GetTranslation("validation.unitOfMeasureRequired", "L'unità di misura è obbligatoria")">
                         @if (UnitOfMeasures != null && UnitOfMeasures.Any())
@@ -47,6 +52,7 @@
                     <MudNumericField @bind-Value="_model.ConversionFactor"
                                      Label="@($"{TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")} *")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      Min="0.001m"
                                      Step="0.001m"
                                      Format="N3"
@@ -63,6 +69,7 @@
                                @bind-Value="_model.Status"
                                Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
                                Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
                                Required="true">
                         <MudSelectItem Value="@ProductUnitStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
                         <MudSelectItem Value="@ProductUnitStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
@@ -74,15 +81,24 @@
                     <MudTextField @bind-Value="_model.Description"
                                   Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   Lines="2"
                                   MaxLength="500" />
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isSaving)" OnClick="Submit">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   Disabled="@(!_isValid || _isSaving)"
+                   OnClick="Submit">
             @if (_isSaving)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
@@ -94,7 +110,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

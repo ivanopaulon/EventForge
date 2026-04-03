@@ -5,8 +5,11 @@
 @inject ITranslationService TranslationService
 @inject ILogger<AddBundleItemDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Inventory"
+          Title="Aggiungi Componente Bundle"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12">
@@ -27,6 +30,7 @@
                     <MudNumericField @bind-Value="_model.Quantity"
                                      Label="@($"{TranslationService.GetTranslation("field.quantity", "Quantità")} *")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      Min="1"
                                      Max="10000"
                                      Required="true"
@@ -38,10 +42,18 @@
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _selectedProduct == null || _isSaving)" OnClick="Submit">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   Disabled="@(!_isValid || _selectedProduct == null || _isSaving)"
+                   OnClick="Submit">
             @if (_isSaving)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
@@ -53,7 +65,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

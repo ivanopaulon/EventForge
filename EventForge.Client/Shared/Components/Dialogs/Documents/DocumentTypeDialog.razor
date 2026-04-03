@@ -8,13 +8,18 @@
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentTypeDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Description"
+          Title="@(_isEditMode ? "Modifica Tipo Documento" : "Nuovo Tipo Documento")"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
                     <MudTextField T="string"
                                   Class="ef-input"
+                                  Margin="Margin.Dense"
                                   @bind-Value="_model.Name"
                                   Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                   Required="true"
@@ -26,6 +31,7 @@
                 <MudItem xs="12" md="6">
                     <MudTextField T="string"
                                   Class="ef-input"
+                                  Margin="Margin.Dense"
                                   @bind-Value="_model.Code"
                                   Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
                                   Required="true"
@@ -38,6 +44,7 @@
                 <MudItem xs="12">
                     <MudTextField T="string"
                                   Class="ef-input"
+                                  Margin="Margin.Dense"
                                   @bind-Value="_model.Notes"
                                   Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                   Lines="3"
@@ -50,7 +57,8 @@
                                Class="ef-select"
                                @bind-Value="_model.RequiredPartyType"
                                Label="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte Richiesto")"
-                               Variant="Variant.Outlined">
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
                         <MudSelectItem T="BusinessPartyType" Value="BusinessPartyType.Customer">
                             @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
                         </MudSelectItem>
@@ -69,6 +77,7 @@
                                @bind-Value="_model.DefaultWarehouseId"
                                Label="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")"
                                Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
                                Clearable="true">
                         @if (_warehouses != null)
                         {
@@ -103,13 +112,16 @@
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
-        <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
                    OnClick="SaveAsync"
                    Disabled="@(!_isValid || _isSaving)">
             @if (_isSaving)
@@ -123,7 +135,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
