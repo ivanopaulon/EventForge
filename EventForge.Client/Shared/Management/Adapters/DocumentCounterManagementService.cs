@@ -6,7 +6,7 @@ namespace EventForge.Client.Shared.Management.Adapters;
 
 /// <summary>
 /// Adapter that wraps <see cref="IDocumentCounterService"/> for use with
-/// <see cref="EntityManagementPage{TEntity}"/>.
+/// <c>EntityManagementPage{TEntity}</c>.
 /// </summary>
 public class DocumentCounterManagementService : IEntityManagementService<DocumentCounterDto>
 {
