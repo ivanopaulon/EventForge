@@ -20,6 +20,18 @@
 @if (!_isLoading)
 {
     <div class="@Config.PageRootCssClass">
+        <!-- Page Header -->
+        @if (PageHeader != null)
+        {
+            @PageHeader
+        }
+        else
+        {
+            <ManagementPageHeader Title="@TranslationService.GetTranslation(Config.PageTitleKey, Config.PageTitleDefault)"
+                                  Icon="@Config.EntityIcon"
+                                  BreadcrumbItems="@(BreadcrumbItems ?? Config.BreadcrumbItems)" />
+        }
+
         <!-- Quick Filters -->
         @if (Config.QuickFilters != null && Config.QuickFilters.Any())
         {
@@ -122,6 +134,8 @@
 @code {
     [Parameter, EditorRequired] public EntityManagementConfig<TEntity> Config { get; set; } = null!;
     [Parameter, EditorRequired] public IEntityManagementService<TEntity> Service { get; set; } = null!;
+    [Parameter] public RenderFragment? PageHeader { get; set; }
+    [Parameter] public List<BreadcrumbItem>? BreadcrumbItems { get; set; }
     [Parameter] public RenderFragment<List<EFTableColumnConfiguration>>? HeaderContent { get; set; }
     [Parameter] public RenderFragment<(TEntity Item, List<EFTableColumnConfiguration> Cols)>? RowTemplate { get; set; }
     [Parameter] public RenderFragment? BelowTableContent { get; set; }

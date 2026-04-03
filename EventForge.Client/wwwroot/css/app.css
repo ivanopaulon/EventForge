@@ -609,6 +609,35 @@ kbd {
 
 /* Desktop (>= 960px) - default styles already applied above */
 
+/* ============================================
+   ManagementPageHeader Component Styles
+   ============================================ */
+
+.management-page-header {
+    padding: 0.75rem 1rem 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.management-page-header-title {
+    font-weight: 600;
+}
+
+.management-page-header-breadcrumbs {
+    font-size: 0.8rem;
+}
+
+.management-page-header-subcontent {
+    margin-top: 0.25rem;
+}
+
+/* Responsive: reduce padding on mobile */
+@media (max-width: 599px) {
+    .management-page-header {
+        padding: 0.5rem 0.5rem 0.375rem 0.5rem;
+        margin-bottom: 0.375rem;
+    }
+}
+
 /* ========================================
    EFTable Row Click Styles
    ======================================== */

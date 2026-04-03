@@ -1,0 +1,75 @@
+<div class="management-page-header">
+    <MudStack Spacing="1">
+        <!-- Top row: icon + title (left), ExtraActions (right) -->
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+            <div class="d-flex align-center gap-2 flex-wrap">
+                <MudIcon Icon="@Icon" Color="@IconColor" Size="Size.Medium" />
+                <MudText Typo="@TitleTypo" Class="management-page-header-title">@Title</MudText>
+                @if (!string.IsNullOrWhiteSpace(StatusText))
+                {
+                    <MudChip T="string"
+                             Color="@StatusColor"
+                             Size="Size.Small"
+                             Icon="@StatusIcon"
+                             Variant="Variant.Filled">
+                        @StatusText
+                    </MudChip>
+                }
+            </div>
+            @if (ExtraActions != null)
+            {
+                <div class="d-flex align-center gap-1 flex-wrap">
+                    @ExtraActions
+                </div>
+            }
+        </div>
+
+        <!-- Breadcrumb row -->
+        @if (BreadcrumbItems != null && BreadcrumbItems.Count > 0)
+        {
+            <MudBreadcrumbs Items="BreadcrumbItems" Class="pa-0 management-page-header-breadcrumbs" />
+        }
+
+        <!-- Optional sub-content (subtitle, description, etc.) -->
+        @if (SubContent != null)
+        {
+            <div class="management-page-header-subcontent">
+                @SubContent
+            </div>
+        }
+    </MudStack>
+
+    <MudDivider Class="mt-2" />
+</div>
+
+@code {
+    /// <summary>Page title text. Required.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Icon identifier (e.g. Icons.Material.Outlined.Percent). Required.</summary>
+    [Parameter, EditorRequired] public string Icon { get; set; } = string.Empty;
+
+    /// <summary>Color of the icon. Default: Primary.</summary>
+    [Parameter] public Color IconColor { get; set; } = Color.Primary;
+
+    /// <summary>Typography variant for the title. Default: h5.</summary>
+    [Parameter] public Typo TitleTypo { get; set; } = Typo.h5;
+
+    /// <summary>Optional breadcrumb navigation items shown below the title.</summary>
+    [Parameter] public List<BreadcrumbItem>? BreadcrumbItems { get; set; }
+
+    /// <summary>Optional status chip text (e.g. "12 elementi", "Attivo").</summary>
+    [Parameter] public string? StatusText { get; set; }
+
+    /// <summary>Color for the status chip. Default: Default.</summary>
+    [Parameter] public Color StatusColor { get; set; } = Color.Default;
+
+    /// <summary>Optional icon for the status chip.</summary>
+    [Parameter] public string? StatusIcon { get; set; }
+
+    /// <summary>Optional slot for extra action buttons displayed to the right of the title row.</summary>
+    [Parameter] public RenderFragment? ExtraActions { get; set; }
+
+    /// <summary>Optional slot for additional content rendered below the title row (e.g. subtitle, description).</summary>
+    [Parameter] public RenderFragment? SubContent { get; set; }
+}
