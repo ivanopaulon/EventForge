@@ -57,7 +57,6 @@
                         </MudAvatar>
                         <div>
                             <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
                         </div>
                     </div>
                 </MudTd>
@@ -128,7 +127,7 @@
             BreadcrumbItems = new List<BreadcrumbItem>
             {
                 new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
-                new BreadcrumbItem("Impostazioni", null, disabled: true),
+                new BreadcrumbItem("Catalogo", null, disabled: true),
                 new BreadcrumbItem("Unità di Misura", null, disabled: true)
             },
             Columns = new()

@@ -61,7 +61,8 @@
                  CreateTooltip="@Config.CreateTooltip"
                  ShowBulkDelete="true"
                  OnBulkDelete="@DeleteSelectedEntities"
-                 IsToolbarDisabled="@_isLoadingEntities">
+                 IsToolbarDisabled="@_isLoadingEntities"
+                 StickyHeader="true">
             <AdditionalToolbarContent>
                 @if (Config.QuickFilters != null && Config.QuickFilters.Any())
                 {
