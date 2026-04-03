@@ -122,12 +122,14 @@
             }
             @if (ShowFilters)
             {
-                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.filters", "Filtri")">
-                    <MudIconButton Icon="@Icons.Material.Outlined.FilterList"
-                                   Color="@(_filtersExpanded ? Color.Primary : Color.Default)"
-                                   OnClick="@ToggleFilters"
-                                   Size="Size.Medium" />
-                </MudTooltip>
+                <MudToggleIconButton @bind-Toggled="_filtersExpanded"
+                                     ToggledChanged="@OnFiltersToggledChanged"
+                                     Icon="@Icons.Material.Outlined.FilterList"
+                                     ToggledIcon="@Icons.Material.Outlined.FilterListOff"
+                                     Color="Color.Default"
+                                     ToggledColor="Color.Primary"
+                                     Size="Size.Medium"
+                                     Title="@TranslationService.GetTranslation("tooltip.filters", "Filtri")" />
             }
             @if (AdditionalToolbarContent != null)
             {
@@ -843,9 +845,9 @@
         }
     }
 
-    private async Task ToggleFilters()
+    private async Task OnFiltersToggledChanged(bool toggled)
     {
-        _filtersExpanded = !_filtersExpanded;
+        // _filtersExpanded is already updated by @bind-Toggled
         if (OnToggleFilters.HasDelegate)
         {
             await OnToggleFilters.InvokeAsync();
