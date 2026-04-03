@@ -287,6 +287,13 @@
 
     private async Task DeleteEntity(TEntity entity)
     {
+        if (Config.CanDelete != null && !Config.CanDelete(entity))
+        {
+            Snackbar.Add(TranslationService.GetTranslation(Config.CannotDeleteMessageKey,
+                "Impossibile eliminare questo elemento"), Severity.Warning);
+            return;
+        }
+
         var displayName = Config.GetDisplayName(entity);
         var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
         var confirmMessage = TranslationService.GetTranslation(Config.DeleteConfirmMessageKey,
@@ -322,10 +329,22 @@
         if (_selectedEntities.Count == 0)
             return;
 
+        var deletableEntities = Config.CanDelete != null
+            ? _selectedEntities.Where(e => Config.CanDelete(e)).ToList()
+            : _selectedEntities.ToList();
+
+        if (deletableEntities.Count == 0)
+        {
+            Snackbar.Add(TranslationService.GetTranslation(Config.CannotDeleteMessageKey,
+                "Impossibile eliminare gli elementi selezionati"), Severity.Warning);
+            return;
+        }
+
+        var skippedCount = _selectedEntities.Count - deletableEntities.Count;
         var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
         var confirmMessage = TranslationService.GetTranslationFormatted(Config.BulkDeleteConfirmMessageKey,
             "Sei sicuro di voler eliminare {0} elementi selezionati? Questa azione non può essere annullata.",
-            _selectedEntities.Count);
+            deletableEntities.Count);
 
         var confirm = await DialogService.ShowMessageBoxAsync(
             confirmTitle,
@@ -341,7 +360,7 @@
                 var failedCount = 0;
                 var deletedIds = new HashSet<Guid>();
 
-                foreach (var entity in _selectedEntities.ToList())
+                foreach (var entity in deletableEntities)
                 {
                     try
                     {
@@ -360,10 +379,15 @@
                 _entities.RemoveAll(e => deletedIds.Contains(Config.GetId(e)));
                 _selectedEntities.Clear();
 
-                if (failedCount == 0)
+                if (failedCount == 0 && skippedCount == 0)
                 {
                     Snackbar.Add(TranslationService.GetTranslationFormatted(Config.BulkDeleteSuccessMessageKey,
                         "{0} elementi eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else if (skippedCount > 0 && failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("common.bulkDeletePartialSkipped",
+                        "{0} elementi eliminati, {1} non eliminabili ignorati", deletedCount, skippedCount), Severity.Warning);
                 }
                 else
                 {
