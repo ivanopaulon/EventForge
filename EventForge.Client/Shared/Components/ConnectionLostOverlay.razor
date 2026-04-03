@@ -1,0 +1,465 @@
+@namespace EventForge.Client.Shared.Components
+@using MudBlazor
+@using EventForge.Client.Services
+@inject IConnectionMonitorService ConnectionMonitor
+@implements IDisposable
+
+@if (_showOverlay)
+{
+    <MudOverlay Visible="true" DarkBackground="true" AutoClose="false"
+                Style="backdrop-filter: blur(3px); z-index: 9999;">
+
+        <div class="clo-card">
+
+            @* Top color bar *@
+            <div class="clo-topbar @_topBarClass"></div>
+
+            <div class="clo-body">
+
+                @* Left: logo *@
+                <div class="clo-logo-col">
+                    <img src="trace.svg"
+                         width="96"
+                         height="96"
+                         class="clo-logo @_logoAnimClass"
+                         alt="EventForge logo" />
+                </div>
+
+                @* Right: title + status rows + message + timer + retry *@
+                <div class="clo-content-col">
+
+                    <div class="clo-title">EventForge</div>
+                    <div class="clo-divider"></div>
+
+                    @* API status row *@
+                    <div class="clo-status-row">
+                        <span class="clo-status-dot @(_apiOk ? "clo-dot-green" : "clo-dot-red")"></span>
+                        <span class="clo-status-label">API</span>
+                        <span class="clo-status-value @(_apiOk ? "clo-ok" : "clo-err")">
+                            @(_apiOk ? "Raggiungibile" : "Non raggiungibile")
+                        </span>
+                    </div>
+
+                    @* SignalR status row *@
+                    <div class="clo-status-row">
+                        <span class="clo-status-dot @(_signalrOk ? "clo-dot-green" : "clo-dot-red")"></span>
+                        <span class="clo-status-label">Real-time</span>
+                        <span class="clo-status-value @(_signalrOk ? "clo-ok" : "clo-err")">
+                            @(_signalrOk ? "Connesso" : "Disconnesso")
+                        </span>
+                    </div>
+
+                    @if (_restored)
+                    {
+                        <div class="clo-restored-msg">✓ Connessione ripristinata</div>
+                    }
+                    else if (!string.IsNullOrEmpty(_statusMessage))
+                    {
+                        <div class="clo-message">@_statusMessage</div>
+                    }
+
+                    @if (_disconnectedSince.HasValue && !_restored)
+                    {
+                        var elapsed = (int)(DateTimeOffset.UtcNow - _disconnectedSince.Value).TotalSeconds;
+                        <div class="clo-elapsed">⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")</div>
+                    }
+
+                    @if (!_restored)
+                    {
+                        <div class="clo-retry-row">
+                            <MudButton Variant="Variant.Outlined"
+                                       Size="Size.Small"
+                                       Color="Color.Warning"
+                                       OnClick="@RetryNowAsync"
+                                       Disabled="@_retrying"
+                                       StartIcon="@Icons.Material.Outlined.Refresh"
+                                       Class="clo-retry-btn">
+                                @(_retrying ? "Verifica in corso…" : "Riprova ora")
+                            </MudButton>
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+    </MudOverlay>
+}
+
+@code {
+    private bool _showOverlay = false;
+    private bool _restored = false;
+    private bool _retrying = false;
+
+    private bool _apiOk = true;
+    private bool _signalrOk = true;
+    private string? _statusMessage;
+    private DateTimeOffset? _disconnectedSince;
+
+    // Guard: don't show overlay until 5s after first problem detected
+    private DateTimeOffset? _problemDetectedAt;
+
+    private System.Threading.Timer? _elapsedTimer;
+    private System.Threading.Timer? _visibilityDelayTimer;
+    private System.Threading.Timer? _restoredHideTimer;
+
+    private string _topBarClass => _restored
+        ? "clo-topbar-green"
+        : ConnectionMonitor.Status == ConnectionStatus.Disconnected
+            ? "clo-topbar-red"
+            : "clo-topbar-orange";
+
+    private string _logoAnimClass => _restored
+        ? "clo-logo-pulse-green"
+        : "clo-logo-pulse-red";
+
+    protected override void OnInitialized()
+    {
+        ConnectionMonitor.StatusChanged += OnStatusChanged;
+        ConnectionMonitor.Start();
+    }
+
+    private void OnStatusChanged(ConnectionStatus newStatus)
+    {
+        InvokeAsync(() =>
+        {
+            SyncState(newStatus);
+            StateHasChanged();
+        });
+    }
+
+    private void SyncState(ConnectionStatus status)
+    {
+        _apiOk = ConnectionMonitor.IsApiReachable;
+        _signalrOk = ConnectionMonitor.IsSignalRConnected;
+        _statusMessage = ConnectionMonitor.StatusMessage;
+        _disconnectedSince = ConnectionMonitor.DisconnectedSince;
+
+        if (status == ConnectionStatus.Unknown)
+        {
+            // Don't show overlay while we haven't had a first successful check
+            _showOverlay = false;
+            _problemDetectedAt = null;
+            StopTimers();
+            return;
+        }
+
+        if (status == ConnectionStatus.Connected)
+        {
+            if (_showOverlay)
+            {
+                // Was showing: play "restored" state for 2s then hide
+                _restored = true;
+                _problemDetectedAt = null;
+                StopVisibilityDelayTimer();
+                StartRestoredHideTimer();
+            }
+            else
+            {
+                // Was not showing: just clear internal state
+                _restored = false;
+                _problemDetectedAt = null;
+                StopTimers();
+            }
+            return;
+        }
+
+        // Status is Degraded or Disconnected
+        _restored = false;
+        StopRestoredHideTimer();
+
+        if (_problemDetectedAt == null)
+        {
+            _problemDetectedAt = DateTimeOffset.UtcNow;
+            StartVisibilityDelayTimer();
+        }
+    }
+
+    private void StartVisibilityDelayTimer()
+    {
+        StopVisibilityDelayTimer();
+        _visibilityDelayTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                // After 5s delay, show overlay if still disconnected
+                var s = ConnectionMonitor.Status;
+                if (s == ConnectionStatus.Degraded || s == ConnectionStatus.Disconnected)
+                {
+                    _showOverlay = true;
+                    StartElapsedTimer();
+                    StateHasChanged();
+                }
+            });
+        }, null, TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
+    }
+
+    private void StartRestoredHideTimer()
+    {
+        StopRestoredHideTimer();
+        _restoredHideTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                _showOverlay = false;
+                _restored = false;
+                StopElapsedTimer();
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+    }
+
+    private void StartElapsedTimer()
+    {
+        StopElapsedTimer();
+        _elapsedTimer = new System.Threading.Timer(_ =>
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+    }
+
+    private void StopVisibilityDelayTimer()
+    {
+        _visibilityDelayTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _visibilityDelayTimer?.Dispose();
+        _visibilityDelayTimer = null;
+    }
+
+    private void StopRestoredHideTimer()
+    {
+        _restoredHideTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _restoredHideTimer?.Dispose();
+        _restoredHideTimer = null;
+    }
+
+    private void StopElapsedTimer()
+    {
+        _elapsedTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _elapsedTimer?.Dispose();
+        _elapsedTimer = null;
+    }
+
+    private void StopTimers()
+    {
+        StopElapsedTimer();
+        StopVisibilityDelayTimer();
+        StopRestoredHideTimer();
+    }
+
+    private async Task RetryNowAsync()
+    {
+        _retrying = true;
+        StateHasChanged();
+        await ConnectionMonitor.CheckNowAsync();
+        _retrying = false;
+        SyncState(ConnectionMonitor.Status);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        ConnectionMonitor.StatusChanged -= OnStatusChanged;
+        StopTimers();
+    }
+}
+
+<style>
+    /* ── Card container ── */
+    .clo-card {
+        background: rgba(18, 18, 32, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        min-width: 340px;
+        max-width: 540px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Color bar on top ── */
+    .clo-topbar {
+        height: 4px;
+        width: 100%;
+    }
+
+    .clo-topbar-red {
+        background: #ef5350;
+    }
+
+    .clo-topbar-orange {
+        background: #ff9800;
+    }
+
+    .clo-topbar-green {
+        background: #66bb6a;
+    }
+
+    /* ── Body: logo left + content right ── */
+    .clo-body {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 20px;
+        padding: 20px 24px 20px 20px;
+    }
+
+    /* ── Logo column ── */
+    .clo-logo-col {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .clo-logo {
+        display: block;
+        object-fit: contain;
+    }
+
+    .clo-logo-pulse-red {
+        animation: clo-pulse-red 1.8s infinite ease-in-out;
+    }
+
+    .clo-logo-pulse-green {
+        animation: clo-pulse-green 1.2s ease-in-out;
+    }
+
+    @@keyframes clo-pulse-red {
+        0%   { filter: drop-shadow(0 0 8px rgba(239, 83, 80, 0.3)); transform: scale(1); }
+        50%  { filter: drop-shadow(0 0 20px rgba(239, 83, 80, 0.7)); transform: scale(1.06); }
+        100% { filter: drop-shadow(0 0 8px rgba(239, 83, 80, 0.3)); transform: scale(1); }
+    }
+
+    @@keyframes clo-pulse-green {
+        0%   { filter: drop-shadow(0 0 8px rgba(102, 187, 106, 0.3)); transform: scale(1); }
+        50%  { filter: drop-shadow(0 0 24px rgba(102, 187, 106, 0.8)); transform: scale(1.08); }
+        100% { filter: drop-shadow(0 0 8px rgba(102, 187, 106, 0.3)); transform: scale(1); }
+    }
+
+    /* ── Content column ── */
+    .clo-content-col {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .clo-title {
+        color: white;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        line-height: 1.2;
+    }
+
+    .clo-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 2px 0;
+    }
+
+    /* ── Status rows ── */
+    .clo-status-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+    }
+
+    .clo-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .clo-dot-green {
+        background: #66bb6a;
+        box-shadow: 0 0 6px rgba(102, 187, 106, 0.7);
+    }
+
+    .clo-dot-red {
+        background: #ef5350;
+        box-shadow: 0 0 6px rgba(239, 83, 80, 0.7);
+    }
+
+    .clo-status-label {
+        color: rgba(255, 255, 255, 0.55);
+        min-width: 60px;
+    }
+
+    .clo-status-value {
+        font-weight: 600;
+    }
+
+    .clo-ok {
+        color: #66bb6a;
+    }
+
+    .clo-err {
+        color: #ef5350;
+    }
+
+    /* ── Message ── */
+    .clo-message {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    /* ── Restored message ── */
+    .clo-restored-msg {
+        color: #66bb6a;
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-top: 2px;
+    }
+
+    /* ── Elapsed ── */
+    .clo-elapsed {
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 0.72rem;
+        margin-top: 2px;
+    }
+
+    /* ── Retry row ── */
+    .clo-retry-row {
+        margin-top: 6px;
+    }
+
+    .clo-retry-btn {
+        font-size: 0.8rem !important;
+    }
+
+    /* ── Mobile: stack vertically ── */
+    @@media (max-width: 480px) {
+        .clo-card {
+            min-width: unset;
+            max-width: 92vw;
+            width: 92vw;
+        }
+
+        .clo-body {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .clo-status-row {
+            justify-content: center;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .clo-logo-pulse-red,
+        .clo-logo-pulse-green {
+            animation: none !important;
+        }
+    }
+</style>

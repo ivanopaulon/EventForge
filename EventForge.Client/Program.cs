@@ -88,6 +88,7 @@ builder.Services.AddScoped<IHttpClientService, HttpClientService>();
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISessionKeepaliveService, SessionKeepaliveService>();
+builder.Services.AddScoped<IConnectionMonitorService, ConnectionMonitorService>();
 builder.Services.AddScoped<IAuthenticationDialogService, AuthenticationDialogService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
