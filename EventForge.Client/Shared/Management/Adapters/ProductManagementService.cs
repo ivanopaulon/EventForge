@@ -12,7 +12,7 @@ public class ProductManagementService : IEntityManagementService<ProductDto>
         => _productService = productService;
 
     public async Task<PagedResult<ProductDto>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
-        => await _productService.GetProductsAsync(page, pageSize, string.Empty, ct) ?? new PagedResult<ProductDto>();
+        => await _productService.GetProductsAsync(page, pageSize, null, ct) ?? new PagedResult<ProductDto>();
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
         => await _productService.DeleteProductAsync(id, ct);
