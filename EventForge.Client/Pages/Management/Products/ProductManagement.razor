@@ -13,7 +13,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<ProductManagement> Logger
-@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingProducts"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -44,7 +43,6 @@
                  ExcelFileName="Prodotti"
                  IsDataFiltered="@HasActiveFilters()"
                  TotalItemsCount="@_products.Count"
-                 OnRowClick="@HandleRowClick"
                  Title="@TranslationService.GetTranslation("product.management", "Gestione Prodotti")"
                  ShowSearch="true"
                  SearchPlaceholder="@TranslationService.GetTranslation("product.search", "Cerca prodotti")"
@@ -318,22 +316,6 @@
     {
         _selectedProducts = items;
         StateHasChanged();
-    }
-
-    /// <summary>
-    /// Handles row click - navigates to product detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<ProductDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/product-management/products/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/product-management/products/{args.Item.Id}");
     }
 
     /// <summary>

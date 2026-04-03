@@ -13,7 +13,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentCounterManagement> Logger
-@inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")</PageTitle>
 
@@ -36,7 +35,6 @@
                      MultiSelection="true"
                      SelectedItems="_selectedCounters"
                      SelectedItemsChanged="_selectedCountersChangedCallback"
-                     OnRowClick="@HandleRowClick"
                      IsLoading="_isLoadingCounters"
                      ComponentKey="DocumentCounterManagement"
                      InitialColumnConfigurations="_initialColumns"
@@ -292,18 +290,6 @@
     }
 
     /// <summary>
-    /// Handles row click - navigates to counter detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<DocumentCounterDto> args)
-    {
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/documents/counters/{args.Item.Id}", "_blank");
-            return;
-        }
-        NavigationManager.NavigateTo($"/documents/counters/{args.Item.Id}");
-    }
-
     /// <summary>
     /// Component initialization.
     /// </summary>

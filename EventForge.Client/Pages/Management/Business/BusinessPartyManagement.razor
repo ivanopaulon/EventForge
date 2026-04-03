@@ -16,7 +16,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyManagement> Logger
-@inject IJSRuntime JSRuntime
 @inject IVatLookupService VatLookupService
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingBusinessParties"
@@ -48,7 +47,6 @@
                  ExcelFileName="AnagraficheAziendali"
                  IsDataFiltered="@HasActiveFilters()"
                  TotalItemsCount="@_allBusinessParties.Count"
-                 OnRowClick="@HandleRowClick"
                  Title="@GetPageTitle()"
                  ShowSearch="true"
                  SearchPlaceholder="@TranslationService.GetTranslation("businessparty.search", "Cerca")"
@@ -420,21 +418,6 @@
     }
 
     /// <summary>
-    /// Handles row click - navigates to business party detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<BusinessPartyDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/business/parties/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/business/parties/{args.Item.Id}");
-    }
-
     /// <summary>
     /// Component initialization.
     /// </summary>

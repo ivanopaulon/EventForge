@@ -11,7 +11,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<ClassificationNodeManagement> Logger
-@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingNodes"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -149,7 +148,6 @@
                                  ExcelFileName="Classificazioni"
                                  IsDataFiltered="@HasActiveFilters()"
                                  TotalItemsCount="@_nodes.Count"
-                                 OnRowClick="@HandleRowClick"
                                  Hover="true"
                                  Striped="true"
                                  Breakpoint="Breakpoint.Sm">
@@ -355,22 +353,6 @@
         _activeQuickFilter = filter;
         RecomputeFilteredNodes();
         StateHasChanged();
-    }
-
-    /// <summary>
-    /// Handles row click - navigates to classification node detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<ClassificationNodeDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/management/classification-nodes/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/management/classification-nodes/{args.Item.Id}");
     }
 
     /// <summary>

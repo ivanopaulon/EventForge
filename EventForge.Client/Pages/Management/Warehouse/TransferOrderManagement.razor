@@ -14,7 +14,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<TransferOrderManagement> Logger
-@inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("transferOrder.title", "Transfer Orders")</PageTitle>
 
@@ -38,7 +37,6 @@
                      MultiSelection="true"
                      SelectedItems="_selectedTransferOrders"
                      SelectedItemsChanged="_selectedItemsChangedCallback"
-                     OnRowClick="@HandleRowClick"
                      IsLoading="_isLoadingTransferOrders"
                      ComponentKey="TransferOrderManagement"
                      InitialColumnConfigurations="_initialColumns"
@@ -359,22 +357,6 @@
     {
         _selectedTransferOrders = items;
         StateHasChanged();
-    }
-
-    /// <summary>
-    /// Handles row click - navigates to transfer order detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<TransferOrderDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/warehouse/transfers/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        ViewDetails(args.Item.Id);
     }
 
     /// <summary>

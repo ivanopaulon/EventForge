@@ -14,7 +14,6 @@
 @inject ITranslationService TranslationService
 @inject ILogger<LotManagement> Logger
 @inject NavigationManager NavigationManager
-@inject IJSRuntime JSRuntime
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")</PageTitle>
 <PageLoadingOverlay Visible="_isLoading || _isLoadingLots"
@@ -37,7 +36,6 @@
                  MultiSelection="true"
                  SelectedItems="_selectedLots"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
-                 OnRowClick="@HandleRowClick"
                  IsLoading="_isLoadingLots"
                  ComponentKey="LotManagement"
                  InitialColumnConfigurations="_initialColumns"
@@ -373,22 +371,6 @@
     {
         _selectedLots = items;
         StateHasChanged();
-    }
-
-    /// <summary>
-    /// Handles row click - navigates to lot detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<LotDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/warehouse/lots/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/warehouse/lots/{args.Item.Id}");
     }
 
     /// <summary>

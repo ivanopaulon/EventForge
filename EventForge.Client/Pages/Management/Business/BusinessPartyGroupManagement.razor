@@ -13,7 +13,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyGroupManagement> Logger
-@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingGroups"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -81,7 +80,6 @@
                  MultiSelection="@(!_isReorderMode)"
                  SelectedItems="_selectedGroups"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
-                 OnRowClick="@HandleRowClick"
                  IsLoading="_isLoadingGroups"
                  ComponentKey="BusinessPartyGroupManagement"
                  InitialColumnConfigurations="_initialColumns"
@@ -442,19 +440,6 @@
     {
         _selectedGroups = items;
         StateHasChanged();
-    }
-
-    /// <summary>
-    /// Handles row click - navigates to group detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<BusinessPartyGroupDto> args)
-    {
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/business/groups/{args.Item.Id}", "_blank");
-            return;
-        }
-        NavigationManager.NavigateTo($"/business/groups/{args.Item.Id}");
     }
 
     /// <summary>

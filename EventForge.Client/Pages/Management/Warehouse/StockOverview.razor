@@ -17,7 +17,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<StockOverview> Logger
-@inject IJSRuntime JSRuntime
 @inject IStockReconciliationService StockReconciliationService
 @implements IDisposable
 
@@ -94,7 +93,6 @@
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true"
                  ShowInternalPager="false"
-                 OnRowClick="@HandleRowClick"
                  ShowExport="true"
                  ShowExportDialog="true"
                  ExcelFileName="GiacenzeMagazzino"
@@ -847,22 +845,6 @@
         
         _currentPage = 1; // Reset to first page
         await LoadStockOverviewAsync();
-    }
-
-    /// <summary>
-    /// Handles row click - navigates to product detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<StockLocationDetail> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/product-management/products/{args.Item.ProductId}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/product-management/products/{args.Item.ProductId}");
     }
 
     /// <summary>

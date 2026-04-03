@@ -39,7 +39,6 @@
                  MultiSelection="true"
                  SelectedItems="_selectedDocuments"
                  SelectedItemsChanged="_selectedDocumentsChangedCallback"
-                 OnRowClick="@HandleRowClick"
                  IsLoading="_isLoading"
                  ComponentKey="DocumentManagement"
                  InitialColumnConfigurations="_initialColumns"
@@ -367,21 +366,6 @@
     }
 
     /// <summary>
-    /// Handles row click - navigates to document detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<DocumentHeaderDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/documents/edit/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/documents/edit/{args.Item.Id}");
-    }
-
     /// <summary>
     /// Component initialization.
     /// </summary>
