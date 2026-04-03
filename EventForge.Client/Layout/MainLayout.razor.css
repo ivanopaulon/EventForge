@@ -63,6 +63,11 @@ main {
     }
 }
 
+/* Drawer aligns with the 48px AppBar */
+::deep .mud-drawer {
+    top: 48px !important;
+}
+
 /* Fixed color for menu toggle button in appbar */
 .menu-toggle-button {
     color: #F1F3F5 !important;

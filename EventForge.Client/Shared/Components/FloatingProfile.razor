@@ -14,7 +14,7 @@
     <!-- Floating Profile Button -->
     <div class="fp-fab">
         <MudFab Color="Color.Secondary"
-                Size="Size.Medium"
+                Size="Size.Small"
                 Icon="@Icons.Material.Filled.AccountCircle"
                 OnClick="ToggleDialog"
                 title="@TranslationService.GetTranslation("navigation.profile", "Profilo")"
@@ -167,15 +167,15 @@
 <style>
     .fp-fab {
         position: fixed;
-        bottom: 96px;
-        right: 24px;
+        bottom: 64px;
+        right: 16px;
         z-index: 1300;
     }
 
     .fp-dialog {
         position: fixed;
-        bottom: 156px;
-        right: 24px;
+        bottom: 112px;
+        right: 16px;
         width: 240px;
         z-index: 1300;
         border-radius: 12px;
@@ -189,12 +189,12 @@
 
     @@media (max-width: 420px) {
         .fp-fab {
-            bottom: 86px;
+            bottom: 64px;
             right: 16px;
         }
 
         .fp-dialog {
-            bottom: 146px;
+            bottom: 112px;
             right: 16px;
             width: calc(100vw - 32px);
         }
