@@ -7,7 +7,7 @@
 @implements IAsyncDisposable
 
 <!-- Floating Action Button – visible when panel is closed or minimised -->
-@if (!_isPanelOpen || _isMinimised)
+@if (!HideFab && (!_isPanelOpen || _isMinimised))
 {
     <div class="fc-fab">
         <MudBadge Content="@TotalUnread" Color="Color.Error" Overlap="true" Visible="@(TotalUnread > 0)" Max="99">
@@ -463,6 +463,8 @@
     private IJSObjectReference? _jsModule;
 
     // ─── State ───────────────────────────────────────────────────────────────
+    [Parameter] public bool HideFab { get; set; }
+
     private bool _isPanelOpen;
     private bool _isMinimised;
     private bool _isLoading;
@@ -483,7 +485,7 @@
     private CancellationTokenSource? _myTypingCts;
 
     // ─── Computed ─────────────────────────────────────────────────────────────
-    private int TotalUnread => _chats.Sum(c => c.UnreadCount);
+    public int TotalUnread => _chats.Sum(c => c.UnreadCount);
 
     private IEnumerable<ChatResponseDto> FilteredChats =>
         string.IsNullOrWhiteSpace(_searchQuery)
@@ -519,7 +521,7 @@
     }
 
     // ─── Panel lifecycle ──────────────────────────────────────────────────────
-    private async Task OpenPanel()
+    public async Task OpenPanel()
     {
         _isPanelOpen = true;
         _isMinimised = false;

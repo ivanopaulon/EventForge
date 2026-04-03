@@ -10,15 +10,18 @@
 
 @if (_isAuthenticated)
 {
-    <!-- Floating Profile Button -->
-    <div class="fp-fab">
-        <MudFab Color="Color.Secondary"
-                Size="Size.Small"
-                Icon="@Icons.Material.Filled.AccountCircle"
-                OnClick="ToggleDialog"
-                title="@TranslationService.GetTranslation("navigation.profile", "Profilo")"
-                aria-label="@TranslationService.GetTranslation("navigation.profile", "Profilo")" />
-    </div>
+    @if (!HideFab)
+    {
+        <!-- Floating Profile Button -->
+        <div class="fp-fab">
+            <MudFab Color="Color.Secondary"
+                    Size="Size.Small"
+                    Icon="@Icons.Material.Filled.AccountCircle"
+                    OnClick="ToggleDialog"
+                    title="@TranslationService.GetTranslation("navigation.profile", "Profilo")"
+                    aria-label="@TranslationService.GetTranslation("navigation.profile", "Profilo")" />
+        </div>
+    }
 
     @if (_isDialogOpen)
     {
@@ -55,6 +58,10 @@
 }
 
 @code {
+    [Parameter] public bool HideFab { get; set; }
+
+    public bool IsSuperAdmin => _currentUser?.Roles?.Contains("SuperAdmin") == true;
+
     private bool _isAuthenticated = false;
     private bool _isDialogOpen = false;
     private UserDto? _currentUser;
@@ -75,7 +82,7 @@
     private void OnAuthenticationStateChanged()
         => _ = InvokeAsync(CheckAuthenticationState);
 
-    private void ToggleDialog()
+    public void ToggleDialog()
     {
         _isDialogOpen = !_isDialogOpen;
     }
@@ -85,13 +92,13 @@
         _isDialogOpen = false;
     }
 
-    private void NavigateToProfile()
+    public void NavigateToProfile()
     {
         CloseDialog();
         NavigationManager.NavigateTo("/profile");
     }
 
-    private async Task OpenFontPreferences()
+    public async Task OpenFontPreferences()
     {
         CloseDialog();
         var options = new DialogOptions
@@ -105,13 +112,13 @@
             options);
     }
 
-    private void OpenAdminDashboard()
+    public void OpenAdminDashboard()
     {
         CloseDialog();
         NavigationManager.NavigateTo("/Dashboard/Index");
     }
 
-    private async Task HandleLogout()
+    public async Task HandleLogout()
     {
         CloseDialog();
         try

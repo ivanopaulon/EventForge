@@ -2,7 +2,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-@if (_visible)
+@if (_visible && !HideFab)
 {
     <div class="ef-scroll-to-top">
         <MudTooltip Text="Torna in cima" Placement="Placement.Left">
@@ -16,10 +16,15 @@
 }
 
 @code {
+    [Parameter] public bool HideFab { get; set; }
+
     /// <summary>
     /// Scroll offset in pixels before the button becomes visible. Default: 300.
     /// </summary>
     [Parameter] public int Threshold { get; set; } = 300;
+
+    /// <summary>Exposes scroll visibility for parent components.</summary>
+    public bool IsVisible => _visible;
 
     private bool _visible = false;
     private IJSObjectReference? _module;
@@ -46,7 +51,7 @@
         }
     }
 
-    private async Task ScrollToTopAsync()
+    public async Task ScrollToTopAsync()
     {
         if (_module is not null)
             await _module.InvokeVoidAsync("scrollToTop");

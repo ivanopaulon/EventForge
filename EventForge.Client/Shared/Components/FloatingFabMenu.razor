@@ -1,0 +1,321 @@
+@namespace EventForge.Client.Shared.Components
+@using EventForge.DTOs.Chat
+@inject IChatService ChatService
+@implements IDisposable
+
+<!-- Child components: their panels render normally, only their individual FABs are hidden -->
+<FloatingChat @ref="_chatRef" HideFab="true" />
+<FloatingProfile @ref="_profileRef" HideFab="true" />
+<HealthFooter @ref="_healthRef" HideFab="true" />
+<ScrollToTop @ref="_scrollRef" HideFab="true" />
+
+<!-- Speed Dial container -->
+<div class="ef-speed-dial @(_isOpen ? "ef-speed-dial--open" : "")">
+
+    <!-- Action items — stack upward from the trigger FAB -->
+    <div class="ef-speed-dial-actions">
+
+        <!-- Scroll to top (topmost action) -->
+        <div class="ef-speed-dial-action">
+            <MudTooltip Text="Torna in cima" Placement="Placement.Left">
+                <MudFab Color="Color.Primary"
+                        StartIcon="@Icons.Material.Filled.KeyboardArrowUp"
+                        Size="Size.Small"
+                        OnClick="OnScrollToTopClick"
+                        aria-label="Torna in cima alla pagina" />
+            </MudTooltip>
+        </div>
+
+        <!-- Chat with unread badge -->
+        <div class="ef-speed-dial-action">
+            <MudTooltip Text="Chat" Placement="Placement.Left">
+                <MudBadge Content="@(_chatRef?.TotalUnread ?? 0)"
+                          Color="Color.Error"
+                          Overlap="true"
+                          Visible="@((_chatRef?.TotalUnread ?? 0) > 0)"
+                          Max="99">
+                    <MudFab Color="Color.Primary"
+                            StartIcon="@Icons.Material.Filled.Chat"
+                            Size="Size.Small"
+                            OnClick="OnChatClick"
+                            aria-label="Apri chat" />
+                </MudBadge>
+            </MudTooltip>
+        </div>
+
+        <!-- Health status (bottommost in the 3-item stack, nearest to profile row) -->
+        <div class="ef-speed-dial-action">
+            <MudTooltip Text="Stato sistema" Placement="Placement.Left">
+                <MudFab Color="@(_healthRef?.GetOverallHealthFabColor() ?? Color.Default)"
+                        StartIcon="@Icons.Material.Filled.Monitor"
+                        Size="Size.Small"
+                        OnClick="OnHealthClick"
+                        aria-label="Stato salute sistema" />
+            </MudTooltip>
+        </div>
+
+    </div>
+
+    <!-- Profile row: outside the overflow:hidden container so the sub-menu can expand left freely -->
+    <div class="ef-profile-row @(_isOpen ? "ef-profile-row--open" : "")">
+
+        <!-- Horizontal sub-menu — expands to the left of the profile FAB -->
+        <div class="ef-profile-submenu @(_profileMenuOpen ? "ef-profile-submenu--open" : "")">
+
+            <!-- Logout (far-left — most destructive action, kept farthest) -->
+            <div class="ef-profile-submenu-item">
+                <MudTooltip Text="Logout" Placement="Placement.Top">
+                    <MudFab Color="Color.Error"
+                            StartIcon="@Icons.Material.Filled.Logout"
+                            Size="Size.Small"
+                            OnClick="OnLogoutClick"
+                            aria-label="Logout" />
+                </MudTooltip>
+            </div>
+
+            @if (_profileRef?.IsSuperAdmin == true)
+            {
+                <div class="ef-profile-submenu-item">
+                    <MudTooltip Text="Admin Dashboard" Placement="Placement.Top">
+                        <MudFab Color="Color.Warning"
+                                StartIcon="@Icons.Material.Outlined.AdminPanelSettings"
+                                Size="Size.Small"
+                                OnClick="OnAdminDashboardClick"
+                                aria-label="Admin Dashboard" />
+                    </MudTooltip>
+                </div>
+            }
+
+            <!-- Font Preferences -->
+            <div class="ef-profile-submenu-item">
+                <MudTooltip Text="Preferenze Font" Placement="Placement.Top">
+                    <MudFab Color="Color.Default"
+                            StartIcon="@Icons.Material.Filled.FontDownload"
+                            Size="Size.Small"
+                            OnClick="OnFontPreferencesClick"
+                            aria-label="Preferenze Font" />
+                </MudTooltip>
+            </div>
+
+            <!-- Navigate to Profile (rightmost — closest to the trigger, most frequent action) -->
+            <div class="ef-profile-submenu-item">
+                <MudTooltip Text="Vai al Profilo" Placement="Placement.Top">
+                    <MudFab Color="Color.Secondary"
+                            StartIcon="@Icons.Material.Filled.Person"
+                            Size="Size.Small"
+                            OnClick="OnNavigateToProfileClick"
+                            aria-label="Vai al profilo" />
+                </MudTooltip>
+            </div>
+
+        </div>
+
+        <!-- Profile trigger button -->
+        <MudTooltip Text="Profilo" Placement="Placement.Left">
+            <MudFab Color="Color.Secondary"
+                    StartIcon="@(_profileMenuOpen ? Icons.Material.Filled.Close : Icons.Material.Filled.AccountCircle)"
+                    Size="Size.Small"
+                    OnClick="ToggleProfileMenu"
+                    aria-label="Profilo utente" />
+        </MudTooltip>
+
+    </div>
+
+    <!-- Main trigger FAB -->
+    <MudFab Color="Color.Primary"
+            StartIcon="@(_isOpen ? Icons.Material.Filled.Close : Icons.Material.Filled.Apps)"
+            Size="Size.Medium"
+            OnClick="ToggleMenu"
+            aria-label="Menu azioni rapide"
+            aria-expanded="@_isOpen" />
+
+</div>
+
+@code {
+    private bool _isOpen = false;
+    private bool _profileMenuOpen = false;
+    private FloatingChat? _chatRef;
+    private FloatingProfile? _profileRef;
+    private HealthFooter? _healthRef;
+    private ScrollToTop? _scrollRef;
+
+    protected override void OnInitialized()
+    {
+        ChatService.MessageReceived += OnChatMessageReceived;
+        ChatService.ChatCreated += OnChatCreated;
+    }
+
+    private void OnChatMessageReceived(ChatMessageDto _)
+        => InvokeAsync(StateHasChanged);
+
+    private void OnChatCreated(ChatResponseDto _)
+        => InvokeAsync(StateHasChanged);
+
+    private void ToggleMenu()
+    {
+        _isOpen = !_isOpen;
+        if (!_isOpen) _profileMenuOpen = false;
+    }
+
+    private void ToggleProfileMenu() => _profileMenuOpen = !_profileMenuOpen;
+
+    private async Task OnChatClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        if (_chatRef != null)
+            await _chatRef.OpenPanel();
+    }
+
+    private async Task OnHealthClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        if (_healthRef != null)
+            await _healthRef.OpenHealthDialog();
+    }
+
+    private async Task OnScrollToTopClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        if (_scrollRef != null)
+            await _scrollRef.ScrollToTopAsync();
+    }
+
+    private void OnNavigateToProfileClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        _profileRef?.NavigateToProfile();
+    }
+
+    private async Task OnFontPreferencesClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        if (_profileRef != null)
+            await _profileRef.OpenFontPreferences();
+    }
+
+    private void OnAdminDashboardClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        _profileRef?.OpenAdminDashboard();
+    }
+
+    private async Task OnLogoutClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        if (_profileRef != null)
+            await _profileRef.HandleLogout();
+    }
+
+    public void Dispose()
+    {
+        ChatService.MessageReceived -= OnChatMessageReceived;
+        ChatService.ChatCreated -= OnChatCreated;
+    }
+}
+
+<style>
+    /* ── Main speed-dial container ──────────────────────────────────────── */
+    .ef-speed-dial {
+        position: fixed;
+        bottom: 16px;
+        right: 16px;
+        z-index: 1300;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    /* ── Standard vertical action stack (3 items: ScrollTop, Chat, Health) ─ */
+    .ef-speed-dial-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: max-height 0.35s ease, opacity 0.25s ease;
+    }
+
+    .ef-speed-dial--open .ef-speed-dial-actions {
+        max-height: 240px;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .ef-speed-dial-action {
+        transform: translateY(12px) scale(0.85);
+        opacity: 0;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .ef-speed-dial--open .ef-speed-dial-action {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    /* Stagger: Health (3rd, nearest) first, then Chat, then ScrollTop */
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(3) { transition-delay: 0s; }
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(2) { transition-delay: 0.06s; }
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(1) { transition-delay: 0.12s; }
+
+    /* ── Profile row: outside overflow:hidden — sub-menu can expand left ── */
+    .ef-profile-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        height: 0;
+        overflow: visible;
+        opacity: 0;
+        pointer-events: none;
+        transition: height 0.2s ease, opacity 0.2s ease;
+    }
+
+    .ef-profile-row--open {
+        height: 40px;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* ── Horizontal profile sub-menu (expands left) ─────────────────────── */
+    .ef-profile-submenu {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        overflow: hidden;
+        max-width: 0;
+        opacity: 0;
+        pointer-events: none;
+        white-space: nowrap;
+        transition: max-width 0.3s ease, opacity 0.2s ease;
+    }
+
+    .ef-profile-submenu--open {
+        max-width: 280px;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .ef-profile-submenu-item {
+        flex-shrink: 0;
+    }
+
+    @@media (max-width: 420px) {
+        .ef-speed-dial {
+            bottom: 16px;
+            right: 16px;
+        }
+    }
+</style>

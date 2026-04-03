@@ -24,16 +24,21 @@
 -->
 
 <!-- Floating Health Status Button -->
-<div class="hf-fab">
-    <MudFab Color="@GetOverallHealthFabColor()" 
-            StartIcon="@Icons.Material.Filled.Monitor" 
-            Size="Size.Small"
-            OnClick="OpenHealthDialog"
-            title="@GetHealthStatusTitle()"
-            aria-label="@TranslationService.GetTranslation("health.openDialog", "View health status")" />
-</div>
+@if (!HideFab)
+{
+    <div class="hf-fab">
+        <MudFab Color="@GetOverallHealthFabColor()" 
+                StartIcon="@Icons.Material.Filled.Monitor" 
+                Size="Size.Small"
+                OnClick="OpenHealthDialog"
+                title="@GetHealthStatusTitle()"
+                aria-label="@TranslationService.GetTranslation("health.openDialog", "View health status")" />
+    </div>
+}
 
 @code {
+    [Parameter] public bool HideFab { get; set; }
+
     private DetailedHealthStatusDto? _healthData;
     private DateTime? _lastUpdated;
     private Timer? _refreshTimer;
@@ -84,7 +89,7 @@
         }
     }
 
-    private async Task OpenHealthDialog()
+    public async Task OpenHealthDialog()
     {
         if (_healthData == null)
         {
@@ -174,7 +179,7 @@
         };
     }
 
-    private Color GetOverallHealthFabColor()
+    public Color GetOverallHealthFabColor()
     {
         if (_healthData == null) return Color.Default;
 
