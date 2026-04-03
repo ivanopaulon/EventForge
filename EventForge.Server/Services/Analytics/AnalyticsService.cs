@@ -279,16 +279,6 @@ public class AnalyticsService : IAnalyticsService
             var dateTo = (filter.DateTo ?? now).Date.AddDays(1).AddTicks(-1);
 
             // Sales trend from DocumentHeaders (exclude cancelled)
-            // Debug: count documents in range before filters
-            var totalDocsInRange = await _context.DocumentHeaders
-                .Where(h => !h.IsDeleted
-                    && h.TenantId == tenantId.Value
-                    && h.Date >= dateFrom
-                    && h.Date <= dateTo)
-                .CountAsync(ct);
-            _logger.LogDebug("Sales analytics: {TotalDocsInRange} documents found in range [{DateFrom}, {DateTo}] for tenant {TenantId} before status filter",
-                totalDocsInRange, dateFrom, dateTo, tenantId.Value);
-
             var headersRaw = await _context.DocumentHeaders
                 .Where(h => !h.IsDeleted
                     && h.TenantId == tenantId.Value
@@ -302,8 +292,14 @@ public class AnalyticsService : IAnalyticsService
                 })
                 .ToListAsync(ct);
 
-            _logger.LogDebug("Sales analytics: {HeadersCount} non-cancelled documents, total TotalNetAmount={TotalAmount}",
-                headersRaw.Count, headersRaw.Sum(h => h.Amount));
+            // Debug: log before-filter count only when debug logging is enabled to avoid extra DB round-trip in production
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                var totalDocsInRange = await _context.DocumentHeaders
+                    .CountAsync(h => !h.IsDeleted && h.TenantId == tenantId.Value && h.Date >= dateFrom && h.Date <= dateTo, ct);
+                _logger.LogDebug("Sales analytics: {TotalDocsInRange} documents in range [{DateFrom}, {DateTo}] (pre-filter); {HeadersCount} non-cancelled; TotalNetAmount={TotalAmount}",
+                    totalDocsInRange, dateFrom, dateTo, headersRaw.Count, headersRaw.Sum(h => h.Amount));
+            }
 
             if (!headersRaw.Any())
             {
