@@ -105,6 +105,12 @@
             ShowToggleStatus = false,
             GetDisplayName = n => n.Name,
             GetId = n => n.Id,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Finanziario", null, disabled: true),
+                new BreadcrumbItem("Nature IVA", null, disabled: true)
+            },
             Columns = new()
             {
                 new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },

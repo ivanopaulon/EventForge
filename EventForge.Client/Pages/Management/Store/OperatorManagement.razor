@@ -143,6 +143,12 @@
             DeleteConfirmMessageKey = "store.confirmDeleteOperator",
             BulkDeleteConfirmMessageKey = "store.confirmDeleteMultipleOperators",
             DeleteSuccessMessageKey = "store.operatorDeleted",
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Store", null, disabled: true),
+                new BreadcrumbItem("Operatori", null, disabled: true)
+            },
             Columns = new()
             {
                 new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },

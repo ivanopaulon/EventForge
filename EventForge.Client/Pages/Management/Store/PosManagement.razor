@@ -119,6 +119,12 @@
             DeleteConfirmMessageKey = "store.confirmDeletePos",
             BulkDeleteConfirmMessageKey = "store.confirmDeleteMultiplePos",
             DeleteSuccessMessageKey = "store.posDeleted",
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Store", null, disabled: true),
+                new BreadcrumbItem("Punti Cassa", null, disabled: true)
+            },
             Columns = new()
             {
                 new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },

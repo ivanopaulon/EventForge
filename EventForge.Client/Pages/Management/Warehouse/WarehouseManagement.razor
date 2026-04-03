@@ -142,6 +142,12 @@
             GetIsActive = f => f.IsActive,
             DeleteConfirmMessageKey = "warehouse.confirmFacilityDelete",
             DeleteSuccessMessageKey = "warehouse.facilityDeleted",
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Magazzino", null, disabled: true),
+                new BreadcrumbItem("Magazzini", null, disabled: true)
+            },
             Columns = new()
             {
                 new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
