@@ -3,71 +3,91 @@
 
 @if (Visible)
 {
-    <MudOverlay Visible="@Visible" DarkBackground="true" AutoClose="false" Style="backdrop-filter: blur(4px);">
-        <MudStack AlignItems="AlignItems.Center" Spacing="2" Style="min-width: 340px; max-width: 500px; padding: 16px;">
+    <MudOverlay Visible="@Visible" DarkBackground="true" AutoClose="false"
+                Style="backdrop-filter: blur(3px);">
 
-            <MudImage Src="@IconPath" Width="@Size" Height="@Size" Class="@AnimationClass"
-                      Style="filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5));" />
+        <div class="plo-card">
 
-            <MudText Typo="Typo.h4" Style="color:white; font-weight:800; letter-spacing:1px; text-shadow: 0 2px 8px rgba(0,0,0,0.4);">
-                EventForge
-            </MudText>
+            @* Progress bar on top of the card *@
+            <div class="plo-progress">
+                <MudProgressLinear Color="@ProgressColor"
+                                   Indeterminate="@(ProgressValue == null)"
+                                   Value="@(ProgressValue ?? 0)"
+                                   Max="100"
+                                   Style="height:3px; border-radius: 4px 4px 0 0; margin:0;" />
+            </div>
 
-            @if (!string.IsNullOrEmpty(Message))
-            {
-                <MudText Typo="Typo.subtitle1" Style="color:rgba(255,255,255,0.85); font-weight:500; text-align:center;">
-                    @Message
-                </MudText>
-            }
+            <div class="plo-body">
 
-            @if (ShowProgressLog || ShowElapsedTime)
-            {
-                <MudDivider Style="border-color: rgba(255,255,255,0.15); width: 100%; margin: 4px 0;" />
-            }
-
-            @if (ShowProgressLog && _progressLog.Count > 0)
-            {
-                <div style="width:100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 12px 16px;">
-                    <MudStack Spacing="1">
-                        @for (var i = 0; i < _progressLog.Count; i++)
-                        {
-                            var logMsg = _progressLog[i];
-                            var isFirst = i == 0;
-                            var opacity = isFirst ? "1.0" : i == 1 ? "0.55" : "0.28";
-                            <div class="plo-log-row @(isFirst ? "plo-log-active" : "")" style="opacity:@opacity; transition: opacity 0.4s ease;">
-                                <div style="width:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                                    @if (isFirst)
-                                    {
-                                        <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="Color.Primary" Style="width:16px; height:16px;" />
-                                    }
-                                    else
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="MudBlazor.Size.Small" Style="color: #66bb6a; font-size: 16px;" />
-                                    }
-                                </div>
-                                <MudText Typo="Typo.body2"
-                                         Style="@(isFirst ? "color:white; font-weight:600;" : "color:rgba(255,255,255,0.75);")">
-                                    @logMsg
-                                </MudText>
-                            </div>
-                        }
-                    </MudStack>
+                @* Left: logo *@
+                <div class="plo-logo-col">
+                    <img src="@IconPath"
+                         width="@Size"
+                         height="@Size"
+                         class="plo-logo @AnimationClass"
+                         alt="EventForge logo" />
                 </div>
-            }
 
-            @if (ShowElapsedTime)
-            {
-                var elapsed = (int)(DateTimeOffset.UtcNow - _startTime).TotalSeconds;
-                <MudText Typo="Typo.caption" Style="color:rgba(255,255,255,0.5); font-size: 0.72rem; margin-top: 2px;">
-                    ⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")
-                </MudText>
-            }
+                @* Right: title + message + log *@
+                <div class="plo-content-col">
 
-        </MudStack>
+                    <div class="plo-title">EventForge</div>
+                    <div class="plo-divider"></div>
+
+                    @if (!string.IsNullOrEmpty(Message))
+                    {
+                        <div class="plo-message">@Message</div>
+                    }
+
+                    @if (ShowProgressLog && _progressLog.Count > 0)
+                    {
+                        <div class="plo-log">
+                            @for (var i = 0; i < _progressLog.Count; i++)
+                            {
+                                var logMsg = _progressLog[i];
+                                var isFirst = i == 0;
+                                var opacity = isFirst ? "1.0" : i == 1 ? "0.5" : "0.25";
+                                <div class="plo-log-row @(isFirst ? "plo-log-active" : "")"
+                                     style="opacity:@opacity">
+                                    <span class="plo-log-icon">
+                                        @if (isFirst)
+                                        {
+                                            <MudProgressCircular Size="MudBlazor.Size.Small"
+                                                                 Indeterminate="true"
+                                                                 Color="Color.Primary"
+                                                                 Style="width:14px;height:14px;" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline"
+                                                     Size="MudBlazor.Size.Small"
+                                                     Style="color:#66bb6a;font-size:14px;" />
+                                        }
+                                    </span>
+                                    <span class="plo-log-text @(isFirst ? "plo-log-text-active" : "")">
+                                        @logMsg
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (ShowElapsedTime)
+                    {
+                        var elapsed = (int)(DateTimeOffset.UtcNow - _startTime).TotalSeconds;
+                        <div class="plo-elapsed">
+                            ⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
     </MudOverlay>
 }
 
 @code {
+    // ── Parametri backward-compatible ──
     [Parameter] public bool Visible { get; set; }
 
     [Parameter]
@@ -81,10 +101,17 @@
     [Parameter] public string IconPath { get; set; } = "trace.svg";
     [Parameter] public int Size { get; set; } = 96;
     [Parameter] public LoadingAnimationType Animation { get; set; } = LoadingAnimationType.Pulse;
+
+    // ── Parametri progress log ──
     [Parameter] public bool ShowProgressLog { get; set; } = false;
     [Parameter] public IReadOnlyList<string>? ProgressMessages { get; set; }
     [Parameter] public bool ShowElapsedTime { get; set; } = false;
     [Parameter] public int ProgressIntervalMs { get; set; } = 2500;
+
+    // ── Nuovi parametri: barra lineare ──
+    /// <summary>null = indeterminate; 0–100 = determinate</summary>
+    [Parameter] public double? ProgressValue { get; set; } = null;
+    [Parameter] public Color ProgressColor { get; set; } = Color.Primary;
 
     public enum LoadingAnimationType { Blink, Pulse, None }
 
@@ -139,6 +166,7 @@
         {
             while (!ct.IsCancellationRequested)
             {
+                // Insert first, then delay — so first message is immediate
                 var msg = ProgressMessages[msgIndex % ProgressMessages.Count];
                 _progressLog.Insert(0, msg);
                 if (_progressLog.Count > 3) _progressLog.RemoveAt(3);
@@ -184,27 +212,138 @@
 }
 
 <style>
+    /* ── Card container ── */
+    .plo-card {
+        background: rgba(18, 18, 32, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        min-width: 340px;
+        max-width: 540px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Progress bar strip on top ── */
+    .plo-progress {
+        line-height: 0;
+        font-size: 0;
+    }
+
+    /* ── Body: logo left + content right ── */
+    .plo-body {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 20px;
+        padding: 20px 24px 20px 20px;
+    }
+
+    /* ── Logo column ── */
+    .plo-logo-col {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .plo-logo {
+        display: block;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+    }
+
+    /* ── Content column ── */
+    .plo-content-col {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .plo-title {
+        color: white;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        line-height: 1.2;
+    }
+
+    .plo-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 2px 0;
+    }
+
+    .plo-message {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    /* ── Log panel ── */
+    .plo-log {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-top: 4px;
+    }
+
     .plo-log-row {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 3px 0;
+        gap: 8px;
         transition: opacity 0.4s ease;
     }
 
     .plo-log-active {
-        border-left: 2px solid rgba(100, 160, 255, 0.7);
-        padding-left: 8px;
+        border-left: 2px solid rgba(100, 160, 255, 0.75);
+        padding-left: 6px;
         margin-left: -8px;
     }
 
+    .plo-log-icon {
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .plo-log-text {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .plo-log-text-active {
+        color: white;
+        font-weight: 600;
+    }
+
+    /* ── Elapsed ── */
+    .plo-elapsed {
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 0.72rem;
+        margin-top: 4px;
+    }
+
+    /* ── Animations ── */
     .anim-blink {
         animation: plo-blink 1.2s infinite ease-in-out;
     }
 
     @@keyframes plo-blink {
         0%, 100% { opacity: 1;    transform: scale(1);    }
-        50%       { opacity: 0.15; transform: scale(0.98); }
+        50%       { opacity: 0.15; transform: scale(0.97); }
     }
 
     .anim-pulse {
@@ -212,9 +351,32 @@
     }
 
     @@keyframes plo-pulse {
-        0%   { transform: scale(1);    opacity: 1;    filter: drop-shadow(0 0 12px rgba(100,160,255,0.35)); }
-        50%  { transform: scale(1.07); opacity: 0.88; filter: drop-shadow(0 0 20px rgba(100,160,255,0.55)); }
-        100% { transform: scale(1);    opacity: 1;    filter: drop-shadow(0 0 12px rgba(100,160,255,0.35)); }
+        0%   { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100,160,255,0.3)); }
+        50%  { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(100,160,255,0.6)); }
+        100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100,160,255,0.3)); }
+    }
+
+    /* ── Mobile: stack vertically ── */
+    @@media (max-width: 480px) {
+        .plo-card {
+            min-width: unset;
+            max-width: 92vw;
+            width: 92vw;
+        }
+
+        .plo-body {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .plo-log-active {
+            border-left: none;
+            padding-left: 0;
+            margin-left: 0;
+        }
     }
 
     @@media (prefers-reduced-motion: reduce) {
