@@ -22,7 +22,13 @@
     </TitleContent>
     <DialogContent>
         <div class="ef-dialog-content">
-            <PageLoadingOverlay Visible="_isLoading" Message="@_loadingMessage" />
+            <PageLoadingOverlay Visible="_isLoading"
+                                Message="@_loadingMessage"
+                                ShowProgressLog="true"
+                                ProgressMessages="@_importProgressMessages"
+                                ShowElapsedTime="true"
+                                ProgressValue="@_importProgressValue"
+                                ProgressIntervalMs="2000" />
 
             <MudStack Spacing="3">
                 
@@ -296,6 +302,15 @@
 
     private bool _isLoading;
     private string _loadingMessage = "";
+    private double? _importProgressValue = null;
+
+    private static readonly IReadOnlyList<string> _importProgressMessages = new[]
+    {
+        "Lettura file...",
+        "Analisi struttura...",
+        "Validazione dati...",
+        "Preparazione anteprima..."
+    };
 
     private IBrowserFile? _selectedFile;
     private List<CreatePriceListEntryDto>? _parsedEntries;
