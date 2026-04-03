@@ -11,6 +11,6 @@ public interface IAuthenticationDialogService
     /// </summary>
     Task<bool> ShowLoginDialogAsync();
 
-    // Internal event used by LoginOverlay to know when to show itself
+    // Event used by LoginOverlay to receive login requests; subscribe in overlay components only
     event Func<TaskCompletionSource<bool>, Task>? LoginRequested;
 }

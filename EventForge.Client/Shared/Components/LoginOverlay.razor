@@ -133,6 +133,7 @@
     private string _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
     private TaskCompletionSource<bool>? _currentTcs;
     private string _statusBarColor = "var(--mud-palette-primary)";
+    private const string SuccessStatusColor = "#66bb6a";
 
     private static readonly IReadOnlyList<string> _tenantLoadMessages = new[]
     {
@@ -213,7 +214,7 @@
                 }
                 else
                 {
-                    _statusBarColor = "#66bb6a"; // green
+                    _statusBarColor = SuccessStatusColor; // green
                     CloseOverlay(true);
                 }
             }
@@ -258,7 +259,7 @@
     {
         if (_changePasswordIsMandatory)
         {
-            _statusBarColor = "#66bb6a";
+            _statusBarColor = SuccessStatusColor;
             CloseOverlay(true);
         }
         else
