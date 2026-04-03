@@ -13,8 +13,14 @@
     <MudOverlay Visible="_isVisible" DarkBackground="true" AutoClose="false"
                 Style="backdrop-filter: blur(3px);">
         <div class="lov-card">
-            <!-- Status bar on top: color changes based on state -->
-            <div class="lov-status-bar" style="background: @_statusBarColor;"></div>
+            <!-- Progress bar on top: indeterminate during loading/login, matches PageLoadingOverlay style -->
+            <div class="lov-progress">
+                <MudProgressLinear Color="@_progressColor"
+                                   Indeterminate="@_progressIndeterminate"
+                                   Value="@_progressValue"
+                                   Max="100"
+                                   Style="height:3px; border-radius: 4px 4px 0 0; margin:0;" />
+            </div>
 
             <div class="lov-body">
                 <!-- Left: logo with pulse animation -->
@@ -27,6 +33,10 @@
                 <div class="lov-content-col">
                     <div class="lov-title">EventForge</div>
                     <div class="lov-divider"></div>
+                    @if (!string.IsNullOrEmpty(_subtitle))
+                    {
+                        <div class="lov-message">@_subtitle</div>
+                    }
 
                     @if (_isLoadingTenants)
                     {
@@ -132,8 +142,11 @@
     private InputType _passwordInputType = InputType.Password;
     private string _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
     private TaskCompletionSource<bool>? _currentTcs;
-    private string _statusBarColor = "var(--mud-palette-primary)";
-    private const string SuccessStatusColor = "#66bb6a";
+    private const string SubtitleLoginError = "Credenziali non valide. Riprova.";
+    private Color _progressColor = Color.Primary;
+    private bool _progressIndeterminate = false;
+    private double _progressValue = 0;
+    private string _subtitle = "Accedi al sistema";
 
     private static readonly IReadOnlyList<string> _tenantLoadMessages = new[]
     {
@@ -151,7 +164,10 @@
     {
         _currentTcs = tcs;
         _isVisible = true;
-        _statusBarColor = "var(--mud-palette-primary)";
+        _progressColor = Color.Primary;
+        _progressIndeterminate = false;
+        _progressValue = 0;
+        _subtitle = "Accedi al sistema";
         await InvokeAsync(StateHasChanged);
         await LoadTenantsAsync();
     }
@@ -159,6 +175,7 @@
     private async Task LoadTenantsAsync()
     {
         _isLoadingTenants = true;
+        _subtitle = "Connessione al server...";
         await InvokeAsync(StateHasChanged);
         try
         {
@@ -177,6 +194,7 @@
         finally
         {
             _isLoadingTenants = false;
+            _subtitle = "Accedi al sistema";
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -196,7 +214,9 @@
 
         _loginRequest.TenantCode = _selectedTenantId;
         _isLoading = true;
-        _statusBarColor = "var(--mud-palette-primary)";
+        _progressColor = Color.Primary;
+        _progressIndeterminate = true;
+        _subtitle = "Autenticazione in corso...";
         await InvokeAsync(StateHasChanged);
 
         try
@@ -214,13 +234,18 @@
                 }
                 else
                 {
-                    _statusBarColor = SuccessStatusColor; // green
+                    _progressIndeterminate = false;
+                    _progressValue = 100;
+                    _progressColor = Color.Success;
                     CloseOverlay(true);
                 }
             }
             else
             {
-                _statusBarColor = "var(--mud-palette-error)";
+                _progressIndeterminate = false;
+                _progressValue = 100;
+                _progressColor = Color.Error;
+                _subtitle = SubtitleLoginError;
                 Snackbar.Add(
                     TranslationService.GetTranslation("auth.loginFailed", "Login fallito. Verifica le credenziali."),
                     Severity.Error);
@@ -228,7 +253,10 @@
         }
         catch (Exception ex)
         {
-            _statusBarColor = "var(--mud-palette-error)";
+            _progressIndeterminate = false;
+            _progressValue = 100;
+            _progressColor = Color.Error;
+            _subtitle = SubtitleLoginError;
             Snackbar.Add(
                 TranslationService.GetTranslation("auth.loginError", "Errore durante il login: {0}", ex.Message),
                 Severity.Error);
@@ -245,6 +273,10 @@
         _isChangePasswordMode = true;
         _changePasswordIsMandatory = true;
         _isLoading = false;
+        _progressIndeterminate = false;
+        _progressValue = 0;
+        _progressColor = Color.Primary;
+        _subtitle = "Cambio password richiesto";
         InvokeAsync(StateHasChanged);
     }
 
@@ -252,6 +284,7 @@
     {
         _isChangePasswordMode = true;
         _changePasswordIsMandatory = false;
+        _subtitle = "Cambio password richiesto";
         InvokeAsync(StateHasChanged);
     }
 
@@ -259,12 +292,15 @@
     {
         if (_changePasswordIsMandatory)
         {
-            _statusBarColor = SuccessStatusColor;
+            _progressIndeterminate = false;
+            _progressValue = 100;
+            _progressColor = Color.Success;
             CloseOverlay(true);
         }
         else
         {
             _isChangePasswordMode = false;
+            _subtitle = "Accedi al sistema";
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -344,9 +380,9 @@
         flex-direction: column;
     }
 
-    .lov-status-bar {
-        height: 3px;
-        transition: background 0.4s ease;
+    .lov-progress {
+        line-height: 0;
+        font-size: 0;
     }
 
     .lov-body {
@@ -394,19 +430,77 @@
         margin: 2px 0 8px 0;
     }
 
-    /* MudBlazor overrides inside overlay for dark background */
+    .lov-message {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    /* Force white/light text for all MudBlazor inputs inside the overlay */
     .lov-content-col .mud-input-label,
-    .lov-content-col .mud-input-outlined label {
-        color: rgba(255, 255, 255, 0.7) !important;
+    .lov-content-col .mud-input-outlined .mud-input-label {
+        color: rgba(255, 255, 255, 0.75) !important;
     }
 
-    .lov-content-col .mud-input-outlined .mud-input-outlined-border {
-        border-color: rgba(255, 255, 255, 0.3) !important;
-    }
-
-    .lov-content-col .mud-input-outlined input,
-    .lov-content-col .mud-input-outlined textarea {
+    .lov-content-col .mud-input input,
+    .lov-content-col .mud-input textarea {
         color: white !important;
+        caret-color: white !important;
+    }
+
+    .lov-content-col fieldset.mud-input-outlined-border,
+    .lov-content-col .mud-input-outlined fieldset {
+        border-color: rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .lov-content-col .mud-input-outlined:hover fieldset {
+        border-color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    .lov-content-col .mud-input-outlined.mud-input-focused fieldset,
+    .lov-content-col .mud-input-outlined:focus-within fieldset {
+        border-color: rgba(100, 160, 255, 0.9) !important;
+        border-width: 2px !important;
+    }
+
+    /* Checkbox label */
+    .lov-content-col .mud-checkbox .mud-button-label {
+        color: rgba(255, 255, 255, 0.75) !important;
+    }
+
+    /* Password visibility toggle icon */
+    .lov-content-col .mud-input-adornment .mud-icon-root,
+    .lov-content-col .mud-input-adornment button {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    /* MudSelect dropdown text */
+    .lov-content-col .mud-select-input,
+    .lov-content-col .mud-input-slot {
+        color: white !important;
+    }
+
+    /* MudAlert inside overlay */
+    .lov-content-col .mud-alert {
+        background-color: rgba(255, 152, 0, 0.15) !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+        border: 1px solid rgba(255, 152, 0, 0.4) !important;
+    }
+
+    /* Button styling for dark background */
+    .lov-content-col .mud-button-outlined {
+        border-color: rgba(255, 255, 255, 0.4) !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    .lov-content-col .mud-button-text {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    .lov-content-col .mud-button-text:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(255, 255, 255, 0.85) !important;
     }
 
     /* Pulse animation (same as plo) */

@@ -1,7 +1,6 @@
 @using EventForge.DTOs.Auth
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
-@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @implements IDisposable
@@ -90,11 +89,7 @@
             {
                 await OnLogout.InvokeAsync();
             }
-            else
-            {
-                // Default behavior: show login dialog
-                await ShowLoginDialogAsync();
-            }
+            // Do not show login overlay after logout — user must request login explicitly
         }
         catch (Exception ex)
         {
@@ -141,20 +136,6 @@
             return _currentUser.Roles.First();
 
         return $"{_currentUser.Roles.Count} Roles";
-    }
-
-    /// <summary>
-    /// Shows the login dialog and handles the result.
-    /// Refreshes the user data upon successful login.
-    /// </summary>
-    private async Task ShowLoginDialogAsync()
-    {
-        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
-        if (result)
-        {
-            _currentUser = await AuthService.GetCurrentUserAsync();
-            await InvokeAsync(StateHasChanged);
-        }
     }
 
     public void Dispose()
