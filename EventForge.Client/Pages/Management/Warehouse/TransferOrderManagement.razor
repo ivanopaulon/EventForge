@@ -1,11 +1,6 @@
 @page "/warehouse/transfers"
-@using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Warehouse
-@using EventForge.DTOs.Common
-@using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs.Warehouse
-@using EventForge.Client.Extensions
-@using MudBlazor
 @attribute [Authorize]
 @inject ITransferOrderService TransferOrderService
 @inject IWarehouseService WarehouseService
@@ -17,320 +12,178 @@
 
 <PageTitle>@TranslationService.GetTranslation("transferOrder.title", "Transfer Orders")</PageTitle>
 
-<PageLoadingOverlay Visible="_isLoading || _isLoadingTransferOrders"
-                     Message="@(_isLoading ? TranslationService.GetTranslation("common.loadingPage", "Loading page...") : TranslationService.GetTranslation("common.loading", "Loading..."))" />
-
-@if (!_isLoading)
-{
-    <div class="transfer-order-page-root">
-        <!-- Quick Filters -->
-        <QuickFilters TItem="TransferOrderDto"
-                      Items="_transferOrders"
-                      Filters="_quickFilters"
-                      OnFilterSelected="@HandleQuickFilter"
-                      ShowCount="true" />
-
-        <div class="eftable-wrapper">
-            <EFTable @ref="_efTable"
-                     TItem="TransferOrderDto"
-                     Items="_transferOrders"
-                     MultiSelection="true"
-                     SelectedItems="_selectedTransferOrders"
-                     SelectedItemsChanged="_selectedItemsChangedCallback"
-                     IsLoading="_isLoadingTransferOrders"
-                     ComponentKey="TransferOrderManagement"
-                     InitialColumnConfigurations="_initialColumns"
-                     AllowDragDropGrouping="true"
-                     ShowExport="true"
-                     ShowExportDialog="true"
-                     ExcelFileName="Trasferimenti"
-                     IsDataFiltered="@HasActiveFilters()"
-                     TotalItemsCount="@_transferOrders.Count"
-                     Title="@TranslationService.GetTranslation("transferOrder.title", "Transfer Orders")"
-                     ShowSearch="true"
-                     SearchPlaceholder="@TranslationService.GetTranslation("common.search", "Search")"
-                     OnSearch="@OnSearchChanged"
-                     ShowSelectionBadge="true"
-                     ShowRefresh="true"
-                     OnRefresh="@LoadTransferOrdersAsync"
-                     ShowCreate="true"
-                     OnCreate="@CreateTransferOrder"
-                     CreateTooltip="transferOrder.createTooltip"
-                     ShowBulkDelete="true"
-                     OnBulkDelete="@CancelSelectedOrders"
-                     IsToolbarDisabled="@_isLoadingTransferOrders">
-                <AdditionalToolbarContent>
-                    <MudSelect @bind-Value="_selectedSourceWarehouseId"
-                               @bind-Value:after="OnFilterChanged"
-                               Label="@TranslationService.GetTranslation("transferOrder.sourceWarehouse", "Source Warehouse")"
-                               Variant="Variant.Outlined"
-                               T="Guid?"
-                               Clearable="true"
-                               Class="ml-2"
-                               Style="min-width: 200px;">
-                        @foreach (var warehouse in _warehouses)
-                        {
-                            <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                    <MudSelect @bind-Value="_selectedDestinationWarehouseId"
-                               @bind-Value:after="OnFilterChanged"
-                               Label="@TranslationService.GetTranslation("transferOrder.destinationWarehouse", "Destination Warehouse")"
-                               Variant="Variant.Outlined"
-                               T="Guid?"
-                               Clearable="true"
-                               Class="ml-2"
-                               Style="min-width: 200px;">
-                        @foreach (var warehouse in _warehouses)
-                        {
-                            <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                    <MudSelect @bind-Value="_selectedStatus"
-                               @bind-Value:after="OnFilterChanged"
-                               Label="@TranslationService.GetTranslation("common.status", "Status")"
-                               Variant="Variant.Outlined"
-                               T="string"
-                               Clearable="true"
-                               Class="ml-2"
-                               Style="min-width: 150px;">
-                        <MudSelectItem Value="@("Pending")">@TranslationService.GetTranslation("transferOrder.status.pending", "Pending")</MudSelectItem>
-                        <MudSelectItem Value="@("Shipped")">@TranslationService.GetTranslation("transferOrder.status.shipped", "Shipped")</MudSelectItem>
-                        <MudSelectItem Value="@("InTransit")">@TranslationService.GetTranslation("transferOrder.status.inTransit", "In Transit")</MudSelectItem>
-                        <MudSelectItem Value="@("Completed")">@TranslationService.GetTranslation("transferOrder.status.completed", "Completed")</MudSelectItem>
-                        <MudSelectItem Value="@("Cancelled")">@TranslationService.GetTranslation("transferOrder.status.cancelled", "Cancelled")</MudSelectItem>
-                    </MudSelect>
-                </AdditionalToolbarContent>
-                <HeaderContent Context="columnConfigurations">
-                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
-                    {
-                        @if (column.PropertyName == "Number")
-                        {
-                            <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="Number" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Number))">@TranslationService.GetTranslation("transferOrder.column.number", "Number")</MudTableSortLabel>
-                            </EFTableColumnHeader>
-                        }
-                        else if (column.PropertyName == "OrderDate")
-                        {
-                            <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="OrderDate" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.OrderDate))">@TranslationService.GetTranslation("transferOrder.column.orderDate", "Order Date")</MudTableSortLabel>
-                            </EFTableColumnHeader>
-                        }
-                        else if (column.PropertyName == "SourceWarehouseName")
-                        {
-                            <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="SourceWarehouseName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.SourceWarehouseName))">@TranslationService.GetTranslation("transferOrder.column.source", "Source")</MudTableSortLabel>
-                            </EFTableColumnHeader>
-                        }
-                        else if (column.PropertyName == "DestinationWarehouseName")
-                        {
-                            <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="DestinationWarehouseName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.DestinationWarehouseName))">@TranslationService.GetTranslation("transferOrder.column.destination", "Destination")</MudTableSortLabel>
-                            </EFTableColumnHeader>
-                        }
-                        else if (column.PropertyName == "Status")
-                        {
-                            <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Status))">@TranslationService.GetTranslation("common.status", "Status")</MudTableSortLabel>
-                            </EFTableColumnHeader>
-                        }
-                        else if (column.PropertyName == "ItemsCount")
-                        {
-                            <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="ItemsCount" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Rows.Count))">@TranslationService.GetTranslation("transferOrder.column.items", "Items")</MudTableSortLabel>
-                            </EFTableColumnHeader>
-                        }
-                    }
-                    <MudTh Class="text-center" Style="min-width:200px;">@TranslationService.GetTranslation("common.actions", "Actions")</MudTh>
-                </HeaderContent>
-
-                <RowTemplate Context="item">
-                    @foreach (var column in _visibleColumns)
-                    {
-                        @if (column.PropertyName == "Number")
-                        {
-                            <MudTd DataLabel="Number">
-                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
-                                    @item.Number
-                                </MudChip>
-                            </MudTd>
-                        }
-                        else if (column.PropertyName == "OrderDate")
-                        {
-                            <MudTd DataLabel="Order Date">
-                                <MudText Typo="Typo.body2">@item.OrderDate.ToString("yyyy-MM-dd")</MudText>
-                            </MudTd>
-                        }
-                        else if (column.PropertyName == "SourceWarehouseName")
-                        {
-                            <MudTd DataLabel="Source">
-                                <MudText Typo="Typo.body2">@item.SourceWarehouseName</MudText>
-                            </MudTd>
-                        }
-                        else if (column.PropertyName == "DestinationWarehouseName")
-                        {
-                            <MudTd DataLabel="Destination">
-                                <MudText Typo="Typo.body2">@item.DestinationWarehouseName</MudText>
-                            </MudTd>
-                        }
-                        else if (column.PropertyName == "Status")
-                        {
-                            <MudTd DataLabel="Status">
-                                <MudChip T="string" Color="@GetStatusColor(item.Status)" Size="Size.Small">@item.Status</MudChip>
-                            </MudTd>
-                        }
-                        else if (column.PropertyName == "ItemsCount")
-                        {
-                            <MudTd DataLabel="Items">
-                                <MudText Typo="Typo.body2">@item.Rows.Count</MudText>
-                            </MudTd>
-                        }
-                    }
-                    <MudTd DataLabel="Actions" Class="text-center">
-                        <MudButton Size="Size.Small"
-                                   Variant="Variant.Text"
-                                   Color="Color.Info"
-                                   OnClick="@(() => ViewDetails(item.Id))">
-                            @TranslationService.GetTranslation("common.view", "View")
-                        </MudButton>
-                        @if (item.Status == "Pending")
-                        {
-                            <MudButton Size="Size.Small"
-                                       Variant="Variant.Text"
-                                       Color="Color.Success"
-                                       OnClick="@(() => ShipOrder(item))">
-                                @TranslationService.GetTranslation("transferOrder.action.ship", "Ship")
-                            </MudButton>
-                            <MudButton Size="Size.Small"
-                                       Variant="Variant.Text"
-                                       Color="Color.Error"
-                                       OnClick="@(() => CancelOrder(item))">
-                                @TranslationService.GetTranslation("common.cancel", "Cancel")
-                            </MudButton>
-                        }
-                        @if (item.Status == "Shipped" || item.Status == "InTransit")
-                        {
-                            <MudButton Size="Size.Small"
-                                       Variant="Variant.Text"
-                                       Color="Color.Success"
-                                       OnClick="@(() => ReceiveOrder(item))">
-                                @TranslationService.GetTranslation("transferOrder.action.receive", "Receive")
-                            </MudButton>
-                        }
-                    </MudTd>
-                </RowTemplate>
-
-                <NoRecordsContent>
-                    <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                        <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
-                        <MudText Typo="Typo.h6" Class="mb-2">
-                            @(_transferOrders.Any() ?
-                                TranslationService.GetTranslation("transferOrder.noMatchFilters", "No transfer orders match the filters applied") :
-                                TranslationService.GetTranslation("transferOrder.noOrders", "No transfer orders found"))
-                        </MudText>
-                        @if (_transferOrders.Any())
-                        {
-                            <MudButton Variant="Variant.Text"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Outlined.Clear"
-                                       OnClick="@ClearFilters">
-                                @TranslationService.GetTranslation("action.clearFilters", "Clear filters")
-                            </MudButton>
-                        }
-                    </div>
-                </NoRecordsContent>
-            </EFTable>
-            
-            <!-- Pagination -->
-            @if (_pagedResult != null)
+<EntityManagementPage TEntity="TransferOrderDto"
+                      @ref="_managementPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@CreateTransferOrder"
+                      AdditionalFilter="@(t => (!_selectedSourceWarehouseId.HasValue || t.SourceWarehouseId == _selectedSourceWarehouseId.Value)
+                                            && (!_selectedDestinationWarehouseId.HasValue || t.DestinationWarehouseId == _selectedDestinationWarehouseId.Value)
+                                            && (string.IsNullOrEmpty(_selectedStatus) || t.Status == _selectedStatus))">
+    <AdditionalToolbarContent>
+        <MudSelect @bind-Value="_selectedSourceWarehouseId"
+                   @bind-Value:after="OnFilterChanged"
+                   Label="@TranslationService.GetTranslation("transferOrder.sourceWarehouse", "Source Warehouse")"
+                   Variant="Variant.Outlined"
+                   T="Guid?"
+                   Clearable="true"
+                   Class="ml-2"
+                   Style="min-width: 200px;">
+            @foreach (var warehouse in _warehouses)
             {
-                <MudDivider Class="my-4" />
-                <div class="d-flex justify-center align-center flex-wrap gap-4">
-                    @if (_pagedResult.TotalPages > 1)
-                    {
-                        <MudPagination Count="@_pagedResult.TotalPages" 
-                                       Selected="@_currentPage" 
-                                       Color="Color.Primary"
-                                       Size="Size.Medium"
-                                       ShowFirstButton="true"
-                                       ShowLastButton="true"
-                                       SelectedChanged="@OnPageChanged" />
-                    }
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @if (_pagedResult.TotalPages > 1)
-                        {
-                            @TranslationService.GetTranslation("pagination.info", "Page {0} of {1} - Total: {2} transfer orders", _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
-                        }
-                        else
-                        {
-                            @TranslationService.GetTranslation("pagination.singlePage", "Total: {0} transfer orders", _pagedResult.TotalCount)
-                        }
-                    </MudText>
-                </div>
+                <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
             }
-        </div>
-    </div>
-}
+        </MudSelect>
+        <MudSelect @bind-Value="_selectedDestinationWarehouseId"
+                   @bind-Value:after="OnFilterChanged"
+                   Label="@TranslationService.GetTranslation("transferOrder.destinationWarehouse", "Destination Warehouse")"
+                   Variant="Variant.Outlined"
+                   T="Guid?"
+                   Clearable="true"
+                   Class="ml-2"
+                   Style="min-width: 200px;">
+            @foreach (var warehouse in _warehouses)
+            {
+                <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect @bind-Value="_selectedStatus"
+                   @bind-Value:after="OnFilterChanged"
+                   Label="@TranslationService.GetTranslation("common.status", "Status")"
+                   Variant="Variant.Outlined"
+                   T="string"
+                   Clearable="true"
+                   Class="ml-2"
+                   Style="min-width: 150px;">
+            <MudSelectItem Value="@("Pending")">@TranslationService.GetTranslation("transferOrder.status.pending", "Pending")</MudSelectItem>
+            <MudSelectItem Value="@("Shipped")">@TranslationService.GetTranslation("transferOrder.status.shipped", "Shipped")</MudSelectItem>
+            <MudSelectItem Value="@("InTransit")">@TranslationService.GetTranslation("transferOrder.status.inTransit", "In Transit")</MudSelectItem>
+            <MudSelectItem Value="@("Completed")">@TranslationService.GetTranslation("transferOrder.status.completed", "Completed")</MudSelectItem>
+            <MudSelectItem Value="@("Cancelled")">@TranslationService.GetTranslation("transferOrder.status.cancelled", "Cancelled")</MudSelectItem>
+        </MudSelect>
+    </AdditionalToolbarContent>
+
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Number")
+            {
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="Number">
+                    <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Number))">@TranslationService.GetTranslation("transferOrder.column.number", "Number")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "OrderDate")
+            {
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="OrderDate">
+                    <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.OrderDate))">@TranslationService.GetTranslation("transferOrder.column.orderDate", "Order Date")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "SourceWarehouseName")
+            {
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="SourceWarehouseName">
+                    <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.SourceWarehouseName ?? string.Empty))">@TranslationService.GetTranslation("transferOrder.column.source", "Source")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "DestinationWarehouseName")
+            {
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="DestinationWarehouseName">
+                    <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.DestinationWarehouseName ?? string.Empty))">@TranslationService.GetTranslation("transferOrder.column.destination", "Destination")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Status))">@TranslationService.GetTranslation("common.status", "Status")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ItemsCount")
+            {
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="ItemsCount">
+                    <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Rows.Count))">@TranslationService.GetTranslation("transferOrder.column.items", "Items")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:200px;">@TranslationService.GetTranslation("common.actions", "Actions")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Number")
+            {
+                <MudTd DataLabel="Number">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                        @ctx.Item.Number
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "OrderDate")
+            {
+                <MudTd DataLabel="Order Date">
+                    <MudText Typo="Typo.body2">@ctx.Item.OrderDate.ToString("yyyy-MM-dd")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "SourceWarehouseName")
+            {
+                <MudTd DataLabel="Source">
+                    <MudText Typo="Typo.body2">@ctx.Item.SourceWarehouseName</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "DestinationWarehouseName")
+            {
+                <MudTd DataLabel="Destination">
+                    <MudText Typo="Typo.body2">@ctx.Item.DestinationWarehouseName</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Color="@GetStatusColor(ctx.Item.Status)" Size="Size.Small">@ctx.Item.Status</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "ItemsCount")
+            {
+                <MudTd DataLabel="Items">
+                    <MudText Typo="Typo.body2">@ctx.Item.Rows.Count</MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+
+    <AdditionalRowActions Context="item">
+        @if (item.Status == "Pending")
+        {
+            <MudTooltip Text="@TranslationService.GetTranslation("transferOrder.action.ship", "Spedisci ordine")">
+                <MudIconButton Icon="@Icons.Material.Outlined.LocalShipping"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Class="ef-row-actionbutton"
+                               OnClick="@(() => ShipOrder(item))" />
+            </MudTooltip>
+        }
+        @if (item.Status == "Shipped" || item.Status == "InTransit")
+        {
+            <MudTooltip Text="@TranslationService.GetTranslation("transferOrder.action.receive", "Ricevi merce")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Inventory"
+                               Color="Color.Success"
+                               Size="Size.Small"
+                               Class="ef-row-actionbutton"
+                               OnClick="@(() => ReceiveOrder(item))" />
+            </MudTooltip>
+        }
+    </AdditionalRowActions>
+</EntityManagementPage>
 
 @code {
-    // UI State Management
-    private bool _isLoading = true;
-    private bool _isLoadingTransferOrders = false;
+    private EntityManagementPage<TransferOrderDto> _managementPage = null!;
+    private IEntityManagementService<TransferOrderDto> _service = null!;
+    private EntityManagementConfig<TransferOrderDto> _config = null!;
 
-    // Filter and search state
-    private string _searchTerm = string.Empty;
-    private CancellationTokenSource? _searchDebounceCts;
-    private CancellationTokenSource? _loadCts;
     private Guid? _selectedSourceWarehouseId;
     private Guid? _selectedDestinationWarehouseId;
     private string? _selectedStatus;
-
-    // Pagination state
-    private PagedResult<TransferOrderDto>? _pagedResult;
-    private int _currentPage = 1;
-    private int _pageSize = 20;
-
-    // Data collections
-    private List<TransferOrderDto> _transferOrders = new();
     private List<StorageFacilityDto> _warehouses = new();
-    private HashSet<TransferOrderDto> _selectedTransferOrders = new();
 
-    // EFTable reference
-    private EFTable<TransferOrderDto> _efTable = null!;
-
-    /// <summary>
-    /// Gets visible columns for row rendering. Returns EFTable's cached configuration when available,
-    /// falling back to initial columns. This avoids repeated LINQ operations in row rendering.
-    /// </summary>
-    private List<EFTableColumnConfiguration> _visibleColumns => 
-        _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() 
-        ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
-
-    // Column configuration for EFTable
-    private List<EFTableColumnConfiguration> _initialColumns = new()
-    {
-        new() { PropertyName = "Number", DisplayName = "Number", IsVisible = true, Order = 0, IsSearchable = true },
-        new() { PropertyName = "OrderDate", DisplayName = "Order Date", IsVisible = true, Order = 1, IsSearchable = false },
-        new() { PropertyName = "SourceWarehouseName", DisplayName = "Source", IsVisible = true, Order = 2, IsSearchable = true },
-        new() { PropertyName = "DestinationWarehouseName", DisplayName = "Destination", IsVisible = true, Order = 3, IsSearchable = true },
-        new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 4, IsSearchable = false },
-        new() { PropertyName = "ItemsCount", DisplayName = "Items", IsVisible = true, Order = 5, IsSearchable = false }
-    };
-
-    // Quick Filters
-    private List<QuickFilter<TransferOrderDto>> _quickFilters = new()
-    {
-        new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti gli ordini di trasferimento" },
-        new() { Id = "pending", Label = "In Sospeso", Predicate = t => t.Status == "Pending", Color = Color.Warning, Icon = Icons.Material.Outlined.Schedule, Description = "Ordini in attesa di elaborazione" },
-        new() { Id = "in_transit", Label = "In Transito", Predicate = t => t.Status == "InTransit", Color = Color.Info, Icon = Icons.Material.Outlined.LocalShipping, Description = "Ordini in transito" },
-        new() { Id = "completed", Label = "Completati", Predicate = t => t.Status == "Completed", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Ordini completati" },
-        new() { Id = "cancelled", Label = "Annullati", Predicate = t => t.Status == "Cancelled", Color = Color.Default, Icon = Icons.Material.Outlined.Cancel, Description = "Ordini annullati" },
-        new() { Id = "recent", Label = "Recenti", Predicate = t => t.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Primary, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
-    };
-    
-    private QuickFilter<TransferOrderDto>? _activeQuickFilter;
-
-    // Dialog options preserved from PR #739
     private readonly DialogOptions _dialogOptions = new()
     {
         MaxWidth = MaxWidth.Large,
@@ -338,51 +191,67 @@
         CloseButton = true
     };
 
-    private EventCallback<HashSet<TransferOrderDto>> _selectedItemsChangedCallback => 
-        EventCallback.Factory.Create<HashSet<TransferOrderDto>>(this, OnSelectedItemsChanged);
-
-    /// <summary>
-    /// Handles quick filter selection
-    /// </summary>
-    private void HandleQuickFilter(QuickFilter<TransferOrderDto>? filter)
+    protected override void OnInitialized()
     {
-        _activeQuickFilter = filter;
-        StateHasChanged();
+        _service = new TransferOrderManagementService(TransferOrderService);
+        _config = new EntityManagementConfig<TransferOrderDto>
+        {
+            ComponentKey = "TransferOrderManagement",
+            PageTitleKey = "transferOrder.title",
+            PageTitleDefault = "Transfer Orders",
+            EntityIcon = Icons.Material.Outlined.SwapHoriz,
+            PageRootCssClass = "transfer-order-page-root",
+            BaseRoute = "/warehouse/transfers",
+            ExcelFileName = "Trasferimenti",
+            SearchPlaceholderKey = "common.search",
+            SearchPlaceholderDefault = "Search",
+            CreateTooltip = "transferOrder.createTooltip",
+            EntityTypeName = "TransferOrder",
+            ShowView = true,
+            ShowEdit = false,
+            ShowDelete = true,
+            ShowAuditLog = false,
+            ShowToggleStatus = false,
+            DeleteConfirmMessageKey = "transferOrder.cancelConfirm",
+            DeleteSuccessMessageKey = "transferOrder.cancelSuccess",
+            DeleteErrorMessageKey = "transferOrder.cancelFailed",
+            BulkDeleteConfirmMessageKey = "transferOrder.cancelMultipleConfirm",
+            CanDelete = t => t.Status == "Pending",
+            CannotDeleteMessageKey = "transferOrder.onlyPendingCanCancel",
+            GetDisplayName = t => t.Number,
+            GetId = t => t.Id,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Magazzino", null, disabled: true),
+                new BreadcrumbItem("Ordini di Trasferimento", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Number", DisplayName = "Number", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "OrderDate", DisplayName = "Order Date", IsVisible = true, Order = 1, IsSearchable = false },
+                new() { PropertyName = "SourceWarehouseName", DisplayName = "Source", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "DestinationWarehouseName", DisplayName = "Destination", IsVisible = true, Order = 3, IsSearchable = true },
+                new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "ItemsCount", DisplayName = "Items", IsVisible = true, Order = 5, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti gli ordini di trasferimento" },
+                new() { Id = "pending", Label = "In Sospeso", Predicate = t => t.Status == "Pending", Color = Color.Warning, Icon = Icons.Material.Outlined.Schedule, Description = "Ordini in attesa di elaborazione" },
+                new() { Id = "in_transit", Label = "In Transito", Predicate = t => t.Status == "InTransit", Color = Color.Info, Icon = Icons.Material.Outlined.LocalShipping, Description = "Ordini in transito" },
+                new() { Id = "completed", Label = "Completati", Predicate = t => t.Status == "Completed", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Ordini completati" },
+                new() { Id = "cancelled", Label = "Annullati", Predicate = t => t.Status == "Cancelled", Color = Color.Default, Icon = Icons.Material.Outlined.Cancel, Description = "Ordini annullati" },
+                new() { Id = "recent", Label = "Recenti", Predicate = t => t.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Primary, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
+            }
+        };
     }
 
-    /// <summary>
-    /// Handles selection changes from EFTable
-    /// </summary>
-    private void OnSelectedItemsChanged(HashSet<TransferOrderDto> items)
-    {
-        _selectedTransferOrders = items;
-        StateHasChanged();
-    }
-
-    /// <summary>
-    /// Component initialization.
-    /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            await LoadWarehousesAsync();
-            await LoadTransferOrdersAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.loadError", "Error loading page: {0}", ex.Message), Severity.Error);
-            Logger.LogError(ex, "Error loading transfer orders page");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        await LoadWarehousesAsync();
     }
 
-    /// <summary>
-    /// Loads warehouses for filter dropdowns
-    /// </summary>
     private async Task LoadWarehousesAsync()
     {
         try
@@ -397,122 +266,11 @@
         }
     }
 
-    /// <summary>
-    /// Loads transfer order data with filters and pagination
-    /// </summary>
-    private async Task LoadTransferOrdersAsync()
+    private void OnFilterChanged()
     {
-        // Cancel any previous load
-        _loadCts?.Cancel();
-        _loadCts = new CancellationTokenSource();
-        var token = _loadCts.Token;
-
-        try
-        {
-            _isLoadingTransferOrders = true;
-            _pagedResult = await TransferOrderService.GetTransferOrdersAsync(
-                _currentPage, 
-                _pageSize, 
-                _selectedSourceWarehouseId, 
-                _selectedDestinationWarehouseId, 
-                _selectedStatus, 
-                _searchTerm,
-                token);
-            
-            if (_pagedResult != null && !token.IsCancellationRequested)
-            {
-                _transferOrders = _pagedResult.Items.ToList();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected when request is cancelled, don't show error
-            Logger.LogDebug("Transfer order load was cancelled");
-        }
-        catch (Exception ex)
-        {
-            if (!token.IsCancellationRequested)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("transferOrder.loadOrdersError", "Error loading transfer orders: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error loading transfer orders");
-            }
-        }
-        finally
-        {
-            if (!token.IsCancellationRequested)
-            {
-                _isLoadingTransferOrders = false;
-            }
-        }
+        StateHasChanged();
     }
 
-    /// <summary>
-    /// Clears all active filters
-    /// </summary>
-    private async Task ClearFilters()
-    {
-        _searchTerm = string.Empty;
-        _selectedSourceWarehouseId = null;
-        _selectedDestinationWarehouseId = null;
-        _selectedStatus = null;
-        _currentPage = 1;
-        await LoadTransferOrdersAsync();
-    }
-
-    /// <summary>
-    /// Handles search changes with debounce
-    /// </summary>
-    private async Task OnSearchChanged(string term)
-    {
-        _currentPage = 1;
-        _searchTerm = term;
-        await LoadTransferOrdersAsync();
-    }
-
-    /// <summary>
-    /// Handles filter changes
-    /// </summary>
-    private async Task OnFilterChanged()
-    {
-        _currentPage = 1; // Reset to page 1 when filters change
-        await LoadTransferOrdersAsync();
-    }
-
-    /// <summary>
-    /// Handles page changes
-    /// </summary>
-    private async Task OnPageChanged(int page)
-    {
-        _currentPage = page;
-        await LoadTransferOrdersAsync();
-    }
-
-    /// <summary>
-    /// Creates a new transfer order - preserved from PR #739
-    /// </summary>
-    private async Task CreateTransferOrder()
-    {
-        var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
-            TranslationService.GetTranslation("transferOrder.createDialog", "Create Transfer Order"), _dialogOptions);
-        var result = await dialog.Result;
-        if (!result.Canceled)
-        {
-            await LoadTransferOrdersAsync();
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.createSuccess", "Transfer order created successfully"), Severity.Success);
-        }
-    }
-
-    /// <summary>
-    /// Navigates to transfer order details
-    /// </summary>
-    private void ViewDetails(Guid id)
-    {
-        NavigationManager.NavigateTo($"/warehouse/transfers/{id}");
-    }
-
-    /// <summary>
-    /// Ships a transfer order - preserved from PR #739
-    /// </summary>
     private async Task ShipOrder(TransferOrderDto order)
     {
         var parameters = new DialogParameters<ShipTransferOrderDialog>
@@ -524,14 +282,11 @@
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            await LoadTransferOrdersAsync();
+            await _managementPage.RefreshAsync();
             Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipSuccess", "Transfer order shipped successfully"), Severity.Success);
         }
     }
 
-    /// <summary>
-    /// Receives a transfer order - preserved from PR #739
-    /// </summary>
     private async Task ReceiveOrder(TransferOrderDto order)
     {
         var parameters = new DialogParameters<ReceiveTransferOrderDialog>
@@ -543,118 +298,23 @@
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            await LoadTransferOrdersAsync();
+            await _managementPage.RefreshAsync();
             Snackbar.Add(TranslationService.GetTranslation("transferOrder.receiveSuccess", "Transfer order received successfully"), Severity.Success);
         }
     }
 
-    /// <summary>
-    /// Cancels a single transfer order - preserved from PR #739
-    /// </summary>
-    private async Task CancelOrder(TransferOrderDto order)
+    private async Task CreateTransferOrder()
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("transferOrder.cancelDialog", "Cancel Transfer Order"),
-            TranslationService.GetTranslation("transferOrder.cancelConfirm", "Are you sure you want to cancel transfer order {0}?", order.Number),
-            yesText: TranslationService.GetTranslation("transferOrder.cancelYes", "Cancel Order"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Keep Order"));
-
-        if (confirmed == true)
+        var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
+            TranslationService.GetTranslation("transferOrder.createDialog", "Create Transfer Order"), _dialogOptions);
+        var result = await dialog.Result;
+        if (!result.Canceled)
         {
-            var success = await TransferOrderService.CancelTransferOrderAsync(order.Id);
-            if (success)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelSuccess", "Transfer order cancelled successfully"), Severity.Success);
-                await LoadTransferOrdersAsync();
-            }
-            else
-            {
-                Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelFailed", "Failed to cancel transfer order"), Severity.Error);
-            }
+            await _managementPage.RefreshAsync();
+            Snackbar.Add(TranslationService.GetTranslation("transferOrder.createSuccess", "Transfer order created successfully"), Severity.Success);
         }
     }
 
-    /// <summary>
-    /// Cancels selected transfer orders in bulk (only Pending status)
-    /// </summary>
-    private async Task CancelSelectedOrders()
-    {
-        if (_selectedTransferOrders.Count == 0)
-            return;
-
-        // Filter only Pending orders
-        var pendingOrders = _selectedTransferOrders.Where(t => t.Status == "Pending").ToList();
-        
-        if (pendingOrders.Count == 0)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.onlyPendingCanCancel", "Only pending transfer orders can be cancelled"), Severity.Warning);
-            return;
-        }
-
-        var confirmTitle = TranslationService.GetTranslation("transferOrder.cancelMultipleDialog", "Cancel Transfer Orders");
-        var confirmMessage = pendingOrders.Count == _selectedTransferOrders.Count 
-            ? TranslationService.GetTranslation("transferOrder.cancelMultipleConfirm", "Are you sure you want to cancel {0} selected transfer orders? This action cannot be undone.", pendingOrders.Count)
-            : TranslationService.GetTranslation("transferOrder.cancelMultiplePartialConfirm", "Only {0} of {1} selected orders are pending and can be cancelled. Continue?", pendingOrders.Count, _selectedTransferOrders.Count);
-
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("transferOrder.cancelMultipleYes", "Cancel Orders"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Keep Orders"));
-
-        if (confirm == true)
-        {
-            try
-            {
-                var cancelledCount = 0;
-                var failedCount = 0;
-                
-                foreach (var order in pendingOrders)
-                {
-                    try
-                    {
-                        var success = await TransferOrderService.CancelTransferOrderAsync(order.Id);
-                        if (success)
-                        {
-                            cancelledCount++;
-                        }
-                        else
-                        {
-                            failedCount++;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        failedCount++;
-                        Logger.LogError(ex, "Error cancelling transfer order {OrderId}", order.Id);
-                    }
-                }
-                
-                _selectedTransferOrders.Clear();
-                
-                if (failedCount == 0)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelMultipleSuccess", "{0} transfer orders cancelled successfully!", cancelledCount), Severity.Success);
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelMultiplePartial", "{0} transfer orders cancelled, {1} failed", cancelledCount, failedCount), Severity.Warning);
-                }
-                
-                await LoadTransferOrdersAsync();
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("transferOrder.cancelMultipleError", "Error cancelling transfer orders: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error cancelling selected transfer orders");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets the color for a transfer order status - preserved from PR #739
-    /// </summary>
     private Color GetStatusColor(string status)
     {
         return status switch
@@ -666,17 +326,5 @@
             "Cancelled" => Color.Error,
             _ => Color.Default
         };
-    }
-
-    /// <summary>
-    /// Checks if any filters are currently active
-    /// </summary>
-    private bool HasActiveFilters()
-    {
-        return !string.IsNullOrWhiteSpace(_searchTerm)
-            || _activeQuickFilter != null
-            || _selectedSourceWarehouseId.HasValue
-            || _selectedDestinationWarehouseId.HasValue
-            || !string.IsNullOrEmpty(_selectedStatus);
     }
 }
