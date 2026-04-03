@@ -101,7 +101,7 @@
                 <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                     <ActionButtonGroup EntityName="@Config.GetDisplayName(item)"
                                        ItemDisplayName="@Config.GetDisplayName(item)"
-                                       ShowView="@Config.ShowView"
+                                       ShowView="@(Config.ShowView && OnViewEntity != null)"
                                        ShowEdit="@Config.ShowEdit"
                                        ShowAuditLog="@Config.ShowAuditLog"
                                        ShowToggleStatus="@Config.ShowToggleStatus"
@@ -109,7 +109,7 @@
                                        IsActive="@(Config.GetIsActive?.Invoke(item) ?? true)"
                                        CanEdit="@(Config.CanEdit == null || Config.CanEdit(item))"
                                        CanDelete="@(Config.CanDelete == null || Config.CanDelete(item))"
-                                       OnView="@(() => ViewEntity(Config.GetId(item)))"
+                                       OnView="@(async () => { if (OnViewEntity != null) await OnViewEntity(Config.GetId(item)); })"
                                        OnEdit="@(() => EditEntity(Config.GetId(item)))"
                                        OnAuditLog="@(() => ViewAuditLog(item))"
                                        OnToggleStatus="@(() => ToggleEntityStatus(item))"
@@ -226,10 +226,15 @@
     // CancellationToken for async operations
     private CancellationTokenSource _cts = new();
 
+    // Debounce timer for search (complements EFTable's own debounce)
+    private System.Threading.Timer? _searchDebounceTimer;
+    private const int SearchDebounceMs = 300;
+
     public void Dispose()
     {
         _cts.Cancel();
         _cts.Dispose();
+        _searchDebounceTimer?.Dispose();
     }
 
     // Filter and search state
@@ -243,11 +248,11 @@
     // EFTable reference
     private EFTable<TEntity> _efTable = null!;
 
-    private EventCallback<HashSet<TEntity>> _selectedItemsChangedCallback =>
-        EventCallback.Factory.Create<HashSet<TEntity>>(this, OnSelectedItemsChanged);
+    // Initialized once in OnInitialized to avoid recreating the EventCallback on every render
+    private EventCallback<HashSet<TEntity>> _selectedItemsChangedCallback;
 
-    private IEnumerable<TEntity> _filteredEntities =>
-        _entities.Where(FilterEntity);
+    // Memoized filtered list — rebuilt by RefreshFilteredEntities() instead of recomputing on every access
+    private List<TEntity> _filteredEntities = new();
 
     private bool FilterEntity(TEntity entity)
     {
@@ -268,25 +273,35 @@
         return true;
     }
 
+    private void RefreshFilteredEntities()
+    {
+        _filteredEntities = _entities.Where(FilterEntity).ToList();
+    }
+
     private async Task HandleQuickFilter(QuickFilter<TEntity>? filter)
     {
         _activeQuickFilter = filter;
         if (OnQuickFilterChanged != null)
             await OnQuickFilterChanged(filter);
         else
-            StateHasChanged();
+            RefreshFilteredEntities();
     }
 
     private void OnSelectedItemsChanged(HashSet<TEntity> items)
     {
         _selectedEntities = items;
-        StateHasChanged();
+        // StateHasChanged not needed: Blazor calls it automatically after EventCallback
     }
 
-    private void ViewEntity(Guid id)
+    /// <summary>
+    /// Optional callback invoked when the user clicks the View button on an entity row.
+    /// When null, the View button is hidden. Replaces the TODO ViewEntity stub.
+    /// </summary>
+    [Parameter] public Func<Guid, Task>? OnViewEntity { get; set; }
+
+    protected override void OnInitialized()
     {
-        // TODO: Fase 3 — implementare apertura detail view/drawer
-        // Per ora nessuna azione
+        _selectedItemsChangedCallback = EventCallback.Factory.Create<HashSet<TEntity>>(this, OnSelectedItemsChanged);
     }
 
     protected override async Task OnInitializedAsync()
@@ -360,6 +375,7 @@
         }
         finally
         {
+            RefreshFilteredEntities();
             _isLoadingEntities = false;
             StateHasChanged();
         }
@@ -413,7 +429,10 @@
             try
             {
                 await Service.DeleteAsync(Config.GetId(entity));
-                _entities.Remove(entity);
+                var id = Config.GetId(entity);
+                var existing = _entities.FirstOrDefault(e => Config.GetId(e) == id);
+                if (existing != null) _entities.Remove(existing);
+                RefreshFilteredEntities();
                 Snackbar.Add(TranslationService.GetTranslation(Config.DeleteSuccessMessageKey,
                     "Elemento eliminato con successo!"), Severity.Success);
                 StateHasChanged();
@@ -457,13 +476,14 @@
 
         if (confirm == true)
         {
+            var deletedCount = 0;
+            var failedCount = 0;
+            var needsFullReload = false;
+
             try
             {
                 _isLoadingEntities = true;
                 StateHasChanged();
-                var deletedCount = 0;
-                var failedCount = 0;
-                var deletedIds = new HashSet<Guid>();
 
                 foreach (var entity in deletableEntities)
                 {
@@ -471,17 +491,20 @@
                     {
                         var id = Config.GetId(entity);
                         await Service.DeleteAsync(id, _cts.Token);
-                        deletedIds.Add(id);
+                        var existing = _entities.FirstOrDefault(e => Config.GetId(e) == id);
+                        if (existing != null) _entities.Remove(existing);
                         deletedCount++;
+                        RefreshFilteredEntities();
+                        StateHasChanged();
                     }
                     catch (Exception ex)
                     {
                         failedCount++;
+                        needsFullReload = true;
                         Logger.LogError(ex, "Error deleting {EntityType} {Id}", Config.EntityTypeName, Config.GetId(entity));
                     }
                 }
 
-                _entities.RemoveAll(e => deletedIds.Contains(Config.GetId(e)));
                 _selectedEntities.Clear();
 
                 if (failedCount == 0 && skippedCount == 0)
@@ -499,19 +522,28 @@
                     Snackbar.Add(TranslationService.GetTranslationFormatted("common.bulkDeletePartial",
                         "{0} elementi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
                 }
-
-                StateHasChanged();
             }
             catch (Exception ex)
             {
                 Snackbar.Add(TranslationService.GetTranslationFormatted(Config.DeleteErrorMessageKey,
                     "Errore nell'eliminazione: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected {EntityType} items", Config.EntityTypeName);
+                needsFullReload = true;
             }
             finally
             {
                 _isLoadingEntities = false;
-                StateHasChanged();
+                _selectedEntities.Clear();
+
+                if (needsFullReload)
+                {
+                    // Re-align local list with server after partial failures
+                    await LoadEntitiesAsync();
+                }
+                else
+                {
+                    StateHasChanged();
+                }
             }
         }
     }
@@ -540,13 +572,18 @@
                 _isLoadingEntities = true;
                 StateHasChanged();
                 await Service.ToggleStatusAsync(Config.GetId(entity), !isActive, _cts.Token);
-                StateHasChanged();
+                Snackbar.Add(TranslationService.GetTranslation("common.statusChangeSuccess",
+                    "Stato aggiornato con successo"), Severity.Success);
+                // Reload to reflect the updated status from the server
+                await LoadEntitiesAsync();
             }
             catch (Exception ex)
             {
                 Snackbar.Add(TranslationService.GetTranslation("common.statusChangeError",
                     "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error toggling {EntityType} status {Id}", Config.EntityTypeName, Config.GetId(entity));
+                // Force reload to re-align local list with server after error
+                await LoadEntitiesAsync();
             }
             finally
             {
@@ -574,6 +611,15 @@
     private void OnSearchChanged(string term)
     {
         _searchTerm = term;
+        _searchDebounceTimer?.Dispose();
+        _searchDebounceTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                RefreshFilteredEntities();
+                StateHasChanged();
+            });
+        }, null, SearchDebounceMs, Timeout.Infinite);
     }
 
     private async Task ClearFilters()
@@ -583,7 +629,10 @@
         if (OnClearFilters != null)
             await OnClearFilters();
         else
+        {
+            RefreshFilteredEntities();
             StateHasChanged();
+        }
     }
 
     private bool HasActiveFilters()

@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Reflection;
+
 namespace EventForge.Client.Extensions;
 
 /// <summary>
@@ -5,6 +8,9 @@ namespace EventForge.Client.Extensions;
 /// </summary>
 public static class SearchExtensions
 {
+    // Cache of PropertyInfo objects to avoid repeated reflection calls per type+property combination
+    private static readonly ConcurrentDictionary<(Type, string), PropertyInfo?> _propertyCache = new();
+
     /// <summary>
     /// Checks if an item matches the search term in any of the specified searchable properties.
     /// </summary>
@@ -23,15 +29,14 @@ public static class SearchExtensions
             return true;
 
         var searchLower = searchTerm.ToLowerInvariant();
+        var type = typeof(T);
 
-        // Check each searchable property
+        // Check each searchable property using cached PropertyInfo
         foreach (var propName in searchablePropertyNames)
         {
-            var propValue = item?.GetType()
-                .GetProperty(propName)?
-                .GetValue(item)?
-                .ToString()?
-                .ToLowerInvariant();
+            var prop = _propertyCache.GetOrAdd((type, propName), key => key.Item1.GetProperty(key.Item2));
+
+            var propValue = prop?.GetValue(item)?.ToString()?.ToLowerInvariant();
 
             if (!string.IsNullOrEmpty(propValue) && propValue.Contains(searchLower))
                 return true;

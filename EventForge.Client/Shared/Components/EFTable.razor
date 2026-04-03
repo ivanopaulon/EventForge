@@ -1,5 +1,7 @@
 @typeparam TItem
 @implements IDisposable
+@using System.Collections.Concurrent
+@using System.Reflection
 @inject ITablePreferencesService TablePreferencesService
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -487,6 +489,9 @@
     // Public property to expose current column configurations
     public List<EFTableColumnConfiguration> ColumnConfigurations => _columnConfigurations;
 
+    // Static cache of PropertyInfo to avoid repeated reflection per type+property combination
+    private static readonly ConcurrentDictionary<(Type, string), PropertyInfo?> _propCache = new();
+
     // Internal state
     private List<EFTableColumnConfiguration> _columnConfigurations = new();
     private EFTablePreferences? _preferences;
@@ -720,8 +725,8 @@
 
         try
         {
-            var property = typeof(TItem).GetProperty(propertyPath);
-            return property?.GetValue(item);
+            var prop = _propCache.GetOrAdd((typeof(TItem), propertyPath), key => key.Item1.GetProperty(key.Item2));
+            return prop?.GetValue(item);
         }
         catch (Exception ex)
         {
@@ -825,10 +830,10 @@
             return TotalItems;
         }
         
-        // For client-side data, count Items
+        // For client-side data, count Items — prefer ICollection.Count to avoid re-enumeration
         if (Items != null)
         {
-            return Items.Count();
+            return Items is ICollection<TItem> col ? col.Count : Items.Count();
         }
         
         return 0;
@@ -906,8 +911,9 @@
             .ToList();
         
         // Contare items da esportare (DATI FILTRATI!)
-        var itemsToExport = GetDisplayItems().Count();
-        var totalItems = TotalItemsCount > 0 ? TotalItemsCount : (Items?.Count() ?? 0);
+        var displayItemsSeq = GetDisplayItems();
+        var itemsToExport = displayItemsSeq is ICollection<TItem> displayCol ? displayCol.Count : displayItemsSeq.Count();
+        var totalItems = TotalItemsCount > 0 ? TotalItemsCount : (Items is ICollection<TItem> itemsCol ? itemsCol.Count : Items?.Count() ?? 0);
         
         var parameters = new DialogParameters
         {
@@ -1153,7 +1159,7 @@
         {
             var values = selectedColumns.Select(c => 
             {
-                var prop = typeof(TItem).GetProperty(c.PropertyName);
+                var prop = _propCache.GetOrAdd((typeof(TItem), c.PropertyName), key => key.Item1.GetProperty(key.Item2));
                 var value = prop?.GetValue(item)?.ToString() ?? "";
                 return EscapeCsv(value);
             });
@@ -1192,7 +1198,7 @@
 
     private string? GetExcelFormat(string propertyName)
     {
-        var property = typeof(TItem).GetProperty(propertyName);
+        var property = _propCache.GetOrAdd((typeof(TItem), propertyName), key => key.Item1.GetProperty(key.Item2));
         if (property == null) return null;
         var propType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
         if (propType == typeof(decimal) || propType == typeof(double) || propType == typeof(float))
