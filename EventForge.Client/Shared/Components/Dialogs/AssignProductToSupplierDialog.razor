@@ -6,8 +6,12 @@
 @inject ITranslationService TranslationService
 @inject ILogger<AssignProductToSupplierDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.LocalShipping"
+          Title="Assegna Prodotto a Fornitore"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <!-- Product Field - Autocomplete or Readonly -->
@@ -17,6 +21,7 @@
                         <MudTextField Value="@_productName"
                                       Label="@($"{TranslationService.GetTranslation("field.product", "Prodotto")} *")"
                                       Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
                                       ReadOnly="true"
                                       Disabled="true"
                                       Adornment="Adornment.Start"
@@ -54,6 +59,7 @@
                     <MudTextField @bind-Value="_model.SupplierProductCode"
                                   Label="@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   MaxLength="100"
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Outlined.Tag"
@@ -65,6 +71,7 @@
                     <MudNumericField @bind-Value="_model.UnitCost"
                                      Label="@($"{TranslationService.GetTranslation("field.unitCost", "Costo Unitario")} *")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      Required="true"
                                      RequiredError="@TranslationService.GetTranslation("validation.unitCostRequired", "Il costo unitario è obbligatorio")"
                                      Min="0m"
@@ -80,6 +87,7 @@
                     <MudNumericField @bind-Value="_model.LeadTimeDays"
                                      Label="@TranslationService.GetTranslation("field.leadTimeDays", "Tempi di Consegna (giorni)")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      Min="0"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Outlined.Schedule"
@@ -91,6 +99,7 @@
                     <MudNumericField @bind-Value="_model.MinOrderQty"
                                      Label="@TranslationService.GetTranslation("field.minOrderQty", "Quantità Minima Ordine")"
                                      Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
                                      Min="0"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Outlined.ShoppingCart"
@@ -112,6 +121,7 @@
                     <MudTextField @bind-Value="_model.Notes"
                                   Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                   Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
                                   Lines="3"
                                   MaxLength="500"
                                   Counter="500"
@@ -121,10 +131,14 @@
                 </MudItem>
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-        <MudButton Color="Color.Primary" 
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
                    Disabled="@(!_isValid || (!ProductId.HasValue && _selectedProduct == null) || _isSaving)" 
                    OnClick="Submit">
             @if (_isSaving)
@@ -137,7 +151,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }

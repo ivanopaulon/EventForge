@@ -8,15 +8,14 @@
 @inject ISnackbar Snackbar
 @inject ILogger<QuickCreateBusinessPartyDialog> Logger
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            @(IsEditMode 
-                ? TranslationService.GetTranslation("business.quickEditPartner", "Modifica Rapida Partner")
-                : TranslationService.GetTranslation("business.quickCreatePartner", "Creazione Rapida Partner"))
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.PersonAdd"
+          Title="@(IsEditMode 
+              ? TranslationService.GetTranslation("business.quickEditPartner", "Modifica Rapida Partner")
+              : TranslationService.GetTranslation("business.quickCreatePartner", "Nuova Anagrafica"))"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <div class="ef-dialog-content">
             <PageLoadingOverlay Visible="_isLoading" />
 
@@ -34,6 +33,7 @@
                                 <MudSelect @bind-Value="_model.PartyType"
                                           Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo Partner")} *")"
                                           Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
                                           Required="true">
                                     <MudSelectItem Value="BusinessPartyType.Cliente">
                                         @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
@@ -50,6 +50,7 @@
                                 <MudTextField @bind-Value="_model.Name"
                                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome/Ragione Sociale")} *")"
                                               Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
                                               Required="true"
                                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                               MaxLength="200"
@@ -69,6 +70,7 @@
                                 <MudTextField @bind-Value="_model.TaxCode"
                                               Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
                                               Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
                                               MaxLength="20" />
                             </MudItem>
                             <MudItem xs="12" sm="8">
@@ -76,6 +78,7 @@
                                     <MudTextField @bind-Value="_model.VatNumber"
                                                   Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
                                                   Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
                                                   MaxLength="20"
                                                   Placeholder="IT12345678901"
                                                   Style="flex-grow: 1;" />
@@ -131,6 +134,7 @@
                                 <MudTextField @bind-Value="_model.SdiCode"
                                               Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
                                               Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
                                               MaxLength="10" />
                             </MudItem>
                         </MudGrid>
@@ -139,22 +143,22 @@
                 </MudStack>
             </MudForm>
         </div>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel" 
                    Variant="Variant.Text" 
-                   Color="Color.Default">
+                   Disabled="@_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton OnClick="CreatePartner" 
                    Variant="Variant.Filled" 
                    Color="Color.Primary"
                    Disabled="@(!_isFormValid || _isLoading)"
-                   StartIcon="@Icons.Material.Filled.Save">
+                   StartIcon="@Icons.Material.Outlined.Save">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 
