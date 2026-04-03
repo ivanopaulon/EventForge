@@ -119,8 +119,22 @@
             <MudItem xs="12">
                 <MudPaper Class="pa-4">
                     <MudText Typo="Typo.h6" Class="mb-3">Transfer Items</MudText>
-                    <MudTable Items="@_transferOrder.Rows" Dense="true" Hover="true" Striped="true">
-                        <HeaderContent>
+                    <EFTable TItem="TransferOrderRowDto"
+                             Items="@_transferOrder.Rows"
+                             Dense="true"
+                             Hover="true"
+                             Striped="true"
+                             ShowSearch="false"
+                             ShowFilters="false"
+                             ShowRefresh="false"
+                             ShowCreate="false"
+                             ShowExport="false"
+                             ShowColumnConfiguration="false"
+                             ShowFooter="false"
+                             AllowDragDropGrouping="false"
+                             ComponentKey="transfer-order-detail-rows"
+                             InitialColumnConfigurations="@_rowColumns">
+                        <HeaderContent Context="columns">
                             <MudTh>Product</MudTh>
                             <MudTh>Code</MudTh>
                             <MudTh>Source Location</MudTh>
@@ -130,17 +144,17 @@
                             <MudTh>Qty Shipped</MudTh>
                             <MudTh>Qty Received</MudTh>
                         </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Product">@context.ProductName</MudTd>
-                            <MudTd DataLabel="Code">@context.ProductCode</MudTd>
-                            <MudTd DataLabel="Source Location">@context.SourceLocationCode</MudTd>
-                            <MudTd DataLabel="Dest. Location">@(context.DestinationLocationCode ?? "N/A")</MudTd>
-                            <MudTd DataLabel="Lot">@(context.LotCode ?? "N/A")</MudTd>
-                            <MudTd DataLabel="Qty Ordered">@context.QuantityOrdered</MudTd>
-                            <MudTd DataLabel="Qty Shipped">@context.QuantityShipped</MudTd>
-                            <MudTd DataLabel="Qty Received">@context.QuantityReceived</MudTd>
+                        <RowTemplate Context="row">
+                            <MudTd DataLabel="Product">@row.ProductName</MudTd>
+                            <MudTd DataLabel="Code">@row.ProductCode</MudTd>
+                            <MudTd DataLabel="Source Location">@row.SourceLocationCode</MudTd>
+                            <MudTd DataLabel="Dest. Location">@(row.DestinationLocationCode ?? "N/A")</MudTd>
+                            <MudTd DataLabel="Lot">@(row.LotCode ?? "N/A")</MudTd>
+                            <MudTd DataLabel="Qty Ordered">@row.QuantityOrdered</MudTd>
+                            <MudTd DataLabel="Qty Shipped">@row.QuantityShipped</MudTd>
+                            <MudTd DataLabel="Qty Received">@row.QuantityReceived</MudTd>
                         </RowTemplate>
-                    </MudTable>
+                    </EFTable>
                 </MudPaper>
             </MudItem>
 
@@ -160,6 +174,18 @@
 
     private bool _isLoading = true;
     private TransferOrderDto? _transferOrder;
+
+    private readonly List<EFTableColumnConfiguration> _rowColumns = new()
+    {
+        new() { PropertyName = "ProductName",             DisplayName = "Product",         Order = 0 },
+        new() { PropertyName = "ProductCode",             DisplayName = "Code",            Order = 1 },
+        new() { PropertyName = "SourceLocationCode",      DisplayName = "Source Location", Order = 2 },
+        new() { PropertyName = "DestinationLocationCode", DisplayName = "Dest. Location",  Order = 3 },
+        new() { PropertyName = "LotCode",                 DisplayName = "Lot",             Order = 4 },
+        new() { PropertyName = "QuantityOrdered",         DisplayName = "Qty Ordered",     Order = 5 },
+        new() { PropertyName = "QuantityShipped",         DisplayName = "Qty Shipped",     Order = 6 },
+        new() { PropertyName = "QuantityReceived",        DisplayName = "Qty Received",    Order = 7 },
+    };
 
     protected override async Task OnInitializedAsync()
     {

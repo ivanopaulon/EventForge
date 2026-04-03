@@ -33,8 +33,24 @@
 
                     @if (_document.Rows?.Any() == true)
                     {
-                        <MudTable Items="_document.Rows" Dense="true" Hover="true" Striped="true" Height="400px" FixedHeader="true" RowsPerPage="100">
-                            <HeaderContent>
+                        <EFTable TItem="DocumentRowDto"
+                                 Items="_document.Rows"
+                                 Dense="true"
+                                 Hover="true"
+                                 Striped="true"
+                                 FixedHeader="true"
+                                 Height="400px"
+                                 ShowSearch="false"
+                                 ShowFilters="false"
+                                 ShowRefresh="false"
+                                 ShowCreate="false"
+                                 ShowExport="false"
+                                 ShowColumnConfiguration="false"
+                                 ShowFooter="false"
+                                 AllowDragDropGrouping="false"
+                                 ComponentKey="document-viewer-dialog-rows"
+                                 InitialColumnConfigurations="@_rowColumns">
+                            <HeaderContent Context="columns">
                                 <MudTh>@TranslationService.GetTranslation("field.product", "Prodotto")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.unitOfMeasure", "UM")</MudTh>
                                 <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
@@ -46,7 +62,7 @@
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">@r.Quantity.ToString("N2")</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.unitPrice", "Prezzo")" Style="text-align:right;">€@r.UnitPrice.ToString("N2")</MudTd>
                             </RowTemplate>
-                        </MudTable>
+                        </EFTable>
                     }
                     else
                     {
@@ -80,6 +96,14 @@
     private DocumentHeaderDto? _document;
     private string _title = "";
     private bool _isLoading = true;
+
+    private readonly List<EFTableColumnConfiguration> _rowColumns = new()
+    {
+        new() { PropertyName = "Description",   DisplayName = "Prodotto",  Order = 0 },
+        new() { PropertyName = "UnitOfMeasure", DisplayName = "UM",        Order = 1 },
+        new() { PropertyName = "Quantity",      DisplayName = "Quantità",  Order = 2 },
+        new() { PropertyName = "UnitPrice",     DisplayName = "Prezzo",    Order = 3 },
+    };
 
     protected override async Task OnInitializedAsync()
     {

@@ -266,25 +266,40 @@ else if (_profile != null)
                     <MudIcon Icon="@Icons.Material.Outlined.DevicesOther" Class="mr-2" Size="Size.Small" />
                     @TranslationService.GetTranslation("profile.activeSessions", "Sessioni Attive")
                 </MudText>
-                <MudTable Items="@_activeSessions" Hover="true" Breakpoint="Breakpoint.Sm"
-                          Loading="_isLoadingSessions" LoadingProgressColor="Color.Primary">
-                    <HeaderContent>
+                <EFTable TItem="ActiveSessionDto"
+                         Items="@_activeSessions"
+                         Hover="true"
+                         Dense="true"
+                         IsLoading="@_isLoadingSessions"
+                         LoadingProgressColor="Color.Primary"
+                         Breakpoint="Breakpoint.Sm"
+                         ShowSearch="false"
+                         ShowFilters="false"
+                         ShowRefresh="false"
+                         ShowCreate="false"
+                         ShowExport="false"
+                         ShowColumnConfiguration="false"
+                         ShowFooter="false"
+                         AllowDragDropGrouping="false"
+                         ComponentKey="profile-active-sessions"
+                         InitialColumnConfigurations="@_sessionColumns">
+                    <HeaderContent Context="columns">
                         <MudTh>@TranslationService.GetTranslation("field.browser", "Browser")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("field.device", "Dispositivo")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("field.ipAddress", "IP")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("field.loginTime", "Accesso")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="Browser">@context.Browser</MudTd>
-                        <MudTd DataLabel="Dispositivo">@context.OperatingSystem - @context.DeviceType</MudTd>
-                        <MudTd DataLabel="IP">@context.IpAddress</MudTd>
-                        <MudTd DataLabel="Accesso">@context.LoginTime.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                    <RowTemplate Context="session">
+                        <MudTd DataLabel="Browser">@session.Browser</MudTd>
+                        <MudTd DataLabel="Dispositivo">@session.OperatingSystem - @session.DeviceType</MudTd>
+                        <MudTd DataLabel="IP">@session.IpAddress</MudTd>
+                        <MudTd DataLabel="Accesso">@session.LoginTime.ToString("dd/MM/yyyy HH:mm")</MudTd>
                         <MudTd>
-                            @if (!context.IsCurrentSession)
+                            @if (!session.IsCurrentSession)
                             {
                                 <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small"
-                                               OnClick="@(() => TerminateSession(context.Id))"
+                                               OnClick="@(() => TerminateSession(session.Id))"
                                                aria-label="@TranslationService.GetTranslation("profile.terminateSession", "Termina sessione")" />
                             }
                             else
@@ -295,7 +310,7 @@ else if (_profile != null)
                             }
                         </MudTd>
                     </RowTemplate>
-                </MudTable>
+                </EFTable>
 
                 @if (_activeSessions.Count > 1)
                 {
@@ -401,6 +416,15 @@ else if (_profile != null)
     private UpdateNotificationPreferencesDto _notificationPreferences = new();
     private List<ActiveSessionDto> _activeSessions = new();
     private List<LoginHistoryDto> _loginHistory = new();
+
+    private readonly List<EFTableColumnConfiguration> _sessionColumns = new()
+    {
+        new() { PropertyName = "Browser",         DisplayName = "Browser",      Order = 0 },
+        new() { PropertyName = "OperatingSystem", DisplayName = "Dispositivo",  Order = 1 },
+        new() { PropertyName = "IpAddress",       DisplayName = "IP",           Order = 2 },
+        new() { PropertyName = "LoginTime",       DisplayName = "Accesso",      Order = 3 },
+        new() { PropertyName = "Actions",         DisplayName = "Azioni",       Order = 4 },
+    };
 
     protected override async Task OnInitializedAsync()
     {
