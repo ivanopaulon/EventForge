@@ -519,7 +519,6 @@ kbd {
 /* Unified EFTable wrapper - ALWAYS THE SAME across all pages */
 .eftable-wrapper {
     width: 100%;
-    margin-top: 1rem;
     display: flex;
     flex-direction: column;
     min-height: 0; /* Critical for overflow: auto to work in flex containers */
@@ -689,4 +688,31 @@ kbd {
 .quick-filter-count {
     font-weight: 600;
     margin-left: 4px;
+}
+
+/* ============================================
+   Quick Filters — In-Toolbar Variant
+   ============================================ */
+
+/* Compact wrapper for use inside EFTable toolbar */
+.quick-filters-wrapper.in-toolbar {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 0 4px;
+    margin: 0;
+    /* Hide scrollbar but keep functionality */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.quick-filters-wrapper.in-toolbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Disable hover transform inside toolbar to avoid layout shifts */
+.quick-filters-wrapper.in-toolbar .mud-chip:hover {
+    transform: none;
+    box-shadow: none;
 }
