@@ -59,7 +59,7 @@
                         </MudAvatar>
                         <div>
                             <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..8])...</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
                         </div>
                     </div>
                 </MudTd>
@@ -115,8 +115,8 @@
             QuickFilters = new()
             {
                 new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutte le nature IVA" },
-                new() { Id = "exempt", Label = "Esenti", Predicate = v => v.Code != null && new[] { "N1", "N2", "N3", "N4" }.Any(p => v.Code.StartsWith(p)), Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Nature IVA esenti (N1-N4)" },
-                new() { Id = "non_taxable", Label = "Non Imponibili", Predicate = v => v.Code != null && new[] { "N5", "N6", "N7" }.Any(p => v.Code.StartsWith(p)), Color = Color.Info, Icon = Icons.Material.Outlined.Block, Description = "Nature IVA non imponibili (N5-N7)" },
+                new() { Id = "exempt", Label = "Esenti", Predicate = v => v.Code != null && new[] { "N1", "N2", "N3", "N4" }.Any(prefix => v.Code.StartsWith(prefix)), Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Nature IVA esenti (N1-N4)" },
+                new() { Id = "non_taxable", Label = "Non Imponibili", Predicate = v => v.Code != null && new[] { "N5", "N6", "N7" }.Any(prefix => v.Code.StartsWith(prefix)), Color = Color.Info, Icon = Icons.Material.Outlined.Block, Description = "Nature IVA non imponibili (N5-N7)" },
                 new() { Id = "with_description", Label = "Con Descrizione", Predicate = v => !string.IsNullOrEmpty(v.Description), Color = Color.Primary, Icon = Icons.Material.Outlined.Description, Description = "Nature IVA con descrizione" },
                 new() { Id = "recent", Label = "Recenti", Predicate = v => v.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases, Description = "Nature IVA aggiunte negli ultimi 30 giorni" }
             }
