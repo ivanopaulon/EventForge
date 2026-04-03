@@ -9,18 +9,12 @@
 @inject ILogger<InventoryDocumentDetailsDialog> Logger
 @inject IDialogService DialogService
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.documentDetails", "Dettagli Documento")
-            @if (Document != null)
-            {
-                <span class="ml-2">- @Document.Number</span>
-            }
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Inventory"
+          Title="Dettagli Documento Inventario"
+          IsProcessing="@_isProcessing"
+          OnClose="Close"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
         @if (Document != null)
         {
             <MudGrid>
@@ -221,12 +215,19 @@
         {
             <MudText>@TranslationService.GetTranslation("common.noDataAvailable", "Nessun dato disponibile")</MudText>
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         @if (Document != null && Document.Status == "Draft")
         {
             @if (_isEditingDate || _isEditingNotes)
             {
+                <MudButton StartIcon="@Icons.Material.Outlined.Cancel" 
+                           Color="Color.Default" 
+                           Variant="Variant.Text"
+                           OnClick="@CancelEdit"
+                           Disabled="_isProcessing">
+                    @TranslationService.GetTranslation("common.cancel", "Annulla")
+                </MudButton>
                 <MudButton StartIcon="@Icons.Material.Outlined.Save" 
                            Color="Color.Primary" 
                            Variant="Variant.Filled"
@@ -234,16 +235,22 @@
                            Disabled="_isProcessing">
                     @TranslationService.GetTranslation("common.save", "Salva")
                 </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Cancel" 
-                           Color="Color.Default" 
-                           Variant="Variant.Outlined"
-                           OnClick="@CancelEdit"
-                           Disabled="_isProcessing">
-                    @TranslationService.GetTranslation("common.cancel", "Annulla")
-                </MudButton>
             }
             else
             {
+                <MudButton StartIcon="@Icons.Material.Outlined.FileDownload"
+                           Color="Color.Info"
+                           Variant="Variant.Outlined"
+                           OnClick="@ExportToExcel"
+                           Disabled="_isProcessing">
+                    @TranslationService.GetTranslation("common.exportExcel", "Esporta Excel")
+                </MudButton>
+                <MudButton OnClick="Close"
+                           Color="Color.Default"
+                           Variant="Variant.Text"
+                           Disabled="_isProcessing">
+                    @TranslationService.GetTranslation("common.close", "Chiudi")
+                </MudButton>
                 <MudButton StartIcon="@Icons.Material.Outlined.CheckCircle" 
                            Color="Color.Success" 
                            Variant="Variant.Filled"
@@ -261,18 +268,24 @@
                 </MudButton>
             }
         }
-        <MudButton StartIcon="@Icons.Material.Outlined.FileDownload"
-                   Color="Color.Info"
-                   Variant="Variant.Outlined"
-                   OnClick="@ExportToExcel"
-                   Disabled="_isProcessing">
-            @TranslationService.GetTranslation("common.exportExcel", "Esporta Excel")
-        </MudButton>
-        <MudButton OnClick="Close" Color="Color.Default">
-            @TranslationService.GetTranslation("common.close", "Chiudi")
-        </MudButton>
+        else
+        {
+            <MudButton StartIcon="@Icons.Material.Outlined.FileDownload"
+                       Color="Color.Info"
+                       Variant="Variant.Outlined"
+                       OnClick="@ExportToExcel"
+                       Disabled="_isProcessing">
+                @TranslationService.GetTranslation("common.exportExcel", "Esporta Excel")
+            </MudButton>
+            <MudButton OnClick="Close"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Outlined.Close">
+                @TranslationService.GetTranslation("common.close", "Chiudi")
+            </MudButton>
+        }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 

@@ -5,18 +5,17 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ProductSearchDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Search"
+          Title="Cerca Prodotto"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
         <MudStack Spacing="3">
-            <!-- Title and Search -->
-            <MudText Typo="Typo.h6">
-                @TranslationService.GetTranslation("sales.multipleProductsFound", "Più prodotti trovati")
-            </MudText>
-
             <!-- Search Field -->
             <MudTextField @bind-Value="_searchQuery"
                           Label="@TranslationService.GetTranslation("common.search", "Cerca")"
                           Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Outlined.Search"
                           OnKeyUp="@OnSearchKeyUp"
@@ -78,13 +77,15 @@
                 }
             </div>
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="@Cancel" Color="Color.Default">
+        <MudButton OnClick="@Cancel"
+                   Color="Color.Default"
+                   Variant="Variant.Text">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

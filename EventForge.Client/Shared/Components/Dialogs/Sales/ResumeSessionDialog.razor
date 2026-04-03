@@ -7,14 +7,12 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.Restore" Class="mr-2" />
-            @TranslationService.GetTranslation("sales.resumeSession", "Riprendi Sessione")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.RestartAlt"
+          Title="Riprendi Sessione"
+          IsProcessing="false"
+          OnClose="@(() => MudDialog?.Cancel())"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
             @TranslationService.GetTranslation("sales.suspendedSessionsFound", "Sono state trovate {0} sessioni di vendita parcheggiate. Seleziona una sessione da riprendere o creane una nuova.", _filteredSessions?.Count ?? 0)
         </MudAlert>
@@ -230,19 +228,22 @@
                 @TranslationService.GetTranslation("sales.noSuspendedSessions", "Nessuna sessione parcheggiata trovata")
             </MudAlert>
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="CreateNew" Color="Color.Secondary" Variant="Variant.Outlined">
+        <MudButton OnClick="CreateNew"
+                   Color="Color.Secondary"
+                   Variant="Variant.Outlined">
             @TranslationService.GetTranslation("sales.createNewSession", "Nuova Sessione")
         </MudButton>
         <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.RestartAlt"
                    OnClick="Resume"
                    Disabled="@(_selectedSession == null)">
             @TranslationService.GetTranslation("sales.resumeSession", "Riprendi Sessione")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]
