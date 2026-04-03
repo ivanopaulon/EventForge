@@ -1,698 +1,177 @@
 @page "/financial/vat-rates"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.VatRates
-@using EventForge.DTOs.Common
-@using EventForge.Client.Shared.Components
-@using EventForge.Client.Extensions
-@using MudBlazor
 @attribute [Authorize]
-@inject IAuthService AuthService
 @inject IFinancialService FinancialService
-@inject NavigationManager NavigationManager
-@inject IAuthenticationDialogService AuthenticationDialogService
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<VatRateManagement> Logger
-@inject IJSRuntime JSRuntime
 
-<PageLoadingOverlay Visible="_isLoading || _isLoadingVatRates"
-                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
-
-@if (!_isLoading)
-{
-    <div class="vat-rate-page-root">
-        <!-- Quick Filters -->
-        <QuickFilters TItem="VatRateDto"
-                      Items="_vatRates"
-                      Filters="_quickFilters"
-                      OnFilterSelected="@HandleQuickFilter"
-                      ShowCount="true" />
-
-        <div class="eftable-wrapper">
-            <EFTable @ref="_efTable"
-                 TItem="VatRateDto"
-                 Items="_filteredVatRates"
-                 MultiSelection="true"
-                 SelectedItems="_selectedVatRates"
-                 SelectedItemsChanged="_selectedItemsChangedCallback"
-                 IsLoading="_isLoadingVatRates"
-                 ComponentKey="VatRateManagement"
-                 InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true"
-                 ShowExport="true"
-                 ShowExportDialog="true"
-                 ExportFormats="@(new List<string> { "Excel" })"
-                 ExcelFileName="AliquoteIVA"
-                 IsDataFiltered="@HasActiveFilters()"
-                 TotalItemsCount="@_vatRates.Count"
-                 OnRowClick="@HandleRowClick"
-                 Title="@TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")"
-                 ShowSearch="true"
-                 SearchPlaceholder="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
-                 OnSearch="@OnSearchChanged"
-                 ShowSelectionBadge="true"
-                 ShowRefresh="true"
-                 OnRefresh="@LoadVatRatesAsync"
-                 ShowCreate="true"
-                 OnCreate="@CreateVatRate"
-                 CreateTooltip="financial.createNewVatRate"
-                 ShowBulkDelete="true"
-                 OnBulkDelete="@DeleteSelectedVatRates"
-                 IsToolbarDisabled="@_isLoadingVatRates">
-            <HeaderContent Context="columnConfigurations">
-                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
-                {
-                    @if (column.PropertyName == "Name")
-                    {
-                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "Percentage")
-                    {
-                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="Percentage" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Percentage))">@TranslationService.GetTranslation("field.percentage", "Percentuale")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "Status")
-                    {
-                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "ValidFrom")
-                    {
-                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidFrom" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "ValidTo")
-                    {
-                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidTo" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido A")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "CreatedAt")
-                    {
-                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatRateDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                }
-                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-            </HeaderContent>
-
-            <RowTemplate Context="item">
-                @{
-                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
-                }
-                @foreach (var column in visibleColumns)
-                {
-                    @if (column.PropertyName == "Name")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                            <div class="d-flex align-center">
-                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Percent" />
-                                </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.body2">@item.Name</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @item.Id.ToString().Substring(0, 8)...</MudText>
-                                </div>
-                            </div>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "Percentage")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.percentage", "Percentuale")">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@($"{item.Percentage}%")</MudChip>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "Status")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                            <MudChip T="string" Color="@GetStatusColor(item.Status)"
-                                     Size="Size.Small"
-                                     Icon="@GetStatusIcon(item.Status)">
-                                @GetStatusText(item.Status)
-                            </MudChip>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "ValidFrom")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.validFrom", "Valido Da")">
-                            <MudText Typo="Typo.body2">@(item.ValidFrom?.ToString("dd/MM/yyyy") ?? "-")</MudText>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "ValidTo")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.validTo", "Valido A")">
-                            <MudText Typo="Typo.body2">@(item.ValidTo?.ToString("dd/MM/yyyy") ?? "-")</MudText>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "CreatedAt")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
-                            <MudText Typo="Typo.body2">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
-                        </MudTd>
-                    }
-                }
-                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                    <ActionButtonGroup EntityName="@item.Name"
-                                       ItemDisplayName="@item.Name"
-                                       ShowView="false"
-                                       ShowEdit="true"
-                                       ShowAuditLog="true"
-                                       ShowToggleStatus="false"
-                                       ShowDelete="true"
-                                       IsActive="@item.IsActive"
-                                       OnEdit="@(() => EditVatRate(item.Id))"
-                                       OnAuditLog="@(() => ViewVatRateAuditLog(item))"
-                                       OnToggleStatus="@(() => ToggleVatRateStatus(item))"
-                                       OnDelete="@(() => DeleteVatRate(item))" />
-                </MudTd>
-            </RowTemplate>
-
-            <NoRecordsContent>
-                <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                    <MudIcon Icon="@Icons.Material.Outlined.Percent" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
-                    <MudText Typo="Typo.h6" Class="mb-2">
-                        @(_vatRates.Any() ?
-                                            TranslationService.GetTranslation("financial.noVatRatesMatchFilters", "Nessuna aliquota IVA corrisponde ai filtri applicati") :
-                                            TranslationService.GetTranslation("financial.noVatRatesFound", "Nessuna aliquota IVA trovata"))
-                    </MudText>
-                    @if (_vatRates.Any())
-                    {
-                        <MudButton Variant="Variant.Text"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Outlined.Clear"
-                                   OnClick="@ClearFilters">
-                            @TranslationService.GetTranslation("financial.clearFilters", "Cancella filtri")
-                        </MudButton>
-                    }
-                </div>
-            </NoRecordsContent>
-            </EFTable>
-            
-            <!-- Pagination -->
-            @if (_pagedResult != null)
+<EntityManagementPage TEntity="VatRateDto"
+                      Config="_config"
+                      Service="_service">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Name")
             {
-                <MudDivider Class="my-4" />
-                <div class="d-flex justify-center align-center flex-wrap gap-4">
-                    @if (_pagedResult.TotalPages > 1)
-                    {
-                        <MudPagination Count="@_pagedResult.TotalPages" 
-                                       Selected="@_currentPage" 
-                                       Color="Color.Primary"
-                                       Size="Size.Medium"
-                                       ShowFirstButton="true"
-                                       ShowLastButton="true"
-                                       SelectedChanged="@OnPageChanged" />
-                    }
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @if (_pagedResult.TotalPages > 1)
-                        {
-                            @TranslationService.GetTranslation("pagination.info", 
-                                "Pagina {0} di {1} - Totale: {2} aliquote", 
-                                _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
-                        }
-                        else
-                        {
-                            @TranslationService.GetTranslation("pagination.singlePage", 
-                                "Totale: {0} aliquote", 
-                                _pagedResult.TotalCount)
-                        }
-                    </MudText>
-                </div>
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
             }
-        </div>
-    </div>
-}
+            else if (column.PropertyName == "Percentage")
+            {
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Percentage">
+                    <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Percentage))">@TranslationService.GetTranslation("field.percentage", "Percentuale")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ValidFrom")
+            {
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidFrom">
+                    <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ValidTo")
+            {
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidTo">
+                    <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido A")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="CreatedAt">
+                    <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatRateDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Percent" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..8])...</MudText>
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Percentage")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.percentage", "Percentuale")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@($"{ctx.Item.Percentage}%")</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                    <MudChip T="string" Color="@GetStatusColor(ctx.Item.Status)"
+                             Size="Size.Small"
+                             Icon="@GetStatusIcon(ctx.Item.Status)">
+                        @GetStatusText(ctx.Item.Status)
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "ValidFrom")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.validFrom", "Valido Da")">
+                    <MudText Typo="Typo.body2">@(ctx.Item.ValidFrom?.ToString("dd/MM/yyyy") ?? "-")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "ValidTo")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.validTo", "Valido A")">
+                    <MudText Typo="Typo.body2">@(ctx.Item.ValidTo?.ToString("dd/MM/yyyy") ?? "-")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                    <MudText Typo="Typo.body2">@ctx.Item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
 
 @code {
-    // Dialog options for fullscreen audit dialog
-    private readonly DialogOptions _auditDialogOptions = new() 
-    { 
-        FullScreen = true, 
-        CloseButton = true,
-        MaxWidth = MaxWidth.False
-    };
-    
-    // UI State Management
-    private bool _isLoading = true;
-    private bool _isLoadingVatRates = false;
-    
-    // Filter and search state
-    private string _searchTerm = string.Empty;
-    
-    // Quick Filters
-    private List<QuickFilter<VatRateDto>> _quickFilters = new()
-    {
-        new() 
-        { 
-            Id = "all", 
-            Label = "Tutte",
-            Predicate = _ => true,
-            Description = "Mostra tutte le aliquote IVA"
-        },
-        new() 
-        { 
-            Id = "active", 
-            Label = "Attive",
-            Predicate = v => v.Status == VatRateStatus.Active,
-            Color = Color.Success,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Description = "Aliquote IVA attive"
-        },
-        new() 
-        { 
-            Id = "suspended", 
-            Label = "Sospese",
-            Predicate = v => v.Status == VatRateStatus.Suspended,
-            Color = Color.Warning,
-            Icon = Icons.Material.Outlined.Warning,
-            Description = "Aliquote IVA sospese"
-        },
-        new() 
-        { 
-            Id = "archived", 
-            Label = "Eliminate",
-            Predicate = v => v.Status == VatRateStatus.Deleted,
-            Color = Color.Default,
-            Icon = Icons.Material.Outlined.Archive,
-            Description = "Aliquote IVA eliminate"
-        },
-        new() 
-        { 
-            Id = "standard", 
-            Label = "Standard (≥ 20%)",
-            Predicate = v => v.Percentage >= 20,
-            Color = Color.Primary,
-            Icon = Icons.Material.Outlined.TrendingUp,
-            Description = "Aliquote standard (20% o superiori)"
-        },
-        new() 
-        { 
-            Id = "reduced", 
-            Label = "Ridotte (< 20%)",
-            Predicate = v => v.Percentage < 20,
-            Color = Color.Info,
-            Icon = Icons.Material.Outlined.TrendingDown,
-            Description = "Aliquote ridotte (inferiori al 20%)"
-        }
-    };
-    
-    private QuickFilter<VatRateDto>? _activeQuickFilter;
-    
-    // Pagination state
-    private PagedResult<VatRateDto>? _pagedResult;
-    private int _currentPage = 1;
-    private int _pageSize = 20;
-    
-    // Data collections
-    private List<VatRateDto> _vatRates = new();
-    private HashSet<VatRateDto> _selectedVatRates = new();
+    private IEntityManagementService<VatRateDto> _service = null!;
+    private EntityManagementConfig<VatRateDto> _config = null!;
 
-    // EFTable reference
-    private EFTable<VatRateDto> _efTable = null!;
-
-    // Column configuration for EFTable
-    private List<EFTableColumnConfiguration> _initialColumns = new()
+    protected override void OnInitialized()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
-        new() { PropertyName = "Percentage", DisplayName = "Percentuale", IsVisible = true, Order = 1, IsSearchable = false },
-        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2, IsSearchable = false },
-        new() { PropertyName = "ValidFrom", DisplayName = "Valido Da", IsVisible = true, Order = 3, IsSearchable = false },
-        new() { PropertyName = "ValidTo", DisplayName = "Valido A", IsVisible = true, Order = 4, IsSearchable = false },
-        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5, IsSearchable = false }
+        _service = new VatRateManagementService(FinancialService);
+        _config = new EntityManagementConfig<VatRateDto>
+        {
+            ComponentKey = "VatRateManagement",
+            PageTitleKey = "financial.vatRateManagement",
+            PageTitleDefault = "Gestione Aliquote IVA",
+            EntityIcon = Icons.Material.Outlined.Percent,
+            PageRootCssClass = "vat-rate-page-root",
+            BaseRoute = "/financial/vat-rates",
+            ExcelFileName = "AliquoteIVA",
+            SearchPlaceholderKey = "financial.searchVatRates",
+            SearchPlaceholderDefault = "Cerca aliquote IVA",
+            CreateTooltip = "financial.createNewVatRate",
+            EntityTypeName = "VatRate",
+            ShowToggleStatus = false,
+            GetDisplayName = v => v.Name,
+            GetId = v => v.Id,
+            GetIsActive = v => v.IsActive,
+            Columns = new()
+            {
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Percentage", DisplayName = "Percentuale", IsVisible = true, Order = 1, IsSearchable = false },
+                new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "ValidFrom", DisplayName = "Valido Da", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "ValidTo", DisplayName = "Valido A", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutte", Predicate = _ => true, Description = "Mostra tutte le aliquote IVA" },
+                new() { Id = "active", Label = "Attive", Predicate = v => v.Status == VatRateStatus.Active, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Aliquote IVA attive" },
+                new() { Id = "suspended", Label = "Sospese", Predicate = v => v.Status == VatRateStatus.Suspended, Color = Color.Warning, Icon = Icons.Material.Outlined.Warning, Description = "Aliquote IVA sospese" },
+                new() { Id = "archived", Label = "Eliminate", Predicate = v => v.Status == VatRateStatus.Deleted, Color = Color.Default, Icon = Icons.Material.Outlined.Archive, Description = "Aliquote IVA eliminate" },
+                new() { Id = "standard", Label = "Standard (≥ 20%)", Predicate = v => v.Percentage >= 20, Color = Color.Primary, Icon = Icons.Material.Outlined.TrendingUp, Description = "Aliquote standard (20% o superiori)" },
+                new() { Id = "reduced", Label = "Ridotte (< 20%)", Predicate = v => v.Percentage < 20, Color = Color.Info, Icon = Icons.Material.Outlined.TrendingDown, Description = "Aliquote ridotte (inferiori al 20%)" }
+            }
+        };
+    }
+
+    private Color GetStatusColor(VatRateStatus status) => status switch
+    {
+        VatRateStatus.Active => Color.Success,
+        VatRateStatus.Suspended => Color.Warning,
+        VatRateStatus.Deleted => Color.Error,
+        _ => Color.Default
     };
 
-    private EventCallback<HashSet<VatRateDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<VatRateDto>>(this, OnSelectedItemsChanged);
-
-    /// <summary>
-    /// Handles quick filter selection
-    /// </summary>
-    private void HandleQuickFilter(QuickFilter<VatRateDto>? filter)
+    private string GetStatusIcon(VatRateStatus status) => status switch
     {
-        _activeQuickFilter = filter;
-        StateHasChanged();
-    }
+        VatRateStatus.Active => Icons.Material.Outlined.CheckCircle,
+        VatRateStatus.Suspended => Icons.Material.Outlined.Pause,
+        VatRateStatus.Deleted => Icons.Material.Outlined.Cancel,
+        _ => Icons.Material.Outlined.Help
+    };
 
-    /// <summary>
-    /// Computed property for filtered VAT rates based on search criteria.
-    /// </summary>
-    private IEnumerable<VatRateDto> _filteredVatRates => 
-        _vatRates.Where(v => FilterVatRate(v));
-
-    /// <summary>
-    /// Filters a VAT rate based on search term and status
-    /// </summary>
-    private bool FilterVatRate(VatRateDto vatRate)
+    private string GetStatusText(VatRateStatus status) => status switch
     {
-        // Quick filter
-        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
-        {
-            if (!_activeQuickFilter.Predicate(vatRate))
-                return false;
-        }
-
-        // Configurable multi-column search
-        if (!vatRate.MatchesSearchInColumns(
-            _searchTerm,
-            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
-            return false;
-
-        return true;
-    }
-
-    /// <summary>
-    /// Handles selection changes from EFTable
-    /// </summary>
-    private void OnSelectedItemsChanged(HashSet<VatRateDto> items)
-    {
-        _selectedVatRates = items;
-        StateHasChanged();
-    }
-
-    /// <summary>
-    /// Handles row click - navigates to VAT rate detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<VatRateDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/management/financial/vat-rates/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/management/financial/vat-rates/{args.Item.Id}");
-    }
-
-    /// <summary>
-    /// Component initialization.
-    /// </summary>
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            // Check authentication
-            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-            if (!isAuthenticated)
-            {
-                await ShowLoginDialogAsync();
-                return;
-            }
-
-            // Load VAT rates
-            await LoadVatRatesAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("financial.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
-            Logger.LogError(ex, "Error loading VAT rates page");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    /// <summary>
-    /// Loads VAT rate data.
-    /// </summary>
-    private async Task LoadVatRatesAsync()
-    {
-        try
-        {
-            _isLoadingVatRates = true;
-            _pagedResult = await FinancialService.GetVatRatesAsync(_currentPage, _pageSize);
-            
-            if (_pagedResult != null)
-            {
-                _vatRates = _pagedResult.Items.ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("financial.loadingVatRatesError", "Errore nel caricamento delle aliquote IVA: {0}", ex.Message), Severity.Error);
-            Logger.LogError(ex, "Error loading VAT rates");
-        }
-        finally
-        {
-            _isLoadingVatRates = false;
-        }
-    }
-
-    /// <summary>
-    /// Clears all active filters.
-    /// </summary>
-    private async Task ClearFilters()
-    {
-        _searchTerm = string.Empty;
-        _activeQuickFilter = null;
-        await Task.CompletedTask;
-        StateHasChanged();
-    }
-
-    private void OnSearchChanged(string term)
-    {
-        _currentPage = 1;
-        _searchTerm = term;
-    }
-
-    private async Task OnPageChanged(int page)
-    {
-        _currentPage = page;
-        await LoadVatRatesAsync();
-    }
-
-    private async Task OnStatusFilterChanged()
-    {
-        await Task.CompletedTask;
-        StateHasChanged();
-    }
-
-    private void CreateVatRate()
-    {
-        NavigationManager.NavigateTo("/financial/vat-rates/new");
-    }
-
-    private void EditVatRate(Guid id)
-    {
-        NavigationManager.NavigateTo($"/financial/vat-rates/{id}");
-    }
-
-    private async Task DeleteVatRate(VatRateDto vatRate)
-    {
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslation("financial.confirmVatRateDelete", 
-            "Sei sicuro di voler eliminare l'aliquota IVA '{0}'? Questa azione non può essere annullata.", 
-            vatRate.Name);
-
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirm == true)
-        {
-            try
-            {
-                await FinancialService.DeleteVatRateAsync(vatRate.Id);
-                _vatRates.Remove(vatRate);
-                Snackbar.Add(TranslationService.GetTranslation("financial.vatRateDeleted", "Aliquota IVA eliminata con successo!"), Severity.Success);
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("financial.deleteVatRateError", 
-                    "Errore nell'eliminazione dell'aliquota IVA: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error deleting VAT rate {VatRateId}", vatRate.Id);
-            }
-        }
-    }
-
-    private Color GetStatusColor(VatRateStatus status)
-    {
-        return status switch
-        {
-            VatRateStatus.Active => Color.Success,
-            VatRateStatus.Suspended => Color.Warning,
-            VatRateStatus.Deleted => Color.Error,
-            _ => Color.Default
-        };
-    }
-
-    private string GetStatusIcon(VatRateStatus status)
-    {
-        return status switch
-        {
-            VatRateStatus.Active => Icons.Material.Outlined.CheckCircle,
-            VatRateStatus.Suspended => Icons.Material.Outlined.Pause,
-            VatRateStatus.Deleted => Icons.Material.Outlined.Cancel,
-            _ => Icons.Material.Outlined.Help
-        };
-    }
-
-    private string GetStatusText(VatRateStatus status)
-    {
-        return status switch
-        {
-            VatRateStatus.Active => TranslationService.GetTranslation("field.active", "Attivo"),
-            VatRateStatus.Suspended => TranslationService.GetTranslation("field.suspended", "Sospeso"),
-            VatRateStatus.Deleted => TranslationService.GetTranslation("field.deleted", "Eliminato"),
-            _ => status.ToString()
-        };
-    }
-
-    /// <summary>
-    /// Opens the audit log dialog for a VAT rate using IDialogService.
-    /// </summary>
-    private async Task ViewVatRateAuditLog(VatRateDto vatRate)
-    {
-        var parameters = new DialogParameters<AuditHistoryDialog>
-        {
-            { x => x.EntityType, "VatRate" },
-            { x => x.EntityId, vatRate.Id },
-            { x => x.EntityName, vatRate.Name }
-        };
-
-        await DialogService.ShowAsync<AuditHistoryDialog>(
-            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
-            parameters,
-            _auditDialogOptions);
-    }
-
-    /// <summary>
-    /// Toggles the active status of a VAT rate.
-    /// </summary>
-    private async Task ToggleVatRateStatus(VatRateDto vatRate)
-    {
-        var actionText = vatRate.IsActive ? 
-            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
-            TranslationService.GetTranslation("common.activate", "attivare");
-            
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslationFormatted("vatRate.confirmStatusChange", 
-            "Sei sicuro di voler {0} l'aliquota IVA '{1}'?", 
-            actionText, vatRate.Name);
-
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirm == true)
-        {
-            try
-            {
-                // Toggle the status locally (in a real implementation, you would call a service method)
-                vatRate.IsActive = !vatRate.IsActive;
-                
-                var statusMessage = vatRate.IsActive ?
-                    TranslationService.GetTranslation("vatRate.activated", "Aliquota IVA attivata con successo!") :
-                    TranslationService.GetTranslation("vatRate.deactivated", "Aliquota IVA disattivata con successo!");
-                
-                Snackbar.Add(statusMessage, Severity.Success);
-                StateHasChanged();
-                
-                // Note: In a real implementation, you would call:
-                // await FinancialService.ToggleVatRateStatusAsync(vatRate.Id, vatRate.IsActive);
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("vatRate.statusChangeError", 
-                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error toggling VAT rate status {VatRateId}", vatRate.Id);
-                // Revert the change on error
-                vatRate.IsActive = !vatRate.IsActive;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Deletes all selected VAT rates.
-    /// </summary>
-    private async Task DeleteSelectedVatRates()
-    {
-        if (_selectedVatRates.Count == 0)
-            return;
-
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslationFormatted("financial.confirmDeleteMultipleVatRates", 
-            "Sei sicuro di voler eliminare {0} aliquote IVA selezionate? Questa azione non può essere annullata.", 
-            _selectedVatRates.Count);
-
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirm == true)
-        {
-            try
-            {
-                var deletedCount = 0;
-                var failedCount = 0;
-                
-                foreach (var vatRate in _selectedVatRates.ToList())
-                {
-                    try
-                    {
-                        await FinancialService.DeleteVatRateAsync(vatRate.Id);
-                        _vatRates.RemoveAll(v => v.Id == vatRate.Id);
-                        deletedCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        failedCount++;
-                        Logger.LogError(ex, "Error deleting VAT rate {VatRateId}", vatRate.Id);
-                    }
-                }
-                
-                _selectedVatRates.Clear();
-                
-                if (failedCount == 0)
-                {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("financial.deletedMultipleVatRates", 
-                        "{0} aliquote IVA eliminate con successo!", deletedCount), Severity.Success);
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("financial.deletedMultipleVatRatesPartial", 
-                        "{0} aliquote IVA eliminate, {1} fallite", deletedCount, failedCount), Severity.Warning);
-                }
-                
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslationFormatted("financial.deleteVatRateError", 
-                    "Errore nell'eliminazione delle aliquote IVA: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error deleting selected VAT rates");
-            }
-        }
-    }
-
-    private async Task ShowLoginDialogAsync()
-    {
-        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
-        if (result)
-        {
-            // Reload the page after successful login
-            await OnInitializedAsync();
-        }
-    }
-    
-    private bool HasActiveFilters()
-    {
-        return !string.IsNullOrWhiteSpace(_searchTerm) 
-            || _activeQuickFilter != null;
-    }
+        VatRateStatus.Active => TranslationService.GetTranslation("field.active", "Attivo"),
+        VatRateStatus.Suspended => TranslationService.GetTranslation("field.suspended", "Sospeso"),
+        VatRateStatus.Deleted => TranslationService.GetTranslation("field.deleted", "Eliminato"),
+        _ => status.ToString()
+    };
 }
