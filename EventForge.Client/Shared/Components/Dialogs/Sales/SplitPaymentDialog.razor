@@ -5,8 +5,12 @@
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.CallSplit"
+          Title="Pagamento Diviso"
+          IsProcessing="false"
+          OnClose="Cancel"
+          MinWidth="min(600px, 95vw)">
+    <ChildContent>
         <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" @bind-ActivePanelIndex="_activeTabIndex">
             
             <!-- TAB 1: EQUAL SPLIT -->
@@ -165,18 +169,22 @@
             </MudTabPanel>
             
         </MudTabs>
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
         <MudButton Color="Color.Primary" 
-                   Variant="Variant.Filled" 
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.CallSplit"
                    OnClick="ConfirmSplit"
                    Disabled="@(!IsValidSplit())">
             @TranslationService.GetTranslation("sales.split.confirmSplit", "Conferma Split")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
