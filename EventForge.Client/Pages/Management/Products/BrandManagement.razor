@@ -57,7 +57,7 @@
                         </MudAvatar>
                         <div>
                             <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..8])...</MudText>
                         </div>
                     </div>
                 </MudTd>

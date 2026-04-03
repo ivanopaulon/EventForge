@@ -222,7 +222,7 @@
         var id = Config.GetId(args.Item);
         if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
         {
-            JSRuntime.InvokeVoidAsync("open", $"{Config.BaseRoute}/{id}", "_blank");
+            _ = JSRuntime.InvokeVoidAsync("open", $"{Config.BaseRoute}/{id}", "_blank");
             return;
         }
         NavigationManager.NavigateTo($"{Config.BaseRoute}/{id}");
@@ -339,13 +339,15 @@
             {
                 var deletedCount = 0;
                 var failedCount = 0;
+                var deletedIds = new HashSet<Guid>();
 
                 foreach (var entity in _selectedEntities.ToList())
                 {
                     try
                     {
-                        await Service.DeleteAsync(Config.GetId(entity));
-                        _entities.RemoveAll(e => Config.GetId(e) == Config.GetId(entity));
+                        var id = Config.GetId(entity);
+                        await Service.DeleteAsync(id);
+                        deletedIds.Add(id);
                         deletedCount++;
                     }
                     catch (Exception ex)
@@ -355,6 +357,7 @@
                     }
                 }
 
+                _entities.RemoveAll(e => deletedIds.Contains(Config.GetId(e)));
                 _selectedEntities.Clear();
 
                 if (failedCount == 0)
