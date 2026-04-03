@@ -319,9 +319,9 @@
     private bool _isLookingUp = false;
     private VatLookupResultDto? _lookupResult;
 
-    private void NotifyUpdated()
+    private async Task NotifyUpdated()
     {
-        OnPartyUpdated.InvokeAsync();
+        await OnPartyUpdated.InvokeAsync();
     }
 
     private async Task LookupVatAsync()
@@ -366,11 +366,12 @@
         // Populate the form fields
         if (!string.IsNullOrEmpty(_lookupResult.Name))
             Party.Name = _lookupResult.Name;
-        
+
         // Keep the VAT number as entered by the user (already validated by VIES)
         // It's already in Party.VatNumber from the input field
 
-        NotifyUpdated();
+        StateHasChanged();
+        await NotifyUpdated();
 
         // Create address if party is already saved and we have address data
         if (Party.Id != Guid.Empty && HasAddressData())
