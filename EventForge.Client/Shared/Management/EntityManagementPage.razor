@@ -334,6 +334,14 @@
         SetLoadingMode(TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina..."));
     }
 
+    protected override void OnParametersSet()
+    {
+        // Re-filter whenever a parameter changes (e.g. AdditionalFilter updated by a parent page).
+        // Skip during the initial load phase to avoid redundant work before data is loaded.
+        if (!_isLoading)
+            RefreshFilteredEntities();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
