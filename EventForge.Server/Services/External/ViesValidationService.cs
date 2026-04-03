@@ -77,8 +77,17 @@ public class ViesValidationService : IViesValidationService
 
             if (result != null)
             {
-                _logger.LogInformation("VIES validation result: {IsValid} for {CountryCode}{VatNumber} - {Name}",
-                    result.IsValid, countryCode, cleanVat, result.Name);
+                _logger.LogInformation("VIES validation result: {IsValid} for {CountryCode}{VatNumber} - Name={Name} UserError={UserError}",
+                    result.IsValid, countryCode, cleanVat, result.Name, result.UserError);
+
+                // Transient errors (service/member-state unavailable, rate limit) must NOT be cached.
+                // Return null so the caller treats this as a temporary failure.
+                if (!result.IsValid && IsTransientViesError(result.UserError))
+                {
+                    _logger.LogWarning("VIES transient error for {CountryCode}{VatNumber}: {UserError} — result will not be cached",
+                        countryCode, cleanVat, result.UserError);
+                    return null;
+                }
             }
 
             return result;
@@ -96,6 +105,21 @@ public class ViesValidationService : IViesValidationService
             return null;
         }
     }
+
+    /// <summary>
+    /// Returns true for VIES userError codes that indicate a transient service issue,
+    /// not a genuine invalidity of the VAT number itself.
+    /// These results must never be cached.
+    /// </summary>
+    private static bool IsTransientViesError(string? userError) =>
+        userError switch
+        {
+            "MS_UNAVAILABLE"         => true,   // Member state system temporarily down
+            "SERVICE_UNAVAILABLE"    => true,   // VIES itself unavailable
+            "MS_MAX_CONCURRENT_REQ"  => true,   // Rate limit hit
+            "TIMEOUT"                => true,   // Request timed out on VIES side
+            _                        => false
+        };
 
     private static string CleanVatNumber(string vatNumber, string countryCode)
     {
