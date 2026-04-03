@@ -5,6 +5,11 @@ namespace EventForge.Client.Shared.Management;
 
 public class EntityManagementConfig<TEntity> where TEntity : class
 {
+    /// <summary>
+    /// Optional breadcrumb items passed to ManagementPageHeader.
+    /// When null, no breadcrumbs are shown.
+    /// </summary>
+    public List<BreadcrumbItem>? BreadcrumbItems { get; set; }
     public required string ComponentKey { get; set; }
     public required string PageTitleKey { get; set; }
     public required string PageTitleDefault { get; set; }
