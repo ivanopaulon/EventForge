@@ -1,3 +1,55 @@
+/* ═══════════════════════════════════════════════════════════
+   EFDialog — Backdrop blur globale per tutti i MudDialog
+   ═══════════════════════════════════════════════════════════ */
+
+/* Blur del backdrop */
+.mud-overlay.mud-overlay-dialog {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.50) !important;
+    transition: backdrop-filter 0.15s ease;
+}
+
+/* Fallback per browser senza supporto backdrop-filter */
+@supports not (backdrop-filter: blur(1px)) {
+    .mud-overlay.mud-overlay-dialog {
+        background-color: rgba(0, 0, 0, 0.70) !important;
+    }
+}
+
+/* La card MudDialog: trasparente — EFDialog gestisce il rendering visivo */
+.mud-dialog {
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+
+/* Override MudDialog per EFDialog: rimuove padding e sfondo interni */
+.efd-dialog-root .mud-dialog-content {
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+}
+
+.efd-dialog-root .mud-dialog-title {
+    display: none !important;
+}
+
+/* Animazione entrata dialog */
+.mud-dialog-container .mud-dialog {
+    animation: efd-appear 0.18s ease-out;
+}
+
+@keyframes efd-appear {
+    from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mud-dialog-container .mud-dialog {
+        animation: none !important;
+    }
+}
+
 /* ========================================
    DIALOG STYLES - CONSISTENT ACROSS APP
    ======================================== */
