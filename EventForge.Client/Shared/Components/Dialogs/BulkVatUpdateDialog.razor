@@ -6,25 +6,22 @@
 @inject ITranslationService TranslationService
 @inject ILogger<BulkVatUpdateDialog> Logger
 
-<MudDialog Style="min-width:min(720px,95vw);">
-    <TitleContent>
-        <div class="d-flex align-center gap-3 flex-grow-1">
-            <MudIcon Icon="@Icons.Material.Outlined.ManageSearch" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Aggiornamento massivo ragione sociale da P.IVA</MudText>
-            <MudSpacer />
-            <MudIconButton Icon="@Icons.Material.Outlined.Close"
-                           OnClick="Cancel"
-                           Size="Size.Small"
-                           Disabled="@_isRunning"
-                           title="Chiudi" />
-        </div>
-    </TitleContent>
+<EFDialog Icon="@Icons.Material.Outlined.ManageSearch"
+          Title="Aggiornamento massivo ragione sociale da P.IVA"
+          IsProcessing="@_isRunning"
+          OnClose="Cancel"
+          MinWidth="min(720px, 95vw)">
+    <ChildContent>
 
-    <DialogContent>
-
-        @* ══════════════════════ STEP 0 — CONFIGURAZIONE ══════════════════════ *@
-        @if (_step == 0)
-        {
+        <MudStepper @ref="_stepper"
+                    ActiveIndex="@_step"
+                    ActiveIndexChanged="@(i => _step = i)"
+                    NonLinear="false"
+                    Color="Color.Primary"
+                    Variant="Variant.Filled"
+                    DisableAnimation="false"
+                    Style="min-height:0;">
+            <MudStep Title="Configurazione" Icon="@Icons.Material.Outlined.Settings">
             <div class="d-flex flex-column gap-3">
                 <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Outlined.Info">
                     La procedura interroga il servizio <strong>VIES (EU VAT Information Exchange System)</strong>
@@ -67,11 +64,8 @@
                     </MudText>
                 }
             </div>
-        }
-
-        @* ══════════════════════ STEP 1 — ESECUZIONE ══════════════════════ *@
-        else
-        {
+            </MudStep>
+            <MudStep Title="Esecuzione" Icon="@Icons.Material.Outlined.PlayArrow">
             <div class="d-flex flex-column gap-3">
 
                 @* Progress bar *@
@@ -214,9 +208,9 @@
                 }
 
             </div>
-        }
-
-    </DialogContent>
+            </MudStep>
+        </MudStepper>
+    </ChildContent>
 
     <DialogActions>
         @if (_step == 0)
@@ -240,7 +234,7 @@
             </MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]
@@ -272,6 +266,7 @@
     private readonly List<LogEntry> _log = new();
     private DateTimeOffset _startTime;
     private string _estimatedTimeLabel = string.Empty;
+    private MudStepper? _stepper;
 
     // ── Computed helpers ──
     private int ProgressPercent =>

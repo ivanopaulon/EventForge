@@ -8,30 +8,10 @@
 @inject IDialogService DialogService
 @inject ILogger<UnifiedInventoryDialog> Logger
 
-<MudDialog ClassContent="unified-inventory-dialog-content" ClassActions="unified-inventory-dialog-actions">
-    <TitleContent>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-            <MudText Typo="Typo.h6">
-                <MudIcon Icon="@GetCurrentViewIcon()" Class="mr-2" />
-                @GetCurrentViewTitle()
-            </MudText>
-            <!-- Breadcrumb/Stepper -->
-            <MudStack Row="true" Spacing="1">
-                @foreach (var viewItem in _viewItems)
-                {
-                    <MudChip T="string" 
-                             Color="@(State.CurrentView == viewItem.View ? Color.Primary : Color.Default)"
-                             Variant="@(State.CurrentView == viewItem.View ? Variant.Filled : Variant.Outlined)"
-                             OnClick="@(() => NavigateToView(viewItem.View))"
-                             Disabled="@(!CanNavigateToView(viewItem.View))"
-                             Size="Size.Small">
-                        @viewItem.Text
-                    </MudChip>
-                }
-            </MudStack>
-        </MudStack>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Inventory2"
+          Title="Inventario"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
         <MudStack Spacing="3" Class="unified-inventory-dialog-body">
             @if (State.CurrentView == InventoryDialogView.View)
             {
@@ -68,7 +48,7 @@
                 </MudAlert>
             }
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudStack Row="true" Justify="Justify.SpaceBetween" Style="width: 100%;">
             <div>
@@ -151,7 +131,7 @@
             </MudStack>
         </MudStack>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

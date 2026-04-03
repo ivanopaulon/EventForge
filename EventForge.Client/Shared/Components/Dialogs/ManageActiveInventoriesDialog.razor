@@ -5,8 +5,11 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Inventory"
+          Title="Gestione Inventari Attivi"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
         @if (Mode == InventoryDialogMode.InitialCheck)
         {
             <!-- InitialCheck Mode: Lista completa inventari aperti -->
@@ -225,7 +228,7 @@
                 </MudAlert>
             }
         }
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
         @if (Mode == InventoryDialogMode.InitialCheck)
@@ -278,7 +281,7 @@
             }
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

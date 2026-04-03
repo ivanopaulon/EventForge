@@ -7,26 +7,23 @@
 @inject ISnackbar Snackbar
 @inject ILogger<GeneratePriceListFromDocumentsDialog> Logger
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
-    <TitleContent>
-        <div class="@DialogStyleConstants.Classes.DialogTitle">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.Article" Class="mr-2" />
-                    @TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti")
-                </MudText>
-            </MudStack>
-        </div>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Article"
+          Title="Genera Listino da Documenti"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
         <div class="ef-dialog-content">
             <PageLoadingOverlay Visible="_isLoading" />
 
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
-                <MudStack Spacing="3">
-                    
-                    <!-- Step 1: Basic Information -->
-                    <MudPaper Elevation="2" Class="pa-4">
+                <MudStepper @ref="_stepper"
+                            NonLinear="false"
+                            Color="Color.Primary"
+                            Variant="Variant.Filled"
+                            DisableAnimation="false"
+                            Style="min-height:0;">
+                    <MudStep Title="Informazioni di Base" Icon="@Icons.Material.Outlined.Info">
                         <MudText Typo="Typo.h6" Class="mb-3">
                             <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step1", "Passo 1: Informazioni di Base")
@@ -62,10 +59,8 @@
                                               AdornmentIcon="@Icons.Material.Outlined.Description" />
                             </MudItem>
                         </MudGrid>
-                    </MudPaper>
-
-                    <!-- Step 2: Supplier and Date Range -->
-                    <MudPaper Elevation="2" Class="pa-4">
+                    </MudStep>
+                    <MudStep Title="Fornitore e Periodo" Icon="@Icons.Material.Outlined.CalendarMonth">
                         <MudText Typo="Typo.h6" Class="mb-3">
                             <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step2", "Passo 2: Fornitore e Periodo")
@@ -108,10 +103,8 @@
                                                AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
                             </MudItem>
                         </MudGrid>
-                    </MudPaper>
-
-                    <!-- Step 3: Calculation Strategy -->
-                    <MudPaper Elevation="2" Class="pa-4">
+                    </MudStep>
+                    <MudStep Title="Strategia di Calcolo" Icon="@Icons.Material.Outlined.Calculate">
                         <MudText Typo="Typo.h6" Class="mb-3">
                             <MudIcon Icon="@Icons.Material.Outlined.Calculate" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step3", "Passo 3: Strategia di Calcolo")
@@ -164,9 +157,8 @@
                                 </div>
                             </MudRadio>
                         </MudRadioGroup>
-                    </MudPaper>
-
-                    <!-- Step 4: Advanced Options -->
+                    </MudStep>
+                    <MudStep Title="Opzioni Avanzate" Icon="@Icons.Material.Outlined.Tune">
                     <MudExpansionPanels>
                         <MudExpansionPanel Text="@TranslationService.GetTranslation("pricelist.advancedOptions", "Opzioni Avanzate")">
                             <MudGrid Spacing="2">
@@ -211,7 +203,8 @@
                             </MudGrid>
                         </MudExpansionPanel>
                     </MudExpansionPanels>
-
+                    </MudStep>
+                </MudStepper>
                     @if (_preview != null)
                     {
                         <!-- Preview Results -->
@@ -267,11 +260,9 @@
                             }
                         </MudPaper>
                     }
-
-                </MudStack>
             </MudForm>
         </div>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel" 
                    Variant="Variant.Text" 
@@ -293,12 +284,13 @@
             @TranslationService.GetTranslation("pricelist.generate", "Genera Listino")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
+    private MudStepper? _stepper;
     private MudForm _form = null!;
     private bool _isFormValid;
     private bool _isLoading = false;

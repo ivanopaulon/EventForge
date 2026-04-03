@@ -9,18 +9,12 @@
 @inject ILogger<ImportPriceListDialog> Logger
 @inject IDialogService DialogService
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
-    <TitleContent>
-        <div class="@DialogStyleConstants.Classes.DialogTitle">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Outlined.FileUpload" Class="mr-2" />
-                    @TranslationService.GetTranslation("pricelist.importFromExcel", "Importa da Excel")
-                </MudText>
-            </MudStack>
-        </div>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.PlaylistAdd"
+          Title="Importa Listino Prezzi"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
         <div class="ef-dialog-content">
             <PageLoadingOverlay Visible="_isLoading"
                                 Message="@_loadingMessage"
@@ -270,7 +264,7 @@
                 }
             </MudStack>
         </div>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         @if (_parsedEntries != null && _importResult == null)
         {
@@ -293,7 +287,7 @@
             </MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
