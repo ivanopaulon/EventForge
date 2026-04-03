@@ -117,9 +117,14 @@ public class PromotionService : IPromotionService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+                throw new InvalidOperationException("Tenant context is required.");
+
             var promotion = new Promotion
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 Name = createDto.Name,
                 Description = createDto.Description,
                 StartDate = createDto.StartDate,
@@ -1342,7 +1347,7 @@ public class PromotionService : IPromotionService
                 throw new InvalidOperationException("Tenant context is required.");
 
             var promotion = await _context.Promotions
-                .Where(p => p.Id == promotionId && !p.IsDeleted && p.TenantId == currentTenantId.Value)
+                .Where(p => p.Id == promotionId && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (promotion == null)
