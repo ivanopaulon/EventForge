@@ -22,11 +22,15 @@
     <DialogContent>
         <!-- Overlay during login submission -->
         <PageLoadingOverlay Visible="_isLoading"
-                            Message="@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")" />
+                            Message="@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")"
+                            ProgressColor="Color.Secondary" />
 
         <!-- Overlay during initial tenant loading -->
         <PageLoadingOverlay Visible="_isLoadingTenants"
-                            Message="@TranslationService.GetTranslation("auth.connectingToServer", "Connessione al server...")" />
+                            Message="@TranslationService.GetTranslation("auth.connectingToServer", "Connessione al server...")"
+                            ShowProgressLog="true"
+                            ProgressMessages="@_tenantLoadMessages"
+                            ProgressIntervalMs="1500" />
 
         @if (!_isLoadingTenants)
         {
@@ -159,6 +163,13 @@
     private bool _passwordVisible = false;
     private InputType _passwordInputType = InputType.Password;
     private string _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
+
+    private static readonly IReadOnlyList<string> _tenantLoadMessages = new[]
+    {
+        "Connessione al server...",
+        "Recupero tenant disponibili...",
+        "Inizializzazione sessione..."
+    };
     
     // Inline password change mode
     private bool _isChangePasswordMode = false;

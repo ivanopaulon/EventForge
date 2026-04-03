@@ -16,10 +16,12 @@
 @inject ILogger<EntityManagementPage<TEntity>> Logger
 
 <PageLoadingOverlay Visible="@(_isLoading || _isLoadingEntities)"
-                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))"
-                     ShowProgressLog="@Config.ShowLoadingProgressLog"
-                     ProgressMessages="@Config.LoadingProgressMessages"
-                     ShowElapsedTime="@Config.ShowLoadingElapsedTime" />
+                     Message="@_loadingMessage"
+                     ShowProgressLog="@_showLoadingProgressLog"
+                     ProgressMessages="@_loadingProgressMessages"
+                     ShowElapsedTime="@_showLoadingElapsed"
+                     ProgressValue="@_loadingProgressValue"
+                     ProgressIntervalMs="1800" />
 
 @if (!_isLoading)
 {
@@ -223,6 +225,32 @@
     private bool _isLoading = true;
     private bool _isLoadingEntities = false;
 
+    // Dynamic overlay state — updated via SetLoadingMode() before each operation
+    private string _loadingMessage = string.Empty;
+    private double? _loadingProgressValue = null;
+    private bool _showLoadingElapsed = false;
+    private bool _showLoadingProgressLog = false;
+    private IReadOnlyList<string>? _loadingProgressMessages = null;
+
+    private static readonly IReadOnlyList<string> _loadProgressMessages = new[]
+    {
+        "Connessione al server...",
+        "Lettura dati...",
+        "Elaborazione risultati...",
+        "Preparazione visualizzazione..."
+    };
+
+    private void SetLoadingMode(string message, bool showLog = false,
+        IReadOnlyList<string>? progressMessages = null,
+        bool showElapsed = false, double? progressValue = null)
+    {
+        _loadingMessage = message;
+        _showLoadingProgressLog = showLog;
+        _loadingProgressMessages = progressMessages;
+        _showLoadingElapsed = showElapsed;
+        _loadingProgressValue = progressValue;
+    }
+
     // CancellationToken for async operations
     private CancellationTokenSource _cts = new();
 
@@ -302,6 +330,7 @@
     protected override void OnInitialized()
     {
         _selectedItemsChangedCallback = EventCallback.Factory.Create<HashSet<TEntity>>(this, OnSelectedItemsChanged);
+        SetLoadingMode(TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina..."));
     }
 
     protected override async Task OnInitializedAsync()
@@ -341,6 +370,12 @@
     {
         try
         {
+            SetLoadingMode(
+                TranslationService.GetTranslation("common.loading", "Caricamento..."),
+                showLog: true,
+                progressMessages: _loadProgressMessages,
+                showElapsed: true
+            );
             _isLoadingEntities = true;
             StateHasChanged();
 
@@ -479,9 +514,16 @@
             var deletedCount = 0;
             var failedCount = 0;
             var needsFullReload = false;
+            var total = deletableEntities.Count;
+            var done = 0;
 
             try
             {
+                SetLoadingMode(
+                    TranslationService.GetTranslationFormatted("common.deletingItems", "Eliminazione {0} di {1}...", 0, total),
+                    showElapsed: true,
+                    progressValue: 0
+                );
                 _isLoadingEntities = true;
                 StateHasChanged();
 
@@ -494,13 +536,19 @@
                         _entities.RemoveAll(e => Config.GetId(e) == id);
                         deletedCount++;
                         RefreshFilteredEntities();
-                        StateHasChanged();
                     }
                     catch (Exception ex)
                     {
                         failedCount++;
                         needsFullReload = true;
                         Logger.LogError(ex, "Error deleting {EntityType} {Id}", Config.EntityTypeName, Config.GetId(entity));
+                    }
+                    finally
+                    {
+                        done++;
+                        _loadingProgressValue = total > 0 ? (double)done / total * 100.0 : 0;
+                        _loadingMessage = TranslationService.GetTranslationFormatted("common.deletingItems", "Eliminazione {0} di {1}...", done, total);
+                        StateHasChanged();
                     }
                 }
 
@@ -566,6 +614,10 @@
         {
             try
             {
+                SetLoadingMode(
+                    TranslationService.GetTranslation("common.updatingStatus", "Aggiornamento stato..."),
+                    progressValue: null
+                );
                 _isLoadingEntities = true;
                 StateHasChanged();
                 await Service.ToggleStatusAsync(Config.GetId(entity), !isActive, _cts.Token);

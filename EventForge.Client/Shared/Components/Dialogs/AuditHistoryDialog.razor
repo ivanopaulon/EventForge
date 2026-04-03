@@ -38,7 +38,11 @@
     <DialogContent>
             <div class="audit-dialog-content">
                 <PageLoadingOverlay Visible="@_isLoading"
-                                    Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")" />
+                                    Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")"
+                                    ShowProgressLog="true"
+                                    ProgressMessages="@_auditProgressMessages"
+                                    ShowElapsedTime="true"
+                                    ProgressIntervalMs="2200" />
             
             @if (!_isLoading)
             {
@@ -259,6 +263,13 @@
     private bool _isLoading = false;
     private bool _filtersExpanded = false;
     private List<AuditLogDto> _auditLogs = new();
+
+    private static readonly IReadOnlyList<string> _auditProgressMessages = new[]
+    {
+        "Recupero cronologia...",
+        "Ordinamento eventi...",
+        "Preparazione visualizzazione..."
+    };
 
     // Filter state
     private string _operationFilter = string.Empty;

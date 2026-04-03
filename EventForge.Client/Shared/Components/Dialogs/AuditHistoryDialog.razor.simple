@@ -26,7 +26,11 @@
     <DialogContent>
         <div class="audit-history-content pa-4">
             <PageLoadingOverlay IsVisible="@IsLoading"
-                                Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")" />
+                                Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")"
+                                ShowProgressLog="true"
+                                ProgressMessages="@_auditProgressMessages"
+                                ShowElapsedTime="true"
+                                ProgressIntervalMs="2200" />
             
             @if (!IsLoading)
             {
@@ -113,6 +117,13 @@
     /// </summary>
     [Parameter]
     public bool IsLoading { get; set; } = false;
+
+    private static readonly IReadOnlyList<string> _auditProgressMessages = new[]
+    {
+        "Recupero cronologia...",
+        "Ordinamento eventi...",
+        "Preparazione visualizzazione..."
+    };
     
     /// <summary>
     /// Custom content template for the dialog body.

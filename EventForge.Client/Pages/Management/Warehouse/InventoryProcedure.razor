@@ -24,7 +24,11 @@
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")</PageTitle>
 <PageLoadingOverlay Visible="_isLoading"
-                    Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+                    Message="@_loadingMessage"
+                    ShowProgressLog="true"
+                    ProgressMessages="@_inventoryProgressMessages"
+                    ShowElapsedTime="true"
+                    ProgressIntervalMs="2500" />
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
     <MudGrid Class="mb-4">
@@ -413,6 +417,16 @@
     private EFTable<InventoryDocumentRowDto> _efTable = null!;
     
     private bool _isLoading = false;
+    private string _loadingMessage = string.Empty;
+
+    private static readonly IReadOnlyList<string> _inventoryProgressMessages = new[]
+    {
+        "Caricamento articoli...",
+        "Lettura giacenze attuali...",
+        "Preparazione schede inventario...",
+        "Calcolo differenze...",
+        "Aggiornamento database..."
+    };
     private string _scannedBarcode = string.Empty;
     private ProductDto? _currentProduct;
     private ProductCodeDto? _currentProductCode;
@@ -803,6 +817,7 @@
     protected override async Task OnInitializedAsync()
     {
         _isLoading = true;
+        _loadingMessage = TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...");
         try
         {
             // Initialize cancellation token source
