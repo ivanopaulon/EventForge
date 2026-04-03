@@ -419,11 +419,10 @@ else if (_profile != null)
 
     private readonly List<EFTableColumnConfiguration> _sessionColumns = new()
     {
-        new() { PropertyName = "Browser",         DisplayName = "Browser",      Order = 0 },
-        new() { PropertyName = "OperatingSystem", DisplayName = "Dispositivo",  Order = 1 },
-        new() { PropertyName = "IpAddress",       DisplayName = "IP",           Order = 2 },
-        new() { PropertyName = "LoginTime",       DisplayName = "Accesso",      Order = 3 },
-        new() { PropertyName = "Actions",         DisplayName = "Azioni",       Order = 4 },
+        new() { PropertyName = "Browser",         DisplayName = "Browser",     Order = 0 },
+        new() { PropertyName = "OperatingSystem", DisplayName = "Dispositivo", Order = 1 },
+        new() { PropertyName = "IpAddress",       DisplayName = "IP",          Order = 2 },
+        new() { PropertyName = "LoginTime",       DisplayName = "Accesso",     Order = 3 },
     };
 
     protected override async Task OnInitializedAsync()
