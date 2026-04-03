@@ -130,6 +130,12 @@
             GetDisplayName = v => v.Name,
             GetId = v => v.Id,
             GetIsActive = v => v.IsActive,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Finanziario", null, disabled: true),
+                new BreadcrumbItem("Aliquote IVA", null, disabled: true)
+            },
             Columns = new()
             {
                 new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },

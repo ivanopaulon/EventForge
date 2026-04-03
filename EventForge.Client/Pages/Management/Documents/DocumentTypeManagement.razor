@@ -144,6 +144,12 @@
             ShowToggleStatus = false,
             GetDisplayName = dt => dt.Name,
             GetId = dt => dt.Id,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Documenti", null, disabled: true),
+                new BreadcrumbItem("Tipi Documento", null, disabled: true)
+            },
             Columns = new()
             {
                 new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },

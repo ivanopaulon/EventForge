@@ -122,6 +122,12 @@
             ShowToggleStatus = false,
             GetDisplayName = b => b.Name,
             GetId = b => b.Id,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Prodotti", null, disabled: true),
+                new BreadcrumbItem("Marchi", null, disabled: true)
+            },
             Columns = new()
             {
                 new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },

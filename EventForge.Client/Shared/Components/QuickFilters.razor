@@ -11,7 +11,7 @@
                                  Icon="@(filter.Icon ?? Icons.Material.Outlined.FilterList)"
                                  ToggledIcon="@(filter.Icon ?? Icons.Material.Outlined.FilterList)"
                                  Color="@Color.Default"
-                                 ToggledColor="@filter.Color"
+                                 ToggledColor="Color.Primary"
                                  Size="Size.Small"
                                  Title="@(filter.Description ?? filter.Label)" />
             @if (!string.IsNullOrEmpty(filter.Label))

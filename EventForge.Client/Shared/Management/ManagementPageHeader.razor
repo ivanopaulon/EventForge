@@ -1,35 +1,33 @@
 <div class="management-page-header">
-    <MudStack Spacing="1">
-        <!-- Top row: icon + title (left), ExtraActions (right) -->
-        <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-            <div class="d-flex align-center gap-2 flex-wrap">
-                <MudIcon Icon="@Icon" Color="@IconColor" Size="Size.Medium" />
-                <MudText Typo="@TitleTypo" Class="management-page-header-title">@Title</MudText>
-            </div>
-            @if (ExtraActions != null)
-            {
-                <div class="d-flex align-center gap-1 flex-wrap">
-                    @ExtraActions
-                </div>
-            }
+    <!-- Top row: icon + title (left), ExtraActions (right) -->
+    <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+        <div class="d-flex align-center gap-2 flex-wrap">
+            <MudIcon Icon="@Icon" Color="@IconColor" Size="Size.Small" />
+            <MudText Typo="@TitleTypo" Class="management-page-header-title">@Title</MudText>
         </div>
-
-        <!-- Breadcrumb row -->
-        @if (BreadcrumbItems != null && BreadcrumbItems.Count > 0)
+        @if (ExtraActions != null)
         {
-            <MudBreadcrumbs Items="BreadcrumbItems" Class="pa-0 management-page-header-breadcrumbs" />
-        }
-
-        <!-- Optional sub-content (subtitle, description, etc.) -->
-        @if (SubContent != null)
-        {
-            <div class="management-page-header-subcontent">
-                @SubContent
+            <div class="d-flex align-center gap-1 flex-wrap">
+                @ExtraActions
             </div>
         }
-    </MudStack>
+    </div>
 
-    <MudDivider Class="mt-2" />
+    <!-- Breadcrumb row -->
+    @if (BreadcrumbItems != null && BreadcrumbItems.Count > 0)
+    {
+        <MudBreadcrumbs Items="BreadcrumbItems" Class="pa-0 management-page-header-breadcrumbs" />
+    }
+
+    <!-- Optional sub-content (subtitle, description, etc.) -->
+    @if (SubContent != null)
+    {
+        <div class="management-page-header-subcontent">
+            @SubContent
+        </div>
+    }
+
+    <MudDivider Class="mt-1" />
 </div>
 
 @code {
@@ -42,8 +40,8 @@
     /// <summary>Color of the icon. Default: Primary.</summary>
     [Parameter] public Color IconColor { get; set; } = Color.Primary;
 
-    /// <summary>Typography variant for the title. Default: h5.</summary>
-    [Parameter] public Typo TitleTypo { get; set; } = Typo.h5;
+    /// <summary>Typography variant for the title. Default: h6.</summary>
+    [Parameter] public Typo TitleTypo { get; set; } = Typo.h6;
 
     /// <summary>Optional breadcrumb navigation items shown below the title.</summary>
     [Parameter] public List<BreadcrumbItem>? BreadcrumbItems { get; set; }
