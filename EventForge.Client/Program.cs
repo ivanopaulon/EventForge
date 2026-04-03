@@ -93,7 +93,9 @@ builder.Services.AddScoped<IAuthenticationDialogService, AuthenticationDialogSer
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
 builder.Services.AddScoped<IRealtimeService, OptimizedSignalRService>();
-// Register SignalRService for backward compatibility (marked as Obsolete)
+// TODO: [Cleanup Wave A1] SignalRService is deprecated and registered only for backward compatibility.
+// Remove this registration in a dedicated PR after verifying that no consumer injects it directly.
+// Ref: issue #1095 — Obsolete file audit
 #pragma warning disable CS0618 // Type or member is obsolete
 builder.Services.AddScoped<SignalRService>();
 #pragma warning restore CS0618 // Type or member is obsolete

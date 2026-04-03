@@ -156,7 +156,7 @@ Chart and trend visualization components:
 #### Core Services
 - **Authentication**: `AuthService.cs`, `CustomAuthenticationStateProvider.cs`
 - **HTTP Communication**: `HttpClientService.cs`
-- **Real-time**: `SignalRService.cs` (1275 lines), `OptimizedSignalRService.cs`
+- **Real-time**: `OptimizedSignalRService.cs` (implementazione principale di `IRealtimeService`), `SignalRService.cs` (**⚠️ deprecato**, registrato solo per backward compatibility — da rimuovere in PR dedicata, ref issue #1095)
 - **System**: `HealthService.cs`, `ConfigurationService.cs`, `BackupService.cs`, `ThemeService.cs`
 - **Notifications**: `NotificationService.cs`, `ChatService.cs`
 - **Internationalization**: `TranslationService.cs`
@@ -170,7 +170,7 @@ Chart and trend visualization components:
 **Warehouse Management**:
 - `ILotService.cs` / `LotService.cs`
 - `IInventoryService.cs` / `InventoryService.cs`
-- `IInventoryFastService.cs` / `InventoryFastService.cs` - **Fast Procedure business logic**
+- ~~`IInventoryFastService.cs` / `InventoryFastService.cs`~~ — **rimossi** (cleanup novembre 2025; ref issue #1095)
 - `IWarehouseService.cs` / `WarehouseService.cs`
 - `IStorageLocationService.cs` / `StorageLocationService.cs`
 - `IStockService.cs` / `StockService.cs`
@@ -347,7 +347,7 @@ Three loading components for different use cases:
 
 **Notable Large Files** (candidates for future refactoring):
 - `InventoryProcedure.razor` - 1346 lines (complex inventory workflow)
-- `SignalRService.cs` - 1275 lines (extensive real-time features)
+- `SignalRService.cs` - 1275 lines (**⚠️ deprecato** — da rimuovere in PR dedicata, ref issue #1095)
 - `UserManagement.razor` - 1112 lines (comprehensive user admin)
 
 These files are feature-rich and serve complex business needs. Refactoring should be done carefully with comprehensive testing.
@@ -413,17 +413,17 @@ These pages have routes but are not accessible via the navigation menu. They may
 ### Large File Refactoring
 The following files exceed 1000 lines and could benefit from refactoring:
 - `InventoryProcedure.razor` (1346 lines) - Evaluate state machine pattern
-- `SignalRService.cs` (1275 lines) - Consider splitting by functional area
+- `SignalRService.cs` (1275 lines) - **⚠️ deprecato**, da rimuovere in PR dedicata (ref issue #1095)
 - `UserManagement.razor` (1112 lines) - Consider extracting tabs into separate components
 
 **Recommendation**: Refactor during dedicated maintenance sprints with comprehensive testing.
 
 ### Dual Inventory Implementations
-Two parallel inventory implementations exist:
-- MudBlazor-based (InventoryProcedureFast)
-- Syncfusion-based (InventoryProcedureSyncfusion)
+~~Two parallel inventory implementations exist:~~
+- ~~MudBlazor-based (InventoryProcedureFast)~~
+- ~~Syncfusion-based (InventoryProcedureSyncfusion)~~
 
-**Recommendation**: Evaluate performance and user preference, consider consolidating to single implementation in future.
+**Nota**: Entrambe le pagine (`InventoryProcedureFast.razor`, `InventoryProcedureSyncfusion.razor`) e i relativi servizi (`IInventoryFastService.cs`, `InventoryFastService.cs`) sono stati rimossi nel cleanup di novembre 2025 (ref: `CLEANUP_SUMMARY.md`, issue #1095).
 
 ## Conclusion
 
