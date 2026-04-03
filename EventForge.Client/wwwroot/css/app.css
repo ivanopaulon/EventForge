@@ -613,18 +613,18 @@ kbd {
    EFTable Row Click Styles
    ======================================== */
 
-/* Cursor pointer on clickable rows */
-.eftable-wrapper .mud-table-row {
+/* Cursor pointer SOLO su righe effettivamente cliccabili (classe aggiunta quando OnRowClick.HasDelegate) */
+.eftable-wrapper.eftable-clickable-rows .mud-table-row {
     cursor: pointer;
 }
 
-/* Do NOT show pointer on action cells (last column typically) */
-.eftable-wrapper .mud-table-row td:last-child {
+/* Do NOT show pointer on action cells */
+.eftable-wrapper.eftable-clickable-rows .mud-table-row td:last-child {
     cursor: default;
 }
 
-/* Enhanced hover feedback for clickable rows */
-.eftable-wrapper .mud-table-row:hover {
+/* Enhanced hover feedback SOLO per righe cliccabili */
+.eftable-wrapper.eftable-clickable-rows .mud-table-row:hover {
     background-color: var(--mud-palette-action-default-hover) !important;
 }
 

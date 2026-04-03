@@ -13,7 +13,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<EntityManagementPage<TEntity>> Logger
-@inject IJSRuntime JSRuntime
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingEntities"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -48,7 +47,6 @@
                  ExcelFileName="@Config.ExcelFileName"
                  IsDataFiltered="@HasActiveFilters()"
                  TotalItemsCount="@_entities.Count"
-                 OnRowClick="@HandleRowClick"
                  Title="@TranslationService.GetTranslation(Config.PageTitleKey, Config.PageTitleDefault)"
                  ShowSearch="true"
                  SearchPlaceholder="@TranslationService.GetTranslation(Config.SearchPlaceholderKey, Config.SearchPlaceholderDefault)"
@@ -87,6 +85,7 @@
                                        ShowToggleStatus="@Config.ShowToggleStatus"
                                        ShowDelete="@Config.ShowDelete"
                                        IsActive="@(Config.GetIsActive?.Invoke(item) ?? true)"
+                                       OnView="@(() => ViewEntity(Config.GetId(item)))"
                                        OnEdit="@(() => EditEntity(Config.GetId(item)))"
                                        OnAuditLog="@(() => ViewAuditLog(item))"
                                        OnToggleStatus="@(() => ToggleEntityStatus(item))"
@@ -184,15 +183,10 @@
         StateHasChanged();
     }
 
-    private void HandleRowClick(TableRowClickEventArgs<TEntity> args)
+    private void ViewEntity(Guid id)
     {
-        var id = Config.GetId(args.Item);
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            _ = JSRuntime.InvokeVoidAsync("open", $"{Config.BaseRoute}/{id}", "_blank");
-            return;
-        }
-        NavigationManager.NavigateTo($"{Config.BaseRoute}/{id}");
+        // TODO: Fase 3 — implementare apertura detail view/drawer
+        // Per ora nessuna azione
     }
 
     protected override async Task OnInitializedAsync()

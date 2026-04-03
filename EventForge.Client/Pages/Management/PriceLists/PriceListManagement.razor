@@ -14,7 +14,6 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject IJSRuntime JSRuntime
 @inject ILogger<PriceListManagement> Logger
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingData"
@@ -46,7 +45,6 @@
                      ExcelFileName="Listini"
                      IsDataFiltered="@HasActiveFilters()"
                      TotalItemsCount="@_items.Count"
-                     OnRowClick="@HandleRowClick"
                      Title="@TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")"
                      ShowSearch="true"
                      SearchPlaceholder="@TranslationService.GetTranslation("common.search", "Cerca...")"
@@ -385,21 +383,6 @@
     }
 
     /// <summary>
-    /// Handles row click - navigates to price list detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<PriceListDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/management/pricelists/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/management/pricelists/{args.Item.Id}");
-    }
-
     /// <summary>
     /// Component initialization.
     /// </summary>

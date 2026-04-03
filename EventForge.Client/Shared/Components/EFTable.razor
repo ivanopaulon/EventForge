@@ -397,12 +397,40 @@
     private bool _isExporting = false;
     
     // Action parameters
+    /// <summary>
+    /// [DEPRECATED] Non utilizzato. Usare RowTemplate con ActionButtonGroup.
+    /// Sarà rimosso in una futura versione.
+    /// </summary>
     [Parameter] public List<EFTableAction>? Actions { get; set; }
+    /// <summary>
+    /// [DEPRECATED] Non utilizzato. Usare RowTemplate con ActionButtonGroup.
+    /// Sarà rimosso in una futura versione.
+    /// </summary>
     [Parameter] public bool UseDefaultActions { get; set; } = true;
+    /// <summary>
+    /// [DEPRECATED] Non utilizzato. Usare RowTemplate con ActionButtonGroup.
+    /// Sarà rimosso in una futura versione.
+    /// </summary>
     [Parameter] public EventCallback OnAdd { get; set; }
+    /// <summary>
+    /// [DEPRECATED] Non utilizzato. Usare RowTemplate con ActionButtonGroup.
+    /// Sarà rimosso in una futura versione.
+    /// </summary>
     [Parameter] public EventCallback<TItem> OnEdit { get; set; }
+    /// <summary>
+    /// [DEPRECATED] Non utilizzato. Usare RowTemplate con ActionButtonGroup.
+    /// Sarà rimosso in una futura versione.
+    /// </summary>
     [Parameter] public EventCallback<TItem> OnDelete { get; set; }
+    /// <summary>
+    /// [DEPRECATED] Non utilizzato. Usare RowTemplate con ActionButtonGroup.
+    /// Sarà rimosso in una futura versione.
+    /// </summary>
     [Parameter] public EventCallback<TItem> OnView { get; set; }
+    /// <summary>
+    /// [DEPRECATED] Non utilizzato. Usare RowTemplate con ActionButtonGroup.
+    /// Sarà rimosso in una futura versione.
+    /// </summary>
     [Parameter] public EventCallback<EFTableActionEventArgs> OnAction { get; set; }
     [Parameter] public EventCallback<TableRowClickEventArgs<TItem>> OnRowClick { get; set; }
 
