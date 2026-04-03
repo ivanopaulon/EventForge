@@ -1,647 +1,146 @@
 @page "/settings/unit-of-measures"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.UnitOfMeasures
-@using EventForge.DTOs.Common
-@using EventForge.Client.Shared.Components
-@using EventForge.Client.Extensions
 @attribute [Authorize]
-@inject IAuthService AuthService
 @inject IUMService UMService
-@inject NavigationManager NavigationManager
-@inject IAuthenticationDialogService AuthenticationDialogService
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<UnitOfMeasureManagement> Logger
-@inject IJSRuntime JSRuntime
 
-<PageLoadingOverlay Visible="_isLoading || _isLoadingUMs"
-                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
-
-@if (!_isLoading)
-{
-    <div class="um-page-root">
-        <!-- Quick Filters -->
-        <QuickFilters TItem="UMDto"
-                      Items="_unitOfMeasures"
-                      Filters="_quickFilters"
-                      OnFilterSelected="@HandleQuickFilter"
-                      ShowCount="true" />
-
-        <div class="eftable-wrapper">
-            <EFTable @ref="_efTable"
-                 TItem="UMDto"
-                 Items="_filteredUMs"
-                 MultiSelection="true"
-                 SelectedItems="_selectedUMs"
-                 SelectedItemsChanged="_selectedItemsChangedCallback"
-                 IsLoading="_isLoadingUMs"
-                 ComponentKey="UnitOfMeasureManagement"
-                 InitialColumnConfigurations="_initialColumns"
-                 AllowDragDropGrouping="true"
-                 ShowExport="true"
-                 ShowExportDialog="true"
-                 ExcelFileName="UnitaDiMisura"
-                 IsDataFiltered="@HasActiveFilters()"
-                 TotalItemsCount="@_unitOfMeasures.Count"
-                 OnRowClick="@HandleRowClick"
-                 Title="@TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")"
-                 ShowSearch="true"
-                 SearchPlaceholder="@TranslationService.GetTranslation("um.search", "Cerca unità di misura")"
-                 OnSearch="@OnSearchChanged"
-                 ShowSelectionBadge="true"
-                 ShowRefresh="true"
-                 OnRefresh="@LoadUMsAsync"
-                 ShowCreate="true"
-                 OnCreate="@CreateUM"
-                 CreateTooltip="um.createNew"
-                 ShowBulkDelete="true"
-                 OnBulkDelete="@DeleteSelectedUMs"
-                 IsToolbarDisabled="@_isLoadingUMs">
-            <HeaderContent Context="columnConfigurations">
-                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
-                {
-                    @if (column.PropertyName == "Name")
-                    {
-                        <EFTableColumnHeader TItem="UMDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "Symbol")
-                    {
-                        <EFTableColumnHeader TItem="UMDto" PropertyName="Symbol" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Symbol))">@TranslationService.GetTranslation("field.symbol", "Simbolo")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "Description")
-                    {
-                        <EFTableColumnHeader TItem="UMDto" PropertyName="Description" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "IsDefault")
-                    {
-                        <EFTableColumnHeader TItem="UMDto" PropertyName="IsDefault" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.IsDefault))">@TranslationService.GetTranslation("field.default", "Predefinita")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                    else if (column.PropertyName == "CreatedAt")
-                    {
-                        <EFTableColumnHeader TItem="UMDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<UMDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
-                        </EFTableColumnHeader>
-                    }
-                }
-                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-            </HeaderContent>
-
-            <RowTemplate Context="item">
-                @{
-                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
-                }
-                @foreach (var column in visibleColumns)
-                {
-                    @if (column.PropertyName == "Name")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                            <div class="d-flex align-center">
-                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Straighten" />
-                                </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.body2">@item.Name</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
-                                </div>
-                            </div>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "Symbol")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.symbol", "Simbolo")">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@item.Symbol</MudChip>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "Description")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
-                            <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
-                                @(string.IsNullOrEmpty(item.Description) ? "-" : item.Description)
-                            </MudText>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "IsDefault")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.default", "Predefinita")">
-                            @if (item.IsDefault)
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.Star">
-                                    @TranslationService.GetTranslation("field.default", "Predefinita")
-                                </MudChip>
-                            }
-                            else
-                            {
-                                <MudText Typo="Typo.body2">-</MudText>
-                            }
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "CreatedAt")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
-                            <MudText Typo="Typo.body2">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
-                        </MudTd>
-                    }
-                }
-                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                    <ActionButtonGroup EntityName="@item.Name"
-                                       ItemDisplayName="@item.Name"
-                                       ShowView="false"
-                                       ShowEdit="true"
-                                       ShowAuditLog="true"
-                                       ShowToggleStatus="false"
-                                       ShowDelete="true"
-                                       OnEdit="@(() => EditUM(item.Id))"
-                                       OnAuditLog="@(() => ViewUMAuditLog(item))"
-                                       OnDelete="@(() => DeleteUM(item))" />
-                </MudTd>
-            </RowTemplate>
-
-            <NoRecordsContent>
-                <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                    <MudIcon Icon="@Icons.Material.Outlined.Straighten" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
-                    <MudText Typo="Typo.h6" Class="mb-2">
-                        @(_unitOfMeasures.Any() ?
-                                            TranslationService.GetTranslation("um.noUMsMatchFilters", "Nessuna unità di misura corrisponde ai filtri applicati") :
-                                            TranslationService.GetTranslation("um.noUMsFound", "Nessuna unità di misura trovata"))
-                    </MudText>
-                    @if (_unitOfMeasures.Any())
-                    {
-                        <MudButton Variant="Variant.Text"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Outlined.Clear"
-                                   OnClick="@ClearFilters">
-                            @TranslationService.GetTranslation("um.clearFilters", "Cancella filtri")
-                        </MudButton>
-                    }
-                </div>
-            </NoRecordsContent>
-            </EFTable>
-            
-            <!-- Pagination -->
-            @if (_pagedResult != null)
+<EntityManagementPage TEntity="UMDto"
+                      Config="_config"
+                      Service="_service">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Name")
             {
-                <MudDivider Class="my-4" />
-                <div class="d-flex justify-center align-center flex-wrap gap-4">
-                    @if (_pagedResult.TotalPages > 1)
-                    {
-                        <MudPagination Count="@_pagedResult.TotalPages" 
-                                       Selected="@_currentPage" 
-                                       Color="Color.Primary"
-                                       Size="Size.Medium"
-                                       ShowFirstButton="true"
-                                       ShowLastButton="true"
-                                       SelectedChanged="@OnPageChanged" />
-                    }
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @if (_pagedResult.TotalPages > 1)
-                        {
-                            @TranslationService.GetTranslation("pagination.info", 
-                                "Pagina {0} di {1} - Totale: {2} unità di misura", 
-                                _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
-                        }
-                        else
-                        {
-                            @TranslationService.GetTranslation("pagination.singlePage", 
-                                "Totale: {0} unità di misura", 
-                                _pagedResult.TotalCount)
-                        }
-                    </MudText>
-                </div>
+                <EFTableColumnHeader TItem="UMDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
             }
-        </div>
-    </div>
-}
+            else if (column.PropertyName == "Symbol")
+            {
+                <EFTableColumnHeader TItem="UMDto" PropertyName="Symbol">
+                    <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Symbol))">@TranslationService.GetTranslation("field.symbol", "Simbolo")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Description")
+            {
+                <EFTableColumnHeader TItem="UMDto" PropertyName="Description">
+                    <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "IsDefault")
+            {
+                <EFTableColumnHeader TItem="UMDto" PropertyName="IsDefault">
+                    <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.IsDefault))">@TranslationService.GetTranslation("field.default", "Predefinita")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <EFTableColumnHeader TItem="UMDto" PropertyName="CreatedAt">
+                    <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<UMDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Straighten" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..8])...</MudText>
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Symbol")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.symbol", "Simbolo")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@ctx.Item.Symbol</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Description")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
+                        @(string.IsNullOrEmpty(ctx.Item.Description) ? "-" : ctx.Item.Description)
+                    </MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "IsDefault")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.default", "Predefinita")">
+                    @if (ctx.Item.IsDefault)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.Star">
+                            @TranslationService.GetTranslation("field.default", "Predefinita")
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">-</MudText>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                    <MudText Typo="Typo.body2">@ctx.Item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
 
 @code {
-    // Dialog options for fullscreen audit dialog
-    private readonly DialogOptions _auditDialogOptions = new() 
-    { 
-        FullScreen = true, 
-        CloseButton = true,
-        MaxWidth = MaxWidth.False
-    };
-    
-    // Loading states
-    private bool _isLoading = true;
-    private bool _isLoadingUMs = false;
-    
-    // Filter and search state
-    private string _searchTerm = string.Empty;
-    private CancellationTokenSource? _searchDebounceCts;
-    
-    // Pagination state
-    private PagedResult<UMDto>? _pagedResult;
-    private int _currentPage = 1;
-    private int _pageSize = 20;
-    
-    // Data collections
-    private List<UMDto> _unitOfMeasures = new();
-    private HashSet<UMDto> _selectedUMs = new();
+    private IEntityManagementService<UMDto> _service = null!;
+    private EntityManagementConfig<UMDto> _config = null!;
 
-    // EFTable reference
-    private EFTable<UMDto> _efTable = null!;
-
-    // Column configuration for EFTable
-    private List<EFTableColumnConfiguration> _initialColumns = new()
+    protected override void OnInitialized()
     {
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
-        new() { PropertyName = "Symbol", DisplayName = "Simbolo", IsVisible = true, Order = 1, IsSearchable = true },
-        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
-        new() { PropertyName = "IsDefault", DisplayName = "Predefinita", IsVisible = true, Order = 3, IsSearchable = false },
-        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4, IsSearchable = false }
-    };
-
-    // Quick Filters
-    private List<QuickFilter<UMDto>> _quickFilters = new()
-    {
-        new() 
-        { 
-            Id = "all", 
-            Label = "Tutti",
-            Predicate = _ => true,
-            Description = "Mostra tutte le unità di misura"
-        },
-        new() 
-        { 
-            Id = "default", 
-            Label = "Predefinite",
-            Predicate = um => um.IsDefault,
-            Color = Color.Success,
-            Icon = Icons.Material.Outlined.Star,
-            Description = "Unità di misura predefinite"
-        },
-        new() 
-        { 
-            Id = "active", 
-            Label = "Attive",
-            Predicate = um => um.IsActive,
-            Color = Color.Info,
-            Icon = Icons.Material.Outlined.CheckCircle,
-            Description = "Unità di misura attive"
-        },
-        new() 
-        { 
-            Id = "with_description", 
-            Label = "Con Descrizione",
-            Predicate = um => !string.IsNullOrEmpty(um.Description),
-            Color = Color.Primary,
-            Icon = Icons.Material.Outlined.Description,
-            Description = "Unità con descrizione"
-        },
-        new() 
-        { 
-            Id = "recent", 
-            Label = "Recenti",
-            Predicate = um => um.CreatedAt >= DateTime.UtcNow.AddDays(-30),
-            Color = Color.Warning,
-            Icon = Icons.Material.Outlined.NewReleases,
-            Description = "Unità aggiunte negli ultimi 30 giorni"
-        }
-    };
-    
-    private QuickFilter<UMDto>? _activeQuickFilter;
-
-    private EventCallback<HashSet<UMDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<UMDto>>(this, OnSelectedItemsChanged);
-
-    /// <summary>
-    /// Handles quick filter selection
-    /// </summary>
-    private void HandleQuickFilter(QuickFilter<UMDto>? filter)
-    {
-        _activeQuickFilter = filter;
-        StateHasChanged();
-    }
-
-    /// <summary>
-    /// Handles selection changes from EFTable
-    /// </summary>
-    private void OnSelectedItemsChanged(HashSet<UMDto> items)
-    {
-        _selectedUMs = items;
-        StateHasChanged();
-    }
-
-    /// <summary>
-    /// Computed property for filtered units of measure based on search criteria.
-    /// </summary>
-    private IEnumerable<UMDto> _filteredUMs => 
-        _unitOfMeasures.Where(um => FilterUM(um));
-
-    /// <summary>
-    /// Filters a unit of measure based on search term and other criteria
-    /// </summary>
-    private bool FilterUM(UMDto um)
-    {
-        // Quick filter
-        if (_activeQuickFilter != null && _activeQuickFilter.Predicate != null)
+        _service = new UnitOfMeasureManagementService(UMService);
+        _config = new EntityManagementConfig<UMDto>
         {
-            if (!_activeQuickFilter.Predicate(um))
-                return false;
-        }
-
-        // Configurable multi-column search
-        if (!um.MatchesSearchInColumns(
-            _searchTerm,
-            _initialColumns.Where(c => c.IsSearchable).Select(c => c.PropertyName)))
-            return false;
-
-        return true;
-    }
-
-    /// <summary>
-    /// Handles row click - navigates to unit of measure detail page
-    /// </summary>
-    private void HandleRowClick(TableRowClickEventArgs<UMDto> args)
-    {
-        // Ctrl+Click or Cmd+Click opens in new tab
-        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
-        {
-            JSRuntime.InvokeVoidAsync("open", $"/settings/unit-of-measures/{args.Item.Id}", "_blank");
-            return;
-        }
-
-        // Normal click navigates in same tab
-        NavigationManager.NavigateTo($"/settings/unit-of-measures/{args.Item.Id}");
-    }
-
-    /// <summary>
-    /// Component initialization.
-    /// </summary>
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            // Check authentication
-            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-            if (!isAuthenticated)
+            ComponentKey = "UnitOfMeasureManagement",
+            PageTitleKey = "um.management",
+            PageTitleDefault = "Gestione Unità di Misura",
+            EntityIcon = Icons.Material.Outlined.Straighten,
+            PageRootCssClass = "um-page-root",
+            BaseRoute = "/settings/unit-of-measures",
+            ExcelFileName = "UnitaDiMisura",
+            SearchPlaceholderKey = "um.search",
+            SearchPlaceholderDefault = "Cerca unità di misura",
+            CreateTooltip = "um.createNew",
+            EntityTypeName = "UM",
+            ShowToggleStatus = false,
+            GetDisplayName = u => u.Name,
+            GetId = u => u.Id,
+            GetIsActive = u => u.IsActive,
+            Columns = new()
             {
-                await ShowLoginDialogAsync();
-                return;
-            }
-
-            // Load units of measure
-            await LoadUMsAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("um.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
-            Logger.LogError(ex, "Error loading units of measure page");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    /// <summary>
-    /// Loads unit of measure data.
-    /// </summary>
-    private async Task LoadUMsAsync()
-    {
-        try
-        {
-            _isLoadingUMs = true;
-            
-            _pagedResult = await UMService.GetUMsAsync(_currentPage, _pageSize);
-            
-            if (_pagedResult != null)
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Symbol", DisplayName = "Simbolo", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "IsDefault", DisplayName = "Predefinita", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4, IsSearchable = false }
+            },
+            QuickFilters = new()
             {
-                _unitOfMeasures = _pagedResult.Items.OrderBy(um => um.Name).ToList();
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutte le unità di misura" },
+                new() { Id = "default", Label = "Predefinite", Predicate = u => u.IsDefault, Color = Color.Success, Icon = Icons.Material.Outlined.Star, Description = "Unità di misura predefinite" },
+                new() { Id = "active", Label = "Attive", Predicate = u => u.IsActive, Color = Color.Info, Icon = Icons.Material.Outlined.CheckCircle, Description = "Unità di misura attive" },
+                new() { Id = "with_description", Label = "Con Descrizione", Predicate = u => !string.IsNullOrEmpty(u.Description), Color = Color.Primary, Icon = Icons.Material.Outlined.Description, Description = "Unità con descrizione" },
+                new() { Id = "recent", Label = "Recenti", Predicate = u => u.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases, Description = "Unità aggiunte negli ultimi 30 giorni" }
             }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("um.loadingError", "Errore nel caricamento delle unità di misura: {0}", ex.Message), Severity.Error);
-            Logger.LogError(ex, "Error loading units of measure");
-        }
-        finally
-        {
-            _isLoadingUMs = false;
-        }
-    }
-
-    /// <summary>
-    /// Clears all active filters.
-    /// </summary>
-    private void ClearFilters()
-    {
-        _searchTerm = string.Empty;
-        _activeQuickFilter = null;
-        StateHasChanged();
-    }
-
-    private void OnSearchChanged(string term)
-    {
-        _searchTerm = term;
-    }
-
-    private async Task OnPageChanged(int page)
-    {
-        _currentPage = page;
-        await LoadUMsAsync();
-    }
-
-    private void CreateUM()
-    {
-        NavigationManager.NavigateTo("/settings/unit-of-measures/new");
-    }
-
-    private void EditUM(Guid id)
-    {
-        NavigationManager.NavigateTo($"/settings/unit-of-measures/{id}");
-    }
-
-    private async Task DeleteUM(UMDto um)
-    {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("um.deleteTitle", "Conferma Eliminazione"),
-            TranslationService.GetTranslation("um.deleteMessage", "Sei sicuro di voler eliminare l'unità di misura '{0}'?", um.Name),
-            yesText: TranslationService.GetTranslation("button.delete", "Elimina"),
-            cancelText: TranslationService.GetTranslation("button.cancel", "Annulla"));
-
-        if (confirmed == true)
-        {
-            try
-            {
-                var success = await UMService.DeleteUMAsync(um.Id);
-                if (success)
-                {
-                    _unitOfMeasures.Remove(um);
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("um.deleteSuccess", "Unità di misura eliminata con successo"), 
-                        Severity.Success);
-                    StateHasChanged();
-                }
-                else
-                {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("um.deleteNotFound", "Unità di misura non trovata"), 
-                        Severity.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error deleting unit of measure");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("um.deleteError", "Errore nell'eliminazione dell'unità di misura: {0}", ex.Message), 
-                    Severity.Error);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Opens the audit log dialog for a unit of measure using IDialogService.
-    /// </summary>
-    private async Task ViewUMAuditLog(UMDto um)
-    {
-        var parameters = new DialogParameters<AuditHistoryDialog>
-        {
-            { x => x.EntityType, "UM" },
-            { x => x.EntityId, um.Id },
-            { x => x.EntityName, um.Name }
         };
-
-        await DialogService.ShowAsync<AuditHistoryDialog>(
-            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
-            parameters,
-            _auditDialogOptions);
-    }
-
-    /// <summary>
-    /// Toggles the active status of a unit of measure.
-    /// </summary>
-    private async Task ToggleUMStatus(UMDto um)
-    {
-        var actionText = um.IsActive ? 
-            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
-            TranslationService.GetTranslation("common.activate", "attivare");
-            
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslationFormatted("um.confirmStatusChange", 
-            "Sei sicuro di voler {0} l'unità di misura '{1}'?", 
-            actionText, um.Name);
-
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirm == true)
-        {
-            try
-            {
-                // Toggle the status locally (in a real implementation, you would call a service method)
-                um.IsActive = !um.IsActive;
-                
-                var statusMessage = um.IsActive ?
-                    TranslationService.GetTranslation("um.activated", "Unità di misura attivata con successo!") :
-                    TranslationService.GetTranslation("um.deactivated", "Unità di misura disattivata con successo!");
-                
-                Snackbar.Add(statusMessage, Severity.Success);
-                StateHasChanged();
-                
-                // Note: In a real implementation, you would call:
-                // await UMService.ToggleUMStatusAsync(um.Id, um.IsActive);
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("um.statusChangeError", 
-                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error toggling UM status {UMId}", um.Id);
-                // Revert the change on error
-                um.IsActive = !um.IsActive;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Deletes all selected units of measure.
-    /// </summary>
-    private async Task DeleteSelectedUMs()
-    {
-        if (_selectedUMs.Count == 0)
-            return;
-
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslationFormatted("um.confirmDeleteMultiple", 
-            "Sei sicuro di voler eliminare {0} unità di misura selezionate? Questa azione non può essere annullata.", 
-            _selectedUMs.Count);
-
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirm == true)
-        {
-            try
-            {
-                var deletedCount = 0;
-                var failedCount = 0;
-                
-                foreach (var um in _selectedUMs.ToList())
-                {
-                    try
-                    {
-                        await UMService.DeleteUMAsync(um.Id);
-                        _unitOfMeasures.RemoveAll(u => u.Id == um.Id);
-                        deletedCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        failedCount++;
-                        Logger.LogError(ex, "Error deleting UM {UMId}", um.Id);
-                    }
-                }
-                
-                _selectedUMs.Clear();
-                
-                if (failedCount == 0)
-                {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("um.deletedMultiple", 
-                        "{0} unità di misura eliminate con successo!", deletedCount), Severity.Success);
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("um.deletedMultiplePartial", 
-                        "{0} unità di misura eliminate, {1} fallite", deletedCount, failedCount), Severity.Warning);
-                }
-                
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslationFormatted("um.deleteError", 
-                    "Errore nell'eliminazione delle unità di misura: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error deleting selected UMs");
-            }
-        }
-    }
-
-    private async Task ShowLoginDialogAsync()
-    {
-        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
-        if (result)
-        {
-            // Reload the page after successful login
-            await OnInitializedAsync();
-        }
-    }
-    
-    private bool HasActiveFilters()
-    {
-        return !string.IsNullOrWhiteSpace(_searchTerm)
-            || _activeQuickFilter != null;
     }
 }

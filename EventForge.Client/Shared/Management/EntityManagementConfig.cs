@@ -29,6 +29,19 @@ public class EntityManagementConfig<TEntity> where TEntity : class
     public Func<TEntity, bool>? GetIsActive { get; set; }
     public required Func<TEntity, string> GetDisplayName { get; set; }
     public required Func<TEntity, Guid> GetId { get; set; }
+
+    /// <summary>
+    /// Optional predicate to determine if a specific entity can be deleted.
+    /// When null, all entities are considered deletable.
+    /// When provided and returning false, delete is blocked with a warning message.
+    /// </summary>
+    public Func<TEntity, bool>? CanDelete { get; set; }
+
+    /// <summary>
+    /// Translation key for the warning message shown when CanDelete returns false.
+    /// </summary>
+    public string CannotDeleteMessageKey { get; set; } = "common.cannotDelete";
+
     public string CreateTooltip { get; set; } = "common.createNew";
     public string DeleteConfirmMessageKey { get; set; } = "common.confirmDelete";
     public string DeleteSuccessMessageKey { get; set; } = "common.deleteSuccess";
