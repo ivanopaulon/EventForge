@@ -1,4 +1,6 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Store;
+using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Store;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,35 +33,25 @@ public class StoreUsersController : BaseApiController
     /// <summary>
     /// Gets all store users with optional pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page and pageSize are automatically capped to configured limits)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of store users</returns>
     /// <response code="200">Returns the paginated list of store users</response>
-    /// <response code="400">If the query parameters are invalid</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<StoreUserDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<StoreUserDto>>> GetStoreUsers(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        // Validate pagination parameters
-        var validationResult = ValidatePaginationParameters(page, pageSize);
-        if (validationResult != null)
-            return validationResult;
-
-        // Validate tenant access
         var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantValidation != null)
             return tenantValidation;
 
         try
         {
-            var result = await _storeUserService.GetStoreUsersAsync(page, pageSize, cancellationToken);
+            var result = await _storeUserService.GetStoreUsersAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -267,31 +259,24 @@ public class StoreUsersController : BaseApiController
     /// <summary>
     /// Gets all store user groups with optional pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page and pageSize are automatically capped to configured limits)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of store user groups</returns>
     /// <response code="200">Returns the paginated list of store user groups</response>
-    /// <response code="400">If the query parameters are invalid</response>
     [HttpGet("groups")]
     [ProducesResponseType(typeof(PagedResult<StoreUserGroupDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<StoreUserGroupDto>>> GetStoreUserGroups(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         try
         {
-            var result = await _storeUserService.GetStoreUserGroupsAsync(page, pageSize, cancellationToken);
+            var result = await _storeUserService.GetStoreUserGroupsAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user groups with pagination (page: {Page}, pageSize: {PageSize})", page, pageSize);
+            _logger.LogError(ex, "Error retrieving store user groups with pagination (page: {Page}, pageSize: {PageSize})", pagination.Page, pagination.PageSize);
             return CreateInternalServerErrorProblem("An error occurred while retrieving store user groups.", ex);
         }
     }
@@ -441,26 +426,19 @@ public class StoreUsersController : BaseApiController
     /// <summary>
     /// Gets all store user privileges with optional pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page and pageSize are automatically capped to configured limits)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of store user privileges</returns>
     /// <response code="200">Returns the paginated list of store user privileges</response>
-    /// <response code="400">If the query parameters are invalid</response>
     [HttpGet("privileges")]
     [ProducesResponseType(typeof(PagedResult<StoreUserPrivilegeDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<StoreUserPrivilegeDto>>> GetStoreUserPrivileges(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         try
         {
-            var result = await _storeUserService.GetStoreUserPrivilegesAsync(page, pageSize, cancellationToken);
+            var result = await _storeUserService.GetStoreUserPrivilegesAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -927,32 +905,25 @@ public class StoreUsersController : BaseApiController
     /// <summary>
     /// Gets all store POS terminals with optional pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page and pageSize are automatically capped to configured limits)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of store POS terminals</returns>
     /// <response code="200">Returns the paginated list of store POS terminals</response>
-    /// <response code="400">If the query parameters are invalid</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("pos")]
     [ProducesResponseType(typeof(PagedResult<StorePosDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<StorePosDto>>> GetStorePoses(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantValidation != null)
             return tenantValidation;
 
         try
         {
-            var result = await _storeUserService.GetStorePosesAsync(page, pageSize, cancellationToken);
+            var result = await _storeUserService.GetStorePosesAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)

@@ -677,31 +677,24 @@ public class FinancialManagementController : BaseApiController
     /// <summary>
     /// Gets all VAT natures with optional pagination.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of VAT natures</returns>
     /// <response code="200">Returns the paginated list of VAT natures</response>
-    /// <response code="400">If the query parameters are invalid</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("vat-natures")]
     [ProducesResponseType(typeof(PagedResult<VatNatureDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<VatNatureDto>>> GetVatNatures(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 100,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
-
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _vatNatureService.GetVatNaturesAsync(page, pageSize, cancellationToken);
+            var result = await _vatNatureService.GetVatNaturesAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)

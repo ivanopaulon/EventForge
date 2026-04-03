@@ -1,5 +1,4 @@
 using EventForge.DTOs.Documents;
-using System.Net.Http.Json;
 
 namespace EventForge.Client.Services;
 
@@ -8,13 +7,13 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class DocumentCounterService : IDocumentCounterService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<DocumentCounterService> _logger;
     private const string BaseUrl = "api/v1/DocumentCounters";
 
-    public DocumentCounterService(HttpClient httpClient, ILogger<DocumentCounterService> logger)
+    public DocumentCounterService(IHttpClientService httpClientService, ILogger<DocumentCounterService> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -22,9 +21,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var response = await _httpClient.GetAsync(BaseUrl);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<IEnumerable<DocumentCounterDto>>();
+            return await _httpClientService.GetAsync<IEnumerable<DocumentCounterDto>>(BaseUrl);
         }
         catch (Exception ex)
         {
@@ -37,9 +34,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/by-type/{documentTypeId}");
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<IEnumerable<DocumentCounterDto>>();
+            return await _httpClientService.GetAsync<IEnumerable<DocumentCounterDto>>($"{BaseUrl}/by-type/{documentTypeId}");
         }
         catch (Exception ex)
         {
@@ -52,9 +47,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/{id}");
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<DocumentCounterDto>();
+            return await _httpClientService.GetAsync<DocumentCounterDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
@@ -67,9 +60,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(BaseUrl, createDto);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<DocumentCounterDto>();
+            return await _httpClientService.PostAsync<CreateDocumentCounterDto, DocumentCounterDto>(BaseUrl, createDto);
         }
         catch (Exception ex)
         {
@@ -82,9 +73,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<DocumentCounterDto>();
+            return await _httpClientService.PutAsync<UpdateDocumentCounterDto, DocumentCounterDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
@@ -97,8 +86,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"{BaseUrl}/{id}");
-            response.EnsureSuccessStatusCode();
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             return true;
         }
         catch (Exception ex)
