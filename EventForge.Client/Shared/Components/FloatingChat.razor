@@ -13,7 +13,7 @@
         <MudBadge Content="@TotalUnread" Color="Color.Error" Overlap="true" Visible="@(TotalUnread > 0)" Max="99">
             <MudFab Color="Color.Primary"
                     StartIcon="@Icons.Material.Filled.Chat"
-                    Size="Size.Medium"
+                    Size="Size.Small"
                     OnClick="OpenPanel"
                     title="Chat"
                     aria-label="Apri chat" />
@@ -182,8 +182,8 @@
 <style>
     .fc-fab {
         position: fixed;
-        bottom: 152px;
-        right: 24px;
+        bottom: 112px;
+        right: 16px;
         z-index: 1300;
         cursor: pointer;
     }
@@ -452,7 +452,7 @@
         }
 
         .fc-fab {
-            bottom: 142px;
+            bottom: 112px;
             right: 16px;
         }
     }

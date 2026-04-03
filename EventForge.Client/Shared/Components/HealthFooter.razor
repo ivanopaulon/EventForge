@@ -27,7 +27,7 @@
 <div class="hf-fab">
     <MudFab Color="@GetOverallHealthFabColor()" 
             StartIcon="@Icons.Material.Filled.Monitor" 
-            Size="Size.Large"
+            Size="Size.Small"
             OnClick="OpenHealthDialog"
             title="@GetHealthStatusTitle()"
             aria-label="@TranslationService.GetTranslation("health.openDialog", "View health status")" />
@@ -261,15 +261,15 @@
 <style>
     .hf-fab {
         position: fixed;
-        bottom: 96px;
-        right: 24px;
+        bottom: 16px;
+        right: 16px;
         z-index: 1300;
         cursor: pointer;
     }
 
     @@media (max-width: 420px) {
         .hf-fab {
-            bottom: 88px;
+            bottom: 16px;
             right: 16px;
         }
     }
