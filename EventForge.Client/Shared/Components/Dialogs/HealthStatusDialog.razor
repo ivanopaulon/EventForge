@@ -202,7 +202,7 @@
             </MudTabPanel>
 
             <!-- Tab 2: Sessioni attive -->
-            <MudTabPanel Text="@TranslationService.GetTranslation("health.tab.sessions", "Sessioni")"
+            <MudTabPanel Text="@TranslationService.GetTranslation("health.tab.sessions", "Sessions")"
                          Icon="@Icons.Material.Outlined.Devices">
                 <div class="pa-3">
                     @if (ActiveSessions != null && ActiveSessions.Any())
@@ -336,7 +336,7 @@
             </MudTabPanel>
 
             <!-- Tab 3: Log di sistema -->
-            <MudTabPanel Text="@TranslationService.GetTranslation("health.tab.logs", "Log")"
+            <MudTabPanel Text="@TranslationService.GetTranslation("health.tab.logs", "Logs")"
                          Icon="@Icons.Material.Outlined.Article">
                 <div class="pa-3">
                     <!-- Auto-refresh controls -->
@@ -626,7 +626,7 @@
         </MudTabs>
     </ChildContent>
     <DialogActions>
-        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" OnClick="RefreshAll" Title="@TranslationService.GetTranslation("common.refresh", "Aggiorna")" />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" OnClick="RefreshAll" Title="@TranslationService.GetTranslation("common.refresh", "Refresh")" />
         <MudIconButton Icon="@Icons.Material.Outlined.FileDownload" OnClick="ExportLogs" Title="@TranslationService.GetTranslation("health.export", "Export")" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Close" OnClick="Close">
             @TranslationService.GetTranslation("button.close", "Close")
