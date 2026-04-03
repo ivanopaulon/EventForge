@@ -179,18 +179,24 @@
  * When EFTable is rendered with StickyHeader="true", the class
  * "ef-table-sticky-header" is applied to the MudTable wrapper.
  * thead th elements are made sticky relative to the viewport,
- * offset by the AppBar height (48px) so they appear just below it.
+ * offset by AppBar height (48px) + MudTable toolbar height (64px) = 112px.
  */
 .ef-table-sticky-header .mud-table-head th {
     position: sticky;
-    top: 48px;
+    top: 112px; /* AppBar (48px) + MudTable toolbar (64px) */
     z-index: 3;
     background-color: var(--mud-palette-surface, #fff);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* visual separation from rows */
 }
 
 /* Ensure the sticky header is also opaque in dark mode */
 .mud-dark .ef-table-sticky-header .mud-table-head th {
     background-color: var(--mud-palette-surface, #1e1e1e);
+}
+
+/* Give body rows enough scroll-margin so anchored rows are not obscured by sticky headers */
+.ef-table-sticky-header .mud-table-body tr {
+    scroll-margin-top: 176px; /* 112px sticky header + 64px safe margin */
 }
 
 /* ----------- Floating Scroll-to-Top button ----------- */
