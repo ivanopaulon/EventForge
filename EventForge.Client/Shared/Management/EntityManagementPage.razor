@@ -154,6 +154,19 @@
     [Parameter] public RenderFragment<TEntity>? AdditionalRowActions { get; set; }
     [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
 
+    /// <summary>
+    /// Optional extra filter applied on top of quick-filter and search.
+    /// Set by consumer pages to filter by additional fields (e.g. document type, status from a select).
+    /// The filter is re-evaluated on every render so binding to a parent field works correctly.
+    /// </summary>
+    [Parameter] public Func<TEntity, bool>? AdditionalFilter { get; set; }
+
+    /// <summary>
+    /// When set, replaces the default "navigate to {BaseRoute}/new" behaviour of the Create button.
+    /// Use this when the create action should open a dialog instead of navigating to a new page.
+    /// </summary>
+    [Parameter] public Func<Task>? OnCreateOverride { get; set; }
+
     // Dialog options for fullscreen audit dialog
     private readonly DialogOptions _auditDialogOptions = new()
     {
@@ -185,6 +198,9 @@
 
     private bool FilterEntity(TEntity entity)
     {
+        if (AdditionalFilter != null && !AdditionalFilter(entity))
+            return false;
+
         if (_activeQuickFilter?.Predicate != null)
         {
             if (!_activeQuickFilter.Predicate(entity))
@@ -266,8 +282,21 @@
 
     private void CreateEntity()
     {
-        NavigationManager.NavigateTo($"{Config.BaseRoute}/new");
+        if (OnCreateOverride != null)
+        {
+            _ = OnCreateOverride.Invoke();
+        }
+        else
+        {
+            NavigationManager.NavigateTo($"{Config.BaseRoute}/new");
+        }
     }
+
+    /// <summary>
+    /// Forces a reload of the entity list. Call via <c>@ref</c> after custom row actions
+    /// (e.g. Block/Unblock, Ship, Receive) that mutate entity state on the server.
+    /// </summary>
+    public async Task RefreshAsync() => await LoadEntitiesAsync();
 
     private void EditEntity(Guid id)
     {
