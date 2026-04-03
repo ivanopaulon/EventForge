@@ -117,7 +117,8 @@
                               Dense="true"
                               Disabled="@IsToolbarDisabled"
                               Class="mr-2"
-                              Style="max-width: 300px;" />
+                              Style="max-width: 300px; margin-top: 0; margin-bottom: 0;"
+                              Margin="Margin.Dense" />
             }
             @if (ShowFilters)
             {
@@ -125,7 +126,7 @@
                     <MudIconButton Icon="@Icons.Material.Outlined.FilterList"
                                    Color="@(_filtersExpanded ? Color.Primary : Color.Default)"
                                    OnClick="@ToggleFilters"
-                                   Size="Size.Small" />
+                                   Size="Size.Medium" />
                 </MudTooltip>
             }
             @if (AdditionalToolbarContent != null)
@@ -138,7 +139,7 @@
                     <MudIconButton Icon="@Icons.Material.Outlined.Download"
                                    Color="Color.Default"
                                    OnClick="@HandleExportClick"
-                                   Size="Size.Small"
+                                   Size="Size.Medium"
                                    Disabled="_isExporting" />
                 </MudTooltip>
             }
@@ -152,7 +153,7 @@
                                        Color="Color.Error"
                                        OnClick="@HandleBulkDelete"
                                        Disabled="@IsToolbarDisabled"
-                                       Size="Size.Small" />
+                                       Size="Size.Medium" />
                     </MudTooltip>
                 }
             }
@@ -163,7 +164,7 @@
                                    Color="Color.Primary"
                                    OnClick="@HandleRefresh"
                                    Disabled="@IsToolbarDisabled"
-                                   Size="Size.Small" />
+                                   Size="Size.Medium" />
                 </MudTooltip>
             }
             @if (ShowCreate && OnCreate.HasDelegate)
@@ -173,7 +174,7 @@
                                    Color="Color.Primary"
                                    OnClick="@HandleCreate"
                                    Disabled="@IsToolbarDisabled"
-                                   Size="Size.Small" />
+                                   Size="Size.Medium" />
                 </MudTooltip>
             }
             @if (UseDefaultActions && OnAdd.HasDelegate && !ShowCreate)
@@ -182,7 +183,7 @@
                     <MudIconButton Icon="@Icons.Material.Outlined.Add"
                                    Color="Color.Primary"
                                    OnClick="@HandleAdd"
-                                   Size="Size.Small" />
+                                   Size="Size.Medium" />
                 </MudTooltip>
             }
             @if (Actions != null && Actions.Any())
@@ -193,7 +194,7 @@
                         <MudIconButton Icon="@(action.Icon ?? Icons.Material.Outlined.MoreVert)"
                                        Color="@(Enum.Parse<Color>(action.Color ?? "Default"))"
                                        OnClick="@(async () => await HandleCustomAction(action.Id))"
-                                       Size="Size.Small"
+                                       Size="Size.Medium"
                                        Disabled="@(action.RequiresSelection && !SelectedItems.Any())" />
                     </MudTooltip>
                 }
