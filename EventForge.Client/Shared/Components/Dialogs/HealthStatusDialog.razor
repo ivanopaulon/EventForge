@@ -1,7 +1,6 @@
 @*
-    Enhanced Fullscreen Health Status & Log Dialog
-    Features: MudAppBar, auto-refresh, collapsible filters, public log access with sanitization
-    Implements true parity with AuditHistoryDialog pattern
+    Health Status Dialog — EFDialog + vertical MudTabs
+    Replaced MudAppBar+MudGrid layout with EFDialog wrapper and tabbed interface.
 *@
 
 @using EventForge.DTOs.Health
@@ -19,285 +18,203 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @implements IDisposable
 
-<MudDialog Class="health-status-dialog-enhanced"
-           DefaultFocus="DefaultFocus.None">
-    <TitleContent>
-        <MudAppBar Elevation="1" Dense="true">
-            <MudIcon Icon="@GetOverallHealthIcon()" 
-                     Color="@GetOverallHealthColor()" 
-                     Class="mr-3" />
-            <MudText Typo="Typo.h6">
-                @TranslationService.GetTranslation("health.dialog.title", "System Health & Logs")
-            </MudText>
-            <MudSpacer />
-            
-            <!-- Auto-refresh toggle and interval -->
-            <MudSwitch @bind-Value="_autoRefreshEnabled" 
-                       Color="Color.Primary" 
-                       Class="mr-2"
-                       T="bool"
-                       Label="@TranslationService.GetTranslation("health.autoRefresh", "Auto-refresh")"
-                       aria-label="@TranslationService.GetTranslation("health.autoRefresh", "Auto-refresh")" />
-            
-            @if (_autoRefreshEnabled)
-            {
-                <MudNumericField @bind-Value="_refreshIntervalSeconds"
-                                 Label="@TranslationService.GetTranslation("health.intervalSeconds", "Interval (s)")"
-                                 Min="5"
-                                 Max="300"
-                                 Step="5"
-                                 Style="width: 120px;"
-                                 Class="mr-2"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-            }
-            
-            <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
-                           Color="Color.Inherit"
-                           OnClick="@RefreshAll"
-                           aria-label="@TranslationService.GetTranslation("common.refresh", "Refresh")" />
-            <MudIconButton Icon="@Icons.Material.Outlined.FileDownload"
-                           Color="Color.Inherit"
-                           OnClick="@ExportLogs"
-                           aria-label="@TranslationService.GetTranslation("health.export", "Export")" />
-            <MudIconButton Icon="@Icons.Material.Outlined.Close"
-                           Color="Color.Inherit"
-                           OnClick="@Close"
-                           aria-label="@TranslationService.GetTranslation("button.close", "Close")" />
-        </MudAppBar>
-    </TitleContent>
-    <DialogContent>
-        <MudGrid>
-            <!-- Left Column: Health Status -->
-            <MudItem xs="12" md="6">
-                <MudPaper Elevation="0" Class="pa-4" Style="height: 100%; overflow-y: auto;">
-                    <MudText Typo="Typo.h6" Class="mb-4">
-                        <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" Class="mr-2" />
-                        @TranslationService.GetTranslation("health.systemHealth", "System Health")
-                    </MudText>
-                    
-                    @if (HealthData != null)
-                    {
-                        <MudStack Spacing="3">
-                            
-                            <!-- API Status Section -->
-                            <MudCard Elevation="1">
-                                <MudCardContent>
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-                                        <MudIcon Icon="@Icons.Material.Filled.Api" 
-                                                 Color="@GetStatusColor(HealthData.ApiStatus)" 
-                                                 Size="Size.Medium" />
-                                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                                            @TranslationService.GetTranslation("health.api.title", "API Status")
-                                        </MudText>
-                                        <MudChip T="string" Size="Size.Small" 
-                                                 Color="@GetStatusColor(HealthData.ApiStatus)" 
-                                                 Text="@HealthData.ApiStatus" 
-                                                 Variant="Variant.Filled" />
-                                    </MudStack>
-                                    
-                                    <MudSimpleTable Dense="true" Bordered="false" Striped="false">
-                                        <tbody>
-                                            <tr>
-                                                <td><strong>@TranslationService.GetTranslation("health.version", "Version")</strong></td>
-                                                <td>@HealthData.Version</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>@TranslationService.GetTranslation("health.environment", "Environment")</strong></td>
-                                                <td>@HealthData.Environment</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>@TranslationService.GetTranslation("health.uptime", "Uptime")</strong></td>
-                                                <td>@FormatUptime(HealthData.Uptime)</td>
-                                            </tr>
-                                        </tbody>
-                                    </MudSimpleTable>
-                                </MudCardContent>
-                            </MudCard>
+<EFDialog Icon="@Icons.Material.Outlined.MonitorHeart"
+          Title="@TranslationService.GetTranslation("health.dialog.title", "System Health & Logs")"
+          IsProcessing="@_isLoadingLogs"
+          MinWidth="min(1000px, 95vw)"
+          MaxHeight="calc(100vh - 48px)"
+          OnClose="Close">
+    <ChildContent>
+        <MudTabs Position="Position.Left"
+                 Rounded="true"
+                 Border="true"
+                 MinimumTabWidth="140px"
+                 Class="health-tabs">
 
-                            <!-- Database Status Section -->
-                            <MudCard Elevation="1">
-                                <MudCardContent>
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-                                        <MudIcon Icon="@Icons.Material.Filled.Storage" 
-                                                 Color="@GetStatusColor(HealthData.DatabaseStatus)" 
-                                                 Size="Size.Medium" />
-                                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                                            @TranslationService.GetTranslation("health.database.title", "Database Status")
-                                        </MudText>
-                                        <MudChip T="string" Size="Size.Small" 
-                                                 Color="@GetStatusColor(HealthData.DatabaseStatus)" 
-                                                 Text="@HealthData.DatabaseStatus" 
-                                                 Variant="Variant.Filled" />
-                                    </MudStack>
-                                    
-                                    <MudSimpleTable Dense="true" Bordered="false" Striped="false">
-                                        <tbody>
-                                            <tr>
-                                                <td><strong>@TranslationService.GetTranslation("health.status", "Status")</strong></td>
-                                                <td>@HealthData.DatabaseStatus</td>
-                                            </tr>
-                                            @if (HealthData.DatabaseDetails?.Any() == true)
-                                            {
-                                                @foreach (var detail in HealthData.DatabaseDetails)
-                                                {
-                                                    <tr>
-                                                        <td><strong>@detail.Key</strong></td>
-                                                        <td>@detail.Value</td>
-                                                    </tr>
-                                                }
-                                            }
-                                            @if (HealthData.AppliedMigrations?.Any() == true)
-                                            {
-                                                <tr>
-                                                    <td><strong>@TranslationService.GetTranslation("health.migrations", "Migrations")</strong></td>
-                                                    <td>@HealthData.AppliedMigrations.Count()</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </MudSimpleTable>
-                                </MudCardContent>
-                            </MudCard>
+            <!-- Tab 1: Status -->
+            <MudTabPanel Text="@TranslationService.GetTranslation("health.tab.status", "Status")"
+                         Icon="@Icons.Material.Outlined.MonitorHeart">
+                @if (HealthData != null)
+                {
+                    <MudStack Spacing="3" Class="pa-3">
 
-                            <!-- Last Updated Info -->
-                            @if (LastUpdated.HasValue)
-                            {
-                                <MudAlert Severity="Severity.Info" NoIcon="false">
-                                    <MudText Typo="Typo.body2">
-                                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-1" />
-                                        @TranslationService.GetTranslation("health.lastUpdated", "Last Updated"): @LastUpdated.Value.ToString("HH:mm:ss")
+                        <!-- API Status Card -->
+                        <MudCard Elevation="1">
+                            <MudCardContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                    <MudIcon Icon="@Icons.Material.Filled.Api"
+                                             Color="@GetStatusColor(HealthData.ApiStatus)"
+                                             Size="Size.Medium" />
+                                    <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
+                                        @TranslationService.GetTranslation("health.api.title", "API Status")
                                     </MudText>
-                                </MudAlert>
-                            }
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@GetStatusColor(HealthData.ApiStatus)"
+                                             Text="@HealthData.ApiStatus"
+                                             Variant="Variant.Filled" />
+                                </MudStack>
+                                <MudGrid Spacing="1">
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.version", "Version")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@HealthData.Version</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.environment", "Environment")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@HealthData.Environment</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.uptime", "Uptime")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@FormatUptime(HealthData.Uptime)</MudText></MudItem>
+                                </MudGrid>
+                            </MudCardContent>
+                        </MudCard>
 
-                            <!-- Current Session Section -->
-                            @if (CurrentUser != null)
-                            {
-                                <MudCard Elevation="1">
-                                    <MudCardContent>
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-                                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" 
-                                                     Color="Color.Primary" 
-                                                     Size="Size.Medium" />
-                                            <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                                                @TranslationService.GetTranslation("health.currentSession", "Current Session")
-                                            </MudText>
-                                        </MudStack>
-                                        
-                                        <MudSimpleTable Dense="true" Bordered="false" Striped="false">
-                                            <tbody>
-                                                <tr>
-                                                    <td><strong>@TranslationService.GetTranslation("field.username", "Username")</strong></td>
-                                                    <td>@CurrentUser.Username</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>@TranslationService.GetTranslation("field.fullName", "Full Name")</strong></td>
-                                                    <td>@CurrentUser.FullName</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>@TranslationService.GetTranslation("field.roles", "Roles")</strong></td>
-                                                    <td>
-                                                        @if (CurrentUser.Roles?.Any() == true)
-                                                        {
-                                                            <MudStack Row="true" Spacing="1">
-                                                                @foreach (var role in CurrentUser.Roles)
-                                                                {
-                                                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Text="@role" />
-                                                                }
-                                                            </MudStack>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span>-</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>@TranslationService.GetTranslation("field.permissions", "Permissions")</strong></td>
-                                                    <td>
-                                                        @if (CurrentUser.Permissions?.Any() == true)
-                                                        {
-                                                            <MudText Typo="Typo.body2">@CurrentUser.Permissions.Count @TranslationService.GetTranslation("health.permissionsGranted", "permissions granted")</MudText>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span>-</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                                @if (CurrentUser.LastLoginAt.HasValue)
-                                                {
-                                                    <tr>
-                                                        <td><strong>@TranslationService.GetTranslation("field.lastLogin", "Last Login")</strong></td>
-                                                        <td>@CurrentUser.LastLoginAt.Value.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
-                                                    </tr>
-                                                }
-                                                @if (TokenExpiresAt.HasValue)
-                                                {
-                                                    <tr>
-                                                        <td><strong>@TranslationService.GetTranslation("health.tokenExpiry", "Token Expiry")</strong></td>
-                                                        <td>@TokenExpiresAt.Value.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>@TranslationService.GetTranslation("health.tokenTimeRemaining", "Time Remaining")</strong></td>
-                                                        <td>@FormatTimeRemaining(TokenExpiresAt.Value)</td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </MudSimpleTable>
-                                    </MudCardContent>
-                                </MudCard>
-                            }
+                        <!-- Database Status Card -->
+                        <MudCard Elevation="1">
+                            <MudCardContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                    <MudIcon Icon="@Icons.Material.Filled.Storage"
+                                             Color="@GetStatusColor(HealthData.DatabaseStatus)"
+                                             Size="Size.Medium" />
+                                    <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
+                                        @TranslationService.GetTranslation("health.database.title", "Database Status")
+                                    </MudText>
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@GetStatusColor(HealthData.DatabaseStatus)"
+                                             Text="@HealthData.DatabaseStatus"
+                                             Variant="Variant.Filled" />
+                                </MudStack>
+                                <MudGrid Spacing="1">
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.status", "Status")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@HealthData.DatabaseStatus</MudText></MudItem>
+                                    @if (HealthData.DatabaseDetails?.Any() == true)
+                                    {
+                                        @foreach (var detail in HealthData.DatabaseDetails)
+                                        {
+                                            <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@detail.Key</strong></MudText></MudItem>
+                                            <MudItem xs="7"><MudText Typo="Typo.body2">@detail.Value</MudText></MudItem>
+                                        }
+                                    }
+                                    @if (HealthData.AppliedMigrations?.Any() == true)
+                                    {
+                                        <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.migrations", "Migrations")</strong></MudText></MudItem>
+                                        <MudItem xs="7"><MudText Typo="Typo.body2">@HealthData.AppliedMigrations.Count()</MudText></MudItem>
+                                    }
+                                </MudGrid>
+                            </MudCardContent>
+                        </MudCard>
 
-                        </MudStack>
-                    }
-                    else
-                    {
-                        <div class="text-center pa-4">
-                            @if (!string.IsNullOrEmpty(ErrorMessage) && HealthData == null)
-                            {
-                                <MudAlert Severity="Severity.Error" Class="mb-4">
-                                    <MudText Typo="Typo.h6">@TranslationService.GetTranslation("health.error", "Health Check Error")</MudText>
-                                    <MudText Typo="Typo.body2">@ErrorMessage</MudText>
-                                </MudAlert>
-                                <MudButton Variant="Variant.Filled" 
-                                           Color="Color.Primary" 
-                                           OnClick="@RefreshAll"
-                                           StartIcon="@Icons.Material.Filled.Refresh">
-                                    @TranslationService.GetTranslation("common.retry", "Retry")
-                                </MudButton>
-                            }
-                            else
-                            {
-                                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mb-3" />
-                                <MudText Typo="Typo.body1">
-                                    @TranslationService.GetTranslation("health.loading", "Loading health information...")
+                        <!-- Last Updated -->
+                        @if (LastUpdated.HasValue)
+                        {
+                            <MudAlert Severity="Severity.Info" NoIcon="false">
+                                <MudText Typo="Typo.body2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-1" />
+                                    @TranslationService.GetTranslation("health.lastUpdated", "Last Updated"): @LastUpdated.Value.ToString("HH:mm:ss")
                                 </MudText>
-                            }
-                        </div>
-                    }
-                </MudPaper>
-            </MudItem>
+                            </MudAlert>
+                        }
 
-            <!-- Active Sessions Column -->
-            <MudItem xs="12" md="6">
-                <MudPaper Elevation="0" Class="pa-4" Style="height: 100%; overflow-y: auto;">
-                    <MudText Typo="Typo.h6" Class="mb-4">
-                        <MudIcon Icon="@Icons.Material.Filled.Devices" Class="mr-2" />
-                        @TranslationService.GetTranslation("health.activeSessions", "Active Sessions")
-                    </MudText>
-                    
+                        <!-- Current Session Card -->
+                        @if (CurrentUser != null)
+                        {
+                            <MudCard Elevation="1">
+                                <MudCardContent>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                        <MudIcon Icon="@Icons.Material.Filled.AccountCircle"
+                                                 Color="Color.Primary"
+                                                 Size="Size.Medium" />
+                                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
+                                            @TranslationService.GetTranslation("health.currentSession", "Current Session")
+                                        </MudText>
+                                    </MudStack>
+                                    <MudGrid Spacing="1">
+                                        <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("field.username", "Username")</strong></MudText></MudItem>
+                                        <MudItem xs="7"><MudText Typo="Typo.body2">@CurrentUser.Username</MudText></MudItem>
+                                        <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("field.fullName", "Full Name")</strong></MudText></MudItem>
+                                        <MudItem xs="7"><MudText Typo="Typo.body2">@CurrentUser.FullName</MudText></MudItem>
+                                        <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("field.roles", "Roles")</strong></MudText></MudItem>
+                                        <MudItem xs="7">
+                                            @if (CurrentUser.Roles?.Any() == true)
+                                            {
+                                                <MudStack Row="true" Spacing="1">
+                                                    @foreach (var role in CurrentUser.Roles)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Text="@role" />
+                                                    }
+                                                </MudStack>
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.body2">-</MudText>
+                                            }
+                                        </MudItem>
+                                        <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("field.permissions", "Permissions")</strong></MudText></MudItem>
+                                        <MudItem xs="7">
+                                            @if (CurrentUser.Permissions?.Any() == true)
+                                            {
+                                                <MudText Typo="Typo.body2">@CurrentUser.Permissions.Count @TranslationService.GetTranslation("health.permissionsGranted", "permissions granted")</MudText>
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.body2">-</MudText>
+                                            }
+                                        </MudItem>
+                                        @if (CurrentUser.LastLoginAt.HasValue)
+                                        {
+                                            <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("field.lastLogin", "Last Login")</strong></MudText></MudItem>
+                                            <MudItem xs="7"><MudText Typo="Typo.body2">@CurrentUser.LastLoginAt.Value.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText></MudItem>
+                                        }
+                                        @if (TokenExpiresAt.HasValue)
+                                        {
+                                            <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.tokenExpiry", "Token Expiry")</strong></MudText></MudItem>
+                                            <MudItem xs="7"><MudText Typo="Typo.body2">@TokenExpiresAt.Value.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText></MudItem>
+                                            <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.tokenTimeRemaining", "Time Remaining")</strong></MudText></MudItem>
+                                            <MudItem xs="7"><MudText Typo="Typo.body2">@FormatTimeRemaining(TokenExpiresAt.Value)</MudText></MudItem>
+                                        }
+                                    </MudGrid>
+                                </MudCardContent>
+                            </MudCard>
+                        }
+
+                    </MudStack>
+                }
+                else
+                {
+                    <div class="text-center pa-4">
+                        @if (!string.IsNullOrEmpty(ErrorMessage) && HealthData == null)
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mb-4">
+                                <MudText Typo="Typo.h6">@TranslationService.GetTranslation("health.error", "Health Check Error")</MudText>
+                                <MudText Typo="Typo.body2">@ErrorMessage</MudText>
+                            </MudAlert>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="@RefreshAll"
+                                       StartIcon="@Icons.Material.Filled.Refresh">
+                                @TranslationService.GetTranslation("common.retry", "Retry")
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mb-3" />
+                            <MudText Typo="Typo.body1">
+                                @TranslationService.GetTranslation("health.loading", "Loading health information...")
+                            </MudText>
+                        }
+                    </div>
+                }
+            </MudTabPanel>
+
+            <!-- Tab 2: Sessioni attive -->
+            <MudTabPanel Text="@TranslationService.GetTranslation("health.tab.sessions", "Sessions")"
+                         Icon="@Icons.Material.Outlined.Devices">
+                <div class="pa-3">
                     @if (ActiveSessions != null && ActiveSessions.Any())
                     {
                         <MudStack Spacing="2">
-                            <!-- Termination Actions -->
                             <MudPaper Elevation="1" Class="pa-3">
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                     <MudText Typo="Typo.body2">
                                         @ActiveSessions.Count @TranslationService.GetTranslation("health.sessionsActive", "active session(s)")
                                     </MudText>
-                                    <MudButton Variant="Variant.Outlined" 
-                                               Color="Color.Warning" 
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Warning"
                                                Size="Size.Small"
                                                StartIcon="@Icons.Material.Filled.PowerOff"
                                                OnClick="@TerminateAllOtherSessions"
@@ -307,10 +224,9 @@
                                 </MudStack>
                             </MudPaper>
 
-                            <!-- Sessions Table -->
-                            <MudTable Items="@ActiveSessions" 
-                                      Hover="true" 
-                                      Striped="true" 
+                            <MudTable Items="@ActiveSessions"
+                                      Hover="true"
+                                      Striped="true"
                                       Dense="true"
                                       Elevation="1">
                                 <HeaderContent>
@@ -347,15 +263,15 @@
                                     </MudTd>
                                     <MudTd DataLabel="Actions">
                                         <MudStack Row="true" Spacing="1">
-                                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
-                                                           Size="Size.Small" 
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                                           Size="Size.Small"
                                                            Color="Color.Info"
                                                            OnClick="@(() => ShowSessionDetails(context))"
                                                            Title="@TranslationService.GetTranslation("health.viewDetails", "View Details")" />
                                             @if (!context.IsCurrentSession)
                                             {
-                                                <MudIconButton Icon="@Icons.Material.Filled.PowerOff" 
-                                                               Size="Size.Small" 
+                                                <MudIconButton Icon="@Icons.Material.Filled.PowerOff"
+                                                               Size="Size.Small"
                                                                Color="Color.Error"
                                                                OnClick="@(() => TerminateSession(context.Id))"
                                                                Disabled="@_isTerminatingSession"
@@ -366,155 +282,141 @@
                                 </RowTemplate>
                             </MudTable>
                         </MudStack>
+
+                        <!-- Session Details Panel -->
+                        @if (_selectedSessionForDetails != null)
+                        {
+                            <MudPaper Elevation="2" Class="mt-4 pa-4">
+                                <div class="d-flex justify-space-between align-center mb-3">
+                                    <MudText Typo="Typo.h6">
+                                        @TranslationService.GetTranslation("health.sessionDetails", "Session Details")
+                                    </MudText>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => _selectedSessionForDetails = null)" />
+                                </div>
+                                <MudGrid Spacing="1">
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.sessionId", "Session ID")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2"><code>@_selectedSessionForDetails.Id</code></MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.ipAddress", "IP Address")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@_selectedSessionForDetails.IpAddress</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.browser", "Browser")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@_selectedSessionForDetails.Browser</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.operatingSystem", "Operating System")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@_selectedSessionForDetails.OperatingSystem</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.deviceType", "Device Type")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@_selectedSessionForDetails.DeviceType</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.loginTime", "Login Time")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@_selectedSessionForDetails.LoginTime.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.lastActivity", "Last Activity")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@_selectedSessionForDetails.LastActivity.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.location", "Location")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@(_selectedSessionForDetails.Location ?? "-")</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.userAgent", "User Agent")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2" Style="word-break:break-all;">@_selectedSessionForDetails.UserAgent</MudText></MudItem>
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.isCurrentSession", "Is Current Session")</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@(_selectedSessionForDetails.IsCurrentSession ? TranslationService.GetTranslation("common.yes", "Yes") : TranslationService.GetTranslation("common.no", "No"))</MudText></MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        }
                     }
                     else if (ActiveSessions == null)
                     {
-                        <MudAlert Severity="Severity.Warning" NoIcon="false">
+                        <MudAlert Severity="Severity.Warning" NoIcon="false" Class="ma-3">
                             @TranslationService.GetTranslation("health.sessionsNotAvailable", "Session information is not available")
                         </MudAlert>
                     }
                     else
                     {
-                        <MudAlert Severity="Severity.Info" NoIcon="false">
+                        <MudAlert Severity="Severity.Info" NoIcon="false" Class="ma-3">
                             @TranslationService.GetTranslation("health.noActiveSessions", "No active sessions")
                         </MudAlert>
                     }
+                </div>
+            </MudTabPanel>
 
-                    <!-- Session Details Dialog -->
-                    @if (_selectedSessionForDetails != null)
-                    {
-                        <MudPaper Elevation="2" Class="mt-4 pa-4">
-                            <div class="d-flex justify-space-between align-center mb-3">
-                                <MudText Typo="Typo.h6">
-                                    @TranslationService.GetTranslation("health.sessionDetails", "Session Details")
-                                </MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Close" 
-                                               Size="Size.Small"
-                                               OnClick="@(() => _selectedSessionForDetails = null)" />
-                            </div>
-                            
-                            <MudSimpleTable Dense="true">
-                                <tbody>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.sessionId", "Session ID")</strong></td>
-                                        <td><code>@_selectedSessionForDetails.Id</code></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.ipAddress", "IP Address")</strong></td>
-                                        <td>@_selectedSessionForDetails.IpAddress</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.userAgent", "User Agent")</strong></td>
-                                        <td style="word-break: break-all;">@_selectedSessionForDetails.UserAgent</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.browser", "Browser")</strong></td>
-                                        <td>@_selectedSessionForDetails.Browser</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.operatingSystem", "Operating System")</strong></td>
-                                        <td>@_selectedSessionForDetails.OperatingSystem</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.deviceType", "Device Type")</strong></td>
-                                        <td>@_selectedSessionForDetails.DeviceType</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.loginTime", "Login Time")</strong></td>
-                                        <td>@_selectedSessionForDetails.LoginTime.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.lastActivity", "Last Activity")</strong></td>
-                                        <td>@_selectedSessionForDetails.LastActivity.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.location", "Location")</strong></td>
-                                        <td>@(_selectedSessionForDetails.Location ?? "-")</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.isCurrentSession", "Is Current Session")</strong></td>
-                                        <td>@(_selectedSessionForDetails.IsCurrentSession ? TranslationService.GetTranslation("common.yes", "Yes") : TranslationService.GetTranslation("common.no", "No"))</td>
-                                    </tr>
-                                </tbody>
-                            </MudSimpleTable>
-                        </MudPaper>
-                    }
-                </MudPaper>
-            </MudItem>
-
-            <!-- Log Management Section (Full Width) -->
-            <MudItem xs="12">
-                <MudPaper Elevation="0" Class="pa-4" Style="overflow-y: auto;">
-                    <MudText Typo="Typo.h6" Class="mb-4">
-                        <MudIcon Icon="@Icons.Material.Filled.Article" Class="mr-2" />
-                        @TranslationService.GetTranslation("health.systemLogs", "System Logs")
-                    </MudText>
-
-                    <!-- Filters Section -->
-                    <MudPaper Elevation="2" Class="mb-3">
-                        <div style="cursor: pointer;" @onclick="@(() => _filtersExpanded = !_filtersExpanded)" 
-                             class="d-flex align-center pa-3">
-                            <MudIcon Icon="@Icons.Material.Outlined.FilterList" Class="mr-2" />
-                            <MudText Typo="Typo.h6" Class="flex-grow-1">
-                                @TranslationService.GetTranslation("health.logFilters", "Log Filters")
-                            </MudText>
-                            <MudIconButton Icon="@(_filtersExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                                           Size="Size.Small"
-                                           Color="Color.Inherit" />
-                        </div>
-                        <MudCollapse Expanded="_filtersExpanded">
-                            <div class="pa-3">
-                                <MudGrid Spacing="2">
-                                    <MudItem xs="12" md="3">
-                                        <MudSelect T="string" @bind-Value="_selectedLogLevel" @bind-Value:after="OnFilterChanged"
-                                                   Label="@TranslationService.GetTranslation("health.logLevel", "Level")" 
-                                                   Variant="Variant.Outlined"
-                                                   Clearable="true"
-                                                   Dense="true">
-                                            <MudSelectItem Value="@("")">@TranslationService.GetTranslation("common.all", "All")</MudSelectItem>
-                                            <MudSelectItem Value="@("Debug")">Debug</MudSelectItem>
-                                            <MudSelectItem Value="@("Information")">Information</MudSelectItem>
-                                            <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
-                                            <MudSelectItem Value="@("Error")">Error</MudSelectItem>
-                                            <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
-                                        </MudSelect>
-                                    </MudItem>
-                                    <MudItem xs="12" md="3">
-                                        <MudDatePicker @bind-Date="_startDate" @bind-Date:after="OnFilterChanged"
-                                                       Label="@TranslationService.GetTranslation("health.startDate", "From Date")"
-                                                       Variant="Variant.Outlined"
-                                                       Dense="true" />
-                                    </MudItem>
-                                    <MudItem xs="12" md="3">
-                                        <MudDatePicker @bind-Date="_endDate" @bind-Date:after="OnFilterChanged"
-                                                       Label="@TranslationService.GetTranslation("health.endDate", "To Date")"
-                                                       Variant="Variant.Outlined"
-                                                       Dense="true" />
-                                    </MudItem>
-                                    <MudItem xs="12" md="3">
-                                        <MudTextField @bind-Value="_searchText" @bind-Value:after="OnFilterChanged"
-                                                      Label="@TranslationService.GetTranslation("health.searchMessage", "Search message")"
-                                                      Placeholder="@TranslationService.GetTranslation("health.searchPlaceholder", "Search...")"
-                                                      Variant="Variant.Outlined"
-                                                      Clearable="true"
-                                                      Dense="true" />
-                                    </MudItem>
-                                </MudGrid>
-                                <div class="d-flex justify-end mt-3 gap-2">
-                                    <MudButton Variant="Variant.Text" 
-                                               Color="Color.Primary" 
-                                               StartIcon="@Icons.Material.Outlined.Clear"
-                                               OnClick="@ClearFilters"
-                                               Size="Size.Small">
-                                        @TranslationService.GetTranslation("health.clearFilters", "Clear filters")
-                                    </MudButton>
-                                </div>
-                            </div>
-                        </MudCollapse>
+            <!-- Tab 3: Log di sistema -->
+            <MudTabPanel Text="@TranslationService.GetTranslation("health.tab.logs", "Logs")"
+                         Icon="@Icons.Material.Outlined.Article">
+                <div class="pa-3">
+                    <!-- Auto-refresh controls -->
+                    <MudPaper Elevation="1" Class="pa-3 mb-3">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudSwitch @bind-Value="_autoRefreshEnabled"
+                                       Color="Color.Primary"
+                                       T="bool"
+                                       Label="@TranslationService.GetTranslation("health.autoRefresh", "Auto-refresh")"
+                                       aria-label="@TranslationService.GetTranslation("health.autoRefresh", "Auto-refresh")" />
+                            @if (_autoRefreshEnabled)
+                            {
+                                <MudNumericField @bind-Value="_refreshIntervalSeconds"
+                                                 Label="@TranslationService.GetTranslation("health.intervalSeconds", "Interval (s)")"
+                                                 Min="5"
+                                                 Max="300"
+                                                 Step="5"
+                                                 Style="width: 120px;"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense" />
+                            }
+                        </MudStack>
                     </MudPaper>
 
+                    <!-- Filters -->
+                    <MudExpansionPanels Elevation="0" Class="mb-3">
+                        <MudExpansionPanel Text="@TranslationService.GetTranslation("health.logFilters", "Log Filters")"
+                                           Icon="@Icons.Material.Outlined.FilterList"
+                                           Dense="true"
+                                           @bind-IsExpanded="_filtersExpanded">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" md="3">
+                                    <MudSelect T="string" @bind-Value="_selectedLogLevel" @bind-Value:after="OnFilterChanged"
+                                               Label="@TranslationService.GetTranslation("health.logLevel", "Level")"
+                                               Variant="Variant.Outlined"
+                                               Clearable="true"
+                                               Dense="true">
+                                        <MudSelectItem Value="@("")">@TranslationService.GetTranslation("common.all", "All")</MudSelectItem>
+                                        <MudSelectItem Value="@("Debug")">Debug</MudSelectItem>
+                                        <MudSelectItem Value="@("Information")">Information</MudSelectItem>
+                                        <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
+                                        <MudSelectItem Value="@("Error")">Error</MudSelectItem>
+                                        <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" md="3">
+                                    <MudDatePicker @bind-Date="_startDate" @bind-Date:after="OnFilterChanged"
+                                                   Label="@TranslationService.GetTranslation("health.startDate", "From Date")"
+                                                   Variant="Variant.Outlined"
+                                                   Dense="true" />
+                                </MudItem>
+                                <MudItem xs="12" md="3">
+                                    <MudDatePicker @bind-Date="_endDate" @bind-Date:after="OnFilterChanged"
+                                                   Label="@TranslationService.GetTranslation("health.endDate", "To Date")"
+                                                   Variant="Variant.Outlined"
+                                                   Dense="true" />
+                                </MudItem>
+                                <MudItem xs="12" md="3">
+                                    <MudTextField @bind-Value="_searchText" @bind-Value:after="OnFilterChanged"
+                                                  Label="@TranslationService.GetTranslation("health.searchMessage", "Search message")"
+                                                  Placeholder="@TranslationService.GetTranslation("health.searchPlaceholder", "Search...")"
+                                                  Variant="Variant.Outlined"
+                                                  Clearable="true"
+                                                  Dense="true" />
+                                </MudItem>
+                            </MudGrid>
+                            <div class="d-flex justify-end mt-3">
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Outlined.Clear"
+                                           OnClick="@ClearFilters"
+                                           Size="Size.Small">
+                                    @TranslationService.GetTranslation("health.clearFilters", "Clear filters")
+                                </MudButton>
+                            </div>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+
                     <!-- Logs Table -->
-                    <MudPaper Elevation="1" Class="mt-4">
+                    <MudPaper Elevation="1">
                         @if (_isLoadingLogs)
                         {
                             <div class="text-center pa-4">
@@ -523,10 +425,9 @@
                         }
                         else if (_isAdmin && _logs?.Items?.Any() == true)
                         {
-                            <!-- Admin: Full logs table -->
-                            <MudTable Items="@_logs.Items" 
-                                      Hover="true" 
-                                      Striped="true" 
+                            <MudTable Items="@_logs.Items"
+                                      Hover="true"
+                                      Striped="true"
                                       Dense="true"
                                       Elevation="0">
                                 <HeaderContent>
@@ -538,9 +439,9 @@
                                 <RowTemplate>
                                     <MudTd DataLabel="Timestamp">@context.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
                                     <MudTd DataLabel="Level">
-                                        <MudChip T="string" 
-                                                 Size="Size.Small" 
-                                                 Color="@GetLogLevelColor(context.Level)" 
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="@GetLogLevelColor(context.Level)"
                                                  Text="@context.Level" />
                                     </MudTd>
                                     <MudTd DataLabel="Message">
@@ -549,28 +450,25 @@
                                         </MudText>
                                     </MudTd>
                                     <MudTd DataLabel="Actions">
-                                        <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
-                                                       Size="Size.Small" 
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                                       Size="Size.Small"
                                                        Color="Color.Info"
                                                        OnClick="@(() => ShowLogDetails(context))" />
                                     </MudTd>
                                 </RowTemplate>
                             </MudTable>
-
-                            <!-- Pagination -->
                             <div class="d-flex justify-center pa-3">
-                                <MudPagination Count="@_logs.TotalPages" 
-                                               Selected="@_currentPage" 
+                                <MudPagination Count="@_logs.TotalPages"
+                                               Selected="@_currentPage"
                                                SelectedChanged="@OnPageChanged"
                                                Color="Color.Primary" />
                             </div>
                         }
                         else if (!_isAdmin && _sanitizedLogs?.Items?.Any() == true)
                         {
-                            <!-- Non-admin: Sanitized logs table -->
-                            <MudTable Items="@_sanitizedLogs.Items" 
-                                      Hover="true" 
-                                      Striped="true" 
+                            <MudTable Items="@_sanitizedLogs.Items"
+                                      Hover="true"
+                                      Striped="true"
                                       Dense="true"
                                       Elevation="0">
                                 <HeaderContent>
@@ -582,9 +480,9 @@
                                 <RowTemplate>
                                     <MudTd DataLabel="Timestamp">@context.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
                                     <MudTd DataLabel="Level">
-                                        <MudChip T="string" 
-                                                 Size="Size.Small" 
-                                                 Color="@GetLogLevelColor(context.Level)" 
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="@GetLogLevelColor(context.Level)"
                                                  Text="@context.Level" />
                                     </MudTd>
                                     <MudTd DataLabel="Message">
@@ -593,18 +491,16 @@
                                         </MudText>
                                     </MudTd>
                                     <MudTd DataLabel="Actions">
-                                        <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
-                                                       Size="Size.Small" 
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                                       Size="Size.Small"
                                                        Color="Color.Info"
                                                        OnClick="@(() => ShowSanitizedLogDetails(context))" />
                                     </MudTd>
                                 </RowTemplate>
                             </MudTable>
-
-                            <!-- Pagination -->
                             <div class="d-flex justify-center pa-3">
-                                <MudPagination Count="@_sanitizedLogs.TotalPages" 
-                                               Selected="@_currentPage" 
+                                <MudPagination Count="@_sanitizedLogs.TotalPages"
+                                               Selected="@_currentPage"
                                                SelectedChanged="@OnPageChanged"
                                                Color="Color.Primary" />
                             </div>
@@ -627,70 +523,51 @@
                                 <MudText Typo="Typo.h6">
                                     @TranslationService.GetTranslation("health.logDetails", "Dettagli Log")
                                 </MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                <MudIconButton Icon="@Icons.Material.Filled.Close"
                                                Size="Size.Small"
                                                OnClick="@(() => _selectedLog = null)" />
                             </div>
-                            
-                            <MudSimpleTable Dense="true">
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Timestamp:</strong></td>
-                                        <td>@_selectedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Level:</strong></td>
-                                        <td>
-                                            <MudChip T="string" Size="Size.Small" Color="@GetLogLevelColor(_selectedLog.Level)" Text="@_selectedLog.Level" />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Message:</strong></td>
-                                        <td>@_selectedLog.Message</td>
-                                    </tr>
-                                    @if (!string.IsNullOrEmpty(_selectedLog.Source))
-                                    {
-                                        <tr>
-                                            <td><strong>Source:</strong></td>
-                                            <td>@_selectedLog.Source</td>
-                                        </tr>
-                                    }
-                                    @if (!string.IsNullOrEmpty(_selectedLog.Category))
-                                    {
-                                        <tr>
-                                            <td><strong>Category:</strong></td>
-                                            <td>@_selectedLog.Category</td>
-                                        </tr>
-                                    }
-                                    @if (!string.IsNullOrEmpty(_selectedLog.Username))
-                                    {
-                                        <tr>
-                                            <td><strong>User:</strong></td>
-                                            <td>@_selectedLog.Username</td>
-                                        </tr>
-                                    }
-                                    @if (!string.IsNullOrEmpty(_selectedLog.Exception))
-                                    {
-                                        <tr>
-                                            <td colspan="2">
-                                                <MudAlert Severity="Severity.Error" Class="mt-2">
-                                                    <strong>Exception:</strong>
-                                                    <pre style="white-space: pre-wrap; font-size: 0.75rem;">@_selectedLog.Exception</pre>
-                                                </MudAlert>
-                                            </td>
-                                        </tr>
-                                    }
-                                    @if (_selectedLog.Properties != null && _selectedLog.Properties.Any())
-                                    {
-                                        <tr>
-                                            <td colspan="2">
-                                                <MudText Typo="Typo.subtitle2" Class="mt-2"><strong>Properties:</strong></MudText>
-                                                <pre style="white-space: pre-wrap; font-size: 0.75rem; background: #f5f5f5; padding: 8px; border-radius: 4px;">@System.Text.Json.JsonSerializer.Serialize(_selectedLog.Properties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </MudSimpleTable>
+                            <MudGrid Spacing="1">
+                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Timestamp:</strong></MudText></MudItem>
+                                <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</MudText></MudItem>
+                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Level:</strong></MudText></MudItem>
+                                <MudItem xs="9">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetLogLevelColor(_selectedLog.Level)" Text="@_selectedLog.Level" />
+                                </MudItem>
+                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Message:</strong></MudText></MudItem>
+                                <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Message</MudText></MudItem>
+                                @if (!string.IsNullOrEmpty(_selectedLog.Source))
+                                {
+                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Source:</strong></MudText></MudItem>
+                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Source</MudText></MudItem>
+                                }
+                                @if (!string.IsNullOrEmpty(_selectedLog.Category))
+                                {
+                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Category:</strong></MudText></MudItem>
+                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Category</MudText></MudItem>
+                                }
+                                @if (!string.IsNullOrEmpty(_selectedLog.Username))
+                                {
+                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>User:</strong></MudText></MudItem>
+                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Username</MudText></MudItem>
+                                }
+                                @if (!string.IsNullOrEmpty(_selectedLog.Exception))
+                                {
+                                    <MudItem xs="12">
+                                        <MudAlert Severity="Severity.Error" Class="mt-2">
+                                            <strong>Exception:</strong>
+                                            <pre style="white-space: pre-wrap; font-size: 0.75rem;">@_selectedLog.Exception</pre>
+                                        </MudAlert>
+                                    </MudItem>
+                                }
+                                @if (_selectedLog.Properties != null && _selectedLog.Properties.Any())
+                                {
+                                    <MudItem xs="12">
+                                        <MudText Typo="Typo.subtitle2" Class="mt-2"><strong>Properties:</strong></MudText>
+                                        <pre style="white-space: pre-wrap; font-size: 0.75rem; background: #f5f5f5; padding: 8px; border-radius: 4px;">@System.Text.Json.JsonSerializer.Serialize(_selectedLog.Properties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                                    </MudItem>
+                                }
+                            </MudGrid>
                         </MudPaper>
                     }
 
@@ -702,73 +579,66 @@
                                 <MudText Typo="Typo.h6">
                                     @TranslationService.GetTranslation("health.logDetails", "Log Details")
                                 </MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                <MudIconButton Icon="@Icons.Material.Filled.Close"
                                                Size="Size.Small"
                                                OnClick="@(() => _selectedSanitizedLog = null)" />
                             </div>
-                            
-                            <MudSimpleTable Dense="true">
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Timestamp:</strong></td>
-                                        <td>@_selectedSanitizedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Level:</strong></td>
-                                        <td>
-                                            <MudChip T="string" Size="Size.Small" Color="@GetLogLevelColor(_selectedSanitizedLog.Level)" Text="@_selectedSanitizedLog.Level" />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Message:</strong></td>
-                                        <td>@_selectedSanitizedLog.Message</td>
-                                    </tr>
-                                    @if (!string.IsNullOrEmpty(_selectedSanitizedLog.Source))
-                                    {
-                                        <tr>
-                                            <td><strong>Source:</strong></td>
-                                            <td>@_selectedSanitizedLog.Source</td>
-                                        </tr>
-                                    }
-                                    @if (!string.IsNullOrEmpty(_selectedSanitizedLog.Category))
-                                    {
-                                        <tr>
-                                            <td><strong>Category:</strong></td>
-                                            <td>@_selectedSanitizedLog.Category</td>
-                                        </tr>
-                                    }
-                                    @if (_selectedSanitizedLog.HasException)
-                                    {
-                                        <tr>
-                                            <td colspan="2">
-                                                <MudAlert Severity="Severity.Warning" Class="mt-2">
-                                                    <strong>@TranslationService.GetTranslation("health.exceptionOccurred", "An exception occurred (details hidden for security)").</strong>
-                                                </MudAlert>
-                                            </td>
-                                        </tr>
-                                    }
-                                    @if (_selectedSanitizedLog.PublicProperties != null && _selectedSanitizedLog.PublicProperties.Any())
-                                    {
-                                        <tr>
-                                            <td colspan="2">
-                                                <MudText Typo="Typo.subtitle2" Class="mt-2"><strong>Properties:</strong></MudText>
-                                                <pre style="white-space: pre-wrap; font-size: 0.75rem; background: #f5f5f5; padding: 8px; border-radius: 4px;">@System.Text.Json.JsonSerializer.Serialize(_selectedSanitizedLog.PublicProperties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </MudSimpleTable>
+                            <MudGrid Spacing="1">
+                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Timestamp:</strong></MudText></MudItem>
+                                <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedSanitizedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</MudText></MudItem>
+                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Level:</strong></MudText></MudItem>
+                                <MudItem xs="9">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetLogLevelColor(_selectedSanitizedLog.Level)" Text="@_selectedSanitizedLog.Level" />
+                                </MudItem>
+                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Message:</strong></MudText></MudItem>
+                                <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedSanitizedLog.Message</MudText></MudItem>
+                                @if (!string.IsNullOrEmpty(_selectedSanitizedLog.Source))
+                                {
+                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Source:</strong></MudText></MudItem>
+                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedSanitizedLog.Source</MudText></MudItem>
+                                }
+                                @if (!string.IsNullOrEmpty(_selectedSanitizedLog.Category))
+                                {
+                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Category:</strong></MudText></MudItem>
+                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedSanitizedLog.Category</MudText></MudItem>
+                                }
+                                @if (_selectedSanitizedLog.HasException)
+                                {
+                                    <MudItem xs="12">
+                                        <MudAlert Severity="Severity.Warning" Class="mt-2">
+                                            <strong>@TranslationService.GetTranslation("health.exceptionOccurred", "An exception occurred (details hidden for security)").</strong>
+                                        </MudAlert>
+                                    </MudItem>
+                                }
+                                @if (_selectedSanitizedLog.PublicProperties != null && _selectedSanitizedLog.PublicProperties.Any())
+                                {
+                                    <MudItem xs="12">
+                                        <MudText Typo="Typo.subtitle2" Class="mt-2"><strong>Properties:</strong></MudText>
+                                        <pre style="white-space: pre-wrap; font-size: 0.75rem; background: #f5f5f5; padding: 8px; border-radius: 4px;">@System.Text.Json.JsonSerializer.Serialize(_selectedSanitizedLog.PublicProperties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                                    </MudItem>
+                                }
+                            </MudGrid>
                         </MudPaper>
                     }
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-    </DialogContent>
-</MudDialog>
+                </div>
+            </MudTabPanel>
+
+        </MudTabs>
+    </ChildContent>
+    <DialogActions>
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" OnClick="RefreshAll" Title="@TranslationService.GetTranslation("common.refresh", "Refresh")" />
+        <MudIconButton Icon="@Icons.Material.Outlined.FileDownload" OnClick="ExportLogs" Title="@TranslationService.GetTranslation("health.export", "Export")" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Close" OnClick="Close">
+            @TranslationService.GetTranslation("button.close", "Close")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
 
 <style>
-    .health-status-dialog-enhanced {
-        height: 100vh;
+    .health-tabs .mud-tabs-panels {
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 </style>
 

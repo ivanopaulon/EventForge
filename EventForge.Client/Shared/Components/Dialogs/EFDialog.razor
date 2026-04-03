@@ -5,7 +5,7 @@
            Class="efd-dialog-root"
            Style="background:transparent !important; box-shadow:none !important; padding:0 !important; overflow:visible !important;">
     <DialogContent>
-        <div class="efd-card" style="min-width:@MinWidth;">
+        <div class="efd-card" style="min-width:@MinWidth; max-height:@MaxHeight;">
 
             @* Barra progress 3px in cima *@
             <div class="efd-progress">
@@ -62,6 +62,7 @@
     [Parameter] public string Title { get; set; } = string.Empty;
     [Parameter] public bool IsProcessing { get; set; } = false;
     [Parameter] public string MinWidth { get; set; } = "min(600px, 95vw)";
+    [Parameter] public string MaxHeight { get; set; } = "calc(100vh - 48px)";
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public RenderFragment? DialogActions { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
@@ -129,6 +130,9 @@
         padding: 20px 24px;
         color: rgba(255, 255, 255, 0.87);
         --mud-palette-surface: transparent;
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     /* ═══════════════════════════════════════════════════════════
