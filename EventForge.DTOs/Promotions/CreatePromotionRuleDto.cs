@@ -49,5 +49,40 @@ namespace EventForge.DTOs.Promotions
         /// Indicates if this rule can be combined with others.
         /// </summary>
         public bool IsCombinable { get; set; } = true;
+
+        /// <summary>
+        /// Product IDs this rule applies to. If empty, applies to all products (or filtered by CategoryIds).
+        /// </summary>
+        public List<Guid>? ProductIds { get; set; }
+
+        /// <summary>
+        /// Product category IDs this rule applies to.
+        /// </summary>
+        public List<Guid>? CategoryIds { get; set; }
+
+        /// <summary>
+        /// Business Party Group IDs this rule applies to. Leave empty for all customers.
+        /// </summary>
+        public List<Guid>? BusinessPartyGroupIds { get; set; }
+
+        /// <summary>
+        /// Sales channels this rule applies to. Leave empty for all channels.
+        /// </summary>
+        public List<string>? SalesChannels { get; set; }
+
+        /// <summary>
+        /// Days of week when the rule is valid. Leave empty for all days.
+        /// </summary>
+        public List<DayOfWeek>? ValidDays { get; set; }
+
+        /// <summary>
+        /// Start time for time-limited rules (UTC).
+        /// </summary>
+        public TimeSpan? StartTime { get; set; }
+
+        /// <summary>
+        /// End time for time-limited rules (UTC).
+        /// </summary>
+        public TimeSpan? EndTime { get; set; }
     }
 }

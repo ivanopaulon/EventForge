@@ -1,11 +1,15 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Promotions
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Products
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs
 @using MudBlazor
 @attribute [Authorize]
 @inject IPromotionClientService PromotionService
 @inject IAuthService AuthService
+@inject IProductService ProductService
+@inject IBusinessPartyGroupService BusinessPartyGroupService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -120,6 +124,30 @@
                                                        Label="@TranslationService.GetTranslation("field.isCombinable", "Combinabile con altre promozioni")"
                                                        Color="Color.Info"
                                                        @bind-Value:after="@(() => _hasChanges = true)" />
+                                        </MudItem>
+                                        <!-- MaxTotalDiscountPercentage -->
+                                        <MudItem xs="12" md="6">
+                                            <MudNumericField @bind-Value="_updateModel.MaxTotalDiscountPercentage"
+                                                             Label="@TranslationService.GetTranslation("field.maxTotalDiscountPercentage", "Cap Sconto Max %")"
+                                                             Variant="Variant.Outlined"
+                                                             Min="0"
+                                                             Max="100"
+                                                             Format="F1"
+                                                             Adornment="Adornment.End"
+                                                             AdornmentText="%"
+                                                             HelperText="@TranslationService.GetTranslation("field.maxTotalDiscountPercentageHint", "Limite massimo sconto cumulato. Lascia vuoto per nessun limite.")"
+                                                             Class="ef-numeric"
+                                                             @bind-Value:after="@(() => _hasChanges = true)" />
+                                        </MudItem>
+                                        <!-- MaxUsesPerCustomer -->
+                                        <MudItem xs="12" md="6">
+                                            <MudNumericField @bind-Value="_updateModel.MaxUsesPerCustomer"
+                                                             Label="@TranslationService.GetTranslation("field.maxUsesPerCustomer", "Max Utilizzi per Cliente")"
+                                                             Variant="Variant.Outlined"
+                                                             Min="1"
+                                                             HelperText="@TranslationService.GetTranslation("field.maxUsesPerCustomerHint", "Lascia vuoto per nessun limite per cliente.")"
+                                                             Class="ef-numeric"
+                                                             @bind-Value:after="@(() => _hasChanges = true)" />
                                         </MudItem>
                                     </MudGrid>
                                 </MudPaper>
@@ -261,6 +289,39 @@
                                                      Size="Size.Small" />
                                         </CellTemplate>
                                     </TemplateColumn>
+                                    <TemplateColumn Title="@TranslationService.GetTranslation("promotion.rules.targeting", "Target")">
+                                        <CellTemplate>
+                                            @{
+                                                var productsCount = context.Item.Products?.Count ?? 0;
+                                                var categoriesCount = context.Item.CategoryIds?.Count ?? 0;
+                                                var groupsCount = context.Item.BusinessPartyGroupIds?.Count ?? 0;
+                                            }
+                                            @if (productsCount > 0)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.Inventory">
+                                                    @productsCount prodotti
+                                                </MudChip>
+                                            }
+                                            @if (categoriesCount > 0)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Outlined.Category">
+                                                    @categoriesCount cat.
+                                                </MudChip>
+                                            }
+                                            @if (groupsCount > 0)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.Group">
+                                                    @groupsCount gruppi
+                                                </MudChip>
+                                            }
+                                            @if (productsCount == 0 && categoriesCount == 0 && groupsCount == 0)
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    @TranslationService.GetTranslation("promotion.rules.allProducts", "Tutti")
+                                                </MudText>
+                                            }
+                                        </CellTemplate>
+                                    </TemplateColumn>
                                     <TemplateColumn Title="@TranslationService.GetTranslation("common.actions", "Azioni")">
                                         <CellTemplate>
                                             <MudIconButton Icon="@Icons.Material.Outlined.Edit"
@@ -375,6 +436,108 @@
                                                              Format="F2"
                                                              Adornment="Adornment.Start"
                                                              AdornmentText="€" />
+                                        </MudItem>
+                                    }
+                                    @* Products targeting *@
+                                    @if (_ruleModel.RuleType == "BuyXGetY" || _ruleModel.RuleType == "Discount" || _ruleModel.RuleType == "FixedPrice" || _ruleModel.RuleType == "Bundle")
+                                    {
+                                        <MudItem xs="12">
+                                            <MudText Typo="Typo.subtitle2" Class="mb-1">
+                                                @TranslationService.GetTranslation("promotion.rules.targetProducts", "Prodotti Target (vuoto = tutti)")
+                                            </MudText>
+                                            <MudSelect T="Guid"
+                                                       MultiSelection="true"
+                                                       @bind-SelectedValues="_selectedProductIds"
+                                                       Label="@TranslationService.GetTranslation("promotion.rules.selectProducts", "Seleziona Prodotti")"
+                                                       Variant="Variant.Outlined"
+                                                       Dense="true">
+                                                @foreach (var p in _availableProducts)
+                                                {
+                                                    <MudSelectItem T="Guid" Value="@p.Id">@p.Name (@p.Code)</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                    }
+                                    @* Category targeting *@
+                                    @if (_ruleModel.RuleType == "CategoryDiscount" || _ruleModel.RuleType == "Discount" || _ruleModel.RuleType == "BuyXGetY")
+                                    {
+                                        <MudItem xs="12">
+                                            <MudText Typo="Typo.subtitle2" Class="mb-1">
+                                                @TranslationService.GetTranslation("promotion.rules.targetCategories", "Categorie Target (ID categoria prodotto)")
+                                            </MudText>
+                                            <MudSelect T="Guid"
+                                                       MultiSelection="true"
+                                                       @bind-SelectedValues="_selectedCategoryIds"
+                                                       Label="@TranslationService.GetTranslation("promotion.rules.selectCategories", "Seleziona Categorie")"
+                                                       Variant="Variant.Outlined"
+                                                       Dense="true">
+                                                @{
+                                                    var distinctCategories = _availableProducts
+                                                        .Where(p => p.CategoryNodeId.HasValue)
+                                                        .GroupBy(p => p.CategoryNodeId!.Value)
+                                                        .Select(g => (Id: g.Key, Name: g.First().Name))
+                                                        .ToList();
+                                                }
+                                                @foreach (var cat in distinctCategories)
+                                                {
+                                                    <MudSelectItem T="Guid" Value="@cat.Id">@cat.Name</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                    }
+                                    @* Business Party Groups targeting *@
+                                    @if (_ruleModel.RuleType == "CustomerSpecific" || _ruleModel.RuleType == "Discount")
+                                    {
+                                        <MudItem xs="12">
+                                            <MudText Typo="Typo.subtitle2" Class="mb-1">
+                                                @TranslationService.GetTranslation("promotion.rules.targetGroups", "Gruppi Clienti (vuoto = tutti)")
+                                            </MudText>
+                                            <MudSelect T="Guid"
+                                                       MultiSelection="true"
+                                                       @bind-SelectedValues="_selectedGroupIds"
+                                                       Label="@TranslationService.GetTranslation("promotion.rules.selectGroups", "Seleziona Gruppi")"
+                                                       Variant="Variant.Outlined"
+                                                       Dense="true">
+                                                @foreach (var g in _availableGroups)
+                                                {
+                                                    <MudSelectItem T="Guid" Value="@g.Id">@g.Name</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                    }
+                                    @* Time restrictions *@
+                                    @if (_ruleModel.RuleType == "TimeLimited")
+                                    {
+                                        <MudItem xs="12">
+                                            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                                @TranslationService.GetTranslation("promotion.rules.timeRestrictions", "Restrizioni Orarie")
+                                            </MudText>
+                                        </MudItem>
+                                        <MudItem xs="12">
+                                            <MudText Typo="Typo.caption" Class="mb-1">
+                                                @TranslationService.GetTranslation("promotion.rules.validDays", "Giorni Validi")
+                                            </MudText>
+                                            <MudChipSet T="DayOfWeek"
+                                                        MultiSelection="true"
+                                                        @bind-SelectedValues="_selectedValidDays"
+                                                        CheckMark="true">
+                                                @foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
+                                                {
+                                                    <MudChip T="DayOfWeek" Value="@day">@day.ToString()[..3]</MudChip>
+                                                }
+                                            </MudChipSet>
+                                        </MudItem>
+                                        <MudItem xs="12" md="6">
+                                            <MudTimePicker @bind-Time="_ruleStartTime"
+                                                           Label="@TranslationService.GetTranslation("promotion.rules.startTime", "Ora Inizio")"
+                                                           Variant="Variant.Outlined"
+                                                           AmPm="false" />
+                                        </MudItem>
+                                        <MudItem xs="12" md="6">
+                                            <MudTimePicker @bind-Time="_ruleEndTime"
+                                                           Label="@TranslationService.GetTranslation("promotion.rules.endTime", "Ora Fine")"
+                                                           Variant="Variant.Outlined"
+                                                           AmPm="false" />
                                         </MudItem>
                                     }
                                     <MudItem xs="12">
@@ -492,7 +655,9 @@
             MaxUses = _promotion.MaxUses,
             CouponCode = _promotion.CouponCode,
             Priority = _promotion.Priority,
-            IsCombinable = _promotion.IsCombinable
+            IsCombinable = _promotion.IsCombinable,
+            MaxTotalDiscountPercentage = _promotion.MaxTotalDiscountPercentage,
+            MaxUsesPerCustomer = _promotion.MaxUsesPerCustomer
         };
 
         _startDate = _promotion.StartDate;
@@ -596,6 +761,15 @@
     private bool _isSavingRule = false;
     private PromotionRuleDto? _editingRule = null;
     private CreatePromotionRuleDto _ruleModel = new();
+    private List<ProductDto> _availableProducts = new();
+    private List<BusinessPartyGroupDto> _availableGroups = new();
+    private bool _isLoadingProducts = false;
+    private TimeSpan? _ruleStartTime;
+    private TimeSpan? _ruleEndTime;
+    private IReadOnlyCollection<Guid> _selectedProductIds = new List<Guid>();
+    private IReadOnlyCollection<Guid> _selectedCategoryIds = new List<Guid>();
+    private IReadOnlyCollection<Guid> _selectedGroupIds = new List<Guid>();
+    private IReadOnlyCollection<DayOfWeek> _selectedValidDays = new List<DayOfWeek>();
 
     private async Task OnTabChanged(int tabIndex)
     {
@@ -637,7 +811,15 @@
     {
         _editingRule = null;
         _ruleModel = new CreatePromotionRuleDto { RuleType = "Discount", IsCombinable = true };
+        _ruleStartTime = null;
+        _ruleEndTime = null;
+        _selectedProductIds = new List<Guid>();
+        _selectedCategoryIds = new List<Guid>();
+        _selectedGroupIds = new List<Guid>();
+        _selectedValidDays = new List<DayOfWeek>();
         _showRuleDialog = true;
+        _ = LoadRuleDialogDataAsync();
+        StateHasChanged();
     }
 
     private void OpenEditRuleDialog(PromotionRuleDto rule)
@@ -652,9 +834,45 @@
             FreeQuantity = rule.FreeQuantity,
             FixedPrice = rule.FixedPrice,
             MinOrderAmount = rule.MinOrderAmount,
-            IsCombinable = rule.IsCombinable
+            IsCombinable = rule.IsCombinable,
+            ProductIds = rule.Products.Select(p => p.ProductId).ToList(),
+            CategoryIds = rule.CategoryIds,
+            BusinessPartyGroupIds = rule.BusinessPartyGroupIds,
+            SalesChannels = rule.SalesChannels,
+            ValidDays = rule.ValidDays,
+            StartTime = rule.StartTime,
+            EndTime = rule.EndTime
         };
+        _ruleStartTime = rule.StartTime;
+        _ruleEndTime = rule.EndTime;
+        _selectedProductIds = rule.Products.Select(p => p.ProductId).ToList();
+        _selectedCategoryIds = (rule.CategoryIds ?? new List<Guid>()).ToList();
+        _selectedGroupIds = (rule.BusinessPartyGroupIds ?? new List<Guid>()).ToList();
+        _selectedValidDays = (rule.ValidDays ?? new List<DayOfWeek>()).ToList();
         _showRuleDialog = true;
+        _ = LoadRuleDialogDataAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadRuleDialogDataAsync()
+    {
+        try
+        {
+            _isLoadingProducts = true;
+            var productsResult = await ProductService.GetProductsAsync(1, 200);
+            _availableProducts = productsResult?.Items?.ToList() ?? new();
+            var groupsResult = await BusinessPartyGroupService.GetGroupsAsync(1, 200);
+            _availableGroups = groupsResult?.Items?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products/groups for rule dialog");
+        }
+        finally
+        {
+            _isLoadingProducts = false;
+            StateHasChanged();
+        }
     }
 
     private void CloseRuleDialog()
@@ -662,6 +880,12 @@
         _showRuleDialog = false;
         _editingRule = null;
         _ruleModel = new();
+        _ruleStartTime = null;
+        _ruleEndTime = null;
+        _selectedProductIds = new List<Guid>();
+        _selectedCategoryIds = new List<Guid>();
+        _selectedGroupIds = new List<Guid>();
+        _selectedValidDays = new List<DayOfWeek>();
     }
 
     private async Task SaveRule()
@@ -670,6 +894,12 @@
         try
         {
             _isSavingRule = true;
+            _ruleModel.StartTime = _ruleStartTime;
+            _ruleModel.EndTime = _ruleEndTime;
+            _ruleModel.ProductIds = _selectedProductIds.ToList();
+            _ruleModel.CategoryIds = _selectedCategoryIds.ToList();
+            _ruleModel.BusinessPartyGroupIds = _selectedGroupIds.ToList();
+            _ruleModel.ValidDays = _selectedValidDays.ToList();
             if (_editingRule != null)
             {
                 var updateDto = new UpdatePromotionRuleDto
@@ -681,7 +911,14 @@
                     FreeQuantity = _ruleModel.FreeQuantity,
                     FixedPrice = _ruleModel.FixedPrice,
                     MinOrderAmount = _ruleModel.MinOrderAmount,
-                    IsCombinable = _ruleModel.IsCombinable
+                    IsCombinable = _ruleModel.IsCombinable,
+                    ProductIds = _ruleModel.ProductIds,
+                    CategoryIds = _ruleModel.CategoryIds,
+                    BusinessPartyGroupIds = _ruleModel.BusinessPartyGroupIds,
+                    SalesChannels = _ruleModel.SalesChannels,
+                    ValidDays = _ruleModel.ValidDays,
+                    StartTime = _ruleModel.StartTime,
+                    EndTime = _ruleModel.EndTime
                 };
                 var updated = await PromotionService.UpdateRuleAsync(_promotion.Id, _editingRule.Id, updateDto);
                 if (updated != null)

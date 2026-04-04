@@ -50,6 +50,18 @@
                 </MudNavLink>
             </MudNavGroup>
 
+            <!-- Events Management Group -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.events", "Gestione Calendario")"
+                         Icon="@Icons.Material.Outlined.CalendarMonth"
+                         Expanded="@(_openGroup == "events")"
+                         ExpandedChanged="@(v => OnGroupExpanded("events", v))">
+                <MudNavLink Href="/events/management"
+                            Icon="@Icons.Material.Outlined.CalendarViewMonth"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.eventCalendar", "Calendario & Promemoria")
+                </MudNavLink>
+            </MudNavGroup>
+
             <!-- Warehouse Management Group -->
             @if (_canManageWarehouse)
             {

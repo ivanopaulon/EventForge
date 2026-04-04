@@ -67,6 +67,19 @@ public class Promotion : AuditableEntity
     public bool IsCombinable { get; set; } = true;
 
     /// <summary>
+    /// Maximum total discount percentage that can be applied across all stacked promotions. Null = no cap.
+    /// </summary>
+    [Range(0, 100, ErrorMessage = "MaxTotalDiscountPercentage must be between 0 and 100.")]
+    [Display(Name = "Max Total Discount %", Description = "Cap on the total cumulative discount percentage.")]
+    public decimal? MaxTotalDiscountPercentage { get; set; }
+
+    /// <summary>
+    /// Maximum number of times this promotion can be used per individual customer. Null = no per-customer limit.
+    /// </summary>
+    [Display(Name = "Max Uses Per Customer", Description = "Per-customer usage limit.")]
+    public int? MaxUsesPerCustomer { get; set; }
+
+    /// <summary>
     /// Number of times this promotion has been used.
     /// </summary>
     [Display(Name = "Current Uses", Description = "Number of times this promotion has been used.")]

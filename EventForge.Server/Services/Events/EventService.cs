@@ -35,7 +35,8 @@ public class EventService : IEventService
             var query = _context.Events
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
-                .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value));
+                .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
+                .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder));
 
             var totalCount = await query.CountAsync(cancellationToken);
             var events = await query
@@ -75,7 +76,8 @@ public class EventService : IEventService
             var query = _context.Events
                 .AsNoTracking()
                 .Where(e => !e.IsDeleted && e.TenantId == currentTenantId.Value)
-                .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value));
+                .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
+                .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder));
 
             var totalCount = await query.CountAsync(cancellationToken);
 
@@ -124,7 +126,8 @@ public class EventService : IEventService
                 .Where(e => !e.IsDeleted
                     && e.TenantId == currentTenantId.Value
                     && e.StartDate >= startDate
-                    && e.StartDate <= end);
+                    && e.StartDate <= end)
+                .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder));
 
             var totalCount = await query.CountAsync(cancellationToken);
 
@@ -169,7 +172,8 @@ public class EventService : IEventService
                 .AsNoTracking()
                 .Where(e => !e.IsDeleted
                     && e.TenantId == currentTenantId.Value
-                    && e.StartDate >= now);
+                    && e.StartDate >= now)
+                .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder));
 
             var totalCount = await query.CountAsync(cancellationToken);
 
@@ -209,6 +213,7 @@ public class EventService : IEventService
             var eventEntity = await _context.Events
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
+                .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (eventEntity == null)
@@ -240,6 +245,7 @@ public class EventService : IEventService
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
                     .ThenInclude(t => t.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
+                .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (eventEntity == null)
@@ -280,9 +286,27 @@ public class EventService : IEventService
                 StartDate = createEventDto.StartDate,
                 EndDate = createEventDto.EndDate,
                 Capacity = createEventDto.Capacity,
+                Status = (EventForge.Server.Data.Entities.Events.EventStatus)(int)createEventDto.Status,
+                Color = createEventDto.Color,
+                AssignedToUserId = createEventDto.AssignedToUserId,
+                Visibility = createEventDto.Visibility,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
+
+            // Add time slots provided in the DTO (sorted by SortOrder, then by position in list)
+            for (var i = 0; i < createEventDto.TimeSlots.Count; i++)
+            {
+                var slotDto = createEventDto.TimeSlots[i];
+                eventEntity.TimeSlots.Add(new EventTimeSlot
+                {
+                    EventId = eventEntity.Id,
+                    StartTime = slotDto.StartTime,
+                    EndTime = slotDto.EndTime,
+                    Label = slotDto.Label,
+                    SortOrder = slotDto.SortOrder == 0 ? i : slotDto.SortOrder
+                });
+            }
 
             eventEntity.CheckInvariants();
 
@@ -293,6 +317,7 @@ public class EventService : IEventService
 
             var createdEvent = await _context.Events
                 .Include(e => e.Teams)
+                .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder))
                 .FirstAsync(e => e.Id == eventEntity.Id, cancellationToken);
 
             _logger.LogInformation("Evento {EventId} creato da {User}.", eventEntity.Id, currentUser);
@@ -322,6 +347,7 @@ public class EventService : IEventService
             var eventEntity = await _context.Events
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
+                .Include(e => e.TimeSlots)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (eventEntity == null)
@@ -341,9 +367,29 @@ public class EventService : IEventService
             eventEntity.StartDate = updateEventDto.StartDate;
             eventEntity.EndDate = updateEventDto.EndDate;
             eventEntity.Capacity = updateEventDto.Capacity;
+            eventEntity.Status = (EventForge.Server.Data.Entities.Events.EventStatus)(int)updateEventDto.Status;
+            eventEntity.Color = updateEventDto.Color;
+            eventEntity.AssignedToUserId = updateEventDto.AssignedToUserId;
+            eventEntity.Visibility = updateEventDto.Visibility;
             eventEntity.ModifiedBy = currentUser;
             eventEntity.ModifiedAt = DateTime.UtcNow;
             eventEntity.RowVersion = updateEventDto.RowVersion;
+
+            // Replace all time slots: remove existing ones, add new ones from DTO
+            _context.RemoveRange(eventEntity.TimeSlots);
+            eventEntity.TimeSlots.Clear();
+            for (var i = 0; i < updateEventDto.TimeSlots.Count; i++)
+            {
+                var slotDto = updateEventDto.TimeSlots[i];
+                eventEntity.TimeSlots.Add(new EventTimeSlot
+                {
+                    EventId = eventEntity.Id,
+                    StartTime = slotDto.StartTime,
+                    EndTime = slotDto.EndTime,
+                    Label = slotDto.Label,
+                    SortOrder = slotDto.SortOrder == 0 ? i : slotDto.SortOrder
+                });
+            }
 
             eventEntity.CheckInvariants();
 
@@ -502,6 +548,21 @@ public class EventService : IEventService
             StartDate = eventEntity.StartDate,
             EndDate = eventEntity.EndDate,
             Capacity = eventEntity.Capacity,
+            Status = (EventForge.DTOs.Common.EventStatus)(int)eventEntity.Status,
+            Color = eventEntity.Color,
+            AssignedToUserId = eventEntity.AssignedToUserId,
+            Visibility = eventEntity.Visibility,
+            TimeSlots = eventEntity.TimeSlots?
+                .OrderBy(s => s.SortOrder)
+                .Select(s => new EventTimeSlotDto
+                {
+                    Id = s.Id,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    Label = s.Label,
+                    SortOrder = s.SortOrder
+                })
+                .ToList() ?? new List<EventTimeSlotDto>(),
             TeamCount = eventEntity.Teams?.Count(t => !t.IsDeleted) ?? 0,
             CreatedAt = eventEntity.CreatedAt,
             CreatedBy = eventEntity.CreatedBy,
@@ -522,6 +583,21 @@ public class EventService : IEventService
             StartDate = eventEntity.StartDate,
             EndDate = eventEntity.EndDate,
             Capacity = eventEntity.Capacity,
+            Status = (EventForge.DTOs.Common.EventStatus)(int)eventEntity.Status,
+            Color = eventEntity.Color,
+            AssignedToUserId = eventEntity.AssignedToUserId,
+            Visibility = eventEntity.Visibility,
+            TimeSlots = eventEntity.TimeSlots?
+                .OrderBy(s => s.SortOrder)
+                .Select(s => new EventTimeSlotDto
+                {
+                    Id = s.Id,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    Label = s.Label,
+                    SortOrder = s.SortOrder
+                })
+                .ToList() ?? new List<EventTimeSlotDto>(),
             Teams = eventEntity.Teams?.Where(t => !t.IsDeleted).Select(MapToTeamDetailDto).ToList() ?? new List<TeamDetailDto>(),
             CreatedAt = eventEntity.CreatedAt,
             CreatedBy = eventEntity.CreatedBy,

@@ -297,6 +297,31 @@ public class TeamsController : BaseApiController
     }
 
     /// <summary>
+    /// Gets all team members across all teams that have a date of birth set.
+    /// Used for birthday tracking in the calendar scheduler.
+    /// </summary>
+    /// <returns>List of team members with a date of birth</returns>
+    /// <response code="200">Returns the list of team members with birthdays</response>
+    [HttpGet("members-with-birthdays")]
+    [ProducesResponseType(typeof(IEnumerable<TeamMemberDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetMembersWithBirthdays(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+            if (tenantError != null) return tenantError;
+
+            var members = await _teamService.GetMembersWithBirthdayAsync(cancellationToken);
+            return Ok(members);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving members with birthdays.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets a team member by ID.
     /// </summary>
     /// <param name="memberId">Team member ID</param>

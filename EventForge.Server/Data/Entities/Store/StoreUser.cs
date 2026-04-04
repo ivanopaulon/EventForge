@@ -128,6 +128,12 @@ public class StoreUser : AuditableEntity
     public string? ExternalId { get; set; }
 
     /// <summary>
+    /// Date of birth of the store operator. Optional, used for birthday tracking.
+    /// </summary>
+    [Display(Name = "Date of Birth", Description = "Date of birth of the store operator.")]
+    public DateTime? DateOfBirth { get; set; }
+
+    /// <summary>
     /// Indicates if the operator is currently on shift.
     /// </summary>
     [Display(Name = "Is On Shift", Description = "Currently on shift.")]

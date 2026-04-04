@@ -56,5 +56,16 @@ namespace EventForge.DTOs.Promotions
         /// Indicates if this promotion can be combined with others.
         /// </summary>
         public bool IsCombinable { get; set; } = true;
+
+        /// <summary>
+        /// Maximum total discount percentage that can be applied (cap on cumulative stacking). Null = no cap.
+        /// </summary>
+        [Range(0, 100)]
+        public decimal? MaxTotalDiscountPercentage { get; set; }
+
+        /// <summary>
+        /// Maximum number of times this promotion can be used per individual customer. Null = no per-customer limit.
+        /// </summary>
+        public int? MaxUsesPerCustomer { get; set; }
     }
 }

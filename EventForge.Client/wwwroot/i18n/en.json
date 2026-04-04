@@ -316,7 +316,6 @@
     "warning": "Warning",
     "yes": "Yes",
     "days": "days",
-    "itemsFound": "items found",
     "advancedOptions": "Advanced Options",
     "row": "Row",
     "data": "Data",
@@ -683,6 +682,7 @@
     "enabled": "Enabled",
     "endDate": "End date",
     "endTime": "End time",
+    "dateRange": "Period (start – end)",
     "event": "Event",
     "eventCategory": "Event category",
     "eventCount": "Event count",
@@ -776,7 +776,13 @@
     "warehouse": "[FROM IT] Magazzino",
     "website": "[FROM IT] Sito Web",
     "zipCode": "[FROM IT] CAP",
-    "zone": "[FROM IT] Zona"
+    "zone": "[FROM IT] Zona",
+    "visibility": "Visibility",
+    "assignedTo": "Assign to (username)",
+    "dueDate": "Due date",
+    "dueTime": "Due time",
+    "longDescription": "Long description",
+    "dateOfBirth": "Date of birth"
   },
   "filter": {
     "all": "All"
@@ -2158,7 +2164,9 @@
     "discountValueExceedsTotal": "Discount value exceeds line total",
     "vatRateInvalid": "VAT rate must be between 0 and 100",
     "incompleteData": "Incomplete data",
-    "unitOfMeasureRequired": "Unit of measure is required"
+    "unitOfMeasureRequired": "Unit of measure is required",
+    "dateRangeRequired": "The date range is required",
+    "endTimeAfterStart": "End time must be after start time"
   },
   "walkthrough": {
     "chat": {
@@ -2487,7 +2495,9 @@
     "stockManagement": "Stock",
     "stockReconciliation": "Stock Reconciliation",
     "registries": "Registries",
-    "commercial": "Commercial"
+    "commercial": "Commercial",
+    "events": "Calendar Management",
+    "eventCalendar": "Calendar & Reminders"
   },
   "tour": {
     "chat": "Chat Tour",
@@ -3019,5 +3029,80 @@
   "quickFilters": {
     "title": "Quick filters",
     "all": "All"
+  },
+  "events": {
+    "createEvent": "New Event",
+    "editEvent": "Edit Event",
+    "newEvent": "Event",
+    "newReminder": "Reminder",
+    "newTask": "Task",
+    "createReminder": "New Reminder",
+    "createTask": "New Task",
+    "created": "Event created successfully",
+    "updated": "Event updated successfully",
+    "reminderCreated": "Reminder created successfully",
+    "taskCreated": "Task created successfully",
+    "createError": "Error creating item",
+    "updateError": "Error updating event",
+    "loadError": "Error loading calendar data",
+    "completed": "Marked as complete",
+    "completeError": "Error completing item",
+    "complete": "Complete",
+    "dateCapacity": "Dates & Capacity",
+    "displaySettings": "Display & Access",
+    "scheduleAndPriority": "Due Date & Priority",
+    "recurrence": "Recurrence",
+    "recurrencePattern": "Frequency",
+    "recurrenceInterval": "Every (n)",
+    "recurrenceEnd": "Ends on",
+    "allDay": "All day",
+    "presetColors": "Quick colors",
+    "showFilter": "Show:",
+    "reminders": "Reminders",
+    "tasks": "Tasks",
+    "reminder": "Reminder",
+    "task": "Task",
+    "activeReminders": "Active reminders",
+    "activeTasks": "Open tasks",
+    "assignedToHelper": "Leave blank for no assignment",
+    "visibility": {
+      "public": "Public",
+      "private": "Private"
+    }
+  },
+  "priority": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "critical": "Critical",
+    "urgent": "Urgent"
+  },
+  "reminderStatus": {
+    "active": "Active",
+    "pending": "Pending",
+    "sent": "Sent",
+    "snoozed": "Snoozed",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "expired": "Expired"
+  },
+  "recurrence": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "yearly": "Yearly",
+    "custom": "Custom"
+  },
+  "scheduler": {
+    "cat": {
+      "events": "Events",
+      "reminders": "Reminders",
+      "tasks": "Tasks",
+      "pricelists": "Price Lists",
+      "promotions": "Promotions",
+      "lots": "Lot Expiries",
+      "birthdays": "Birthdays"
+    }
   }
 }

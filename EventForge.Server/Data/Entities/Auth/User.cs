@@ -152,6 +152,12 @@ public class User : AuditableEntity
     public string? MetadataJson { get; set; }
 
     /// <summary>
+    /// Date of birth of the user. Optional, used for birthday tracking.
+    /// </summary>
+    [Display(Name = "Date of Birth", Description = "Date of birth of the user.")]
+    public DateTime? DateOfBirth { get; set; }
+
+    /// <summary>
     /// Indicates if the user is locked out.
     /// </summary>
     public bool IsLockedOut => LockedUntil.HasValue && LockedUntil.Value > DateTime.UtcNow;

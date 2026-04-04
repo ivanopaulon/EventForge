@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
+using Syncfusion.Blazor;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -64,6 +65,10 @@ builder.Services.AddMudServices(config =>
 
 // Add Blazored LocalStorage for state persistence
 builder.Services.AddBlazoredLocalStorage();
+
+// Add Syncfusion Blazor services (license key must be set via appsettings or environment)
+// To register your license: Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("YOUR_LICENSE_KEY");
+builder.Services.AddSyncfusionBlazor();
 
 // ════════════════════════════════════════════════════════════════
 // Configure MemoryCache for client-side caching of lookup tables
@@ -192,6 +197,7 @@ builder.Services.AddScoped<ILicenseService, LicenseService>();
 
 // Add Event management services
 builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<ICalendarReminderService, CalendarReminderService>();
 
 // Add Sales management services
 builder.Services.AddScoped<EventForge.Client.Services.Sales.ISalesService, EventForge.Client.Services.Sales.SalesService>();

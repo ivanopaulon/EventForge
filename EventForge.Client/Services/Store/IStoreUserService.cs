@@ -42,4 +42,9 @@ public interface IStoreUserService
     /// Gets store users with pagination.
     /// </summary>
     Task<PagedResult<StoreUserDto>> GetPagedAsync(int page = 1, int pageSize = 20);
+
+    /// <summary>
+    /// Gets all store operators that have a date of birth set. Used for birthday tracking.
+    /// </summary>
+    Task<IEnumerable<StoreUserDto>> GetWithBirthdayAsync();
 }

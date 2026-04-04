@@ -181,6 +181,11 @@ public interface IStoreUserService
     Task<bool> StoreUserExistsAsync(Guid storeUserId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all store users that have a DateOfBirth set. Used for birthday tracking in the scheduler.
+    /// </summary>
+    Task<IEnumerable<StoreUserDto>> GetStoreUsersWithBirthdayAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Checks if a store user group exists.
     /// </summary>
     /// <param name="groupId">Store user group ID</param>

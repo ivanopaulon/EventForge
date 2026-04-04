@@ -67,6 +67,16 @@ namespace EventForge.DTOs.Promotions
         public bool IsCombinable { get; set; }
 
         /// <summary>
+        /// Maximum total discount percentage cap. Null = no cap.
+        /// </summary>
+        public decimal? MaxTotalDiscountPercentage { get; set; }
+
+        /// <summary>
+        /// Maximum uses per individual customer. Null = no per-customer limit.
+        /// </summary>
+        public int? MaxUsesPerCustomer { get; set; }
+
+        /// <summary>
         /// Indicates if the promotion is currently active.
         /// </summary>
         public bool IsCurrentlyActive => DateTime.UtcNow >= StartDate && DateTime.UtcNow <= EndDate;

@@ -57,6 +57,41 @@ namespace EventForge.DTOs.Promotions
         public bool IsCombinable { get; set; }
 
         /// <summary>
+        /// Products associated with this rule.
+        /// </summary>
+        public List<PromotionRuleProductDto> Products { get; set; } = new();
+
+        /// <summary>
+        /// Product category IDs this rule applies to.
+        /// </summary>
+        public List<Guid>? CategoryIds { get; set; }
+
+        /// <summary>
+        /// Business Party Group IDs this rule applies to.
+        /// </summary>
+        public List<Guid>? BusinessPartyGroupIds { get; set; }
+
+        /// <summary>
+        /// Sales channels this rule applies to.
+        /// </summary>
+        public List<string>? SalesChannels { get; set; }
+
+        /// <summary>
+        /// Days of week when the rule is valid.
+        /// </summary>
+        public List<DayOfWeek>? ValidDays { get; set; }
+
+        /// <summary>
+        /// Start time for time-limited rules.
+        /// </summary>
+        public TimeSpan? StartTime { get; set; }
+
+        /// <summary>
+        /// End time for time-limited rules.
+        /// </summary>
+        public TimeSpan? EndTime { get; set; }
+
+        /// <summary>
         /// Date and time when the promotion rule was created (UTC)
         /// </summary>
         public DateTime CreatedAt { get; set; }

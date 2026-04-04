@@ -105,6 +105,11 @@ namespace EventForge.DTOs.Store
         public string? ExternalId { get; set; }
 
         /// <summary>
+        /// Date of birth of the store operator. Optional.
+        /// </summary>
+        public DateTime? DateOfBirth { get; set; }
+
+        /// <summary>
         /// Indicates if the operator is currently on shift.
         /// </summary>
         public bool IsOnShift { get; set; }

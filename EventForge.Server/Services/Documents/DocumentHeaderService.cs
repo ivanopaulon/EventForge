@@ -48,7 +48,8 @@ public class DocumentHeaderService : IDocumentHeaderService
             query = query.Include(dh => dh.DocumentType)
                          .Include(dh => dh.BusinessParty)
                          .Include(dh => dh.SourceWarehouse)
-                         .Include(dh => dh.DestinationWarehouse);
+                         .Include(dh => dh.DestinationWarehouse)
+                         .Include(dh => dh.PriceList);
 
             // Include Rows if requested
             if (queryParameters.IncludeRows)
@@ -86,6 +87,8 @@ public class DocumentHeaderService : IDocumentHeaderService
         try
         {
             var query = _context.DocumentHeaders
+                .Include(dh => dh.DocumentType)
+                .Include(dh => dh.PriceList)
                 .Where(dh => dh.Id == id && !dh.IsDeleted);
 
             if (includeRows)

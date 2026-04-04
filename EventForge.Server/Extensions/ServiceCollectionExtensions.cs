@@ -8,6 +8,7 @@ using EventForge.Server.Services.Common;
 using EventForge.Server.Services.Dashboard;
 using EventForge.Server.Services.DevTools;
 using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Calendar;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Export;
 using EventForge.Server.Services.External;
@@ -84,6 +85,9 @@ public static class ServiceCollectionExtensions
             .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Error)
             .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Error)
             .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Error)
+            // Suppress "Now listening on", "Application started", "Hosting environment",
+            // "Content root path" — pure framework startup noise with no operational value.
+            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Warning)
             // Suppress verbose EF Core infrastructure and command logs (CommandExecuted, context
             // initialisation messages, etc.). Warnings and errors (e.g. slow-query warnings,
             // migration errors, connection failures) are still emitted.
@@ -250,6 +254,7 @@ public static class ServiceCollectionExtensions
 
         // Register event services
         _ = services.AddScoped<IEventService, EventService>();
+        _ = services.AddScoped<ICalendarReminderService, CalendarReminderService>();
 
         // Register bank services
         _ = services.AddScoped<IBankService, BankService>();

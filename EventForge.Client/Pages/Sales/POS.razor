@@ -140,6 +140,16 @@
                                         </MudButton>
                                     </MudTooltip>
                                     
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.applyCouponTooltip", "Applica codice coupon promozionale")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Success"
+                                                   StartIcon="@Icons.Material.Outlined.LocalOffer"
+                                                   Size="Size.Small"
+                                                   OnClick="@ApplyCouponAsync">
+                                            @TranslationService.GetTranslation("sales.coupon", "Coupon")
+                                        </MudButton>
+                                    </MudTooltip>
+                                    
                                     <MudTooltip Text="@TranslationService.GetTranslation("sales.addSessionNoteTooltip", "Aggiungi nota alla vendita")">
                                         <MudButton Variant="Variant.Text"
                                                    Color="Color.Info"
@@ -544,6 +554,23 @@
             {
                 Snackbar.Add("❌ Errore applicazione sconto", Severity.Error);
             }
+        }
+    }
+
+    private async Task ApplyCouponAsync()
+    {
+        var dialog = await DialogService.ShowAsync<CouponInputDialog>(
+            TranslationService.GetTranslation("sales.applyCoupon", "Applica Coupon"),
+            new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        var dialogResult = await dialog.Result;
+        if (!dialogResult.Canceled && dialogResult.Data is string code && !string.IsNullOrWhiteSpace(code))
+        {
+            var (success, promotionName, error) = await ViewModel.ApplyCouponAsync(code);
+            if (success)
+                Snackbar.Add($"✅ Coupon applicato: {promotionName}", Severity.Success);
+            else
+                Snackbar.Add($"❌ {error}", Severity.Warning);
         }
     }
 

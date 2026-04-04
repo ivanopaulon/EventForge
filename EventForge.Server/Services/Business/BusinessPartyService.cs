@@ -290,6 +290,7 @@ public class BusinessPartyService : IBusinessPartyService
                 SdiCode = createBusinessPartyDto.SdiCode,
                 Pec = createBusinessPartyDto.Pec,
                 Notes = createBusinessPartyDto.Notes,
+                DateOfBirth = createBusinessPartyDto.DateOfBirth,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -343,6 +344,7 @@ public class BusinessPartyService : IBusinessPartyService
             businessParty.SdiCode = updateBusinessPartyDto.SdiCode;
             businessParty.Pec = updateBusinessPartyDto.Pec;
             businessParty.Notes = updateBusinessPartyDto.Notes;
+            businessParty.DateOfBirth = updateBusinessPartyDto.DateOfBirth;
             businessParty.ModifiedAt = DateTime.UtcNow;
             businessParty.ModifiedBy = currentUser;
 
@@ -684,6 +686,28 @@ public class BusinessPartyService : IBusinessPartyService
             .AnyAsync(bp => bp.Id == businessPartyId && !bp.IsDeleted, cancellationToken);
     }
 
+    public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync(CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue) return Enumerable.Empty<BusinessPartyDto>();
+
+        var parties = await _context.BusinessParties
+            .Where(bp => !bp.IsDeleted && bp.DateOfBirth.HasValue && bp.TenantId == currentTenantId.Value)
+            .OrderBy(bp => bp.Name)
+            .ToListAsync(cancellationToken);
+
+        return parties.Select(bp => new BusinessPartyDto
+        {
+            Id = bp.Id,
+            PartyType = (EventForge.DTOs.Common.BusinessPartyType)bp.PartyType,
+            Name = bp.Name,
+            DateOfBirth = bp.DateOfBirth,
+            IsActive = bp.IsActive,
+            CreatedAt = bp.CreatedAt,
+            CreatedBy = bp.CreatedBy
+        });
+    }
+
     private static BusinessPartyDto MapToBusinessPartyDto(BusinessParty businessParty, int addressCount, int contactCount, int referenceCount, bool hasAccountingData, Data.Entities.Common.Address? primaryAddress, List<Data.Entities.Common.Contact> contacts)
     {
         return new BusinessPartyDto
@@ -696,6 +720,7 @@ public class BusinessPartyService : IBusinessPartyService
             SdiCode = businessParty.SdiCode,
             Pec = businessParty.Pec,
             Notes = businessParty.Notes,
+            DateOfBirth = businessParty.DateOfBirth,
             AddressCount = addressCount,
             ContactCount = contactCount,
             ReferenceCount = referenceCount,
@@ -1194,6 +1219,7 @@ public class BusinessPartyService : IBusinessPartyService
             SdiCode = businessParty.SdiCode,
             Pec = businessParty.Pec,
             Notes = businessParty.Notes,
+            DateOfBirth = businessParty.DateOfBirth,
             AddressCount = 0, // Populated separately in Statistics
             ContactCount = 0, // Populated separately in Statistics
             ReferenceCount = 0,

@@ -112,4 +112,19 @@ public interface IPromotionService
     /// Deletes a promotion rule (soft delete).
     /// </summary>
     Task<bool> DeletePromotionRuleAsync(Guid promotionId, Guid ruleId, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all products associated with a promotion rule.
+    /// </summary>
+    Task<IEnumerable<PromotionRuleProductDto>> GetRuleProductsAsync(Guid promotionId, Guid ruleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a product to a promotion rule.
+    /// </summary>
+    Task<PromotionRuleProductDto> AddRuleProductAsync(Guid promotionId, Guid ruleId, CreatePromotionRuleProductDto createDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes a product from a promotion rule.
+    /// </summary>
+    Task<bool> RemoveRuleProductAsync(Guid promotionId, Guid ruleId, Guid productId, string currentUser, CancellationToken cancellationToken = default);
 }
