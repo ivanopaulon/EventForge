@@ -164,7 +164,15 @@ public class PaymentTermService : IPaymentTermService
             paymentTerm.ModifiedBy = currentUser;
             paymentTerm.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating PaymentTerm {PaymentTermId}.", id);
+                throw new InvalidOperationException("Il termine di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log for the updated payment term
             _ = await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Update", currentUser, originalPaymentTerm, cancellationToken);
@@ -172,6 +180,10 @@ public class PaymentTermService : IPaymentTermService
             _logger.LogInformation("Payment term {PaymentTermId} updated by user {User}.", id, currentUser);
 
             return MapToPaymentTermDto(paymentTerm);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -212,7 +224,15 @@ public class PaymentTermService : IPaymentTermService
             paymentTerm.DeletedBy = currentUser;
             paymentTerm.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting PaymentTerm {PaymentTermId}.", id);
+                throw new InvalidOperationException("Il termine di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log for the deleted payment term
             _ = await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Delete", currentUser, originalPaymentTerm, cancellationToken);
@@ -220,6 +240,10 @@ public class PaymentTermService : IPaymentTermService
             _logger.LogInformation("Payment term {PaymentTermId} deleted by user {User}.", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

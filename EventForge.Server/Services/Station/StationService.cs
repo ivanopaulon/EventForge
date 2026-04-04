@@ -186,7 +186,15 @@ public class StationService : IStationService
             station.ModifiedAt = DateTime.UtcNow;
             station.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Station {StationId}.", id);
+                throw new InvalidOperationException("La stazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(station, "Update", currentUser, originalStation, cancellationToken);
 
@@ -196,6 +204,10 @@ public class StationService : IStationService
                 .CountAsync(p => p.StationId == id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
 
             return MapToStationDto(station, printerCount);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -242,13 +254,25 @@ public class StationService : IStationService
             station.ModifiedAt = DateTime.UtcNow;
             station.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting Station {StationId}.", id);
+                throw new InvalidOperationException("La stazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(station, "Delete", currentUser, originalStation, cancellationToken);
 
             _logger.LogInformation("Station {StationId} deleted by {User}", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

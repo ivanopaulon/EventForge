@@ -146,13 +146,25 @@ public class BankService : IBankService
             bank.ModifiedAt = DateTime.UtcNow;
             bank.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Bank {BankId}.", id);
+                throw new InvalidOperationException("La banca è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(bank, "Update", currentUser, originalBank, cancellationToken);
 
             _logger.LogInformation("Bank {BankId} updated by {User}.", bank.Id, currentUser);
 
             return MapToBankDto(bank);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -181,13 +193,25 @@ public class BankService : IBankService
             bank.ModifiedAt = DateTime.UtcNow;
             bank.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting Bank {BankId}.", id);
+                throw new InvalidOperationException("La banca è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(bank, "Delete", currentUser, originalBank, cancellationToken);
 
             _logger.LogInformation("Bank {BankId} deleted by {User}.", bank.Id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

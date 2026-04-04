@@ -227,13 +227,25 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             group.ModifiedAt = DateTime.UtcNow;
             group.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating BusinessPartyGroup {BusinessPartyGroupId}.", id);
+                throw new InvalidOperationException("Il gruppo anagrafico è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             await _auditLogService.TrackEntityChangesAsync(group, "Update", currentUser, originalGroup, cancellationToken);
 
             _logger.LogInformation("Business Party Group {GroupId} updated by {User}.", group.Id, currentUser);
 
             return MapToGroupDto(group);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -281,13 +293,25 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
             group.ModifiedAt = DateTime.UtcNow;
             group.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting BusinessPartyGroup {BusinessPartyGroupId}.", id);
+                throw new InvalidOperationException("Il gruppo anagrafico è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             await _auditLogService.TrackEntityChangesAsync(group, "Delete", currentUser, originalGroup, cancellationToken);
 
             _logger.LogInformation("Business Party Group {GroupId} deleted by {User}.", group.Id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

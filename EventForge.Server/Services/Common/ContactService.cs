@@ -171,13 +171,25 @@ public class ContactService : IContactService
             contact.ModifiedAt = DateTime.UtcNow;
             contact.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Contact {ContactId}.", id);
+                throw new InvalidOperationException("Il contatto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(contact, "Update", currentUser, originalContact, cancellationToken);
 
             _logger.LogInformation("Contact {ContactId} updated by {User}.", contact.Id, currentUser);
 
             return MapToContactDto(contact);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -208,13 +220,25 @@ public class ContactService : IContactService
             contact.ModifiedAt = DateTime.UtcNow;
             contact.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting Contact {ContactId}.", id);
+                throw new InvalidOperationException("Il contatto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(contact, "Delete", currentUser, originalContact, cancellationToken);
 
             _logger.LogInformation("Contact {ContactId} deleted by {User}.", contact.Id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

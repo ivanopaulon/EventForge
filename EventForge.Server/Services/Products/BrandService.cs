@@ -168,13 +168,25 @@ public class BrandService : IBrandService
             brand.ModifiedAt = DateTime.UtcNow;
             brand.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Brand {BrandId}.", id);
+                throw new InvalidOperationException("Il brand è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(brand, "Update", currentUser, originalBrand, cancellationToken);
 
             _logger.LogInformation("Brand {BrandId} updated by {User}.", brand.Id, currentUser);
 
             return MapToBrandDto(brand);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -212,13 +224,25 @@ public class BrandService : IBrandService
             brand.ModifiedAt = DateTime.UtcNow;
             brand.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting Brand {BrandId}.", id);
+                throw new InvalidOperationException("Il brand è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(brand, "Delete", currentUser, originalBrand, cancellationToken);
 
             _logger.LogInformation("Brand {BrandId} deleted by {User}.", brand.Id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

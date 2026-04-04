@@ -231,13 +231,25 @@ public class PriceListService : IPriceListService
             priceList.ModifiedBy = currentUser;
             priceList.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating PriceList {PriceListId}.", id);
+                throw new InvalidOperationException("Il listino prezzi è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(priceList, "Update", currentUser, originalPriceList, cancellationToken);
 
             _logger.LogInformation("Price list {PriceListId} updated by user {User}.", id, currentUser);
 
             return MapToPriceListDto(priceList);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -284,13 +296,25 @@ public class PriceListService : IPriceListService
                 entry.DeletedAt = DateTime.UtcNow;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting PriceList {PriceListId}.", id);
+                throw new InvalidOperationException("Il listino prezzi è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(priceList, "Delete", currentUser, originalPriceList, cancellationToken);
 
             _logger.LogInformation("Price list {PriceListId} deleted by user {User}.", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -427,13 +451,25 @@ public class PriceListService : IPriceListService
             entry.ModifiedBy = currentUser;
             entry.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating PriceListEntry {PriceListEntryId}.", id);
+                throw new InvalidOperationException("La voce del listino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(entry, "Update", currentUser, originalEntry, cancellationToken);
 
             _logger.LogInformation("Price list entry {EntryId} updated by user {User}.", id, currentUser);
 
             return MapToPriceListEntryDto(entry);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -471,13 +507,25 @@ public class PriceListService : IPriceListService
             entry.DeletedBy = currentUser;
             entry.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting PriceListEntry {PriceListEntryId}.", id);
+                throw new InvalidOperationException("La voce del listino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(entry, "Delete", currentUser, originalEntry, cancellationToken);
 
             _logger.LogInformation("Price list entry {EntryId} deleted by user {User}.", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

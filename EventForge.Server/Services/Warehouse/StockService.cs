@@ -586,9 +586,22 @@ public class StockService : IStockService
             stock.ModifiedAt = DateTime.UtcNow;
 
             _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "StockLevels", "Update", null, "Updated stock levels", currentUser);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Stock {StockId}.", id);
+                throw new InvalidOperationException("La giacenza è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             return stock.ToStockDto();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -782,9 +795,22 @@ public class StockService : IStockService
 
             _ = _context.Stocks.Remove(stock);
             _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Deleted", "Delete", null, "Deleted stock entry", currentUser);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting Stock {StockId}.", id);
+                throw new InvalidOperationException("La giacenza è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
