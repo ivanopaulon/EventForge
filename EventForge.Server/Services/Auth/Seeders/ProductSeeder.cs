@@ -24,18 +24,11 @@ public class ProductSeeder : IProductSeeder
     {
         try
         {
-            _logger.LogInformation("Seeding demo products for tenant {TenantId}...", tenantId);
-
-            // Check if products already exist for this tenant
             var existingProductCount = await _dbContext.Products
                 .CountAsync(p => p.TenantId == tenantId, cancellationToken);
 
             if (existingProductCount > 0)
-            {
-                _logger.LogInformation("Tenant {TenantId} already has {Count} products. Skipping demo product seeding.",
-                    tenantId, existingProductCount);
                 return true;
-            }
 
             // Get default VAT rate (22%)
             var vatRate22 = await _dbContext.VatRates
@@ -270,13 +263,8 @@ public class ProductSeeder : IProductSeeder
                 }
             };
 
-            // Add products to database
             await _dbContext.Products.AddRangeAsync(demoProducts, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successfully seeded {Count} demo products for tenant {TenantId}",
-                demoProducts.Length, tenantId);
-
             return true;
         }
         catch (Exception ex)

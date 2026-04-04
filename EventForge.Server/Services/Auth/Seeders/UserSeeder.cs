@@ -12,6 +12,8 @@ public class UserSeeder : IUserSeeder
     private readonly ILogger<UserSeeder> _logger;
     private readonly BootstrapOptions _options;
 
+    private readonly string _managerPassword;
+
     public UserSeeder(
         EventForgeDbContext dbContext,
         IPasswordService passwordService,
@@ -22,29 +24,27 @@ public class UserSeeder : IUserSeeder
         _passwordService = passwordService;
         _logger = logger;
 
-        // Get password with environment variable -> config -> fallback precedence
         var envPassword = Environment.GetEnvironmentVariable("EVENTFORGE_BOOTSTRAP_SUPERADMIN_PASSWORD");
         var configPassword = configuration["Bootstrap:SuperAdminPassword"];
-        var fallbackPassword = "SuperAdmin#2025!";
 
         _options = configuration.GetSection("Bootstrap").Get<BootstrapOptions>() ?? new BootstrapOptions();
-        _options.DefaultAdminPassword = envPassword ?? configPassword ?? fallbackPassword;
+        _options.DefaultAdminPassword = envPassword ?? configPassword ?? "SuperAdmin#2025!";
+
+        var envManagerPassword = Environment.GetEnvironmentVariable("EVENTFORGE_BOOTSTRAP_MANAGER_PASSWORD");
+        _managerPassword = envManagerPassword
+            ?? configuration["Bootstrap:DefaultManagerPassword"]
+            ?? "Manager@2025!";
     }
 
     public async Task<User?> CreateSuperAdminUserAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
-            // If user already exists, return it
             var existing = await _dbContext.Users
                 .FirstOrDefaultAsync(u => u.Username == _options.DefaultAdminUsername || u.Email == _options.DefaultAdminEmail, cancellationToken);
             if (existing != null)
-            {
-                _logger.LogInformation("SuperAdmin user already exists: {Username}", existing.Username);
                 return existing;
-            }
 
-            // Validate password
             var validation = _passwordService.ValidatePassword(_options.DefaultAdminPassword);
             if (!validation.IsValid)
             {
@@ -76,32 +76,28 @@ public class UserSeeder : IUserSeeder
             _ = _dbContext.Users.Add(superAdminUser);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Assign SuperAdmin role if exists
             var superAdminRole = await _dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "SuperAdmin", cancellationToken);
             if (superAdminRole != null)
             {
                 var userRole = new UserRole
                 {
-                    UserId = superAdminUser.Id,
-                    RoleId = superAdminRole.Id,
+                    UserId    = superAdminUser.Id,
+                    RoleId    = superAdminRole.Id,
                     GrantedBy = "system",
                     GrantedAt = DateTime.UtcNow,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow,
-                    TenantId = tenantId
+                    TenantId  = tenantId
                 };
 
                 _ = _dbContext.UserRoles.Add(userRole);
                 _ = await _dbContext.SaveChangesAsync(cancellationToken);
-
-                _logger.LogInformation("SuperAdmin role assigned to user: {Username}", superAdminUser.Username);
             }
             else
             {
                 _logger.LogWarning("SuperAdmin role not found. User created without role assignment.");
             }
 
-            _logger.LogInformation("SuperAdmin user created: {Username} ({Email})", superAdminUser.Username, superAdminUser.Email);
             return superAdminUser;
         }
         catch (Exception ex)
@@ -114,28 +110,21 @@ public class UserSeeder : IUserSeeder
     public async Task<User?> CreateDefaultManagerUserAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         const string managerUsername = "manager";
-        const string managerEmail = "manager@localhost";
-        const string managerPassword = "Manager@2025!";
+        const string managerEmail    = "manager@localhost";
 
         try
         {
             var existing = await _dbContext.Users
                 .FirstOrDefaultAsync(u => u.Username == managerUsername || u.Email == managerEmail, cancellationToken);
             if (existing != null)
-            {
-                _logger.LogInformation("Manager user already exists: {Username}", existing.Username);
                 return existing;
-            }
 
-            var validation = _passwordService.ValidatePassword(managerPassword);
+            var validation = _passwordService.ValidatePassword(_managerPassword);
             if (!validation.IsValid)
-            {
                 _logger.LogWarning("Default manager password does not meet policy requirements: {Errors}",
                     string.Join(", ", validation.Errors));
-                // Still proceed but log warning
-            }
 
-            var (hash, salt) = _passwordService.HashPassword(managerPassword);
+            var (hash, salt) = _passwordService.HashPassword(_managerPassword);
 
             var managerUser = new User
             {
@@ -156,27 +145,23 @@ public class UserSeeder : IUserSeeder
             _ = _dbContext.Users.Add(managerUser);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Assign Manager role
             var managerRole = await _dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Manager", cancellationToken);
             if (managerRole != null)
             {
                 var userRole = new UserRole
                 {
-                    UserId = managerUser.Id,
-                    RoleId = managerRole.Id,
+                    UserId    = managerUser.Id,
+                    RoleId    = managerRole.Id,
                     GrantedBy = "system",
                     GrantedAt = DateTime.UtcNow,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow,
-                    TenantId = tenantId
+                    TenantId  = tenantId
                 };
 
                 _ = _dbContext.UserRoles.Add(userRole);
                 _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Manager role assigned to user: {Username}", managerUser.Username);
-
-                // Assign management permissions to Manager role
                 await AssignManagerPermissionsAsync(managerRole.Id, cancellationToken);
             }
             else
@@ -184,7 +169,6 @@ public class UserSeeder : IUserSeeder
                 _logger.LogWarning("Manager role not found. Manager user created without role assignment.");
             }
 
-            _logger.LogInformation("Manager user created: {Username} ({Email})", managerUser.Username, managerUser.Email);
             return managerUser;
         }
         catch (Exception ex)
@@ -247,7 +231,6 @@ public class UserSeeder : IUserSeeder
             {
                 _dbContext.RolePermissions.AddRange(toAdd);
                 _ = await _dbContext.SaveChangesAsync(cancellationToken);
-                _logger.LogInformation("Assigned {Count} permissions to Manager role", toAdd.Count);
             }
         }
         catch (Exception ex)

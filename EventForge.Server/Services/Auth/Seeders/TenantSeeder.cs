@@ -22,15 +22,11 @@ public class TenantSeeder : ITenantSeeder
     {
         try
         {
-            // Check if system tenant already exists
             var systemTenant = await _dbContext.Tenants
                 .FirstOrDefaultAsync(t => t.Id == Guid.Empty, cancellationToken);
 
             if (systemTenant != null)
-            {
-                _logger.LogInformation("System tenant already exists");
                 return systemTenant;
-            }
 
             // Create system tenant with Id = Guid.Empty
             systemTenant = new Tenant
@@ -49,13 +45,9 @@ public class TenantSeeder : ITenantSeeder
                 TenantId = Guid.Empty // Self-referencing for the base property
             };
 
-            // Add tenant and save changes
-            // The Tenant entity is configured with ValueGeneratedNever() in DbContext
-            // to allow explicit Id values including Guid.Empty for the System tenant
             _ = _dbContext.Tenants.Add(systemTenant);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("System tenant created with Id = Guid.Empty");
             return systemTenant;
         }
         catch (Exception ex)
@@ -69,16 +61,11 @@ public class TenantSeeder : ITenantSeeder
     {
         try
         {
-            // Check if default tenant already exists
             var existingTenant = await _dbContext.Tenants
                 .FirstOrDefaultAsync(t => t.Code == "default", cancellationToken);
 
             if (existingTenant != null)
-            {
-                _logger.LogInformation("Default tenant already exists: {TenantName} (Code: {TenantCode})",
-                    existingTenant.Name, existingTenant.Code);
                 return existingTenant;
-            }
 
             // Create default tenant
             var defaultTenant = new Tenant
@@ -99,8 +86,6 @@ public class TenantSeeder : ITenantSeeder
             _ = _dbContext.Tenants.Add(defaultTenant);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Default tenant created: {TenantName} (Code: {TenantCode})",
-                defaultTenant.Name, defaultTenant.Code);
             return defaultTenant;
         }
         catch (Exception ex)
@@ -114,16 +99,11 @@ public class TenantSeeder : ITenantSeeder
     {
         try
         {
-            // Check if AdminTenant record already exists
             var existingRecord = await _dbContext.AdminTenants
                 .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId, cancellationToken);
 
             if (existingRecord != null)
-            {
-                _logger.LogInformation("AdminTenant record already exists for user {UserId} managing tenant {TenantId}",
-                    userId, tenantId);
                 return true;
-            }
 
             var adminTenant = new AdminTenant
             {
@@ -139,8 +119,6 @@ public class TenantSeeder : ITenantSeeder
             _ = _dbContext.AdminTenants.Add(adminTenant);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("AdminTenant record created for user {UserId} to manage tenant {TenantId}",
-                userId, tenantId);
             return true;
         }
         catch (Exception ex)

@@ -30,18 +30,11 @@ public class StoreSeeder : IStoreSeeder
     {
         try
         {
-            // Check if payment methods already exist for this tenant
             var existingCount = await _dbContext.PaymentMethods
                 .CountAsync(p => p.TenantId == tenantId, cancellationToken);
 
             if (existingCount > 0)
-            {
-                _logger.LogInformation("Payment methods already exist for tenant {TenantId} (Count: {Count}). Skipping seeding.",
-                    tenantId, existingCount);
                 return true;
-            }
-
-            _logger.LogInformation("Seeding default payment methods for tenant {TenantId}...", tenantId);
 
             var paymentMethods = new[]
             {
@@ -105,10 +98,6 @@ public class StoreSeeder : IStoreSeeder
 
             await _dbContext.PaymentMethods.AddRangeAsync(paymentMethods, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successfully seeded {Count} payment methods for tenant {TenantId}",
-                paymentMethods.Length, tenantId);
-
             return true;
         }
         catch (Exception ex)
@@ -122,18 +111,11 @@ public class StoreSeeder : IStoreSeeder
     {
         try
         {
-            // Check if POS already exists for this tenant
             var existingCount = await _dbContext.StorePoses
                 .CountAsync(p => p.TenantId == tenantId, cancellationToken);
 
             if (existingCount > 0)
-            {
-                _logger.LogInformation("POS terminals already exist for tenant {TenantId} (Count: {Count}). Skipping seeding.",
-                    tenantId, existingCount);
                 return true;
-            }
-
-            _logger.LogInformation("Seeding default POS terminal for tenant {TenantId}...", tenantId);
 
             var defaultPos = new EventForge.Server.Data.Entities.Store.StorePos
             {
@@ -149,11 +131,8 @@ public class StoreSeeder : IStoreSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _dbContext.StorePoses.AddAsync(defaultPos, cancellationToken);
+            _dbContext.StorePoses.Add(defaultPos);
             await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successfully seeded default POS terminal for tenant {TenantId}", tenantId);
-
             return true;
         }
         catch (Exception ex)
@@ -167,17 +146,11 @@ public class StoreSeeder : IStoreSeeder
     {
         try
         {
-            // Check if operator already exists for this tenant
             var existingOperator = await _dbContext.StoreUsers
                 .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Username == "operator1", cancellationToken);
 
             if (existingOperator != null)
-            {
-                _logger.LogInformation("Store operator 'operator1' already exists for tenant {TenantId}. Skipping seeding.", tenantId);
                 return true;
-            }
-
-            _logger.LogInformation("Seeding default store operator for tenant {TenantId}...", tenantId);
 
             // Get operator password from configuration, environment variable, or use default
             var operatorPassword = Environment.GetEnvironmentVariable("EVENTFORGE_STORE_OPERATOR_PASSWORD")
@@ -206,11 +179,8 @@ public class StoreSeeder : IStoreSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _dbContext.StoreUsers.AddAsync(defaultOperator, cancellationToken);
+            _dbContext.StoreUsers.Add(defaultOperator);
             await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successfully seeded default store operator for tenant {TenantId}", tenantId);
-
             return true;
         }
         catch (Exception ex)
@@ -224,38 +194,24 @@ public class StoreSeeder : IStoreSeeder
     {
         try
         {
-            _logger.LogInformation("Starting store base entities seeding for tenant {TenantId}...", tenantId);
-
             var success = true;
 
-            // Seed payment methods
             if (!await SeedPaymentMethodsAsync(tenantId, cancellationToken))
             {
                 _logger.LogWarning("Failed to seed payment methods for tenant {TenantId}", tenantId);
                 success = false;
             }
 
-            // Seed default POS
             if (!await SeedDefaultPosAsync(tenantId, cancellationToken))
             {
                 _logger.LogWarning("Failed to seed default POS for tenant {TenantId}", tenantId);
                 success = false;
             }
 
-            // Seed default operator
             if (!await SeedDefaultOperatorAsync(tenantId, cancellationToken))
             {
                 _logger.LogWarning("Failed to seed default operator for tenant {TenantId}", tenantId);
                 success = false;
-            }
-
-            if (success)
-            {
-                _logger.LogInformation("Successfully seeded all store base entities for tenant {TenantId}", tenantId);
-            }
-            else
-            {
-                _logger.LogWarning("Store base entities seeding completed with some failures for tenant {TenantId}", tenantId);
             }
 
             return success;

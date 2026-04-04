@@ -81,42 +81,30 @@ public class LicenseSeeder : ILicenseSeeder
                     existingLicense.ModifiedBy = "system";
                     existingLicense.ModifiedAt = DateTime.UtcNow;
                     _ = await _dbContext.SaveChangesAsync(cancellationToken);
-                    _logger.LogInformation("SuperAdmin license updated with new configuration");
-                }
-                else
-                {
-                    _logger.LogInformation("SuperAdmin license is up to date");
                 }
 
-                // Always sync license features
                 await SyncSuperAdminLicenseFeaturesAsync(existingLicense.Id, cancellationToken);
-
                 return existingLicense;
             }
 
-            // License doesn't exist, create it
             var superAdminLicense = new License
             {
-                Name = expectedConfig.Name,
-                DisplayName = expectedConfig.DisplayName,
-                Description = expectedConfig.Description,
-                MaxUsers = expectedConfig.MaxUsers,
+                Name                = expectedConfig.Name,
+                DisplayName         = expectedConfig.DisplayName,
+                Description         = expectedConfig.Description,
+                MaxUsers            = expectedConfig.MaxUsers,
                 MaxApiCallsPerMonth = expectedConfig.MaxApiCallsPerMonth,
-                TierLevel = expectedConfig.TierLevel,
-                IsActive = expectedConfig.IsActive,
-                CreatedBy = "system",
-                CreatedAt = DateTime.UtcNow,
-                TenantId = Guid.Empty // System-level entity
+                TierLevel           = expectedConfig.TierLevel,
+                IsActive            = expectedConfig.IsActive,
+                CreatedBy           = "system",
+                CreatedAt           = DateTime.UtcNow,
+                TenantId            = Guid.Empty
             };
 
             _ = _dbContext.Licenses.Add(superAdminLicense);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("SuperAdmin license created: {LicenseName}", superAdminLicense.Name);
-
-            // Create all license features
             await SyncSuperAdminLicenseFeaturesAsync(superAdminLicense.Id, cancellationToken);
-
             return superAdminLicense;
         }
         catch (Exception ex)
@@ -136,7 +124,6 @@ public class LicenseSeeder : ILicenseSeeder
 
             if (existingAssignment != null)
             {
-                _logger.LogInformation("License {LicenseId} is already assigned to tenant {TenantId}", licenseId, tenantId);
 
                 // Ensure assignment is active
                 if (!existingAssignment.IsAssignmentActive)
@@ -145,7 +132,6 @@ public class LicenseSeeder : ILicenseSeeder
                     existingAssignment.ModifiedBy = "system";
                     existingAssignment.ModifiedAt = DateTime.UtcNow;
                     _ = await _dbContext.SaveChangesAsync(cancellationToken);
-                    _logger.LogInformation("Reactivated license assignment for tenant {TenantId}", tenantId);
                 }
 
                 return true;
@@ -167,7 +153,6 @@ public class LicenseSeeder : ILicenseSeeder
             _ = _dbContext.TenantLicenses.Add(tenantLicense);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("License assigned to tenant: {TenantId}", tenantId);
             return true;
         }
         catch (Exception ex)
@@ -307,13 +292,6 @@ public class LicenseSeeder : ILicenseSeeder
             if (featuresAdded > 0 || featuresUpdated > 0 || obsoleteFeatures.Count > 0)
             {
                 _ = await _dbContext.SaveChangesAsync(cancellationToken);
-                _logger.LogInformation(
-                    "SuperAdmin license features synchronized: {Added} added, {Updated} updated, {Deactivated} deactivated",
-                    featuresAdded, featuresUpdated, obsoleteFeatures.Count);
-            }
-            else
-            {
-                _logger.LogInformation("SuperAdmin license features are up to date");
             }
         }
         catch (Exception ex)

@@ -85,11 +85,6 @@ public class BootstrapService : IBootstrapService
     {
         try
         {
-            _logger.LogInformation("Starting bootstrap process...");
-
-            // Ensure database is created
-            _ = await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
-
             // Ensure system tenant exists first (required for system-level entities)
             var systemTenant = await _tenantSeeder.EnsureSystemTenantAsync(cancellationToken);
             if (systemTenant == null)
@@ -134,15 +129,11 @@ public class BootstrapService : IBootstrapService
 
             if (superAdminUser == null)
             {
-                _logger.LogInformation("SuperAdmin user not found. Proceeding with initial bootstrap...");
-
                 // Check if a default tenant already exists
                 defaultTenant = existingTenants.FirstOrDefault(t => t.Code == "default");
 
                 if (defaultTenant == null)
                 {
-                    // Create default tenant
-                    _logger.LogInformation("Creating default tenant...");
                     defaultTenant = await _tenantSeeder.CreateDefaultTenantAsync(cancellationToken);
                     if (defaultTenant == null)
                     {
@@ -155,8 +146,7 @@ public class BootstrapService : IBootstrapService
                 }
                 else
                 {
-                    _logger.LogInformation("Default tenant already exists: {TenantName} (Code: {TenantCode})",
-                        defaultTenant.Name, defaultTenant.Code);
+                    // Default tenant already exists
                 }
 
                 // Assign SuperAdmin license to default tenant
@@ -189,18 +179,16 @@ public class BootstrapService : IBootstrapService
                     return false;
                 }
 
-                _logger.LogInformation("SuperAdmin user and default tenant setup completed successfully");
+                _logger.LogWarning("SECURITY: Please change the SuperAdmin and Manager passwords immediately after first login!");
             }
             else
             {
-                _logger.LogInformation("SuperAdmin user already exists: {Username} ({Email})",
-                    superAdminUser.Username, superAdminUser.Email);
+                // SuperAdmin already exists
             }
 
-            // Now ensure all tenants have base entities seeded
+            // Ensure all tenants have base entities seeded
             if (existingTenants.Any())
             {
-                _logger.LogInformation("Checking {TenantCount} tenants for base entities...", existingTenants.Count);
 
                 // Get all tenant IDs for batch query
                 var tenantIds = existingTenants.Select(t => t.Id).ToList();
@@ -254,51 +242,19 @@ public class BootstrapService : IBootstrapService
                         if (!await _entitySeeder.SeedTenantBaseEntitiesAsync(tenant.Id, cancellationToken))
                         {
                             _logger.LogError("Failed to seed base entities for tenant {TenantId}", tenant.Id);
-                            // Continue with other tenants instead of failing completely
                         }
                         else
                         {
-                            _logger.LogInformation("Successfully seeded base entities for tenant {TenantId} ({TenantName})",
-                                tenant.Id, tenant.Name);
-
-                            // Validate the seeded entities
                             var (validationResult, validationIssues) = await _entitySeeder.ValidateTenantBaseEntitiesAsync(tenant.Id, cancellationToken);
                             if (!validationResult)
-                            {
-                                _logger.LogWarning("Validation found issues for tenant {TenantId}: {Issues}",
-                                    tenant.Id, string.Join("; ", validationIssues));
-                            }
+                                _logger.LogWarning("Validation issues for tenant {TenantId}: {Issues}", tenant.Id, string.Join("; ", validationIssues));
                         }
                     }
-                    else
+
+                    if (!tenantsWithPaymentMethods.Contains(tenant.Id))
                     {
-                        _logger.LogInformation("Tenant {TenantId} ({TenantName}) already has base entities seeded",
-                            tenant.Id, tenant.Name);
-                    }
-
-                    // Check if tenant needs store entities seeded
-                    var hasPaymentMethods = tenantsWithPaymentMethods.Contains(tenant.Id);
-
-                    if (!hasPaymentMethods)
-                    {
-                        _logger.LogInformation("Tenant {TenantId} ({TenantName}) is missing store entities. Seeding now...",
-                            tenant.Id, tenant.Name);
-
                         if (!await _storeSeeder.SeedStoreBaseEntitiesAsync(tenant.Id, cancellationToken))
-                        {
                             _logger.LogWarning("Failed to seed store base entities for tenant {TenantId}", tenant.Id);
-                            // Not fatal, continue
-                        }
-                        else
-                        {
-                            _logger.LogInformation("Successfully seeded store base entities for tenant {TenantId} ({TenantName})",
-                                tenant.Id, tenant.Name);
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Tenant {TenantId} ({TenantName}) already has store entities seeded",
-                            tenant.Id, tenant.Name);
                     }
                 }
             }
@@ -312,33 +268,6 @@ public class BootstrapService : IBootstrapService
                     _logger.LogWarning("Base entities validation found issues for default tenant: {Issues}", string.Join("; ", issues));
                 }
             }
-
-            _logger.LogInformation("=== BOOTSTRAP COMPLETED SUCCESSFULLY ===");
-
-            // Log summary of what exists
-            var allTenants = await _dbContext.Tenants.Where(t => t.Id != Guid.Empty).ToListAsync(cancellationToken);
-            var allUsers = await _dbContext.Users.ToListAsync(cancellationToken);
-
-            _logger.LogInformation("Tenants in system: {TenantCount}", allTenants.Count);
-            foreach (var tenant in allTenants)
-            {
-                _logger.LogInformation("  - {TenantName} (Code: {TenantCode})", tenant.Name, tenant.Code);
-            }
-
-            _logger.LogInformation("Users in system: {UserCount}", allUsers.Count);
-            foreach (var user in allUsers)
-            {
-                _logger.LogInformation("  - {Username} ({Email}) - Tenant: {TenantId}", user.Username, user.Email, user.TenantId);
-            }
-
-            if (defaultTenant != null)
-            {
-                _logger.LogInformation("Default tenant setup completed: {TenantName} (Code: {TenantCode})", defaultTenant.Name, defaultTenant.Code);
-                _logger.LogWarning("SECURITY: Please change the SuperAdmin and Manager passwords immediately after first login!");
-            }
-
-            _logger.LogInformation("SuperAdmin license assigned with unlimited users and API calls, including all features");
-            _logger.LogInformation("==========================================");
 
             return true;
         }
@@ -361,8 +290,6 @@ public class BootstrapService : IBootstrapService
     {
         try
         {
-            _logger.LogInformation("Checking FeatureTemplates seeding...");
-
             var featureTemplates = new[]
             {
                 new FeatureTemplate
@@ -591,19 +518,18 @@ public class BootstrapService : IBootstrapService
                 }
             };
 
-            // Check if features already exist
-            var existingFeatureCount = await _dbContext.FeatureTemplates.CountAsync(cancellationToken);
+            // Add only missing features by name so new templates propagate to existing installs
+            var existingNames = await _dbContext.FeatureTemplates
+                .Select(ft => ft.Name)
+                .ToListAsync(cancellationToken);
+            var existingNamesSet = existingNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var templatesToAdd = featureTemplates.Where(ft => !existingNamesSet.Contains(ft.Name)).ToList();
 
-            if (existingFeatureCount == 0)
+            if (templatesToAdd.Count > 0)
             {
-                _logger.LogInformation("Seeding {Count} FeatureTemplates...", featureTemplates.Length);
-                await _dbContext.FeatureTemplates.AddRangeAsync(featureTemplates, cancellationToken);
+                _logger.LogWarning("Seeding {Count} missing FeatureTemplates", templatesToAdd.Count);
+                await _dbContext.FeatureTemplates.AddRangeAsync(templatesToAdd, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
-                _logger.LogInformation("FeatureTemplates seeded successfully");
-            }
-            else
-            {
-                _logger.LogInformation("FeatureTemplates already seeded ({Count} features found)", existingFeatureCount);
             }
 
             return true;
