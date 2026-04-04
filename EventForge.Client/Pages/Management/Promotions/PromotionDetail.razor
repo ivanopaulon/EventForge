@@ -539,7 +539,7 @@
                                                     }
                                                     @foreach (var cat in distinctCategories)
                                                     {
-                                                        <MudSelectItem T="Guid" Value="@cat.Id">Categoria @cat.Id.ToString()[..8]</MudSelectItem>
+                                                        <MudSelectItem T="Guid" Value="@cat.Id">@cat.Name</MudSelectItem>
                                                     }
                                                 </MudSelect>
                                             </MudItem>
