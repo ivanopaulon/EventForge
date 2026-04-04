@@ -1,76 +1,37 @@
-@page "/documents/types/new"
-@page "/documents/types/create"
-@page "/documents/types/{DocumentTypeId:guid}"
-@page "/documents/types/edit/{DocumentTypeId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IDocumentTypeService DocumentTypeService
 @inject IWarehouseService WarehouseService
-@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<DocumentTypeDetail> Logger
+@inject ILogger<DocumentTypeDetailDialog> Logger
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading || _isSaving"
-                         Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
-
-    @if (_documentType == null && !_isCreateMode && !_isLoading)
-    {
-        <MudAlert Severity="Severity.Error">
-            @TranslationService.GetTranslation("documentType.notFound", "Tipo documento non trovato")
-        </MudAlert>
-    }
-    else if (!_isLoading)
-    {
-        <!-- Page Header -->
-        <MudPaper Elevation="2" Class="pa-4 mb-4">
-            <div class="d-flex justify-space-between align-center">
-                <div>
-                    <div class="d-flex align-center gap-2 mb-2">
-                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
-                                       Color="Color.Primary"
-                                       OnClick="@(() => TryNavigateAway("/documents/types"))"
-                                       Size="Size.Small" />
-                        <MudText Typo="Typo.h4">
-                            <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
-                            @(_isCreateMode ? TranslationService.GetTranslation("documentType.createNew", "Crea Nuovo Tipo Documento") : _documentType?.Name)
-                        </MudText>
-
-                        @if (HasUnsavedChanges())
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
-                                @TranslationService.GetTranslation("documentType.unsavedChanges", "Modifiche non salvate")
-                            </MudChip>
-                        }
-                    </div>
-                    @if (!_isCreateMode && _documentType != null)
-                    {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_documentType.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                        </MudText>
-                    }
-                </div>
-                <div class="d-flex gap-2">
-                    <MudButton Variant="Variant.Filled" 
-                               Color="Color.Primary" 
-                               StartIcon="@Icons.Material.Filled.Save"
-                               OnClick="SaveDocumentTypeAsync"
-                               Disabled="_isSaving"
-                               Size="Size.Small">
-                        @TranslationService.GetTranslation("common.save", "Salva")
-                    </MudButton>
-                </div>
+<EFDialog Icon="@Icons.Material.Outlined.Category"
+          Title="@(_isCreateMode ? TranslationService.GetTranslation("documentType.createNew", "Crea Nuovo Tipo Documento") : (_documentType?.Name ?? string.Empty))"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
             </div>
-        </MudPaper>
-
-        <!-- Form Section -->
-        <MudPaper Elevation="2" Class="pa-4">
+        }
+        else if (!_isCreateMode && _documentType == null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @TranslationService.GetTranslation("documentType.notFound", "Tipo documento non trovato")
+            </MudAlert>
+        }
+        else
+        {
             <MudForm @ref="_form" Class="pa-2">
                 <MudGrid>
                     <MudItem xs="12" md="6">
@@ -120,7 +81,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudSelect T="BusinessPartyType" 
+                        <MudSelect T="BusinessPartyType"
                                    Class="ef-select"
                                    @bind-Value="DocumentTypeRequiredPartyType"
                                    Label="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte Richiesto")"
@@ -143,7 +104,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudSelect T="Guid?" 
+                        <MudSelect T="Guid?"
                                    Class="ef-select"
                                    @bind-Value="DocumentTypeDefaultWarehouseId"
                                    Label="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")"
@@ -199,48 +160,48 @@
                     }
                 </MudGrid>
             </MudForm>
-        </MudPaper>
 
-        <!-- Document Counters Section (only in edit mode) -->
-        @if (!_isCreateMode && _documentType != null)
-        {
-            <MudPaper Elevation="2" Class="pa-4 mt-4">
-                <div class="d-flex justify-space-between align-center mb-4">
+            @if (!_isCreateMode && _documentType != null)
+            {
+                <MudDivider Class="my-4" />
+                <div class="d-flex justify-space-between align-center mb-2">
                     <MudText Typo="Typo.h6">
                         <MudIcon Icon="@Icons.Material.Outlined.Pin" Class="mr-2" />
                         @TranslationService.GetTranslation("documentType.counters", "Contatori Numerazione")
                     </MudText>
-                    <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                               Color="Color.Primary"
-                               Variant="Variant.Filled"
-                               Size="Size.Small"
-                               OnClick="@(() => NavigationManager.NavigateTo("/documents/counters"))">
-                        @TranslationService.GetTranslation("documentType.manageCounters", "Gestisci Contatori")
-                    </MudButton>
+                    <MudLink Href="/documents/counters">@TranslationService.GetTranslation("documentType.manageCounters", "Gestisci Contatori")</MudLink>
                 </div>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("documentType.countersDescription", "I contatori gestiscono la numerazione automatica dei documenti. Vai alla pagina di gestione contatori per configurarli.")
                 </MudText>
-            </MudPaper>
+            }
         }
-    }
-</MudContainer>
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveDocumentTypeAsync" Disabled="_isSaving || _isLoading || _documentType == null">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
 
 @code {
-    [Parameter] public Guid? DocumentTypeId { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? EntityId { get; set; }
 
     private DocumentTypeDto? _documentType;
     private IEnumerable<StorageFacilityDto>? _warehouses;
     private bool _isLoading = true;
-    private bool _isCreateMode => DocumentTypeId == null || DocumentTypeId == Guid.Empty;
+    private bool _isCreateMode => EntityId == null || EntityId == Guid.Empty;
     private bool _isSaving = false;
     private MudForm? _form;
 
-    // Snapshot for unsaved detection
     private string _originalDocumentTypeSnapshot = string.Empty;
     private bool _hasLocalChanges = false;
 
-    // Bound properties
     private string DocumentTypeName
     {
         get => _documentType?.Name ?? string.Empty;
@@ -294,12 +255,6 @@
         await Task.WhenAll(LoadDocumentTypeAsync(), LoadWarehousesAsync());
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_documentType?.Id != DocumentTypeId)
-            await LoadDocumentTypeAsync();
-    }
-
     private async Task LoadDocumentTypeAsync()
     {
         _isLoading = true;
@@ -307,17 +262,17 @@
         {
             if (_isCreateMode)
             {
-                _documentType = new DocumentTypeDto 
-                { 
-                    Name = string.Empty, 
+                _documentType = new DocumentTypeDto
+                {
+                    Name = string.Empty,
                     Code = string.Empty,
                     RequiredPartyType = BusinessPartyType.Both
                 };
                 _originalDocumentTypeSnapshot = SerializeDocumentType(_documentType);
             }
-            else if (DocumentTypeId.HasValue)
+            else if (EntityId.HasValue)
             {
-                var documentType = await DocumentTypeService.GetDocumentTypeByIdAsync(DocumentTypeId.Value);
+                var documentType = await DocumentTypeService.GetDocumentTypeByIdAsync(EntityId.Value);
                 _documentType = documentType;
 
                 if (_documentType != null)
@@ -328,7 +283,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading document type {DocumentTypeId}", DocumentTypeId);
+            Logger.LogError(ex, "Error loading document type {EntityId}", EntityId);
             Snackbar.Add(TranslationService.GetTranslation("documentType.loadError", "Errore nel caricamento del tipo documento"), Severity.Error);
         }
         finally
@@ -375,13 +330,10 @@
                     DefaultWarehouseId = _documentType.DefaultWarehouseId
                 };
 
-                var created = await DocumentTypeService.CreateDocumentTypeAsync(createDto);
+                await DocumentTypeService.CreateDocumentTypeAsync(createDto);
                 Snackbar.Add(TranslationService.GetTranslation("documentType.createSuccess", "Tipo documento creato con successo"), Severity.Success);
-                
-                // Navigate to edit page for the newly created document type
-                NavigationManager.NavigateTo($"/documents/types/{created.Id}");
             }
-            else if (DocumentTypeId.HasValue)
+            else if (EntityId.HasValue)
             {
                 var updateDto = new UpdateDocumentTypeDto
                 {
@@ -394,10 +346,12 @@
                     DefaultWarehouseId = _documentType.DefaultWarehouseId
                 };
 
-                await DocumentTypeService.UpdateDocumentTypeAsync(DocumentTypeId.Value, updateDto);
+                await DocumentTypeService.UpdateDocumentTypeAsync(EntityId.Value, updateDto);
                 Snackbar.Add(TranslationService.GetTranslation("documentType.updateSuccess", "Tipo documento aggiornato con successo"), Severity.Success);
-                await LoadDocumentTypeAsync(); // Refresh and reset snapshot
             }
+
+            _hasLocalChanges = false;
+            MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
@@ -430,30 +384,19 @@
         return !string.Equals(current, _originalDocumentTypeSnapshot, StringComparison.Ordinal);
     }
 
-    private async Task TryNavigateAway(string target)
+    private async Task Cancel()
     {
-        if (!HasUnsavedChanges())
+        if (HasUnsavedChanges())
         {
-            NavigationManager.NavigateTo(target);
-            return;
+            var result = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("documentType.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (result == null) return;
+            if (result == true) { await SaveDocumentTypeAsync(); return; }
         }
-
-        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var message = TranslationService.GetTranslation("documentType.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
-        var saveText = TranslationService.GetTranslation("common.save", "Salva");
-        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
-        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
-
-        var result = await DialogService.ShowMessageBoxAsync(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
-
-        if (result == true)
-        {
-            await SaveDocumentTypeAsync();
-            NavigationManager.NavigateTo(target);
-        }
-        else if (result == false)
-        {
-            NavigationManager.NavigateTo(target);
-        }
+        MudDialog.Close();
     }
 }
