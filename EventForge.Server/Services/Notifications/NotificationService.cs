@@ -603,8 +603,6 @@ public class NotificationService : INotificationService
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving all notifications - Page {Page}", pagination.Page);
-
         // NOTE: This is a simplified implementation that returns all notifications
         // In a full implementation, you would extract userId and tenantId from authentication context
         try

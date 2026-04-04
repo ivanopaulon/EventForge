@@ -10,6 +10,8 @@ public class PerformanceTelemetryMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<PerformanceTelemetryMiddleware> _logger;
     private readonly int _slowRequestThresholdMs;
+    private readonly int _startupGracePeriodMs;
+    private static readonly long _startupTickCount = Environment.TickCount64;
 
     public PerformanceTelemetryMiddleware(
         RequestDelegate next,
@@ -19,6 +21,7 @@ public class PerformanceTelemetryMiddleware
         _next = next;
         _logger = logger;
         _slowRequestThresholdMs = configuration.GetValue<int>("Performance:SlowRequestThresholdMs", 200);
+        _startupGracePeriodMs = configuration.GetValue<int>("Performance:StartupGracePeriodMs", 60000);
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -56,8 +59,13 @@ public class PerformanceTelemetryMiddleware
             sw.Stop();
             var elapsed = sw.ElapsedMilliseconds;
 
+            // Skip slow-request alerts during startup grace period: the first requests after a cold
+            // start are inherently slow (JIT, migrations, bootstrap) and would generate misleading
+            // Error/Warning entries that obscure real performance issues.
+            var isInGracePeriod = (Environment.TickCount64 - _startupTickCount) < _startupGracePeriodMs;
+
             // Log slow requests (can happen after response is sent)
-            if (elapsed > _slowRequestThresholdMs * 2)
+            if (!isInGracePeriod && elapsed > _slowRequestThresholdMs * 2)
             {
                 // Very slow requests (>400ms by default)
                 _logger.LogError(
@@ -67,7 +75,7 @@ public class PerformanceTelemetryMiddleware
                     elapsed,
                     context.Response.StatusCode);
             }
-            else if (elapsed > _slowRequestThresholdMs)
+            else if (!isInGracePeriod && elapsed > _slowRequestThresholdMs)
             {
                 // Slow requests (>200ms by default)
                 _logger.LogWarning(

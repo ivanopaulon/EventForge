@@ -307,10 +307,6 @@ public class ChatService : IChatService
         ChatSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
-            "Searching chats for user {UserId} in tenant {TenantId} - Page {Page}",
-            searchDto.UserId, searchDto.TenantId, searchDto.PageNumber);
-
         // Base query: threads where the user is an active member
         var query = _context.ChatThreads
             .AsNoTracking()

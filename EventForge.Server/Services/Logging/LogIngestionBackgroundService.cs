@@ -80,7 +80,7 @@ public class LogIngestionBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Log Ingestion Background Service starting");
+        _logger.LogDebug("Log Ingestion Background Service starting");
 
         // Ensure fallback directory exists
         Directory.CreateDirectory(FallbackLogDirectory);
