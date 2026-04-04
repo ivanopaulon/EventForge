@@ -48,4 +48,21 @@ public class CalendarReminder : AuditableEntity
     public int? RecurrenceInterval { get; set; }
 
     public DateTime? RecurrenceEndDate { get; set; }
+
+    /// <summary>
+    /// Hex color code used to display this item in the scheduler (e.g. "#FF5733").
+    /// </summary>
+    [MaxLength(7)]
+    public string? Color { get; set; }
+
+    /// <summary>
+    /// Username of the user this reminder/task is assigned to.
+    /// </summary>
+    [MaxLength(100)]
+    public string? AssignedToUserId { get; set; }
+
+    /// <summary>
+    /// Visibility: Public (visible to all tenant users) or Private (creator + assigned only).
+    /// </summary>
+    public CalendarVisibility Visibility { get; set; } = CalendarVisibility.Public;
 }

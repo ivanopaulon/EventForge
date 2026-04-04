@@ -10,6 +10,7 @@ namespace EventForge.Client.Services
     public interface IEventService
     {
         Task<PagedResult<EventDto>> GetEventsAsync(int page = 1, int pageSize = 20, CancellationToken ct = default);
+        Task<IEnumerable<EventDto>> GetEventsByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken ct = default);
         Task<EventDto?> GetEventByIdAsync(Guid id, CancellationToken ct = default);
         Task<EventDetailDto?> GetEventDetailAsync(Guid id, CancellationToken ct = default);
         Task<EventDto> CreateEventAsync(CreateEventDto createDto, CancellationToken ct = default);
@@ -33,6 +34,13 @@ namespace EventForge.Client.Services
             var url = $"api/v1/events?page={page}&pageSize={pageSize}";
             return await _httpClientService.GetAsync<PagedResult<EventDto>>(url, ct) ??
                 new PagedResult<EventDto> { Items = new List<EventDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+        }
+
+        public async Task<IEnumerable<EventDto>> GetEventsByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken ct = default)
+        {
+            var url = $"api/v1/events/date-range?startDate={startDate:O}&endDate={endDate:O}&page=1&pageSize=1000";
+            var result = await _httpClientService.GetAsync<PagedResult<EventDto>>(url, ct);
+            return result?.Items ?? Enumerable.Empty<EventDto>();
         }
 
         public async Task<EventDto?> GetEventByIdAsync(Guid id, CancellationToken ct = default)

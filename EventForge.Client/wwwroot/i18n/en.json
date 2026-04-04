@@ -316,7 +316,6 @@
     "warning": "Warning",
     "yes": "Yes",
     "days": "days",
-    "itemsFound": "items found",
     "advancedOptions": "Advanced Options",
     "row": "Row",
     "data": "Data",
@@ -776,7 +775,12 @@
     "warehouse": "[FROM IT] Magazzino",
     "website": "[FROM IT] Sito Web",
     "zipCode": "[FROM IT] CAP",
-    "zone": "[FROM IT] Zona"
+    "zone": "[FROM IT] Zona",
+    "visibility": "Visibility",
+    "assignedTo": "Assign to (username)",
+    "dueDate": "Due date",
+    "title": "Title",
+    "longDescription": "Long description"
   },
   "filter": {
     "all": "All"
@@ -2487,7 +2491,9 @@
     "stockManagement": "Stock",
     "stockReconciliation": "Stock Reconciliation",
     "registries": "Registries",
-    "commercial": "Commercial"
+    "commercial": "Commercial",
+    "events": "Calendar Management",
+    "eventCalendar": "Calendar & Reminders"
   },
   "tour": {
     "chat": "Chat Tour",
@@ -3019,5 +3025,66 @@
   "quickFilters": {
     "title": "Quick filters",
     "all": "All"
+  },
+  "events": {
+    "createEvent": "New Event",
+    "newEvent": "Event",
+    "newReminder": "Reminder",
+    "newTask": "Task",
+    "createReminder": "New Reminder",
+    "createTask": "New Task",
+    "created": "Event created successfully",
+    "reminderCreated": "Reminder created successfully",
+    "taskCreated": "Task created successfully",
+    "createError": "Error creating item",
+    "loadError": "Error loading calendar data",
+    "completed": "Marked as complete",
+    "completeError": "Error completing item",
+    "complete": "Complete",
+    "dateCapacity": "Dates & Capacity",
+    "displaySettings": "Display & Access",
+    "scheduleAndPriority": "Due Date & Priority",
+    "recurrence": "Recurrence",
+    "recurrencePattern": "Frequency",
+    "recurrenceInterval": "Every (n)",
+    "recurrenceEnd": "Ends on",
+    "allDay": "All day",
+    "presetColors": "Quick colors",
+    "showFilter": "Show:",
+    "reminders": "Reminders",
+    "tasks": "Tasks",
+    "reminder": "Reminder",
+    "task": "Task",
+    "activeReminders": "Active reminders",
+    "activeTasks": "Open tasks",
+    "assignedToHelper": "Leave blank for no assignment",
+    "visibility": {
+      "public": "Public",
+      "private": "Private"
+    }
+  },
+  "priority": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "critical": "Critical",
+    "urgent": "Urgent"
+  },
+  "reminderStatus": {
+    "active": "Active",
+    "pending": "Pending",
+    "sent": "Sent",
+    "snoozed": "Snoozed",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "expired": "Expired"
+  },
+  "recurrence": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "yearly": "Yearly",
+    "custom": "Custom"
   }
 }

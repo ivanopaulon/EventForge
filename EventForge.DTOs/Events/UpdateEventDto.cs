@@ -65,6 +65,26 @@ namespace EventForge.DTOs.Events
         public EventStatus Status { get; set; }
 
         /// <summary>
+        /// Hex color code for scheduler display (e.g. "#4285F4"). Optional.
+        /// </summary>
+        [MaxLength(7, ErrorMessage = "Color code cannot exceed 7 characters.")]
+        [Display(Name = "Color", Description = "Hex color for scheduler display.")]
+        public string? Color { get; set; }
+
+        /// <summary>
+        /// Username the event is assigned to. Optional.
+        /// </summary>
+        [MaxLength(100, ErrorMessage = "AssignedToUserId cannot exceed 100 characters.")]
+        [Display(Name = "Assigned To", Description = "Username this event is assigned to.")]
+        public string? AssignedToUserId { get; set; }
+
+        /// <summary>
+        /// Visibility of the event (Public or Private).
+        /// </summary>
+        [Display(Name = "Visibility", Description = "Controls who can see this event.")]
+        public CalendarVisibility Visibility { get; set; } = CalendarVisibility.Public;
+
+        /// <summary>
         /// Row version for concurrency control.
         /// </summary>
         [Timestamp]

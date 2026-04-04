@@ -461,6 +461,15 @@ namespace EventForge.DTOs.Common
     }
 
     /// <summary>
+    /// Calendar item visibility enumeration.
+    /// </summary>
+    public enum CalendarVisibility
+    {
+        Public,   // Visible to all tenant users
+        Private   // Visible only to creator and assigned user
+    }
+
+    /// <summary>
     /// Reminder type enumeration.
     /// </summary>
     public enum ReminderType

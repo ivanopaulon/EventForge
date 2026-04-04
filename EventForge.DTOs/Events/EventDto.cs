@@ -53,6 +53,21 @@ namespace EventForge.DTOs.Events
         public EventStatus Status { get; set; }
 
         /// <summary>
+        /// Hex color code for scheduler display (e.g. "#4285F4"). Null means default color.
+        /// </summary>
+        public string? Color { get; set; }
+
+        /// <summary>
+        /// Username the event is assigned to.
+        /// </summary>
+        public string? AssignedToUserId { get; set; }
+
+        /// <summary>
+        /// Visibility of the event.
+        /// </summary>
+        public CalendarVisibility Visibility { get; set; }
+
+        /// <summary>
         /// Number of teams associated with the event.
         /// </summary>
         public int TeamCount { get; set; }

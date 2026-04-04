@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Events;
 
@@ -65,6 +66,26 @@ public class Event : AuditableEntity
     /// </summary>
     [Display(Name = "Status", Description = "Event status.")]
     public EventStatus Status { get; set; } = EventStatus.Planned;
+
+    /// <summary>
+    /// Hex color code used to display the event in the scheduler (e.g. "#4285F4").
+    /// </summary>
+    [MaxLength(7)]
+    [Display(Name = "Color", Description = "Hex color code for scheduler display.")]
+    public string? Color { get; set; }
+
+    /// <summary>
+    /// Username of the user the event is assigned to.
+    /// </summary>
+    [MaxLength(100)]
+    [Display(Name = "Assigned To", Description = "Username the event is assigned to.")]
+    public string? AssignedToUserId { get; set; }
+
+    /// <summary>
+    /// Visibility of the event (Public or Private).
+    /// </summary>
+    [Display(Name = "Visibility", Description = "Controls who can see this event.")]
+    public CalendarVisibility Visibility { get; set; } = CalendarVisibility.Public;
 
     /// <summary>
     /// Teams associated with the event.

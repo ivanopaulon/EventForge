@@ -167,6 +167,9 @@ public class CalendarReminderService : ICalendarReminderService
                 RecurrencePattern = createDto.RecurrencePattern,
                 RecurrenceInterval = createDto.RecurrenceInterval,
                 RecurrenceEndDate = createDto.RecurrenceEndDate,
+                Color = createDto.Color,
+                AssignedToUserId = createDto.AssignedToUserId,
+                Visibility = createDto.Visibility,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -224,6 +227,9 @@ public class CalendarReminderService : ICalendarReminderService
             entity.RecurrenceInterval = updateDto.RecurrenceInterval;
             entity.RecurrenceEndDate = updateDto.RecurrenceEndDate;
             entity.CompletionNotes = updateDto.CompletionNotes;
+            entity.Color = updateDto.Color;
+            entity.AssignedToUserId = updateDto.AssignedToUserId;
+            entity.Visibility = updateDto.Visibility;
             entity.ModifiedBy = currentUser;
             entity.ModifiedAt = DateTime.UtcNow;
 
@@ -362,6 +368,9 @@ public class CalendarReminderService : ICalendarReminderService
             RecurrencePattern = entity.RecurrencePattern,
             RecurrenceInterval = entity.RecurrenceInterval,
             RecurrenceEndDate = entity.RecurrenceEndDate,
+            Color = entity.Color,
+            AssignedToUserId = entity.AssignedToUserId,
+            Visibility = entity.Visibility,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
             ModifiedAt = entity.ModifiedAt,

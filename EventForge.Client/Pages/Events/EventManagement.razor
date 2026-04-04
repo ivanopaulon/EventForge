@@ -1,0 +1,491 @@
+@page "/events/management"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Events
+@using EventForge.DTOs.Calendar
+@using EventForge.DTOs.Common
+@attribute [Authorize]
+@inject IEventService EventService
+@inject ICalendarReminderService CalendarReminderService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject ILogger<EventManagement> Logger
+
+<div class="management-page-root">
+    <MudStack Spacing="3">
+
+        <!-- ── Intestazione ────────────────────────────────────── -->
+        <MudPaper Elevation="1" Class="pa-3">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("nav.events", "Gestione Calendario")
+                </MudText>
+                <MudSpacer />
+                <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" OverrideStyles="false">
+                    <MudButton StartIcon="@Icons.Material.Outlined.EventNote"
+                               OnClick="OpenCreateEventDialog"
+                               Color="Color.Primary" Variant="Variant.Filled">
+                        @TranslationService.GetTranslation("events.newEvent", "Evento")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Outlined.NotificationsActive"
+                               OnClick="@(() => OpenCreateReminderDialog(CalendarItemType.Reminder))"
+                               Color="Color.Secondary" Variant="Variant.Outlined">
+                        @TranslationService.GetTranslation("events.newReminder", "Promemoria")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Outlined.CheckBox"
+                               OnClick="@(() => OpenCreateReminderDialog(CalendarItemType.Task))"
+                               Color="Color.Default" Variant="Variant.Outlined">
+                        @TranslationService.GetTranslation("events.newTask", "Task")
+                    </MudButton>
+                </MudButtonGroup>
+            </MudStack>
+        </MudPaper>
+
+        <!-- ── Filtri rapidi ─────────────────────────────────── -->
+        <MudPaper Elevation="0" Class="pa-2">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                <MudText Typo="Typo.caption" Class="mr-1">
+                    @TranslationService.GetTranslation("events.showFilter", "Mostra:")
+                </MudText>
+                <MudChip T="string" Color="@(_activeFilter == null ? Color.Primary : Color.Default)"
+                         OnClick="@(() => SetFilter(null))" Size="Size.Small">
+                    @TranslationService.GetTranslation("common.all", "Tutti")
+                </MudChip>
+                <MudChip T="string" Color="@(_activeFilter == "planned" ? Color.Info : Color.Default)"
+                         OnClick="@(() => SetFilter("planned"))" Size="Size.Small">
+                    @TranslationService.GetTranslation("eventStatus.planned", "Pianificati")
+                </MudChip>
+                <MudChip T="string" Color="@(_activeFilter == "ongoing" ? Color.Success : Color.Default)"
+                         OnClick="@(() => SetFilter("ongoing"))" Size="Size.Small">
+                    @TranslationService.GetTranslation("eventStatus.ongoing", "In corso")
+                </MudChip>
+                <MudChip T="string" Color="@(_activeFilter == "completed" ? Color.Warning : Color.Default)"
+                         OnClick="@(() => SetFilter("completed"))" Size="Size.Small">
+                    @TranslationService.GetTranslation("eventStatus.completed", "Completati")
+                </MudChip>
+                <MudChip T="string" Color="@(_activeFilter == "cancelled" ? Color.Error : Color.Default)"
+                         OnClick="@(() => SetFilter("cancelled"))" Size="Size.Small">
+                    @TranslationService.GetTranslation("eventStatus.cancelled", "Annullati")
+                </MudChip>
+                <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
+                <MudChip T="string" Color="@(_showReminders ? Color.Warning : Color.Default)"
+                         OnClick="ToggleReminders" Size="Size.Small"
+                         Icon="@Icons.Material.Outlined.NotificationsActive">
+                    @TranslationService.GetTranslation("events.reminders", "Promemoria")
+                </MudChip>
+                <MudChip T="string" Color="@(_showTasks ? Color.Secondary : Color.Default)"
+                         OnClick="ToggleTasks" Size="Size.Small"
+                         Icon="@Icons.Material.Outlined.CheckBox">
+                    @TranslationService.GetTranslation("events.tasks", "Task")
+                </MudChip>
+            </MudStack>
+        </MudPaper>
+
+        <!-- ── Scheduler ──────────────────────────────────────── -->
+        <MudPaper Elevation="2" Class="pa-0" Style="overflow:hidden;">
+            @if (_isLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+
+            <SfSchedule TValue="SchedulerItem"
+                        Height="620px"
+                        @bind-SelectedDate="_currentDate"
+                        @bind-CurrentView="_currentView"
+                        AllowResizing="false"
+                        AllowDragAndDrop="false">
+                <ScheduleViews>
+                    <ScheduleView Option="View.Month" />
+                    <ScheduleView Option="View.Week" />
+                    <ScheduleView Option="View.WorkWeek" />
+                    <ScheduleView Option="View.Day" />
+                    <ScheduleView Option="View.Agenda" />
+                </ScheduleViews>
+                <ScheduleEventSettings DataSource="@FilteredItems">
+                    <ScheduleField Id="Id">
+                        <FieldSubject Name="Subject" />
+                        <FieldStartTime Name="StartTime" />
+                        <FieldEndTime Name="EndTime" />
+                        <FieldIsAllDay Name="IsAllDay" />
+                        <FieldLocation Name="Location" />
+                        <FieldDescription Name="Description" />
+                        <FieldRecurrenceRule Name="RecurrenceRule" />
+                    </ScheduleField>
+                </ScheduleEventSettings>
+                <ScheduleEvents TValue="SchedulerItem"
+                                PopupOpen="OnSchedulerPopupOpen" />
+            </SfSchedule>
+        </MudPaper>
+
+        <!-- ── Promemoria & Task attivi ───────────────────────── -->
+        @if (_activeReminders.Count > 0 || _activeTasks.Count > 0)
+        {
+            <MudGrid Spacing="3">
+                @if (_activeReminders.Count > 0)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="1" Class="pa-3">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.NotificationsActive" Color="Color.Warning" Size="Size.Small" Class="mr-1" />
+                                @TranslationService.GetTranslation("events.activeReminders", "Promemoria attivi")
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-1">@_activeReminders.Count</MudChip>
+                            </MudText>
+                            <MudList T="CalendarReminderDto" Dense="true">
+                                @foreach (var r in _activeReminders.Take(5))
+                                {
+                                    <MudListItem>
+                                        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                            <div style="width:10px;height:10px;border-radius:50%;background:@(r.Color ?? "#FF9800");flex-shrink:0;" />
+                                            <MudStack Spacing="0">
+                                                <MudText Typo="Typo.body2">@r.Title</MudText>
+                                                <MudText Typo="Typo.caption" Style="opacity:.7">@r.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                                            </MudStack>
+                                            <MudSpacer />
+                                            @if (!string.IsNullOrEmpty(r.AssignedToUserId))
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@r.AssignedToUserId</MudChip>
+                                            }
+                                            <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                                           Color="Color.Success" Size="Size.Small"
+                                                           OnClick="@(() => CompleteReminderAsync(r.Id))"
+                                                           title="@TranslationService.GetTranslation("events.complete", "Completa")" />
+                                        </MudStack>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        </MudPaper>
+                    </MudItem>
+                }
+
+                @if (_activeTasks.Count > 0)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="1" Class="pa-3">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.CheckBox" Color="Color.Secondary" Size="Size.Small" Class="mr-1" />
+                                @TranslationService.GetTranslation("events.activeTasks", "Task aperti")
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ml-1">@_activeTasks.Count</MudChip>
+                            </MudText>
+                            <MudList T="CalendarReminderDto" Dense="true">
+                                @foreach (var t in _activeTasks.Take(5))
+                                {
+                                    <MudListItem>
+                                        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                            <div style="width:10px;height:10px;border-radius:50%;background:@(t.Color ?? "#9C27B0");flex-shrink:0;" />
+                                            <MudStack Spacing="0">
+                                                <MudText Typo="Typo.body2">@t.Title</MudText>
+                                                <MudText Typo="Typo.caption" Style="opacity:.7">@t.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                                            </MudStack>
+                                            <MudSpacer />
+                                            @if (!string.IsNullOrEmpty(t.AssignedToUserId))
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@t.AssignedToUserId</MudChip>
+                                            }
+                                            <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                                           Color="Color.Success" Size="Size.Small"
+                                                           OnClick="@(() => CompleteReminderAsync(t.Id))"
+                                                           title="@TranslationService.GetTranslation("events.complete", "Completa")" />
+                                        </MudStack>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+
+    </MudStack>
+</div>
+
+@code {
+    [SupplyParameterFromQuery][Parameter] public string? Filter { get; set; }
+
+    // ── State ──────────────────────────────────────────────────
+    private bool _isLoading;
+    private string? _activeFilter;
+    private bool _showReminders = true;
+    private bool _showTasks = true;
+
+    private DateTime _currentDate = DateTime.Today;
+    private View _currentView = View.Month;
+
+    private List<SchedulerItem> _allSchedulerItems = new();
+    private List<CalendarReminderDto> _activeReminders = new();
+    private List<CalendarReminderDto> _activeTasks = new();
+
+    // ── Filtered view ──────────────────────────────────────────
+    private List<SchedulerItem> FilteredItems
+    {
+        get
+        {
+            var items = _allSchedulerItems.Where(i =>
+            {
+                if (i.ItemKind == SchedulerItemKind.Event)
+                {
+                    return _activeFilter switch
+                    {
+                        "planned"   => i.EventStatus == EventStatus.Planned,
+                        "ongoing"   => i.EventStatus == EventStatus.Ongoing,
+                        "completed" => i.EventStatus == EventStatus.Completed,
+                        "cancelled" => i.EventStatus == EventStatus.Cancelled,
+                        _           => true
+                    };
+                }
+                if (i.ItemKind == SchedulerItemKind.Reminder) return _showReminders;
+                if (i.ItemKind == SchedulerItemKind.Task) return _showTasks;
+                return true;
+            });
+            return items.ToList();
+        }
+    }
+
+    // ── Lifecycle ──────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        _activeFilter = Filter;
+        await LoadAllDataAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_activeFilter != Filter)
+            _activeFilter = Filter;
+    }
+
+    // ── Data loading ───────────────────────────────────────────
+    private async Task LoadAllDataAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            await Task.WhenAll(LoadEventsAsync(), LoadRemindersAndTasksAsync());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading calendar data.");
+            Snackbar.Add(TranslationService.GetTranslation("events.loadError", "Errore nel caricamento del calendario"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadEventsAsync()
+    {
+        var result = await EventService.GetEventsAsync(1, 1000);
+        var eventItems = result.Items.Select(e => new SchedulerItem
+        {
+            Id = e.Id.ToString(),
+            Subject = e.Name,
+            StartTime = e.StartDate.ToLocalTime(),
+            EndTime = (e.EndDate ?? e.StartDate.AddHours(1)).ToLocalTime(),
+            IsAllDay = false,
+            Location = e.Location,
+            Description = e.ShortDescription,
+            Color = e.Color ?? "#4285F4",
+            ItemKind = SchedulerItemKind.Event,
+            EventStatus = e.Status,
+            AssignedTo = e.AssignedToUserId,
+            IsPrivate = e.Visibility == CalendarVisibility.Private
+        });
+
+        var existing = _allSchedulerItems.Where(i => i.ItemKind != SchedulerItemKind.Event).ToList();
+        _allSchedulerItems = existing.Concat(eventItems).ToList();
+    }
+
+    private async Task LoadRemindersAndTasksAsync()
+    {
+        var result = await CalendarReminderService.GetCalendarRemindersAsync(1, 1000);
+        var all = result.Items;
+
+        _activeReminders = all.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
+        _activeTasks = all.Where(r => r.ItemType == CalendarItemType.Task && !r.IsCompleted).ToList();
+
+        var schedulerItems = all.Select(r => new SchedulerItem
+        {
+            Id = r.Id.ToString(),
+            Subject = r.Title,
+            StartTime = r.DueDate.ToLocalTime(),
+            EndTime = r.IsAllDay ? r.DueDate.ToLocalTime().AddDays(1) : r.DueDate.ToLocalTime().AddMinutes(30),
+            IsAllDay = r.IsAllDay,
+            Description = r.Description,
+            Color = r.Color ?? (r.ItemType == CalendarItemType.Task ? "#9C27B0" : "#FF9800"),
+            ItemKind = r.ItemType == CalendarItemType.Task ? SchedulerItemKind.Task : SchedulerItemKind.Reminder,
+            AssignedTo = r.AssignedToUserId,
+            IsPrivate = r.Visibility == CalendarVisibility.Private,
+            RecurrenceRule = r.IsRecurring ? BuildRecurrenceRule(r) : null
+        });
+
+        var existing = _allSchedulerItems.Where(i => i.ItemKind == SchedulerItemKind.Event).ToList();
+        _allSchedulerItems = existing.Concat(schedulerItems).ToList();
+    }
+
+    // ── Recurrence rule builder (iCalendar RRULE format) ──────
+    private static string? BuildRecurrenceRule(CalendarReminderDto r)
+    {
+        if (!r.IsRecurring || r.RecurrencePattern == null) return null;
+        var freq = r.RecurrencePattern switch
+        {
+            RecurrencePattern.Daily   => "DAILY",
+            RecurrencePattern.Weekly  => "WEEKLY",
+            RecurrencePattern.Monthly => "MONTHLY",
+            RecurrencePattern.Yearly  => "YEARLY",
+            _                         => "DAILY"
+        };
+        var rule = $"FREQ={freq}";
+        if (r.RecurrenceInterval.HasValue && r.RecurrenceInterval > 1)
+            rule += $";INTERVAL={r.RecurrenceInterval}";
+        if (r.RecurrenceEndDate.HasValue)
+            rule += $";UNTIL={r.RecurrenceEndDate.Value:yyyyMMddTHHmmssZ}";
+        return rule;
+    }
+
+    // ── Filters ────────────────────────────────────────────────
+    private void SetFilter(string? filter)
+    {
+        _activeFilter = filter;
+        StateHasChanged();
+    }
+
+    private void ToggleReminders()
+    {
+        _showReminders = !_showReminders;
+        StateHasChanged();
+    }
+
+    private void ToggleTasks()
+    {
+        _showTasks = !_showTasks;
+        StateHasChanged();
+    }
+
+    // ── Dialog openers ─────────────────────────────────────────
+    private async Task OpenCreateEventDialog(DateTime? prefillStart = null, DateTime? prefillEnd = null)
+    {
+        var parameters = new DialogParameters<CreateEventDialog>
+        {
+            { x => x.PrefilledStartDate, prefillStart },
+            { x => x.PrefilledEndDate, prefillEnd }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+        var dialog = await DialogService.ShowAsync<CreateEventDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: EventDto created })
+        {
+            _allSchedulerItems.Add(new SchedulerItem
+            {
+                Id = created.Id.ToString(),
+                Subject = created.Name,
+                StartTime = created.StartDate.ToLocalTime(),
+                EndTime = (created.EndDate ?? created.StartDate.AddHours(1)).ToLocalTime(),
+                Location = created.Location,
+                Description = created.ShortDescription,
+                Color = created.Color ?? "#4285F4",
+                ItemKind = SchedulerItemKind.Event,
+                EventStatus = created.Status,
+                AssignedTo = created.AssignedToUserId,
+                IsPrivate = created.Visibility == CalendarVisibility.Private
+            });
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenCreateReminderDialog(CalendarItemType itemType, DateTime? prefillDue = null)
+    {
+        var parameters = new DialogParameters<CreateCalendarReminderDialog>
+        {
+            { x => x.ItemType, itemType },
+            { x => x.PrefilledDueDate, prefillDue }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+        var dialog = await DialogService.ShowAsync<CreateCalendarReminderDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: CalendarReminderDto created })
+        {
+            var newItem = new SchedulerItem
+            {
+                Id = created.Id.ToString(),
+                Subject = created.Title,
+                StartTime = created.DueDate.ToLocalTime(),
+                EndTime = created.IsAllDay ? created.DueDate.ToLocalTime().AddDays(1) : created.DueDate.ToLocalTime().AddMinutes(30),
+                IsAllDay = created.IsAllDay,
+                Description = created.Description,
+                Color = created.Color ?? (itemType == CalendarItemType.Task ? "#9C27B0" : "#FF9800"),
+                ItemKind = itemType == CalendarItemType.Task ? SchedulerItemKind.Task : SchedulerItemKind.Reminder,
+                AssignedTo = created.AssignedToUserId,
+                IsPrivate = created.Visibility == CalendarVisibility.Private,
+                RecurrenceRule = created.IsRecurring ? BuildRecurrenceRule(created) : null
+            };
+            _allSchedulerItems.Add(newItem);
+
+            if (itemType == CalendarItemType.Reminder && !created.IsCompleted)
+                _activeReminders.Insert(0, created);
+            else if (itemType == CalendarItemType.Task && !created.IsCompleted)
+                _activeTasks.Insert(0, created);
+
+            StateHasChanged();
+        }
+    }
+
+    // ── Scheduler popup intercept (open custom dialogs) ───────
+    private async void OnSchedulerPopupOpen(PopupOpenEventArgs<SchedulerItem> args)
+    {
+        if (args.Type == PopupType.Editor)
+        {
+            args.Cancel = true;
+
+            var prefillStart = args.Data?.StartTime;
+            var prefillEnd = args.Data?.EndTime;
+
+            await InvokeAsync(async () =>
+            {
+                await OpenCreateEventDialog(prefillStart, prefillEnd);
+            });
+        }
+    }
+
+    // ── Complete reminder/task ─────────────────────────────────
+    private async Task CompleteReminderAsync(Guid id)
+    {
+        try
+        {
+            await CalendarReminderService.CompleteCalendarReminderAsync(id);
+            _activeReminders.RemoveAll(r => r.Id == id);
+            _activeTasks.RemoveAll(t => t.Id == id);
+            var item = _allSchedulerItems.FirstOrDefault(i => i.Id == id.ToString());
+            if (item != null) _allSchedulerItems.Remove(item);
+            Snackbar.Add(TranslationService.GetTranslation("events.completed", "Completato"), Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error completing reminder {Id}.", id);
+            Snackbar.Add(TranslationService.GetTranslation("events.completeError", "Errore nel completamento"), Severity.Error);
+        }
+    }
+
+    // ── View model ─────────────────────────────────────────────
+    public enum SchedulerItemKind { Event, Reminder, Task }
+
+    public class SchedulerItem
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public bool IsAllDay { get; set; }
+        public string? Location { get; set; }
+        public string? Description { get; set; }
+        public string? RecurrenceRule { get; set; }
+        public string? RecurrenceException { get; set; }
+        public string? Color { get; set; }
+        public SchedulerItemKind ItemKind { get; set; }
+        public EventStatus? EventStatus { get; set; }
+        public string? AssignedTo { get; set; }
+        public bool IsPrivate { get; set; }
+    }
+}

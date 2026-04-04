@@ -25,6 +25,9 @@ public class CalendarReminderDto
     public RecurrencePattern? RecurrencePattern { get; set; }
     public int? RecurrenceInterval { get; set; }
     public DateTime? RecurrenceEndDate { get; set; }
+    public string? Color { get; set; }
+    public string? AssignedToUserId { get; set; }
+    public CalendarVisibility Visibility { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime? ModifiedAt { get; set; }
@@ -32,7 +35,7 @@ public class CalendarReminderDto
 }
 
 /// <summary>
-/// DTO for creating a new calendar reminder.
+/// DTO for creating a new calendar reminder or task.
 /// </summary>
 public class CreateCalendarReminderDto
 {
@@ -64,10 +67,18 @@ public class CreateCalendarReminderDto
     public int? RecurrenceInterval { get; set; }
 
     public DateTime? RecurrenceEndDate { get; set; }
+
+    [MaxLength(7)]
+    public string? Color { get; set; }
+
+    [MaxLength(100)]
+    public string? AssignedToUserId { get; set; }
+
+    public CalendarVisibility Visibility { get; set; } = CalendarVisibility.Public;
 }
 
 /// <summary>
-/// DTO for updating an existing calendar reminder.
+/// DTO for updating an existing calendar reminder or task.
 /// </summary>
 public class UpdateCalendarReminderDto
 {
@@ -102,6 +113,14 @@ public class UpdateCalendarReminderDto
 
     [MaxLength(500)]
     public string? CompletionNotes { get; set; }
+
+    [MaxLength(7)]
+    public string? Color { get; set; }
+
+    [MaxLength(100)]
+    public string? AssignedToUserId { get; set; }
+
+    public CalendarVisibility Visibility { get; set; }
 
     [Timestamp]
     public byte[]? RowVersion { get; set; }

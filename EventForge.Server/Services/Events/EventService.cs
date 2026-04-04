@@ -280,6 +280,10 @@ public class EventService : IEventService
                 StartDate = createEventDto.StartDate,
                 EndDate = createEventDto.EndDate,
                 Capacity = createEventDto.Capacity,
+                Status = (EventForge.Server.Data.Entities.Events.EventStatus)(int)createEventDto.Status,
+                Color = createEventDto.Color,
+                AssignedToUserId = createEventDto.AssignedToUserId,
+                Visibility = createEventDto.Visibility,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -341,6 +345,10 @@ public class EventService : IEventService
             eventEntity.StartDate = updateEventDto.StartDate;
             eventEntity.EndDate = updateEventDto.EndDate;
             eventEntity.Capacity = updateEventDto.Capacity;
+            eventEntity.Status = (EventForge.Server.Data.Entities.Events.EventStatus)(int)updateEventDto.Status;
+            eventEntity.Color = updateEventDto.Color;
+            eventEntity.AssignedToUserId = updateEventDto.AssignedToUserId;
+            eventEntity.Visibility = updateEventDto.Visibility;
             eventEntity.ModifiedBy = currentUser;
             eventEntity.ModifiedAt = DateTime.UtcNow;
             eventEntity.RowVersion = updateEventDto.RowVersion;
@@ -502,6 +510,10 @@ public class EventService : IEventService
             StartDate = eventEntity.StartDate,
             EndDate = eventEntity.EndDate,
             Capacity = eventEntity.Capacity,
+            Status = (EventForge.DTOs.Common.EventStatus)(int)eventEntity.Status,
+            Color = eventEntity.Color,
+            AssignedToUserId = eventEntity.AssignedToUserId,
+            Visibility = eventEntity.Visibility,
             TeamCount = eventEntity.Teams?.Count(t => !t.IsDeleted) ?? 0,
             CreatedAt = eventEntity.CreatedAt,
             CreatedBy = eventEntity.CreatedBy,
@@ -522,6 +534,10 @@ public class EventService : IEventService
             StartDate = eventEntity.StartDate,
             EndDate = eventEntity.EndDate,
             Capacity = eventEntity.Capacity,
+            Status = (EventForge.DTOs.Common.EventStatus)(int)eventEntity.Status,
+            Color = eventEntity.Color,
+            AssignedToUserId = eventEntity.AssignedToUserId,
+            Visibility = eventEntity.Visibility,
             Teams = eventEntity.Teams?.Where(t => !t.IsDeleted).Select(MapToTeamDetailDto).ToList() ?? new List<TeamDetailDto>(),
             CreatedAt = eventEntity.CreatedAt,
             CreatedBy = eventEntity.CreatedBy,
