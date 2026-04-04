@@ -1062,7 +1062,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public bool IsNotificationConnected => GetConnectionState("notification") == HubConnectionState.Connected;
     public bool IsChatConnected => GetConnectionState("chat") == HubConnectionState.Connected;
     public bool IsDocumentCollaborationConnected => GetConnectionState("document-collaboration") == HubConnectionState.Connected;
-    public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected;
+    public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected && IsDocumentCollaborationConnected;
 
     private HubConnectionState GetConnectionState(string connectionKey)
     {

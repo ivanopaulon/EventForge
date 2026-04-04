@@ -131,7 +131,7 @@
                                         <MudText Typo="Typo.body2" 
                                                  Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")"
                                                  Style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                            @chat.Name
+                                            @GetChatName(chat)
                                         </MudText>
                                         @if (chat.UnreadCount > 0)
                                         {
@@ -198,19 +198,35 @@
                                Class="d-block d-md-none mr-2" />
                 
                 <MudAvatar Size="Size.Small" 
-                           Color="@(_selectedChat?.Type != ChatType.DirectMessage ? Color.Secondary : Color.Primary)"
-                           Class="mr-3">
-                    <MudIcon Icon="@(_selectedChat?.Type != ChatType.DirectMessage ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
+                           Style="@($"background-color:{GetAvatarColor(GetChatName(_selectedChat))};color:#fff;margin-right:12px;")"
+                           >
+                    @GetInitials(GetChatName(_selectedChat))
                 </MudAvatar>
                 
-                <MudText Typo="Typo.h6" Class="flex-grow-1">
-                    @_selectedChat?.Name
-                </MudText>
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.h6">
+                        @GetChatName(_selectedChat)
+                    </MudText>
+                    @if (_typingUsers.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("chat.typing", "sta scrivendo...")
+                        </MudText>
+                    }
+                    else if (_selectedChat?.Type == ChatType.DirectMessage)
+                    {
+                        var other = _chatMembers.FirstOrDefault(m => m.UserId != _currentUserId);
+                        @if (other?.IsOnline == true)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Success">● Online</MudText>
+                        }
+                    }
+                </div>
 
                 <!-- Chat actions -->
-                <MudTooltip Text="@TranslationService.GetTranslation("chat.chatInfo", "Informazioni chat")">
-                    <MudIconButton Icon="@Icons.Material.Filled.Info" 
-                                   Color="Color.Inherit"
+                <MudTooltip Text="@(_showChatInfo ? TranslationService.GetTranslation("chat.hideInfo", "Nascondi info") : TranslationService.GetTranslation("chat.chatInfo", "Informazioni chat"))">
+                    <MudIconButton Icon="@(_showChatInfo ? Icons.Material.Outlined.Info : Icons.Material.Filled.Info)" 
+                                   Color="@(_showChatInfo ? Color.Primary : Color.Inherit)"
                                    OnClick="@ShowChatInfoAsync" />
                 </MudTooltip>
                 
@@ -224,54 +240,108 @@
                 }
             </MudAppBar>
 
-            <!-- Messages area -->
-            <MudContainer MaxWidth="MaxWidth.False" Class="pa-0 chat-messages-container" Style="height: calc(100vh - 180px); overflow-y: auto;" id="messages-container">
-                @if (_isLoadingMessages)
-                {
-                    <div class="d-flex justify-center align-center" Style="height: 200px;">
-                        <MudProgressCircular Indeterminate="true" />
-                    </div>
-                }
-                else if (_messages?.Any() == true)
-                {
-                    <div class="pa-2">
-                        @foreach (var message in _messages)
-                        {
-                            <EnhancedMessage Message="@message"
-                                           IsFromCurrentUser="@IsFromCurrentUser(message)"
-                                           ShowSenderInfo="@(_selectedChat?.Type != ChatType.DirectMessage || !IsFromCurrentUser(message))"
-                                           CurrentUserId="@_currentUserId"
-                                           ChatType="@(_selectedChat?.Type ?? ChatType.DirectMessage)"
-                                           OnReply="@SetReplyToMessage"
-                                           OnEdit="@EditMessage"
-                                           OnDelete="@DeleteMessage"
-                                           OnShare="@ShareMessage"
-                                           OnReport="@ReportMessage"
-                                           OnReaction="@((emoji) => ToggleMessageReaction(message.Id, emoji))"
-                                           OnDownloadAttachment="@DownloadAttachmentAsync"
-                                           OnPreviewImage="@PreviewImage" />
-                        }
-                    </div>
-                }
-                else
-                {
-                    <!-- Empty messages state -->
-                    <div class="d-flex justify-center align-center" Style="height: 200px;">
-                        <div class="text-center">
-                            <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
-                                     Size="Size.Medium" 
-                                     Color="Color.Tertiary" 
-                                     Class="mb-2" />
-                            <MudText Typo="Typo.body2" Color="Color.Tertiary">
-                                @TranslationService.GetTranslation("chat.noMessages", "No messages in this chat")
-                            </MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
-                                @TranslationService.GetTranslation("chat.startConversation", "Start the conversation!")
-                            </MudText>
+            <div class="d-flex" style="height: calc(100vh - 130px);">
+                <!-- Messages area -->
+                <MudContainer MaxWidth="MaxWidth.False" Class="pa-0 chat-messages-container flex-grow-1" Style="overflow-y: auto;" id="messages-container">
+                    @if (_isLoadingMessages)
+                    {
+                        <div class="d-flex justify-center align-center" Style="height: 200px;">
+                            <MudProgressCircular Indeterminate="true" />
                         </div>
-                    </div>
+                    }
+                    else if (_messages?.Any() == true)
+                    {
+                        <div class="pa-2">
+                            @foreach (var message in _messages)
+                            {
+                                <EnhancedMessage Message="@message"
+                                               IsFromCurrentUser="@IsFromCurrentUser(message)"
+                                               ShowSenderInfo="@(_selectedChat?.Type != ChatType.DirectMessage || !IsFromCurrentUser(message))"
+                                               CurrentUserId="@_currentUserId"
+                                               ChatType="@(_selectedChat?.Type ?? ChatType.DirectMessage)"
+                                               OnReply="@SetReplyToMessage"
+                                               OnEdit="@EditMessage"
+                                               OnDelete="@DeleteMessage"
+                                               OnShare="@ShareMessage"
+                                               OnReport="@ReportMessage"
+                                               OnReaction="@((emoji) => ToggleMessageReaction(message.Id, emoji))"
+                                               OnDownloadAttachment="@DownloadAttachmentAsync"
+                                               OnPreviewImage="@PreviewImage" />
+                            }
+                            @if (_typingUsers.Count > 0)
+                            {
+                                <div class="d-flex align-center pa-2">
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("chat.typing", "sta scrivendo...")
+                                    </MudText>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Empty messages state -->
+                        <div class="d-flex justify-center align-center" Style="height: 200px;">
+                            <div class="text-center">
+                                <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
+                                         Size="Size.Medium" 
+                                         Color="Color.Tertiary" 
+                                         Class="mb-2" />
+                                <MudText Typo="Typo.body2" Color="Color.Tertiary">
+                                    @TranslationService.GetTranslation("chat.noMessages", "No messages in this chat")
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                    @TranslationService.GetTranslation("chat.startConversation", "Start the conversation!")
+                                </MudText>
+                            </div>
+                        </div>
+                    }
+                </MudContainer>
+
+                <!-- Members panel (toggled by Info button) -->
+                @if (_showChatInfo)
+                {
+                    <MudPaper Elevation="1" Style="width:240px;min-width:240px;overflow-y:auto;border-left:1px solid var(--mud-palette-divider);" Class="pa-3">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                            @TranslationService.GetTranslation("chat.members", "Partecipanti")
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-1">(@_chatMembers.Count)</MudText>
+                        </MudText>
+                        @foreach (var member in _chatMembers)
+                        {
+                            var isSelf = member.UserId == _currentUserId;
+                            <div class="d-flex align-center mb-2">
+                                <MudAvatar Size="Size.Small"
+                                           Style="@($"background-color:{GetAvatarColor(member.DisplayName ?? member.Username ?? "?")};color:#fff;font-size:0.7rem;width:28px;height:28px;min-width:28px;")">
+                                    @GetInitials(member.DisplayName ?? member.Username ?? "?")
+                                </MudAvatar>
+                                @if (member.IsOnline)
+                                {
+                                    <div style="width:8px;height:8px;background:#4caf50;border-radius:50%;margin-left:-8px;margin-top:16px;border:1px solid white;"></div>
+                                }
+                                <div class="ml-2 flex-grow-1 overflow-hidden">
+                                    <MudText Typo="Typo.body2" Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                        @(member.DisplayName ?? member.Username)
+                                        @if (isSelf)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Primary" Class="ml-1">(tu)</MudText>
+                                        }
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @member.Role.ToString()
+                                    </MudText>
+                                </div>
+                            </div>
+                        }
+                        @if (_chatMembers.Count == 0)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("chat.noMembers", "Nessun partecipante")
+                            </MudText>
+                        }
+                    </MudPaper>
                 }
-            </MudContainer>
+            </div>
 
             <!-- Enhanced Message Composer -->
             <EnhancedMessageComposer CurrentChat="@_selectedChat"
@@ -330,10 +400,17 @@
     private Guid? _selectedChatId;
     private ChatResponseDto? _selectedChat;
     private Guid _currentUserId = Guid.Empty;
+    private string _currentUserDisplayName = string.Empty;
 
     // Enhanced features state
     private ChatMessageDto? _replyToMessage;
     private List<MessageAttachmentDto> _pendingAttachments = new();
+    private bool _showChatInfo = false;
+    private List<ChatMemberDto> _chatMembers = new();
+
+    // Typing indicators
+    private readonly HashSet<Guid> _typingUsers = new();
+    private readonly Dictionary<Guid, CancellationTokenSource> _typingCts = new();
 
     // Data collections using real DTOs
     private List<ChatResponseDto> _chatList = new();
@@ -346,9 +423,10 @@
     {
         try
         {
-            // Get current user ID
+            // Get current user ID and display name
             var userInfo = await AuthService.GetCurrentUserAsync();
             _currentUserId = userInfo?.Id ?? Guid.Empty;
+            _currentUserDisplayName = userInfo?.FullName is { Length: > 0 } fn ? fn : userInfo?.Username ?? string.Empty;
 
             // Start real-time connections if not already started
             if (!RealtimeService.IsChatConnected)
@@ -363,6 +441,8 @@
             ChatService.MessageDeleted += OnMessageDeleted;
             ChatService.MessageRead += OnMessageRead;
             ChatService.TypingIndicator += OnTypingIndicator;
+            ChatService.UserJoinedChat += OnUserJoinedChat;
+            ChatService.UserLeftChat += OnUserLeftChat;
 
             await LoadChatsAsync();
         }
@@ -381,6 +461,9 @@
         ChatService.MessageDeleted -= OnMessageDeleted;
         ChatService.MessageRead -= OnMessageRead;
         ChatService.TypingIndicator -= OnTypingIndicator;
+        ChatService.UserJoinedChat -= OnUserJoinedChat;
+        ChatService.UserLeftChat -= OnUserLeftChat;
+        CancelAllTypingTimers();
     }
 
     /// <summary>
@@ -419,9 +502,18 @@
     /// </summary>
     private async Task SelectChatAsync(ChatResponseDto chat)
     {
+        // Leave previous chat if switching
+        if (_selectedChatId.HasValue && _selectedChatId != chat.Id)
+        {
+            try { await RealtimeService.LeaveChatAsync(_selectedChatId.Value); }
+            catch (Exception) { }
+        }
+
         _selectedChatId = chat.Id;
         _selectedChat = chat;
+        _showChatInfo = false;
         _isLoadingMessages = true;
+        _typingUsers.Clear();
         StateHasChanged();
 
         try
@@ -434,6 +526,20 @@
             // Update local state
             chat.UnreadCount = 0;
             _totalUnreadMessages = _chatList.Sum(c => c.UnreadCount);
+
+            // Join the chat room for real-time updates
+            try { await RealtimeService.JoinChatAsync(chat.Id); }
+            catch (Exception) { }
+
+            // Load members (prefer chat.Members if already populated, otherwise fetch)
+            if (chat.Members.Count > 0)
+            {
+                _chatMembers = chat.Members;
+            }
+            else
+            {
+                _chatMembers = await ChatService.GetChatMembersAsync(chat.Id);
+            }
         }
         catch (Exception ex)
         {
@@ -467,14 +573,13 @@
     }
 
     /// <summary>
-    /// Show chat info dialog
-    /// TODO: Implement chat information modal
+    /// Toggle chat info / members panel
     /// </summary>
-    private async Task ShowChatInfoAsync()
+    private Task ShowChatInfoAsync()
     {
-        // TODO: Show dialog with chat details, participants, settings
-        await Task.Delay(100); // Placeholder
-        Snackbar.Add(TranslationService.GetTranslation("chat.chatInfoPlaceholder", "Informazioni chat - Da implementare"), Severity.Info);
+        _showChatInfo = !_showChatInfo;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -670,55 +775,88 @@
 
     private void OnTypingIndicator(TypingIndicatorDto typingIndicator)
     {
-        // Handle typing indicators in the UI
-        // For now, just log it
-        if (_selectedChatId == typingIndicator.ChatId)
+        if (_selectedChatId != typingIndicator.ChatId) return;
+        if (typingIndicator.UserId == _currentUserId) return;
+
+        if (typingIndicator.IsTyping)
         {
-            // TODO: Show typing indicator in chat UI
+            _typingUsers.Add(typingIndicator.UserId);
+
+            if (_typingCts.TryGetValue(typingIndicator.UserId, out var existing))
+            {
+                existing.Cancel();
+                existing.Dispose();
+            }
+
+            var cts = new CancellationTokenSource();
+            _typingCts[typingIndicator.UserId] = cts;
+            var userId = typingIndicator.UserId;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(3000, cts.Token);
+                    if (!cts.Token.IsCancellationRequested)
+                    {
+                        await InvokeAsync(() =>
+                        {
+                            _typingUsers.Remove(userId);
+                            if (_typingCts.TryGetValue(userId, out var c))
+                            {
+                                _typingCts.Remove(userId);
+                                c.Dispose();
+                            }
+                            StateHasChanged();
+                        });
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, cts.Token);
+        }
+        else
+        {
+            _typingUsers.Remove(typingIndicator.UserId);
+            if (_typingCts.TryGetValue(typingIndicator.UserId, out var cts))
+            {
+                cts.Cancel();
+                cts.Dispose();
+                _typingCts.Remove(typingIndicator.UserId);
+            }
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnUserJoinedChat(Guid chatId, Guid userId)
+    {
+        // Refresh members if the current chat is affected
+        if (_selectedChatId == chatId)
+        {
+            _ = InvokeAsync(async () =>
+            {
+                _chatMembers = await ChatService.GetChatMembersAsync(chatId);
+                StateHasChanged();
+            });
+        }
+    }
+
+    private void OnUserLeftChat(Guid chatId, Guid userId)
+    {
+        if (_selectedChatId == chatId)
+        {
+            _chatMembers.RemoveAll(m => m.UserId == userId);
+            InvokeAsync(StateHasChanged);
         }
     }
 
     /// <summary>
     /// Check if a message is from the current user
     /// </summary>
-    private bool IsFromCurrentUser(ChatMessageDto message)
-    {
-        // TODO: Get current user ID from auth service and compare with SenderId
-        // For now, return true if SenderName contains "Tu" (placeholder logic)
-        return message.SenderName == "Tu" || message.SenderName == "You";
-    }
+    private bool IsFromCurrentUser(ChatMessageDto message) =>
+        message.SenderId == _currentUserId;
 
     #endregion
-
-    /// <summary>
-    /// Generate placeholder chats for UI structure testing
-    /// TODO: Remove when actual service is implemented
-    /// </summary>
-    private List<ChatDto> GenerateChatPlaceholders()
-    {
-        return new List<ChatDto>
-        {
-            new() { Id = 1, Name = "Mario Rossi", IsGroup = false, UnreadCount = 2, LastMessage = "Ciao, come va?", LastMessageTime = DateTime.Now.AddMinutes(-5) },
-            new() { Id = 2, Name = "Team Sviluppo", IsGroup = true, UnreadCount = 5, LastMessage = "Nuova release disponibile", LastMessageTime = DateTime.Now.AddMinutes(-30) },
-            new() { Id = 3, Name = "Anna Verdi", IsGroup = false, UnreadCount = 0, LastMessage = "Perfetto, grazie!", LastMessageTime = DateTime.Now.AddHours(-2) },
-            new() { Id = 4, Name = "Progetto Alpha", IsGroup = true, UnreadCount = 1, LastMessage = "Meeting domani alle 10", LastMessageTime = DateTime.Now.AddHours(-4) }
-        };
-    }
-
-    /// <summary>
-    /// Generate placeholder messages for UI structure testing
-    /// TODO: Remove when actual service is implemented
-    /// </summary>
-    private List<MessageDto> GenerateMessagePlaceholders()
-    {
-        return new List<MessageDto>
-        {
-            new() { Id = 1, Content = "Ciao! Come stai?", SenderName = "Mario Rossi", IsFromCurrentUser = false, Timestamp = DateTime.Now.AddHours(-1), Status = "read" },
-            new() { Id = 2, Content = "Tutto bene, grazie! Tu come stai?", SenderName = "Tu", IsFromCurrentUser = true, Timestamp = DateTime.Now.AddMinutes(-50), Status = "read" },
-            new() { Id = 3, Content = "Benissimo! Hai visto il nuovo aggiornamento?", SenderName = "Mario Rossi", IsFromCurrentUser = false, Timestamp = DateTime.Now.AddMinutes(-45), Status = "read" },
-            new() { Id = 4, Content = "Sì, molto interessante! Le nuove funzionalità sono ottime.", SenderName = "Tu", IsFromCurrentUser = true, Timestamp = DateTime.Now.AddMinutes(-40), Status = "delivered", AttachmentName = "documento.pdf" }
-        };
-    }
 
     #region Help System Methods
 
@@ -964,34 +1102,57 @@
         }
     }
 
+    /// <summary>
+    /// Removes dead placeholder code (ChatDto / MessageDto inner classes).
+    /// </summary>
+    private static string GetChatName(ChatResponseDto? chat, Guid currentUserId)
+    {
+        if (chat == null) return string.Empty;
+        if (chat.Type == ChatType.DirectMessage)
+        {
+            var other = chat.Members?.FirstOrDefault(m => m.UserId != currentUserId);
+            return other?.DisplayName ?? chat.Name ?? $"Chat {chat.Id.ToString()[..8]}";
+        }
+        return chat.Name ?? $"Chat {chat.Id.ToString()[..8]}";
+    }
+
+    private string GetChatName(ChatResponseDto? chat) => GetChatName(chat, _currentUserId);
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
+            : name[..Math.Min(2, name.Length)].ToUpper();
+    }
+
+    private static readonly string[] AvatarColors =
+    {
+        "#f44336", "#e91e63", "#9c27b0", "#673ab7",
+        "#3f51b5", "#2196f3", "#009688", "#4caf50"
+    };
+
+    private static string GetAvatarColor(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return AvatarColors[0];
+        unchecked
+        {
+            var hash = name.Aggregate(0, (acc, c) => acc * 31 + c);
+            return AvatarColors[((hash % AvatarColors.Length) + AvatarColors.Length) % AvatarColors.Length];
+        }
+    }
+
+    private void CancelAllTypingTimers()
+    {
+        foreach (var cts in _typingCts.Values)
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
+        _typingCts.Clear();
+        _typingUsers.Clear();
+    }
+
     #endregion
-
-    /// <summary>
-    /// Placeholder DTO for chats
-    /// TODO: Move to appropriate DTO project location
-    /// </summary>
-    private class ChatDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public bool IsGroup { get; set; }
-        public int UnreadCount { get; set; }
-        public string LastMessage { get; set; } = "";
-        public DateTime LastMessageTime { get; set; }
-    }
-
-    /// <summary>
-    /// Placeholder DTO for messages
-    /// TODO: Move to appropriate DTO project location
-    /// </summary>
-    private class MessageDto
-    {
-        public int Id { get; set; }
-        public string Content { get; set; } = "";
-        public string SenderName { get; set; } = "";
-        public bool IsFromCurrentUser { get; set; }
-        public DateTime Timestamp { get; set; }
-        public string Status { get; set; } = "";
-        public string AttachmentName { get; set; } = "";
-    }
 }
