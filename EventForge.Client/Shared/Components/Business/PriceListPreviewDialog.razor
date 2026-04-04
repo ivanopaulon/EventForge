@@ -2,6 +2,7 @@
 @using EventForge.Client.Services
 @using MudBlazor
 @inject IPriceListService PriceListService
+@inject ITranslationService TranslationService
 
 <EFDialog Icon="@Icons.Material.Outlined.PriceCheck"
           Title="@TranslationService.GetTranslation("pricelist.previewTitle", "Anteprima Listino")"

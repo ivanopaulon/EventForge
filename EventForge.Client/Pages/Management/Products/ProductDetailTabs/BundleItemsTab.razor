@@ -158,7 +158,7 @@
             CloseButton = true
         };
 
-        var dialog = await DialogService.ShowAsync<AddBundleItemDialog>(
+        var dialog = await DialogService.ShowAsync<EditBundleItemDialog>(
         TranslationService.GetTranslation("product.addBundleItem", "Aggiungi Componente Bundle"),
         parameters,
         options);

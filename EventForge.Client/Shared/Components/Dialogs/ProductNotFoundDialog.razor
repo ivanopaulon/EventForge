@@ -332,7 +332,14 @@
         var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
             TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto"),
             parameters,
-            DialogStyleConstants.ProductDialogs.QuickCreate);
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                BackdropClick = false
+            });
 
         var result = await dialog.Result;
 

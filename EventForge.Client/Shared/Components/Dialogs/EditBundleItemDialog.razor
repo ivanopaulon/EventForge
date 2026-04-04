@@ -6,7 +6,9 @@
 @inject ILogger<EditBundleItemDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Inventory"
-          Title="Modifica Bundle Item"
+          Title="@(_isEditMode
+              ? TranslationService.GetTranslation("product.editBundleItem", "Modifica Componente Bundle")
+              : TranslationService.GetTranslation("product.addBundleItem", "Aggiungi Componente Bundle"))"
           IsProcessing="@_isSaving"
           OnClose="Cancel">
     <ChildContent>
@@ -27,7 +29,7 @@
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudNumericField @bind-Value="_model.Quantity"
+                    <MudNumericField @bind-Value="_quantity"
                                      Label="@($"{TranslationService.GetTranslation("field.quantity", "Quantità")} *")"
                                      Variant="Variant.Outlined"
                                      Margin="Margin.Dense"
@@ -69,38 +71,40 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
-    
-    [Parameter] public ProductBundleItemDto BundleItem { get; set; } = null!;
+
+    /// <summary>When null the dialog operates in Add mode; when set it operates in Edit mode.</summary>
+    [Parameter] public ProductBundleItemDto? BundleItem { get; set; }
     [Parameter] public Guid BundleProductId { get; set; }
-    
+
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isSaving;
-    
-    private UpdateProductBundleItemDto _model = new();
-    
+    private bool _isEditMode;
+    private int _quantity = 1;
+
     private ProductDto? _selectedProduct;
     private IEnumerable<ProductDto> _availableProducts = new List<ProductDto>();
-    
+
     protected override async Task OnInitializedAsync()
     {
-        // Initialize model from existing bundle item
-        _model.ComponentProductId = BundleItem.ComponentProductId;
-        _model.Quantity = BundleItem.Quantity;
-        
+        _isEditMode = BundleItem != null;
+        if (_isEditMode)
+        {
+            _quantity = BundleItem!.Quantity;
+        }
         await LoadAvailableProductsAsync();
-        
-        // Set the selected product
-        _selectedProduct = _availableProducts.FirstOrDefault(p => p.Id == BundleItem.ComponentProductId);
+        if (_isEditMode)
+        {
+            _selectedProduct = _availableProducts.FirstOrDefault(p => p.Id == BundleItem!.ComponentProductId);
+        }
     }
-    
+
     private async Task LoadAvailableProductsAsync()
     {
         try
         {
-            // Load all active products (excluding the bundle itself)
             var result = await ProductService.GetProductsAsync();
-            if (result != null && result.Items != null)
+            if (result?.Items != null)
             {
                 _availableProducts = result.Items
                     .Where(p => p.Id != BundleProductId && p.Status == ProductStatus.Active)
@@ -113,48 +117,68 @@
             Snackbar.Add(TranslationService.GetTranslation("product.loadProductsError", "Errore nel caricamento dei prodotti"), Severity.Error);
         }
     }
-    
+
     private async Task<IEnumerable<ProductDto>> SearchProducts(string value, CancellationToken token)
     {
         await Task.Delay(50, token);
-        
         if (string.IsNullOrWhiteSpace(value))
             return _availableProducts;
-
-        return _availableProducts.Where(p => 
+        return _availableProducts.Where(p =>
             p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
             p.Code.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
-    
-    private void Cancel()
-    {
-        MudDialog.Cancel();
-    }
-    
+
+    private void Cancel() => MudDialog.Cancel();
+
     private async Task Submit()
     {
         if (!_isValid || _selectedProduct == null) return;
-        
+
         try
         {
             _isSaving = true;
-            
-            _model.ComponentProductId = _selectedProduct.Id;
-            
-            var updatedItem = await ProductService.UpdateProductBundleItemAsync(BundleItem.Id, _model);
-            if (updatedItem != null)
+
+            if (_isEditMode && BundleItem != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("product.bundleItemUpdated", "Componente aggiornato con successo"), Severity.Success);
-                MudDialog.Close(DialogResult.Ok(updatedItem));
+                var updateDto = new UpdateProductBundleItemDto
+                {
+                    ComponentProductId = _selectedProduct.Id,
+                    Quantity = _quantity
+                };
+                var updatedItem = await ProductService.UpdateProductBundleItemAsync(BundleItem.Id, updateDto);
+                if (updatedItem != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("product.bundleItemUpdated", "Componente aggiornato con successo"), Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(updatedItem));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                }
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                var createDto = new CreateProductBundleItemDto
+                {
+                    BundleProductId = BundleProductId,
+                    ComponentProductId = _selectedProduct.Id,
+                    Quantity = _quantity
+                };
+                var newItem = await ProductService.CreateProductBundleItemAsync(createDto);
+                if (newItem != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("product.bundleItemAdded", "Componente aggiunto con successo"), Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(newItem));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error updating bundle item");
+            Logger.LogError(ex, "Error saving bundle item");
             Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message), Severity.Error);
         }
         finally

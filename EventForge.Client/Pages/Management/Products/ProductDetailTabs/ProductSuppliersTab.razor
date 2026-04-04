@@ -150,7 +150,7 @@
             CloseButton = true
         };
 
-        var dialog = await DialogService.ShowAsync<AddProductSupplierDialog>(
+        var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
         TranslationService.GetTranslation("product.addSupplier", "Aggiungi Fornitore"),
         parameters,
         options);
