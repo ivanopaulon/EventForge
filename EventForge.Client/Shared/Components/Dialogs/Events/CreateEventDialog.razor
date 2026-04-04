@@ -54,25 +54,20 @@
                     </MudGrid>
                 </MudPaper>
 
-                <!-- Date e capacità -->
+                <!-- Date, orari e capacità -->
                 <MudPaper Elevation="2" Class="pa-4">
                     <MudText Typo="Typo.subtitle1" Class="mb-3">
                         <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" Class="mr-1" />
                         @TranslationService.GetTranslation("events.dateCapacity", "Date e Capacità")
                     </MudText>
                     <MudGrid Spacing="2">
-                        <MudItem xs="12" sm="6">
-                            <MudDatePicker @bind-Date="_startDate"
-                                               Label="@($"{TranslationService.GetTranslation("field.startDate", "Data inizio")} *")"
-                                               Variant="Variant.Outlined" Margin="Margin.Dense"
-                                               Required="true"
-                                               DateFormat="dd/MM/yyyy" />
-                        </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudDatePicker @bind-Date="_endDate"
-                                               Label="@TranslationService.GetTranslation("field.endDate", "Data fine")"
-                                               Variant="Variant.Outlined" Margin="Margin.Dense"
-                                               DateFormat="dd/MM/yyyy" />
+                        <MudItem xs="12">
+                            <EFDateTimeRangePicker @ref="_dateRangePicker"
+                                                   @bind-DateRange="_dateRange"
+                                                   @bind-StartTime="_startTime"
+                                                   @bind-EndTime="_endTime"
+                                                   @bind-IsAllDay="_isAllDay"
+                                                   Required="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudNumericField @bind-Value="_model.Capacity"
@@ -163,7 +158,7 @@
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton OnClick="CreateAsync" Variant="Variant.Filled" Color="Color.Primary"
-                   Disabled="@(!_isFormValid || _isLoading || !_startDate.HasValue)"
+                   Disabled="@(!_isFormValid || _isLoading || _dateRange?.Start == null)"
                    StartIcon="@Icons.Material.Outlined.Save">
             @TranslationService.GetTranslation("common.create", "Crea")
         </MudButton>
@@ -173,7 +168,7 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    /// <summary>Optional pre-filled start time (e.g. from scheduler slot click).</summary>
+    /// <summary>Optional pre-filled start/end (e.g. from scheduler slot click).</summary>
     [Parameter] public DateTime? PrefilledStartDate { get; set; }
     [Parameter] public DateTime? PrefilledEndDate { get; set; }
 
@@ -181,8 +176,11 @@
     private bool _isFormValid;
     private bool _isLoading;
 
-    private DateTime? _startDate;
-    private DateTime? _endDate;
+    private EFDateTimeRangePicker _dateRangePicker = null!;
+    private DateRange? _dateRange;
+    private TimeSpan? _startTime = new TimeSpan(9, 0, 0);
+    private TimeSpan? _endTime   = new TimeSpan(18, 0, 0);
+    private bool _isAllDay;
 
     private readonly string[] _presetColors = ["#4285F4", "#EA4335", "#FBBC05", "#34A853", "#9C27B0", "#FF5722", "#00BCD4", "#607D8B"];
 
@@ -196,28 +194,32 @@
 
     protected override void OnInitialized()
     {
-        _startDate = PrefilledStartDate ?? DateTime.Now.AddHours(1).Date.AddHours(9);
-        _endDate = PrefilledEndDate;
-        _model.StartDate = _startDate.Value;
+        var start = (PrefilledStartDate ?? DateTime.Now.AddHours(1)).Date;
+        var end   = PrefilledEndDate?.Date ?? start;
+        _dateRange = new DateRange(start, end);
+
+        if (PrefilledStartDate?.TimeOfDay != TimeSpan.Zero)
+            _startTime = PrefilledStartDate?.TimeOfDay ?? _startTime;
+        if (PrefilledEndDate?.TimeOfDay != TimeSpan.Zero)
+            _endTime = PrefilledEndDate?.TimeOfDay ?? _endTime;
     }
 
     private void OnColorChanged(ChangeEventArgs e)
-    {
-        _model.Color = e.Value?.ToString() ?? "#4285F4";
-    }
+        => _model.Color = e.Value?.ToString() ?? "#4285F4";
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task CreateAsync()
     {
         await _form.Validate();
-        if (!_isFormValid || !_startDate.HasValue) return;
+        if (!_isFormValid || _dateRange?.Start == null) return;
 
         try
         {
             _isLoading = true;
-            _model.StartDate = _startDate.Value.ToUniversalTime();
-            _model.EndDate = _endDate?.ToUniversalTime();
+
+            _model.StartDate = (_dateRangePicker.GetStartDateTime() ?? _dateRange.Start.Value).ToUniversalTime();
+            _model.EndDate   = _dateRangePicker.GetEndDateTime()?.ToUniversalTime();
 
             var result = await EventService.CreateEventAsync(_model);
 
