@@ -290,13 +290,25 @@ public class CalendarReminderService : ICalendarReminderService
             entity.ModifiedBy = currentUser;
             entity.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict completing calendar reminder {ReminderId}.", id);
+                throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
             _logger.LogInformation("Calendar reminder {ReminderId} completed by {User}.", id, currentUser);
 
             return MapToDto(entity);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -332,13 +344,25 @@ public class CalendarReminderService : ICalendarReminderService
             entity.DeletedBy = currentUser;
             entity.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting calendar reminder {ReminderId}.", id);
+                throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
 
             _logger.LogInformation("Calendar reminder {ReminderId} deleted by {User}.", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

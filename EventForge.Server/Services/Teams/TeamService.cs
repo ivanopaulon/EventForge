@@ -208,12 +208,24 @@ public class TeamService : ITeamService
             team.ModifiedBy = currentUser;
             team.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating team {TeamId}.", id);
+                throw new InvalidOperationException("Il team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log
             _ = await _auditLogService.TrackEntityChangesAsync(team, "Update", currentUser, originalTeam, cancellationToken);
 
             return MapToTeamDto(team);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -272,12 +284,24 @@ public class TeamService : ITeamService
                 _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting team {TeamId}.", id);
+                throw new InvalidOperationException("Il team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log per il team eliminato
             _ = await _auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -389,12 +413,24 @@ public class TeamService : ITeamService
             member.ModifiedBy = currentUser;
             member.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating team member {MemberId}.", id);
+                throw new InvalidOperationException("Il membro del team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log
             _ = await _auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
 
             return MapToTeamMemberDto(member);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -428,12 +464,24 @@ public class TeamService : ITeamService
             member.DeletedBy = currentUser;
             member.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict removing team member {MemberId}.", id);
+                throw new InvalidOperationException("Il membro del team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log
             _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

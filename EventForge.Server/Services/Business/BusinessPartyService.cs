@@ -452,13 +452,25 @@ public class BusinessPartyService : IBusinessPartyService
             businessParty.ModifiedAt = DateTime.UtcNow;
             businessParty.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting business party {BusinessPartyId}.", id);
+                throw new InvalidOperationException("L'anagrafica è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Delete", currentUser, originalBusinessParty, cancellationToken);
 
             _logger.LogInformation("Business party {BusinessPartyId} deleted by {User}", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -646,7 +658,15 @@ public class BusinessPartyService : IBusinessPartyService
             businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
             businessPartyAccounting.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating business party accounting {BusinessPartyAccountingId}.", id);
+                throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Update", currentUser, originalBusinessPartyAccounting, cancellationToken);
 
@@ -664,6 +684,10 @@ public class BusinessPartyService : IBusinessPartyService
                 .FirstOrDefaultAsync(cancellationToken);
 
             return MapToBusinessPartyAccountingDto(updatedBusinessPartyAccounting, businessPartyName);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -697,13 +721,25 @@ public class BusinessPartyService : IBusinessPartyService
             businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
             businessPartyAccounting.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting business party accounting {BusinessPartyAccountingId}.", id);
+                throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Delete", currentUser, originalBusinessPartyAccounting, cancellationToken);
 
             _logger.LogInformation("Business party accounting {BusinessPartyAccountingId} deleted by {User}", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

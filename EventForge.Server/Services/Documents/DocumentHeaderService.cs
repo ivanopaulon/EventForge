@@ -235,7 +235,15 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating document header {DocumentHeaderId}.", id);
+                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
 
@@ -248,6 +256,10 @@ public class DocumentHeaderService : IDocumentHeaderService
             _logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -454,7 +466,15 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict approving document {DocumentHeaderId}.", id);
+                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
 
@@ -473,6 +493,10 @@ public class DocumentHeaderService : IDocumentHeaderService
             _logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -512,7 +536,15 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict closing document {DocumentHeaderId}.", id);
+                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
 
@@ -531,6 +563,10 @@ public class DocumentHeaderService : IDocumentHeaderService
             _logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
