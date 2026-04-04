@@ -7,15 +7,17 @@
 @inject ILogger<EditProductCodeDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.QrCode"
-          Title="Modifica Codice Prodotto"
+          Title="@(_isEditMode
+              ? TranslationService.GetTranslation("product.editCode", "Modifica Codice Prodotto")
+              : TranslationService.GetTranslation("product.addCode", "Nuovo Codice Prodotto"))"
           IsProcessing="@_isSaving"
           OnClose="Cancel">
     <ChildContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
-                    <MudSelect T="string" 
-                               @bind-Value="_model.CodeType"
+                    <MudSelect T="string"
+                               @bind-Value="_codeType"
                                Label="@($"{TranslationService.GetTranslation("field.codeType", "Tipo Codice")} *")"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
@@ -33,7 +35,7 @@
                 </MudItem>
 
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.Code"
+                    <MudTextField @bind-Value="_code"
                                   Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
@@ -44,8 +46,8 @@
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudSelect T="Guid?" 
-                               @bind-Value="_model.ProductUnitId"
+                    <MudSelect T="Guid?"
+                               @bind-Value="_productUnitId"
                                Label="@TranslationService.GetTranslation("field.productUnit", "Unità di Misura (Opzionale)")"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
@@ -61,7 +63,7 @@
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.AlternativeDescription"
+                    <MudTextField @bind-Value="_alternativeDescription"
                                   Label="@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione Alternativa")"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
@@ -69,8 +71,8 @@
                 </MudItem>
 
                 <MudItem xs="12" md="6">
-                    <MudSelect T="ProductCodeStatus" 
-                               @bind-Value="_model.Status"
+                    <MudSelect T="ProductCodeStatus"
+                               @bind-Value="_status"
                                Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
@@ -109,66 +111,92 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
-    
-    [Parameter] public ProductCodeDto Code { get; set; } = new();
+
+    /// <summary>When null the dialog operates in Add mode; when set it operates in Edit mode.</summary>
+    [Parameter] public ProductCodeDto? Code { get; set; }
+    /// <summary>Required in Add mode (when Code is null).</summary>
+    [Parameter] public Guid ProductId { get; set; }
     [Parameter] public IEnumerable<ProductUnitDto> ProductUnits { get; set; } = new List<ProductUnitDto>();
-    
+
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isSaving;
-    
-    private ProductCodeDto _model = new();
-    
+    private bool _isEditMode;
+
+    private string _codeType = "SKU";
+    private string _code = string.Empty;
+    private Guid? _productUnitId;
+    private string? _alternativeDescription;
+    private ProductCodeStatus _status = ProductCodeStatus.Active;
+
     protected override void OnInitialized()
     {
-        // Clone the code for editing
-        _model = new ProductCodeDto
+        _isEditMode = Code != null;
+        if (_isEditMode)
         {
-            Id = Code.Id,
-            ProductId = Code.ProductId,
-            ProductUnitId = Code.ProductUnitId,
-            CodeType = Code.CodeType,
-            Code = Code.Code,
-            AlternativeDescription = Code.AlternativeDescription,
-            Status = Code.Status
-        };
+            _codeType = Code!.CodeType;
+            _code = Code.Code;
+            _productUnitId = Code.ProductUnitId;
+            _alternativeDescription = Code.AlternativeDescription;
+            _status = Code.Status;
+        }
     }
-    
-    private void Cancel()
-    {
-        MudDialog.Cancel();
-    }
-    
+
+    private void Cancel() => MudDialog.Cancel();
+
     private async Task Submit()
     {
         if (!_isValid) return;
-        
+
         try
         {
             _isSaving = true;
-            
-            var updateDto = new UpdateProductCodeDto
+
+            if (_isEditMode && Code != null)
             {
-                ProductUnitId = _model.ProductUnitId,
-                CodeType = _model.CodeType,
-                Code = _model.Code,
-                AlternativeDescription = _model.AlternativeDescription,
-                Status = _model.Status
-            };
-            
-            var updatedCode = await ProductService.UpdateProductCodeAsync(_model.Id, updateDto);
-            if (updatedCode != null)
-            {
-                MudDialog.Close(DialogResult.Ok(updatedCode));
+                var updateDto = new UpdateProductCodeDto
+                {
+                    ProductUnitId = _productUnitId,
+                    CodeType = _codeType,
+                    Code = _code,
+                    AlternativeDescription = _alternativeDescription,
+                    Status = _status
+                };
+                var updatedCode = await ProductService.UpdateProductCodeAsync(Code.Id, updateDto);
+                if (updatedCode != null)
+                {
+                    MudDialog.Close(DialogResult.Ok(updatedCode));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                }
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                var createDto = new CreateProductCodeDto
+                {
+                    ProductId = ProductId,
+                    ProductUnitId = _productUnitId,
+                    CodeType = _codeType,
+                    Code = _code,
+                    AlternativeDescription = _alternativeDescription,
+                    Status = _status
+                };
+                var newCode = await ProductService.CreateProductCodeAsync(createDto);
+                if (newCode != null)
+                {
+                    MudDialog.Close(DialogResult.Ok(newCode));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error updating product code");
+            Logger.LogError(ex, "Error saving product code");
             Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message), Severity.Error);
         }
         finally

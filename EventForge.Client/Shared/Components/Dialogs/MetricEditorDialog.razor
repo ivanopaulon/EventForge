@@ -3,8 +3,12 @@
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Analytics"
+          Title="@(IsNewMetric ? "Crea Nuova Metrica" : "Modifica Metrica")"
+          IsProcessing="false"
+          OnClose="Cancel"
+          MinWidth="min(700px, 95vw)">
+    <ChildContent>
         <MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStepIndex" Color="Color.Primary" Variant="Variant.Filled">
             @* Step 1: Basic Information *@
             <MudStep title="Informazioni Base" Icon="@Icons.Material.Outlined.Info">
@@ -180,7 +184,7 @@
                 </MudStack>
             </MudStep>
         </MudStepper>
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
         <MudButton OnClick="Cancel" StartIcon="@Icons.Material.Outlined.Close">
@@ -212,7 +216,7 @@
             </MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

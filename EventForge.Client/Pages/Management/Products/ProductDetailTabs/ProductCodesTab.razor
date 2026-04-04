@@ -110,7 +110,7 @@
             CloseButton = true
         };
 
-        var dialog = await DialogService.ShowAsync<AddProductCodeDialog>(
+        var dialog = await DialogService.ShowAsync<EditProductCodeDialog>(
         TranslationService.GetTranslation("product.addCode", "Aggiungi Codice Alternativo"),
         parameters,
         options);

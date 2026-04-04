@@ -6,20 +6,19 @@
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 
-<MudDialog ClassActions="pa-4" ClassContent="py-0" Class="ef-dialog">
-    <TitleContent>
-        @if (_isChangePasswordMode)
+<EFDialog Icon="@(_isChangePasswordMode ? Icons.Material.Outlined.Lock : Icons.Material.Outlined.Login)"
+          Title="@(_isChangePasswordMode
+              ? TranslationService.GetTranslation("auth.changePassword", "Change Password")
+              : "EventForge")"
+          IsProcessing="@(_isLoading || _isLoadingTenants)"
+          OnClose="Cancel">
+    <ChildContent>
+        @if (!_isChangePasswordMode)
         {
-            <MudText Typo="Typo.h6">
-                @TranslationService.GetTranslation("auth.changePassword", "Change Password")
-            </MudText>
+            <div class="d-flex justify-center mb-3">
+                <MudImage Src="/eventforgetitle.svg" Alt="EventForge Logo" Style="max-height:48px;"></MudImage>
+            </div>
         }
-        else
-        {
-            <MudImage Src="/eventforgetitle.svg" Alt="EventForge Logo"></MudImage>
-        }
-    </TitleContent>
-    <DialogContent>
         <!-- Overlay during login submission -->
         <PageLoadingOverlay Visible="_isLoading"
                             Message="@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")"
@@ -116,7 +115,7 @@
                 </MudForm>
             }
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         @if (!_isLoadingTenants && !_isChangePasswordMode)
         {
@@ -147,7 +146,7 @@
             </MudStack>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 

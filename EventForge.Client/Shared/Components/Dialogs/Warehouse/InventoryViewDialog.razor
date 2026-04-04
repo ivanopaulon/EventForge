@@ -9,18 +9,12 @@
 @inject ILogger<InventoryViewDialog> Logger
 @inject IDialogService DialogService
 
-<MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Visibility" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.inventoryDetails", "Dettagli Inventario")
-            @if (_document != null)
-            {
-                <span class="ml-2">- #@_document.Number</span>
-            }
-        </MudText>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Visibility"
+          Title="@(TranslationService.GetTranslation("warehouse.inventoryDetails", "Dettagli Inventario") + (_document != null ? $" - #{_document.Number}" : string.Empty))"
+          IsProcessing="@_isLoading"
+          OnClose="@(() => MudDialog.Close(DialogResult.Ok(false)))"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
         @if (_isLoading)
         {
             <MudProgressLinear Indeterminate="true" Class="mb-4" />
@@ -173,7 +167,7 @@
                 </MudAlert>
             }
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         @if (_document != null && (_document.Status == "Open" || _document.Status == "Draft") && _document.TotalItems > 0)
         {
@@ -199,7 +193,7 @@
             @TranslationService.GetTranslation("common.close", "Chiudi")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 

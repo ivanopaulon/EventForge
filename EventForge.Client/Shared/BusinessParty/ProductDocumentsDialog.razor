@@ -6,8 +6,11 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ProductDocumentsDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Description"
+          Title="@TranslationService.GetTranslation("product.documentsTitle", "Documenti Prodotto")"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel">
+    <ChildContent>
         <MudStack Spacing="2">
             @if (!string.IsNullOrWhiteSpace(ProductName))
             {
@@ -62,11 +65,11 @@
                 </LoadingContent>
             </MudTable>
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Color="Color.Default">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
