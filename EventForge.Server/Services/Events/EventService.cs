@@ -373,7 +373,11 @@ public class EventService : IEventService
             eventEntity.Visibility = updateEventDto.Visibility;
             eventEntity.ModifiedBy = currentUser;
             eventEntity.ModifiedAt = DateTime.UtcNow;
-            eventEntity.RowVersion = updateEventDto.RowVersion;
+
+            // Apply optimistic concurrency: if client provided a RowVersion, use it as the
+            // expected original value so EF Core detects concurrent modifications.
+            if (updateEventDto.RowVersion != null && updateEventDto.RowVersion.Length > 0)
+                _context.Entry(eventEntity).Property(e => e.RowVersion).OriginalValue = updateEventDto.RowVersion;
 
             // Replace all time slots: remove existing ones, add new ones from DTO
             _context.RemoveRange(eventEntity.TimeSlots);
@@ -445,7 +449,10 @@ public class EventService : IEventService
             eventEntity.IsDeleted = true;
             eventEntity.DeletedBy = currentUser;
             eventEntity.DeletedAt = DateTime.UtcNow;
-            eventEntity.RowVersion = rowVersion;
+
+            // Apply optimistic concurrency for delete as well
+            if (rowVersion != null && rowVersion.Length > 0)
+                _context.Entry(eventEntity).Property(e => e.RowVersion).OriginalValue = rowVersion;
 
             var teams = await _context.Teams
                 .Where(t => t.EventId == id && !t.IsDeleted)
@@ -567,7 +574,8 @@ public class EventService : IEventService
             CreatedAt = eventEntity.CreatedAt,
             CreatedBy = eventEntity.CreatedBy,
             ModifiedAt = eventEntity.ModifiedAt,
-            ModifiedBy = eventEntity.ModifiedBy
+            ModifiedBy = eventEntity.ModifiedBy,
+            RowVersion = eventEntity.RowVersion
         };
     }
 

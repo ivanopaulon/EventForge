@@ -333,7 +333,12 @@
                         VatNumber  = party.VatNumber,
                         SdiCode    = party.SdiCode,
                         Pec        = party.Pec,
-                        Notes      = party.Notes
+                        Notes      = party.Notes,
+                        DefaultSalesPriceListId = party.DefaultSalesPriceListId,
+                        DefaultPurchasePriceListId = party.DefaultPurchasePriceListId,
+                        DefaultPriceApplicationMode = party.DefaultPriceApplicationMode,
+                        ForcedPriceListId = party.ForcedPriceListId,
+                        RowVersion = party.RowVersion
                     };
                     await BusinessPartyService.UpdateBusinessPartyAsync(party.Id, updateDto);
                     AddLog(party.Name, party.VatNumber!, StatusUpdated, result.Name);

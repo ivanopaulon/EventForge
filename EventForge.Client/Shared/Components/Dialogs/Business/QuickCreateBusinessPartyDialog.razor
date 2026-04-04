@@ -260,7 +260,10 @@
                     Name = _model.Name,
                     TaxCode = _model.TaxCode,
                     VatNumber = _model.VatNumber,
-                    SdiCode = _model.SdiCode
+                    SdiCode = _model.SdiCode,
+                    DefaultPriceApplicationMode = ExistingBusinessParty?.DefaultPriceApplicationMode ?? EventForge.DTOs.Common.PriceApplicationMode.Automatic,
+                    ForcedPriceListId = ExistingBusinessParty?.ForcedPriceListId,
+                    RowVersion = ExistingBusinessParty?.RowVersion
                 };
                 
                 var id = BusinessPartyId ?? ExistingBusinessParty!.Id;

@@ -199,8 +199,7 @@
         Status     = EventStatus.Planned,
         Capacity   = 1,
         Visibility = CalendarVisibility.Public,
-        Color      = "#4285F4",
-        RowVersion = Array.Empty<byte>()
+        Color      = "#4285F4"
     };
 
     protected override void OnInitialized()
@@ -222,7 +221,7 @@
                 Color            = ev.Color,
                 AssignedToUserId = ev.AssignedToUserId,
                 Visibility       = ev.Visibility,
-                RowVersion       = Array.Empty<byte>()
+                RowVersion       = ev.RowVersion
             };
 
             var startLocal = ev.StartDate.ToLocalTime();

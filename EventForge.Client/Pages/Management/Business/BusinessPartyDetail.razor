@@ -265,7 +265,13 @@
                     VatNumber = _party.VatNumber,
                     SdiCode = _party.SdiCode,
                     Pec = _party.Pec,
-                    Notes = _party.Notes
+                    Notes = _party.Notes,
+                    DateOfBirth = _party.DateOfBirth,
+                    DefaultSalesPriceListId = _party.DefaultSalesPriceListId,
+                    DefaultPurchasePriceListId = _party.DefaultPurchasePriceListId,
+                    DefaultPriceApplicationMode = _party.DefaultPriceApplicationMode,
+                    ForcedPriceListId = _party.ForcedPriceListId,
+                    RowVersion = _party.RowVersion
                 };
                 await BusinessPartyService.UpdateBusinessPartyAsync(PartyId.Value, updateDto);
                 Snackbar.Add(TranslationService.GetTranslation("businessParty.updateSuccess", "Business party aggiornato con successo"), Severity.Success);
