@@ -230,6 +230,8 @@
     private bool _isLoading;
     private bool _typeFixed;
 
+    private static readonly TimeSpan DefaultReminderTime = new(9, 0, 0);
+
     private CalendarItemType _itemType = CalendarItemType.Reminder;
     private DateTime? _dueDateOnly;
     private TimeSpan? _dueTime;
@@ -254,7 +256,7 @@
         }
         var prefilled = PrefilledDueDate ?? DateTime.Now.AddHours(1);
         _dueDateOnly = prefilled.Date;
-        _dueTime = prefilled.TimeOfDay != TimeSpan.Zero ? prefilled.TimeOfDay : new TimeSpan(9, 0, 0);
+        _dueTime = prefilled.TimeOfDay != TimeSpan.Zero ? prefilled.TimeOfDay : DefaultReminderTime;
         _model.ItemType = _itemType;
     }
 
