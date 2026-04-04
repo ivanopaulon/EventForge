@@ -62,6 +62,12 @@ namespace EventForge.DTOs.Sales
         /// Session status.
         /// </summary>
         public SaleSessionStatusDto? Status { get; set; }
+
+        /// <summary>
+        /// Coupon codes active for this session.
+        /// When not null, replaces the current coupon code list.
+        /// </summary>
+        public List<string>? CouponCodes { get; set; }
     }
 
     /// <summary>

@@ -893,14 +893,24 @@ public class POSViewModel : IDisposable
             IsUpdatingItems = true;
             NotifyStateChanged();
 
-            var promotion = await _promotionService.ValidateCouponCodeAsync(couponCode.Trim().ToUpperInvariant());
+            var normalizedCode = couponCode.Trim().ToUpperInvariant();
+
+            var promotion = await _promotionService.ValidateCouponCodeAsync(normalizedCode);
             if (promotion == null)
                 return (false, null, $"Coupon '{couponCode}' non valido o scaduto");
 
-            if (!ActiveCouponCodes.Contains(couponCode.Trim().ToUpperInvariant()))
-                ActiveCouponCodes.Add(couponCode.Trim().ToUpperInvariant());
+            if (!ActiveCouponCodes.Contains(normalizedCode))
+                ActiveCouponCodes.Add(normalizedCode);
 
-            _logger.LogInformation("Coupon {Coupon} validated: {PromotionName}", couponCode, promotion.Name);
+            // Persist coupon codes to the server session so the promotion engine can use them
+            var updateDto = new UpdateSaleSessionDto { CouponCodes = new List<string>(ActiveCouponCodes) };
+            var updatedSession = await _salesService.UpdateSessionAsync(CurrentSession.Id, updateDto);
+            if (updatedSession != null)
+                CurrentSession = updatedSession;
+
+            _logger.LogInformation("Coupon {Coupon} validated and persisted to session {SessionId}: {PromotionName}",
+                normalizedCode, CurrentSession.Id, promotion.Name);
+
             return (true, promotion.Name, null);
         }
         catch (Exception ex)
