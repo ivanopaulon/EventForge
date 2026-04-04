@@ -97,9 +97,18 @@ public class ChatService : IChatService
                     $"pageSize={pageSize}"
                 };
 
+                // Map UI filter names to ChatType enum values expected by the server
                 if (!string.IsNullOrEmpty(filter))
                 {
-                    queryParams.Add($"types={filter}");
+                    var chatTypeValue = filter.ToLowerInvariant() switch
+                    {
+                        "direct" => "DirectMessage",
+                        "group" => "Group",
+                        "channel" => "Channel",
+                        _ => null
+                    };
+                    if (chatTypeValue != null)
+                        queryParams.Add($"types={chatTypeValue}");
                 }
 
                 var query = string.Join("&", queryParams);
