@@ -1104,7 +1104,6 @@ public partial class EventForgeDbContext : DbContext
                     entity.CreatedAt = DateTime.UtcNow;
                     entity.CreatedBy = currentUser;
                     entity.IsActive = true;
-                    // TODO: Set TenantId from ITenantContext when implemented
                     break;
 
                 case EntityState.Modified:
@@ -1205,6 +1204,7 @@ public partial class EventForgeDbContext : DbContext
         var entity = entry.Entity;
         var entityName = entity.GetType().Name;
         var entityId = entity.Id;
+        var tenantId = entity.TenantId == Guid.Empty ? (Guid?)null : entity.TenantId;
 
         string operationType = entry.State switch
         {
@@ -1225,6 +1225,7 @@ public partial class EventForgeDbContext : DbContext
                     {
                         EntityName = entityName,
                         EntityId = entityId,
+                        TenantId = tenantId,
                         PropertyName = property.Metadata.Name,
                         OperationType = operationType,
                         OldValue = null,
@@ -1246,6 +1247,7 @@ public partial class EventForgeDbContext : DbContext
                     {
                         EntityName = entityName,
                         EntityId = entityId,
+                        TenantId = tenantId,
                         PropertyName = property.Metadata.Name,
                         OperationType = operationType,
                         OldValue = property.OriginalValue?.ToString(),
@@ -1263,6 +1265,7 @@ public partial class EventForgeDbContext : DbContext
             {
                 EntityName = entityName,
                 EntityId = entityId,
+                TenantId = tenantId,
                 PropertyName = "Entity",
                 OperationType = operationType,
                 OldValue = "Active",

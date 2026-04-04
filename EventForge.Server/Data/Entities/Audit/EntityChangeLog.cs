@@ -66,6 +66,13 @@ public class EntityChangeLog
     public string? NewValue { get; set; }
 
     /// <summary>
+    /// Tenant that owns this change log entry. Nullable for backward compatibility with
+    /// rows created before tenant isolation was added to this table.
+    /// </summary>
+    [Display(Name = "Tenant ID", Description = "Tenant that owns this audit entry.")]
+    public Guid? TenantId { get; set; }
+
+    /// <summary>
     /// User who performed the change.
     /// </summary>
     [Required]

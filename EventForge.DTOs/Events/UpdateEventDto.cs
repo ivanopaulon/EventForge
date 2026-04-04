@@ -88,9 +88,10 @@ namespace EventForge.DTOs.Events
         public List<CreateEventTimeSlotDto> TimeSlots { get; set; } = new();
 
         /// <summary>
-        /// Row version for concurrency control.
+        /// Row version for optimistic concurrency control. Send the value received from the
+        /// GET response to detect concurrent modifications. Null disables the check.
         /// </summary>
         [Timestamp]
-        public byte[] RowVersion { get; set; } = null!;
+        public byte[]? RowVersion { get; set; }
     }
 }

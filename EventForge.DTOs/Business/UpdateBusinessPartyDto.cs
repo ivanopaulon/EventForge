@@ -73,5 +73,23 @@ namespace EventForge.DTOs.Business
         /// Default purchase price list ID for this business party.
         /// </summary>
         public Guid? DefaultPurchasePriceListId { get; set; }
+
+        /// <summary>
+        /// Default price application mode for this business party.
+        /// Controls how the system selects the price list for sales documents.
+        /// </summary>
+        public PriceApplicationMode DefaultPriceApplicationMode { get; set; } = PriceApplicationMode.Automatic;
+
+        /// <summary>
+        /// Forced price list ID (used when DefaultPriceApplicationMode is ForcedPriceList or HybridForcedWithOverrides).
+        /// </summary>
+        public Guid? ForcedPriceListId { get; set; }
+
+        /// <summary>
+        /// Row version for optimistic concurrency control. Send the value received from the
+        /// GET response to detect concurrent modifications. Null disables the check.
+        /// </summary>
+        [Timestamp]
+        public byte[]? RowVersion { get; set; }
     }
 }

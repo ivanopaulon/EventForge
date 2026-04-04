@@ -47,12 +47,6 @@ public class DocumentWorkflow : AuditableEntity
     public WorkflowPriority Priority { get; set; } = WorkflowPriority.Normal;
 
     /// <summary>
-    /// Indicates if this workflow is active and available for use
-    /// </summary>
-    [Display(Name = "Is Active", Description = "Indicates if this workflow is active.")]
-    public new bool IsActive { get; set; } = true;
-
-    /// <summary>
     /// Indicates if this is the default workflow for the document type
     /// </summary>
     [Display(Name = "Is Default", Description = "Indicates if this is the default workflow.")]

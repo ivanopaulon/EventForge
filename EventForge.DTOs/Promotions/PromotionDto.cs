@@ -100,5 +100,11 @@ namespace EventForge.DTOs.Promotions
         /// User who last modified the promotion.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        /// <summary>
+        /// Row version for optimistic concurrency. Returned by the server so clients can
+        /// include it in update requests to detect concurrent modifications.
+        /// </summary>
+        public byte[]? RowVersion { get; set; }
     }
 }

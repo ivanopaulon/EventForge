@@ -31,13 +31,6 @@ public class SystemAlert : AuditableEntity
     public string Message { get; set; } = string.Empty;
 
     /// <summary>
-    /// Date and time when the alert was created.
-    /// </summary>
-    [Required]
-    [Display(Name = "Created At", Description = "Alert creation time.")]
-    public DateTime CreatedAt { get; set; }
-
-    /// <summary>
     /// Date and time when the alert was resolved.
     /// </summary>
     [Display(Name = "Resolved At", Description = "Alert resolution time.")]
@@ -50,9 +43,4 @@ public class SystemAlert : AuditableEntity
     [Display(Name = "Resolved By", Description = "User who resolved the alert.")]
     public string? ResolvedBy { get; set; }
 
-    /// <summary>
-    /// Indicates if the alert is still active.
-    /// </summary>
-    [Display(Name = "Is Active", Description = "Whether the alert is active.")]
-    public bool IsActive { get; set; } = true;
 }

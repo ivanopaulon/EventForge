@@ -94,5 +94,11 @@ namespace EventForge.DTOs.Events
         /// User who last modified the event.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        /// <summary>
+        /// Row version for optimistic concurrency. Returned by the server so clients can
+        /// include it in update requests to detect concurrent modifications.
+        /// </summary>
+        public byte[]? RowVersion { get; set; }
     }
 }
