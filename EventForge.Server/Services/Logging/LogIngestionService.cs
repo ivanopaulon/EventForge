@@ -33,7 +33,7 @@ public class LogIngestionService : ILogIngestionService
 
         _logChannel = Channel.CreateBounded<ClientLogDto>(options);
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             "LogIngestionService initialized with channel capacity: {Capacity}",
             DefaultChannelCapacity);
     }

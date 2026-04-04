@@ -20,11 +20,7 @@ public static class DependencyValidationService
         IServiceProvider services,
         ILogger? logger = null)
     {
-        logger?.LogInformation("Starting dependency validation...");
-
         var serviceDescriptors = GetServiceDescriptors(services);
-        logger?.LogInformation("Analyzing {Count} registered services...", serviceDescriptors.Count());
-
         var graph = BuildDependencyGraph(serviceDescriptors);
         var cycles = DetectCycles(graph);
 
@@ -36,9 +32,6 @@ public static class DependencyValidationService
             throw new InvalidOperationException(
                 $"Circular dependencies detected:\n{errorMessage}");
         }
-
-        logger?.LogInformation(
-            "Dependency validation completed. No circular dependencies found.");
     }
 
     /// <summary>
