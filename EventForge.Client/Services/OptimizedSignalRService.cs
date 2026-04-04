@@ -1,4 +1,5 @@
 using EventForge.DTOs.Chat;
+using EventForge.DTOs.Documents;
 using EventForge.DTOs.Notifications;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
@@ -59,6 +60,16 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? UserLeftChat;
     #endregion
 
+    #region Events - Document Collaboration
+    public event Action<object>? DocumentLocked;
+    public event Action<object>? DocumentUnlocked;
+    public event Action<object>? UserJoinedDocument;
+    public event Action<object>? UserLeftDocument;
+    public event Action<object>? DocumentTypingIndicator;
+    public event Action<DocumentCommentDto>? CommentCreated;
+    public event Action<DocumentCommentDto>? CommentUpdated;
+    #endregion
+
     private class BatchedEvent
     {
         public string Type { get; set; } = string.Empty;
@@ -107,7 +118,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             StartConnectionAsync("audit", "/hubs/audit-log"),
             StartConnectionAsync("notification", "/hubs/notifications"),
-            StartConnectionAsync("chat", "/hubs/chat")
+            StartConnectionAsync("chat", "/hubs/chat"),
+            StartConnectionAsync("document-collaboration", "/hubs/document-collaboration")
         };
 
         await Task.WhenAll(connectionTasks);
@@ -226,6 +238,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             case "chat":
                 RegisterChatEventHandlers(connection);
                 break;
+            case "document-collaboration":
+                RegisterDocumentCollaborationEventHandlers(connection);
+                break;
         }
     }
 
@@ -306,6 +321,48 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         _ = connection.On<TypingIndicatorDto>("TypingIndicator", indicator =>
         {
             TypingIndicator?.Invoke(indicator);
+        });
+    }
+
+    private void RegisterDocumentCollaborationEventHandlers(HubConnection connection)
+    {
+        _ = connection.On<object>("DocumentLocked", data =>
+        {
+            _logger.LogInformation("Document locked");
+            DocumentLocked?.Invoke(data);
+        });
+
+        _ = connection.On<object>("DocumentUnlocked", data =>
+        {
+            _logger.LogInformation("Document unlocked");
+            DocumentUnlocked?.Invoke(data);
+        });
+
+        _ = connection.On<object>("UserJoinedDocument", data =>
+        {
+            UserJoinedDocument?.Invoke(data);
+        });
+
+        _ = connection.On<object>("UserLeftDocument", data =>
+        {
+            UserLeftDocument?.Invoke(data);
+        });
+
+        _ = connection.On<object>("TypingIndicator", data =>
+        {
+            DocumentTypingIndicator?.Invoke(data);
+        });
+
+        _ = connection.On<DocumentCommentDto>("CommentCreated", comment =>
+        {
+            _logger.LogInformation("Comment created: {CommentId}", comment.Id);
+            CommentCreated?.Invoke(comment);
+        });
+
+        _ = connection.On<DocumentCommentDto>("CommentUpdated", comment =>
+        {
+            _logger.LogInformation("Comment updated: {CommentId}", comment.Id);
+            CommentUpdated?.Invoke(comment);
         });
     }
 
@@ -424,6 +481,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         "audit" => "/hubs/audit-log",
         "notification" => "/hubs/notifications",
         "chat" => "/hubs/chat",
+        "document-collaboration" => "/hubs/document-collaboration",
         _ => throw new ArgumentException($"Unknown connection key: {connectionKey}")
     };
 
@@ -689,6 +747,103 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     }
 
     /// <summary>
+    /// Starts the document collaboration connection.
+    /// </summary>
+    public async Task StartDocumentCollaborationConnectionAsync()
+    {
+        await StartConnectionAsync("document-collaboration", "/hubs/document-collaboration");
+    }
+
+    /// <summary>
+    /// Joins a document collaboration room to receive real-time updates.
+    /// </summary>
+    public async Task JoinDocumentAsync(Guid documentId)
+    {
+        if (_connections.TryGetValue("document-collaboration", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("JoinDocument", documentId);
+                _logger.LogInformation("Joined document {DocumentId} collaboration room", documentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to join document {DocumentId}", documentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Leaves a document collaboration room.
+    /// </summary>
+    public async Task LeaveDocumentAsync(Guid documentId)
+    {
+        if (_connections.TryGetValue("document-collaboration", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("LeaveDocument", documentId);
+                _logger.LogInformation("Left document {DocumentId} collaboration room", documentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to leave document {DocumentId}", documentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Requests an exclusive edit lock for a document.
+    /// </summary>
+    public async Task<bool> RequestDocumentEditLockAsync(Guid documentId)
+    {
+        if (_connections.TryGetValue("document-collaboration", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                var lockAcquired = await connection.InvokeAsync<bool>("RequestEditLock", documentId);
+
+                _logger.LogInformation(
+                    "Lock request for document {DocumentId}: {Result}",
+                    documentId,
+                    lockAcquired ? "Acquired" : "Failed");
+
+                return lockAcquired;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to acquire lock for document {DocumentId}", documentId);
+                throw;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Releases the edit lock for a document.
+    /// </summary>
+    public async Task ReleaseDocumentEditLockAsync(Guid documentId)
+    {
+        if (_connections.TryGetValue("document-collaboration", out var connection) &&
+            connection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await connection.InvokeAsync("ReleaseEditLock", documentId);
+                _logger.LogInformation("Released lock on document {DocumentId}", documentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to release lock for document {DocumentId}", documentId);
+            }
+        }
+    }
+
+    /// <summary>
     /// Joins a chat room.
     /// </summary>
     public async Task JoinChatAsync(Guid chatId)
@@ -906,6 +1061,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public bool IsAuditConnected => GetConnectionState("audit") == HubConnectionState.Connected;
     public bool IsNotificationConnected => GetConnectionState("notification") == HubConnectionState.Connected;
     public bool IsChatConnected => GetConnectionState("chat") == HubConnectionState.Connected;
+    public bool IsDocumentCollaborationConnected => GetConnectionState("document-collaboration") == HubConnectionState.Connected;
     public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected;
 
     private HubConnectionState GetConnectionState(string connectionKey)
