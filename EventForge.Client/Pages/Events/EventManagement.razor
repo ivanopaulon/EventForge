@@ -352,9 +352,11 @@
 
     private async Task LoadEventsAsync()
     {
-        var result = await EventService.GetEventsAsync(1, 500);
-        _eventsMap = result.Items.ToDictionary(e => e.Id);
-        ReplaceCategory("events", result.Items.Select(e => new SchedulerItem
+        var startRange = DateTime.UtcNow.AddMonths(-12);
+        var endRange   = DateTime.UtcNow.AddMonths(12);
+        var items = (await EventService.GetEventsByDateRangeAsync(startRange, endRange)).ToList();
+        _eventsMap = items.ToDictionary(e => e.Id);
+        ReplaceCategory("events", items.Select(e => new SchedulerItem
         {
             Id = $"ev_{e.Id}", Subject = e.Name,
             StartTime = e.StartDate.ToLocalTime(),
@@ -368,11 +370,13 @@
 
     private async Task LoadRemindersAndTasksAsync()
     {
-        var result = await CalendarReminderService.GetCalendarRemindersAsync(1, 500);
-        _activeReminders = result.Items.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
-        _activeTasks     = result.Items.Where(r => r.ItemType == CalendarItemType.Task      && !r.IsCompleted).ToList();
-        ReplaceCategory("reminders", result.Items.Where(r => r.ItemType == CalendarItemType.Reminder).Select(r => ToSchedulerItem(r, "reminders")));
-        ReplaceCategory("tasks",     result.Items.Where(r => r.ItemType == CalendarItemType.Task).Select(r => ToSchedulerItem(r, "tasks")));
+        var startRange = DateTime.UtcNow.AddMonths(-12);
+        var endRange   = DateTime.UtcNow.AddMonths(12);
+        var items = (await CalendarReminderService.GetCalendarRemindersByDateRangeAsync(startRange, endRange)).ToList();
+        _activeReminders = items.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
+        _activeTasks     = items.Where(r => r.ItemType == CalendarItemType.Task      && !r.IsCompleted).ToList();
+        ReplaceCategory("reminders", items.Where(r => r.ItemType == CalendarItemType.Reminder).Select(r => ToSchedulerItem(r, "reminders")));
+        ReplaceCategory("tasks",     items.Where(r => r.ItemType == CalendarItemType.Task).Select(r => ToSchedulerItem(r, "tasks")));
     }
 
     private static SchedulerItem ToSchedulerItem(CalendarReminderDto r, string cat) => new()
@@ -388,7 +392,7 @@
 
     private async Task LoadPriceListsAsync()
     {
-        var result = await PriceListService.GetPagedAsync(1, 200);
+        var result = await PriceListService.GetPagedAsync(1, 100);
         ReplaceCategory("pricelists", result.Items.Where(pl => pl.ValidFrom.HasValue || pl.ValidTo.HasValue).Select(pl => new SchedulerItem
         {
             Id = $"pl_{pl.Id}", Subject = $"\U0001f4cb {pl.Name}",
