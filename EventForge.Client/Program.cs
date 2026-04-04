@@ -68,7 +68,7 @@ builder.Services.AddBlazoredLocalStorage();
 
 // Add Syncfusion Blazor services
 // Set the license key in appsettings.json under "SyncfusionLicenseKey"
-var syncfusionKey = builder.Configuration["Ngo9BigBOggjHTQxAR8/V1JHaF5cWWdCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdlWXtedHRSQmhcVkx/XkdWYEo="];
+var syncfusionKey = builder.Configuration["SyncfusionLicenseKey"];
 if (!string.IsNullOrWhiteSpace(syncfusionKey))
 {
     Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(syncfusionKey);
