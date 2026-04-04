@@ -1103,7 +1103,8 @@
     }
 
     /// <summary>
-    /// Removes dead placeholder code (ChatDto / MessageDto inner classes).
+    /// Returns the display name for a chat. For direct messages, shows the other participant's name;
+    /// for group chats, returns the group name.
     /// </summary>
     private static string GetChatName(ChatResponseDto? chat, Guid currentUserId)
     {
