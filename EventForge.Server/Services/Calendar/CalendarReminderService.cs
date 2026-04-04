@@ -226,7 +226,9 @@ public class CalendarReminderService : ICalendarReminderService
             entity.CompletionNotes = updateDto.CompletionNotes;
             entity.ModifiedBy = currentUser;
             entity.ModifiedAt = DateTime.UtcNow;
-            entity.RowVersion = updateDto.RowVersion;
+
+            if (updateDto.RowVersion != null)
+                _context.Entry(entity).Property(e => e.RowVersion).OriginalValue = updateDto.RowVersion;
 
             try
             {
