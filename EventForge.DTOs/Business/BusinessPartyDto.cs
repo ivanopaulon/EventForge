@@ -147,7 +147,7 @@ namespace EventForge.DTOs.Business
         /// Default price application mode for this business party.
         /// Controls how the system selects the price list for sales documents.
         /// </summary>
-        public PriceApplicationMode DefaultPriceApplicationMode { get; set; }
+        public PriceApplicationMode DefaultPriceApplicationMode { get; set; } = PriceApplicationMode.Automatic;
 
         /// <summary>
         /// Forced price list ID (used when DefaultPriceApplicationMode is ForcedPriceList or HybridForcedWithOverrides).

@@ -226,10 +226,6 @@ public class PromotionService : IPromotionService
 
             return MapToPromotionDto(promotion);
         }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw;
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating promotion {PromotionId}.", id);
