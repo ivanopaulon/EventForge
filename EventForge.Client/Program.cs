@@ -2,11 +2,14 @@ using Blazored.LocalStorage;
 using EventForge.Client;
 using EventForge.Client.Services;
 using EventForge.Client.Services.Documents;
+using EventForge.DTOs.Configuration;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Syncfusion.Blazor;
+using Syncfusion.Licensing;
+using System.Net.Http.Json;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -67,11 +70,21 @@ builder.Services.AddMudServices(config =>
 builder.Services.AddBlazoredLocalStorage();
 
 // Add Syncfusion Blazor services
-// Set the license key in appsettings.json under "SyncfusionLicenseKey"
-var syncfusionKey = builder.Configuration["SyncfusionLicenseKey"];
-if (!string.IsNullOrWhiteSpace(syncfusionKey))
+// The license key is stored only in the server's appsettings.json ("SyncfusionLicenseKey").
+// We fetch it from the public endpoint GET /api/v1/branding/client-config before building
+// the DI container, so RegisterLicense() is always called before AddSyncfusionBlazor().
+try
 {
-    Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(syncfusionKey);
+    using var httpClient = new HttpClient { BaseAddress = new Uri(apiBaseUrl) };
+    var clientConfig = await httpClient.GetFromJsonAsync<ClientPublicConfigDto>("api/v1/branding/client-config");
+    if (!string.IsNullOrWhiteSpace(clientConfig?.SyncfusionLicenseKey))
+    {
+        SyncfusionLicenseProvider.RegisterLicense(clientConfig.SyncfusionLicenseKey);
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[Syncfusion] Could not fetch license key from server: {ex.Message}");
 }
 builder.Services.AddSyncfusionBlazor();
 

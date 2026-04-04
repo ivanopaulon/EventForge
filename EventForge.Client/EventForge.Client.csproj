@@ -5,7 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <NuGetAudit>True</NuGetAudit>
     <ApplicationIcon>wwwroot\EventForge.ico</ApplicationIcon>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- InvariantGlobalization must be false: Syncfusion components (SfSchedule) use
+         System.Globalization for date/time formatting, culture-specific calendar rendering
+         and JS interop. Setting this to true removes all ICU culture data from the WASM bundle
+         and causes the scheduler to throw during initialization, freezing the entire app. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
     <!-- MudBlazor Analyzer Configuration: Disable strict attribute pattern checking -->
     <MudAllowedAttributePattern>Any</MudAllowedAttributePattern>
   </PropertyGroup>

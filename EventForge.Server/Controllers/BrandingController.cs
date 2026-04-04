@@ -15,16 +15,34 @@ public class BrandingController : BaseApiController
 {
     private readonly IBrandingService _brandingService;
     private readonly ITenantContext _tenantContext;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<BrandingController> _logger;
 
     public BrandingController(
         IBrandingService brandingService,
         ITenantContext tenantContext,
+        IConfiguration configuration,
         ILogger<BrandingController> logger)
     {
         _brandingService = brandingService;
         _tenantContext = tenantContext;
+        _configuration = configuration;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Returns public client-side configuration values (no authentication required).
+    /// Used by the Blazor WASM client at startup before the DI container is built.
+    /// </summary>
+    [HttpGet("client-config")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ClientPublicConfigDto), StatusCodes.Status200OK)]
+    public IActionResult GetClientConfig()
+    {
+        return Ok(new ClientPublicConfigDto
+        {
+            SyncfusionLicenseKey = _configuration["SyncfusionLicenseKey"]
+        });
     }
 
     /// <summary>
