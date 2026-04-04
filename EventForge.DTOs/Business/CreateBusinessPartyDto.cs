@@ -59,6 +59,12 @@ namespace EventForge.DTOs.Business
         public string? Notes { get; set; }
 
         /// <summary>
+        /// Date of birth (for natural persons). Optional.
+        /// </summary>
+        [Display(Name = "Date of Birth", Description = "Date of birth for natural-person business parties.")]
+        public DateTime? DateOfBirth { get; set; }
+
+        /// <summary>
         /// Default sales price list ID for this business party.
         /// </summary>
         public Guid? DefaultSalesPriceListId { get; set; }

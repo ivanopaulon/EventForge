@@ -59,6 +59,12 @@ public class BusinessParty : AuditableEntity
     public string? Notes { get; set; } = string.Empty;
 
     /// <summary>
+    /// Date of birth for natural-person business parties. Null for companies.
+    /// </summary>
+    [Display(Name = "Date of Birth", Description = "Date of birth for natural-person business parties.")]
+    public DateTime? DateOfBirth { get; set; }
+
+    /// <summary>
     /// Addresses associated with the business party.
     /// </summary>
     [Display(Name = "Addresses", Description = "Addresses associated with the business party.")]

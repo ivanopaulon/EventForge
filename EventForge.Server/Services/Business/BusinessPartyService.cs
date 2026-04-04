@@ -290,6 +290,7 @@ public class BusinessPartyService : IBusinessPartyService
                 SdiCode = createBusinessPartyDto.SdiCode,
                 Pec = createBusinessPartyDto.Pec,
                 Notes = createBusinessPartyDto.Notes,
+                DateOfBirth = createBusinessPartyDto.DateOfBirth,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -343,6 +344,7 @@ public class BusinessPartyService : IBusinessPartyService
             businessParty.SdiCode = updateBusinessPartyDto.SdiCode;
             businessParty.Pec = updateBusinessPartyDto.Pec;
             businessParty.Notes = updateBusinessPartyDto.Notes;
+            businessParty.DateOfBirth = updateBusinessPartyDto.DateOfBirth;
             businessParty.ModifiedAt = DateTime.UtcNow;
             businessParty.ModifiedBy = currentUser;
 
@@ -696,6 +698,7 @@ public class BusinessPartyService : IBusinessPartyService
             SdiCode = businessParty.SdiCode,
             Pec = businessParty.Pec,
             Notes = businessParty.Notes,
+            DateOfBirth = businessParty.DateOfBirth,
             AddressCount = addressCount,
             ContactCount = contactCount,
             ReferenceCount = referenceCount,

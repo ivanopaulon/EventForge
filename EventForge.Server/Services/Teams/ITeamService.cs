@@ -125,6 +125,12 @@ public interface ITeamService
     Task<bool> TeamExistsAsync(Guid teamId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all team members across all teams that have a DateOfBirth set,
+    /// scoped to the current tenant. Used to project birthday events in the scheduler.
+    /// </summary>
+    Task<IEnumerable<TeamMemberDto>> GetMembersWithBirthdayAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Checks if an event exists.
     /// </summary>
     /// <param name="eventId">Event ID</param>
