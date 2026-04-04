@@ -5,11 +5,15 @@
 @attribute [Authorize]
 @inject IBusinessPartyGroupService GroupService
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 
 <EntityManagementPage TEntity="BusinessPartyGroupDto"
+                      @ref="_entityPage"
                       Config="_config"
-                      Service="_service">
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -119,6 +123,7 @@
 </EntityManagementPage>
 
 @code {
+    private EntityManagementPage<BusinessPartyGroupDto>? _entityPage;
     private IEntityManagementService<BusinessPartyGroupDto> _service = null!;
     private EntityManagementConfig<BusinessPartyGroupDto> _config = null!;
 
@@ -204,4 +209,14 @@
         BusinessPartyGroupType.Both => "Entrambi",
         _ => "N/D"
     };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters { [nameof(BusinessPartyGroupDetailDialog.EntityId)] = id };
+        var options = new DialogOptions { BackdropClick = false, CloseButton = false };
+        var dialog = await DialogService.ShowAsync<BusinessPartyGroupDetailDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            await _entityPage!.RefreshAsync();
+    }
 }
