@@ -114,7 +114,7 @@
                                        CanEdit="@(Config.CanEdit == null || Config.CanEdit(item))"
                                        CanDelete="@(Config.CanDelete == null || Config.CanDelete(item))"
                                        OnView="@(async () => { if (OnViewEntity != null) await OnViewEntity(Config.GetId(item)); })"
-                                       OnEdit="@(() => EditEntity(Config.GetId(item)))"
+                                       OnEdit="@(async () => await EditEntity(Config.GetId(item)))"
                                        OnAuditLog="@(() => ViewAuditLog(item))"
                                        OnToggleStatus="@(() => ToggleEntityStatus(item))"
                                        OnDelete="@(() => DeleteEntity(item))" />
@@ -174,6 +174,12 @@
     /// Use this when the create action should open a dialog instead of navigating to a new page.
     /// </summary>
     [Parameter] public Func<Task>? OnCreateOverride { get; set; }
+
+    /// <summary>
+    /// When set, replaces the default "navigate to {BaseRoute}/{id}" behaviour of the Edit button.
+    /// Use this when the edit action should open a dialog instead of navigating to a detail page.
+    /// </summary>
+    [Parameter] public Func<Guid, Task>? OnEditOverride { get; set; }
 
     /// <summary>
     /// Optional async callback invoked instead of the standard Service.GetPagedAsync call.
@@ -446,9 +452,12 @@
     /// </summary>
     public async Task RefreshAsync() => await LoadEntitiesAsync();
 
-    private void EditEntity(Guid id)
+    private async Task EditEntity(Guid id)
     {
-        NavigationManager.NavigateTo($"{Config.BaseRoute}/{id}");
+        if (OnEditOverride != null)
+            await OnEditOverride(id);
+        else
+            NavigationManager.NavigateTo($"{Config.BaseRoute}/{id}");
     }
 
     private async Task DeleteEntity(TEntity entity)
