@@ -63,11 +63,9 @@ public class PerformanceTelemetryMiddleware
             // start are inherently slow (JIT, migrations, bootstrap) and would generate misleading
             // Error/Warning entries that obscure real performance issues.
             var isInGracePeriod = (Environment.TickCount64 - _startupTickCount) < _startupGracePeriodMs;
-            if (isInGracePeriod)
-                return;
 
             // Log slow requests (can happen after response is sent)
-            if (elapsed > _slowRequestThresholdMs * 2)
+            if (!isInGracePeriod && elapsed > _slowRequestThresholdMs * 2)
             {
                 // Very slow requests (>400ms by default)
                 _logger.LogError(
@@ -77,7 +75,7 @@ public class PerformanceTelemetryMiddleware
                     elapsed,
                     context.Response.StatusCode);
             }
-            else if (elapsed > _slowRequestThresholdMs)
+            else if (!isInGracePeriod && elapsed > _slowRequestThresholdMs)
             {
                 // Slow requests (>200ms by default)
                 _logger.LogWarning(
