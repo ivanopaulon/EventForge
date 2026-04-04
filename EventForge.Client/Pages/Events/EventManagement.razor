@@ -214,6 +214,7 @@
     private View _currentView = View.Month;
 
     private List<SchedulerItem> _allItems = new();
+    private Dictionary<Guid, EventDto> _eventsMap = new();
     private List<CalendarReminderDto> _activeReminders = new();
     private List<CalendarReminderDto> _activeTasks = new();
     private List<SchedulerCategory> _categories = new();
@@ -352,6 +353,7 @@
     private async Task LoadEventsAsync()
     {
         var result = await EventService.GetEventsAsync(1, 500);
+        _eventsMap = result.Items.ToDictionary(e => e.Id);
         ReplaceCategory("events", result.Items.Select(e => new SchedulerItem
         {
             Id = $"ev_{e.Id}", Subject = e.Name,
@@ -490,6 +492,7 @@
         var res  = await dlg.Result;
         if (res is { Canceled: false, Data: EventDto created })
         {
+            _eventsMap[created.Id] = created;
             _allItems.Add(new SchedulerItem
             {
                 Id = $"ev_{created.Id}", Subject = created.Name,
@@ -500,6 +503,35 @@
                 EventStatus = created.Status, AssignedTo = created.AssignedToUserId,
                 IsPrivate = created.Visibility == CalendarVisibility.Private
             });
+            UpdateCount("events"); StateHasChanged();
+        }
+    }
+
+    private async Task OpenEditEventDialog(EventDto ev)
+    {
+        var p = new DialogParameters<CreateEventDialog>
+        {
+            { x => x.ExistingEvent, ev }
+        };
+        var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+        var dlg  = await DialogService.ShowAsync<CreateEventDialog>(string.Empty, p, opts);
+        var res  = await dlg.Result;
+        if (res is { Canceled: false, Data: EventDto updated })
+        {
+            _eventsMap[updated.Id] = updated;
+            var idx = _allItems.FindIndex(i => i.Id == $"ev_{updated.Id}");
+            var item = new SchedulerItem
+            {
+                Id = $"ev_{updated.Id}", Subject = updated.Name,
+                StartTime = updated.StartDate.ToLocalTime(),
+                EndTime = (updated.EndDate ?? updated.StartDate.AddHours(1)).ToLocalTime(),
+                Location = updated.Location, Description = updated.ShortDescription,
+                Color = updated.Color ?? "#4285F4", CategoryKey = "events",
+                EventStatus = updated.Status, AssignedTo = updated.AssignedToUserId,
+                IsPrivate = updated.Visibility == CalendarVisibility.Private
+            };
+            if (idx >= 0) _allItems[idx] = item;
+            else _allItems.Add(item);
             UpdateCount("events"); StateHasChanged();
         }
     }
@@ -529,9 +561,20 @@
         if (args.Type == PopupType.Editor)
         {
             args.Cancel = true;
-            var s = args.Data?.StartTime;
-            var e = args.Data?.EndTime;
-            await InvokeAsync(async () => await OpenCreateEventDialog(s, e));
+            var itemId = args.Data?.Id;
+            // Existing event (id starts with "ev_") → open edit dialog
+            if (itemId != null && itemId.StartsWith("ev_", StringComparison.Ordinal)
+                && Guid.TryParse(itemId[3..], out var eventId)
+                && _eventsMap.TryGetValue(eventId, out var ev))
+            {
+                await InvokeAsync(async () => await OpenEditEventDialog(ev));
+            }
+            else
+            {
+                var s = args.Data?.StartTime;
+                var e = args.Data?.EndTime;
+                await InvokeAsync(async () => await OpenCreateEventDialog(s, e));
+            }
         }
     }
 

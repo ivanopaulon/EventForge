@@ -6,7 +6,9 @@
 @inject ILogger<CreateEventDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.EventNote"
-          Title="@TranslationService.GetTranslation("events.createEvent", "Nuovo Evento")"
+          Title="@(_isEditMode
+              ? TranslationService.GetTranslation("events.editEvent", "Modifica Evento")
+              : TranslationService.GetTranslation("events.createEvent", "Nuovo Evento"))"
           IsProcessing="@_isLoading"
           OnClose="Cancel">
     <ChildContent>
@@ -157,10 +159,12 @@
         <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Disabled="_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
-        <MudButton OnClick="CreateAsync" Variant="Variant.Filled" Color="Color.Primary"
+        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary"
                    Disabled="@(!_isFormValid || _isLoading || _dateRange?.Start == null)"
                    StartIcon="@Icons.Material.Outlined.Save">
-            @TranslationService.GetTranslation("common.create", "Crea")
+            @(_isEditMode
+                ? TranslationService.GetTranslation("common.save", "Salva")
+                : TranslationService.GetTranslation("common.create", "Crea"))
         </MudButton>
     </DialogActions>
 </EFDialog>
@@ -168,9 +172,14 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    /// <summary>Optional pre-filled start/end (e.g. from scheduler slot click).</summary>
+    /// <summary>When set, the dialog opens in edit mode for this event.</summary>
+    [Parameter] public EventDto? ExistingEvent { get; set; }
+
+    /// <summary>Optional pre-filled start/end (e.g. from scheduler slot click). Used in create mode only.</summary>
     [Parameter] public DateTime? PrefilledStartDate { get; set; }
     [Parameter] public DateTime? PrefilledEndDate { get; set; }
+
+    private bool _isEditMode => ExistingEvent != null;
 
     private MudForm _form = null!;
     private bool _isFormValid;
@@ -184,24 +193,57 @@
 
     private readonly string[] _presetColors = ["#4285F4", "#EA4335", "#FBBC05", "#34A853", "#9C27B0", "#FF5722", "#00BCD4", "#607D8B"];
 
-    private CreateEventDto _model = new()
+    // Internal model uses UpdateEventDto for both modes (superset of CreateEventDto fields).
+    private UpdateEventDto _model = new()
     {
-        Status = EventStatus.Planned,
-        Capacity = 1,
+        Status     = EventStatus.Planned,
+        Capacity   = 1,
         Visibility = CalendarVisibility.Public,
-        Color = "#4285F4"
+        Color      = "#4285F4",
+        RowVersion = Array.Empty<byte>()
     };
 
     protected override void OnInitialized()
     {
-        var start = (PrefilledStartDate ?? DateTime.Now.AddHours(1)).Date;
-        var end   = PrefilledEndDate?.Date ?? start;
-        _dateRange = new DateRange(start, end);
+        if (_isEditMode)
+        {
+            // Populate form from existing event
+            var ev = ExistingEvent!;
+            _model = new UpdateEventDto
+            {
+                Name             = ev.Name,
+                ShortDescription = ev.ShortDescription,
+                LongDescription  = ev.LongDescription,
+                Location         = ev.Location,
+                StartDate        = ev.StartDate,
+                EndDate          = ev.EndDate,
+                Capacity         = ev.Capacity,
+                Status           = ev.Status,
+                Color            = ev.Color,
+                AssignedToUserId = ev.AssignedToUserId,
+                Visibility       = ev.Visibility,
+                RowVersion       = Array.Empty<byte>()
+            };
 
-        if (PrefilledStartDate?.TimeOfDay != TimeSpan.Zero)
-            _startTime = PrefilledStartDate?.TimeOfDay ?? _startTime;
-        if (PrefilledEndDate?.TimeOfDay != TimeSpan.Zero)
-            _endTime = PrefilledEndDate?.TimeOfDay ?? _endTime;
+            var startLocal = ev.StartDate.ToLocalTime();
+            var endLocal   = (ev.EndDate ?? ev.StartDate).ToLocalTime();
+            _dateRange = new DateRange(startLocal.Date, endLocal.Date);
+            _isAllDay  = startLocal.TimeOfDay == TimeSpan.Zero && endLocal.TimeOfDay >= new TimeSpan(23, 59, 0);
+            _startTime = _isAllDay ? new TimeSpan(9, 0, 0)  : startLocal.TimeOfDay;
+            _endTime   = _isAllDay ? new TimeSpan(18, 0, 0) : endLocal.TimeOfDay;
+        }
+        else
+        {
+            // Pre-fill from scheduler slot click or defaults
+            var start = (PrefilledStartDate ?? DateTime.Now.AddHours(1)).Date;
+            var end   = PrefilledEndDate?.Date ?? start;
+            _dateRange = new DateRange(start, end);
+
+            if (PrefilledStartDate?.TimeOfDay != TimeSpan.Zero)
+                _startTime = PrefilledStartDate?.TimeOfDay ?? _startTime;
+            if (PrefilledEndDate?.TimeOfDay != TimeSpan.Zero)
+                _endTime = PrefilledEndDate?.TimeOfDay ?? _endTime;
+        }
     }
 
     private void OnColorChanged(ChangeEventArgs e)
@@ -209,7 +251,7 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private async Task CreateAsync()
+    private async Task SaveAsync()
     {
         await _form.Validate();
         if (!_isFormValid || _dateRange?.Start == null) return;
@@ -221,19 +263,45 @@
             _model.StartDate = (_dateRangePicker.GetStartDateTime() ?? _dateRange.Start.Value).ToUniversalTime();
             _model.EndDate   = _dateRangePicker.GetEndDateTime()?.ToUniversalTime();
 
-            var result = await EventService.CreateEventAsync(_model);
-
-            Snackbar.Add(
-                TranslationService.GetTranslation("events.created", "Evento creato con successo"),
-                Severity.Success);
+            EventDto result;
+            if (_isEditMode)
+            {
+                result = await EventService.UpdateEventAsync(ExistingEvent!.Id, _model);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("events.updated", "Evento aggiornato con successo"),
+                    Severity.Success);
+            }
+            else
+            {
+                var createDto = new CreateEventDto
+                {
+                    Name             = _model.Name,
+                    ShortDescription = _model.ShortDescription,
+                    LongDescription  = _model.LongDescription,
+                    Location         = _model.Location,
+                    StartDate        = _model.StartDate,
+                    EndDate          = _model.EndDate,
+                    Capacity         = _model.Capacity,
+                    Status           = _model.Status,
+                    Color            = _model.Color,
+                    AssignedToUserId = _model.AssignedToUserId,
+                    Visibility       = _model.Visibility
+                };
+                result = await EventService.CreateEventAsync(createDto);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("events.created", "Evento creato con successo"),
+                    Severity.Success);
+            }
 
             MudDialog.Close(DialogResult.Ok(result));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error creating event.");
+            Logger.LogError(ex, "Error saving event (edit={IsEdit}).", _isEditMode);
             Snackbar.Add(
-                TranslationService.GetTranslation("events.createError", "Errore durante la creazione dell'evento"),
+                _isEditMode
+                    ? TranslationService.GetTranslation("events.updateError", "Errore durante l'aggiornamento dell'evento")
+                    : TranslationService.GetTranslation("events.createError", "Errore durante la creazione dell'evento"),
                 Severity.Error);
         }
         finally

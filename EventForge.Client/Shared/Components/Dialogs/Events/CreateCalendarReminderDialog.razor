@@ -254,7 +254,7 @@
         }
         var prefilled = PrefilledDueDate ?? DateTime.Now.AddHours(1);
         _dueDateOnly = prefilled.Date;
-        _dueTime = prefilled.TimeOfDay != TimeSpan.Zero ? prefilled.TimeOfDay : new TimeSpan(prefilled.Hour, 0, 0);
+        _dueTime = prefilled.TimeOfDay != TimeSpan.Zero ? prefilled.TimeOfDay : new TimeSpan(9, 0, 0);
         _model.ItemType = _itemType;
     }
 

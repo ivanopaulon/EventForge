@@ -69,6 +69,9 @@ namespace EventForge.DTOs.Events
         /// </summary>
         public CalendarVisibility Visibility { get; set; }
 
+        /// <summary>Daily time slots (e.g. 08:00–12:00 and 14:00–18:00).</summary>
+        public List<EventTimeSlotDto> TimeSlots { get; set; } = new();
+
         /// <summary>
         /// Collection of teams associated with the event.
         /// </summary>

@@ -587,6 +587,17 @@ public class EventService : IEventService
             Color = eventEntity.Color,
             AssignedToUserId = eventEntity.AssignedToUserId,
             Visibility = eventEntity.Visibility,
+            TimeSlots = eventEntity.TimeSlots?
+                .OrderBy(s => s.SortOrder)
+                .Select(s => new EventTimeSlotDto
+                {
+                    Id = s.Id,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    Label = s.Label,
+                    SortOrder = s.SortOrder
+                })
+                .ToList() ?? new List<EventTimeSlotDto>(),
             Teams = eventEntity.Teams?.Where(t => !t.IsDeleted).Select(MapToTeamDetailDto).ToList() ?? new List<TeamDetailDto>(),
             CreatedAt = eventEntity.CreatedAt,
             CreatedBy = eventEntity.CreatedBy,
