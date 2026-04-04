@@ -12,7 +12,7 @@ namespace EventForge.Server.Controllers;
 /// <summary>
 /// Controller for managing product models.
 /// </summary>
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("ProductManagement")]
 public class ModelsController : BaseApiController
