@@ -2,6 +2,7 @@
 @using EventForge.DTOs.VatRates
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IFinancialService FinancialService
 @inject ISnackbar Snackbar
@@ -13,7 +14,7 @@
           Title="@(_isCreateMode ? TranslationService.GetTranslation("drawer.title.creaAliquotaIva", "Crea Nuova Aliquota IVA") : (_vatRate?.Name ?? string.Empty))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
-          MinWidth="min(700px, 95vw)">
+          MinWidth="@EFDialogDefaults.MinWidthSimple">
     <ChildContent>
         @if (_isLoading)
         {

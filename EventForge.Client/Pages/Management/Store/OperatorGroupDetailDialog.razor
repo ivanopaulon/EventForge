@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Store
 @using EventForge.Client.ViewModels
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
@@ -13,7 +14,7 @@
           Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("store.newOperatorGroup", "Nuovo Gruppo Operatori") : ViewModel.Entity?.Name ?? string.Empty)"
           IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
           OnClose="Cancel"
-          MinWidth="min(800px, 95vw)">
+          MinWidth="@EFDialogDefaults.MinWidthSimple">
     <ChildContent>
         @if (ViewModel.IsLoading)
         {

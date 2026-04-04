@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Business
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.Shared.Components.Dialogs.Business
 @attribute [Authorize]
 @inject IBusinessPartyGroupService GroupService
@@ -14,7 +15,7 @@
           Title="@(_isCreateMode ? "Nuovo Gruppo" : (_group?.Name ?? "Gruppo Business Party"))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
-          MinWidth="min(900px, 95vw)">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed">
     <ChildContent>
         @if (_isLoading)
         {

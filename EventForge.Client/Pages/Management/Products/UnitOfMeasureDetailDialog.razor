@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.UnitOfMeasures
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IUMService UMService
 @inject ISnackbar Snackbar
@@ -12,7 +13,7 @@
           Title="@(_isCreateMode ? TranslationService.GetTranslation("um.createNew", "Crea Nuova Unità di Misura") : (_unit?.Name ?? string.Empty))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
-          MinWidth="min(700px, 95vw)">
+          MinWidth="@EFDialogDefaults.MinWidthSimple">
     <ChildContent>
         @if (_isLoading)
         {
