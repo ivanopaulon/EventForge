@@ -30,12 +30,12 @@ namespace EventForge.Client.Services
 
         // Classification Node Management
         Task<IEnumerable<ClassificationNodeDto>> GetClassificationNodesAsync();
-        Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync();
+        Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync(CancellationToken ct = default);
         Task<IEnumerable<ClassificationNodeDto>> GetChildrenClassificationNodesAsync(Guid parentId);
         Task<ClassificationNodeDto?> GetClassificationNodeAsync(Guid id);
         Task<ClassificationNodeDto> CreateClassificationNodeAsync(CreateClassificationNodeDto createDto);
         Task<ClassificationNodeDto> UpdateClassificationNodeAsync(Guid id, UpdateClassificationNodeDto updateDto);
-        Task DeleteClassificationNodeAsync(Guid id);
+        Task DeleteClassificationNodeAsync(Guid id, CancellationToken ct = default);
     }
 
     public class EntityManagementService : IEntityManagementService
@@ -186,9 +186,9 @@ namespace EventForge.Client.Services
             return result?.Items ?? new List<ClassificationNodeDto>();
         }
 
-        public async Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync()
+        public async Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync(CancellationToken ct = default)
         {
-            return await _httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>("api/v1/entities/classification-nodes/root") ?? new List<ClassificationNodeDto>();
+            return await _httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>("api/v1/entities/classification-nodes/root", ct) ?? new List<ClassificationNodeDto>();
         }
 
         public async Task<IEnumerable<ClassificationNodeDto>> GetChildrenClassificationNodesAsync(Guid parentId)
@@ -213,9 +213,9 @@ namespace EventForge.Client.Services
                    throw new InvalidOperationException("Failed to update classification node");
         }
 
-        public async Task DeleteClassificationNodeAsync(Guid id)
+        public async Task DeleteClassificationNodeAsync(Guid id, CancellationToken ct = default)
         {
-            await _httpClientService.DeleteAsync($"api/v1/entities/classification-nodes/{id}");
+            await _httpClientService.DeleteAsync($"api/v1/entities/classification-nodes/{id}", ct);
         }
 
         #endregion

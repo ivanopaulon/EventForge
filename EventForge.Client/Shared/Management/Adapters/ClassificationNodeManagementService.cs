@@ -15,18 +15,9 @@ public class ClassificationNodeManagementService : IEntityManagementService<Clas
     public ClassificationNodeManagementService(IEntityManagementService entityManagementService)
         => _entityManagementService = entityManagementService;
 
-    /// <inheritdoc />
-    /// <remarks>
-    /// The root-nodes API returns a flat list without server-side paging.
-    /// All items are returned so that EntityManagementPage can apply client-side
-    /// filtering and pagination (UseServerSidePaging defaults to false).
-    /// The <paramref name="ct"/> parameter cannot be forwarded because
-    /// <see cref="IEntityManagementService.GetRootClassificationNodesAsync"/> does not
-    /// accept a CancellationToken.
-    /// </remarks>
     public async Task<PagedResult<ClassificationNodeDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
     {
-        var roots = (await _entityManagementService.GetRootClassificationNodesAsync()).ToList();
+        var roots = (await _entityManagementService.GetRootClassificationNodesAsync(ct)).ToList();
         return new PagedResult<ClassificationNodeDto>
         {
             Items = roots,
@@ -37,5 +28,5 @@ public class ClassificationNodeManagementService : IEntityManagementService<Clas
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
-        => await _entityManagementService.DeleteClassificationNodeAsync(id);
+        => await _entityManagementService.DeleteClassificationNodeAsync(id, ct);
 }
