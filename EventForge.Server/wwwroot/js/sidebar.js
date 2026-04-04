@@ -1,61 +1,61 @@
-// Sidebar toggle functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const wrapper = document.getElementById('wrapper');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebarToggleTop = document.getElementById('sidebarToggleTop');
+(function () {
+  'use strict';
 
-    // Toggle sidebar on mobile (X button inside sidebar)
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            wrapper.classList.toggle('toggled');
-        });
+  const wrapper        = document.getElementById('wrapper');
+  const toggleTop      = document.getElementById('sidebarToggleTop');
+  const toggleClose    = document.getElementById('sidebarToggle');
+  const statusDot      = document.getElementById('topStatusDot');
+
+  /* ── Sidebar toggle ───────────────────────────────────────────── */
+  function toggleSidebar(e) {
+    if (e) e.preventDefault();
+    wrapper.classList.toggle('toggled');
+    if (window.innerWidth > 991) {
+      localStorage.setItem('ef_sidebar_collapsed', wrapper.classList.contains('toggled'));
     }
+  }
 
-    // Toggle sidebar from top navbar (hamburger button)
-    if (sidebarToggleTop) {
-        sidebarToggleTop.addEventListener('click', function(e) {
-            e.preventDefault();
-            wrapper.classList.toggle('toggled');
-        });
+  if (toggleTop)   toggleTop.addEventListener('click', toggleSidebar);
+  if (toggleClose) toggleClose.addEventListener('click', toggleSidebar);
+
+  // Close on overlay click (mobile)
+  wrapper.addEventListener('click', function (e) {
+    if (window.innerWidth <= 991 &&
+        wrapper.classList.contains('toggled') &&
+        !document.getElementById('sidebar-wrapper').contains(e.target) &&
+        e.target !== toggleTop) {
+      wrapper.classList.remove('toggled');
     }
+  });
 
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', function(e) {
-        if (window.innerWidth <= 768) {
-            const sidebar = document.getElementById('sidebar-wrapper');
-            const isClickInside = sidebar && sidebar.contains(e.target);
-            const isToggleButton = sidebarToggleTop && sidebarToggleTop.contains(e.target);
-            
-            if (!isClickInside && !isToggleButton && wrapper.classList.contains('toggled')) {
-                wrapper.classList.remove('toggled');
-            }
-        }
-    });
+  // Restore desktop state
+  if (window.innerWidth > 991 && localStorage.getItem('ef_sidebar_collapsed') === 'true') {
+    wrapper.classList.add('toggled');
+  }
 
-    // Save sidebar state to localStorage (desktop only)
-    const savedState = localStorage.getItem('sidebarToggled');
-    if (savedState === 'true' && window.innerWidth > 768) {
-        wrapper.classList.add('toggled');
-    }
+  // Mobile: start collapsed
+  if (window.innerWidth <= 991) {
+    wrapper.classList.remove('toggled');
+  }
 
-    // Save state on toggle
-    const saveSidebarState = function() {
-        if (window.innerWidth > 768) {
-            localStorage.setItem('sidebarToggled', wrapper.classList.contains('toggled'));
-        }
-    };
+  /* ── Status dot ───────────────────────────────────────────────── */
+  if (statusDot) {
+    fetch('/health', { cache: 'no-store' })
+      .then(r => {
+        if (r.status === 200) { statusDot.classList.remove('error', 'degraded'); }
+        else if (r.status === 503) { statusDot.classList.add('degraded'); }
+        else { statusDot.classList.add('error'); }
+      })
+      .catch(() => statusDot.classList.add('error'));
+  }
 
-    // Debounce state saving
-    let saveTimeout;
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.attributeName === 'class') {
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(saveSidebarState, 300);
-            }
-        });
-    });
+  /* ── Auto-dismiss alerts ──────────────────────────────────────── */
+  document.querySelectorAll('.alert.alert-success').forEach(function (el) {
+    setTimeout(function () {
+      el.style.transition = 'opacity .4s';
+      el.style.opacity    = '0';
+      setTimeout(function () { el.remove(); }, 420);
+    }, 4000);
+  });
 
-    observer.observe(wrapper, { attributes: true });
-});
+})();

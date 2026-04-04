@@ -3,12 +3,15 @@ using Microsoft.EntityFrameworkCore;
 namespace EventForge.Server.Services.Configuration;
 
 /// <summary>
-/// Hosted service that runs database migrations and bootstrap process on application startup.
+/// Hosted service that runs database migrations and bootstrap on application startup.
+/// The bootstrap runs in the background so the application starts serving requests immediately.
 /// </summary>
 public class BootstrapHostedService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<BootstrapHostedService> _logger;
+    private Task? _bootstrapTask;
+    private CancellationTokenSource? _cts;
 
     public BootstrapHostedService(IServiceProvider serviceProvider, ILogger<BootstrapHostedService> logger)
     {
@@ -16,111 +19,90 @@ public class BootstrapHostedService : IHostedService
         _logger = logger;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        // Run bootstrap in background to avoid blocking application startup
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                _logger.LogInformation("Starting database migration and bootstrap process in background...");
-
-                using var scope = _serviceProvider.CreateScope();
-
-                // Apply migrations first
-                var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
-
-                // Fast-path check: Can we connect to the database?
-                if (!dbContext.Database.CanConnect())
-                {
-                    _logger.LogError("Cannot connect to database. Migration and bootstrap skipped.");
-                    return;
-                }
-
-                // Fast-path check: Are there any pending migrations?
-                var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
-
-                if (!pendingMigrations.Any())
-                {
-                    _logger.LogInformation("Database is up to date. No migrations to apply.");
-
-                    // Fast-path check: Does admin already exist AND does a tenant with base entities exist?
-                    var adminExists = await dbContext.Users.AnyAsync(u => u.Username == "superadmin", cancellationToken);
-                    if (adminExists)
-                    {
-                        // Verify that at least one tenant has base entities seeded
-                        var tenantWithBaseEntities = await dbContext.Tenants
-                            .Where(t => t.Id != Guid.Empty)
-                            .AnyAsync(cancellationToken);
-
-                        if (tenantWithBaseEntities)
-                        {
-                            // Check if base entities exist for any tenant
-                            var hasVatRates = await dbContext.VatRates.AnyAsync(cancellationToken);
-                            var hasUnitsMeasure = await dbContext.UMs.AnyAsync(cancellationToken);
-                            var hasWarehouses = await dbContext.StorageFacilities.AnyAsync(cancellationToken);
-
-                            if (hasVatRates && hasUnitsMeasure && hasWarehouses)
-                            {
-                                _logger.LogInformation("Bootstrap already complete. Skipping bootstrap process for faster startup.");
-                                return;
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Superadmin exists but base entities are missing. Running bootstrap to seed base entities...");
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation("Found {Count} pending migrations: {Migrations}",
-                        pendingMigrations.Count(), string.Join(", ", pendingMigrations));
-
-                    await dbContext.Database.MigrateAsync(cancellationToken);
-
-                    _logger.LogInformation("Database migrations applied successfully: {AppliedMigrations}",
-                        string.Join(", ", pendingMigrations));
-                }
-
-                // Run bootstrap process only if needed
-                var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapService>();
-                var bootstrapResult = await bootstrapService.EnsureAdminBootstrappedAsync(cancellationToken);
-
-                if (bootstrapResult)
-                {
-                    _logger.LogInformation("=== Bootstrap process completed successfully ===");
-
-                    // Log summary of what was bootstrapped
-                    var tenantCount = await dbContext.Tenants.CountAsync(t => t.Id != Guid.Empty, cancellationToken);
-                    var userCount = await dbContext.Users.CountAsync(cancellationToken);
-                    var licenseCount = await dbContext.Licenses.CountAsync(cancellationToken);
-
-                    _logger.LogInformation("Bootstrap Summary: {TenantCount} tenants, {UserCount} users, {LicenseCount} licenses",
-                        tenantCount, userCount, licenseCount);
-                }
-                else
-                {
-                    _logger.LogWarning("Bootstrap process completed with warnings or errors");
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning("Database migration and bootstrap process was cancelled");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during database migration and bootstrap process. Application will continue but may require manual setup.");
-            }
-        }, cancellationToken);
-
-        // Return immediately to allow application to start serving requests
-        await Task.CompletedTask;
+        // Combine the host cancellation token with our own so StopAsync can cancel too
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        // Use CancellationToken.None for Task.Run so that host startup timeout
+        // does not prevent the task from being scheduled; only our linked token cancels it.
+        _bootstrapTask = Task.Run(() => RunBootstrapAsync(_cts.Token), CancellationToken.None);
+        return Task.CompletedTask;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
-        // No cleanup needed
-        return Task.CompletedTask;
+        if (_bootstrapTask is null)
+            return;
+
+        try
+        {
+            await _cts!.CancelAsync();
+            // Wait for the bootstrap task or the shutdown deadline, whichever comes first
+            await Task.WhenAny(_bootstrapTask, Task.Delay(Timeout.Infinite, cancellationToken));
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Bootstrap process was cancelled during shutdown.");
+        }
+        finally
+        {
+            _cts?.Dispose();
+        }
+    }
+
+    private async Task RunBootstrapAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
+
+            if (!dbContext.Database.CanConnect())
+            {
+                _logger.LogError("Cannot connect to database. Migration and bootstrap skipped.");
+                return;
+            }
+
+            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
+            var pendingList = pendingMigrations.ToList();
+
+            if (pendingList.Count == 0)
+            {
+                // Fast-path: skip bootstrap entirely if the system is already fully initialised
+                var adminExists = await dbContext.Users.AnyAsync(u => u.Username == "superadmin", cancellationToken);
+                if (adminExists)
+                {
+                    var hasTenant = await dbContext.Tenants.AnyAsync(t => t.Id != Guid.Empty, cancellationToken);
+                    if (hasTenant)
+                    {
+                        var hasVatRates  = await dbContext.VatRates.AnyAsync(cancellationToken);
+                        var hasUMs       = await dbContext.UMs.AnyAsync(cancellationToken);
+                        var hasWarehouses = await dbContext.StorageFacilities.AnyAsync(cancellationToken);
+                        if (hasVatRates && hasUMs && hasWarehouses)
+                            return;
+
+                        _logger.LogWarning("Superadmin exists but base entities are missing. Running bootstrap to seed base entities.");
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Applying {Count} pending migration(s): {Migrations}",
+                    pendingList.Count, string.Join(", ", pendingList));
+                await dbContext.Database.MigrateAsync(cancellationToken);
+            }
+
+            var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapService>();
+            if (!await bootstrapService.EnsureAdminBootstrappedAsync(cancellationToken))
+                _logger.LogWarning("Bootstrap process completed with warnings or errors.");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Database migration and bootstrap process was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during database migration and bootstrap. Application will continue but may require manual setup.");
+        }
     }
 }

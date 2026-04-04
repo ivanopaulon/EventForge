@@ -1,113 +1,185 @@
 @page "/dashboard/settings"
 @model EventForge.Server.Pages.Dashboard.SettingsModel
+@using EventForge.DTOs.SuperAdmin
 @{
     ViewData["Title"] = "System Settings";
     ViewData["PageSection"] = "Monitoring";
+
+    var activeTab = Request.Query["tab"].ToString() switch
+    {
+        "performance" => "performance",
+        "features"    => "features",
+        _             => "config"
+    };
+
+    var configActive      = activeTab == "config"      ? "show active" : "";
+    var performanceActive = activeTab == "performance" ? "show active" : "";
+    var featuresActive    = activeTab == "features"    ? "show active" : "";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-gear"></i> System Settings</h2>
+    <h2><i class="bi bi-gear me-2"></i>Impostazioni di sistema</h2>
 </div>
 
-<!-- Tabs Navigation -->
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Tabs -->
 <ul class="nav nav-tabs mb-4" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button">
-            <i class="bi bi-sliders"></i> Configuration
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "config" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#config" type="button">
+            <i class="bi bi-sliders me-1"></i>Configurazione
         </button>
     </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="database-tab" data-bs-toggle="tab" data-bs-target="#database" type="button">
-            <i class="bi bi-database"></i> Database
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "performance" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#performance" type="button">
+            <i class="bi bi-speedometer2 me-1"></i>Performance
         </button>
     </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance" type="button">
-            <i class="bi bi-speedometer2"></i> Performance
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="features-tab" data-bs-toggle="tab" data-bs-target="#features" type="button">
-            <i class="bi bi-toggle-on"></i> Feature Flags
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "features" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#features" type="button">
+            <i class="bi bi-toggle-on me-1"></i>Feature Flags
         </button>
     </li>
 </ul>
 
 <div class="tab-content">
-    <!-- Configuration Tab -->
-    <div class="tab-pane fade show active" id="config">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-envelope"></i> SMTP Configuration</h5>
+
+    <!-- ── Configuration Tab ────────────────────────────────────── -->
+    <div class="tab-pane fade @configActive" id="config">
+
+        <!-- SMTP -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-envelope me-2 text-primary"></i>Configurazione SMTP
             </div>
             <div class="card-body">
                 <form method="post" asp-page-handler="UpdateSmtp">
+                    @Html.AntiForgeryToken()
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">SMTP Server</label>
-                            <input type="text" class="form-control" name="SmtpServer" placeholder="smtp.gmail.com" />
+                            <label class="form-label">Server SMTP</label>
+                            <input type="text" asp-for="SmtpServer" class="form-control" placeholder="smtp.gmail.com" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Port</label>
-                            <input type="number" class="form-control" name="SmtpPort" value="587" />
+                            <label class="form-label">Porta</label>
+                            <input type="number" asp-for="SmtpPort" class="form-control" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Use SSL</label>
-                            <select class="form-select" name="UseSSL">
-                                <option value="true">Yes</option>
-                                <option value="false">No</option>
+                            <label class="form-label">Usa SSL</label>
+                            <select asp-for="SmtpUseSsl" class="form-select">
+                                <option value="True">S&igrave;</option>
+                                <option value="False">No</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Username</label>
-                            <input type="text" class="form-control" name="SmtpUsername" />
+                            <input type="text" asp-for="SmtpUsername" class="form-control" autocomplete="off" />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Password</label>
-                            <input type="password" class="form-control" name="SmtpPassword" />
+                            <label class="form-label">
+                                Password
+                                <small class="text-muted">(lasciare vuoto per non modificare)</small>
+                            </label>
+                            <input type="password" asp-for="SmtpPassword" class="form-control"
+                                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email mittente</label>
+                            <input type="email" asp-for="SmtpFromEmail" class="form-control"
+                                   placeholder="noreply@eventforge.com" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nome mittente</label>
+                            <input type="text" asp-for="SmtpFromName" class="form-control" placeholder="EventForge" />
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle"></i> Save SMTP Settings
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="testSmtp()">
-                                <i class="bi bi-send"></i> Test Connection
+                                <i class="bi bi-check-circle me-1"></i>Salva SMTP
                             </button>
                         </div>
                     </div>
                 </form>
+
+                <hr />
+                <!-- Test SMTP -->
+                <form method="post" asp-page-handler="TestSmtp">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label small">Email di destinazione per il test</label>
+                            <input type="email" name="testEmail" class="form-control form-control-sm"
+                                   placeholder="test@esempio.com" required />
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-send me-1"></i>Invia email di test
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                @if (Model.SmtpTestResult != null)
+                {
+                    @if (Model.SmtpTestResult.Success)
+                    {
+                        <div class="alert alert-success mt-3 mb-0 py-2">
+                            <i class="bi bi-check-circle-fill me-1"></i>
+                            <strong>Email inviata</strong> in @(Model.SmtpTestResult.DurationMs) ms
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger mt-3 mb-0 py-2">
+                            <i class="bi bi-x-circle-fill me-1"></i>
+                            <strong>Errore:</strong> @Model.SmtpTestResult.ErrorMessage
+                        </div>
+                    }
+                }
             </div>
         </div>
 
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-file-text"></i> Logging Configuration</h5>
+        <!-- Logging -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-file-text me-2 text-info"></i>Configurazione logging
             </div>
             <div class="card-body">
                 <form method="post" asp-page-handler="UpdateLogging">
+                    @Html.AntiForgeryToken()
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label">Log Level</label>
-                            <select class="form-select" name="LogLevel">
+                            <label class="form-label">Livello di log</label>
+                            <select asp-for="LogLevel" class="form-select">
                                 <option value="Trace">Trace</option>
                                 <option value="Debug">Debug</option>
-                                <option value="Information" selected>Information</option>
+                                <option value="Information">Information</option>
                                 <option value="Warning">Warning</option>
                                 <option value="Error">Error</option>
                                 <option value="Critical">Critical</option>
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Retention Days</label>
-                            <input type="number" class="form-control" name="RetentionDays" value="30" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Max File Size (MB)</label>
-                            <input type="number" class="form-control" name="MaxFileSizeMB" value="100" />
+                            <label class="form-label">Retention log (giorni)</label>
+                            <input type="number" asp-for="LogRetentionDays" class="form-control" min="1" max="365" />
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle"></i> Save Logging Settings
+                                <i class="bi bi-check-circle me-1"></i>Salva logging
                             </button>
                         </div>
                     </div>
@@ -116,184 +188,91 @@
         </div>
     </div>
 
-    <!-- Database Tab -->
-    <div class="tab-pane fade" id="database">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-database-check"></i> Database Connection Test</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" asp-page-handler="TestDatabase">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Connection String</label>
-                            <textarea class="form-control" name="ConnectionString" rows="3" 
-                                      placeholder="Server=localhost;Database=EventForge;..."></textarea>
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-plug"></i> Test Connection
-                            </button>
-                        </div>
-                    </div>
-                </form>
-                <div id="connectionResult" class="mt-3"></div>
-            </div>
-        </div>
-
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-archive"></i> Database Backup</h5>
-            </div>
-            <div class="card-body">
-                <button type="button" class="btn btn-success" onclick="createBackup()">
-                    <i class="bi bi-download"></i> Create Backup
-                </button>
-                <button type="button" class="btn btn-warning" onclick="showRestore()">
-                    <i class="bi bi-upload"></i> Restore Backup
-                </button>
-                <hr/>
-                <h6>Recent Backups</h6>
-                <div class="list-group" id="backupList">
-                    <div class="list-group-item text-muted">No backups available</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Performance Tab -->
-    <div class="tab-pane fade" id="performance">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-memory"></i> Cache Settings</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" asp-page-handler="UpdateCache">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Memory Cache Size Limit</label>
-                            <input type="number" class="form-control" name="CacheSizeLimit" value="1024" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Compaction Percentage</label>
-                            <input type="number" class="form-control" name="CompactionPercentage" value="25" step="5" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Scan Frequency (minutes)</label>
-                            <input type="number" class="form-control" name="ScanFrequencyMinutes" value="5" />
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle"></i> Save Cache Settings
-                            </button>
-                            <button type="button" class="btn btn-outline-danger" onclick="clearCache()">
-                                <i class="bi bi-trash"></i> Clear All Caches
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-speedometer"></i> API Rate Limiting</h5>
+    <!-- ── Performance Tab ──────────────────────────────────────── -->
+    <div class="tab-pane fade @performanceActive" id="performance">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-speedometer me-2 text-warning"></i>Rate limiting API
+                <small class="text-muted ms-2">(riavvio necessario per applicare)</small>
             </div>
             <div class="card-body">
                 <form method="post" asp-page-handler="UpdateRateLimit">
+                    @Html.AntiForgeryToken()
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Requests per Minute</label>
-                            <input type="number" class="form-control" name="RequestsPerMinute" value="60" />
+                        <div class="col-md-4">
+                            <label class="form-label">Login max tentativi (per 5 min)</label>
+                            <input type="number" asp-for="LoginLimit" class="form-control" min="1" max="100" />
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Burst Size</label>
-                            <input type="number" class="form-control" name="BurstSize" value="100" />
+                        <div class="col-md-4">
+                            <label class="form-label">API max chiamate (per minuto)</label>
+                            <input type="number" asp-for="ApiLimit" class="form-control" min="10" max="10000" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Token refresh max (per minuto)</label>
+                            <input type="number" asp-for="TokenRefreshLimit" class="form-control" min="1" max="60" />
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle"></i> Save Rate Limit Settings
+                                <i class="bi bi-check-circle me-1"></i>Salva rate limiting
                             </button>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Per cache e metriche in tempo reale visita
+            <a href="/dashboard/maintenance" class="alert-link">Manutenzione</a> e
+            <a href="/dashboard/performance" class="alert-link">Performance</a>.
+        </div>
     </div>
 
-    <!-- Feature Flags Tab -->
-    <div class="tab-pane fade" id="features">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-toggles"></i> Feature Flags</h5>
+    <!-- ── Feature Flags Tab ────────────────────────────────────── -->
+    <div class="tab-pane fade @featuresActive" id="features">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-toggles me-2 text-success"></i>Feature flags
             </div>
             <div class="card-body">
                 <form method="post" asp-page-handler="UpdateFeatures">
-                    <div class="list-group">
+                    @Html.AntiForgeryToken()
+                    <div class="list-group mb-3">
                         <div class="list-group-item">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="EnableDocumentCollaboration" checked>
+                                <input class="form-check-input" type="checkbox" asp-for="FeatureDocumentCollaboration" role="switch" />
                                 <label class="form-check-label">
-                                    <strong>Document Collaboration (SignalR)</strong><br/>
-                                    <small class="text-muted">Enable real-time document editing</small>
+                                    <strong>Collaborazione documenti (SignalR)</strong><br />
+                                    <small class="text-muted">Abilita la modifica collaborativa in tempo reale</small>
                                 </label>
                             </div>
                         </div>
                         <div class="list-group-item">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="EnableAdvancedReporting" checked>
+                                <input class="form-check-input" type="checkbox" asp-for="FeatureAdvancedReporting" role="switch" />
                                 <label class="form-check-label">
-                                    <strong>Advanced Reporting</strong><br/>
-                                    <small class="text-muted">Enable PDF/Excel exports and custom reports</small>
+                                    <strong>Reporting avanzato</strong><br />
+                                    <small class="text-muted">Esportazione PDF/Excel e report personalizzati</small>
                                 </label>
                             </div>
                         </div>
                         <div class="list-group-item">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="EnableAuditLog">
+                                <input class="form-check-input" type="checkbox" asp-for="FeatureDetailedAudit" role="switch" />
                                 <label class="form-check-label">
-                                    <strong>Detailed Audit Logging</strong><br/>
-                                    <small class="text-muted">Track all entity changes (may impact performance)</small>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="list-group-item">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="EnableMaintenanceMode">
-                                <label class="form-check-label">
-                                    <strong>Maintenance Mode</strong><br/>
-                                    <small class="text-muted text-danger">Block all user access (SuperAdmin only)</small>
+                                    <strong>Audit log dettagliato</strong><br />
+                                    <small class="text-muted text-warning">Traccia tutte le modifiche alle entit&agrave; (impatto sulle performance)</small>
                                 </label>
                             </div>
                         </div>
                     </div>
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Save Feature Flags
-                        </button>
-                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>Salva feature flags
+                    </button>
                 </form>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    function testSmtp() {
-        alert('SMTP test functionality - To be implemented');
-    }
-    
-    function createBackup() {
-        alert('Database backup functionality - To be implemented');
-    }
-    
-    function showRestore() {
-        alert('Database restore functionality - To be implemented');
-    }
-    
-    function clearCache() {
-        if (confirm('Are you sure you want to clear all caches? This may temporarily impact performance.')) {
-            alert('Cache clear functionality - To be implemented');
-        }
-    }
-</script>
+</div>
