@@ -33,5 +33,11 @@ namespace EventForge.DTOs.Common
         /// </summary>
         [MaxLength(100, ErrorMessage = "Notes cannot exceed 100 characters.")]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Date of birth of the reference person. Optional.
+        /// </summary>
+        [Display(Name = "Date of Birth", Description = "Date of birth of the reference person.")]
+        public DateTime? DateOfBirth { get; set; }
     }
 }

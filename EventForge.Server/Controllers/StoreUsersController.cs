@@ -143,6 +143,28 @@ public class StoreUsersController : BaseApiController
     }
 
     /// <summary>
+    /// Gets all store operators that have a date of birth set.
+    /// Used for birthday tracking in the calendar scheduler.
+    /// </summary>
+    /// <returns>List of store users with a date of birth</returns>
+    /// <response code="200">Returns the list of store users with birthdays</response>
+    [HttpGet("with-birthdays")]
+    [ProducesResponseType(typeof(IEnumerable<StoreUserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<StoreUserDto>>> GetStoreUsersWithBirthdays(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var storeUsers = await _storeUserService.GetStoreUsersWithBirthdayAsync(cancellationToken);
+            return Ok(storeUsers);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving store users with birthdays.", ex);
+        }
+    }
+
+    /// <summary>
     /// Creates a new store user.
     /// </summary>
     /// <param name="createStoreUserDto">Store user creation data</param>

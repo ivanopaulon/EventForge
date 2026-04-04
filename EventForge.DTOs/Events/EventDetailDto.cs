@@ -55,6 +55,24 @@ namespace EventForge.DTOs.Events
         public EventStatus Status { get; set; }
 
         /// <summary>
+        /// Hex color code for scheduler display (e.g. "#4285F4").
+        /// </summary>
+        public string? Color { get; set; }
+
+        /// <summary>
+        /// Username the event is assigned to.
+        /// </summary>
+        public string? AssignedToUserId { get; set; }
+
+        /// <summary>
+        /// Visibility of the event.
+        /// </summary>
+        public CalendarVisibility Visibility { get; set; }
+
+        /// <summary>Daily time slots (e.g. 08:00–12:00 and 14:00–18:00).</summary>
+        public List<EventTimeSlotDto> TimeSlots { get; set; } = new();
+
+        /// <summary>
         /// Collection of teams associated with the event.
         /// </summary>
         public ICollection<TeamDetailDto> Teams { get; set; } = new List<TeamDetailDto>();

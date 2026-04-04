@@ -319,7 +319,6 @@
     "warning": "Attenzione",
     "yes": "Sì",
     "days": "giorni",
-    "itemsFound": "elementi trovati",
     "advancedOptions": "Opzioni Avanzate",
     "row": "Riga",
     "data": "Dati",
@@ -668,7 +667,7 @@
   "field": {
     "active": "Attivo",
     "address": "Indirizzo",
-    "capacity": "Capacità",
+    "capacity": "Capienza",
     "city": "Città",
     "color": "Colore",
     "confirmPassword": "Conferma password",
@@ -685,6 +684,7 @@
     "enabled": "Abilitato",
     "endDate": "Data fine",
     "endTime": "Ora fine",
+    "dateRange": "Periodo (inizio – fine)",
     "event": "Evento",
     "eventCategory": "Categoria evento",
     "eventCount": "Conteggio eventi",
@@ -698,7 +698,7 @@
     "lastLogin": "Ultimo accesso",
     "lastName": "Cognome",
     "license": "Licenza",
-    "location": "Posizione",
+    "location": "Luogo",
     "maxUsers": "Massimo utenti",
     "modifiedAt": "Modificato il",
     "modifiedBy": "Modificato da",
@@ -779,7 +779,13 @@
     "unitType": "Tipo Unità",
     "conversionFactor": "Fattore di Conversione",
     "componentProduct": "Prodotto Componente",
-    "quantity": "Quantità"
+    "quantity": "Quantità",
+    "visibility": "Visibilità",
+    "assignedTo": "Assegna a (username)",
+    "dueDate": "Scadenza",
+    "dueTime": "Orario scadenza",
+    "longDescription": "Descrizione estesa",
+    "dateOfBirth": "Data di nascita"
   },
   "filter": {
     "all": "Tutti"
@@ -2161,7 +2167,9 @@
     "discountValueExceedsTotal": "Il valore dello sconto supera il totale della riga",
     "vatRateInvalid": "L'aliquota IVA deve essere tra 0 e 100",
     "incompleteData": "Dati incompleti",
-    "unitOfMeasureRequired": "L'unità di misura è obbligatoria"
+    "unitOfMeasureRequired": "L'unità di misura è obbligatoria",
+    "dateRangeRequired": "Il periodo è obbligatorio",
+    "endTimeAfterStart": "L'orario di fine deve essere successivo a quello di inizio"
   },
   "walkthrough": {
     "chat": {
@@ -2490,7 +2498,9 @@
     "stockManagement": "Giacenze",
     "stockReconciliation": "Riconciliazione Giacenze",
     "registries": "Anagrafiche",
-    "commercial": "Commerciale"
+    "commercial": "Commerciale",
+    "events": "Gestione Calendario",
+    "eventCalendar": "Calendario & Promemoria"
   },
   "tour": {
     "chat": "Tour Chat",
@@ -3046,5 +3056,80 @@
   "quickFilters": {
     "title": "Filtri rapidi",
     "all": "Tutti"
+  },
+  "events": {
+    "createEvent": "Nuovo Evento",
+    "editEvent": "Modifica Evento",
+    "newEvent": "Evento",
+    "newReminder": "Promemoria",
+    "newTask": "Task",
+    "createReminder": "Nuovo Promemoria",
+    "createTask": "Nuovo Task",
+    "created": "Evento creato con successo",
+    "updated": "Evento aggiornato con successo",
+    "reminderCreated": "Promemoria creato con successo",
+    "taskCreated": "Task creato con successo",
+    "createError": "Errore durante la creazione",
+    "updateError": "Errore durante l'aggiornamento dell'evento",
+    "loadError": "Errore nel caricamento del calendario",
+    "completed": "Completato con successo",
+    "completeError": "Errore nel completamento",
+    "complete": "Completa",
+    "dateCapacity": "Date e Capacità",
+    "displaySettings": "Visualizzazione e Accesso",
+    "scheduleAndPriority": "Scadenza e Priorità",
+    "recurrence": "Ricorrenza",
+    "recurrencePattern": "Frequenza",
+    "recurrenceInterval": "Ogni (n)",
+    "recurrenceEnd": "Termina il",
+    "allDay": "Tutto il giorno",
+    "presetColors": "Colori rapidi",
+    "showFilter": "Mostra:",
+    "reminders": "Promemoria",
+    "tasks": "Task",
+    "reminder": "Promemoria",
+    "task": "Task",
+    "activeReminders": "Promemoria attivi",
+    "activeTasks": "Task aperti",
+    "assignedToHelper": "Lascia vuoto per nessuna assegnazione",
+    "visibility": {
+      "public": "Pubblico",
+      "private": "Privato"
+    }
+  },
+  "priority": {
+    "low": "Bassa",
+    "normal": "Normale",
+    "high": "Alta",
+    "critical": "Critica",
+    "urgent": "Urgente"
+  },
+  "reminderStatus": {
+    "active": "Attivo",
+    "pending": "In attesa",
+    "sent": "Inviato",
+    "snoozed": "Posticipato",
+    "completed": "Completato",
+    "cancelled": "Annullato",
+    "expired": "Scaduto"
+  },
+  "recurrence": {
+    "daily": "Giornaliera",
+    "weekly": "Settimanale",
+    "monthly": "Mensile",
+    "quarterly": "Trimestrale",
+    "yearly": "Annuale",
+    "custom": "Personalizzata"
+  },
+  "scheduler": {
+    "cat": {
+      "events": "Eventi",
+      "reminders": "Promemoria",
+      "tasks": "Task",
+      "pricelists": "Listini",
+      "promotions": "Promozioni",
+      "lots": "Scadenze Lotti",
+      "birthdays": "Compleanni"
+    }
   }
 }

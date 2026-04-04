@@ -4,6 +4,7 @@
 @inject IChatService ChatService
 @inject INotificationService NotificationService
 @inject IDialogService DialogService
+@inject NavigationManager NavigationManager
 @implements IDisposable
 
 <!-- Child components: their panels render normally, only their individual FABs are hidden -->
@@ -26,6 +27,28 @@
                         Size="Size.Small"
                         OnClick="OnScrollToTopClick"
                         aria-label="Torna in cima alla pagina" />
+            </MudTooltip>
+        </div>
+
+        <!-- Planned events shortcut -->
+        <div class="ef-speed-dial-action">
+            <MudTooltip Text="Prossimi eventi" Placement="Placement.Left">
+                <MudFab Color="Color.Info"
+                        StartIcon="@Icons.Material.Outlined.EventNote"
+                        Size="Size.Small"
+                        OnClick="OnPlannedEventsClick"
+                        aria-label="Vai agli eventi pianificati" />
+            </MudTooltip>
+        </div>
+
+        <!-- Expired / completed events shortcut -->
+        <div class="ef-speed-dial-action">
+            <MudTooltip Text="Ultimi eventi scaduti" Placement="Placement.Left">
+                <MudFab Color="Color.Warning"
+                        StartIcon="@Icons.Material.Outlined.EventBusy"
+                        Size="Size.Small"
+                        OnClick="OnExpiredEventsClick"
+                        aria-label="Vai agli eventi scaduti" />
             </MudTooltip>
         </div>
 
@@ -222,6 +245,20 @@
         await DialogService.ShowAsync<NotificationCenterDialog>("Centro notifiche", options);
     }
 
+    private void OnPlannedEventsClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        NavigationManager.NavigateTo("/events/management?filter=planned");
+    }
+
+    private void OnExpiredEventsClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        NavigationManager.NavigateTo("/events/management?filter=completed");
+    }
+
     private async Task OnScrollToTopClick()
     {
         _isOpen = false;
@@ -295,7 +332,7 @@
     }
 
     .ef-speed-dial--open .ef-speed-dial-actions {
-        max-height: 300px;
+        max-height: 440px;
         opacity: 1;
         pointer-events: auto;
     }
@@ -311,11 +348,13 @@
         opacity: 1;
     }
 
-    /* Stagger: Health (4th, nearest) first, then Chat, then Notifications, then ScrollTop */
-    .ef-speed-dial--open .ef-speed-dial-action:nth-child(4) { transition-delay: 0s; }
-    .ef-speed-dial--open .ef-speed-dial-action:nth-child(3) { transition-delay: 0.06s; }
-    .ef-speed-dial--open .ef-speed-dial-action:nth-child(2) { transition-delay: 0.12s; }
-    .ef-speed-dial--open .ef-speed-dial-action:nth-child(1) { transition-delay: 0.18s; }
+    /* Stagger: Health (6th, nearest) first, then Chat, Notifications, ExpiredEvents, PlannedEvents, ScrollTop */
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(6) { transition-delay: 0s; }
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(5) { transition-delay: 0.06s; }
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(4) { transition-delay: 0.12s; }
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(3) { transition-delay: 0.18s; }
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(2) { transition-delay: 0.24s; }
+    .ef-speed-dial--open .ef-speed-dial-action:nth-child(1) { transition-delay: 0.30s; }
 
     /* ── Profile row: outside overflow:hidden — sub-menu can expand left ── */
     .ef-profile-row {

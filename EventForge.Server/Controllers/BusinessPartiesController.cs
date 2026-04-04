@@ -192,6 +192,33 @@ public class BusinessPartiesController : BaseApiController
     }
 
     /// <summary>
+    /// Gets all business parties (natural persons) that have a date of birth set.
+    /// Used for birthday tracking in the calendar scheduler.
+    /// </summary>
+    /// <returns>List of business parties with a date of birth</returns>
+    /// <response code="200">Returns the list of business parties with birthdays</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("with-birthdays")]
+    [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesWithBirthdays(
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var parties = await _businessPartyService.GetBusinessPartiesWithBirthdayAsync(cancellationToken);
+            return Ok(parties);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving business parties with birthdays.", ex);
+        }
+    }
+
+    /// <summary>
     /// Searches business parties by name or tax code.
     /// </summary>
     /// <param name="searchTerm">Search term to match against name or tax code</param>

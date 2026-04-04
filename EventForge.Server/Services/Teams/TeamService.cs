@@ -448,6 +448,21 @@ public class TeamService : ITeamService
             .AnyAsync(t => t.Id == teamId && !t.IsDeleted, cancellationToken);
     }
 
+    public async Task<IEnumerable<TeamMemberDto>> GetMembersWithBirthdayAsync(CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue) return Enumerable.Empty<TeamMemberDto>();
+
+        var members = await _context.TeamMembers
+            .Where(m => !m.IsDeleted && m.DateOfBirth.HasValue && m.TenantId == tenantId.Value)
+            .Include(m => m.Team)
+            .OrderBy(m => m.LastName)
+            .ThenBy(m => m.FirstName)
+            .ToListAsync(cancellationToken);
+
+        return members.Select(MapToTeamMemberDto);
+    }
+
     public async Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
         return await _context.Events

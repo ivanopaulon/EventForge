@@ -54,6 +54,12 @@ public class Reference : AuditableEntity
     public string? Notes { get; set; } = string.Empty;
 
     /// <summary>
+    /// Date of birth of the reference person. Optional, used for birthday tracking.
+    /// </summary>
+    [Display(Name = "Date of Birth", Description = "Date of birth of the reference person.")]
+    public DateTime? DateOfBirth { get; set; }
+
+    /// <summary>
     /// Contacts for this reference person.
     /// </summary>
     [Display(Name = "Contacts", Description = "Contacts for this reference person.")]

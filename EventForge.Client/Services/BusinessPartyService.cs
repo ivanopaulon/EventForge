@@ -11,6 +11,7 @@ namespace EventForge.Client.Services
         Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id);
         Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType);
         Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50);
+        Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync();
         Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto);
         Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto);
         Task DeleteBusinessPartyAsync(Guid id);
@@ -90,6 +91,12 @@ namespace EventForge.Client.Services
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType)
         {
             return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}")
+                ?? new List<BusinessPartyDto>();
+        }
+
+        public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync()
+        {
+            return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays")
                 ?? new List<BusinessPartyDto>();
         }
 

@@ -148,6 +148,11 @@ public interface IBusinessPartyService
     Task<bool> BusinessPartyExistsAsync(Guid businessPartyId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all business parties that have a DateOfBirth set (natural persons). Used for birthday tracking in the scheduler.
+    /// </summary>
+    Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets documents for a business party with optional filters and pagination.
     /// </summary>
     /// <param name="businessPartyId">Business party ID</param>

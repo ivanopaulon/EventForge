@@ -2,6 +2,7 @@
 
 global using EventForge.DTOs.Audit;
 global using EventForge.DTOs.Auth;
+global using EventForge.DTOs.Calendar;
 global using EventForge.DTOs.Common;
 global using EventForge.DTOs.Events;
 global using EventForge.DTOs.Health;

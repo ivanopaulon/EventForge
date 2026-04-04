@@ -8,6 +8,7 @@ using EventForge.Server.Services.Common;
 using EventForge.Server.Services.Dashboard;
 using EventForge.Server.Services.DevTools;
 using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Calendar;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Export;
 using EventForge.Server.Services.External;
@@ -253,6 +254,7 @@ public static class ServiceCollectionExtensions
 
         // Register event services
         _ = services.AddScoped<IEventService, EventService>();
+        _ = services.AddScoped<ICalendarReminderService, CalendarReminderService>();
 
         // Register bank services
         _ = services.AddScoped<IBankService, BankService>();

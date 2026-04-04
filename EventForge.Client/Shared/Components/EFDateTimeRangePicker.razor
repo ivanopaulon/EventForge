@@ -1,0 +1,211 @@
+@* EFDateTimeRangePicker — Reusable component: date-range picker + daily start/end time + all-day toggle.
+   Semantics: the user picks a date range (e.g. Mon–Thu) and, when not all-day,
+   sets the daily hours (e.g. 08:00–18:00) that apply to every day in that range.
+
+   Usage:
+     <EFDateTimeRangePicker @bind-DateRange="_range"
+                            @bind-StartTime="_startTime"
+                            @bind-EndTime="_endTime"
+                            @bind-IsAllDay="_isAllDay"
+                            Required="true" />
+
+   Helper methods exposed on the component ref:
+     GetStartDateTime() → start date + daily start time (or midnight when all-day)
+     GetEndDateTime()   → end date   + daily end time   (or 23:59:59 when all-day)
+*@
+
+<MudGrid Spacing="2">
+
+    @* ── Date range ── *@
+    <MudItem xs="12">
+        <MudDateRangePicker @bind-DateRange="DateRange"
+                            @bind-DateRange:after="@(() => DateRangeChanged.InvokeAsync(DateRange))"
+                            Label="@_rangeLabel"
+                            Variant="Variant.Outlined"
+                            Margin="Margin.Dense"
+                            DateFormat="dd/MM/yyyy"
+                            Required="@Required"
+                            RequiredError="@_rangeRequiredError"
+                            Clearable="true"
+                            Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Outlined.DateRange">
+            <PickerActions>
+                <MudButton Variant="Variant.Text"
+                           OnClick="ClearDateRange">
+                    @TranslationService.GetTranslation("common.clear", "Pulisci")
+                </MudButton>
+            </PickerActions>
+        </MudDateRangePicker>
+    </MudItem>
+
+    @* ── All-day toggle ── *@
+    <MudItem xs="12" sm="4" Class="d-flex align-center">
+        <MudCheckBox T="bool"
+                     Value="IsAllDay"
+                     ValueChanged="OnIsAllDayChanged"
+                     Label="@TranslationService.GetTranslation("events.allDay", "Tutto il giorno")"
+                     Color="Color.Primary" />
+    </MudItem>
+
+    @* ── Time pickers (hidden when all-day) ── *@
+    @if (!IsAllDay)
+    {
+        <MudItem xs="12" sm="4">
+            <MudTimePicker @bind-Time="StartTime"
+                           @bind-Time:after="@(() => StartTimeChanged.InvokeAsync(StartTime))"
+                           Label="@_startTimeLabel"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           AmPm="false"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Outlined.AccessTime" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTimePicker @bind-Time="EndTime"
+                           @bind-Time:after="@(() => EndTimeChanged.InvokeAsync(EndTime))"
+                           Label="@_endTimeLabel"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           AmPm="false"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Outlined.AccessTime"
+                           Error="@_endTimeInvalid"
+                           ErrorText="@_endTimeError" />
+        </MudItem>
+    }
+
+    @* ── Summary chip when a valid range + times are set ── *@
+    @if (DateRange?.Start != null)
+    {
+        <MudItem xs="12">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-1" />
+                @BuildSummary()
+            </MudText>
+        </MudItem>
+    }
+
+</MudGrid>
+
+@code {
+    [Inject] private ITranslationService TranslationService { get; set; } = null!;
+
+    // ── Bindable parameters ────────────────────────────────────────────────
+
+    /// <summary>The selected date range.</summary>
+    [Parameter] public DateRange? DateRange { get; set; }
+    [Parameter] public EventCallback<DateRange?> DateRangeChanged { get; set; }
+
+    /// <summary>Daily start time (used when IsAllDay = false).</summary>
+    [Parameter] public TimeSpan? StartTime { get; set; }
+    [Parameter] public EventCallback<TimeSpan?> StartTimeChanged { get; set; }
+
+    /// <summary>Daily end time (used when IsAllDay = false).</summary>
+    [Parameter] public TimeSpan? EndTime { get; set; }
+    [Parameter] public EventCallback<TimeSpan?> EndTimeChanged { get; set; }
+
+    /// <summary>When true, the event occupies the full day; time pickers are hidden.</summary>
+    [Parameter] public bool IsAllDay { get; set; }
+    [Parameter] public EventCallback<bool> IsAllDayChanged { get; set; }
+
+    // ── Config parameters ─────────────────────────────────────────────────
+
+    /// <summary>Mark the date range as required (shows validation error when empty).</summary>
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>Override the date-range picker label.</summary>
+    [Parameter] public string? RangeLabel { get; set; }
+
+    /// <summary>Override the start-time label.</summary>
+    [Parameter] public string? StartTimeLabel { get; set; }
+
+    /// <summary>Override the end-time label.</summary>
+    [Parameter] public string? EndTimeLabel { get; set; }
+
+    // ── Computed labels (i18n with fallback) ─────────────────────────────
+
+    private string _rangeLabel => RangeLabel
+        ?? TranslationService.GetTranslation("field.dateRange", "Periodo (inizio – fine)");
+
+    private string _startTimeLabel => StartTimeLabel
+        ?? TranslationService.GetTranslation("field.startTime", "Orario inizio");
+
+    private string _endTimeLabel => EndTimeLabel
+        ?? TranslationService.GetTranslation("field.endTime", "Orario fine");
+
+    private string _rangeRequiredError =>
+        TranslationService.GetTranslation("validation.dateRangeRequired", "Il periodo è obbligatorio");
+
+    // ── Validation ────────────────────────────────────────────────────────
+
+    private bool _endTimeInvalid => !IsAllDay
+        && StartTime.HasValue && EndTime.HasValue
+        && EndTime.Value <= StartTime.Value;
+
+    private string _endTimeError =>
+        TranslationService.GetTranslation("validation.endTimeAfterStart",
+            "L'orario di fine deve essere successivo a quello di inizio");
+
+    // ── IsAllDay handler ─────────────────────────────────────────────────
+
+    private async Task OnIsAllDayChanged(bool value)
+    {
+        IsAllDay = value;
+        await IsAllDayChanged.InvokeAsync(value);
+    }
+
+    // ── Date range clear handler ──────────────────────────────────────────
+
+    private async Task ClearDateRange()
+    {
+        DateRange = null;
+        await DateRangeChanged.InvokeAsync(null);
+    }
+
+    // ── Public helpers ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the computed start DateTime combining the range start date with the
+    /// daily start time (or midnight when all-day).
+    /// Returns null if no start date is set.
+    /// </summary>
+    public DateTime? GetStartDateTime()
+    {
+        if (DateRange?.Start == null) return null;
+        var date = DateRange.Start.Value.Date;
+        return IsAllDay ? date : date + (StartTime ?? TimeSpan.Zero);
+    }
+
+    /// <summary>
+    /// Returns the computed end DateTime combining the range end date with the
+    /// daily end time (or end-of-day when all-day).
+    /// Falls back to start date when no end date is selected.
+    /// </summary>
+    public DateTime? GetEndDateTime()
+    {
+        var endDate = (DateRange?.End ?? DateRange?.Start)?.Date;
+        if (endDate == null) return null;
+        if (IsAllDay) return endDate.Value.AddDays(1).AddSeconds(-1);
+        return endDate.Value + (EndTime ?? TimeSpan.FromHours(23).Add(TimeSpan.FromMinutes(59)));
+    }
+
+    // ── Summary text ──────────────────────────────────────────────────────
+
+    private string BuildSummary()
+    {
+        var start = DateRange!.Start!.Value;
+        var end   = DateRange.End ?? start;
+        var days  = (int)(end.Date - start.Date).TotalDays + 1;
+
+        var datePart = start.Date == end.Date
+            ? start.ToString("dd/MM/yyyy")
+            : $"{start:dd/MM/yyyy} – {end:dd/MM/yyyy} ({days} {TranslationService.GetTranslation("common.days", "giorni")})";
+
+        if (IsAllDay)
+            return $"{datePart} · {TranslationService.GetTranslation("events.allDay", "Tutto il giorno")}";
+
+        var s = StartTime.HasValue ? $"{StartTime:hh\\:mm}" : "--:--";
+        var e = EndTime.HasValue   ? $"{EndTime:hh\\:mm}"   : "--:--";
+        return $"{datePart} · {s} – {e}";
+    }
+}

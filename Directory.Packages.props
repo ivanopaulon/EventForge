@@ -76,5 +76,8 @@
     <!-- Setup Wizard and Background Services -->
     <PackageVersion Include="ncrontab" Version="3.4.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.0" />
+    <!-- Syncfusion Blazor Scheduler for calendar/event management -->
+    <PackageVersion Include="Syncfusion.Blazor.Schedule" Version="33.1.46" />
+    <PackageVersion Include="Syncfusion.Blazor.Themes" Version="33.1.46" />
   </ItemGroup>
 </Project>

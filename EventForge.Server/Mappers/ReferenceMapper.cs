@@ -19,6 +19,7 @@ public static class ReferenceMapper
             LastName = reference.LastName,
             Department = reference.Department,
             Notes = reference.Notes,
+            DateOfBirth = reference.DateOfBirth,
             CreatedAt = reference.CreatedAt,
             CreatedBy = reference.CreatedBy,
             ModifiedAt = reference.ModifiedAt,
@@ -54,7 +55,8 @@ public static class ReferenceMapper
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Department = dto.Department,
-            Notes = dto.Notes
+            Notes = dto.Notes,
+            DateOfBirth = dto.DateOfBirth
         };
     }
 
@@ -67,5 +69,6 @@ public static class ReferenceMapper
         entity.LastName = dto.LastName;
         entity.Department = dto.Department;
         entity.Notes = dto.Notes;
+        entity.DateOfBirth = dto.DateOfBirth;
     }
 }

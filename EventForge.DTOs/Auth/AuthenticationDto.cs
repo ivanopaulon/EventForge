@@ -200,6 +200,12 @@ namespace EventForge.DTOs.Auth
         public string? PhoneNumber { get; set; }
 
         /// <summary>
+        /// Date of birth. Optional.
+        /// </summary>
+        [Display(Name = "Date of Birth", Description = "Date of birth.")]
+        public DateTime? DateOfBirth { get; set; }
+
+        /// <summary>
         /// User's preferred language code.
         /// </summary>
         [Display(Name = "field.preferredLanguage", Description = "User's preferred language code.")]

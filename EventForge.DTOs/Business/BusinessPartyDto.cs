@@ -48,6 +48,11 @@ namespace EventForge.DTOs.Business
         public string? Notes { get; set; }
 
         /// <summary>
+        /// Date of birth for natural-person business parties. Null for companies.
+        /// </summary>
+        public DateTime? DateOfBirth { get; set; }
+
+        /// <summary>
         /// Number of addresses associated with the business party.
         /// </summary>
         public int AddressCount { get; set; }
