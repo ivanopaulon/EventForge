@@ -98,14 +98,8 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Dashboard", "RequireSuperAdmin");
 });
 
-// Add session support for wizard state
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
+// Note: Session and distributed cache are configured in AddAuthentication()
+// in ServiceCollectionExtensions.cs with a 4-hour idle timeout.
 
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
@@ -446,66 +440,10 @@ app.UseStaticFiles();
 // Enable session support for wizard state
 app.UseSession();
 
-// Protect /settings static files with authentication check
-app.UseWhen(
-    context => context.Request.Path.StartsWithSegments("/settings"),
-    appBuilder =>
-    {
-        appBuilder.Use(async (HttpContext context, RequestDelegate next) =>
-        {
-            // Get logger for diagnostics
-            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-            
-            // Check if token exists in cookie (set by login page)
-            var token = context.Request.Cookies["serverToken"];
-            
-            // If no token, redirect to login with return URL
-            if (string.IsNullOrEmpty(token))
-            {
-                logger.LogWarning("Access to /settings denied: serverToken cookie missing");
-                context.Response.Redirect($"/ServerAuth/Login?returnUrl=/Dashboard/Index");
-                return;
-            }
-            
-            // Redirect legacy /settings to modern Dashboard
-            logger.LogInformation("Redirecting /settings to /Dashboard/Index");
-            context.Response.Redirect("/Dashboard/Index");
-        });
-    });
-
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseCors();
 app.UseAuthorization();
-
-// Production: Protect Swagger with authentication - SuperAdmin only
-// Must be AFTER UseAuthentication/UseAuthorization so User principal is populated
-if (!app.Environment.IsDevelopment())
-{
-    app.UseWhen(
-        context => context.Request.Path.StartsWithSegments("/swagger"),
-        appBuilder =>
-        {
-            appBuilder.Use(async (context, next) =>
-            {
-                // Check authentication
-                if (context.User.Identity?.IsAuthenticated != true)
-                {
-                    context.Response.Redirect("/server/login?returnUrl=/swagger");
-                    return;
-                }
-
-                // Check SuperAdmin role
-                if (!context.User.IsInRole("SuperAdmin"))
-                {
-                    context.Response.Redirect("/?error=swagger_access_denied");
-                    return;
-                }
-
-                await next();
-            });
-        });
-}
 
 // Add authorization logging after authorization
 app.UseAuthorizationLogging();

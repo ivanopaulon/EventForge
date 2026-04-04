@@ -1,20 +1,118 @@
 @page
 @model EventForge.Server.Pages.Dashboard.PerformanceModel
+@using EventForge.DTOs.Dashboard
 @{
     ViewData["Title"] = "Performance";
     ViewData["PageSection"] = "Monitoring";
+    var m = Model.Metrics;
 }
 
-<div class="container-fluid">
-    <h1 class="mb-4">Performance Monitoring</h1>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Server Performance Metrics</h5>
-                    <p class="card-text">Track the performance and resource utilization of your EventForge server.</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-speedometer2 me-2"></i>Performance</h2>
+    <a href="/dashboard/performance" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage</div>
+}
+else if (m == null)
+{
+    <div class="alert alert-warning">Nessun dato disponibile.</div>
+}
+else
+{
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-lightning-fill fs-2 text-warning mb-2"></i>
+                    <h4 class="mb-0">@m.RequestsPerMinute.ToString("N0")</h4>
+                    <small class="text-muted">Richieste / minuto</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-hourglass-split fs-2 text-info mb-2"></i>
+                    <h4 class="mb-0">@m.AvgResponseTimeMs.ToString("N1") <small class="text-muted fs-6">ms</small></h4>
+                    <small class="text-muted">Tempo risposta medio</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-memory fs-2 text-primary mb-2"></i>
+                    <h4 class="mb-0">@m.MemoryUsageMB <small class="text-muted fs-6">MB</small></h4>
+                    <small class="text-muted">Memoria utilizzata</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-cpu fs-2 text-danger mb-2"></i>
+                    <h4 class="mb-0">@m.CpuUsagePercent.ToString("N1") <small class="text-muted fs-6">%</small></h4>
+                    <small class="text-muted">CPU</small>
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Slow Queries -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent fw-semibold">
+            <i class="bi bi-search me-2 text-warning"></i>Query lente (ultime 60 min)
+        </div>
+        <div class="card-body p-0">
+            @if (!m.SlowQueries.Any())
+            {
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-2"></i>
+                    Nessuna query lenta rilevata
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Operazione</th>
+                                <th style="width:130px">Durata media</th>
+                                <th style="width:100px">Esecuzioni</th>
+                                <th style="width:160px">Ultima vista</th>
+                                <th style="width:120px">Contesto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var q in m.SlowQueries.OrderByDescending(x => x.AvgDurationMs))
+                            {
+                                var durClass = q.AvgDurationMs > 5000 ? "danger" : q.AvgDurationMs > 2000 ? "warning" : "secondary";
+                                <tr>
+                                    <td class="text-truncate" style="max-width:340px" title="@q.QueryPreview">
+                                        <code class="small">@q.QueryPreview</code>
+                                    </td>
+                                    <td><span class="badge bg-@durClass">@q.AvgDurationMs.ToString("N0") ms</span></td>
+                                    <td>@q.ExecutionCount</td>
+                                    <td class="text-muted small">@q.LastSeen.ToString("dd/MM HH:mm:ss")</td>
+                                    <td class="text-muted small">@q.Context</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <small class="text-muted mt-2 d-block">
+        <i class="bi bi-clock me-1"></i>Timestamp: @m.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
+        — <a href="/profiler" target="_blank" class="text-muted">MiniProfiler <i class="bi bi-box-arrow-up-right"></i></a>
+    </small>
+}

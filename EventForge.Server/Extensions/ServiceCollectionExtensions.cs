@@ -488,10 +488,13 @@ public static class ServiceCollectionExtensions
         var key = Encoding.UTF8.GetBytes(jwtOptions.SecretKey);
 
         // Configure JWT authentication
+        // DefaultChallengeScheme = Mixed so that challenges route through
+        // ForwardChallengeSelector: Cookie redirect for /Dashboard pages,
+        // JWT 401 for /api endpoints.
         _ = services.AddAuthentication(options =>
         {
             options.DefaultScheme = AuthenticationSchemes.Mixed;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = AuthenticationSchemes.Mixed;
         })
         .AddJwtBearer(options =>
         {
@@ -564,24 +567,19 @@ public static class ServiceCollectionExtensions
         })
         .AddPolicyScheme(AuthenticationSchemes.Mixed, "JWT or Cookie", options =>
         {
-            options.ForwardDefaultSelector = context =>
+            // Route authentication/challenge/forbid to Cookie for browser-facing
+            // server pages, and to JWT for all API/SignalR endpoints.
+            static string SelectScheme(HttpContext ctx)
             {
-                // If the request is to /Dashboard or /ServerAuth, use Cookie
-                if (context.Request.Path.StartsWithSegments("/Dashboard") ||
-                    context.Request.Path.StartsWithSegments("/ServerAuth"))
-                {
+                if (ctx.Request.Path.StartsWithSegments("/Dashboard") ||
+                    ctx.Request.Path.StartsWithSegments("/ServerAuth") ||
+                    ctx.Request.Path.StartsWithSegments("/Setup"))
                     return AuthenticationSchemes.ServerCookie;
-                }
 
-                // If the request has Authorization header, use JWT
-                if (context.Request.Headers.ContainsKey("Authorization"))
-                {
-                    return JwtBearerDefaults.AuthenticationScheme;
-                }
+                return JwtBearerDefaults.AuthenticationScheme;
+            }
 
-                // Default: Cookie for Razor Pages
-                return AuthenticationSchemes.ServerCookie;
-            };
+            options.ForwardDefaultSelector = SelectScheme;
         });
     }
 
