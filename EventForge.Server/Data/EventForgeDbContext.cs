@@ -227,6 +227,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigurePerformanceIndexes(modelBuilder);
         ConfigureCalendarReminderRelationships(modelBuilder);
         ConfigureEventTimeSlotRelationships(modelBuilder);
+        ConfigureEntityChangeLog(modelBuilder);
     }
 
     /// <summary>
@@ -365,7 +366,37 @@ public partial class EventForgeDbContext : DbContext
     }
 
     /// <summary>
+    /// Properties that are excluded from Insert audit logging because they either have a fixed
+    /// default value on every insert (IsDeleted=false, IsActive=true), are null (ModifiedAt/By),
+    /// or are infrastructure columns (RowVersion) whose binary representation adds noise.
+    /// </summary>
+    private static readonly HashSet<string> AuditInsertNoiseProperties = new(StringComparer.Ordinal)
+    {
+        "RowVersion",    // byte[] — binary, meaningless as a log value
+        "IsDeleted",     // always false on insert — zero information
+        "IsActive",      // always true on insert — zero information
+        "DeletedAt",     // always null on insert
+        "DeletedBy",     // always null on insert
+        "ModifiedAt",    // always null on insert
+        "ModifiedBy",    // always null on insert
+    };
+
+    private const int AuditValueMaxLength = 2000;
+
+    /// <summary>
+    /// Truncates a value string to the maximum allowed length for audit columns,
+    /// appending an ellipsis marker when truncation occurs.
+    /// </summary>
+    private static string? TruncateAuditValue(string? value)
+    {
+        if (value == null || value.Length <= AuditValueMaxLength) return value;
+        return string.Concat(value.AsSpan(0, AuditValueMaxLength - 3), "...");
+    }
+
+    /// <summary>
     /// Creates audit log entries for an entity change.
+    /// Insert events exclude noise properties (see AuditInsertNoiseProperties).
+    /// All values are truncated to 2000 characters.
     /// </summary>
     private List<EntityChangeLog> CreateAuditEntries(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<AuditableEntity> entry, string currentUser)
     {
@@ -374,6 +405,7 @@ public partial class EventForgeDbContext : DbContext
         var entityName = entity.GetType().Name;
         var entityId = entity.Id;
         var tenantId = entity.TenantId == Guid.Empty ? (Guid?)null : entity.TenantId;
+        var changedAt = DateTime.UtcNow;
 
         string operationType = entry.State switch
         {
@@ -385,51 +417,50 @@ public partial class EventForgeDbContext : DbContext
 
         if (entry.State == EntityState.Added)
         {
-            // For new entities, log all properties
+            // For new entities log only meaningful business properties (skip noise defaults).
             foreach (var property in entry.Properties)
             {
-                if (property.CurrentValue != null)
+                if (property.CurrentValue == null) continue;
+                if (AuditInsertNoiseProperties.Contains(property.Metadata.Name)) continue;
+
+                auditEntries.Add(new EntityChangeLog
                 {
-                    auditEntries.Add(new EntityChangeLog
-                    {
-                        EntityName = entityName,
-                        EntityId = entityId,
-                        TenantId = tenantId,
-                        PropertyName = property.Metadata.Name,
-                        OperationType = operationType,
-                        OldValue = null,
-                        NewValue = property.CurrentValue.ToString(),
-                        ChangedBy = currentUser,
-                        ChangedAt = DateTime.UtcNow
-                    });
-                }
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    TenantId = tenantId,
+                    PropertyName = property.Metadata.Name,
+                    OperationType = operationType,
+                    OldValue = null,
+                    NewValue = TruncateAuditValue(property.CurrentValue.ToString()),
+                    ChangedBy = currentUser,
+                    ChangedAt = changedAt
+                });
             }
         }
         else if (entry.State == EntityState.Modified)
         {
-            // For modified entities, log only changed properties
+            // For modified entities log only actually changed properties.
             foreach (var property in entry.Properties)
             {
-                if (property.IsModified)
+                if (!property.IsModified) continue;
+
+                auditEntries.Add(new EntityChangeLog
                 {
-                    auditEntries.Add(new EntityChangeLog
-                    {
-                        EntityName = entityName,
-                        EntityId = entityId,
-                        TenantId = tenantId,
-                        PropertyName = property.Metadata.Name,
-                        OperationType = operationType,
-                        OldValue = property.OriginalValue?.ToString(),
-                        NewValue = property.CurrentValue?.ToString(),
-                        ChangedBy = currentUser,
-                        ChangedAt = DateTime.UtcNow
-                    });
-                }
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    TenantId = tenantId,
+                    PropertyName = property.Metadata.Name,
+                    OperationType = operationType,
+                    OldValue = TruncateAuditValue(property.OriginalValue?.ToString()),
+                    NewValue = TruncateAuditValue(property.CurrentValue?.ToString()),
+                    ChangedBy = currentUser,
+                    ChangedAt = changedAt
+                });
             }
         }
         else if (entry.State == EntityState.Deleted)
         {
-            // For deleted entities, log the deletion
+            // For deleted entities log a single deletion record.
             auditEntries.Add(new EntityChangeLog
             {
                 EntityName = entityName,
@@ -440,7 +471,7 @@ public partial class EventForgeDbContext : DbContext
                 OldValue = "Active",
                 NewValue = "Deleted",
                 ChangedBy = currentUser,
-                ChangedAt = DateTime.UtcNow
+                ChangedAt = changedAt
             });
         }
 

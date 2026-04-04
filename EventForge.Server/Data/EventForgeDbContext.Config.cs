@@ -1,4 +1,5 @@
 using EventForge.Server.Data.Entities;
+using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
 
@@ -141,4 +142,38 @@ public partial class EventForgeDbContext
             .HasDatabaseName("UQ_Products_Code");
     }
 
+
+
+    /// <summary>
+    /// Configures EntityChangeLog for optimal storage and query performance.
+    /// Key decisions:
+    /// - NEWSEQUENTIALID() PK default: eliminates B-tree page splits caused by random Guid values.
+    ///   The table is append-only and high-volume; sequential keys keep the clustered index dense.
+    /// - Non-clustered indexes on (TenantId, EntityId, ChangedAt) and (TenantId, ChangedAt):
+    ///   the most common query patterns (audit history for an entity, audit history for a tenant).
+    /// - OldValue/NewValue are NVARCHAR(2000) via [MaxLength(2000)] on the entity; values are
+    ///   also truncated in CreateAuditEntries to guarantee the limit is never exceeded at runtime.
+    /// </summary>
+    private static void ConfigureEntityChangeLog(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<EntityChangeLog>()
+            .Property(e => e.Id)
+            .HasDefaultValueSql("NEWSEQUENTIALID()")
+            .ValueGeneratedOnAdd();
+
+        // Non-clustered index for per-entity audit queries: "show history of entity X in tenant T"
+        _ = modelBuilder.Entity<EntityChangeLog>()
+            .HasIndex(e => new { e.TenantId, e.EntityId, e.ChangedAt })
+            .HasDatabaseName("IX_EntityChangeLogs_TenantId_EntityId_ChangedAt");
+
+        // Non-clustered index for per-tenant audit timeline queries
+        _ = modelBuilder.Entity<EntityChangeLog>()
+            .HasIndex(e => new { e.TenantId, e.ChangedAt })
+            .HasDatabaseName("IX_EntityChangeLogs_TenantId_ChangedAt");
+
+        // Non-clustered index for per-entity-type queries ("who changed all Products today?")
+        _ = modelBuilder.Entity<EntityChangeLog>()
+            .HasIndex(e => new { e.EntityName, e.TenantId, e.ChangedAt })
+            .HasDatabaseName("IX_EntityChangeLogs_EntityName_TenantId_ChangedAt");
+    }
 }

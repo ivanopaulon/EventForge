@@ -10,10 +10,13 @@ public class EntityChangeLog
 {
     /// <summary>
     /// Unique identifier for the log entry.
+    /// NOTE: No C# default — EF Core defers to the NEWSEQUENTIALID() SQL Server default configured
+    /// in EventForgeDbContext.Config.cs. Sequential Guids avoid B-tree page splits on the clustered
+    /// PK index that would otherwise bloat the index far beyond the data size.
     /// </summary>
     [Key]
     [Display(Name = "ID", Description = "Unique identifier for the log entry.")]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Id { get; set; }
 
     /// <summary>
     /// Name of the entity class that was changed.
@@ -54,14 +57,18 @@ public class EntityChangeLog
     public string OperationType { get; set; } = "Update";
 
     /// <summary>
-    /// Previous value of the property.
+    /// Previous value of the property. Truncated to 2000 characters in code to avoid
+    /// storing unbounded NVARCHAR(MAX) content on a high-volume table.
     /// </summary>
+    [MaxLength(2000)]
     [Display(Name = "Old Value", Description = "Previous value of the property.")]
     public string? OldValue { get; set; }
 
     /// <summary>
-    /// New value of the property.
+    /// New value of the property. Truncated to 2000 characters in code to avoid
+    /// storing unbounded NVARCHAR(MAX) content on a high-volume table.
     /// </summary>
+    [MaxLength(2000)]
     [Display(Name = "New Value", Description = "New value of the property.")]
     public string? NewValue { get; set; }
 
