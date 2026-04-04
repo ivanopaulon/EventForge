@@ -111,6 +111,7 @@ builder.Services.AddScoped<IFilterStateService, FilterStateService>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<ITenantContextService, TenantContextService>();
 builder.Services.AddScoped<IClientLogService, ClientLogService>();
+builder.Services.AddScoped<IAppNotificationService, AppNotificationService>();
 builder.Services.AddScoped<IHelpService, HelpService>();
 builder.Services.AddScoped<ILoadingDialogService, LoadingDialogService>();
 builder.Services.AddScoped<IPrintingService, PrintingService>();

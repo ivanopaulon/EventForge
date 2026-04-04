@@ -79,6 +79,7 @@ public class HttpClientService : IHttpClientService
     private readonly ILogger<HttpClientService> _logger;
     private readonly IClientLogService? _clientLogService;
     private readonly ISnackbar? _snackbar;
+    private readonly IAppNotificationService? _appNotification;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public HttpClientService(
@@ -86,13 +87,15 @@ public class HttpClientService : IHttpClientService
         IAuthService authService,
         ILogger<HttpClientService> logger,
         IClientLogService? clientLogService = null,
-        ISnackbar? snackbar = null)
+        ISnackbar? snackbar = null,
+        IAppNotificationService? appNotification = null)
     {
         _httpClientFactory = httpClientFactory;
         _authService = authService;
         _logger = logger;
         _clientLogService = clientLogService;
         _snackbar = snackbar;
+        _appNotification = appNotification;
 
         // Configure JSON options for consistent serialization
         _jsonOptions = new JsonSerializerOptions
@@ -403,7 +406,15 @@ public class HttpClientService : IHttpClientService
             response.StatusCode == (HttpStatusCode)429 ||
             response.StatusCode == HttpStatusCode.Unauthorized)
         {
-            if (_snackbar != null)
+            if (_appNotification != null)
+            {
+                _appNotification.ShowError(errorMessage, details: detail,
+                    correlationId: problemDetails?.Extensions != null &&
+                        problemDetails.Extensions.TryGetValue("correlationId", out var corrId)
+                        ? corrId?.ToString()
+                        : null);
+            }
+            else if (_snackbar != null)
             {
                 _ = _snackbar.Add(errorMessage, Severity.Error, config =>
                 {
