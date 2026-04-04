@@ -23,25 +23,25 @@ public interface ITransferOrderService
     /// <summary>
     /// Gets a specific transfer order by ID.
     /// </summary>
-    Task<TransferOrderDto?> GetTransferOrderAsync(Guid id);
+    Task<TransferOrderDto?> GetTransferOrderAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
     /// Creates a new transfer order.
     /// </summary>
-    Task<TransferOrderDto?> CreateTransferOrderAsync(CreateTransferOrderDto dto);
+    Task<TransferOrderDto?> CreateTransferOrderAsync(CreateTransferOrderDto dto, CancellationToken ct = default);
 
     /// <summary>
     /// Ships a transfer order.
     /// </summary>
-    Task<TransferOrderDto?> ShipTransferOrderAsync(Guid id, ShipTransferOrderDto dto);
+    Task<TransferOrderDto?> ShipTransferOrderAsync(Guid id, ShipTransferOrderDto dto, CancellationToken ct = default);
 
     /// <summary>
     /// Receives a transfer order.
     /// </summary>
-    Task<TransferOrderDto?> ReceiveTransferOrderAsync(Guid id, ReceiveTransferOrderDto dto);
+    Task<TransferOrderDto?> ReceiveTransferOrderAsync(Guid id, ReceiveTransferOrderDto dto, CancellationToken ct = default);
 
     /// <summary>
     /// Cancels a transfer order.
     /// </summary>
-    Task<bool> CancelTransferOrderAsync(Guid id);
+    Task<bool> CancelTransferOrderAsync(Guid id, CancellationToken ct = default);
 }

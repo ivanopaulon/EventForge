@@ -10,7 +10,7 @@ namespace EventForge.Server.Controllers;
 /// <summary>
 /// Controller for managing storage locations within warehouses.
 /// </summary>
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("InventoryManagement")]
 public class StorageLocationsController : BaseApiController

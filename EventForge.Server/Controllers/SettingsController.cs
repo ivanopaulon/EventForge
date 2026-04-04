@@ -43,13 +43,15 @@ public class SettingsController : BaseApiController
     /// Gets all configuration settings with versioning information.
     /// </summary>
     [HttpGet("configuration")]
-    public async Task<ActionResult<List<ConfigurationValueDto>>> GetAllConfigurations()
+    [ProducesResponseType(typeof(List<ConfigurationValueDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<ConfigurationValueDto>>> GetAllConfigurations(CancellationToken cancellationToken = default)
     {
         var configs = await _context.SystemConfigurations
             .Where(c => c.IsActive)
             .OrderBy(c => c.Category)
             .ThenBy(c => c.Key)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var dtos = configs.Select(c => new ConfigurationValueDto
         {
@@ -78,12 +80,15 @@ public class SettingsController : BaseApiController
     /// Gets a specific configuration setting by key.
     /// </summary>
     [HttpGet("configuration/{key}")]
-    public async Task<ActionResult<ConfigurationValueDto>> GetConfiguration(string key)
+    [ProducesResponseType(typeof(ConfigurationValueDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ConfigurationValueDto>> GetConfiguration(string key, CancellationToken cancellationToken = default)
     {
         var config = await _context.SystemConfigurations
             .Where(c => c.Key == key && c.IsActive)
             .OrderByDescending(c => c.Version)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (config == null)
             return NotFound($"Configuration key '{key}' not found.");
@@ -115,13 +120,15 @@ public class SettingsController : BaseApiController
     /// Gets database connection status.
     /// </summary>
     [HttpGet("database/status")]
-    public async Task<ActionResult<DatabaseConnectionStatusDto>> GetDatabaseStatus()
+    [ProducesResponseType(typeof(DatabaseConnectionStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DatabaseConnectionStatusDto>> GetDatabaseStatus(CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            await _context.Database.CanConnectAsync();
+            await _context.Database.CanConnectAsync(cancellationToken);
             stopwatch.Stop();
 
             var provider = _configuration["DatabaseProvider"] ?? "SqlServer";
@@ -154,6 +161,7 @@ public class SettingsController : BaseApiController
     /// Gets server restart status.
     /// </summary>
     [HttpGet("server/restart/status")]
+    [ProducesResponseType(typeof(RestartStatusDto), StatusCodes.Status200OK)]
     public ActionResult<RestartStatusDto> GetRestartStatus()
     {
         var pendingChanges = new List<string>();
@@ -177,15 +185,18 @@ public class SettingsController : BaseApiController
     /// Gets system operation logs (audit trail).
     /// </summary>
     [HttpGet("audit")]
+    [ProducesResponseType(typeof(List<SystemOperationLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<SystemOperationLogDto>>> GetAuditLogs(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         var logs = await _context.SystemOperationLogs
             .OrderByDescending(l => l.ExecutedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var dtos = logs.Select(l => new SystemOperationLogDto
         {
@@ -213,6 +224,8 @@ public class SettingsController : BaseApiController
     /// Gets current configuration from appsettings.json file.
     /// </summary>
     [HttpGet("file")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public IActionResult GetCurrentConfigurationFromFile()
     {
         var connectionString = _configuration.GetConnectionString("DefaultConnection")
@@ -257,7 +270,7 @@ public class SettingsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to parse connection string");
-            return StatusCode(500, "Failed to parse connection string");
+            return CreateInternalServerErrorProblem("Failed to parse connection string.", ex);
         }
     }
 
@@ -265,17 +278,20 @@ public class SettingsController : BaseApiController
     /// Tests database connection without saving.
     /// </summary>
     [HttpPost("test-connection")]
-    public async Task<IActionResult> TestDatabaseConnection([FromBody] TestConnectionRequest request)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> TestDatabaseConnection([FromBody] TestConnectionRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
             var connectionString = BuildConnectionString(request);
 
             using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
+            await connection.OpenAsync(cancellationToken);
 
             using var command = new SqlCommand("SELECT @@VERSION", connection);
-            var version = await command.ExecuteScalarAsync();
+            var version = await command.ExecuteScalarAsync(cancellationToken);
 
             await connection.CloseAsync();
 
@@ -302,7 +318,10 @@ public class SettingsController : BaseApiController
     /// Saves configuration to appsettings.json file.
     /// </summary>
     [HttpPost("save")]
-    public async Task<IActionResult> SaveConfigurationToFile([FromBody] SaveConfigurationRequest request)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> SaveConfigurationToFile([FromBody] SaveConfigurationRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -324,7 +343,7 @@ public class SettingsController : BaseApiController
             });
 
             using var testConn = new SqlConnection(newConnectionString);
-            await testConn.OpenAsync();
+            await testConn.OpenAsync(cancellationToken);
             await testConn.CloseAsync();
 
             // 3. Read current appsettings.json
@@ -332,10 +351,10 @@ public class SettingsController : BaseApiController
 
             if (!SystemFile.Exists(appsettingsPath))
             {
-                return StatusCode(500, "appsettings.json not found");
+                return Problem("appsettings.json not found.", statusCode: StatusCodes.Status500InternalServerError);
             }
 
-            var currentJson = await SystemFile.ReadAllTextAsync(appsettingsPath);
+            var currentJson = await SystemFile.ReadAllTextAsync(appsettingsPath, cancellationToken);
 
             // 4. Parse and update configuration
             using var doc = JsonDocument.Parse(currentJson);
@@ -420,13 +439,13 @@ public class SettingsController : BaseApiController
 
             // 5. Create backup
             var backupPath = $"{appsettingsPath}.backup.{DateTime.UtcNow:yyyyMMddHHmmss}";
-            await SystemFile.WriteAllTextAsync(backupPath, currentJson);
+            await SystemFile.WriteAllTextAsync(backupPath, currentJson, cancellationToken);
             _logger.LogInformation("Configuration backup created at {Path}", backupPath);
 
             // 6. Write updated configuration
             var options = new JsonSerializerOptions { WriteIndented = true };
             var newJson = JsonSerializer.Serialize(updatedConfig, options);
-            await SystemFile.WriteAllTextAsync(appsettingsPath, newJson);
+            await SystemFile.WriteAllTextAsync(appsettingsPath, newJson, cancellationToken);
 
             _logger.LogWarning("Configuration updated by {User}. Server restart required.",
                 User.Identity?.Name ?? "unknown");
@@ -452,12 +471,7 @@ public class SettingsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to save configuration");
-            return StatusCode(500, new
-            {
-                Success = false,
-                Error = "Failed to save configuration",
-                Message = ex.Message
-            });
+            return CreateInternalServerErrorProblem("Failed to save configuration.", ex);
         }
     }
 
@@ -465,6 +479,7 @@ public class SettingsController : BaseApiController
     /// Triggers server restart.
     /// </summary>
     [HttpPost("restart")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult TriggerServerRestart()
     {
         _logger.LogWarning("Server restart requested by {User}", User.Identity?.Name ?? "unknown");

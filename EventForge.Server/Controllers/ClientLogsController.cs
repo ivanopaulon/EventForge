@@ -11,7 +11,7 @@ namespace EventForge.Server.Controllers;
 /// Anonymous access is required to capture errors during login/startup and authentication failures.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [AllowAnonymous]
 [Produces("application/json")]
 public class ClientLogsController : BaseApiController
@@ -35,7 +35,7 @@ public class ClientLogsController : BaseApiController
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> LogClientEntry([FromBody] ClientLogDto clientLog)
+    public async Task<IActionResult> LogClientEntry([FromBody] ClientLogDto clientLog, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
@@ -69,7 +69,7 @@ public class ClientLogsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> LogClientBatch([FromBody] ClientLogBatchDto batchRequest)
+    public async Task<IActionResult> LogClientBatch([FromBody] ClientLogBatchDto batchRequest, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {

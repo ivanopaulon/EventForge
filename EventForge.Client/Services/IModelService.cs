@@ -14,7 +14,7 @@ public interface IModelService
     /// <param name="page">Page number (1-based)</param>
     /// <param name="pageSize">Number of items per page</param>
     /// <returns>Paginated list of models</returns>
-    Task<PagedResult<ModelDto>> GetModelsAsync(int page = 1, int pageSize = 100);
+    Task<PagedResult<ModelDto>> GetModelsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default);
 
     /// <summary>
     /// Gets models by brand ID with optional pagination.
@@ -23,7 +23,7 @@ public interface IModelService
     /// <param name="page">Page number (1-based)</param>
     /// <param name="pageSize">Number of items per page</param>
     /// <returns>Paginated list of models for the brand</returns>
-    Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 100);
+    Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 100, CancellationToken ct = default);
 
     /// <summary>
     /// Gets models by brand ID (cached).
@@ -39,14 +39,14 @@ public interface IModelService
     /// </summary>
     /// <param name="id">Model ID</param>
     /// <returns>Model DTO or null if not found</returns>
-    Task<ModelDto?> GetModelByIdAsync(Guid id);
+    Task<ModelDto?> GetModelByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
     /// Creates a new model.
     /// </summary>
     /// <param name="createModelDto">Model creation data</param>
     /// <returns>Created model DTO</returns>
-    Task<ModelDto> CreateModelAsync(CreateModelDto createModelDto);
+    Task<ModelDto> CreateModelAsync(CreateModelDto createModelDto, CancellationToken ct = default);
 
     /// <summary>
     /// Updates an existing model.
@@ -54,12 +54,12 @@ public interface IModelService
     /// <param name="id">Model ID</param>
     /// <param name="updateModelDto">Model update data</param>
     /// <returns>Updated model DTO or null if not found</returns>
-    Task<ModelDto?> UpdateModelAsync(Guid id, UpdateModelDto updateModelDto);
+    Task<ModelDto?> UpdateModelAsync(Guid id, UpdateModelDto updateModelDto, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes a model.
     /// </summary>
     /// <param name="id">Model ID</param>
     /// <returns>True if deleted, false if not found</returns>
-    Task<bool> DeleteModelAsync(Guid id);
+    Task<bool> DeleteModelAsync(Guid id, CancellationToken ct = default);
 }

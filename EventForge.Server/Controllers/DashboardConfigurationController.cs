@@ -28,17 +28,18 @@ public class DashboardConfigurationController : BaseApiController
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<DashboardConfigurationDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<DashboardConfigurationDto>>> GetConfigurations([FromQuery] string entityType)
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<DashboardConfigurationDto>>> GetConfigurations([FromQuery] string entityType, CancellationToken cancellationToken = default)
     {
         try
         {
-            var configurations = await _service.GetConfigurationsAsync(entityType);
+            var configurations = await _service.GetConfigurationsAsync(entityType, cancellationToken);
             return Ok(configurations);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting dashboard configurations for entity type {EntityType}", entityType);
-            return StatusCode(500, "An error occurred while retrieving dashboard configurations");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving dashboard configurations.", ex);
         }
     }
 
@@ -48,21 +49,22 @@ public class DashboardConfigurationController : BaseApiController
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(DashboardConfigurationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<DashboardConfigurationDto>> GetConfigurationById(Guid id)
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DashboardConfigurationDto>> GetConfigurationById(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var configuration = await _service.GetConfigurationByIdAsync(id);
+            var configuration = await _service.GetConfigurationByIdAsync(id, cancellationToken);
             if (configuration == null)
             {
-                return NotFound();
+                return CreateNotFoundProblem($"Dashboard configuration with id {id} not found.");
             }
             return Ok(configuration);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting dashboard configuration {ConfigurationId}", id);
-            return StatusCode(500, "An error occurred while retrieving the dashboard configuration");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the dashboard configuration.", ex);
         }
     }
 
@@ -72,21 +74,22 @@ public class DashboardConfigurationController : BaseApiController
     [HttpGet("default/{entityType}")]
     [ProducesResponseType(typeof(DashboardConfigurationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<DashboardConfigurationDto>> GetDefaultConfiguration(string entityType)
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DashboardConfigurationDto>> GetDefaultConfiguration(string entityType, CancellationToken cancellationToken = default)
     {
         try
         {
-            var configuration = await _service.GetDefaultConfigurationAsync(entityType);
+            var configuration = await _service.GetDefaultConfigurationAsync(entityType, cancellationToken);
             if (configuration == null)
             {
-                return NotFound();
+                return CreateNotFoundProblem($"Default dashboard configuration for entity type '{entityType}' not found.");
             }
             return Ok(configuration);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting default dashboard configuration for entity type {EntityType}", entityType);
-            return StatusCode(500, "An error occurred while retrieving the default dashboard configuration");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the default dashboard configuration.", ex);
         }
     }
 
@@ -96,7 +99,8 @@ public class DashboardConfigurationController : BaseApiController
     [HttpPost]
     [ProducesResponseType(typeof(DashboardConfigurationDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<DashboardConfigurationDto>> CreateConfiguration([FromBody] CreateDashboardConfigurationDto dto)
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DashboardConfigurationDto>> CreateConfiguration([FromBody] CreateDashboardConfigurationDto dto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
@@ -105,13 +109,13 @@ public class DashboardConfigurationController : BaseApiController
 
         try
         {
-            var configuration = await _service.CreateConfigurationAsync(dto);
+            var configuration = await _service.CreateConfigurationAsync(dto, cancellationToken);
             return CreatedAtAction(nameof(GetConfigurationById), new { id = configuration.Id }, configuration);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating dashboard configuration");
-            return StatusCode(500, "An error occurred while creating the dashboard configuration");
+            return CreateInternalServerErrorProblem("An error occurred while creating the dashboard configuration.", ex);
         }
     }
 
@@ -122,7 +126,8 @@ public class DashboardConfigurationController : BaseApiController
     [ProducesResponseType(typeof(DashboardConfigurationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<DashboardConfigurationDto>> UpdateConfiguration(Guid id, [FromBody] UpdateDashboardConfigurationDto dto)
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DashboardConfigurationDto>> UpdateConfiguration(Guid id, [FromBody] UpdateDashboardConfigurationDto dto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
@@ -131,17 +136,17 @@ public class DashboardConfigurationController : BaseApiController
 
         try
         {
-            var configuration = await _service.UpdateConfigurationAsync(id, dto);
+            var configuration = await _service.UpdateConfigurationAsync(id, dto, cancellationToken);
             return Ok(configuration);
         }
         catch (InvalidOperationException)
         {
-            return NotFound();
+            return CreateNotFoundProblem($"Dashboard configuration with id {id} not found.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating dashboard configuration {ConfigurationId}", id);
-            return StatusCode(500, "An error occurred while updating the dashboard configuration");
+            return CreateInternalServerErrorProblem("An error occurred while updating the dashboard configuration.", ex);
         }
     }
 
@@ -151,21 +156,22 @@ public class DashboardConfigurationController : BaseApiController
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> DeleteConfiguration(Guid id)
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> DeleteConfiguration(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _service.DeleteConfigurationAsync(id);
+            await _service.DeleteConfigurationAsync(id, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException)
         {
-            return NotFound();
+            return CreateNotFoundProblem($"Dashboard configuration with id {id} not found.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting dashboard configuration {ConfigurationId}", id);
-            return StatusCode(500, "An error occurred while deleting the dashboard configuration");
+            return CreateInternalServerErrorProblem("An error occurred while deleting the dashboard configuration.", ex);
         }
     }
 
@@ -175,21 +181,22 @@ public class DashboardConfigurationController : BaseApiController
     [HttpPost("{id}/set-default")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> SetAsDefault(Guid id)
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> SetAsDefault(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _service.SetAsDefaultAsync(id);
+            await _service.SetAsDefaultAsync(id, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException)
         {
-            return NotFound();
+            return CreateNotFoundProblem($"Dashboard configuration with id {id} not found.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error setting dashboard configuration as default {ConfigurationId}", id);
-            return StatusCode(500, "An error occurred while setting the dashboard configuration as default");
+            return CreateInternalServerErrorProblem("An error occurred while setting the dashboard configuration as default.", ex);
         }
     }
 }

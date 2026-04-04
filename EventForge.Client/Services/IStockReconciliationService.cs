@@ -10,17 +10,17 @@ public interface IStockReconciliationService
     /// <summary>
     /// Calculates stock reconciliation preview based on the provided criteria.
     /// </summary>
-    Task<StockReconciliationResultDto?> CalculateReconciliationAsync(StockReconciliationRequestDto request);
+    Task<StockReconciliationResultDto?> CalculateReconciliationAsync(StockReconciliationRequestDto request, CancellationToken ct = default);
 
     /// <summary>
     /// Applies the calculated reconciliation corrections to the stock.
     /// </summary>
-    Task<StockReconciliationApplyResultDto?> ApplyReconciliationAsync(StockReconciliationApplyRequestDto request);
+    Task<StockReconciliationApplyResultDto?> ApplyReconciliationAsync(StockReconciliationApplyRequestDto request, CancellationToken ct = default);
 
     /// <summary>
     /// Exports stock reconciliation data to Excel format.
     /// </summary>
-    Task<byte[]?> ExportReconciliationAsync(StockReconciliationRequestDto request);
+    Task<byte[]?> ExportReconciliationAsync(StockReconciliationRequestDto request, CancellationToken ct = default);
 
     /// <summary>
     /// Previews which stock movements would be rebuilt from approved/closed documents (dry-run).

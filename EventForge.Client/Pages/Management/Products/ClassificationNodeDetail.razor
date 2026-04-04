@@ -160,35 +160,59 @@
                 </MudTabPanel>
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.children", "Figli")" Icon="@Icons.Material.Outlined.List">
-                    @if (_childrenLoading)
+                    @if (!_isCreateMode && _node != null)
                     {
-                        <MudProgressLinear Indeterminate="true" />
-                    }
-                    else if (_children?.Any() != true)
-                    {
-                        <div class="pa-4">
-                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("classificationNode.noChildren", "Nessun nodo figlio")</MudText>
+                        <div class="d-flex justify-end mb-2">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Outlined.AddCircleOutline"
+                                       OnClick="@(() => NavigationManager.NavigateTo($"/management/classification-nodes/new/{_node.Id}"))">
+                                @TranslationService.GetTranslation("classificationNode.addChild", "Aggiungi figlio")
+                            </MudButton>
                         </div>
-                    }
-                    else
-                    {
-                        <MudTable T="ClassificationNodeDto" Items="_children" Hover="true" Dense="true" Striped="true">
-                            <HeaderContent>
+                        <EFTable TItem="ClassificationNodeDto"
+                                 Items="@(_children ?? new List<ClassificationNodeDto>())"
+                                 Dense="true"
+                                 Hover="true"
+                                 Striped="true"
+                                 IsLoading="@_childrenLoading"
+                                 ShowSearch="false"
+                                 ShowFilters="false"
+                                 ShowRefresh="false"
+                                 ShowCreate="false"
+                                 ShowExport="false"
+                                 ShowColumnConfiguration="false"
+                                 ShowFooter="false"
+                                 AllowDragDropGrouping="false"
+                                 ComponentKey="classification-node-children"
+                                 InitialColumnConfigurations="@_childrenColumns">
+                            <HeaderContent Context="cols">
                                 <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
                                 <MudTh Class="text-right">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
-                            <RowTemplate>
-                                <MudTd>@context.Name</MudTd>
-                                <MudTd>@GetTypeDisplayName(context.Type)</MudTd>
-                                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@GetStatusDisplayName(context.Status)</MudChip></MudTd>
+                            <RowTemplate Context="child">
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@child.Name</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@(child.Code ?? "-")</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(child.Type)">@GetTypeDisplayName(child.Type)</MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(child.Status)">@GetStatusDisplayName(child.Status)</MudChip>
+                                </MudTd>
                                 <MudTd Class="text-right">
                                     <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Info"
-                                                   OnClick="@(() => NavigationManager.NavigateTo($"/management/classification-nodes/{context.Id}"))" />
+                                                   OnClick="@(() => NavigationManager.NavigateTo($"/management/classification-nodes/{child.Id}"))" />
                                 </MudTd>
                             </RowTemplate>
-                        </MudTable>
+                            <NoRecordsContent>
+                                <div class="text-center pa-4">
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("classificationNode.noChildren", "Nessun nodo figlio")</MudText>
+                                </div>
+                            </NoRecordsContent>
+                        </EFTable>
                     }
                 </MudTabPanel>
 
@@ -647,11 +671,27 @@
         _ => status.ToString()
     };
 
+    private Color GetTypeColor(ProductClassificationType type) => type switch
+    {
+        ProductClassificationType.Category => Color.Primary,
+        ProductClassificationType.Family => Color.Secondary,
+        ProductClassificationType.MerchandiseGroup => Color.Tertiary,
+        _ => Color.Default
+    };
+
     private string GetTypeDisplayName(ProductClassificationType type) => type switch
     {
         ProductClassificationType.Category => TranslationService.GetTranslation("classificationType.category", "Categoria"),
         ProductClassificationType.Family => TranslationService.GetTranslation("classificationType.family", "Famiglia"),
         ProductClassificationType.MerchandiseGroup => TranslationService.GetTranslation("classificationType.merchandiseGroup", "Gruppo Merceologico"),
         _ => type.ToString()
+    };
+
+    private readonly List<EFTableColumnConfiguration> _childrenColumns = new()
+    {
+        new() { PropertyName = "Name",   DisplayName = "Nome",   IsVisible = true, Order = 0 },
+        new() { PropertyName = "Code",   DisplayName = "Codice", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Type",   DisplayName = "Tipo",   IsVisible = true, Order = 2 },
+        new() { PropertyName = "Status", DisplayName = "Stato",  IsVisible = true, Order = 3 }
     };
 }
