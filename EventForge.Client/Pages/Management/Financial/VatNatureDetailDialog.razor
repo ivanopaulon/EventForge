@@ -1,66 +1,34 @@
-@page "/financial/vat-natures/new"
-@page "/financial/vat-natures/{VatNatureId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.VatRates
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @attribute [Authorize]
 @inject IFinancialService FinancialService
-@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<VatNatureDetail> Logger
+@inject ILogger<VatNatureDetailDialog> Logger
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading || _isSaving"
-                        Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
-
-    @if (!_isLoading && _vatNature == null && !_isCreateMode)
-    {
-        <MudAlert Severity="Severity.Error">
-            @TranslationService.GetTranslation("vatNature.notFound", "Natura IVA non trovata")
-        </MudAlert>
-    }
-    else if (!_isLoading)
-    {
-        <!-- Page Header -->
-        <MudPaper Elevation="2" Class="pa-4 mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                           Color="Color.Primary"
-                           OnClick="@(() => TryNavigateAway("/financial/vat-natures"))"
-                           Size="Size.Small" />
-            <MudText Typo="Typo.h4">
-                <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
-                @(_isCreateMode
-                            ? TranslationService.GetTranslation("drawer.title.creaNaturaIva", "Crea Nuova Natura IVA")
-                            : _vatNature?.Name)
-            </MudText>
-
-            @if (HasUnsavedChanges())
-            {
-                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
-                    @TranslationService.GetTranslation("vatNature.unsavedChanges", "Modifiche non salvate")
-                </MudChip>
-            }
-            @if (!_isCreateMode && _vatNature != null)
-            {
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                    @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_vatNature.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                </MudText>
-            }
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Save"
-                       OnClick="SaveVatNatureAsync"
-                       Disabled="_isSaving"
-                       Size="Size.Small">
-                @TranslationService.GetTranslation("common.save", "Salva")
-            </MudButton>
-        </MudPaper>
-
-        <!-- Form Section -->
-        <MudPaper Elevation="2" Class="pa-4">
+<EFDialog Icon="@Icons.Material.Outlined.Category"
+          Title="@(_isCreateMode ? TranslationService.GetTranslation("drawer.title.creaNaturaIva", "Crea Nuova Natura IVA") : (_vatNature?.Name ?? string.Empty))"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Cancel"
+          MinWidth="min(700px, 95vw)">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (!_isCreateMode && _vatNature == null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @TranslationService.GetTranslation("vatNature.notFound", "Natura IVA non trovata")
+            </MudAlert>
+        }
+        else
+        {
             <MudForm @ref="_form">
                 <MudGrid>
                     <MudItem xs="12" md="4">
@@ -118,16 +86,26 @@
                     }
                 </MudGrid>
             </MudForm>
-        </MudPaper>
-    }
-</MudContainer>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveVatNatureAsync" Disabled="_isSaving || _isLoading || _vatNature == null">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
 
 @code {
-    [Parameter] public Guid? VatNatureId { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? EntityId { get; set; }
 
     private VatNatureDto? _vatNature;
     private bool _isLoading = true;
-    private bool _isCreateMode => VatNatureId == null || VatNatureId == Guid.Empty;
+    private bool _isCreateMode => EntityId == null || EntityId == Guid.Empty;
     private bool _isSaving = false;
     private MudForm? _form;
 
@@ -145,12 +123,6 @@
         await LoadVatNatureAsync();
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_vatNature?.Id != VatNatureId)
-            await LoadVatNatureAsync();
-    }
-
     private async Task LoadVatNatureAsync()
     {
         _isLoading = true;
@@ -161,9 +133,9 @@
                 _vatNature = new VatNatureDto();
                 _originalVatNatureSnapshot = SerializeVatNature(_vatNature);
             }
-            else if (VatNatureId.HasValue)
+            else if (EntityId.HasValue)
             {
-                var vatNature = await FinancialService.GetVatNatureAsync(VatNatureId.Value);
+                var vatNature = await FinancialService.GetVatNatureAsync(EntityId.Value);
                 _vatNature = vatNature;
                 if (_vatNature != null)
                 {
@@ -173,7 +145,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading VAT nature {VatNatureId}", VatNatureId);
+            Logger.LogError(ex, "Error loading VAT nature {EntityId}", EntityId);
             Snackbar.Add(TranslationService.GetTranslation("vatNature.loadError", "Errore nel caricamento della natura IVA"), Severity.Error);
         }
         finally
@@ -200,11 +172,10 @@
                     Name = _vatNature.Name,
                     Description = _vatNature.Description
                 };
-                var created = await FinancialService.CreateVatNatureAsync(createDto);
+                await FinancialService.CreateVatNatureAsync(createDto);
                 Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"), Severity.Success);
-                NavigationManager.NavigateTo($"/financial/vat-natures/{created.Id}");
             }
-            else if (VatNatureId.HasValue)
+            else if (EntityId.HasValue)
             {
                 var updateDto = new UpdateVatNatureDto
                 {
@@ -212,10 +183,12 @@
                     Name = _vatNature.Name,
                     Description = _vatNature.Description
                 };
-                await FinancialService.UpdateVatNatureAsync(VatNatureId.Value, updateDto);
+                await FinancialService.UpdateVatNatureAsync(EntityId.Value, updateDto);
                 Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"), Severity.Success);
-                await LoadVatNatureAsync();
             }
+
+            _hasLocalChanges = false;
+            MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
@@ -253,30 +226,19 @@
         return !string.Equals(current, _originalVatNatureSnapshot, StringComparison.Ordinal);
     }
 
-    private async Task TryNavigateAway(string target)
+    private async Task Cancel()
     {
-        if (!HasUnsavedChanges())
+        if (HasUnsavedChanges())
         {
-            NavigationManager.NavigateTo(target);
-            return;
+            var result = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("vatNature.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (result == null) return;
+            if (result == true) { await SaveVatNatureAsync(); return; }
         }
-
-        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var message = TranslationService.GetTranslation("vatNature.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
-        var saveText = TranslationService.GetTranslation("common.save", "Salva");
-        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
-        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
-
-        var result = await DialogService.ShowMessageBoxAsync(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
-
-        if (result == true)
-        {
-            await SaveVatNatureAsync();
-            NavigationManager.NavigateTo(target);
-        }
-        else if (result == false)
-        {
-            NavigationManager.NavigateTo(target);
-        }
+        MudDialog.Close();
     }
 }
