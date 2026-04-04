@@ -58,6 +58,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? MessageRead;
     public event Action<object>? UserJoinedChat;
     public event Action<object>? UserLeftChat;
+    public event Action<Guid, bool>? UserOnlineStatusChanged;
     #endregion
 
     #region Events - Document Collaboration
@@ -315,6 +316,11 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         _ = connection.On<object>("UserLeftChat", data =>
         {
             UserLeftChat?.Invoke(data);
+        });
+
+        _ = connection.On<Guid, bool>("UserOnlineStatusChanged", (userId, isOnline) =>
+        {
+            UserOnlineStatusChanged?.Invoke(userId, isOnline);
         });
 
         // Typing indicators are not batched for responsiveness

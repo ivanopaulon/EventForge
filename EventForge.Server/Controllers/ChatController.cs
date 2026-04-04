@@ -101,11 +101,13 @@ public class ChatController : BaseApiController
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
     {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+
         try
         {
-            // TODO: Extract user ID and tenant ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
-            var tenantId = default(Guid?); // GetCurrentTenantId();
+            var userId = _tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = _tenantContext.CurrentTenantId;
 
             var chat = await _chatService.GetChatByIdAsync(id, userId, tenantId, cancellationToken);
 
@@ -136,8 +138,15 @@ public class ChatController : BaseApiController
         [FromQuery] ChatSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+
         try
         {
+            // Always scope the search to the authenticated user and their tenant
+            searchDto.UserId = _tenantContext.CurrentUserId;
+            searchDto.TenantId = _tenantContext.CurrentTenantId;
+
             _logger.LogDebug(
                 "Searching chats for user {UserId} in tenant {TenantId} - Page {Page}",
                 searchDto.UserId, searchDto.TenantId, searchDto.PageNumber);
@@ -148,6 +157,34 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             return CreateValidationProblemDetails("An error occurred while searching chats");
+        }
+    }
+
+    /// <summary>
+    /// Returns all active users in the current tenant available for starting a chat.
+    /// Includes real-time online status for each user.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of available users with online indicators</returns>
+    /// <response code="200">Users retrieved successfully</response>
+    [HttpGet("available-users")]
+    [ProducesResponseType(typeof(List<ChatAvailableUserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ChatAvailableUserDto>>> GetAvailableUsersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+
+        try
+        {
+            var tenantId = _tenantContext.CurrentTenantId!.Value;
+            var users = await _chatService.GetAvailableUsersAsync(tenantId, cancellationToken);
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get available users for chat");
+            return CreateValidationProblemDetails("An error occurred while retrieving available users");
         }
     }
 

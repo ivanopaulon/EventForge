@@ -448,6 +448,17 @@ public interface IChatService
         Guid requestingUserId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Returns all active users in the tenant that can be added to a chat,
+    /// together with their current online status.
+    /// </summary>
+    /// <param name="tenantId">Tenant to scope the query</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of available users with online indicators</returns>
+    Task<List<ChatAvailableUserDto>> GetAvailableUsersAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Rate Limiting & Multi-Tenant Management
