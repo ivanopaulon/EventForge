@@ -92,10 +92,12 @@
         _isDialogOpen = false;
     }
 
-    public void NavigateToProfile()
+    public async Task NavigateToProfile()
     {
         CloseDialog();
-        NavigationManager.NavigateTo("/profile");
+        await DialogService.ShowAsync<ProfileDialog>(
+            string.Empty,
+            EFDialogDefaults.Options);
     }
 
     public async Task OpenFontPreferences()

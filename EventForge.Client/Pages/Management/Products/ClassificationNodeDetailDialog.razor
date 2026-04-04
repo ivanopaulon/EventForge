@@ -29,6 +29,12 @@
         }
         else
         {
+            @if (_loadError)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-2">
+                    @TranslationService.GetTranslation("classificationNode.parentLoadWarning", "Impossibile caricare i nodi padre. Il campo Nodo Padre potrebbe non essere disponibile, ma puoi comunque procedere.")
+                </MudAlert>
+            }
             <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" @bind-ActivePanelIndex="_activeTab">
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.generalInfo", "Informazioni")" Icon="@Icons.Material.Outlined.Info">
@@ -123,73 +129,70 @@
                     </MudForm>
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.children", "Figli")" Icon="@Icons.Material.Outlined.List">
-                    @if (!_isCreateMode && _node != null)
-                    {
-                        <div class="d-flex justify-end mb-2">
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Outlined.AddCircleOutline"
-                                       OnClick="@OpenCreateChildDialogAsync">
-                                @TranslationService.GetTranslation("classificationNode.addChild", "Aggiungi figlio")
-                            </MudButton>
-                        </div>
-                        <EFTable TItem="ClassificationNodeDto"
-                                 Items="@(_children ?? new List<ClassificationNodeDto>())"
-                                 Dense="true"
-                                 Hover="true"
-                                 Striped="true"
-                                 IsLoading="@_childrenLoading"
-                                 ShowSearch="false"
-                                 ShowFilters="false"
-                                 ShowRefresh="false"
-                                 ShowCreate="false"
-                                 ShowExport="false"
-                                 ShowColumnConfiguration="false"
-                                 ShowFooter="false"
-                                 AllowDragDropGrouping="false"
-                                 ComponentKey="classification-node-children"
-                                 InitialColumnConfigurations="@_childrenColumns">
-                            <HeaderContent Context="cols">
-                                <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
-                                <MudTh Class="text-right">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-                            </HeaderContent>
-                            <RowTemplate Context="child">
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@child.Name</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@(child.Code ?? "-")</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
-                                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(child.Type)">@GetTypeDisplayName(child.Type)</MudChip>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(child.Status)">@GetStatusDisplayName(child.Status)</MudChip>
-                                </MudTd>
-                                <MudTd Class="text-right">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Info"
-                                                   OnClick="@(() => OpenChildDetailDialogAsync(child.Id))" />
-                                </MudTd>
-                            </RowTemplate>
-                            <NoRecordsContent>
+                @if (!_isCreateMode)
+                {
+                    <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.children", "Figli")" Icon="@Icons.Material.Outlined.List">
+                        @if (_node != null)
+                        {
+                            <div class="d-flex justify-end mb-2">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Outlined.AddCircleOutline"
+                                           OnClick="@OpenCreateChildDialogAsync">
+                                    @TranslationService.GetTranslation("classificationNode.addChild", "Aggiungi figlio")
+                                </MudButton>
+                            </div>
+                            @if (_childrenLoading)
+                            {
+                                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                            }
+                            else if (!_treeItems.Any())
+                            {
                                 <div class="text-center pa-4">
                                     <MudText Typo="Typo.body2">@TranslationService.GetTranslation("classificationNode.noChildren", "Nessun nodo figlio")</MudText>
                                 </div>
-                            </NoRecordsContent>
-                        </EFTable>
-                    }
-                </MudTabPanel>
+                            }
+                            else
+                            {
+                                <MudTreeView Items="@_treeItems" T="ClassificationNodePicker.ClassificationNodeTreeItem" Hover="true" Dense="true">
+                                    <ItemTemplate Context="it">
+                                        @if (it is ClassificationNodePicker.ClassificationNodeTreeItem nodeItem)
+                                        {
+                                            <MudTreeViewItem Items="@nodeItem.Children" Expanded="@nodeItem.Expanded">
+                                                <BodyContent>
+                                                    <div class="d-flex justify-space-between align-center" style="width:100%">
+                                                        <div class="d-flex align-center gap-2">
+                                                            <MudText Typo="Typo.body2">@nodeItem.Node.Name</MudText>
+                                                            @if (!string.IsNullOrWhiteSpace(nodeItem.Node.Code))
+                                                            {
+                                                                <MudText Typo="Typo.caption" Class="mud-text-secondary ml-1">(@nodeItem.Node.Code)</MudText>
+                                                            }
+                                                            <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(nodeItem.Node.Type)">@GetTypeDisplayName(nodeItem.Node.Type)</MudChip>
+                                                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(nodeItem.Node.Status)">@GetStatusDisplayName(nodeItem.Node.Status)</MudChip>
+                                                        </div>
+                                                        <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Info"
+                                                                       OnClick="@(() => OpenChildDetailDialogAsync(nodeItem.Node.Id))" />
+                                                    </div>
+                                                </BodyContent>
+                                            </MudTreeViewItem>
+                                        }
+                                    </ItemTemplate>
+                                </MudTreeView>
+                            }
+                        }
+                    </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.audit", "Audit")" Icon="@Icons.Material.Outlined.History">
-                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("messages.auditFullscreen", "Storia modifiche disponibile in modalità fullscreen")</MudText>
-                    <MudButton Class="mt-3"
-                               Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Outlined.History"
-                               OnClick="@OpenAuditDialog">
-                        @TranslationService.GetTranslation("classificationNode.viewAudit", "Apri cronologia")
-                    </MudButton>
-                </MudTabPanel>
+                    <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.audit", "Audit")" Icon="@Icons.Material.Outlined.History">
+                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("messages.auditFullscreen", "Storia modifiche disponibile in modalità fullscreen")</MudText>
+                        <MudButton Class="mt-3"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.History"
+                                   OnClick="@OpenAuditDialog">
+                            @TranslationService.GetTranslation("classificationNode.viewAudit", "Apri cronologia")
+                        </MudButton>
+                    </MudTabPanel>
+                }
             </MudTabs>
         }
     </ChildContent>
@@ -220,6 +223,7 @@
     private bool _isSaving = false;
     private bool _isCreateMode = false;
     private bool _childrenLoading = false;
+    private bool _loadError = false;
     private int _activeTab = 0;
 
     private ClassificationNodeDto? _node;
@@ -229,6 +233,7 @@
 
     private List<ClassificationNodeDto> _availableParentNodes = new();
     private IEnumerable<ClassificationNodeDto>? _children;
+    private List<ClassificationNodePicker.ClassificationNodeTreeItem> _treeItems = new();
 
     private string _originalSnapshot = string.Empty;
     private bool _hasLocalChanges = false;
@@ -402,7 +407,6 @@
 
     private async Task LoadNodeAsync()
     {
-        _isLoading = true;
         try
         {
             if (!EntityId.HasValue) return;
@@ -429,6 +433,7 @@
             _hasLocalChanges = false;
 
             await LoadChildrenAsync();
+            BuildChildrenTree();
         }
         catch (Exception ex)
         {
@@ -456,6 +461,9 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading parent nodes");
+            _loadError = true;
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.parentLoadWarning",
+                "Impossibile caricare i nodi padre. Il campo Nodo Padre potrebbe non essere disponibile."), Severity.Warning);
         }
     }
 
@@ -475,7 +483,29 @@
         finally
         {
             _childrenLoading = false;
+            BuildChildrenTree();
         }
+    }
+
+    private void BuildChildrenTree()
+    {
+        if (_node == null) { _treeItems = new(); return; }
+
+        var lookup = _availableParentNodes.ToDictionary(
+            n => n.Id,
+            n => new ClassificationNodePicker.ClassificationNodeTreeItem(n));
+
+        foreach (var item in lookup.Values)
+        {
+            item.Children = lookup.Values
+                .Where(v => v.Node.ParentId == item.Node.Id)
+                .ToList();
+            if (item.Children.Any()) item.Expanded = true;
+        }
+
+        _treeItems = lookup.Values
+            .Where(v => v.Node.ParentId == _node.Id)
+            .ToList();
     }
 
     private bool IsDescendant(Guid potentialDescendantId, Guid ancestorId)
@@ -653,13 +683,5 @@
         ProductClassificationType.Family => TranslationService.GetTranslation("classificationType.family", "Famiglia"),
         ProductClassificationType.MerchandiseGroup => TranslationService.GetTranslation("classificationType.merchandiseGroup", "Gruppo Merceologico"),
         _ => type.ToString()
-    };
-
-    private readonly List<EFTableColumnConfiguration> _childrenColumns = new()
-    {
-        new() { PropertyName = "Name",   DisplayName = "Nome",   IsVisible = true, Order = 0 },
-        new() { PropertyName = "Code",   DisplayName = "Codice", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Type",   DisplayName = "Tipo",   IsVisible = true, Order = 2 },
-        new() { PropertyName = "Status", DisplayName = "Stato",  IsVisible = true, Order = 3 }
     };
 }
