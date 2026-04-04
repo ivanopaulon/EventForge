@@ -19,4 +19,10 @@ public interface IPromotionClientService
     Task<PromotionRuleDto> AddRuleAsync(Guid promotionId, CreatePromotionRuleDto dto, CancellationToken ct = default);
     Task<PromotionRuleDto?> UpdateRuleAsync(Guid promotionId, Guid ruleId, UpdatePromotionRuleDto dto, CancellationToken ct = default);
     Task<bool> DeleteRuleAsync(Guid promotionId, Guid ruleId, CancellationToken ct = default);
+
+    Task<IEnumerable<PromotionRuleProductDto>> GetRuleProductsAsync(Guid promotionId, Guid ruleId, CancellationToken ct = default);
+    Task<PromotionRuleProductDto> AddRuleProductAsync(Guid promotionId, Guid ruleId, CreatePromotionRuleProductDto dto, CancellationToken ct = default);
+    Task<bool> RemoveRuleProductAsync(Guid promotionId, Guid ruleId, Guid productId, CancellationToken ct = default);
+    Task<PromotionDto?> ValidateCouponCodeAsync(string couponCode, CancellationToken ct = default);
+    Task<PromotionApplicationResultDto> ApplyPromotionsAsync(ApplyPromotionRulesDto dto, CancellationToken ct = default);
 }

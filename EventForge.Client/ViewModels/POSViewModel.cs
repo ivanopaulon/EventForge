@@ -2,6 +2,7 @@ using EventForge.Client.Services;
 using EventForge.Client.Services.Sales;
 using EventForge.Client.Services.Store;
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Constants;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Sales;
@@ -21,6 +22,8 @@ public class POSViewModel : IDisposable
     private readonly IStorePosService _storePosService;
     private readonly IBusinessPartyService _businessPartyService;
     private readonly IPaymentMethodService _paymentMethodService;
+    private readonly IPriceResolutionService _priceResolutionService;
+    private readonly IPromotionClientService _promotionService;
     private readonly ILogger<POSViewModel> _logger;
 
     // Debounce timer for item updates
@@ -52,6 +55,8 @@ public class POSViewModel : IDisposable
         IStorePosService storePosService,
         IBusinessPartyService businessPartyService,
         IPaymentMethodService paymentMethodService,
+        IPriceResolutionService priceResolutionService,
+        IPromotionClientService promotionService,
         ILogger<POSViewModel> logger)
     {
         _salesService = salesService;
@@ -59,6 +64,8 @@ public class POSViewModel : IDisposable
         _storePosService = storePosService;
         _businessPartyService = businessPartyService;
         _paymentMethodService = paymentMethodService;
+        _priceResolutionService = priceResolutionService ?? throw new ArgumentNullException(nameof(priceResolutionService));
+        _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
         _logger = logger;
     }
 
@@ -119,6 +126,9 @@ public class POSViewModel : IDisposable
     public ProductDto? LastScannedProduct { get; set; }
     public ProductCodeDto? LastScannedCode { get; set; }
     public ScanMode ScanMode { get; set; } = ScanMode.AddToCart;
+
+    // Active coupon codes applied in this session
+    public List<string> ActiveCouponCodes { get; private set; } = new();
 
     #endregion
 
@@ -413,11 +423,18 @@ public class POSViewModel : IDisposable
 
                 try
                 {
+                    // Resolve price from active price lists for the customer
+                    var priceResult = await _priceResolutionService.ResolvePriceAsync(
+                        productId: product.Id,
+                        businessPartyId: SelectedCustomer?.Id,
+                        direction: EventForge.DTOs.Common.PriceListDirection.Output,
+                        quantity: 1m);
+
                     var addItemDto = new AddSaleItemDto
                     {
                         ProductId = product.Id,
                         Quantity = 1,
-                        UnitPrice = product.DefaultPrice ?? 0m,
+                        UnitPrice = priceResult.Price > 0 ? priceResult.Price : (product.DefaultPrice ?? 0m),
                         DiscountPercent = 0
                     };
 
@@ -852,6 +869,44 @@ public class POSViewModel : IDisposable
         {
             _logger.LogError(ex, "Error applying global discount to session {SessionId}", CurrentSession.Id);
             return null;
+        }
+        finally
+        {
+            IsUpdatingItems = false;
+            NotifyStateChanged();
+        }
+    }
+
+    /// <summary>
+    /// Validates and applies a coupon code to the current session, returning the matched promotion if valid.
+    /// </summary>
+    public async Task<(bool Success, string? PromotionName, string? Error)> ApplyCouponAsync(string couponCode)
+    {
+        if (CurrentSession == null)
+            return (false, null, "Nessuna sessione attiva");
+
+        if (string.IsNullOrWhiteSpace(couponCode))
+            return (false, null, "Codice coupon non valido");
+
+        try
+        {
+            IsUpdatingItems = true;
+            NotifyStateChanged();
+
+            var promotion = await _promotionService.ValidateCouponCodeAsync(couponCode.Trim().ToUpperInvariant());
+            if (promotion == null)
+                return (false, null, $"Coupon '{couponCode}' non valido o scaduto");
+
+            if (!ActiveCouponCodes.Contains(couponCode.Trim().ToUpperInvariant()))
+                ActiveCouponCodes.Add(couponCode.Trim().ToUpperInvariant());
+
+            _logger.LogInformation("Coupon {Coupon} validated: {PromotionName}", couponCode, promotion.Name);
+            return (true, promotion.Name, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying coupon {Coupon}", couponCode);
+            return (false, null, "Errore nella validazione del coupon");
         }
         finally
         {
