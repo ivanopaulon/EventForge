@@ -88,7 +88,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving licenses");
             return CreateInternalServerErrorProblem("An error occurred while retrieving licenses", ex);
         }
     }
@@ -161,7 +160,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving license {LicenseId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the license", ex);
         }
     }
@@ -227,7 +225,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating license");
             return CreateInternalServerErrorProblem("An error occurred while creating the license", ex);
         }
     }
@@ -297,7 +294,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating license {LicenseId}", id);
             return CreateInternalServerErrorProblem("An error occurred while updating the license", ex);
         }
     }
@@ -339,7 +335,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting license {LicenseId}", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the license", ex);
         }
     }
@@ -422,7 +417,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving tenant licenses");
             return CreateInternalServerErrorProblem("An error occurred while retrieving tenant licenses", ex);
         }
     }
@@ -537,7 +531,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error assigning license to tenant");
             return CreateInternalServerErrorProblem("An error occurred while assigning the license", ex);
         }
     }
@@ -613,7 +606,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving license for tenant {TenantId}", tenantId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the tenant license", ex);
         }
     }
@@ -738,7 +730,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating license features for license {LicenseId}", id);
             return CreateInternalServerErrorProblem("An error occurred while updating license features", ex);
         }
     }
@@ -774,7 +765,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving available features");
             return CreateInternalServerErrorProblem("An error occurred while retrieving available features", ex);
         }
     }
@@ -819,7 +809,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving feature templates");
             return CreateInternalServerErrorProblem("An error occurred while retrieving feature templates", ex);
         }
     }
@@ -869,7 +858,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving feature template {Id}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the feature template", ex);
         }
     }
@@ -941,7 +929,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating feature template");
             return CreateInternalServerErrorProblem("An error occurred while creating the feature template", ex);
         }
     }
@@ -1007,7 +994,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating feature template {Id}", id);
             return CreateInternalServerErrorProblem("An error occurred while updating the feature template", ex);
         }
     }
@@ -1053,7 +1039,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting feature template {Id}", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the feature template", ex);
         }
     }
@@ -1113,7 +1098,6 @@ public class LicenseController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error toggling feature template availability {Id}", id);
             return CreateInternalServerErrorProblem("An error occurred while toggling the feature template availability", ex);
         }
     }

@@ -59,7 +59,6 @@ public class DocumentCountersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document counters.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document counters.", ex);
         }
     }
@@ -91,7 +90,6 @@ public class DocumentCountersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document counters for type {DocumentTypeId}.", documentTypeId);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving document counters for type {documentTypeId}.", ex);
         }
     }
@@ -124,7 +122,6 @@ public class DocumentCountersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the document counter.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the document counter.", ex);
         }
     }
@@ -166,7 +163,6 @@ public class DocumentCountersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document counter.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document counter.", ex);
         }
     }
@@ -206,7 +202,6 @@ public class DocumentCountersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the document counter.");
             return CreateInternalServerErrorProblem("An error occurred while updating the document counter.", ex);
         }
     }
@@ -240,7 +235,6 @@ public class DocumentCountersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the document counter.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the document counter.", ex);
         }
     }

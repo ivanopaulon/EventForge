@@ -49,7 +49,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving alerts");
             return CreateInternalServerErrorProblem("An error occurred while retrieving alerts.", ex);
         }
     }
@@ -80,7 +79,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving alert {AlertId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the alert.", ex);
         }
     }
@@ -104,7 +102,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving alert statistics");
             return CreateInternalServerErrorProblem("An error occurred while retrieving statistics.", ex);
         }
     }
@@ -135,7 +132,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error acknowledging alert {AlertId}", id);
             return CreateInternalServerErrorProblem("An error occurred while acknowledging the alert.", ex);
         }
     }
@@ -167,7 +163,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resolving alert {AlertId}", id);
             return CreateInternalServerErrorProblem("An error occurred while resolving the alert.", ex);
         }
     }
@@ -198,7 +193,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error dismissing alert {AlertId}", id);
             return CreateInternalServerErrorProblem("An error occurred while dismissing the alert.", ex);
         }
     }
@@ -229,7 +223,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error dismissing multiple alerts");
             return CreateInternalServerErrorProblem("An error occurred while dismissing alerts.", ex);
         }
     }
@@ -253,7 +246,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving unread alert count");
             return CreateInternalServerErrorProblem("An error occurred while retrieving unread count.", ex);
         }
     }
@@ -295,7 +287,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving alert configuration");
             return CreateInternalServerErrorProblem("An error occurred while retrieving configuration.", ex);
         }
     }
@@ -339,7 +330,6 @@ public class SupplierPriceAlertsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating alert configuration");
             return CreateInternalServerErrorProblem("An error occurred while updating configuration.", ex);
         }
     }

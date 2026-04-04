@@ -70,7 +70,6 @@ public class PriceListsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error previewing bulk update for price list {PriceListId}", id);
             return CreateInternalServerErrorProblem("An error occurred while previewing the bulk update.", ex);
         }
     }
@@ -129,7 +128,6 @@ public class PriceListsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing bulk update for price list {PriceListId}", id);
             return CreateInternalServerErrorProblem("An error occurred while performing the bulk update.", ex);
         }
     }
@@ -179,7 +177,6 @@ public class PriceListsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating price list from products");
             return CreateInternalServerErrorProblem("An error occurred while generating the price list from products.", ex);
         }
     }
@@ -237,7 +234,6 @@ public class PriceListsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying price list {PriceListId} to products", id);
             return CreateInternalServerErrorProblem("An error occurred while applying the price list to products.", ex);
         }
     }
@@ -308,7 +304,6 @@ public class PriceListsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resolving price for product {ProductId}", productId);
             return CreateInternalServerErrorProblem("An error occurred while resolving the price.", ex);
         }
     }
@@ -348,7 +343,6 @@ public class PriceListsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during batch price resolution with {Count} items", request.Items.Count);
             return CreateInternalServerErrorProblem("An error occurred during batch price resolution.", ex);
         }
     }

@@ -55,7 +55,6 @@ public class AnalyticsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving promotion analytics");
             return CreateInternalServerErrorProblem("An error occurred while retrieving promotion analytics.", ex);
         }
     }
@@ -87,7 +86,6 @@ public class AnalyticsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving pricing analytics");
             return CreateInternalServerErrorProblem("An error occurred while retrieving pricing analytics.", ex);
         }
     }
@@ -119,7 +117,6 @@ public class AnalyticsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving sales analytics");
             return CreateInternalServerErrorProblem("An error occurred while retrieving sales analytics.", ex);
         }
     }

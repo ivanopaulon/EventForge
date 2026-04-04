@@ -73,7 +73,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving profile for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving your profile.", ex);
         }
     }
@@ -171,7 +170,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating profile for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while updating your profile.", ex);
         }
     }
@@ -320,7 +318,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading avatar for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while uploading your avatar.", ex);
         }
     }
@@ -388,7 +385,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting avatar for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while deleting your avatar.", ex);
         }
     }
@@ -468,7 +464,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error changing password for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while changing your password.", ex);
         }
     }
@@ -524,7 +519,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating notification preferences for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while updating notification preferences.", ex);
         }
     }
@@ -576,7 +570,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active sessions for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving active sessions.", ex);
         }
     }
@@ -638,7 +631,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error terminating session {SessionId} for user {UserId}", sessionId, _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while terminating the session.", ex);
         }
     }
@@ -703,7 +695,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error terminating all sessions for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while terminating sessions.", ex);
         }
     }
@@ -755,7 +746,6 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving login history for user {UserId}", _tenantContext.CurrentUserId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving login history.", ex);
         }
     }

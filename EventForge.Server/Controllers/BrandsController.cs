@@ -72,7 +72,6 @@ public class BrandsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving brands.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving brands.", ex);
         }
     }
@@ -115,7 +114,6 @@ public class BrandsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving active brands.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving active brands.", ex);
         }
     }

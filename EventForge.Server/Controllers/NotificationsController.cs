@@ -79,7 +79,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send notification");
             return CreateValidationProblemDetails("An error occurred while sending the notification"
                 );
         }
@@ -123,7 +122,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process bulk notifications");
             return CreateValidationProblemDetails("An error occurred while processing bulk notifications"
                 );
         }
@@ -152,7 +150,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notifications");
             return CreateInternalServerErrorProblem("An error occurred while retrieving notifications.", ex);
         }
     }
@@ -180,7 +177,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve unread notifications");
             return CreateInternalServerErrorProblem("An error occurred while retrieving unread notifications.", ex);
         }
     }
@@ -215,7 +211,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notifications of type {Type}", type);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving notifications of type {type}.", ex);
         }
     }
@@ -253,7 +248,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notification {NotificationId}", id);
             return CreateValidationProblemDetails("An error occurred while retrieving the notification"
                 );
         }
@@ -296,7 +290,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to acknowledge notification {NotificationId}", id);
             return CreateValidationProblemDetails("An error occurred while acknowledging the notification"
                 );
         }
@@ -336,7 +329,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to silence notification {NotificationId}", id);
             return CreateValidationProblemDetails("An error occurred while silencing the notification"
                 );
         }
@@ -375,7 +367,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to archive notification {NotificationId}", id);
             return CreateValidationProblemDetails("An error occurred while archiving the notification"
                 );
         }
@@ -418,7 +409,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process bulk action");
             return CreateValidationProblemDetails("An error occurred while processing the bulk action"
                 );
         }
@@ -457,7 +447,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notification statistics");
             return CreateValidationProblemDetails("An error occurred while retrieving statistics"
                 );
         }
@@ -515,7 +504,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to start notification export");
             return CreateValidationProblemDetails("An error occurred while starting the export operation"
                 );
         }
@@ -563,7 +551,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve export status for {ExportId}", exportId);
             return CreateValidationProblemDetails("An error occurred while retrieving export status"
                 );
         }
@@ -625,7 +612,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to download export file for {ExportId}", exportId);
             return CreateValidationProblemDetails("An error occurred while downloading the export file"
                 );
         }
@@ -655,7 +641,6 @@ public class NotificationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notification system health");
             return CreateValidationProblemDetails("An error occurred while retrieving system health"
                 );
         }

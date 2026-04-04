@@ -75,7 +75,6 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price history for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving price history.", ex);
         }
     }
@@ -123,7 +122,6 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price history for Supplier {SupplierId}", supplierId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving price history.", ex);
         }
     }
@@ -171,7 +169,6 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price history for Product {ProductId}", productId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving price history.", ex);
         }
     }
@@ -214,7 +211,6 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating statistics for Supplier {SupplierId}", supplierId);
             return CreateInternalServerErrorProblem("An error occurred while calculating statistics.", ex);
         }
     }
@@ -270,7 +266,6 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving trend data for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving trend data.", ex);
         }
     }

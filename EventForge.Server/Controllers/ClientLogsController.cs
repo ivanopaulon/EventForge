@@ -54,7 +54,6 @@ public class ClientLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to enqueue client log entry");
             return CreateInternalServerErrorProblem("Failed to enqueue client log entry", ex);
         }
     }
@@ -100,7 +99,6 @@ public class ClientLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to enqueue client log batch");
             return CreateInternalServerErrorProblem("Failed to enqueue client log batch", ex);
         }
     }
@@ -131,7 +129,6 @@ public class ClientLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve ingestion health status");
             return CreateInternalServerErrorProblem("Failed to retrieve ingestion health status", ex);
         }
     }

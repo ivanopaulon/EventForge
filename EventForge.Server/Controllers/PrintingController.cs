@@ -99,7 +99,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in printer discovery endpoint");
             return CreateInternalServerErrorProblem("An error occurred while discovering printers", ex);
         }
     }
@@ -150,7 +149,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in printer status check endpoint for printer: {PrinterId}", request?.PrinterId);
             return CreateInternalServerErrorProblem("An error occurred while checking printer status", ex);
         }
     }
@@ -212,7 +210,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in print job submission endpoint for job: {JobTitle}", request?.PrintJob?.Title);
             return CreateInternalServerErrorProblem("An error occurred while submitting the print job", ex);
         }
     }
@@ -250,7 +247,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting print job status for job: {JobId}", jobId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving print job status", ex);
         }
     }
@@ -288,7 +284,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling print job: {JobId}", jobId);
             return CreateInternalServerErrorProblem("An error occurred while cancelling the print job", ex);
         }
     }
@@ -331,7 +326,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error testing QZ connection for URL: {QzUrl}", qzUrl);
             return CreateInternalServerErrorProblem("An error occurred while testing the QZ connection", ex);
         }
     }
@@ -381,7 +375,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting QZ version for URL: {QzUrl}", qzUrl);
             return CreateInternalServerErrorProblem("An error occurred while retrieving QZ version", ex);
         }
     }
@@ -466,7 +459,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error testing enhanced QZ signature");
             return CreateInternalServerErrorProblem("An error occurred while testing the enhanced signature", ex);
         }
     }
@@ -612,7 +604,6 @@ public class PrintingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during QZ Tray SHA512withRSA signing demonstration");
             return CreateInternalServerErrorProblem("An error occurred during the signing demonstration", ex);
         }
     }

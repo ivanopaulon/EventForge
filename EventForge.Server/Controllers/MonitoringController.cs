@@ -62,7 +62,6 @@ public class MonitoringController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving monitoring dashboard");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the monitoring dashboard.", ex);
         }
     }

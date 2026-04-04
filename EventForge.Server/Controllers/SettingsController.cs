@@ -269,7 +269,6 @@ public class SettingsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to parse connection string");
             return CreateInternalServerErrorProblem("Failed to parse connection string.", ex);
         }
     }
@@ -470,7 +469,6 @@ public class SettingsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save configuration");
             return CreateInternalServerErrorProblem("Failed to save configuration.", ex);
         }
     }

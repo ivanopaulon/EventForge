@@ -66,7 +66,6 @@ public class StorageLocationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving storage locations.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving storage locations.", ex);
         }
     }
@@ -110,7 +109,6 @@ public class StorageLocationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving storage locations for warehouse {WarehouseId}.", warehouseId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving storage locations for the warehouse.", ex);
         }
     }
@@ -154,7 +152,6 @@ public class StorageLocationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving storage locations for zone {Zone}.", zone);
             return CreateInternalServerErrorProblem("An error occurred while retrieving storage locations for the zone.", ex);
         }
     }

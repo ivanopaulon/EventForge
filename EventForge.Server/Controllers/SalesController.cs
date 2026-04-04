@@ -83,7 +83,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating sale session.");
             return CreateInternalServerErrorProblem("An error occurred while creating the sale session.", ex);
         }
     }
@@ -119,7 +118,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving the sale session.", ex);
         }
     }
@@ -163,7 +161,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while updating the sale session.", ex);
         }
     }
@@ -200,7 +197,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while deleting the sale session.", ex);
         }
     }
@@ -231,7 +227,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving active sale sessions.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving active sale sessions.", ex);
         }
     }
@@ -264,7 +259,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving sale sessions for operator {OperatorId}.", operatorId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving operator sale sessions.", ex);
         }
     }
@@ -295,7 +289,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving POS sessions.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving POS sessions.", ex);
         }
     }
@@ -324,7 +317,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving sale sessions for operator {OperatorId}.", operatorId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving operator sale sessions.", ex);
         }
     }
@@ -355,7 +347,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving sale sessions by date range.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving sale sessions by date.", ex);
         }
     }
@@ -384,7 +375,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving open POS sessions.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving open sessions.", ex);
         }
     }
@@ -434,7 +424,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while adding item to sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while adding the item.", ex);
         }
     }
@@ -485,7 +474,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating item {ItemId} in sale session {SessionId}.", itemId, sessionId);
             return CreateInternalServerErrorProblem("An error occurred while updating the item.", ex);
         }
     }
@@ -529,7 +517,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while removing item {ItemId} from sale session {SessionId}.", itemId, sessionId);
             return CreateInternalServerErrorProblem("An error occurred while removing the item.", ex);
         }
     }
@@ -573,7 +560,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while adding payment to sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while adding the payment.", ex);
         }
     }
@@ -617,7 +603,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while removing payment {PaymentId} from sale session {SessionId}.", paymentId, sessionId);
             return CreateInternalServerErrorProblem("An error occurred while removing the payment.", ex);
         }
     }
@@ -661,7 +646,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while adding note to sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while adding the note.", ex);
         }
     }
@@ -713,7 +697,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while applying global discount to session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while applying the discount.", ex);
         }
     }
@@ -749,7 +732,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while calculating totals for sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while calculating totals.", ex);
         }
     }
@@ -793,7 +775,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while closing sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while closing the sale session.", ex);
         }
     }
@@ -839,7 +820,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while voiding sale session {SessionId}.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while voiding the sale session.", ex);
         }
     }
@@ -887,7 +867,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while splitting sale session {SessionId}.", splitDto.SessionId);
             return CreateInternalServerErrorProblem("An error occurred while splitting the sale session.", ex);
         }
     }
@@ -935,7 +914,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while merging sale sessions.");
             return CreateInternalServerErrorProblem("An error occurred while merging the sale sessions.", ex);
         }
     }
@@ -965,7 +943,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving child sessions for {ParentSessionId}.", parentSessionId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving child sessions.", ex);
         }
     }
@@ -995,7 +972,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while checking if session {SessionId} can be split.", sessionId);
             return CreateInternalServerErrorProblem("An error occurred while checking split capability.", ex);
         }
     }
@@ -1025,7 +1001,6 @@ public class SalesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while checking if sessions can be merged.");
             return CreateInternalServerErrorProblem("An error occurred while checking merge capability.", ex);
         }
     }

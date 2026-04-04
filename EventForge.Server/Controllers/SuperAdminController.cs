@@ -57,7 +57,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving configurations");
             return CreateInternalServerErrorProblem("Error retrieving configurations", ex);
         }
     }
@@ -75,7 +74,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving configurations for category {Category}", category);
             return CreateInternalServerErrorProblem("Error retrieving configurations", ex);
         }
     }
@@ -93,7 +91,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving configuration categories");
             return CreateInternalServerErrorProblem("Error retrieving categories", ex);
         }
     }
@@ -115,7 +112,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating configuration");
             return CreateInternalServerErrorProblem("Error creating configuration", ex);
         }
     }
@@ -137,7 +133,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving configuration {Key}", key);
             return CreateInternalServerErrorProblem("Error retrieving configuration", ex);
         }
     }
@@ -159,7 +154,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating configuration {Key}", key);
             return CreateInternalServerErrorProblem("Error updating configuration", ex);
         }
     }
@@ -181,7 +175,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting configuration {Key}", key);
             return CreateInternalServerErrorProblem("Error deleting configuration", ex);
         }
     }
@@ -199,7 +192,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error testing SMTP configuration");
             return CreateInternalServerErrorProblem("Error testing SMTP", ex);
         }
     }
@@ -217,7 +209,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reloading configuration");
             return CreateInternalServerErrorProblem("Error reloading configuration", ex);
         }
     }
@@ -243,7 +234,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error starting backup");
             return CreateInternalServerErrorProblem("Error starting backup", ex);
         }
     }
@@ -265,7 +255,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving backup status {BackupId}", backupId);
             return CreateInternalServerErrorProblem("Error retrieving backup status", ex);
         }
     }
@@ -283,7 +272,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving backups");
             return CreateInternalServerErrorProblem("Error retrieving backups", ex);
         }
     }
@@ -305,7 +293,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling backup {BackupId}", backupId);
             return CreateInternalServerErrorProblem("Error cancelling backup", ex);
         }
     }
@@ -328,7 +315,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error downloading backup {BackupId}", backupId);
             return CreateInternalServerErrorProblem("Error downloading backup", ex);
         }
     }
@@ -350,7 +336,6 @@ public class SuperAdminController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting backup {BackupId}", backupId);
             return CreateInternalServerErrorProblem("Error deleting backup", ex);
         }
     }

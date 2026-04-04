@@ -56,7 +56,6 @@ public class MembershipCardsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving membership cards for team member {TeamMemberId}", teamMemberId);
             return CreateInternalServerErrorProblem("Error retrieving membership cards", ex);
         }
     }
@@ -98,7 +97,6 @@ public class MembershipCardsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving membership card {CardId}", id);
             return CreateInternalServerErrorProblem("Error retrieving membership card", ex);
         }
     }
@@ -145,7 +143,6 @@ public class MembershipCardsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating membership card");
             return CreateInternalServerErrorProblem("Error creating membership card", ex);
         }
     }
@@ -198,7 +195,6 @@ public class MembershipCardsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating membership card {CardId}", id);
             return CreateInternalServerErrorProblem("Error updating membership card", ex);
         }
     }
@@ -241,7 +237,6 @@ public class MembershipCardsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting membership card {CardId}", id);
             return CreateInternalServerErrorProblem("Error deleting membership card", ex);
         }
     }
