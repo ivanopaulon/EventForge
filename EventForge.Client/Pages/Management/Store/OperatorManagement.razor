@@ -1,13 +1,18 @@
 @page "/store/operators"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Store
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject EventForge.Client.Services.Store.IStoreUserService StoreUserService
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 <EntityManagementPage TEntity="StoreUserDto"
+                      @ref="_entityPage"
                       Config="_config"
-                      Service="_service">
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -116,6 +121,7 @@
 </EntityManagementPage>
 
 @code {
+    private EntityManagementPage<StoreUserDto>? _entityPage;
     private IEntityManagementService<StoreUserDto> _service = null!;
     private EntityManagementConfig<StoreUserDto> _config = null!;
 
@@ -183,4 +189,13 @@
         CashierStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
         _ => status.ToString()
     };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters { [nameof(OperatorDetailDialog.EntityId)] = id };
+        var dialog = await DialogService.ShowAsync<OperatorDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
 }

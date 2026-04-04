@@ -3,15 +3,19 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Management.Adapters
+@using EventForge.Client.Shared.Components.Dialogs
 @using MudBlazor
 @attribute [Authorize]
 @inject IProductService ProductService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
-<EntityManagementPage TEntity="ProductDto"
+<EntityManagementPage @ref="_entityPage"
+                      TEntity="ProductDto"
                       Config="_config"
-                      Service="_service">
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -109,6 +113,7 @@
         MaxWidth = MaxWidth.False
     };
 
+    private EntityManagementPage<ProductDto>? _entityPage;
     private IEntityManagementService<ProductDto> _service = null!;
     private EntityManagementConfig<ProductDto> _config = null!;
 
@@ -158,6 +163,18 @@
                 new() { Id = "recent", Label = "Recenti", Predicate = p => p.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases }
             }
         };
+    }
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ProductDetailDialog.EntityId)] = id
+        };
+        var dialog = await DialogService.ShowAsync<ProductDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
     }
 
     private async Task ViewProductAuditLog(ProductDto product)

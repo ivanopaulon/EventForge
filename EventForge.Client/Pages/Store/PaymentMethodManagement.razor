@@ -3,14 +3,18 @@
 @using EventForge.DTOs.Sales
 @using EventForge.Client.Shared.Management.Adapters
 @using EventForge.Client.Services.Sales
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IPaymentMethodService PaymentMethodService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
 <EntityManagementPage TEntity="PaymentMethodDto"
+                      @ref="_entityPage"
                       Config="_config"
                       Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
                       AdditionalFilter="@(p => _statusFilter == "All" || (_statusFilter == "Active" && p.IsActive) || (_statusFilter == "Inactive" && !p.IsActive))">
     <AdditionalToolbarContent>
         <MudSelect @bind-Value="_statusFilter"
@@ -152,6 +156,7 @@
 </EntityManagementPage>
 
 @code {
+    private EntityManagementPage<PaymentMethodDto>? _entityPage;
     private readonly DialogOptions _auditDialogOptions = new()
     {
         FullScreen = true,
@@ -236,4 +241,13 @@
         "LocalAtm" => Icons.Material.Filled.LocalAtm,
         _ => Icons.Material.Filled.Payment
     };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters { [nameof(PaymentMethodDetailDialog.EntityId)] = id };
+        var dialog = await DialogService.ShowAsync<PaymentMethodDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
 }

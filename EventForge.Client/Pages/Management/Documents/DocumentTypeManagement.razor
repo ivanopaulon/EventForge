@@ -2,13 +2,18 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IDocumentTypeService DocumentTypeService
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 <EntityManagementPage TEntity="DocumentTypeDto"
+                      @ref="_entityPage"
                       Config="_config"
-                      Service="_service">
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -122,6 +127,7 @@
 </EntityManagementPage>
 
 @code {
+    private EntityManagementPage<DocumentTypeDto>? _entityPage;
     private IEntityManagementService<DocumentTypeDto> _service = null!;
     private EntityManagementConfig<DocumentTypeDto> _config = null!;
 
@@ -178,4 +184,17 @@
         BusinessPartyType.Both => TranslationService.GetTranslation("businessPartyType.both", "Entrambi"),
         _ => "-"
     };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(DocumentTypeDetailDialog.EntityId)] = id
+        };
+        var options = EFDialogDefaults.Options;
+        var dialog = await DialogService.ShowAsync<DocumentTypeDetailDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            await _entityPage!.RefreshAsync();
+    }
 }

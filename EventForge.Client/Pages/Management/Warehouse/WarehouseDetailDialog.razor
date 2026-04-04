@@ -1,5 +1,3 @@
-@page "/warehouse/facilities/new"
-@page "/warehouse/facilities/{FacilityId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Warehouse
 @using EventForge.DTOs.Common
@@ -8,70 +6,32 @@
 @attribute [Authorize]
 @inject IWarehouseService WarehouseService
 @inject IStorageLocationService StorageLocationService
-@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<WarehouseDetail> Logger
+@inject ILogger<WarehouseDetailDialog> Logger
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading || _isSaving"
-                         Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
-
-    @if (_facility == null && !_isCreateMode && !_isLoading)
-    {
-        <MudAlert Severity="Severity.Error">
-            @TranslationService.GetTranslation("warehouse.facilityNotFound", "Magazzino non trovato")
-        </MudAlert>
-    }
-    else if (!_isLoading)
-    {
-        <!-- Page Header -->
-        <MudPaper Elevation="2" Class="pa-4 mb-4">
-            <div class="d-flex justify-space-between align-center">
-                <div>
-                    <div class="d-flex align-center gap-2 mb-2">
-                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
-                                       Color="Color.Primary"
-                                       OnClick="@(() => TryNavigateAway("/warehouse/facilities"))"
-                                       Size="Size.Small" />
-                        <MudText Typo="Typo.h4">
-                            <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Class="mr-2" />
-                            @(_isCreateMode 
-                                ? TranslationService.GetTranslation("drawer.title.creaMagazzino", "Crea Nuovo Magazzino") 
-                                : _facility?.Name)
-                        </MudText>
-
-                        @if (HasUnsavedChanges())
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
-                                @TranslationService.GetTranslation("warehouse.unsavedChanges", "Modifiche non salvate")
-                            </MudChip>
-                        }
-                    </div>
-                    @if (!_isCreateMode && _facility != null)
-                    {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_facility.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                        </MudText>
-                    }
-                </div>
-                <div class="d-flex gap-2">
-                    <MudButton Variant="Variant.Filled" 
-                               Color="Color.Primary" 
-                               StartIcon="@Icons.Material.Filled.Save"
-                               OnClick="SaveFacilityAsync"
-                               Disabled="_isSaving"
-                               Size="Size.Small">
-                        @TranslationService.GetTranslation("common.save", "Salva")
-                    </MudButton>
-                </div>
+<EFDialog Icon="@Icons.Material.Outlined.Warehouse"
+          Title="@(_isCreateMode ? TranslationService.GetTranslation("drawer.title.creaMagazzino", "Crea Nuovo Magazzino") : (_facility?.Name ?? string.Empty))"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
             </div>
-        </MudPaper>
-
-        <!-- Tabs Section -->
-        <MudPaper Elevation="2" Class="pa-2">
-            <MudTabs Elevation="0" Rounded="false" TabPanelsClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
+        }
+        else if (!_isCreateMode && _facility == null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @TranslationService.GetTranslation("warehouse.facilityNotFound", "Magazzino non trovato")
+            </MudAlert>
+        }
+        else
+        {
+            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
                 <MudTabPanel Text="@TranslationService.GetTranslation("warehouse.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
                     <MudForm @ref="_form">
                         <MudGrid>
@@ -232,7 +192,6 @@
                 {
                     <MudTabPanel Text="@TranslationService.GetTranslation("warehouse.locations", "Ubicazioni")" Icon="@Icons.Material.Filled.Place" BadgeData="@_storageLocations?.Count()" BadgeDot="@(_storageLocations?.Any() ?? false)">
                         <MudStack Spacing="3">
-                            <!-- Add Location Button -->
                             <div class="d-flex justify-end mb-2">
                                 <MudButton StartIcon="@Icons.Material.Outlined.Add"
                                            Color="Color.Primary"
@@ -255,7 +214,7 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.Place" Class="mr-2" />
                                     @TranslationService.GetTranslation("warehouse.storageLocations", "Ubicazioni di Magazzino")
                                 </MudText>
-                                
+
                                 <MudTable Items="@_storageLocations" Hover="true" Striped="true" Dense="false" Elevation="0">
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("warehouse.locationCode", "Codice")</MudTh>
@@ -315,16 +274,26 @@
                     </MudTabPanel>
                 }
             </MudTabs>
-        </MudPaper>
-    }
-</MudContainer>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveFacilityAsync" Disabled="_isSaving || _isLoading || _facility == null">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
 
 @code {
-    [Parameter] public Guid? FacilityId { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? EntityId { get; set; }
 
     private StorageFacilityDto? _facility;
     private bool _isLoading = true;
-    private bool _isCreateMode => FacilityId == null || FacilityId == Guid.Empty;
+    private bool _isCreateMode => EntityId == null || EntityId == Guid.Empty;
     private bool _isSaving = false;
     private MudForm? _form;
     private int _activeTab = 0;
@@ -332,7 +301,6 @@
     private string _originalFacilitySnapshot = string.Empty;
     private bool _hasLocalChanges = false;
 
-    // Storage locations for this facility
     private List<StorageLocationDto>? _storageLocations;
     private bool _isLoadingLocations = false;
 
@@ -347,12 +315,6 @@
         await LoadFacilityAsync();
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_facility?.Id != FacilityId)
-            await LoadFacilityAsync();
-    }
-
     private async Task LoadFacilityAsync()
     {
         _isLoading = true;
@@ -363,21 +325,20 @@
                 _facility = new StorageFacilityDto();
                 _originalFacilitySnapshot = SerializeFacility(_facility);
             }
-            else if (FacilityId.HasValue)
+            else if (EntityId.HasValue)
             {
-                var facility = await WarehouseService.GetStorageFacilityAsync(FacilityId.Value);
+                var facility = await WarehouseService.GetStorageFacilityAsync(EntityId.Value);
                 _facility = facility;
                 if (_facility != null)
                 {
                     _originalFacilitySnapshot = SerializeFacility(_facility);
-                    // Load storage locations for this facility
                     await LoadStorageLocationsAsync();
                 }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading storage facility {FacilityId}", FacilityId);
+            Logger.LogError(ex, "Error loading storage facility {EntityId}", EntityId);
             Snackbar.Add(TranslationService.GetTranslation("warehouse.loadError", "Errore nel caricamento del magazzino"), Severity.Error);
         }
         finally
@@ -389,12 +350,12 @@
 
     private async Task LoadStorageLocationsAsync()
     {
-        if (!FacilityId.HasValue) return;
+        if (!EntityId.HasValue) return;
 
         _isLoadingLocations = true;
         try
         {
-            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(FacilityId.Value, 1, 100);
+            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(EntityId.Value, 1, 100);
             if (result?.Items != null)
             {
                 _storageLocations = result.Items.ToList();
@@ -402,7 +363,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading storage locations for facility {FacilityId}", FacilityId);
+            Logger.LogError(ex, "Error loading storage locations for facility {EntityId}", EntityId);
             Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), Severity.Error);
         }
         finally
@@ -436,11 +397,10 @@
                     IsRefrigerated = _facility.IsRefrigerated,
                     Notes = _facility.Notes
                 };
-                var created = await WarehouseService.CreateStorageFacilityAsync(createDto);
+                await WarehouseService.CreateStorageFacilityAsync(createDto);
                 Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"), Severity.Success);
-                NavigationManager.NavigateTo($"/warehouse/facilities/{created.Id}");
             }
-            else if (FacilityId.HasValue)
+            else if (EntityId.HasValue)
             {
                 var updateDto = new UpdateStorageFacilityDto
                 {
@@ -455,10 +415,12 @@
                     IsRefrigerated = _facility.IsRefrigerated,
                     Notes = _facility.Notes
                 };
-                await WarehouseService.UpdateStorageFacilityAsync(FacilityId.Value, updateDto);
+                await WarehouseService.UpdateStorageFacilityAsync(EntityId.Value, updateDto);
                 Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"), Severity.Success);
-                await LoadFacilityAsync();
             }
+
+            _hasLocalChanges = false;
+            MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
@@ -491,42 +453,31 @@
         return !string.Equals(current, _originalFacilitySnapshot, StringComparison.Ordinal);
     }
 
-    private async Task TryNavigateAway(string target)
+    private async Task Cancel()
     {
-        if (!HasUnsavedChanges())
+        if (HasUnsavedChanges())
         {
-            NavigationManager.NavigateTo(target);
-            return;
+            var result = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("warehouse.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (result == null) return;
+            if (result == true) { await SaveFacilityAsync(); return; }
         }
-
-        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var message = TranslationService.GetTranslation("warehouse.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
-        var saveText = TranslationService.GetTranslation("common.save", "Salva");
-        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
-        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
-
-        var result = await DialogService.ShowMessageBoxAsync(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
-
-        if (result == true)
-        {
-            await SaveFacilityAsync();
-            NavigationManager.NavigateTo(target);
-        }
-        else if (result == false)
-        {
-            NavigationManager.NavigateTo(target);
-        }
+        MudDialog.Close();
     }
 
     #region Storage Location Management
 
     private async Task OpenCreateLocationDialog()
     {
-        if (!FacilityId.HasValue) return;
+        if (!EntityId.HasValue) return;
 
         var parameters = new DialogParameters
         {
-            { "WarehouseId", FacilityId.Value }
+            { "WarehouseId", EntityId.Value }
         };
 
         var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
@@ -546,11 +497,11 @@
 
     private async Task OpenEditLocationDialog(StorageLocationDto location)
     {
-        if (!FacilityId.HasValue) return;
+        if (!EntityId.HasValue) return;
 
         var parameters = new DialogParameters
         {
-            { "WarehouseId", FacilityId.Value },
+            { "WarehouseId", EntityId.Value },
             { "Location", location }
         };
 

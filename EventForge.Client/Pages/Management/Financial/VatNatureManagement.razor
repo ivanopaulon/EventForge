@@ -1,13 +1,18 @@
 @page "/financial/vat-natures"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.VatRates
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IFinancialService FinancialService
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 <EntityManagementPage TEntity="VatNatureDto"
+                      @ref="_entityPage"
                       Config="_config"
-                      Service="_service">
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -82,6 +87,7 @@
 </EntityManagementPage>
 
 @code {
+    private EntityManagementPage<VatNatureDto>? _entityPage;
     private IEntityManagementService<VatNatureDto> _service = null!;
     private EntityManagementConfig<VatNatureDto> _config = null!;
 
@@ -126,5 +132,18 @@
                 new() { Id = "recent", Label = "Recenti", Predicate = v => v.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases, Description = "Nature IVA aggiunte negli ultimi 30 giorni" }
             }
         };
+    }
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(VatNatureDetailDialog.EntityId)] = id
+        };
+        var options = EFDialogDefaults.Options;
+        var dialog = await DialogService.ShowAsync<VatNatureDetailDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            await _entityPage!.RefreshAsync();
     }
 }

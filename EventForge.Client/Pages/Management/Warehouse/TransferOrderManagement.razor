@@ -1,6 +1,7 @@
 @page "/warehouse/transfers"
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Shared.Components.Dialogs.Warehouse
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject ITransferOrderService TransferOrderService
 @inject IWarehouseService WarehouseService
@@ -17,6 +18,7 @@
                       Config="_config"
                       Service="_service"
                       OnCreateOverride="@CreateTransferOrder"
+                      OnViewEntity="@(id => OpenDetailDialogAsync(id))"
                       AdditionalFilter="@(t => (!_selectedSourceWarehouseId.HasValue || t.SourceWarehouseId == _selectedSourceWarehouseId.Value)
                                             && (!_selectedDestinationWarehouseId.HasValue || t.DestinationWarehouseId == _selectedDestinationWarehouseId.Value)
                                             && (string.IsNullOrEmpty(_selectedStatus) || t.Status == _selectedStatus))">
@@ -303,9 +305,15 @@
         }
     }
 
-    private async Task CreateTransferOrder()
+    private async Task OpenDetailDialogAsync(Guid id)
     {
-        var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
+        var parameters = new DialogParameters { [nameof(TransferOrderDetailDialog.EntityId)] = (Guid?)id };
+        var dialog = await DialogService.ShowAsync<TransferOrderDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        await dialog.Result;
+    }
+
+    private async Task CreateTransferOrder()
+    {        var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
             TranslationService.GetTranslation("transferOrder.createDialog", "Create Transfer Order"), _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled)
