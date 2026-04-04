@@ -43,7 +43,6 @@ public class PerformanceController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving performance statistics");
             return CreateInternalServerErrorProblem("Unable to retrieve performance statistics", ex);
         }
     }
@@ -80,7 +79,6 @@ public class PerformanceController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving slow queries");
             return CreateInternalServerErrorProblem("Unable to retrieve slow query information", ex);
         }
     }
@@ -119,7 +117,6 @@ public class PerformanceController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving performance summary");
             return CreateInternalServerErrorProblem("Unable to retrieve performance summary", ex);
         }
     }

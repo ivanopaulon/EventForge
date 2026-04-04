@@ -68,7 +68,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document headers.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document headers.", ex);
         }
     }
@@ -106,7 +105,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the document header.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the document header.", ex);
         }
     }
@@ -136,7 +134,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document headers.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document headers.", ex);
         }
     }
@@ -178,7 +175,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document header.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document header.", ex);
         }
     }
@@ -224,7 +220,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the document header.");
             return CreateInternalServerErrorProblem("An error occurred while updating the document header.", ex);
         }
     }
@@ -261,7 +256,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the document header.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the document header.", ex);
         }
     }
@@ -297,7 +291,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while calculating document totals.");
             return CreateInternalServerErrorProblem("An error occurred while calculating document totals.", ex);
         }
     }
@@ -334,7 +327,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while approving the document.");
             return CreateInternalServerErrorProblem("An error occurred while approving the document.", ex);
         }
     }
@@ -371,7 +363,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while closing the document.");
             return CreateInternalServerErrorProblem("An error occurred while closing the document.", ex);
         }
     }
@@ -402,7 +393,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while checking document header existence.");
             return CreateInternalServerErrorProblem("An error occurred while checking document header existence.", ex);
         }
     }
@@ -444,7 +434,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while adding document row.");
             return CreateInternalServerErrorProblem("An error occurred while adding document row.", ex);
         }
     }
@@ -497,7 +486,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating document row {RowId}.", rowId);
             return CreateInternalServerErrorProblem($"An error occurred while updating document row {rowId}.", ex);
         }
     }
@@ -541,7 +529,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting document row {RowId}.", rowId);
             return CreateInternalServerErrorProblem($"An error occurred while deleting document row {rowId}.", ex);
         }
     }
@@ -577,7 +564,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document attachments.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document attachments.", ex);
         }
     }
@@ -609,7 +595,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document attachments.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document attachments.", ex);
         }
     }
@@ -645,7 +630,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the document attachment.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the document attachment.", ex);
         }
     }
@@ -685,7 +669,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document attachment.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document attachment.", ex);
         }
     }
@@ -732,7 +715,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document attachment.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document attachment.", ex);
         }
     }
@@ -778,7 +760,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the document attachment.");
             return CreateInternalServerErrorProblem("An error occurred while updating the document attachment.", ex);
         }
     }
@@ -827,7 +808,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the attachment version.");
             return CreateInternalServerErrorProblem("An error occurred while creating the attachment version.", ex);
         }
     }
@@ -857,7 +837,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving attachment versions.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving attachment versions.", ex);
         }
     }
@@ -903,7 +882,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while signing the attachment.");
             return CreateInternalServerErrorProblem("An error occurred while signing the attachment.", ex);
         }
     }
@@ -933,7 +911,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving attachments by category.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving attachments by category.", ex);
         }
     }
@@ -970,7 +947,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the document attachment.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the document attachment.", ex);
         }
     }
@@ -1001,7 +977,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while checking attachment existence.");
             return CreateInternalServerErrorProblem("An error occurred while checking attachment existence.", ex);
         }
     }
@@ -1035,7 +1010,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document comments.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document comments.", ex);
         }
     }
@@ -1067,7 +1041,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document comments.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document comments.", ex);
         }
     }
@@ -1105,7 +1078,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the document comment.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the document comment.", ex);
         }
     }
@@ -1145,7 +1117,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document comment.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document comment.", ex);
         }
     }
@@ -1192,7 +1163,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document comment.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document comment.", ex);
         }
     }
@@ -1238,7 +1208,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the document comment.");
             return CreateInternalServerErrorProblem("An error occurred while updating the document comment.", ex);
         }
     }
@@ -1277,7 +1246,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while resolving the comment.");
             return CreateInternalServerErrorProblem("An error occurred while resolving the comment.", ex);
         }
     }
@@ -1314,7 +1282,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while reopening the comment.");
             return CreateInternalServerErrorProblem("An error occurred while reopening the comment.", ex);
         }
     }
@@ -1345,7 +1312,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving comment statistics.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving comment statistics.", ex);
         }
     }
@@ -1376,7 +1342,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving assigned comments.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving assigned comments.", ex);
         }
     }
@@ -1413,7 +1378,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the document comment.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the document comment.", ex);
         }
     }
@@ -1444,7 +1408,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while checking comment existence.");
             return CreateInternalServerErrorProblem("An error occurred while checking comment existence.", ex);
         }
     }
@@ -1474,7 +1437,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document templates.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document templates.", ex);
         }
     }
@@ -1503,7 +1465,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving public document templates.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving public document templates.", ex);
         }
     }
@@ -1533,7 +1494,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document templates by document type.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document templates by document type.", ex);
         }
     }
@@ -1568,7 +1528,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document templates by category.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document templates by category.", ex);
         }
     }
@@ -1605,7 +1564,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the document template.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the document template.", ex);
         }
     }
@@ -1645,7 +1603,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document template.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document template.", ex);
         }
     }
@@ -1688,7 +1645,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the document template.");
             return CreateInternalServerErrorProblem("An error occurred while updating the document template.", ex);
         }
     }
@@ -1725,7 +1681,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the document template.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the document template.", ex);
         }
     }
@@ -1762,7 +1717,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating template usage.");
             return CreateInternalServerErrorProblem("An error occurred while updating template usage.", ex);
         }
     }
@@ -1792,7 +1746,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document workflows.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document workflows.", ex);
         }
     }
@@ -1825,7 +1778,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document workflows.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document workflows.", ex);
         }
     }
@@ -1860,7 +1812,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the document workflow.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the document workflow.", ex);
         }
     }
@@ -1900,7 +1851,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document workflow.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document workflow.", ex);
         }
     }
@@ -1943,7 +1893,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the document workflow.");
             return CreateInternalServerErrorProblem("An error occurred while updating the document workflow.", ex);
         }
     }
@@ -1980,7 +1929,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the document workflow.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the document workflow.", ex);
         }
     }
@@ -2018,7 +1966,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document analytics.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document analytics.", ex);
         }
     }
@@ -2067,7 +2014,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving analytics summary.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving analytics summary.", ex);
         }
     }
@@ -2118,7 +2064,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while calculating KPI summary.");
             return CreateInternalServerErrorProblem("An error occurred while calculating KPI summary.", ex);
         }
     }
@@ -2150,7 +2095,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while refreshing document analytics.");
             return CreateInternalServerErrorProblem("An error occurred while refreshing document analytics.", ex);
         }
     }
@@ -2194,7 +2138,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while handling workflow event.");
             return CreateInternalServerErrorProblem("An error occurred while handling workflow event.", ex);
         }
     }
@@ -2227,7 +2170,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document types.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document types.", ex);
         }
     }
@@ -2260,7 +2202,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the document type.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the document type.", ex);
         }
     }
@@ -2294,7 +2235,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document type.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document type.", ex);
         }
     }
@@ -2338,7 +2278,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the document type.");
             return CreateInternalServerErrorProblem("An error occurred while updating the document type.", ex);
         }
     }
@@ -2371,7 +2310,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the document type.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the document type.", ex);
         }
     }
@@ -2426,7 +2364,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while exporting documents");
             return CreateInternalServerErrorProblem("An error occurred while exporting documents.", ex);
         }
     }
@@ -2460,7 +2397,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving export status for {ExportId}", exportId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving export status.", ex);
         }
     }
@@ -2515,7 +2451,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while changing document status for {DocumentId}", id);
             return CreateInternalServerErrorProblem("An error occurred while changing document status.", ex);
         }
     }
@@ -2539,7 +2474,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document status history for {DocumentId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving document status history.", ex);
         }
     }
@@ -2563,7 +2497,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving available transitions for {DocumentId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving available transitions.", ex);
         }
     }
@@ -2620,7 +2553,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred during bulk approval");
             return CreateInternalServerErrorProblem("An error occurred during bulk approval.", ex);
         }
     }
@@ -2673,7 +2605,6 @@ public class DocumentsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred during bulk status change");
             return CreateInternalServerErrorProblem("An error occurred during bulk status change.", ex);
         }
     }

@@ -11,6 +11,7 @@
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<EntityManagementPage<TEntity>> Logger
@@ -365,8 +366,9 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation(Config.LoadErrorMessageKey,
-                "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            var msg = TranslationService.GetTranslation(Config.LoadErrorMessageKey,
+                "Errore nel caricamento della pagina: {0}", ex.Message);
+            AppNotification.ShowError(msg, exception: ex);
             Logger.LogError(ex, "Error loading {EntityType} page", Config.EntityTypeName);
         }
         finally
@@ -413,8 +415,9 @@
         catch (OperationCanceledException) { /* navigation away, ignore */ }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation(Config.LoadErrorMessageKey,
-                "Errore nel caricamento: {0}", ex.Message), Severity.Error);
+            var msg = TranslationService.GetTranslation(Config.LoadErrorMessageKey,
+                "Errore nel caricamento: {0}", ex.Message);
+            AppNotification.ShowError(msg, exception: ex);
             Logger.LogError(ex, "Error loading {EntityType} list", Config.EntityTypeName);
         }
         finally
@@ -483,8 +486,9 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation(Config.DeleteErrorMessageKey,
-                    "Errore nell'eliminazione: {0}", ex.Message), Severity.Error);
+                var msg = TranslationService.GetTranslation(Config.DeleteErrorMessageKey,
+                    "Errore nell'eliminazione: {0}", ex.Message);
+                AppNotification.ShowError(msg, exception: ex);
                 Logger.LogError(ex, "Error deleting {EntityType} {Id}", Config.EntityTypeName, Config.GetId(entity));
             }
         }
@@ -579,8 +583,9 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslationFormatted(Config.DeleteErrorMessageKey,
-                    "Errore nell'eliminazione: {0}", ex.Message), Severity.Error);
+                var msg = TranslationService.GetTranslationFormatted(Config.DeleteErrorMessageKey,
+                    "Errore nell'eliminazione: {0}", ex.Message);
+                AppNotification.ShowError(msg, exception: ex);
                 Logger.LogError(ex, "Error deleting selected {EntityType} items", Config.EntityTypeName);
                 needsFullReload = true;
             }
@@ -637,8 +642,9 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation("common.statusChangeError",
-                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                var msg = TranslationService.GetTranslation("common.statusChangeError",
+                    "Errore nel cambio di stato: {0}", ex.Message);
+                AppNotification.ShowError(msg, exception: ex);
                 Logger.LogError(ex, "Error toggling {EntityType} status {Id}", Config.EntityTypeName, Config.GetId(entity));
                 // Force reload to re-align local list with server after error
                 await LoadEntitiesAsync();

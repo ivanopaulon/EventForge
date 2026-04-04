@@ -38,7 +38,6 @@ public class DashboardConfigurationController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting dashboard configurations for entity type {EntityType}", entityType);
             return CreateInternalServerErrorProblem("An error occurred while retrieving dashboard configurations.", ex);
         }
     }
@@ -63,7 +62,6 @@ public class DashboardConfigurationController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting dashboard configuration {ConfigurationId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the dashboard configuration.", ex);
         }
     }
@@ -88,7 +86,6 @@ public class DashboardConfigurationController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting default dashboard configuration for entity type {EntityType}", entityType);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the default dashboard configuration.", ex);
         }
     }
@@ -114,7 +111,6 @@ public class DashboardConfigurationController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating dashboard configuration");
             return CreateInternalServerErrorProblem("An error occurred while creating the dashboard configuration.", ex);
         }
     }
@@ -145,7 +141,6 @@ public class DashboardConfigurationController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating dashboard configuration {ConfigurationId}", id);
             return CreateInternalServerErrorProblem("An error occurred while updating the dashboard configuration.", ex);
         }
     }
@@ -170,7 +165,6 @@ public class DashboardConfigurationController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting dashboard configuration {ConfigurationId}", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the dashboard configuration.", ex);
         }
     }
@@ -195,7 +189,6 @@ public class DashboardConfigurationController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error setting dashboard configuration as default {ConfigurationId}", id);
             return CreateInternalServerErrorProblem("An error occurred while setting the dashboard configuration as default.", ex);
         }
     }

@@ -95,7 +95,6 @@ public class TenantSwitchController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving current context");
             return CreateInternalServerErrorProblem("Error retrieving current context", ex);
         }
     }
@@ -189,7 +188,6 @@ public class TenantSwitchController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating security");
             return CreateInternalServerErrorProblem("Error validating security", ex);
         }
     }
@@ -288,7 +286,6 @@ public class TenantSwitchController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error switching tenant");
             return CreateInternalServerErrorProblem("Error switching tenant", ex);
         }
     }
@@ -393,7 +390,6 @@ public class TenantSwitchController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error starting impersonation");
             return CreateInternalServerErrorProblem("Error starting impersonation", ex);
         }
     }
@@ -475,7 +471,6 @@ public class TenantSwitchController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error ending impersonation");
             return CreateInternalServerErrorProblem("Error ending impersonation", ex);
         }
     }
@@ -569,7 +564,6 @@ public class TenantSwitchController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving tenant switch history");
             return CreateInternalServerErrorProblem("Error retrieving tenant switch history", ex);
         }
     }
@@ -658,7 +652,6 @@ public class TenantSwitchController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving impersonation history");
             return CreateInternalServerErrorProblem("Error retrieving impersonation history", ex);
         }
     }
@@ -718,7 +711,6 @@ public class TenantSwitchController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving operation summary");
             return CreateInternalServerErrorProblem("Error retrieving operation summary", ex);
         }
     }

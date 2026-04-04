@@ -92,7 +92,6 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting tables with pagination");
             return CreateInternalServerErrorProblem("An error occurred while getting tables.", ex);
         }
     }
@@ -170,7 +169,6 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting available tables with pagination");
             return CreateInternalServerErrorProblem("An error occurred while getting available tables.", ex);
         }
     }
@@ -198,7 +196,6 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting tables by zone {Zone}", zone);
             return CreateInternalServerErrorProblem("An error occurred while getting tables by zone.", ex);
         }
     }

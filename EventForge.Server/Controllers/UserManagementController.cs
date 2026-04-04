@@ -88,7 +88,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving users");
             return CreateInternalServerErrorProblem("Error retrieving users", ex);
         }
     }
@@ -141,7 +140,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error retrieving user", ex);
         }
     }
@@ -236,7 +234,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user status for {UserId}", userId);
             return CreateInternalServerErrorProblem("Error updating user status", ex);
         }
     }
@@ -346,7 +343,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user roles for {UserId}", userId);
             return CreateInternalServerErrorProblem("Error updating user roles", ex);
         }
     }
@@ -424,7 +420,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resetting password for user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error resetting password", ex);
         }
     }
@@ -486,7 +481,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error forcing password change for {UserId}", userId);
             return CreateInternalServerErrorProblem("Error forcing password change", ex);
         }
     }
@@ -515,7 +509,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving roles");
             return CreateInternalServerErrorProblem("Error retrieving roles", ex);
         }
     }
@@ -642,7 +635,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching users");
             return CreateInternalServerErrorProblem("Error searching users", ex);
         }
     }
@@ -712,7 +704,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving user statistics");
             return CreateInternalServerErrorProblem("Error retrieving user statistics", ex);
         }
     }
@@ -868,7 +859,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing quick actions");
             return CreateInternalServerErrorProblem("Error performing quick actions", ex);
         }
     }
@@ -1013,7 +1003,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error updating user", ex);
         }
     }
@@ -1076,7 +1065,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error deleting user", ex);
         }
     }
@@ -1181,7 +1169,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating user via management interface");
             return CreateInternalServerErrorProblem("Error creating user", ex);
         }
     }
@@ -1280,7 +1267,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating user");
             return CreateInternalServerErrorProblem("Error creating user", ex);
         }
     }
@@ -1335,7 +1321,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving permissions for role {RoleId}", roleId);
             return CreateInternalServerErrorProblem("Error retrieving role permissions", ex);
         }
     }
@@ -1396,7 +1381,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating permissions for role {RoleId}", roleId);
             return CreateInternalServerErrorProblem("Error updating role permissions", ex);
         }
     }
@@ -1429,7 +1413,6 @@ public class UserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving all permissions");
             return CreateInternalServerErrorProblem("Error retrieving permissions", ex);
         }
     }

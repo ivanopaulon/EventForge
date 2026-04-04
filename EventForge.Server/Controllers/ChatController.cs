@@ -81,7 +81,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create chat");
             return CreateValidationProblemDetails("An error occurred while creating the chat");
         }
     }
@@ -119,7 +118,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve chat {ChatId}", id);
             return CreateValidationProblemDetails("An error occurred while retrieving the chat");
         }
     }
@@ -149,7 +147,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to search chats");
             return CreateValidationProblemDetails("An error occurred while searching chats");
         }
     }
@@ -192,7 +189,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update chat {ChatId}", id);
             return CreateValidationProblemDetails("An error occurred while updating the chat");
         }
     }
@@ -236,7 +232,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete chat {ChatId}", id);
             return CreateValidationProblemDetails("An error occurred while deleting the chat");
         }
     }
@@ -281,7 +276,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send message");
             return CreateValidationProblemDetails("An error occurred while sending the message"
                 );
         }
@@ -312,7 +306,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve messages");
             return CreateValidationProblemDetails("An error occurred while retrieving messages"
                 );
         }
@@ -341,7 +334,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve messages");
             return CreateInternalServerErrorProblem("An error occurred while retrieving messages.", ex);
         }
     }
@@ -371,7 +363,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve messages for conversation {ConversationId}", conversationId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving messages.", ex);
         }
     }
@@ -399,7 +390,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve unread messages");
             return CreateInternalServerErrorProblem("An error occurred while retrieving unread messages.", ex);
         }
     }
@@ -437,7 +427,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve message {MessageId}", messageId);
             return CreateValidationProblemDetails("An error occurred while retrieving the message"
                 );
         }
@@ -490,7 +479,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to edit message {MessageId}", messageId);
             return CreateValidationProblemDetails("An error occurred while editing the message"
                 );
         }
@@ -536,7 +524,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete message {MessageId}", messageId);
             return CreateValidationProblemDetails("An error occurred while deleting the message"
                 );
         }
@@ -573,7 +560,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to mark message {MessageId} as read", messageId);
             return CreateValidationProblemDetails("An error occurred while marking the message as read"
                 );
         }
@@ -616,7 +602,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to bulk mark messages as read");
             return CreateValidationProblemDetails("An error occurred while marking messages as read"
                 );
         }
@@ -693,7 +678,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to upload file to chat {ChatId}", uploadRequest.ChatId);
             return CreateValidationProblemDetails("An error occurred while uploading the file"
                 );
         }
@@ -732,7 +716,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get download info for file {AttachmentId}", attachmentId);
             return CreateValidationProblemDetails("An error occurred while retrieving file information"
                 );
         }
@@ -772,7 +755,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to download file {AttachmentId}", attachmentId);
             return CreateValidationProblemDetails("An error occurred while downloading the file"
                 );
         }
@@ -811,7 +793,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve chat statistics");
             return CreateValidationProblemDetails("An error occurred while retrieving statistics"
                 );
         }
@@ -863,7 +844,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to start chat export");
             return CreateValidationProblemDetails("An error occurred while starting the export operation"
                 );
         }
@@ -911,7 +891,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve chat export status for {ExportId}", exportId);
             return CreateValidationProblemDetails("An error occurred while retrieving export status"
                 );
         }
@@ -981,7 +960,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to download chat export file for {ExportId}", exportId);
             return CreateValidationProblemDetails("An error occurred while downloading the export file"
                 );
         }
@@ -1011,7 +989,6 @@ public class ChatController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve chat system health");
             return CreateValidationProblemDetails("An error occurred while retrieving system health"
                 );
         }

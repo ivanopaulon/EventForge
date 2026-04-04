@@ -75,7 +75,6 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving payment methods.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving payment methods.", ex);
         }
     }
@@ -120,7 +119,6 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving active payment methods.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving active payment methods.", ex);
         }
     }
@@ -157,7 +155,6 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving payment method {PaymentMethodId}.", id);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving payment method {id}.", ex);
         }
     }
@@ -194,7 +191,6 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving payment method by code {Code}.", code);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving payment method by code '{code}'.", ex);
         }
     }
@@ -243,7 +239,6 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating payment method.");
             return CreateInternalServerErrorProblem("An error occurred while creating payment method.", ex);
         }
     }
@@ -292,7 +287,6 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating payment method {PaymentMethodId}.", id);
             return CreateInternalServerErrorProblem($"An error occurred while updating payment method {id}.", ex);
         }
     }
@@ -332,7 +326,6 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting payment method {PaymentMethodId}.", id);
             return CreateInternalServerErrorProblem($"An error occurred while deleting payment method {id}.", ex);
         }
     }
@@ -364,7 +357,6 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while checking payment method code.");
             return CreateInternalServerErrorProblem("An error occurred while checking payment method code.", ex);
         }
     }

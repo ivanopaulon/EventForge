@@ -60,7 +60,6 @@ public class ApplicationLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving application logs.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving application logs.", ex);
         }
     }
@@ -103,7 +102,6 @@ public class ApplicationLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving application logs for level {Level}.", level);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving application logs for level {level}.", ex);
         }
     }
@@ -148,7 +146,6 @@ public class ApplicationLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving application logs for date range {StartDate} to {EndDate}.", startDate, endDate);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving application logs for the specified date range.", ex);
         }
     }

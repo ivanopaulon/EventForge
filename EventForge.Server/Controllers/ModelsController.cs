@@ -72,7 +72,6 @@ public class ModelsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving models.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving models.", ex);
         }
     }
@@ -117,7 +116,6 @@ public class ModelsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving models for brand {BrandId}.", brandId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving models for the brand.", ex);
         }
     }

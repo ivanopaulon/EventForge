@@ -63,7 +63,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving application logs with parameters: {@QueryParameters}", queryParameters);
             return CreateInternalServerErrorProblem("Error retrieving application logs", ex);
         }
     }
@@ -101,7 +100,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving application log with ID: {LogId}", id);
             return CreateInternalServerErrorProblem("Error retrieving application log", ex);
         }
     }
@@ -129,7 +127,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving recent error logs");
             return CreateInternalServerErrorProblem("Error retrieving recent error logs", ex);
         }
     }
@@ -176,7 +173,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving log statistics from {FromDate} to {ToDate}", from, to);
             return CreateInternalServerErrorProblem("Error retrieving log statistics", ex);
         }
     }
@@ -204,7 +200,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving available log levels");
             return CreateInternalServerErrorProblem("Error retrieving log levels", ex);
         }
     }
@@ -242,7 +237,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving public application logs with parameters: {@QueryParameters}", queryParameters);
             return CreateInternalServerErrorProblem("Error retrieving application logs", ex);
         }
     }
@@ -289,7 +283,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing client log: {@ClientLog}", clientLog);
             return CreateInternalServerErrorProblem("Error processing client log", ex);
         }
     }
@@ -334,7 +327,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing client log batch with {Count} entries", batchRequest.Logs.Count);
             return CreateInternalServerErrorProblem("Error processing client log batch", ex);
         }
     }
@@ -376,7 +368,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving audit logs: {@SearchDto}", searchDto);
             return CreateInternalServerErrorProblem("Error retrieving audit logs", ex);
         }
     }
@@ -405,7 +396,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving audit statistics");
             return CreateInternalServerErrorProblem("Error retrieving audit statistics", ex);
         }
     }
@@ -452,7 +442,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting logs: {@ExportRequest}", exportRequest);
             return CreateInternalServerErrorProblem("Error exporting logs", ex);
         }
     }
@@ -480,7 +469,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving monitoring configuration");
             return CreateInternalServerErrorProblem("Error retrieving monitoring configuration", ex);
         }
     }
@@ -518,7 +506,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating monitoring configuration: {@Config}", config);
             return CreateInternalServerErrorProblem("Error updating monitoring configuration", ex);
         }
     }
@@ -550,7 +537,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking log system health");
             return CreateInternalServerErrorProblem("Error checking system health", ex);
         }
     }
@@ -582,7 +568,6 @@ public class LogManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error clearing log management cache");
             return CreateInternalServerErrorProblem("Error clearing cache", ex);
         }
     }

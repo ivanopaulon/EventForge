@@ -46,7 +46,6 @@ public class ExportController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Excel export failed");
             return CreateInternalServerErrorProblem("Export failed.", ex);
         }
     }

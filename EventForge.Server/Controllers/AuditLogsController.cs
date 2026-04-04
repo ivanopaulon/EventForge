@@ -65,7 +65,6 @@ public class AuditLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving audit logs.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving audit logs.", ex);
         }
     }
@@ -111,7 +110,6 @@ public class AuditLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving audit logs for entity type {EntityType}.", entityType);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving audit logs for entity type {entityType}.", ex);
         }
     }
@@ -157,7 +155,6 @@ public class AuditLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving audit logs for user {UserId}.", userId);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving audit logs for user {userId}.", ex);
         }
     }
@@ -205,7 +202,6 @@ public class AuditLogsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving audit logs for date range {StartDate} to {EndDate}.", startDate, endDate);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving audit logs for the specified date range.", ex);
         }
     }

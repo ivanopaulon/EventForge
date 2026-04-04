@@ -86,7 +86,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user with ID {UserId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the store user.", ex);
         }
     }
@@ -117,7 +116,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user with username {Username}", username);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the store user.", ex);
         }
     }
@@ -140,7 +138,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store users by group {GroupId}", groupId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving store users by group.", ex);
         }
     }
@@ -173,7 +170,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating store user with data {@CreateStoreUserDto}", createStoreUserDto);
             return CreateInternalServerErrorProblem("An error occurred while creating the store user.", ex);
         }
     }
@@ -214,7 +210,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating store user {UserId} with data {@UpdateStoreUserDto}", id, updateStoreUserDto);
             return CreateInternalServerErrorProblem("An error occurred while updating the store user.", ex);
         }
     }
@@ -247,7 +242,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting store user {UserId}", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the store user.", ex);
         }
     }
@@ -276,7 +270,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user groups with pagination (page: {Page}, pageSize: {PageSize})", pagination.Page, pagination.PageSize);
             return CreateInternalServerErrorProblem("An error occurred while retrieving store user groups.", ex);
         }
     }
@@ -307,7 +300,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user group {GroupId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the store user group.", ex);
         }
     }
@@ -340,7 +332,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating store user group with data {@CreateStoreUserGroupDto}", createStoreUserGroupDto);
             return CreateInternalServerErrorProblem("An error occurred while creating the store user group.", ex);
         }
     }
@@ -381,7 +372,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating store user group {GroupId} with data {@UpdateStoreUserGroupDto}", id, updateStoreUserGroupDto);
             return CreateInternalServerErrorProblem("An error occurred while updating the store user group.", ex);
         }
     }
@@ -414,7 +404,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting store user group {GroupId}", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the store user group.", ex);
         }
     }
@@ -473,7 +462,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user privilege {PrivilegeId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the store user privilege.", ex);
         }
     }
@@ -496,7 +484,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user privileges by group {GroupId}", groupId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving store user privileges by group.", ex);
         }
     }
@@ -529,7 +516,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating store user privilege with data {@CreateStoreUserPrivilegeDto}", createStoreUserPrivilegeDto);
             return CreateInternalServerErrorProblem("An error occurred while creating the store user privilege.", ex);
         }
     }
@@ -570,7 +556,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating store user privilege {PrivilegeId} with data {@UpdateStoreUserPrivilegeDto}", id, updateStoreUserPrivilegeDto);
             return CreateInternalServerErrorProblem("An error occurred while updating the store user privilege.", ex);
         }
     }
@@ -603,7 +588,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting store user privilege {PrivilegeId}", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the store user privilege.", ex);
         }
     }
@@ -673,7 +657,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while uploading photo for store user {StoreUserId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while uploading the photo.", ex);
         }
     }
@@ -711,7 +694,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving photo for store user {StoreUserId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the photo.", ex);
         }
     }
@@ -750,7 +732,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting photo for store user {StoreUserId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the photo.", ex);
         }
     }
@@ -816,7 +797,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while uploading logo for store user group {GroupId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while uploading the logo.", ex);
         }
     }
@@ -854,7 +834,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving logo for store user group {GroupId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the logo.", ex);
         }
     }
@@ -893,7 +872,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting logo for store user group {GroupId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the logo.", ex);
         }
     }
@@ -958,7 +936,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store POS with ID {PosId}", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the store POS.", ex);
         }
     }
@@ -991,7 +968,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating store POS with data {@CreateStorePosDto}", createStorePosDto);
             return CreateInternalServerErrorProblem("An error occurred while creating the store POS.", ex);
         }
     }
@@ -1032,7 +1008,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating store POS {PosId} with data {@UpdateStorePosDto}", id, updateStorePosDto);
             return CreateInternalServerErrorProblem("An error occurred while updating the store POS.", ex);
         }
     }
@@ -1065,7 +1040,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting store POS {PosId}", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the store POS.", ex);
         }
     }
@@ -1131,7 +1105,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while uploading image for store POS {StorePosId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while uploading the image.", ex);
         }
     }
@@ -1169,7 +1142,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving image for store POS {StorePosId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the image.", ex);
         }
     }
@@ -1208,7 +1180,6 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting image for store POS {StorePosId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the image.", ex);
         }
     }

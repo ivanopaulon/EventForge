@@ -75,7 +75,6 @@ public class NoteFlagsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving note flags.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving note flags.", ex);
         }
     }
@@ -103,7 +102,6 @@ public class NoteFlagsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving active note flags.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving active note flags.", ex);
         }
     }
@@ -139,7 +137,6 @@ public class NoteFlagsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving note flag {NoteFlagId}.", id);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving the note flag.", ex);
         }
     }
@@ -184,7 +181,6 @@ public class NoteFlagsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating note flag.");
             return CreateInternalServerErrorProblem("An error occurred while creating the note flag.", ex);
         }
     }
@@ -229,7 +225,6 @@ public class NoteFlagsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating note flag {NoteFlagId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while updating the note flag.", ex);
         }
     }
@@ -267,7 +262,6 @@ public class NoteFlagsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting note flag {NoteFlagId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the note flag.", ex);
         }
     }

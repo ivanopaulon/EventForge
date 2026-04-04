@@ -71,7 +71,6 @@ public class DocumentReferencesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving documents for owner {OwnerId} of type {OwnerType}", ownerId, ownerType);
             return CreateInternalServerErrorProblem("Error retrieving documents", ex);
         }
     }
@@ -113,7 +112,6 @@ public class DocumentReferencesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document reference {DocumentId}", id);
             return CreateInternalServerErrorProblem("Error retrieving document reference", ex);
         }
     }
@@ -160,7 +158,6 @@ public class DocumentReferencesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document reference");
             return CreateInternalServerErrorProblem("Error creating document reference", ex);
         }
     }
@@ -213,7 +210,6 @@ public class DocumentReferencesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document reference {DocumentId}", id);
             return CreateInternalServerErrorProblem("Error updating document reference", ex);
         }
     }
@@ -256,7 +252,6 @@ public class DocumentReferencesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document reference {DocumentId}", id);
             return CreateInternalServerErrorProblem("Error deleting document reference", ex);
         }
     }

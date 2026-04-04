@@ -66,7 +66,6 @@ public class LotsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving lots.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving lots.", ex);
         }
     }
@@ -110,7 +109,6 @@ public class LotsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving lots for product {ProductId}.", productId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving lots for the product.", ex);
         }
     }
@@ -154,7 +152,6 @@ public class LotsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving lots for warehouse {WarehouseId}.", warehouseId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving lots for the warehouse.", ex);
         }
     }
@@ -198,7 +195,6 @@ public class LotsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving expired lots.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving expired lots.", ex);
         }
     }

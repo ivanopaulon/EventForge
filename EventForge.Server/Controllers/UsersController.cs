@@ -66,7 +66,6 @@ public class UsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving users.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving users.", ex);
         }
     }
@@ -112,7 +111,6 @@ public class UsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving users for role {Role}.", role);
             return CreateInternalServerErrorProblem($"An error occurred while retrieving users for role {role}.", ex);
         }
     }
@@ -156,7 +154,6 @@ public class UsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving active users.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving active users.", ex);
         }
     }

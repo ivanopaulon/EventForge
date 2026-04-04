@@ -54,7 +54,6 @@ public class BrandingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting branding configuration");
             return CreateInternalServerErrorProblem("Error retrieving branding configuration", ex);
         }
     }
@@ -92,7 +91,6 @@ public class BrandingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating global branding");
             return CreateInternalServerErrorProblem("Error updating global branding configuration", ex);
         }
     }
@@ -147,7 +145,6 @@ public class BrandingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating tenant branding for TenantId: {TenantId}", tenantId);
             return CreateInternalServerErrorProblem("Error updating tenant branding configuration", ex);
         }
     }
@@ -193,7 +190,6 @@ public class BrandingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting tenant branding for TenantId: {TenantId}", tenantId);
             return CreateInternalServerErrorProblem("Error deleting tenant branding configuration", ex);
         }
     }
@@ -262,7 +258,6 @@ public class BrandingController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading logo");
             return CreateInternalServerErrorProblem("Error uploading logo file", ex);
         }
     }

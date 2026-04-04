@@ -66,7 +66,6 @@ public class DocumentTypesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document types.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving document types.", ex);
         }
     }
@@ -99,7 +98,6 @@ public class DocumentTypesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the document type.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the document type.", ex);
         }
     }
@@ -133,7 +131,6 @@ public class DocumentTypesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the document type.");
             return CreateInternalServerErrorProblem("An error occurred while creating the document type.", ex);
         }
     }
@@ -178,7 +175,6 @@ public class DocumentTypesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the document type.");
             return CreateInternalServerErrorProblem("An error occurred while updating the document type.", ex);
         }
     }
@@ -212,7 +208,6 @@ public class DocumentTypesController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the document type.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the document type.", ex);
         }
     }

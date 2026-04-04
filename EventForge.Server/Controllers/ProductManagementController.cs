@@ -126,7 +126,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving products.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving products.", ex);
         }
     }
@@ -161,7 +160,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the product.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the product.", ex);
         }
     }
@@ -196,7 +194,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the product.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the product.", ex);
         }
     }
@@ -242,7 +239,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while searching products.");
             return CreateInternalServerErrorProblem("An error occurred while searching products.", ex);
         }
     }
@@ -283,7 +279,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the product.");
             return CreateInternalServerErrorProblem("An error occurred while creating the product.", ex);
         }
     }
@@ -325,7 +320,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the product with codes and units.");
             return CreateInternalServerErrorProblem("An error occurred while creating the product with codes and units.", ex);
         }
     }
@@ -373,7 +367,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the product.");
             return CreateInternalServerErrorProblem("An error occurred while updating the product.", ex);
         }
     }
@@ -409,7 +402,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the product.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the product.", ex);
         }
     }
@@ -476,7 +468,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while uploading the product image.");
             return CreateInternalServerErrorProblem("An error occurred while uploading the product image.", ex);
         }
     }
@@ -536,7 +527,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while uploading the product image for product {ProductId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while uploading the product image.", ex);
         }
     }
@@ -573,7 +563,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the product image for product {ProductId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the product image.", ex);
         }
     }
@@ -610,7 +599,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the product image for product {ProductId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the product image.", ex);
         }
     }
@@ -644,7 +632,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving product codes.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving product codes.", ex);
         }
     }
@@ -691,7 +678,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while adding the product code.");
             return CreateInternalServerErrorProblem("An error occurred while adding the product code.", ex);
         }
     }
@@ -725,7 +711,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving product units.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving product units.", ex);
         }
     }
@@ -772,7 +757,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while adding the product unit.");
             return CreateInternalServerErrorProblem("An error occurred while adding the product unit.", ex);
         }
     }
@@ -820,7 +804,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the product unit.");
             return CreateInternalServerErrorProblem("An error occurred while updating the product unit.", ex);
         }
     }
@@ -859,7 +842,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the product unit.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the product unit.", ex);
         }
     }
@@ -907,7 +889,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving units of measure.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving units of measure.", ex);
         }
     }
@@ -942,7 +923,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the unit of measure.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the unit of measure.", ex);
         }
     }
@@ -983,7 +963,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the unit of measure.");
             return CreateInternalServerErrorProblem("An error occurred while creating the unit of measure.", ex);
         }
     }
@@ -1031,7 +1010,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the unit of measure.");
             return CreateInternalServerErrorProblem("An error occurred while updating the unit of measure.", ex);
         }
     }
@@ -1067,7 +1045,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the unit of measure.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the unit of measure.", ex);
         }
     }
@@ -1120,7 +1097,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving price lists.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving price lists.", ex);
         }
     }
@@ -1156,7 +1132,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the price list.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the price list.", ex);
         }
     }
@@ -1198,7 +1173,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the price list.");
             return CreateInternalServerErrorProblem("An error occurred while creating the price list.", ex);
         }
     }
@@ -1247,7 +1221,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the price list.");
             return CreateInternalServerErrorProblem("An error occurred while updating the price list.", ex);
         }
     }
@@ -1284,7 +1257,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the price list.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the price list.", ex);
         }
     }
@@ -1337,7 +1309,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while duplicating the price list.");
             return CreateInternalServerErrorProblem("An error occurred while duplicating the price list.", ex);
         }
     }
@@ -1716,7 +1687,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving promotions.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving promotions.", ex);
         }
     }
@@ -1752,7 +1722,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the promotion.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the promotion.", ex);
         }
     }
@@ -1794,7 +1763,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the promotion.");
             return CreateInternalServerErrorProblem("An error occurred while creating the promotion.", ex);
         }
     }
@@ -1843,7 +1811,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the promotion.");
             return CreateInternalServerErrorProblem("An error occurred while updating the promotion.", ex);
         }
     }
@@ -1880,7 +1847,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the promotion.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the promotion.", ex);
         }
     }
@@ -1915,7 +1881,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while validating coupon code '{CouponCode}'.", request.CouponCode);
             return CreateInternalServerErrorProblem("An error occurred while validating the coupon code.", ex);
         }
     }
@@ -1946,7 +1911,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving rules for promotion {PromotionId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving promotion rules.", ex);
         }
     }
@@ -1996,7 +1960,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while adding rule to promotion {PromotionId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while adding the promotion rule.", ex);
         }
     }
@@ -2047,7 +2010,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating rule {RuleId} for promotion {PromotionId}.", ruleId, id);
             return CreateInternalServerErrorProblem("An error occurred while updating the promotion rule.", ex);
         }
     }
@@ -2086,7 +2048,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting rule {RuleId} for promotion {PromotionId}.", ruleId, id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the promotion rule.", ex);
         }
     }
@@ -2130,7 +2091,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while generating the barcode.");
             return CreateInternalServerErrorProblem("An error occurred while generating the barcode.", ex);
         }
     }
@@ -2178,7 +2138,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving brands.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving brands.", ex);
         }
     }
@@ -2213,7 +2172,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the brand.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the brand.", ex);
         }
     }
@@ -2254,7 +2212,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the brand.");
             return CreateInternalServerErrorProblem("An error occurred while creating the brand.", ex);
         }
     }
@@ -2302,7 +2259,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the brand.");
             return CreateInternalServerErrorProblem("An error occurred while updating the brand.", ex);
         }
     }
@@ -2338,7 +2294,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the brand.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the brand.", ex);
         }
     }
@@ -2390,7 +2345,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving models.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving models.", ex);
         }
     }
@@ -2425,7 +2379,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the model.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the model.", ex);
         }
     }
@@ -2466,7 +2419,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the model.");
             return CreateInternalServerErrorProblem("An error occurred while creating the model.", ex);
         }
     }
@@ -2514,7 +2466,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the model.");
             return CreateInternalServerErrorProblem("An error occurred while updating the model.", ex);
         }
     }
@@ -2550,7 +2501,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the model.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the model.", ex);
         }
     }
@@ -2584,7 +2534,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving suppliers for product {ProductId}.", productId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving product suppliers.", ex);
         }
     }
@@ -2619,7 +2568,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving product supplier {Id}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the product supplier.", ex);
         }
     }
@@ -2660,7 +2608,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while adding product supplier.");
             return CreateInternalServerErrorProblem("An error occurred while adding the product supplier.", ex);
         }
     }
@@ -2708,7 +2655,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating product supplier {Id}.", id);
             return CreateInternalServerErrorProblem("An error occurred while updating the product supplier.", ex);
         }
     }
@@ -2744,7 +2690,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting product supplier {Id}.", id);
             return CreateInternalServerErrorProblem("An error occurred while deleting the product supplier.", ex);
         }
     }
@@ -2778,7 +2723,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving products for supplier {SupplierId}.", supplierId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving the products.", ex);
         }
     }
@@ -2815,7 +2759,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while bulk updating product-supplier associations for supplier {SupplierId}.", supplierId);
             return CreateInternalServerErrorProblem("An error occurred while updating the associations.", ex);
         }
     }
@@ -2863,7 +2806,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while getting products for supplier {SupplierId}.", supplierId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving products.", ex);
         }
     }
@@ -2979,7 +2921,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving document movements for product {ProductId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving document movements.", ex);
         }
     }
@@ -3100,7 +3041,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving stock trend for product {ProductId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving stock trend.", ex);
         }
     }
@@ -3259,7 +3199,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving price trend for product {ProductId}.", id);
             return CreateInternalServerErrorProblem("An error occurred while retrieving price trend.", ex);
         }
     }
@@ -3365,7 +3304,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving recent transactions for product {ProductId}.", productId);
             return CreateInternalServerErrorProblem("An error occurred while retrieving recent transactions.", ex);
         }
     }
@@ -3565,7 +3503,6 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred during bulk price update");
             return CreateInternalServerErrorProblem("An error occurred during bulk price update.", ex);
         }
     }

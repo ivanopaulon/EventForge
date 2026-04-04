@@ -51,7 +51,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving tenant users");
             return CreateInternalServerErrorProblem("Error retrieving users", ex);
         }
     }
@@ -92,7 +91,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error retrieving user", ex);
         }
     }
@@ -132,7 +130,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching users with query: {Query}", query);
             return CreateInternalServerErrorProblem("Error searching users", ex);
         }
     }
@@ -185,7 +182,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating user");
             return CreateInternalServerErrorProblem("Error creating user", ex);
         }
     }
@@ -230,7 +226,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error updating user", ex);
         }
     }
@@ -277,7 +272,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error deleting user", ex);
         }
     }
@@ -322,7 +316,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating status for user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error updating status", ex);
         }
     }
@@ -367,7 +360,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating roles for user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error updating roles", ex);
         }
     }
@@ -417,7 +409,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resetting password for user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error resetting password", ex);
         }
     }
@@ -459,7 +450,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error forcing password change for user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error forcing password change", ex);
         }
     }
@@ -493,7 +483,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving user statistics");
             return CreateInternalServerErrorProblem("Error retrieving statistics", ex);
         }
     }
@@ -543,7 +532,6 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing quick action for user {UserId}", userId);
             return CreateInternalServerErrorProblem("Error performing quick action", ex);
         }
     }
