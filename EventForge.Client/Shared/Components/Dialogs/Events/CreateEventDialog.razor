@@ -62,14 +62,14 @@
                     </MudText>
                     <MudGrid Spacing="2">
                         <MudItem xs="12" sm="6">
-                            <MudDateTimePicker @bind-DateTime="_startDate"
+                            <MudDatePicker @bind-Date="_startDate"
                                                Label="@($"{TranslationService.GetTranslation("field.startDate", "Data inizio")} *")"
                                                Variant="Variant.Outlined" Margin="Margin.Dense"
                                                Required="true"
                                                DateFormat="dd/MM/yyyy" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudDateTimePicker @bind-DateTime="_endDate"
+                            <MudDatePicker @bind-Date="_endDate"
                                                Label="@TranslationService.GetTranslation("field.endDate", "Data fine")"
                                                Variant="Variant.Outlined" Margin="Margin.Dense"
                                                DateFormat="dd/MM/yyyy" />

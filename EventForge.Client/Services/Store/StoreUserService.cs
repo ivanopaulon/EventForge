@@ -194,7 +194,15 @@ public class StoreUserService : IStoreUserService
 
     public async Task<IEnumerable<StoreUserDto>> GetWithBirthdayAsync()
     {
-        return await _httpClientService.GetAsync<IEnumerable<StoreUserDto>>("api/v1/store-users/with-birthdays")
-            ?? Enumerable.Empty<StoreUserDto>();
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<IEnumerable<StoreUserDto>>($"{ApiBase}/with-birthdays")
+                ?? Enumerable.Empty<StoreUserDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting store users with birthday");
+            return Enumerable.Empty<StoreUserDto>();
+        }
     }
 }
