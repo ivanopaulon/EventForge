@@ -783,7 +783,8 @@
     "assignedTo": "Assegna a (username)",
     "dueDate": "Scadenza",
     "title": "Titolo",
-    "longDescription": "Descrizione estesa"
+    "longDescription": "Descrizione estesa",
+    "dateOfBirth": "Data di nascita"
   },
   "filter": {
     "all": "Tutti"
@@ -3113,5 +3114,16 @@
     "quarterly": "Trimestrale",
     "yearly": "Annuale",
     "custom": "Personalizzata"
+  },
+  "scheduler": {
+    "cat": {
+      "events": "Eventi",
+      "reminders": "Promemoria",
+      "tasks": "Task",
+      "pricelists": "Listini",
+      "promotions": "Promozioni",
+      "lots": "Scadenze Lotti",
+      "birthdays": "Compleanni"
+    }
   }
 }

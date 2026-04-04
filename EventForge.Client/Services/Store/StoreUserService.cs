@@ -191,4 +191,10 @@ public class StoreUserService : IStoreUserService
             throw new InvalidOperationException("Errore nel caricamento degli operatori.", ex);
         }
     }
+
+    public async Task<IEnumerable<StoreUserDto>> GetWithBirthdayAsync()
+    {
+        return await _httpClientService.GetAsync<IEnumerable<StoreUserDto>>("api/v1/store-users/with-birthdays")
+            ?? Enumerable.Empty<StoreUserDto>();
+    }
 }

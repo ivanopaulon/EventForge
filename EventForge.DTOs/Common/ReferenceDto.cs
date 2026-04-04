@@ -47,6 +47,11 @@ namespace EventForge.DTOs.Common
         public string? Notes { get; set; }
 
         /// <summary>
+        /// Date of birth of the reference person. Optional.
+        /// </summary>
+        public DateTime? DateOfBirth { get; set; }
+
+        /// <summary>
         /// Date and time when the reference was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

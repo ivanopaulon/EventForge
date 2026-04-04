@@ -61,6 +61,12 @@ namespace EventForge.DTOs.Store
         [Display(Name = "Phone Number", Description = "Phone number of the operator.")]
         public string? PhoneNumber { get; set; }
 
+        /// <summary>
+        /// Date of birth of the store operator. Optional.
+        /// </summary>
+        [Display(Name = "Date of Birth", Description = "Date of birth of the store operator.")]
+        public DateTime? DateOfBirth { get; set; }
+
         // Note: Removed fields that should not be updatable:
         // - Username: Should be immutable after creation for security/audit reasons
         // - PasswordHash: Should be handled through dedicated password change endpoints

@@ -780,7 +780,8 @@
     "assignedTo": "Assign to (username)",
     "dueDate": "Due date",
     "title": "Title",
-    "longDescription": "Long description"
+    "longDescription": "Long description",
+    "dateOfBirth": "Date of birth"
   },
   "filter": {
     "all": "All"
@@ -3086,5 +3087,16 @@
     "quarterly": "Quarterly",
     "yearly": "Yearly",
     "custom": "Custom"
+  },
+  "scheduler": {
+    "cat": {
+      "events": "Events",
+      "reminders": "Reminders",
+      "tasks": "Tasks",
+      "pricelists": "Price Lists",
+      "promotions": "Promotions",
+      "lots": "Lot Expiries",
+      "birthdays": "Birthdays"
+    }
   }
 }

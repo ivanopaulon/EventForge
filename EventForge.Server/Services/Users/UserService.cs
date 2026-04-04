@@ -49,6 +49,7 @@ public class UserService : IUserService
                 FirstName = u.FirstName,
                 LastName = u.LastName,
                 IsActive = u.IsActive,
+                DateOfBirth = u.DateOfBirth,
                 Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
             })
             .ToListAsync(ct);
@@ -93,6 +94,7 @@ public class UserService : IUserService
                 FirstName = u.FirstName,
                 LastName = u.LastName,
                 IsActive = u.IsActive,
+                DateOfBirth = u.DateOfBirth,
                 Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
             })
             .ToListAsync(ct);
@@ -136,6 +138,7 @@ public class UserService : IUserService
                 FirstName = u.FirstName,
                 LastName = u.LastName,
                 IsActive = u.IsActive,
+                DateOfBirth = u.DateOfBirth,
                 Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
             })
             .ToListAsync(ct);

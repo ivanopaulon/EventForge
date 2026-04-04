@@ -199,6 +199,7 @@ public class StoreUserService : IStoreUserService
                 // Issue #315: Extended Fields
                 PhotoConsent = createStoreUserDto.PhotoConsent,
                 PhoneNumber = createStoreUserDto.PhoneNumber,
+                DateOfBirth = createStoreUserDto.DateOfBirth,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -259,6 +260,7 @@ public class StoreUserService : IStoreUserService
             storeUser.CashierGroupId = updateStoreUserDto.CashierGroupId;
             // Issue #315: Extended Fields
             storeUser.PhoneNumber = updateStoreUserDto.PhoneNumber;
+            storeUser.DateOfBirth = updateStoreUserDto.DateOfBirth;
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = currentUser;
 
@@ -859,6 +861,19 @@ public class StoreUserService : IStoreUserService
             .AnyAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
     }
 
+    public async Task<IEnumerable<StoreUserDto>> GetStoreUsersWithBirthdayAsync(CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue) return Enumerable.Empty<StoreUserDto>();
+
+        var storeUsers = await _context.StoreUsers
+            .Where(su => !su.IsDeleted && su.DateOfBirth.HasValue && su.TenantId == currentTenantId.Value)
+            .OrderBy(su => su.Name)
+            .ToListAsync(cancellationToken);
+
+        return storeUsers.Select(MapToStoreUserDto);
+    }
+
     public async Task<bool> StoreUserGroupExistsAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
         var currentTenantId = _tenantContext.CurrentTenantId;
@@ -890,6 +905,7 @@ public class StoreUserService : IStoreUserService
             PhotoUrl = storeUser.PhotoDocument?.StorageKey,
             PhotoThumbnailUrl = storeUser.PhotoDocument?.ThumbnailStorageKey,
             PhotoConsent = storeUser.PhotoConsent,
+            DateOfBirth = storeUser.DateOfBirth,
             PhotoConsentAt = storeUser.PhotoConsentAt,
             PhoneNumber = storeUser.PhoneNumber,
             LastPasswordChangedAt = storeUser.LastPasswordChangedAt,

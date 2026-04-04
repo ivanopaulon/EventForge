@@ -3,9 +3,18 @@
 @using EventForge.DTOs.Events
 @using EventForge.DTOs.Calendar
 @using EventForge.DTOs.Common
+@using EventForge.DTOs.Teams
+@using EventForge.DTOs.Store
+@using EventForge.Client.Services.Store
 @attribute [Authorize]
 @inject IEventService EventService
 @inject ICalendarReminderService CalendarReminderService
+@inject IBusinessPartyService BusinessPartyService
+@inject IStoreUserService StoreUserService
+@inject IPromotionClientService PromotionService
+@inject IPriceListService PriceListService
+@inject ILotService LotService
+@inject IHttpClientService HttpClientService
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
@@ -15,17 +24,14 @@
 <div class="management-page-root">
     <MudStack Spacing="3">
 
-        <!-- ── Intestazione ────────────────────────────────────── -->
         <MudPaper Elevation="1" Class="pa-3">
-            <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
                 <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Color="Color.Primary" Size="Size.Large" />
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("nav.events", "Gestione Calendario")
-                </MudText>
+                <MudText Typo="Typo.h5">@TranslationService.GetTranslation("nav.events", "Gestione Calendario")</MudText>
                 <MudSpacer />
                 <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" OverrideStyles="false">
                     <MudButton StartIcon="@Icons.Material.Outlined.EventNote"
-                               OnClick="OpenCreateEventDialog"
+                               OnClick="@(() => OpenCreateEventDialog())"
                                Color="Color.Primary" Variant="Variant.Filled">
                         @TranslationService.GetTranslation("events.newEvent", "Evento")
                     </MudButton>
@@ -43,55 +49,55 @@
             </MudStack>
         </MudPaper>
 
-        <!-- ── Filtri rapidi ─────────────────────────────────── -->
+        <!-- Category filter chips -->
         <MudPaper Elevation="0" Class="pa-2">
-            <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
-                <MudText Typo="Typo.caption" Class="mr-1">
-                    @TranslationService.GetTranslation("events.showFilter", "Mostra:")
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    <MudIcon Icon="@Icons.Material.Outlined.FilterList" Size="Size.Small" Class="mr-1" />
+                    @TranslationService.GetTranslation("events.showFilter", "Categorie visibili:")
                 </MudText>
-                <MudChip T="string" Color="@(_activeFilter == null ? Color.Primary : Color.Default)"
-                         OnClick="@(() => SetFilter(null))" Size="Size.Small">
-                    @TranslationService.GetTranslation("common.all", "Tutti")
-                </MudChip>
-                <MudChip T="string" Color="@(_activeFilter == "planned" ? Color.Info : Color.Default)"
-                         OnClick="@(() => SetFilter("planned"))" Size="Size.Small">
-                    @TranslationService.GetTranslation("eventStatus.planned", "Pianificati")
-                </MudChip>
-                <MudChip T="string" Color="@(_activeFilter == "ongoing" ? Color.Success : Color.Default)"
-                         OnClick="@(() => SetFilter("ongoing"))" Size="Size.Small">
-                    @TranslationService.GetTranslation("eventStatus.ongoing", "In corso")
-                </MudChip>
-                <MudChip T="string" Color="@(_activeFilter == "completed" ? Color.Warning : Color.Default)"
-                         OnClick="@(() => SetFilter("completed"))" Size="Size.Small">
-                    @TranslationService.GetTranslation("eventStatus.completed", "Completati")
-                </MudChip>
-                <MudChip T="string" Color="@(_activeFilter == "cancelled" ? Color.Error : Color.Default)"
-                         OnClick="@(() => SetFilter("cancelled"))" Size="Size.Small">
-                    @TranslationService.GetTranslation("eventStatus.cancelled", "Annullati")
-                </MudChip>
-                <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
-                <MudChip T="string" Color="@(_showReminders ? Color.Warning : Color.Default)"
-                         OnClick="ToggleReminders" Size="Size.Small"
-                         Icon="@Icons.Material.Outlined.NotificationsActive">
-                    @TranslationService.GetTranslation("events.reminders", "Promemoria")
-                </MudChip>
-                <MudChip T="string" Color="@(_showTasks ? Color.Secondary : Color.Default)"
-                         OnClick="ToggleTasks" Size="Size.Small"
-                         Icon="@Icons.Material.Outlined.CheckBox">
-                    @TranslationService.GetTranslation("events.tasks", "Task")
-                </MudChip>
+                <MudStack Row Wrap="Wrap.Wrap" Spacing="1" AlignItems="AlignItems.Center">
+                    @foreach (var cat in _categories)
+                    {
+                        <MudChip T="string"
+                                 Color="@(cat.Enabled ? cat.ChipColor : Color.Default)"
+                                 Variant="@(cat.Enabled ? Variant.Filled : Variant.Outlined)"
+                                 OnClick="@(() => ToggleCategory(cat))"
+                                 Size="Size.Small"
+                                 Icon="@cat.Icon">
+                            @cat.Label @(cat.Count > 0 ? $"({cat.Count})" : "")
+                        </MudChip>
+                    }
+                    <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
+                    @if (EventCategory?.Enabled == true)
+                    {
+                        @foreach (var sf in _eventStatusFilters)
+                        {
+                            <MudChip T="string"
+                                     Color="@(sf.Active ? sf.Color : Color.Default)"
+                                     Variant="@(sf.Active ? Variant.Filled : Variant.Outlined)"
+                                     OnClick="@(() => ToggleEventStatusFilter(sf))"
+                                     Size="Size.Small">
+                                @sf.Label
+                            </MudChip>
+                        }
+                    }
+                    <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                                   Size="Size.Small" OnClick="LoadAllDataAsync"
+                                   title="@TranslationService.GetTranslation("common.refresh", "Aggiorna")" />
+                </MudStack>
             </MudStack>
         </MudPaper>
 
-        <!-- ── Scheduler ──────────────────────────────────────── -->
-        <MudPaper Elevation="2" Class="pa-0" Style="overflow:hidden;">
+        <!-- Scheduler -->
+        <MudPaper Elevation="2" Class="pa-0" Style="overflow:hidden;position:relative;">
             @if (_isLoading)
             {
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary"
+                                   Style="position:absolute;top:0;left:0;right:0;z-index:10;" />
             }
-
             <SfSchedule TValue="SchedulerItem"
-                        Height="620px"
+                        Height="640px"
                         @bind-SelectedDate="_currentDate"
                         @bind-CurrentView="_currentView"
                         AllowResizing="false"
@@ -114,12 +120,11 @@
                         <FieldRecurrenceRule Name="RecurrenceRule" />
                     </ScheduleField>
                 </ScheduleEventSettings>
-                <ScheduleEvents TValue="SchedulerItem"
-                                PopupOpen="OnSchedulerPopupOpen" />
+                <ScheduleEvents TValue="SchedulerItem" PopupOpen="OnSchedulerPopupOpen" />
             </SfSchedule>
         </MudPaper>
 
-        <!-- ── Promemoria & Task attivi ───────────────────────── -->
+        <!-- Active reminders / tasks below -->
         @if (_activeReminders.Count > 0 || _activeTasks.Count > 0)
         {
             <MudGrid Spacing="3">
@@ -158,7 +163,6 @@
                         </MudPaper>
                     </MudItem>
                 }
-
                 @if (_activeTasks.Count > 0)
                 {
                     <MudItem xs="12" md="6">
@@ -203,65 +207,130 @@
 @code {
     [SupplyParameterFromQuery][Parameter] public string? Filter { get; set; }
 
-    // ── State ──────────────────────────────────────────────────
     private bool _isLoading;
-    private string? _activeFilter;
-    private bool _showReminders = true;
-    private bool _showTasks = true;
-
     private DateTime _currentDate = DateTime.Today;
     private View _currentView = View.Month;
 
-    private List<SchedulerItem> _allSchedulerItems = new();
+    private List<SchedulerItem> _allItems = new();
     private List<CalendarReminderDto> _activeReminders = new();
     private List<CalendarReminderDto> _activeTasks = new();
+    private List<SchedulerCategory> _categories = new();
 
-    // ── Filtered view ──────────────────────────────────────────
+    private SchedulerCategory? EventCategory => _categories.FirstOrDefault(c => c.Key == "events");
+
+    private class SchedulerCategory(string key, string label, string icon, Color chipColor)
+    {
+        public string Key       { get; } = key;
+        public string Label     { get; } = label;
+        public string Icon      { get; } = icon;
+        public Color  ChipColor { get; } = chipColor;
+        public bool   Enabled   { get; set; } = true;
+        public int    Count     { get; set; }
+    }
+
+    private record EventStatusFilter(string Key, string Label, Color Color, EventStatus Status)
+    {
+        public bool Active { get; set; } = true;
+    }
+    private List<EventStatusFilter> _eventStatusFilters = new();
+
+    public class SchedulerItem
+    {
+        public string       Id             { get; set; } = string.Empty;
+        public string       Subject        { get; set; } = string.Empty;
+        public DateTime     StartTime      { get; set; }
+        public DateTime     EndTime        { get; set; }
+        public bool         IsAllDay       { get; set; }
+        public string?      Location       { get; set; }
+        public string?      Description    { get; set; }
+        public string?      RecurrenceRule { get; set; }
+        public string?      Color          { get; set; }
+        public string       CategoryKey    { get; set; } = string.Empty;
+        public EventStatus? EventStatus    { get; set; }
+        public string?      AssignedTo     { get; set; }
+        public bool         IsPrivate      { get; set; }
+    }
+
     private List<SchedulerItem> FilteredItems
     {
         get
         {
-            var items = _allSchedulerItems.Where(i =>
+            var active = _categories.Where(c => c.Enabled).Select(c => c.Key).ToHashSet();
+            return _allItems.Where(item =>
             {
-                if (i.ItemKind == SchedulerItemKind.Event)
-                {
-                    return _activeFilter switch
-                    {
-                        "planned"   => i.EventStatus == EventStatus.Planned,
-                        "ongoing"   => i.EventStatus == EventStatus.Ongoing,
-                        "completed" => i.EventStatus == EventStatus.Completed,
-                        "cancelled" => i.EventStatus == EventStatus.Cancelled,
-                        _           => true
-                    };
-                }
-                if (i.ItemKind == SchedulerItemKind.Reminder) return _showReminders;
-                if (i.ItemKind == SchedulerItemKind.Task) return _showTasks;
-                return true;
-            });
-            return items.ToList();
+                if (!active.Contains(item.CategoryKey)) return false;
+                if (item.CategoryKey != "events") return true;
+                if (!item.EventStatus.HasValue) return true;
+                return _eventStatusFilters.Where(f => f.Active).Any(f => f.Status == item.EventStatus.Value);
+            }).ToList();
         }
     }
 
-    // ── Lifecycle ──────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
-        _activeFilter = Filter;
+        InitCategories();
+        InitEventStatusFilters();
+        ApplyQueryFilter();
         await LoadAllDataAsync();
     }
 
-    protected override void OnParametersSet()
+    protected override void OnParametersSet() => ApplyQueryFilter();
+
+    private void InitCategories()
     {
-        if (_activeFilter != Filter)
-            _activeFilter = Filter;
+        _categories = new List<SchedulerCategory>
+        {
+            new("events",     TranslationService.GetTranslation("scheduler.cat.events",     "Eventi"),          Icons.Material.Outlined.EventNote,            Color.Primary),
+            new("reminders",  TranslationService.GetTranslation("scheduler.cat.reminders",  "Promemoria"),       Icons.Material.Outlined.NotificationsActive,   Color.Warning),
+            new("tasks",      TranslationService.GetTranslation("scheduler.cat.tasks",      "Task"),             Icons.Material.Outlined.CheckBox,              Color.Secondary),
+            new("pricelists", TranslationService.GetTranslation("scheduler.cat.pricelists", "Listini"),          Icons.Material.Outlined.PriceChange,           Color.Tertiary),
+            new("promotions", TranslationService.GetTranslation("scheduler.cat.promotions", "Promozioni"),       Icons.Material.Outlined.LocalOffer,            Color.Success),
+            new("lots",       TranslationService.GetTranslation("scheduler.cat.lots",       "Scadenze Lotti"),   Icons.Material.Outlined.Inventory2,            Color.Error),
+            new("birthdays",  TranslationService.GetTranslation("scheduler.cat.birthdays",  "Compleanni"),       Icons.Material.Outlined.Cake,                  Color.Info),
+        };
     }
 
-    // ── Data loading ───────────────────────────────────────────
+    private void InitEventStatusFilters()
+    {
+        _eventStatusFilters = new List<EventStatusFilter>
+        {
+            new("planned",   TranslationService.GetTranslation("eventStatus.planned",   "Pianificati"),  Color.Info,    EventStatus.Planned)   { Active = true },
+            new("ongoing",   TranslationService.GetTranslation("eventStatus.ongoing",   "In corso"),     Color.Success, EventStatus.Ongoing)   { Active = true },
+            new("completed", TranslationService.GetTranslation("eventStatus.completed", "Completati"),   Color.Warning, EventStatus.Completed) { Active = true },
+            new("cancelled", TranslationService.GetTranslation("eventStatus.cancelled", "Annullati"),    Color.Error,   EventStatus.Cancelled) { Active = true },
+        };
+    }
+
+    private void ApplyQueryFilter()
+    {
+        if (string.IsNullOrEmpty(Filter)) return;
+        if (Filter is "planned" or "completed")
+        {
+            foreach (var c in _categories) c.Enabled = c.Key == "events";
+            foreach (var sf in _eventStatusFilters) sf.Active = sf.Key == Filter;
+        }
+        else
+        {
+            foreach (var c in _categories) c.Enabled = c.Key == Filter;
+        }
+    }
+
     private async Task LoadAllDataAsync()
     {
         _isLoading = true;
+        StateHasChanged();
         try
         {
-            await Task.WhenAll(LoadEventsAsync(), LoadRemindersAndTasksAsync());
+            await Task.WhenAll(
+                LoadEventsAsync(),
+                LoadRemindersAndTasksAsync(),
+                LoadPriceListsAsync(),
+                LoadPromotionsAsync(),
+                LoadLotsAsync(),
+                LoadBirthdaysAsync()
+            );
+            foreach (var cat in _categories)
+                cat.Count = _allItems.Count(i => i.CategoryKey == cat.Key);
         }
         catch (Exception ex)
         {
@@ -271,60 +340,122 @@
         finally
         {
             _isLoading = false;
+            StateHasChanged();
         }
     }
 
+    private void ReplaceCategory(string key, IEnumerable<SchedulerItem> items)
+        => _allItems = _allItems.Where(i => i.CategoryKey != key).Concat(items).ToList();
+
     private async Task LoadEventsAsync()
     {
-        var result = await EventService.GetEventsAsync(1, 1000);
-        var eventItems = result.Items.Select(e => new SchedulerItem
+        var result = await EventService.GetEventsAsync(1, 500);
+        ReplaceCategory("events", result.Items.Select(e => new SchedulerItem
         {
-            Id = e.Id.ToString(),
-            Subject = e.Name,
+            Id = $"ev_{e.Id}", Subject = e.Name,
             StartTime = e.StartDate.ToLocalTime(),
             EndTime = (e.EndDate ?? e.StartDate.AddHours(1)).ToLocalTime(),
-            IsAllDay = false,
-            Location = e.Location,
-            Description = e.ShortDescription,
-            Color = e.Color ?? "#4285F4",
-            ItemKind = SchedulerItemKind.Event,
-            EventStatus = e.Status,
-            AssignedTo = e.AssignedToUserId,
+            Location = e.Location, Description = e.ShortDescription,
+            Color = e.Color ?? "#4285F4", CategoryKey = "events",
+            EventStatus = e.Status, AssignedTo = e.AssignedToUserId,
             IsPrivate = e.Visibility == CalendarVisibility.Private
-        });
-
-        var existing = _allSchedulerItems.Where(i => i.ItemKind != SchedulerItemKind.Event).ToList();
-        _allSchedulerItems = existing.Concat(eventItems).ToList();
+        }));
     }
 
     private async Task LoadRemindersAndTasksAsync()
     {
-        var result = await CalendarReminderService.GetCalendarRemindersAsync(1, 1000);
-        var all = result.Items;
-
-        _activeReminders = all.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
-        _activeTasks = all.Where(r => r.ItemType == CalendarItemType.Task && !r.IsCompleted).ToList();
-
-        var schedulerItems = all.Select(r => new SchedulerItem
-        {
-            Id = r.Id.ToString(),
-            Subject = r.Title,
-            StartTime = r.DueDate.ToLocalTime(),
-            EndTime = r.IsAllDay ? r.DueDate.ToLocalTime().AddDays(1) : r.DueDate.ToLocalTime().AddMinutes(30),
-            IsAllDay = r.IsAllDay,
-            Description = r.Description,
-            Color = r.Color ?? (r.ItemType == CalendarItemType.Task ? "#9C27B0" : "#FF9800"),
-            ItemKind = r.ItemType == CalendarItemType.Task ? SchedulerItemKind.Task : SchedulerItemKind.Reminder,
-            AssignedTo = r.AssignedToUserId,
-            IsPrivate = r.Visibility == CalendarVisibility.Private,
-            RecurrenceRule = r.IsRecurring ? BuildRecurrenceRule(r) : null
-        });
-
-        var existing = _allSchedulerItems.Where(i => i.ItemKind == SchedulerItemKind.Event).ToList();
-        _allSchedulerItems = existing.Concat(schedulerItems).ToList();
+        var result = await CalendarReminderService.GetCalendarRemindersAsync(1, 500);
+        _activeReminders = result.Items.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
+        _activeTasks     = result.Items.Where(r => r.ItemType == CalendarItemType.Task      && !r.IsCompleted).ToList();
+        ReplaceCategory("reminders", result.Items.Where(r => r.ItemType == CalendarItemType.Reminder).Select(r => ToSchedulerItem(r, "reminders")));
+        ReplaceCategory("tasks",     result.Items.Where(r => r.ItemType == CalendarItemType.Task).Select(r => ToSchedulerItem(r, "tasks")));
     }
 
-    // ── Recurrence rule builder (iCalendar RRULE format) ──────
+    private static SchedulerItem ToSchedulerItem(CalendarReminderDto r, string cat) => new()
+    {
+        Id = $"rem_{r.Id}", Subject = r.Title,
+        StartTime = r.DueDate.ToLocalTime(),
+        EndTime = r.IsAllDay ? r.DueDate.ToLocalTime().AddDays(1) : r.DueDate.ToLocalTime().AddMinutes(30),
+        IsAllDay = r.IsAllDay, Description = r.Description,
+        Color = r.Color ?? (cat == "tasks" ? "#9C27B0" : "#FF9800"),
+        CategoryKey = cat, RecurrenceRule = r.IsRecurring ? BuildRecurrenceRule(r) : null,
+        AssignedTo = r.AssignedToUserId, IsPrivate = r.Visibility == CalendarVisibility.Private
+    };
+
+    private async Task LoadPriceListsAsync()
+    {
+        var result = await PriceListService.GetPagedAsync(1, 200);
+        ReplaceCategory("pricelists", result.Items.Where(pl => pl.ValidFrom.HasValue || pl.ValidTo.HasValue).Select(pl => new SchedulerItem
+        {
+            Id = $"pl_{pl.Id}", Subject = $"\U0001f4cb {pl.Name}",
+            StartTime = (pl.ValidFrom ?? pl.ValidTo!.Value.AddDays(-1)).ToLocalTime(),
+            EndTime   = (pl.ValidTo   ?? pl.ValidFrom!.Value.AddDays(1)).ToLocalTime(),
+            IsAllDay  = true, Description = $"Listino: {pl.Name}",
+            Color = pl.Status == PriceListStatus.Active ? "#00BCD4" : "#607D8B",
+            CategoryKey = "pricelists"
+        }));
+    }
+
+    private async Task LoadPromotionsAsync()
+    {
+        var promos = await PromotionService.GetActiveAsync();
+        ReplaceCategory("promotions", promos.Select(p => new SchedulerItem
+        {
+            Id = $"promo_{p.Id}", Subject = $"\U0001f3f7\ufe0f {p.Name}",
+            StartTime = p.StartDate.ToLocalTime(), EndTime = p.EndDate.ToLocalTime(),
+            IsAllDay = true, Description = p.Name,
+            Color = "#34A853", CategoryKey = "promotions"
+        }));
+    }
+
+    private async Task LoadLotsAsync()
+    {
+        var lots = await LotService.GetExpiringLotsAsync(365);
+        ReplaceCategory("lots", (lots ?? Enumerable.Empty<LotDto>()).Where(l => l.ExpiryDate.HasValue).Select(l => new SchedulerItem
+        {
+            Id = $"lot_{l.Id}", Subject = $"\u26a0\ufe0f {l.Code}",
+            StartTime = l.ExpiryDate!.Value.ToLocalTime(),
+            EndTime   = l.ExpiryDate!.Value.ToLocalTime().AddHours(1),
+            IsAllDay  = true, Description = $"Lotto {l.Code} | {l.ProductCode}",
+            Color = l.ExpiryDate.Value < DateTime.UtcNow.AddDays(30) ? "#F44336" : "#FF9800",
+            CategoryKey = "lots"
+        }));
+    }
+
+    private async Task LoadBirthdaysAsync()
+    {
+        var teamMembers = await HttpClientService.GetAsync<IEnumerable<TeamMemberDto>>("api/v1/teams/members-with-birthdays") ?? Enumerable.Empty<TeamMemberDto>();
+        var parties     = await BusinessPartyService.GetBusinessPartiesWithBirthdayAsync();
+        var storeUsers  = await StoreUserService.GetWithBirthdayAsync();
+
+        var items = new List<SchedulerItem>();
+        foreach (var m in teamMembers.Where(m => m.DateOfBirth.HasValue))
+            items.AddRange(ProjectBirthday($"{m.FirstName} {m.LastName}".Trim(), m.DateOfBirth!.Value, $"tm_{m.Id}"));
+        foreach (var p in parties.Where(p => p.DateOfBirth.HasValue))
+            items.AddRange(ProjectBirthday(p.Name, p.DateOfBirth!.Value, $"bp_{p.Id}"));
+        foreach (var u in storeUsers.Where(u => u.DateOfBirth.HasValue))
+            items.AddRange(ProjectBirthday(u.Name, u.DateOfBirth!.Value, $"su_{u.Id}"));
+
+        ReplaceCategory("birthdays", items);
+    }
+
+    private static IEnumerable<SchedulerItem> ProjectBirthday(string name, DateTime dob, string idPrefix)
+    {
+        var today = DateTime.Today;
+        foreach (var year in new[] { today.Year, today.Year + 1 })
+        {
+            var day = (dob.Month == 2 && dob.Day == 29 && !DateTime.IsLeapYear(year)) ? 28 : dob.Day;
+            var bd = new DateTime(year, dob.Month, day);
+            yield return new SchedulerItem
+            {
+                Id = $"bd_{idPrefix}_{year}", Subject = $"\U0001f382 {name}",
+                StartTime = bd, EndTime = bd.AddDays(1), IsAllDay = true,
+                Description = $"Compleanno di {name} ({today.Year - dob.Year} anni)",
+                Color = "#E91E63", CategoryKey = "birthdays"
+            };
+        }
+    }
+
     private static string? BuildRecurrenceRule(CalendarReminderDto r)
     {
         if (!r.IsRecurring || r.RecurrencePattern == null) return null;
@@ -337,118 +468,71 @@
             _                         => "DAILY"
         };
         var rule = $"FREQ={freq}";
-        if (r.RecurrenceInterval.HasValue && r.RecurrenceInterval > 1)
-            rule += $";INTERVAL={r.RecurrenceInterval}";
-        if (r.RecurrenceEndDate.HasValue)
-            rule += $";UNTIL={r.RecurrenceEndDate.Value:yyyyMMddTHHmmssZ}";
+        if (r.RecurrenceInterval is > 1) rule += $";INTERVAL={r.RecurrenceInterval}";
+        if (r.RecurrenceEndDate.HasValue) rule += $";UNTIL={r.RecurrenceEndDate.Value:yyyyMMddTHHmmssZ}";
         return rule;
     }
 
-    // ── Filters ────────────────────────────────────────────────
-    private void SetFilter(string? filter)
-    {
-        _activeFilter = filter;
-        StateHasChanged();
-    }
+    private void ToggleCategory(SchedulerCategory cat) { cat.Enabled = !cat.Enabled; StateHasChanged(); }
+    private void ToggleEventStatusFilter(EventStatusFilter sf) { sf.Active = !sf.Active; StateHasChanged(); }
 
-    private void ToggleReminders()
+    private async Task OpenCreateEventDialog(DateTime? start = null, DateTime? end = null)
     {
-        _showReminders = !_showReminders;
-        StateHasChanged();
-    }
-
-    private void ToggleTasks()
-    {
-        _showTasks = !_showTasks;
-        StateHasChanged();
-    }
-
-    // ── Dialog openers ─────────────────────────────────────────
-    private async Task OpenCreateEventDialog(DateTime? prefillStart = null, DateTime? prefillEnd = null)
-    {
-        var parameters = new DialogParameters<CreateEventDialog>
+        var p = new DialogParameters<CreateEventDialog>
         {
-            { x => x.PrefilledStartDate, prefillStart },
-            { x => x.PrefilledEndDate, prefillEnd }
+            { x => x.PrefilledStartDate, start },
+            { x => x.PrefilledEndDate,   end   }
         };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
-        var dialog = await DialogService.ShowAsync<CreateEventDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: EventDto created })
+        var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+        var dlg  = await DialogService.ShowAsync<CreateEventDialog>(string.Empty, p, opts);
+        var res  = await dlg.Result;
+        if (res is { Canceled: false, Data: EventDto created })
         {
-            _allSchedulerItems.Add(new SchedulerItem
+            _allItems.Add(new SchedulerItem
             {
-                Id = created.Id.ToString(),
-                Subject = created.Name,
+                Id = $"ev_{created.Id}", Subject = created.Name,
                 StartTime = created.StartDate.ToLocalTime(),
                 EndTime = (created.EndDate ?? created.StartDate.AddHours(1)).ToLocalTime(),
-                Location = created.Location,
-                Description = created.ShortDescription,
-                Color = created.Color ?? "#4285F4",
-                ItemKind = SchedulerItemKind.Event,
-                EventStatus = created.Status,
-                AssignedTo = created.AssignedToUserId,
+                Location = created.Location, Description = created.ShortDescription,
+                Color = created.Color ?? "#4285F4", CategoryKey = "events",
+                EventStatus = created.Status, AssignedTo = created.AssignedToUserId,
                 IsPrivate = created.Visibility == CalendarVisibility.Private
             });
-            StateHasChanged();
+            UpdateCount("events"); StateHasChanged();
         }
     }
 
-    private async Task OpenCreateReminderDialog(CalendarItemType itemType, DateTime? prefillDue = null)
+    private async Task OpenCreateReminderDialog(CalendarItemType itemType, DateTime? due = null)
     {
-        var parameters = new DialogParameters<CreateCalendarReminderDialog>
+        var p = new DialogParameters<CreateCalendarReminderDialog>
         {
-            { x => x.ItemType, itemType },
-            { x => x.PrefilledDueDate, prefillDue }
+            { x => x.ItemType,         itemType },
+            { x => x.PrefilledDueDate, due      }
         };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
-        var dialog = await DialogService.ShowAsync<CreateCalendarReminderDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: CalendarReminderDto created })
+        var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+        var dlg  = await DialogService.ShowAsync<CreateCalendarReminderDialog>(string.Empty, p, opts);
+        var res  = await dlg.Result;
+        if (res is { Canceled: false, Data: CalendarReminderDto created })
         {
-            var newItem = new SchedulerItem
-            {
-                Id = created.Id.ToString(),
-                Subject = created.Title,
-                StartTime = created.DueDate.ToLocalTime(),
-                EndTime = created.IsAllDay ? created.DueDate.ToLocalTime().AddDays(1) : created.DueDate.ToLocalTime().AddMinutes(30),
-                IsAllDay = created.IsAllDay,
-                Description = created.Description,
-                Color = created.Color ?? (itemType == CalendarItemType.Task ? "#9C27B0" : "#FF9800"),
-                ItemKind = itemType == CalendarItemType.Task ? SchedulerItemKind.Task : SchedulerItemKind.Reminder,
-                AssignedTo = created.AssignedToUserId,
-                IsPrivate = created.Visibility == CalendarVisibility.Private,
-                RecurrenceRule = created.IsRecurring ? BuildRecurrenceRule(created) : null
-            };
-            _allSchedulerItems.Add(newItem);
-
-            if (itemType == CalendarItemType.Reminder && !created.IsCompleted)
-                _activeReminders.Insert(0, created);
-            else if (itemType == CalendarItemType.Task && !created.IsCompleted)
-                _activeTasks.Insert(0, created);
-
-            StateHasChanged();
+            var cat = itemType == CalendarItemType.Task ? "tasks" : "reminders";
+            _allItems.Add(ToSchedulerItem(created, cat));
+            if (itemType == CalendarItemType.Reminder && !created.IsCompleted) _activeReminders.Insert(0, created);
+            else if (itemType == CalendarItemType.Task && !created.IsCompleted) _activeTasks.Insert(0, created);
+            UpdateCount(cat); StateHasChanged();
         }
     }
 
-    // ── Scheduler popup intercept (open custom dialogs) ───────
     private async void OnSchedulerPopupOpen(PopupOpenEventArgs<SchedulerItem> args)
     {
         if (args.Type == PopupType.Editor)
         {
             args.Cancel = true;
-
-            var prefillStart = args.Data?.StartTime;
-            var prefillEnd = args.Data?.EndTime;
-
-            await InvokeAsync(async () =>
-            {
-                await OpenCreateEventDialog(prefillStart, prefillEnd);
-            });
+            var s = args.Data?.StartTime;
+            var e = args.Data?.EndTime;
+            await InvokeAsync(async () => await OpenCreateEventDialog(s, e));
         }
     }
 
-    // ── Complete reminder/task ─────────────────────────────────
     private async Task CompleteReminderAsync(Guid id)
     {
         try
@@ -456,8 +540,8 @@
             await CalendarReminderService.CompleteCalendarReminderAsync(id);
             _activeReminders.RemoveAll(r => r.Id == id);
             _activeTasks.RemoveAll(t => t.Id == id);
-            var item = _allSchedulerItems.FirstOrDefault(i => i.Id == id.ToString());
-            if (item != null) _allSchedulerItems.Remove(item);
+            _allItems.RemoveAll(i => i.Id == $"rem_{id}");
+            UpdateCount("reminders"); UpdateCount("tasks");
             Snackbar.Add(TranslationService.GetTranslation("events.completed", "Completato"), Severity.Success);
             StateHasChanged();
         }
@@ -468,24 +552,9 @@
         }
     }
 
-    // ── View model ─────────────────────────────────────────────
-    public enum SchedulerItemKind { Event, Reminder, Task }
-
-    public class SchedulerItem
+    private void UpdateCount(string key)
     {
-        public string Id { get; set; } = string.Empty;
-        public string Subject { get; set; } = string.Empty;
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public bool IsAllDay { get; set; }
-        public string? Location { get; set; }
-        public string? Description { get; set; }
-        public string? RecurrenceRule { get; set; }
-        public string? RecurrenceException { get; set; }
-        public string? Color { get; set; }
-        public SchedulerItemKind ItemKind { get; set; }
-        public EventStatus? EventStatus { get; set; }
-        public string? AssignedTo { get; set; }
-        public bool IsPrivate { get; set; }
+        var cat = _categories.FirstOrDefault(c => c.Key == key);
+        if (cat != null) cat.Count = _allItems.Count(i => i.CategoryKey == key);
     }
 }

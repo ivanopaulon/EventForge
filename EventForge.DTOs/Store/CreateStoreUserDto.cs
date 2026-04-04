@@ -81,5 +81,11 @@ namespace EventForge.DTOs.Store
         [MaxLength(20, ErrorMessage = "The phone number cannot exceed 20 characters.")]
         [Display(Name = "Phone Number", Description = "Phone number of the operator.")]
         public string? PhoneNumber { get; set; }
+
+        /// <summary>
+        /// Date of birth of the store operator. Optional.
+        /// </summary>
+        [Display(Name = "Date of Birth", Description = "Date of birth of the store operator.")]
+        public DateTime? DateOfBirth { get; set; }
     }
 }
