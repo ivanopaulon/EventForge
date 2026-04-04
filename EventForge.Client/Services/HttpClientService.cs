@@ -458,7 +458,7 @@ public class HttpClientService : IHttpClientService
         var exception = new HttpRequestException(errorMessage, null, response.StatusCode);
         if (problemDetails != null)
         {
-            exception.Data["ProblemDetails"] = problemDetails;
+            exception.Data[AppErrorInfo.ProblemDetailsDataKey] = problemDetails;
         }
         throw exception;
     }

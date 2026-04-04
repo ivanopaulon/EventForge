@@ -5,6 +5,9 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class AppErrorInfo
 {
+    /// <summary>Key used to store/retrieve ProblemDetailsDto in HttpRequestException.Data.</summary>
+    public const string ProblemDetailsDataKey = "ProblemDetails";
+
     /// <summary>User-friendly error message.</summary>
     public string Message { get; set; } = string.Empty;
 
