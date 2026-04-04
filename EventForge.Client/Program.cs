@@ -66,8 +66,13 @@ builder.Services.AddMudServices(config =>
 // Add Blazored LocalStorage for state persistence
 builder.Services.AddBlazoredLocalStorage();
 
-// Add Syncfusion Blazor services (license key must be set via appsettings or environment)
-// To register your license: Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("YOUR_LICENSE_KEY");
+// Add Syncfusion Blazor services
+// Set the license key in appsettings.json under "SyncfusionLicenseKey"
+var syncfusionKey = builder.Configuration["SyncfusionLicenseKey"];
+if (!string.IsNullOrWhiteSpace(syncfusionKey))
+{
+    Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(syncfusionKey);
+}
 builder.Services.AddSyncfusionBlazor();
 
 // ════════════════════════════════════════════════════════════════
@@ -78,10 +83,10 @@ builder.Services.AddMemoryCache(options =>
 {
     // Maximum 100 cached items across all cache entries
     options.SizeLimit = 100;
-    
+
     // When size limit is reached, remove 25% of least recently used entries
     options.CompactionPercentage = 0.25;
-    
+
     // Scan for expired entries every 5 minutes
     options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
 });
