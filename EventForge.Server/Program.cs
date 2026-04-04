@@ -435,6 +435,24 @@ var defaultFilesOptions = new DefaultFilesOptions();
 defaultFilesOptions.DefaultFileNames.Clear();
 defaultFilesOptions.DefaultFileNames.Add("index.html");
 app.UseDefaultFiles(defaultFilesOptions);
+
+// Redirect /settings (and /settings/) to /Dashboard/Settings before static files are served.
+// The wwwroot/settings/ folder is a legacy static panel that requires a localStorage JWT
+// never written by the cookie-based login; all access must go through the Razor Page instead.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+    if (path != null &&
+        (path.Equals("/settings", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/settings/", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/settings/index.html", StringComparison.OrdinalIgnoreCase)))
+    {
+        context.Response.Redirect("/Dashboard/Settings");
+        return;
+    }
+    await next();
+});
+
 app.UseStaticFiles();
 
 // Enable session support for wizard state
