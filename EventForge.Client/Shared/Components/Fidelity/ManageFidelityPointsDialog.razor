@@ -1,7 +1,10 @@
 @using EventForge.Client.Models.Fidelity
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Stars"
+          Title="@($"Gestisci Punti - Card {Card.Type}")"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel">
+    <ChildContent>
         
         <!-- Alert Modalità Demo -->
         <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
@@ -74,7 +77,7 @@
                 
             </MudGrid>
         </MudForm>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
         <MudButton Color="@(_operationType == PointsOperationType.Add ? Color.Success : Color.Warning)" 
@@ -91,7 +94,7 @@
             }
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

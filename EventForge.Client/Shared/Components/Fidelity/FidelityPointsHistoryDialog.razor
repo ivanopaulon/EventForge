@@ -1,7 +1,10 @@
 @using EventForge.Client.Models.Fidelity
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.History"
+          Title="@($"Storico Punti - Card {Card.Type}")"
+          IsProcessing="false"
+          OnClose="Close">
+    <ChildContent>
         
         <!-- Alert Modalità Demo -->
         <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
@@ -82,13 +85,13 @@
             </MudAlert>
         }
         
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Close">
             Chiudi
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

@@ -3,8 +3,11 @@
 @inject IStorageLocationService StorageLocationService
 @inject ILogger<StockFiltersDialog> Logger
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.FilterList"
+          Title="@TranslationService.GetTranslation("stock.filterTitle", "Filtra Giacenze")"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
         <MudGrid>
             <MudItem xs="12" md="6">
                 <MudSelect @bind-Value="Filters.WarehouseId"
@@ -70,7 +73,7 @@
                            Color="Color.Info" />
             </MudItem>
         </MudGrid>
-    </DialogContent>
+    </ChildContent>
     
     <DialogActions>
         <MudButton OnClick="Cancel">
@@ -83,7 +86,7 @@
             @TranslationService.GetTranslation("common.apply", "Applica")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;

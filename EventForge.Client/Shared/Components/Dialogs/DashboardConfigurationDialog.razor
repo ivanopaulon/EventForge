@@ -5,8 +5,12 @@
 @inject ILogger<DashboardConfigurationDialog> Logger
 @inject IDialogService DialogService
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.Dashboard"
+          Title="@TranslationService.GetTranslation("dashboard.configTitle", "Configurazione Dashboard")"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
         <MudStack Spacing="3">
             @if (_isLoading)
             {
@@ -155,7 +159,7 @@
                 </MudButton>
             }
         </MudStack>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
         @if (_isFirstTimeSetup)
@@ -168,7 +172,7 @@
             </MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter]

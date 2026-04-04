@@ -8,52 +8,49 @@
 @using EventForge.Client.Shared.Components.Products
 @using MudBlazor
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" @onkeydown="@OnDialogKeyDown" tabindex="-1">
-    <TitleContent>
-        <div class="@DialogStyleConstants.Classes.DialogTitle">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@(_isEditMode? DialogStyleConstants.Icons.Edit : DialogStyleConstants.Icons.AddRow)" Class="mr-2" />
-                    @TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")
-                </MudText>
+<EFDialog Icon="@(_isEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.PlaylistAdd)"
+          Title="@TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="min(900px, 95vw)"
+          @onkeydown="@OnDialogKeyDown">
+    <ChildContent>
+        @if (!_isEditMode)
+        {
+            <div class="d-flex justify-end mb-3">
+                <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
+                    <MudTooltip Text="@TranslationService.GetTranslation("documents.standardModeTooltip", "Modalità completa con tutti i campi")">
+                        <MudButton StartIcon="@Icons.Material.Outlined.Edit"
+                                   Color="@(_dialogMode == DialogMode.Standard ? Color.Primary : Color.Default)"
+                                   Variant="@(_dialogMode == DialogMode.Standard ? Variant.Filled : Variant.Outlined)"
+                                   OnClick="@(() => SetDialogMode(DialogMode.Standard))">
+                            @TranslationService.GetTranslation("documents.standardMode", "Standard")
+                        </MudButton>
+                    </MudTooltip>
 
-                @if (!_isEditMode)
-                {
-                    <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
-                        <MudTooltip Text="@TranslationService.GetTranslation("documents.standardModeTooltip", "Modalità completa con tutti i campi")">
-                            <MudButton StartIcon="@Icons.Material.Outlined.Edit"
-                                       Color="@(_dialogMode == DialogMode.Standard ? Color.Primary : Color.Default)"
-                                       Variant="@(_dialogMode == DialogMode.Standard ? Variant.Filled : Variant.Outlined)"
-                                       OnClick="@(() => SetDialogMode(DialogMode.Standard))">
-                                @TranslationService.GetTranslation("documents.standardMode", "Standard")
-                            </MudButton>
-                        </MudTooltip>
+                    <MudTooltip Text="@TranslationService.GetTranslation("documents.continuousScanTooltip", "Scansione continua con barcode scanner")">
+                        <MudButton StartIcon="@Icons.Material.Outlined.QrCodeScanner"
+                                   Color="@(_dialogMode == DialogMode.ContinuousScan ? Color.Primary : Color.Default)"
+                                   Variant="@(_dialogMode == DialogMode.ContinuousScan ? Variant.Filled : Variant.Outlined)"
+                                   OnClick="@(() => SetDialogMode(DialogMode.ContinuousScan))">
+                            @TranslationService.GetTranslation("documents.continuousScanMode", "Scan")
+                            @if (_continuousScanCount > 0)
+                            {
+                                <MudBadge Content="@_continuousScanCount" Color="Color.Success" Overlap="true" Class="ml-2" />
+                            }
+                        </MudButton>
+                    </MudTooltip>
+                </MudButtonGroup>
+            </div>
+        }
 
-                        <MudTooltip Text="@TranslationService.GetTranslation("documents.continuousScanTooltip", "Scansione continua con barcode scanner")">
-                            <MudButton StartIcon="@Icons.Material.Outlined.QrCodeScanner"
-                                       Color="@(_dialogMode == DialogMode.ContinuousScan ? Color.Primary : Color.Default)"
-                                       Variant="@(_dialogMode == DialogMode.ContinuousScan ? Variant.Filled : Variant.Outlined)"
-                                       OnClick="@(() => SetDialogMode(DialogMode.ContinuousScan))">
-                                @TranslationService.GetTranslation("documents.continuousScanMode", "Scan")
-                                @if (_continuousScanCount > 0)
-                                {
-                                    <MudBadge Content="@_continuousScanCount" Color="Color.Success" Overlap="true" Class="ml-2" />
-                                }
-                            </MudButton>
-                        </MudTooltip>
-                    </MudButtonGroup>
-                }
-            </MudStack>
-        </div>
-    </TitleContent>
-    <DialogContent>
         <!-- Save progress bar - PR #2c-Part2 Commit 3 -->
         @if (_isSaving)
         {
             <div class="save-progress"></div>
         }
 
-        <div class="@DialogStyleConstants.Classes.DialogContent">
+        <div>
             @if (_isLoadingData)
             {
                 <MudStack Spacing="2" Class="mb-4">
@@ -403,49 +400,47 @@
 
             </MudStack>
         </div>
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <div class="@DialogStyleConstants.Classes.DialogActions">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudText Typo="Typo.caption" Class="ml-2" Style="color: var(--mud-palette-text-secondary);">
-                    <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" />
-                    @TranslationService.GetTranslation("documents.shortcutEnter", "Enter: Salva") ·
-                    @TranslationService.GetTranslation("documents.shortcutCtrlE", "Ctrl+E: Modifica Prodotto") ·
-                    @TranslationService.GetTranslation("documents.shortcutEsc", "Esc: Chiudi")
-                </MudText>
-                <MudStack Row="true" Spacing="2">
-                    <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isSaving">
-                        @TranslationService.GetTranslation("common.close", "Chiudi")
-                    </MudButton>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+            <MudText Typo="Typo.caption" Class="ml-2" Style="color: var(--mud-palette-text-secondary);">
+                <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" />
+                @TranslationService.GetTranslation("documents.shortcutEnter", "Enter: Salva") ·
+                @TranslationService.GetTranslation("documents.shortcutCtrlE", "Ctrl+E: Modifica Prodotto") ·
+                @TranslationService.GetTranslation("documents.shortcutEsc", "Esc: Chiudi")
+            </MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isSaving">
+                    @TranslationService.GetTranslation("common.close", "Chiudi")
+                </MudButton>
 
-                    <!-- Save & Continue button with tooltip - PR #2c-Part2 Commit 2 & 3 -->
-                    <MudTooltip Arrow="true" Placement="Placement.Top">
-                        <ChildContent>
-                            <MudButton Color="Color.Primary"
-                                       OnClick="SaveAndContinue"
-                                       Disabled="@(!IsValid() || _isSaving)"
-                                       Class="@(_isSaving ? "button-loading" : "")"
-                                       Variant="Variant.Filled">
-                                @if (_isSaving)
-                                {
-                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                                }
-                                else
-                                {
-                                    <MudIcon Icon="@(_isEditMode? DialogStyleConstants.Icons.Save : DialogStyleConstants.Icons.Add)" Class="mr-1" />
-                                }
-                                @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
-                            </MudButton>
-                        </ChildContent>
-                        <TooltipContent>
-                            <div class="tooltip-with-hint">
-                                <span>@(_isEditMode ? "Salva e chiudi" : "Aggiungi e continua")</span>
-                                <kbd class="tooltip-keyboard-hint">@(_isEditMode ? "Ctrl+S" : "Ctrl+Enter")</kbd>
-                            </div>
-                        </TooltipContent>
-                    </MudTooltip>
-                </MudStack>
+                <!-- Save & Continue button with tooltip - PR #2c-Part2 Commit 2 & 3 -->
+                <MudTooltip Arrow="true" Placement="Placement.Top">
+                    <ChildContent>
+                        <MudButton Color="Color.Primary"
+                                   OnClick="SaveAndContinue"
+                                   Disabled="@(!IsValid() || _isSaving)"
+                                   Class="@(_isSaving ? "button-loading" : "")"
+                                   Variant="Variant.Filled">
+                            @if (_isSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@(_isEditMode ? Icons.Material.Outlined.Save : Icons.Material.Outlined.Add)" Class="mr-1" />
+                            }
+                            @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
+                        </MudButton>
+                    </ChildContent>
+                    <TooltipContent>
+                        <div class="tooltip-with-hint">
+                            <span>@(_isEditMode ? "Salva e chiudi" : "Aggiungi e continua")</span>
+                            <kbd class="tooltip-keyboard-hint">@(_isEditMode ? "Ctrl+S" : "Ctrl+Enter")</kbd>
+                        </div>
+                    </TooltipContent>
+                </MudTooltip>
             </MudStack>
-        </div>
+        </MudStack>
     </DialogActions>
-</MudDialog>
+</EFDialog>

@@ -3,8 +3,11 @@
 @using MudBlazor
 @inject IPriceListService PriceListService
 
-<MudDialog>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.PriceCheck"
+          Title="@TranslationService.GetTranslation("pricelist.previewTitle", "Anteprima Listino")"
+          IsProcessing="@_isLoading"
+          OnClose="@(() => MudDialog.Close())">
+    <ChildContent>
         @if (_isLoading)
         {
             <MudProgressLinear Indeterminate="true" />
@@ -51,7 +54,7 @@
                 @(_errorMessage ?? "Errore nel caricamento del listino")
             </MudAlert>
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
         <MudButton OnClick="@(() => MudDialog.Close())">
             Chiudi
@@ -63,7 +66,7 @@
             Vai al Dettaglio Completo
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] 
