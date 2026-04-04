@@ -84,6 +84,10 @@ public static class ServiceCollectionExtensions
             .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Error)
             .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Error)
             .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Error)
+            // Suppress verbose EF Core infrastructure and command logs (CommandExecuted, context
+            // initialisation messages, etc.). Warnings and errors (e.g. slow-query warnings,
+            // migration errors, connection failures) are still emitted.
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
             .Enrich.FromLogContext()  // Enable capturing scope properties
             .WriteTo.File(
                 path: filePath,

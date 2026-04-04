@@ -12,14 +12,27 @@ public partial class EventForgeDbContext : DbContext
 
     /// <summary>
     /// HashSet of entity types that are excluded from automatic audit tracking.
-    /// Sales entities use manual audit logging in SaleSessionService for better control.
+    /// <list type="bullet">
+    /// <item>Sales entities use manual audit logging in SaleSessionService for better control.</item>
+    /// <item>Infrastructure/log entities (PerformanceLog, LoginAudit, AuditTrail, BackupOperation)
+    ///   must not be audited: auditing them would generate recursive EntityChangeLog rows on every
+    ///   write and produce a cascade of noisy DB inserts (visible as giant EF CommandExecuted log
+    ///   entries).</item>
+    /// </list>
     /// </summary>
     private static readonly HashSet<Type> ExcludedFromAutomaticAudit = new()
     {
+        // Sales entities — use manual audit in SaleSessionService
         typeof(SaleSession),
         typeof(SaleItem),
         typeof(SalePayment),
-        typeof(SessionNote)
+        typeof(SessionNote),
+
+        // Infrastructure / log entities — must not be auto-audited to prevent recursive inserts
+        typeof(PerformanceLog),    // written every minute by PerformanceCollectorService
+        typeof(LoginAudit),        // the login-audit record itself must not spawn more audit rows
+        typeof(AuditTrail),        // same: the audit trail is the audit, not something to audit
+        typeof(BackupOperation),   // internal operation tracking, no property-level audit needed
     };
 
     public EventForgeDbContext(DbContextOptions<EventForgeDbContext> options)
