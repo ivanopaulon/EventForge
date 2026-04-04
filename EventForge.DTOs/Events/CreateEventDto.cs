@@ -83,5 +83,8 @@ namespace EventForge.DTOs.Events
         /// </summary>
         [Display(Name = "Visibility", Description = "Controls who can see this event.")]
         public CalendarVisibility Visibility { get; set; } = CalendarVisibility.Public;
+
+        /// <summary>Daily time slots (e.g. 08:00–12:00 and 14:00–18:00).</summary>
+        public List<CreateEventTimeSlotDto> TimeSlots { get; set; } = new();
     }
 }

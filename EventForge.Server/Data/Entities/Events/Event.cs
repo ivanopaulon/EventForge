@@ -88,6 +88,13 @@ public class Event : AuditableEntity
     public CalendarVisibility Visibility { get; set; } = CalendarVisibility.Public;
 
     /// <summary>
+    /// Daily time slots for the event (e.g. 08:00–12:00 and 14:00–18:00 per day).
+    /// When empty the event is treated as all-day or uses StartDate/EndDate times directly.
+    /// </summary>
+    [Display(Name = "Time Slots", Description = "Daily time slots for the event.")]
+    public ICollection<EventTimeSlot> TimeSlots { get; set; } = new List<EventTimeSlot>();
+
+    /// <summary>
     /// Teams associated with the event.
     /// </summary>
     [Display(Name = "Teams", Description = "Teams associated with the event.")]

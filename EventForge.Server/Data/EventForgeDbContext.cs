@@ -90,6 +90,7 @@ public partial class EventForgeDbContext : DbContext
 
     // Event & Team Entities
     public DbSet<Event> Events { get; set; }
+    public DbSet<EventTimeSlot> EventTimeSlots { get; set; }
     public DbSet<CalendarReminder> CalendarReminders { get; set; }
     public DbSet<Team> Teams { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
@@ -223,6 +224,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigurePriceApplicationMode(modelBuilder);
         ConfigurePerformanceIndexes(modelBuilder);
         ConfigureCalendarReminderRelationships(modelBuilder);
+        ConfigureEventTimeSlotRelationships(modelBuilder);
     }
 
     private static void ConfigureTenantEntity(ModelBuilder modelBuilder)
@@ -1272,6 +1274,23 @@ public partial class EventForgeDbContext : DbContext
         }
 
         return auditEntries;
+    }
+
+private static void ConfigureEventTimeSlotRelationships(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<EventTimeSlot>()
+            .HasOne(s => s.Event)
+            .WithMany(e => e.TimeSlots)
+            .HasForeignKey(s => s.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = modelBuilder.Entity<EventTimeSlot>()
+            .HasIndex(s => s.EventId)
+            .HasDatabaseName("IX_EventTimeSlots_EventId");
+
+        _ = modelBuilder.Entity<EventTimeSlot>()
+            .HasIndex(s => new { s.EventId, s.SortOrder })
+            .HasDatabaseName("IX_EventTimeSlots_EventId_SortOrder");
     }
 
     private static void ConfigureCalendarReminderRelationships(ModelBuilder modelBuilder)
