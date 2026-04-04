@@ -290,7 +290,6 @@ public partial class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<PriceListEntry>().Property(x => x.Price).HasPrecision(18, 6);
         _ = modelBuilder.Entity<Product>().Property(x => x.DefaultPrice).HasPrecision(18, 6);
         _ = modelBuilder.Entity<Promotion>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Promotion>().Property(x => x.RowVersion).IsRowVersion();
         _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
         _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountPercentage).HasPrecision(5, 2);
         _ = modelBuilder.Entity<PromotionRule>().Property(x => x.FixedPrice).HasPrecision(18, 6);
@@ -1278,6 +1277,9 @@ public partial class EventForgeDbContext : DbContext
 
 private static void ConfigureEventTimeSlotRelationships(ModelBuilder modelBuilder)
     {
+        _ = modelBuilder.Entity<EventTimeSlot>()
+            .HasQueryFilter(s => !s.Event.IsDeleted);
+
         _ = modelBuilder.Entity<EventTimeSlot>()
             .HasOne(s => s.Event)
             .WithMany(e => e.TimeSlots)
