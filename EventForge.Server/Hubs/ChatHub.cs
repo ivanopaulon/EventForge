@@ -16,13 +16,16 @@ public class ChatHub : Hub
 {
     private readonly ILogger<ChatHub> _logger;
     private readonly IChatService _chatService;
+    private readonly IOnlineUserTracker _onlineUserTracker;
 
     public ChatHub(
         ILogger<ChatHub> logger,
-        IChatService chatService)
+        IChatService chatService,
+        IOnlineUserTracker onlineUserTracker)
     {
         _logger = logger;
         _chatService = chatService;
+        _onlineUserTracker = onlineUserTracker;
     }
 
     #region Connection Management
@@ -38,13 +41,18 @@ public class ChatHub : Hub
 
         if (userId.HasValue && tenantId.HasValue)
         {
+            // Track the user as online
+            _onlineUserTracker.UserConnected(userId.Value);
+
             // Join user-specific group for direct notifications
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId.Value}");
 
             // Join tenant-wide group for tenant isolation
             await Groups.AddToGroupAsync(Context.ConnectionId, $"tenant_{tenantId.Value}");
 
-            // STUB: Load user's active chats and join those groups (deferred implementation)
+            // Notify other tenant members that this user is now online
+            await Clients.OthersInGroup($"tenant_{tenantId.Value}")
+                .SendAsync("UserOnlineStatusChanged", userId.Value, true);
 
             _logger.LogInformation("User {UserId} connected to chat hub for tenant {TenantId}", userId.Value, tenantId.Value);
         }
@@ -65,10 +73,18 @@ public class ChatHub : Hub
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = GetCurrentUserId();
+        var tenantId = GetCurrentTenantId();
 
         if (userId.HasValue)
         {
-            // STUB: Update user's last seen timestamp in active chats (deferred implementation)
+            _onlineUserTracker.UserDisconnected(userId.Value);
+
+            // Notify other tenant members that this user has gone offline (only when truly offline)
+            if (!_onlineUserTracker.IsOnline(userId.Value) && tenantId.HasValue)
+            {
+                await Clients.OthersInGroup($"tenant_{tenantId.Value}")
+                    .SendAsync("UserOnlineStatusChanged", userId.Value, false);
+            }
 
             _logger.LogInformation("User {UserId} disconnected from chat hub", userId.Value);
         }

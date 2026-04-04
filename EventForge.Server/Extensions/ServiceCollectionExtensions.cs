@@ -239,6 +239,7 @@ public static class ServiceCollectionExtensions
         // Register notification and chat services - Step 3 SignalR Implementation
         _ = services.AddScoped<INotificationService, NotificationService>();
         _ = services.AddScoped<IChatService, ChatService>();
+        _ = services.AddSingleton<EventForge.Server.Services.Chat.IOnlineUserTracker, EventForge.Server.Services.Chat.OnlineUserTracker>();
 
         // Register team services
         _ = services.AddScoped<ITeamService, TeamService>();

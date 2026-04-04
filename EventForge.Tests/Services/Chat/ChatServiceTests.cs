@@ -22,6 +22,7 @@ public class ChatServiceTests : IDisposable
     private readonly Mock<IAuditLogService> _mockAuditLogService;
     private readonly Mock<ILogger<ChatService>> _mockLogger;
     private readonly Mock<IHubContext<ChatHub>> _mockHubContext;
+    private readonly Mock<IOnlineUserTracker> _mockOnlineUserTracker;
     private readonly ChatService _chatService;
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _userId1 = Guid.NewGuid();
@@ -40,6 +41,8 @@ public class ChatServiceTests : IDisposable
         _mockAuditLogService = new Mock<IAuditLogService>();
         _mockLogger = new Mock<ILogger<ChatService>>();
         _mockHubContext = new Mock<IHubContext<ChatHub>>();
+        _mockOnlineUserTracker = new Mock<IOnlineUserTracker>();
+        _mockOnlineUserTracker.Setup(x => x.IsOnline(It.IsAny<Guid>())).Returns(false);
 
         // Setup SignalR hub context mock
         var mockClients = new Mock<IHubClients>();
@@ -70,7 +73,7 @@ public class ChatServiceTests : IDisposable
                 ChangedAt = DateTime.UtcNow
             });
 
-        _chatService = new ChatService(_context, _mockAuditLogService.Object, _mockLogger.Object, _mockHubContext.Object);
+        _chatService = new ChatService(_context, _mockAuditLogService.Object, _mockLogger.Object, _mockHubContext.Object, _mockOnlineUserTracker.Object);
 
         // Seed test data
         SeedTestData();

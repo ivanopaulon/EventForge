@@ -510,6 +510,7 @@
         ChatService.ChatCreated += OnChatCreated;
         ChatService.MessageReceived += OnMessageReceived;
         ChatService.TypingIndicator += OnTypingIndicator;
+        ChatService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -920,12 +921,27 @@
         return dt.ToLocalTime().ToString("dd/MM");
     }
 
+    private void OnUserOnlineStatusChanged(Guid userId, bool isOnline)
+    {
+        // Update cached online status for members in the chat list
+        foreach (var chat in _chats)
+        {
+            var member = chat.Members?.FirstOrDefault(m => m.UserId == userId);
+            if (member != null)
+            {
+                member.IsOnline = isOnline;
+            }
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
     // ─── Disposal ─────────────────────────────────────────────────────────────
     public async ValueTask DisposeAsync()
     {
         ChatService.ChatCreated -= OnChatCreated;
         ChatService.MessageReceived -= OnMessageReceived;
         ChatService.TypingIndicator -= OnTypingIndicator;
+        ChatService.UserOnlineStatusChanged -= OnUserOnlineStatusChanged;
 
         CancelAllTypingTimers();
 

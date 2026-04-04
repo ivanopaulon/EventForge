@@ -443,6 +443,7 @@
             ChatService.TypingIndicator += OnTypingIndicator;
             ChatService.UserJoinedChat += OnUserJoinedChat;
             ChatService.UserLeftChat += OnUserLeftChat;
+            ChatService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
 
             await LoadChatsAsync();
         }
@@ -463,6 +464,7 @@
         ChatService.TypingIndicator -= OnTypingIndicator;
         ChatService.UserJoinedChat -= OnUserJoinedChat;
         ChatService.UserLeftChat -= OnUserLeftChat;
+        ChatService.UserOnlineStatusChanged -= OnUserOnlineStatusChanged;
         CancelAllTypingTimers();
     }
 
@@ -561,15 +563,36 @@
         await LoadChatsAsync();
     }
 
-    /// <summary>
-    /// Start new chat dialog
-    /// TODO: Implement new chat creation dialog
-    /// </summary>
+    // Start new chat dialog
     private async Task StartNewChatAsync()
     {
-        // TODO: Show dialog to select users and create new chat
-        await Task.Delay(100); // Placeholder
-        Snackbar.Add(TranslationService.GetTranslation("chat.newChatPlaceholder", "Creazione nuova chat - Da implementare"), Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { nameof(NewChatDialog.CurrentUserId), _currentUserId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<NewChatDialog>(
+            TranslationService.GetTranslation("chat.newChat", "Nuova Chat"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: ChatResponseDto newChat })
+        {
+            // Add the new chat to the list and select it
+            if (!_chatList.Any(c => c.Id == newChat.Id))
+                _chatList.Insert(0, newChat);
+
+            await SelectChatAsync(newChat);
+            StateHasChanged();
+        }
     }
 
     /// <summary>
@@ -846,6 +869,17 @@
         if (_selectedChatId == chatId)
         {
             _chatMembers.RemoveAll(m => m.UserId == userId);
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnUserOnlineStatusChanged(Guid userId, bool isOnline)
+    {
+        // Update online status in the members panel for the current chat
+        var member = _chatMembers.FirstOrDefault(m => m.UserId == userId);
+        if (member != null)
+        {
+            member.IsOnline = isOnline;
             InvokeAsync(StateHasChanged);
         }
     }

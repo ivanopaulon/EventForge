@@ -12,6 +12,7 @@ public interface IChatService
     Task<List<ChatResponseDto>> GetChatsAsync(int page = 1, int pageSize = 50, string? filter = null, CancellationToken cancellationToken = default);
     Task<ChatResponseDto?> GetChatByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<List<ChatMemberDto>> GetChatMembersAsync(Guid chatId, CancellationToken cancellationToken = default);
+    Task<List<ChatAvailableUserDto>> GetAvailableUsersAsync(CancellationToken cancellationToken = default);
     Task<ChatResponseDto> CreateChatAsync(CreateChatDto createDto, CancellationToken cancellationToken = default);
     Task<List<ChatMessageDto>> GetMessagesAsync(Guid chatId, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
     Task<ChatMessageDto> SendMessageAsync(SendMessageDto messageDto, CancellationToken cancellationToken = default);
@@ -33,6 +34,7 @@ public interface IChatService
     event Action<TypingIndicatorDto>? TypingIndicator;
     event Action<Guid, Guid>? UserJoinedChat;
     event Action<Guid, Guid>? UserLeftChat;
+    event Action<Guid, bool>? UserOnlineStatusChanged;
 }
 
 public class ChatService : IChatService
@@ -63,6 +65,7 @@ public class ChatService : IChatService
         _realtimeService.TypingIndicator += OnTypingIndicator;
         _realtimeService.UserJoinedChat += OnUserJoinedChat;
         _realtimeService.UserLeftChat += OnUserLeftChat;
+        _realtimeService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
     }
 
     #region Events
@@ -74,6 +77,7 @@ public class ChatService : IChatService
     public event Action<TypingIndicatorDto>? TypingIndicator;
     public event Action<Guid, Guid>? UserJoinedChat;
     public event Action<Guid, Guid>? UserLeftChat;
+    public event Action<Guid, bool>? UserOnlineStatusChanged;
     #endregion
 
     #region API Operations
@@ -89,13 +93,13 @@ public class ChatService : IChatService
             {
                 var queryParams = new List<string>
                 {
-                    $"page={page}",
+                    $"pageNumber={page}",
                     $"pageSize={pageSize}"
                 };
 
                 if (!string.IsNullOrEmpty(filter))
                 {
-                    queryParams.Add($"type={filter}");
+                    queryParams.Add($"types={filter}");
                 }
 
                 var query = string.Join("&", queryParams);
@@ -134,6 +138,20 @@ public class ChatService : IChatService
         {
             _logger.LogError(ex, "Error getting members for chat {ChatId}", chatId);
             return new List<ChatMemberDto>();
+        }
+    }
+
+    public async Task<List<ChatAvailableUserDto>> GetAvailableUsersAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<List<ChatAvailableUserDto>>("api/v1/chat/available-users", cancellationToken)
+                   ?? new List<ChatAvailableUserDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available users for chat");
+            return new List<ChatAvailableUserDto>();
         }
     }
 
@@ -391,6 +409,11 @@ public class ChatService : IChatService
                 }
             }
         }
+    }
+
+    private void OnUserOnlineStatusChanged(Guid userId, bool isOnline)
+    {
+        UserOnlineStatusChanged?.Invoke(userId, isOnline);
     }
 
     #endregion

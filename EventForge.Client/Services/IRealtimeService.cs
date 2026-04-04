@@ -132,6 +132,11 @@ public interface IRealtimeService
     /// </summary>
     event Action<object>? UserLeftChat;
 
+    /// <summary>
+    /// User online status changed (userId, isOnline).
+    /// </summary>
+    event Action<Guid, bool>? UserOnlineStatusChanged;
+
     #endregion
 
     #region Chat Methods

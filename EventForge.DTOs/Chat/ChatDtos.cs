@@ -719,4 +719,23 @@ namespace EventForge.DTOs.Chat
         /// </summary>
         public Dictionary<string, object>? Metadata { get; set; }
     }
+
+    /// <summary>
+    /// Lightweight user record returned by the "available users for chat" endpoint.
+    /// Contains only the fields needed to render a contacts list with online indicators.
+    /// </summary>
+    public class ChatAvailableUserDto
+    {
+        /// <summary>User ID.</summary>
+        public Guid Id { get; set; }
+
+        /// <summary>Login username.</summary>
+        public string Username { get; set; } = string.Empty;
+
+        /// <summary>Full display name (first + last name).</summary>
+        public string DisplayName { get; set; } = string.Empty;
+
+        /// <summary>True when the user has at least one active SignalR connection.</summary>
+        public bool IsOnline { get; set; }
+    }
 }
