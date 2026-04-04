@@ -31,7 +31,7 @@
                             AdornmentIcon="@Icons.Material.Outlined.DateRange">
             <PickerActions>
                 <MudButton Variant="Variant.Text"
-                           OnClick="@(async () => { DateRange = null; await DateRangeChanged.InvokeAsync(null); })">
+                           OnClick="ClearDateRange">
                     @TranslationService.GetTranslation("common.clear", "Pulisci")
                 </MudButton>
             </PickerActions>
@@ -152,6 +152,14 @@
     {
         IsAllDay = value;
         await IsAllDayChanged.InvokeAsync(value);
+    }
+
+    // ── Date range clear handler ──────────────────────────────────────────
+
+    private async Task ClearDateRange()
+    {
+        DateRange = null;
+        await DateRangeChanged.InvokeAsync(null);
     }
 
     // ── Public helpers ────────────────────────────────────────────────────
