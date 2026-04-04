@@ -452,6 +452,15 @@ namespace EventForge.DTOs.Common
     }
 
     /// <summary>
+    /// Calendar item type enumeration.
+    /// </summary>
+    public enum CalendarItemType
+    {
+        Reminder,
+        Task
+    }
+
+    /// <summary>
     /// Reminder type enumeration.
     /// </summary>
     public enum ReminderType
