@@ -19,7 +19,7 @@
     @* ── Date range ── *@
     <MudItem xs="12">
         <MudDateRangePicker @bind-DateRange="DateRange"
-                            @bind-DateRange:after="DateRangeChanged.InvokeAsync"
+                            @bind-DateRange:after="@(() => DateRangeChanged.InvokeAsync(DateRange))"
                             Label="@_rangeLabel"
                             Variant="Variant.Outlined"
                             Margin="Margin.Dense"
@@ -31,7 +31,7 @@
                             AdornmentIcon="@Icons.Material.Outlined.DateRange">
             <PickerActions>
                 <MudButton Variant="Variant.Text"
-                           OnClick="@(() => { DateRange = null; DateRangeChanged.InvokeAsync(null); })">
+                           OnClick="@(async () => { DateRange = null; await DateRangeChanged.InvokeAsync(null); })">
                     @TranslationService.GetTranslation("common.clear", "Pulisci")
                 </MudButton>
             </PickerActions>
@@ -40,7 +40,8 @@
 
     @* ── All-day toggle ── *@
     <MudItem xs="12" sm="4" Class="d-flex align-center">
-        <MudCheckBox Value="IsAllDay"
+        <MudCheckBox T="bool"
+                     Value="IsAllDay"
                      ValueChanged="OnIsAllDayChanged"
                      Label="@TranslationService.GetTranslation("events.allDay", "Tutto il giorno")"
                      Color="Color.Primary" />
@@ -51,7 +52,7 @@
     {
         <MudItem xs="12" sm="4">
             <MudTimePicker @bind-Time="StartTime"
-                           @bind-Time:after="StartTimeChanged.InvokeAsync"
+                           @bind-Time:after="@(() => StartTimeChanged.InvokeAsync(StartTime))"
                            Label="@_startTimeLabel"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
@@ -61,7 +62,7 @@
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudTimePicker @bind-Time="EndTime"
-                           @bind-Time:after="EndTimeChanged.InvokeAsync"
+                           @bind-Time:after="@(() => EndTimeChanged.InvokeAsync(EndTime))"
                            Label="@_endTimeLabel"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
