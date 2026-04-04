@@ -42,7 +42,7 @@ public class PaginationModelBinder : IModelBinder
         var requestedPageSize = ParseInt(pageSizeValue, _settings.DefaultPageSize, 1);
 
         // Determine max page size based on context
-        var maxPageSize = DetermineMaxPageSize(httpContext);
+        var (maxPageSize, hasEndpointOverride) = DetermineMaxPageSize(httpContext);
 
         // Apply capping if needed
         var wasCapped = false;
@@ -60,8 +60,10 @@ public class PaginationModelBinder : IModelBinder
                 "PageSize {RequestedPageSize} exceeds limit {MaxPageSize} for user '{UserName}' on path '{Path}'. Capping to maximum.",
                 requestedPageSize, maxPageSize, userName, path);
         }
-        else if (requestedPageSize > _settings.RecommendedPageSize)
+        else if (!hasEndpointOverride && requestedPageSize > _settings.RecommendedPageSize)
         {
+            // Only log when there is no explicit endpoint override — an override signals that the
+            // large page size is intentional and expected for this path.
             var userName = httpContext.User?.Identity?.Name ?? "Anonymous";
             var path = httpContext.Request.Path.Value ?? "";
 
@@ -80,7 +82,7 @@ public class PaginationModelBinder : IModelBinder
         return Task.CompletedTask;
     }
 
-    private int DetermineMaxPageSize(HttpContext httpContext)
+    private (int maxPageSize, bool hasEndpointOverride) DetermineMaxPageSize(HttpContext httpContext)
     {
         var path = httpContext.Request.Path.Value ?? "";
         var user = httpContext.User;
@@ -88,7 +90,7 @@ public class PaginationModelBinder : IModelBinder
         // Priority 1: Endpoint override (exact match)
         if (_settings.EndpointOverrides.TryGetValue(path, out var exactOverride))
         {
-            return exactOverride;
+            return (exactOverride, true);
         }
 
         // Priority 2: Endpoint override (wildcard)
@@ -99,7 +101,7 @@ public class PaginationModelBinder : IModelBinder
                 var prefix = pattern[..^1]; // Remove the asterisk
                 if (path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    return maxSize;
+                    return (maxSize, true);
                 }
             }
         }
@@ -108,7 +110,7 @@ public class PaginationModelBinder : IModelBinder
         if (httpContext.Request.Headers.TryGetValue("X-Export-Operation", out var exportHeader) &&
             exportHeader == "true")
         {
-            return _settings.MaxExportPageSize;
+            return (_settings.MaxExportPageSize, false);
         }
 
         // Priority 4: Role-based (highest if multiple roles)
@@ -118,13 +120,13 @@ public class PaginationModelBinder : IModelBinder
             {
                 if (user.IsInRole(role))
                 {
-                    return maxSize;
+                    return (maxSize, false);
                 }
             }
         }
 
         // Priority 5: Default
-        return _settings.MaxPageSize;
+        return (_settings.MaxPageSize, false);
     }
 
     private static int ParseInt(string? value, int defaultValue, int min)

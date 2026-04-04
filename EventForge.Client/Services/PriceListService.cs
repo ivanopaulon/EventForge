@@ -18,7 +18,7 @@ public class PriceListService : IPriceListService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<PriceListDto>> GetPagedAsync(int page = 1, int pageSize = 1000, CancellationToken ct = default)
+    public async Task<PagedResult<PriceListDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         return await GetPagedAsync(page, pageSize, null, null, ct);
     }
