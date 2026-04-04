@@ -1,0 +1,148 @@
+/* ═══════════════════════════════════════
+   Shared — eftable-wrapper (used by all warehouse management pages)
+   ═══════════════════════════════════════ */
+.eftable-wrapper {
+    flex: 1 1 auto;
+    min-height: 0; /* CRUCIAL for overflow in flexbox */
+    overflow: auto;
+    padding: 8px 12px;
+}
+
+@media (max-width: 768px) {
+    .eftable-wrapper {
+        padding: 4px 8px;
+    }
+}
+
+/* ═══════════════════════════════════════
+   Warehouse Management — warehouse.css
+   ═══════════════════════════════════════ */
+/* Warehouse Management Page - Fixed Layout with Scrollable Table */
+.warehouse-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Row highlighting during quick edit */
+.editing-row-highlight {
+    background-color: rgba(var(--mud-palette-primary-rgb), 0.08);
+    transition: background-color 0.3s ease;
+    animation: pulse-highlight 1s ease-in-out;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% { background-color: rgba(var(--mud-palette-primary-rgb), 0.08); }
+    50% { background-color: rgba(var(--mud-palette-primary-rgb), 0.15); }
+}
+
+@media (max-width: 768px) {
+    .warehouse-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+}
+
+/* ═══════════════════════════════════════
+   Lot Management — lot.css
+   ═══════════════════════════════════════ */
+/* Lot Management Page - Fixed Layout with Scrollable Table */
+.lot-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.lot-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+@media (max-width: 768px) {
+    .lot-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .lot-top {
+        padding: 8px;
+    }
+}
+
+/* ═══════════════════════════════════════
+   Inventory Management — inventory.css
+   ═══════════════════════════════════════ */
+/* Inventory Management Page - Fixed Layout with Scrollable Table */
+.inventory-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.inventory-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+@media (max-width: 768px) {
+    .inventory-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .inventory-top {
+        padding: 8px;
+    }
+}
+
+/* ═══════════════════════════════════════
+   Transfer Order Management — transfer-order.css
+   ═══════════════════════════════════════ */
+/* Transfer Order Management Page - Fixed Layout with Scrollable Table */
+.transfer-order-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.transfer-order-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+/* Toolbar and selection badge responsiveness */
+.ef-input {
+    max-width: 220px;
+}
+
+@media (max-width: 1200px) {
+    .ef-input {
+        max-width: 180px;
+    }
+}
+
+@media (max-width: 960px) {
+    .ef-input {
+        max-width: 150px;
+    }
+}
+
+@media (max-width: 768px) {
+    .transfer-order-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .transfer-order-top {
+        padding: 8px;
+    }
+
+    .ef-input {
+        max-width: 100%;
+        min-width: 120px;
+    }
+}
