@@ -199,7 +199,7 @@
         var options = new DialogOptions { BackdropClick = false, CloseButton = false };
         var dialog = await DialogService.ShowAsync<OperatorGroupDetailDialog>(string.Empty, parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled)
-            await _entityPage!.RefreshAsync();
+        if (!result.Canceled && _entityPage != null)
+            await _entityPage.RefreshAsync();
     }
 }
