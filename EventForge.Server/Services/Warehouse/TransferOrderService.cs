@@ -311,7 +311,15 @@ public class TransferOrderService : ITransferOrderService
             transferOrder.ModifiedBy = currentUser;
             transferOrder.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict shipping TransferOrder {TransferOrderId}.", id);
+                throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log
             await _auditLogService.LogEntityChangeAsync(
@@ -329,6 +337,10 @@ public class TransferOrderService : ITransferOrderService
 
             return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve shipped transfer order.");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -457,7 +469,15 @@ public class TransferOrderService : ITransferOrderService
             transferOrder.ModifiedBy = currentUser;
             transferOrder.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict receiving TransferOrder {TransferOrderId}.", id);
+                throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log
             await _auditLogService.LogEntityChangeAsync(
@@ -475,6 +495,10 @@ public class TransferOrderService : ITransferOrderService
 
             return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve received transfer order.");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -515,7 +539,15 @@ public class TransferOrderService : ITransferOrderService
             transferOrder.ModifiedBy = currentUser;
             transferOrder.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict cancelling TransferOrder {TransferOrderId}.", id);
+                throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log
             await _auditLogService.LogEntityChangeAsync(
@@ -532,6 +564,10 @@ public class TransferOrderService : ITransferOrderService
             _logger.LogInformation("Transfer order {TransferOrderNumber} cancelled by {User}.", transferOrder.Number, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

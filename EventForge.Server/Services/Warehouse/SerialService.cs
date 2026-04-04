@@ -398,9 +398,21 @@ public class SerialService : ISerialService
             serial.UpdateFromDto(updateDto, currentUser);
 
             _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Updated", "Update", null, "Updated serial information", currentUser);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Serial {SerialId}.", id);
+                throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             return serial.ToSerialDto();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -449,9 +461,21 @@ public class SerialService : ISerialService
                 _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Notes", "Update", null,
                     $"Status change notes: {notes}", currentUser);
             }
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Serial status {SerialId}.", id);
+                throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -627,9 +651,21 @@ public class SerialService : ISerialService
             _ = _context.Serials.Remove(serial);
             _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
                 $"Deleted serial number {serial.SerialNumber}", currentUser);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting Serial {SerialId}.", id);
+                throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

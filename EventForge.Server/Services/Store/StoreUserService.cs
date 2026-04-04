@@ -264,7 +264,15 @@ public class StoreUserService : IStoreUserService
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating StoreUser {StoreUserId}.", id);
+                throw new InvalidOperationException("Lo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(storeUser, "Update", currentUser, originalStoreUser, cancellationToken);
 
@@ -277,6 +285,10 @@ public class StoreUserService : IStoreUserService
                 .FirstAsync(su => su.Id == id, cancellationToken);
 
             return MapToStoreUserDto(updatedStoreUser);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -315,13 +327,25 @@ public class StoreUserService : IStoreUserService
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting StoreUser {StoreUserId}.", id);
+                throw new InvalidOperationException("Lo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(storeUser, "Delete", currentUser, originalStoreUser, cancellationToken);
 
             _logger.LogInformation("Store user {StoreUserId} deleted by {User}", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -498,7 +522,15 @@ public class StoreUserService : IStoreUserService
             storeUserGroup.ModifiedAt = DateTime.UtcNow;
             storeUserGroup.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating StoreUserGroup {StoreUserGroupId}.", id);
+                throw new InvalidOperationException("Il gruppo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Update", currentUser, originalStoreUserGroup, cancellationToken);
 
@@ -510,6 +542,10 @@ public class StoreUserService : IStoreUserService
                 .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserGroupDto(storeUserGroup, cashierCount, privilegeCount);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -555,13 +591,25 @@ public class StoreUserService : IStoreUserService
             storeUserGroup.ModifiedAt = DateTime.UtcNow;
             storeUserGroup.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting StoreUserGroup {StoreUserGroupId}.", id);
+                throw new InvalidOperationException("Il gruppo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Delete", currentUser, originalStoreUserGroup, cancellationToken);
 
             _logger.LogInformation("Store user group {StoreUserGroupId} deleted by {User}", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

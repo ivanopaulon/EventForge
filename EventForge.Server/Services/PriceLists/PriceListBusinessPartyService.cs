@@ -118,7 +118,15 @@ public class PriceListBusinessPartyService : IPriceListBusinessPartyService
         assignment.ModifiedBy = currentUser;
         assignment.Status = PriceListBusinessPartyStatus.Deleted;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogWarning(ex, "Concurrency conflict removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}.", businessPartyId, priceListId);
+            throw new InvalidOperationException("L'associazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+        }
 
         // Log audit trail
         await _auditLogService.LogEntityChangeAsync(
