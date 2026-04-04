@@ -17,6 +17,7 @@
                       Config="_config"
                       Service="_service"
                       OnCreateOverride="@OpenCreateDialog"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
                       AdditionalFilter="@(pl => !_onlyDefault || pl.IsDefault)">
     <AdditionalToolbarContent>
         <MudSwitch @bind-Value="_onlyDefault"
@@ -300,6 +301,15 @@
         if (item.ValidFrom.HasValue && item.ValidFrom.Value > now) return "future";
 
         return "valid";
+    }
+
+    private async Task OpenDetailDialogAsync(Guid id)
+    {
+        var parameters = new DialogParameters { [nameof(PriceListDetailDialog.EntityId)] = (Guid?)id };
+        var dialog = await DialogService.ShowAsync<PriceListDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await _entityPage.RefreshAsync();
     }
 
     private async Task OpenCreateDialog()

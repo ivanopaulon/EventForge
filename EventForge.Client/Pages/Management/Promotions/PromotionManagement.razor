@@ -1,13 +1,17 @@
 @page "/management/promotions"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Promotions
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IPromotionClientService PromotionService
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 <EntityManagementPage TEntity="PromotionDto"
+                      @ref="_entityPage"
                       Config="_config"
-                      Service="_service">
+                      Service="_service"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -170,6 +174,7 @@
 </EntityManagementPage>
 
 @code {
+    private EntityManagementPage<PromotionDto> _entityPage = null!;
     private IEntityManagementService<PromotionDto> _service = null!;
     private EntityManagementConfig<PromotionDto> _config = null!;
 
@@ -227,4 +232,13 @@
         <= 50 => Color.Warning,
         _ => Color.Info
     };
+
+    private async Task OpenDetailDialogAsync(Guid id)
+    {
+        var parameters = new DialogParameters { [nameof(PromotionDetailDialog.EntityId)] = (Guid?)id };
+        var dialog = await DialogService.ShowAsync<PromotionDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await _entityPage.RefreshAsync();
+    }
 }
