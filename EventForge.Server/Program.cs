@@ -429,29 +429,39 @@ app.UsePerformanceTelemetry();
 // Enable rate limiting
 app.UseRateLimiter();
 
+// Redirect root and legacy paths to the dashboard BEFORE static files are served.
+// This middleware must run before UseDefaultFiles so that "/" is intercepted before
+// being rewritten to "/index.html" by DefaultFilesMiddleware.
+// - "/" and "/index.html" → /Dashboard/Index  (requires SuperAdmin login)
+// - "/settings*"         → /Dashboard/Settings (legacy static panel used localStorage JWT
+//                          never written by cookie-based login; must go through Razor Page)
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+    if (path != null)
+    {
+        if (path == "/" || path.Equals("/index.html", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Redirect("/Dashboard/Index", permanent: false);
+            return;
+        }
+
+        if (path.Equals("/settings", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/settings/", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/settings/index.html", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Redirect("/Dashboard/Settings", permanent: false);
+            return;
+        }
+    }
+    await next();
+});
+
 // Serve default document (index.html) and static files from wwwroot
-// Configure default files to serve index.html from subdirectories too
 var defaultFilesOptions = new DefaultFilesOptions();
 defaultFilesOptions.DefaultFileNames.Clear();
 defaultFilesOptions.DefaultFileNames.Add("index.html");
 app.UseDefaultFiles(defaultFilesOptions);
-
-// Redirect /settings (and /settings/) to /Dashboard/Settings before static files are served.
-// The wwwroot/settings/ folder is a legacy static panel that requires a localStorage JWT
-// never written by the cookie-based login; all access must go through the Razor Page instead.
-app.Use(async (context, next) =>
-{
-    var path = context.Request.Path.Value;
-    if (path != null &&
-        (path.Equals("/settings", StringComparison.OrdinalIgnoreCase) ||
-         path.Equals("/settings/", StringComparison.OrdinalIgnoreCase) ||
-         path.Equals("/settings/index.html", StringComparison.OrdinalIgnoreCase)))
-    {
-        context.Response.Redirect("/Dashboard/Settings");
-        return;
-    }
-    await next();
-});
 
 app.UseStaticFiles();
 
