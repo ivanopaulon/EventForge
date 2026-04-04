@@ -1886,6 +1886,37 @@ public class ProductManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Applies promotions and coupon codes to a cart and returns the updated prices and discounts.
+    /// </summary>
+    /// <param name="applyDto">Cart items and context required for promotion evaluation</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Promotion application result with updated line prices and applied discount details</returns>
+    /// <response code="200">Returns the promotion application result</response>
+    /// <response code="400">If the request payload is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("promotions/apply")]
+    [ProducesResponseType(typeof(PromotionApplicationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PromotionApplicationResultDto>> ApplyPromotions(
+        [FromBody] ApplyPromotionRulesDto applyDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid) return CreateValidationProblemDetails();
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+        try
+        {
+            var result = await _promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while applying promotions.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets all rules for a promotion.
     /// </summary>
     /// <param name="id">Promotion ID</param>
