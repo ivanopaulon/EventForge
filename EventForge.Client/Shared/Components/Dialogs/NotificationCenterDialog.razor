@@ -1,0 +1,333 @@
+@using MudBlazor
+@using EventForge.DTOs.Notifications
+@using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
+@implements IDisposable
+
+@inject INotificationService NotificationService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<NotificationCenterDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Notifications"
+          Title="@GetTitle()"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel"
+          MinWidth="min(640px, 95vw)">
+    <ChildContent>
+
+        @* Filter tabs + bulk actions toolbar *@
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <MudTabs @bind-ActivePanelIndex="_activeTab"
+                     Elevation="0"
+                     Rounded="false"
+                     PanelClass="pa-0"
+                     MinimumTabWidth="80px"
+                     Style="background: transparent;">
+                <MudTabPanel Text="Tutte" />
+                <MudTabPanel Text="@($"Non lette{(_unreadCount > 0 ? $" ({_unreadCount})" : "")}")" />
+                <MudTabPanel Text="Archiviate" />
+            </MudTabs>
+
+            <div style="display: flex; gap: 4px;">
+                <MudTooltip Text="Segna tutto come letto">
+                    <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="MarkAllAsReadAsync"
+                                   Disabled="@(_isProcessing || _unreadCount == 0)"
+                                   aria-label="Segna tutto come letto" />
+                </MudTooltip>
+                <MudTooltip Text="Archivia letti">
+                    <MudIconButton Icon="@Icons.Material.Filled.Archive"
+                                   Size="Size.Small"
+                                   Color="Color.Default"
+                                   OnClick="ArchiveAllReadAsync"
+                                   Disabled="@_isProcessing"
+                                   aria-label="Archivia notifiche lette" />
+                </MudTooltip>
+                <MudTooltip Text="Aggiorna">
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                   Size="Size.Small"
+                                   Color="Color.Default"
+                                   OnClick="LoadNotificationsAsync"
+                                   Disabled="@_isProcessing"
+                                   aria-label="Aggiorna notifiche" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        @* Notification list *@
+        <div style="overflow-y: auto; max-height: calc(100vh - 230px); padding: 12px 16px;">
+
+            @if (_isLoading)
+            {
+                <div style="display: flex; justify-content: center; padding: 32px;">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else if (FilteredNotifications.Count == 0)
+            {
+                <div style="display: flex; flex-direction: column; align-items: center; padding: 40px 16px; gap: 12px; color: rgba(255,255,255,0.38);">
+                    <MudIcon Icon="@Icons.Material.Outlined.NotificationsNone" Style="font-size: 48px;" />
+                    <MudText Typo="Typo.body1">@GetEmptyMessage()</MudText>
+                </div>
+            }
+            else
+            {
+                @foreach (var notification in FilteredNotifications)
+                {
+                    <RichNotificationCard Notification="notification"
+                                          ShowActions="true"
+                                          ShowStandardActions="true"
+                                          ShowBadge="true"
+                                          OnMarkAsRead="HandleMarkAsRead"
+                                          OnArchive="HandleArchive"
+                                          OnShowDetails="HandleShowDetails" />
+                }
+            }
+
+        </div>
+
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   Size="Size.Small">
+            Chiudi
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private List<NotificationResponseDto> _notifications = new();
+    private bool _isLoading = true;
+    private bool _isProcessing = false;
+    private int _activeTab = 0;
+    private int _unreadCount = 0;
+
+    private List<NotificationResponseDto> FilteredNotifications => _activeTab switch
+    {
+        1 => _notifications.Where(n => n.Status != NotificationStatus.Read && n.Status != NotificationStatus.Archived).ToList(),
+        2 => _notifications.Where(n => n.Status == NotificationStatus.Archived).ToList(),
+        _ => _notifications.Where(n => n.Status != NotificationStatus.Archived).ToList()
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        NotificationService.NotificationReceived += OnNotificationReceived;
+        NotificationService.NotificationRead += OnNotificationRead;
+        NotificationService.NotificationArchived += OnNotificationArchived;
+        NotificationService.StatsUpdated += OnStatsUpdated;
+
+        await LoadNotificationsAsync();
+    }
+
+    private async Task LoadNotificationsAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            _notifications = await NotificationService.GetNotificationsAsync(1, 50);
+            _unreadCount = _notifications.Count(n =>
+                n.Status != NotificationStatus.Read &&
+                n.Status != NotificationStatus.Archived);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading notifications");
+            AppNotification.ShowError("Errore nel caricamento delle notifiche", exception: ex);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleMarkAsRead(NotificationResponseDto notification)
+    {
+        try
+        {
+            if (await NotificationService.MarkAsReadAsync(notification.Id))
+            {
+                var idx = _notifications.FindIndex(n => n.Id == notification.Id);
+                if (idx >= 0)
+                {
+                    _notifications[idx].Status = NotificationStatus.Read;
+                    _notifications[idx].ReadAt = DateTime.UtcNow;
+                    _unreadCount = Math.Max(0, _unreadCount - 1);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking notification {Id} as read", notification.Id);
+            AppNotification.ShowError("Errore nel segnare la notifica come letta", exception: ex);
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleArchive(NotificationResponseDto notification)
+    {
+        try
+        {
+            if (await NotificationService.ArchiveNotificationAsync(notification.Id))
+            {
+                var idx = _notifications.FindIndex(n => n.Id == notification.Id);
+                if (idx >= 0)
+                {
+                    var wasUnread = _notifications[idx].Status != NotificationStatus.Read;
+                    _notifications[idx].Status = NotificationStatus.Archived;
+                    if (wasUnread)
+                        _unreadCount = Math.Max(0, _unreadCount - 1);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error archiving notification {Id}", notification.Id);
+            AppNotification.ShowError("Errore nell'archiviazione della notifica", exception: ex);
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleShowDetails(NotificationResponseDto notification)
+    {
+        var parameters = new DialogParameters<NotificationDetailDialog>
+        {
+            { x => x.Notification, notification },
+            { x => x.OnMarkAsRead, EventCallback.Factory.Create<NotificationResponseDto>(this, HandleMarkAsRead) }
+        };
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+        await DialogService.ShowAsync<NotificationDetailDialog>("Dettaglio notifica", parameters, options);
+    }
+
+    private async Task MarkAllAsReadAsync()
+    {
+        _isProcessing = true;
+        try
+        {
+            if (await NotificationService.MarkAllAsReadAsync())
+            {
+                foreach (var n in _notifications.Where(n => n.Status != NotificationStatus.Archived))
+                {
+                    n.ReadAt ??= DateTime.UtcNow;
+                    n.Status = NotificationStatus.Read;
+                }
+                _unreadCount = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking all notifications as read");
+            AppNotification.ShowError("Errore nel segnare tutte le notifiche come lette", exception: ex);
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ArchiveAllReadAsync()
+    {
+        _isProcessing = true;
+        try
+        {
+            if (await NotificationService.ArchiveAllReadAsync())
+            {
+                foreach (var n in _notifications.Where(n => n.Status == NotificationStatus.Read))
+                    n.Status = NotificationStatus.Archived;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error archiving read notifications");
+            AppNotification.ShowError("Errore nell'archiviazione delle notifiche lette", exception: ex);
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnNotificationReceived(NotificationResponseDto notification)
+    {
+        InvokeAsync(() =>
+        {
+            _notifications.Insert(0, notification);
+            _unreadCount++;
+            StateHasChanged();
+        });
+    }
+
+    private void OnNotificationRead(Guid id)
+    {
+        InvokeAsync(() =>
+        {
+            var idx = _notifications.FindIndex(n => n.Id == id);
+            if (idx >= 0 && _notifications[idx].Status != NotificationStatus.Read)
+            {
+                _notifications[idx].Status = NotificationStatus.Read;
+                _notifications[idx].ReadAt = DateTime.UtcNow;
+                _unreadCount = Math.Max(0, _unreadCount - 1);
+                StateHasChanged();
+            }
+        });
+    }
+
+    private void OnNotificationArchived(Guid id)
+    {
+        InvokeAsync(() =>
+        {
+            var idx = _notifications.FindIndex(n => n.Id == id);
+            if (idx >= 0)
+            {
+                var wasUnread = _notifications[idx].Status != NotificationStatus.Read;
+                _notifications[idx].Status = NotificationStatus.Archived;
+                if (wasUnread) _unreadCount = Math.Max(0, _unreadCount - 1);
+                StateHasChanged();
+            }
+        });
+    }
+
+    private void OnStatsUpdated(NotificationStatsDto stats)
+    {
+        InvokeAsync(() =>
+        {
+            _unreadCount = stats.UnreadCount;
+            StateHasChanged();
+        });
+    }
+
+    private string GetTitle() =>
+        _unreadCount > 0 ? $"Centro notifiche ({_unreadCount})" : "Centro notifiche";
+
+    private string GetEmptyMessage() => _activeTab switch
+    {
+        1 => "Nessuna notifica non letta",
+        2 => "Nessuna notifica archiviata",
+        _ => "Nessuna notifica"
+    };
+
+    private void Cancel() => MudDialog.Close(DialogResult.Cancel());
+
+    public void Dispose()
+    {
+        NotificationService.NotificationReceived -= OnNotificationReceived;
+        NotificationService.NotificationRead -= OnNotificationRead;
+        NotificationService.NotificationArchived -= OnNotificationArchived;
+        NotificationService.StatsUpdated -= OnStatsUpdated;
+    }
+}
