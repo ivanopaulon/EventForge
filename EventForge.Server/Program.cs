@@ -146,7 +146,7 @@ builder.Services.AddSignalR(options =>
     options.MaximumReceiveMessageSize = 32 * 1024; // 32KB
     options.StreamBufferCapacity = 10;
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
-    
+
     // Configure timeouts to prevent slow connections (Issue #3)
     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
@@ -226,7 +226,7 @@ builder.Services.AddSwaggerGen(c =>
     // Register operation filter to apply security only to [Authorize] endpoints
     c.OperationFilter<EventForge.Server.Swagger.SwaggerAuthorizeCheckOperationFilter>();
 
-    });
+});
 
 builder.Services.AddCors(options =>
 {

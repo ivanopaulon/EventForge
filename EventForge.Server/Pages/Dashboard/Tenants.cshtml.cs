@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
 
 namespace EventForge.Server.Pages.Dashboard;
 
@@ -20,10 +19,10 @@ public class TenantsModel : PageModel
 
     // List
     public List<TenantListItem> Tenants { get; set; } = new();
-    
+
     [BindProperty(SupportsGet = true)]
     public string? SearchTerm { get; set; }
-    
+
     [BindProperty(SupportsGet = true)]
     public string? StatusFilter { get; set; }
 
@@ -56,8 +55,8 @@ public class TenantsModel : PageModel
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
             var search = SearchTerm.ToLower();
-            query = query.Where(t => 
-                t.Name.ToLower().Contains(search) || 
+            query = query.Where(t =>
+                t.Name.ToLower().Contains(search) ||
                 t.Code.ToLower().Contains(search) ||
                 t.DisplayName.ToLower().Contains(search) ||
                 (t.Domain != null && t.Domain.ToLower().Contains(search)));
@@ -85,9 +84,9 @@ public class TenantsModel : PageModel
                 SubscriptionExpiresAt = t.SubscriptionExpiresAt,
                 License = t.TenantLicenses
                     .Where(tl => tl.IsActive)
-                    .Select(tl => new LicenseInfo 
-                    { 
-                        Name = tl.License.Name 
+                    .Select(tl => new LicenseInfo
+                    {
+                        Name = tl.License.Name
                     })
                     .FirstOrDefault()
             })
@@ -105,7 +104,7 @@ public class TenantsModel : PageModel
         tenant.ModifiedBy = User.Identity?.Name ?? "system";
 
         await _context.SaveChangesAsync();
-        
+
         _logger.LogInformation("Tenant {TenantId} disabled by {User}", id, User.Identity?.Name);
 
         return RedirectToPage();
@@ -122,7 +121,7 @@ public class TenantsModel : PageModel
         tenant.ModifiedBy = User.Identity?.Name ?? "system";
 
         await _context.SaveChangesAsync();
-        
+
         _logger.LogInformation("Tenant {TenantId} enabled by {User}", id, User.Identity?.Name);
 
         return RedirectToPage();

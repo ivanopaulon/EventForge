@@ -1,8 +1,8 @@
+using EventForge.Client.Helpers;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
-using System.Net;
 using Microsoft.Extensions.Caching.Memory;
-using EventForge.Client.Helpers;
+using System.Net;
 
 namespace EventForge.Client.Services;
 
@@ -38,26 +38,26 @@ public class BrandService : IBrandService
             _logger.LogDebug("Cache HIT: Brands ({Count} items)", cached.Count());
             return cached;
         }
-        
+
         _logger.LogDebug("Cache MISS: Loading brands from API");
-        
+
         try
         {
             var result = await GetBrandsAsync(1, 100, ct);
             var brands = result?.Items ?? Enumerable.Empty<BrandDto>();
-            
+
             _cache.Set(
-                CacheHelper.ACTIVE_BRANDS, 
-                brands, 
+                CacheHelper.ACTIVE_BRANDS,
+                brands,
                 CacheHelper.GetShortCacheOptions()
             );
-            
+
             _logger.LogInformation(
-                "Cached {Count} brands for {Minutes} minutes", 
-                brands.Count(), 
+                "Cached {Count} brands for {Minutes} minutes",
+                brands.Count(),
                 CacheHelper.ShortCache.TotalMinutes
             );
-            
+
             return brands;
         }
         catch (HttpRequestException)
@@ -74,22 +74,22 @@ public class BrandService : IBrandService
     public async Task<BrandDto> CreateBrandAsync(CreateBrandDto createBrandDto, CancellationToken ct = default)
     {
         var result = await _httpClientService.PostAsync<CreateBrandDto, BrandDto>(BaseUrl, createBrandDto, ct);
-        
+
         // Invalidate cache
         _cache.Remove(CacheHelper.ACTIVE_BRANDS);
         _logger.LogDebug("Invalidated brands cache after create");
-        
+
         return result ?? throw new InvalidOperationException("Failed to create brand");
     }
 
     public async Task<BrandDto?> UpdateBrandAsync(Guid id, UpdateBrandDto updateBrandDto, CancellationToken ct = default)
     {
         var result = await _httpClientService.PutAsync<UpdateBrandDto, BrandDto>($"{BaseUrl}/{id}", updateBrandDto, ct);
-        
+
         // Invalidate cache
         _cache.Remove(CacheHelper.ACTIVE_BRANDS);
         _logger.LogDebug("Invalidated brands cache after update (ID: {Id})", id);
-        
+
         return result;
     }
 
@@ -98,11 +98,11 @@ public class BrandService : IBrandService
         try
         {
             await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
-            
+
             // Invalidate cache
             _cache.Remove(CacheHelper.ACTIVE_BRANDS);
             _logger.LogDebug("Invalidated brands cache after delete (ID: {Id})", id);
-            
+
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)

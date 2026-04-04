@@ -347,7 +347,7 @@ namespace EventForge.Client.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    _logger?.LogWarning("Client log failed: {StatusCode} - {Content}", 
+                    _logger?.LogWarning("Client log failed: {StatusCode} - {Content}",
                         response.StatusCode, content);
                 }
 
@@ -382,7 +382,7 @@ namespace EventForge.Client.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    _logger?.LogWarning("Client log batch failed: {StatusCode} - {Content}", 
+                    _logger?.LogWarning("Client log batch failed: {StatusCode} - {Content}",
                         response.StatusCode, content);
                 }
 

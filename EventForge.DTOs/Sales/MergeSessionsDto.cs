@@ -13,13 +13,13 @@ public class MergeSessionsDto
     [Required]
     [MinLength(2, ErrorMessage = "Almeno 2 sessioni richieste per il merge")]
     public List<Guid> SessionIds { get; set; } = new();
-    
+
     /// <summary>
     /// Target table ID for the merged session (optional).
     /// If null, uses the table from the first session.
     /// </summary>
     public Guid? TargetTableId { get; set; }
-    
+
     /// <summary>
     /// Reason or notes for the merge operation (optional).
     /// </summary>

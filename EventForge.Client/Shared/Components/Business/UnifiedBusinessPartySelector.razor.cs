@@ -393,7 +393,7 @@ namespace EventForge.Client.Shared.Components.Business
                 SelectedBusinessParty = createdParty;
                 await SelectedBusinessPartyChanged.InvokeAsync(createdParty);
                 await OnBusinessPartyCreated.InvokeAsync(createdParty);
-                
+
                 Snackbar.Add(
                     TranslationService.GetTranslation("business.partnerCreatedAndSelected", "Partner '{0}' creato e selezionato", createdParty.Name),
                     Severity.Success
@@ -426,7 +426,7 @@ namespace EventForge.Client.Shared.Components.Business
                 SelectedBusinessParty = updatedParty;
                 await SelectedBusinessPartyChanged.InvokeAsync(updatedParty);
                 await OnBusinessPartyUpdated.InvokeAsync(updatedParty);
-                
+
                 Snackbar.Add(
                     TranslationService.GetTranslation("business.partnerUpdated", "Partner aggiornato con successo"),
                     Severity.Success
@@ -445,16 +445,16 @@ namespace EventForge.Client.Shared.Components.Business
         {
             // Since BusinessPartyDto doesn't have Addresses list, we'll construct from available fields
             var parts = new List<string>();
-            
+
             if (!string.IsNullOrEmpty(bp.City))
                 parts.Add(bp.City);
-                
+
             if (!string.IsNullOrEmpty(bp.Province))
                 parts.Add($"({bp.Province})");
-                
+
             if (!string.IsNullOrEmpty(bp.Country))
                 parts.Add(bp.Country);
-            
+
             return parts.Any() ? string.Join(", ", parts) : null;
         }
 

@@ -2,7 +2,6 @@ using EventForge.Client.Services;
 using EventForge.Client.Services.Sales;
 using EventForge.Client.Services.Store;
 using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Constants;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Sales;
@@ -812,20 +811,20 @@ public class POSViewModel : IDisposable
             _logger.LogWarning("Cannot add note: no active session");
             return null;
         }
-        
+
         try
         {
             _logger.LogInformation("Adding note to session {SessionId}", CurrentSession.Id);
-            
+
             var updatedSession = await _salesService.AddNoteAsync(CurrentSession.Id, noteDto);
-            
+
             if (updatedSession != null)
             {
                 CurrentSession = updatedSession;
                 NotifyStateChanged();
                 _logger.LogInformation("Note added successfully to session {SessionId}", CurrentSession.Id);
             }
-            
+
             return updatedSession;
         }
         catch (Exception ex)
@@ -845,24 +844,24 @@ public class POSViewModel : IDisposable
             _logger.LogWarning("Cannot apply discount: no active session");
             return null;
         }
-        
+
         try
         {
             IsUpdatingItems = true;
             NotifyStateChanged();
-            
-            _logger.LogInformation("Applying {DiscountPercent}% global discount to session {SessionId}", 
+
+            _logger.LogInformation("Applying {DiscountPercent}% global discount to session {SessionId}",
                 discountDto.DiscountPercent, CurrentSession.Id);
-            
+
             var updatedSession = await _salesService.ApplyGlobalDiscountAsync(CurrentSession.Id, discountDto);
-            
+
             if (updatedSession != null)
             {
                 CurrentSession = updatedSession;
                 NotifyStateChanged();
                 _logger.LogInformation("Global discount applied successfully");
             }
-            
+
             return updatedSession;
         }
         catch (Exception ex)

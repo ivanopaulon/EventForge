@@ -1,6 +1,4 @@
-using EventForge.DTOs.Auth;
 using EventForge.Server.Auth;
-using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -108,11 +106,11 @@ public class LoginModel : PageModel
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Login error for user {Username} from tenant {TenantCode}: {ErrorMessage}", 
+            _logger.LogError(ex, "Login error for user {Username} from tenant {TenantCode}: {ErrorMessage}",
                 Username, TenantCode, ex.Message);
-            
+
             // Provide user-friendly error without exposing internal details
-            ModelState.AddModelError(string.Empty, 
+            ModelState.AddModelError(string.Empty,
                 "Unable to process login request. Please try again or contact support if the problem persists.");
             return Page();
         }

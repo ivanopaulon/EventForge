@@ -1,6 +1,3 @@
-using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Data.Entities.PriceList;
-using EventForge.Server.Data.Entities.Business;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;

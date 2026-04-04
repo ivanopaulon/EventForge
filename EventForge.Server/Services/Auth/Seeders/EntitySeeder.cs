@@ -760,13 +760,13 @@ public class EntitySeeder : IEntitySeeder
                     _logger.LogWarning("Default warehouse exists but has no storage locations for tenant {TenantId}. Creating default location.", tenantId);
                     var newLocation = new StorageLocation
                     {
-                        Code        = "UB-DEF",
+                        Code = "UB-DEF",
                         Description = "Ubicazione predefinita",
                         WarehouseId = existingWarehouse.Id,
-                        IsActive    = true,
-                        TenantId    = tenantId,
-                        CreatedBy   = "system",
-                        CreatedAt   = DateTime.UtcNow
+                        IsActive = true,
+                        TenantId = tenantId,
+                        CreatedBy = "system",
+                        CreatedAt = DateTime.UtcNow
                     };
 
                     _dbContext.StorageLocations.Add(newLocation);
@@ -777,32 +777,32 @@ public class EntitySeeder : IEntitySeeder
             }
 
             // Pre-generate the warehouse ID so warehouse and location can be saved in a single call
-            var now         = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
             var warehouseId = Guid.NewGuid();
 
             var defaultWarehouse = new StorageFacility
             {
-                Id        = warehouseId,
-                Name      = "Magazzino Principale",
-                Code      = "MAG-01",
-                Address   = "Indirizzo da completare",
-                Notes     = "Magazzino principale creato durante l'inizializzazione del sistema",
-                IsFiscal  = true,
-                IsActive  = true,
-                TenantId  = tenantId,
+                Id = warehouseId,
+                Name = "Magazzino Principale",
+                Code = "MAG-01",
+                Address = "Indirizzo da completare",
+                Notes = "Magazzino principale creato durante l'inizializzazione del sistema",
+                IsFiscal = true,
+                IsActive = true,
+                TenantId = tenantId,
                 CreatedBy = "system",
                 CreatedAt = now
             };
 
             var defaultLocation = new StorageLocation
             {
-                Code        = "UB-DEF",
+                Code = "UB-DEF",
                 Description = "Ubicazione predefinita",
                 WarehouseId = warehouseId,
-                IsActive    = true,
-                TenantId    = tenantId,
-                CreatedBy   = "system",
-                CreatedAt   = now
+                IsActive = true,
+                TenantId = tenantId,
+                CreatedBy = "system",
+                CreatedAt = now
             };
 
             _dbContext.StorageFacilities.Add(defaultWarehouse);

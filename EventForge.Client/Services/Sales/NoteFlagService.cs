@@ -1,7 +1,7 @@
+using EventForge.Client.Helpers;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Sales;
 using Microsoft.Extensions.Caching.Memory;
-using EventForge.Client.Helpers;
 
 namespace EventForge.Client.Services.Sales;
 
@@ -43,28 +43,28 @@ public class NoteFlagService : INoteFlagService
             _logger.LogDebug("Cache HIT: Active note flags ({Count} items)", cached.Count);
             return cached;
         }
-        
+
         // Cache miss - API call
         _logger.LogDebug("Cache MISS: Loading active note flags from API");
-        
+
         try
         {
             var pagedResult = await _httpClientService.GetAsync<PagedResult<NoteFlagDto>>($"{BaseUrl}/active");
             var activeNoteFlags = pagedResult?.Items?.ToList() ?? new List<NoteFlagDto>();
-            
+
             // Store in cache (60 minutes - LongCache)
             _cache.Set(
-                CacheHelper.ACTIVE_NOTE_FLAGS, 
-                activeNoteFlags, 
+                CacheHelper.ACTIVE_NOTE_FLAGS,
+                activeNoteFlags,
                 CacheHelper.GetLongCacheOptions()
             );
-            
+
             _logger.LogInformation(
-                "Cached {Count} active note flags for {Minutes} minutes", 
-                activeNoteFlags.Count, 
+                "Cached {Count} active note flags for {Minutes} minutes",
+                activeNoteFlags.Count,
                 CacheHelper.LongCache.TotalMinutes
             );
-            
+
             return activeNoteFlags;
         }
         catch (Exception ex)
@@ -92,11 +92,11 @@ public class NoteFlagService : INoteFlagService
         try
         {
             var result = await _httpClientService.PostAsync<CreateNoteFlagDto, NoteFlagDto>(BaseUrl, createDto);
-            
+
             // Invalidate cache
             _cache.Remove(CacheHelper.ACTIVE_NOTE_FLAGS);
             _logger.LogDebug("Invalidated active note flags cache after create");
-            
+
             return result;
         }
         catch (Exception ex)
@@ -111,11 +111,11 @@ public class NoteFlagService : INoteFlagService
         try
         {
             var result = await _httpClientService.PutAsync<UpdateNoteFlagDto, NoteFlagDto>($"{BaseUrl}/{id}", updateDto);
-            
+
             // Invalidate cache
             _cache.Remove(CacheHelper.ACTIVE_NOTE_FLAGS);
             _logger.LogDebug("Invalidated active note flags cache after update (ID: {Id})", id);
-            
+
             return result;
         }
         catch (Exception ex)
@@ -130,11 +130,11 @@ public class NoteFlagService : INoteFlagService
         try
         {
             await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
-            
+
             // Invalidate cache
             _cache.Remove(CacheHelper.ACTIVE_NOTE_FLAGS);
             _logger.LogDebug("Invalidated active note flags cache after delete (ID: {Id})", id);
-            
+
             return true;
         }
         catch (Exception ex)

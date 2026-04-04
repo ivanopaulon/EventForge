@@ -1,5 +1,3 @@
-using EventForge.Server.Data;
-using EventForge.Server.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -40,14 +38,14 @@ public class MaintenanceModel : PageModel
     public async Task OnGetAsync()
     {
         if (TempData["SuccessMessage"] is string ok) SuccessMessage = ok;
-        if (TempData["ErrorMessage"]   is string err) ErrorMessage = err;
+        if (TempData["ErrorMessage"] is string err) ErrorMessage = err;
 
         try
         {
             var modeValue = await _configService.GetValueAsync("System.MaintenanceMode", "false", HttpContext.RequestAborted);
             IsMaintenanceMode = modeValue.Equals("true", StringComparison.OrdinalIgnoreCase);
 
-            LogCount   = await _context.SystemOperationLogs.LongCountAsync(HttpContext.RequestAborted);
+            LogCount = await _context.SystemOperationLogs.LongCountAsync(HttpContext.RequestAborted);
             AuditCount = await _context.AuditTrails.LongCountAsync(HttpContext.RequestAborted);
         }
         catch (Exception ex)

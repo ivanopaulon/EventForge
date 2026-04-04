@@ -528,58 +528,58 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
         try
         {
-        var retryCount = 0;
-        var delay = _retryConfig.InitialDelay;
+            var retryCount = 0;
+            var delay = _retryConfig.InitialDelay;
 
-        while (retryCount < _retryConfig.MaxRetries)
-        {
-            _logger.LogInformation("Scheduling retry for {ConnectionKey} with backoff delay: {Delay}s",
-                connectionKey, delay.TotalSeconds);
-
-            await Task.Delay(delay);
-
-            // Stop retrying if the user session has expired — no point reconnecting with an invalid token
-            if (!await _authService.IsAuthenticatedAsync())
+            while (retryCount < _retryConfig.MaxRetries)
             {
-                _logger.LogWarning("Stopping reconnect retries for {ConnectionKey}: user session has expired",
-                    connectionKey);
-                return;
-            }
+                _logger.LogInformation("Scheduling retry for {ConnectionKey} with backoff delay: {Delay}s",
+                    connectionKey, delay.TotalSeconds);
 
-            try
-            {
-                await StartConnectionAsync(connectionKey, hubPath);
+                await Task.Delay(delay);
 
-                // Verify the connection actually succeeded before declaring victory
-                if (_connections.TryGetValue(connectionKey, out var conn) &&
-                    conn.State == HubConnectionState.Connected)
+                // Stop retrying if the user session has expired — no point reconnecting with an invalid token
+                if (!await _authService.IsAuthenticatedAsync())
                 {
-                    _logger.LogInformation("Successfully reconnected {ConnectionKey} after {RetryCount} retries",
-                        connectionKey, retryCount);
-                    return; // Success
+                    _logger.LogWarning("Stopping reconnect retries for {ConnectionKey}: user session has expired",
+                        connectionKey);
+                    return;
                 }
 
-                // StartConnectionAsync swallowed an exception; treat as failure and retry
-                retryCount++;
-                delay = TimeSpan.FromMilliseconds(Math.Min(
-                    delay.TotalMilliseconds * _retryConfig.BackoffMultiplier,
-                    _retryConfig.MaxDelay.TotalMilliseconds));
-            }
-            catch (Exception ex)
-            {
-                retryCount++;
-                var previousDelay = delay;
-                delay = TimeSpan.FromMilliseconds(Math.Min(
-                    delay.TotalMilliseconds * _retryConfig.BackoffMultiplier,
-                    _retryConfig.MaxDelay.TotalMilliseconds));
+                try
+                {
+                    await StartConnectionAsync(connectionKey, hubPath);
 
-                _logger.LogWarning(ex, "Retry {Count}/{Max} failed for {ConnectionKey}. Previous delay: {PreviousDelay}s, Next delay: {NextDelay}s",
-                    retryCount, _retryConfig.MaxRetries, connectionKey, previousDelay.TotalSeconds, delay.TotalSeconds);
-            }
-        }
+                    // Verify the connection actually succeeded before declaring victory
+                    if (_connections.TryGetValue(connectionKey, out var conn) &&
+                        conn.State == HubConnectionState.Connected)
+                    {
+                        _logger.LogInformation("Successfully reconnected {ConnectionKey} after {RetryCount} retries",
+                            connectionKey, retryCount);
+                        return; // Success
+                    }
 
-        _logger.LogError("Failed to reconnect {ConnectionKey} after {MaxRetries} attempts with delays: 2s, 4s, 8s, 16s, 30s",
-            connectionKey, _retryConfig.MaxRetries);
+                    // StartConnectionAsync swallowed an exception; treat as failure and retry
+                    retryCount++;
+                    delay = TimeSpan.FromMilliseconds(Math.Min(
+                        delay.TotalMilliseconds * _retryConfig.BackoffMultiplier,
+                        _retryConfig.MaxDelay.TotalMilliseconds));
+                }
+                catch (Exception ex)
+                {
+                    retryCount++;
+                    var previousDelay = delay;
+                    delay = TimeSpan.FromMilliseconds(Math.Min(
+                        delay.TotalMilliseconds * _retryConfig.BackoffMultiplier,
+                        _retryConfig.MaxDelay.TotalMilliseconds));
+
+                    _logger.LogWarning(ex, "Retry {Count}/{Max} failed for {ConnectionKey}. Previous delay: {PreviousDelay}s, Next delay: {NextDelay}s",
+                        retryCount, _retryConfig.MaxRetries, connectionKey, previousDelay.TotalSeconds, delay.TotalSeconds);
+                }
+            }
+
+            _logger.LogError("Failed to reconnect {ConnectionKey} after {MaxRetries} attempts with delays: 2s, 4s, 8s, 16s, 30s",
+                connectionKey, _retryConfig.MaxRetries);
         }
         finally
         {

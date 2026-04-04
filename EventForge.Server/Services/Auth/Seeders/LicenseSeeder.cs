@@ -89,16 +89,16 @@ public class LicenseSeeder : ILicenseSeeder
 
             var superAdminLicense = new License
             {
-                Name                = expectedConfig.Name,
-                DisplayName         = expectedConfig.DisplayName,
-                Description         = expectedConfig.Description,
-                MaxUsers            = expectedConfig.MaxUsers,
+                Name = expectedConfig.Name,
+                DisplayName = expectedConfig.DisplayName,
+                Description = expectedConfig.Description,
+                MaxUsers = expectedConfig.MaxUsers,
                 MaxApiCallsPerMonth = expectedConfig.MaxApiCallsPerMonth,
-                TierLevel           = expectedConfig.TierLevel,
-                IsActive            = expectedConfig.IsActive,
-                CreatedBy           = "system",
-                CreatedAt           = DateTime.UtcNow,
-                TenantId            = Guid.Empty
+                TierLevel = expectedConfig.TierLevel,
+                IsActive = expectedConfig.IsActive,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow,
+                TenantId = Guid.Empty
             };
 
             _ = _dbContext.Licenses.Add(superAdminLicense);

@@ -12,26 +12,26 @@ public class SplitSessionDto
     /// </summary>
     [Required]
     public Guid SessionId { get; set; }
-    
+
     /// <summary>
     /// Number of people/parts to split into (2-20).
     /// </summary>
     [Required]
     [Range(2, 20, ErrorMessage = "Split deve essere tra 2 e 20 persone")]
     public int NumberOfPeople { get; set; }
-    
+
     /// <summary>
     /// Type of split operation.
     /// </summary>
     [Required]
     public SplitTypeDto SplitType { get; set; }
-    
+
     /// <summary>
     /// Item assignments (required only for SplitType = BY_ITEMS).
     /// Each item must be assigned to exactly one person.
     /// </summary>
     public List<SplitItemAssignmentDto>? ItemAssignments { get; set; }
-    
+
     /// <summary>
     /// Custom percentages (required only for SplitType = PERCENTAGE).
     /// Must sum to exactly 100.
@@ -48,12 +48,12 @@ public enum SplitTypeDto
     /// Equal split among all people.
     /// </summary>
     Equal = 0,
-    
+
     /// <summary>
     /// Manual assignment of items to people.
     /// </summary>
     ByItems = 1,
-    
+
     /// <summary>
     /// Custom percentage split.
     /// </summary>
@@ -70,7 +70,7 @@ public class SplitItemAssignmentDto
     /// </summary>
     [Required]
     public Guid ItemId { get; set; }
-    
+
     /// <summary>
     /// Zero-based index of the person (0 to NumberOfPeople-1).
     /// </summary>
@@ -88,17 +88,17 @@ public class SplitResultDto
     /// Original session ID that was split.
     /// </summary>
     public Guid OriginalSessionId { get; set; }
-    
+
     /// <summary>
     /// Child sessions created from the split.
     /// </summary>
     public List<SaleSessionDto> ChildSessions { get; set; } = new();
-    
+
     /// <summary>
     /// Total amount that was split.
     /// </summary>
     public decimal TotalAmount { get; set; }
-    
+
     /// <summary>
     /// Type of split that was performed.
     /// </summary>

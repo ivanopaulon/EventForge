@@ -6,7 +6,6 @@ using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Controllers;
 

@@ -114,11 +114,11 @@ public class ViesValidationService : IViesValidationService
     private static bool IsTransientViesError(string? userError) =>
         userError switch
         {
-            "MS_UNAVAILABLE"         => true,   // Member state system temporarily down
-            "SERVICE_UNAVAILABLE"    => true,   // VIES itself unavailable
-            "MS_MAX_CONCURRENT_REQ"  => true,   // Rate limit hit
-            "TIMEOUT"                => true,   // Request timed out on VIES side
-            _                        => false
+            "MS_UNAVAILABLE" => true,   // Member state system temporarily down
+            "SERVICE_UNAVAILABLE" => true,   // VIES itself unavailable
+            "MS_MAX_CONCURRENT_REQ" => true,   // Rate limit hit
+            "TIMEOUT" => true,   // Request timed out on VIES side
+            _ => false
         };
 
     private static string CleanVatNumber(string vatNumber, string countryCode)

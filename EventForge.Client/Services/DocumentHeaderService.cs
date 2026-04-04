@@ -172,13 +172,13 @@ public class DocumentHeaderService : IDocumentHeaderService
         {
             _logger.LogInformation("Starting bulk approval for {Count} documents", bulkApprovalDto.DocumentIds.Count);
             var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkApprovalDto, EventForge.DTOs.Bulk.BulkApprovalResultDto>(
-                "api/v1/documents/bulk-approve", 
-                bulkApprovalDto, 
+                "api/v1/documents/bulk-approve",
+                bulkApprovalDto,
                 ct);
 
             if (result != null)
             {
-                _logger.LogInformation("Bulk approval completed. Success: {SuccessCount}, Failed: {FailedCount}", 
+                _logger.LogInformation("Bulk approval completed. Success: {SuccessCount}, Failed: {FailedCount}",
                     result.SuccessCount, result.FailedCount);
             }
 
@@ -195,16 +195,16 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            _logger.LogInformation("Starting bulk status change for {Count} documents to status '{Status}'", 
+            _logger.LogInformation("Starting bulk status change for {Count} documents to status '{Status}'",
                 bulkStatusChangeDto.DocumentIds.Count, bulkStatusChangeDto.NewStatus);
             var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkStatusChangeDto, EventForge.DTOs.Bulk.BulkStatusChangeResultDto>(
-                "api/v1/documents/bulk-status-change", 
-                bulkStatusChangeDto, 
+                "api/v1/documents/bulk-status-change",
+                bulkStatusChangeDto,
                 ct);
 
             if (result != null)
             {
-                _logger.LogInformation("Bulk status change completed. Success: {SuccessCount}, Failed: {FailedCount}", 
+                _logger.LogInformation("Bulk status change completed. Success: {SuccessCount}, Failed: {FailedCount}",
                     result.SuccessCount, result.FailedCount);
             }
 

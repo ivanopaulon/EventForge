@@ -75,8 +75,8 @@ public class BootstrapHostedService : IHostedService
                     var hasTenant = await dbContext.Tenants.AnyAsync(t => t.Id != Guid.Empty, cancellationToken);
                     if (hasTenant)
                     {
-                        var hasVatRates  = await dbContext.VatRates.AnyAsync(cancellationToken);
-                        var hasUMs       = await dbContext.UMs.AnyAsync(cancellationToken);
+                        var hasVatRates = await dbContext.VatRates.AnyAsync(cancellationToken);
+                        var hasUMs = await dbContext.UMs.AnyAsync(cancellationToken);
                         var hasWarehouses = await dbContext.StorageFacilities.AnyAsync(cancellationToken);
                         if (hasVatRates && hasUMs && hasWarehouses)
                             return;

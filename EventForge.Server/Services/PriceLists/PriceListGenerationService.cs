@@ -1,5 +1,4 @@
 using EventForge.DTOs.PriceLists;
-using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;

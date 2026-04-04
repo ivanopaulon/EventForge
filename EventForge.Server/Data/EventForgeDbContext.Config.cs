@@ -1,5 +1,4 @@
 using EventForge.Server.Data.Entities;
-using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
 

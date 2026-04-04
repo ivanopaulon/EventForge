@@ -1,6 +1,3 @@
-using EventForge.DTOs.Calendar;
-using EventForge.DTOs.Common;
-
 namespace EventForge.Server.Services.Calendar;
 
 /// <summary>

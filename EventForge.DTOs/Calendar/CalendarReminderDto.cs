@@ -1,5 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using EventForge.DTOs.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.Calendar;
 

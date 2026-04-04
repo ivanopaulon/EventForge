@@ -660,13 +660,13 @@ public class ProductService : IProductService
         {
             _logger.LogInformation("Starting bulk price update for {Count} products", bulkUpdateDto.ProductIds.Count);
             var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkUpdatePricesDto, EventForge.DTOs.Bulk.BulkUpdateResultDto>(
-                "api/v1/product-management/bulk-update-prices", 
-                bulkUpdateDto, 
+                "api/v1/product-management/bulk-update-prices",
+                bulkUpdateDto,
                 ct);
 
             if (result != null)
             {
-                _logger.LogInformation("Bulk price update completed. Success: {SuccessCount}, Failed: {FailedCount}", 
+                _logger.LogInformation("Bulk price update completed. Success: {SuccessCount}, Failed: {FailedCount}",
                     result.SuccessCount, result.FailedCount);
             }
 

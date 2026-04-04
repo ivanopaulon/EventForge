@@ -88,16 +88,16 @@ public class WarehouseService : IWarehouseService
     {
         try
         {
-            _logger.LogInformation("Starting bulk transfer of {Count} items from facility {SourceId} to {DestinationId}", 
+            _logger.LogInformation("Starting bulk transfer of {Count} items from facility {SourceId} to {DestinationId}",
                 bulkTransferDto.Items.Count, bulkTransferDto.SourceFacilityId, bulkTransferDto.DestinationFacilityId);
             var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkTransferDto, EventForge.DTOs.Bulk.BulkTransferResultDto>(
-                "api/v1/warehouse/bulk-transfer", 
-                bulkTransferDto, 
+                "api/v1/warehouse/bulk-transfer",
+                bulkTransferDto,
                 ct);
 
             if (result != null)
             {
-                _logger.LogInformation("Bulk transfer completed. Success: {SuccessCount}, Failed: {FailedCount}", 
+                _logger.LogInformation("Bulk transfer completed. Success: {SuccessCount}, Failed: {FailedCount}",
                     result.SuccessCount, result.FailedCount);
             }
 

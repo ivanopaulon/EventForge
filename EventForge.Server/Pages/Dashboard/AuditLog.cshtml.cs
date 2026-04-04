@@ -1,6 +1,3 @@
-using EventForge.DTOs.Audit;
-using EventForge.DTOs.Common;
-using EventForge.Server.Services.Audit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -105,7 +102,7 @@ public class AuditLogModel : PageModel
 
             // Load distinct users for filter dropdown
             var allLogs = await _auditLogService.GetAuditLogsAsync(
-                new PaginationParameters { Page = 1, PageSize = 1000 }, 
+                new PaginationParameters { Page = 1, PageSize = 1000 },
                 HttpContext.RequestAborted);
             AvailableUsers = allLogs.Items
                 .Select(l => l.ChangedBy)
@@ -131,7 +128,7 @@ public class AuditLogModel : PageModel
         try
         {
             var log = await _auditLogService.GetLogByIdAsync(id, HttpContext.RequestAborted);
-            
+
             if (log == null)
             {
                 return NotFound();
@@ -206,19 +203,19 @@ public class AuditLogModel : PageModel
 
         if (!string.IsNullOrEmpty(EntityFilter))
             queryParams.Add($"EntityFilter={EntityFilter}");
-        
+
         if (!string.IsNullOrEmpty(OperationFilter))
             queryParams.Add($"OperationFilter={OperationFilter}");
-        
+
         if (!string.IsNullOrEmpty(UserFilter))
             queryParams.Add($"UserFilter={UserFilter}");
-        
+
         if (FromDate.HasValue)
             queryParams.Add($"FromDate={FromDate.Value:yyyy-MM-dd}");
-        
+
         if (ToDate.HasValue)
             queryParams.Add($"ToDate={ToDate.Value:yyyy-MM-dd}");
-        
+
         if (!string.IsNullOrEmpty(SearchTerm))
             queryParams.Add($"SearchTerm={SearchTerm}");
 

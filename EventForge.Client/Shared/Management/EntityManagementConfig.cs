@@ -1,6 +1,6 @@
+using EventForge.Client.Shared.Components;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using EventForge.Client.Shared.Components;
 
 namespace EventForge.Client.Shared.Management;
 

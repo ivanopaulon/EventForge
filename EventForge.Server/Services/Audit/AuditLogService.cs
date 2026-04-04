@@ -415,7 +415,7 @@ public class AuditLogService : IAuditLogService
 
         if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
         {
-            query = query.Where(log => 
+            query = query.Where(log =>
                 log.EntityName.Contains(searchDto.SearchTerm) ||
                 log.PropertyName.Contains(searchDto.SearchTerm) ||
                 log.ChangedBy.Contains(searchDto.SearchTerm) ||

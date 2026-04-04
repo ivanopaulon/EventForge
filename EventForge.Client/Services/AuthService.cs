@@ -370,7 +370,7 @@ namespace EventForge.Client.Services
                     var timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
 
                     _logger.LogDebug(
-                        "Token refresh requested. Current validity: {Minutes:F1} minutes. Proceeding with sliding expiration refresh.", 
+                        "Token refresh requested. Current validity: {Minutes:F1} minutes. Proceeding with sliding expiration refresh.",
                         timeToExpiry.TotalMinutes);
                 }
 
@@ -389,12 +389,12 @@ namespace EventForge.Client.Services
 
                         if (attempt > 1)
                         {
-                            _logger.LogInformation("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode", 
+                            _logger.LogInformation("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode",
                                 attempt, maxRetries);
                         }
                         else
                         {
-                            _logger.LogDebug("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode", 
+                            _logger.LogDebug("Attempting token refresh (attempt {Attempt}/{MaxRetries}) - Sliding Expiration Mode",
                                 attempt, maxRetries);
                         }
 
@@ -411,7 +411,7 @@ namespace EventForge.Client.Services
                                 // Save to localStorage
                                 await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
 
-                                _logger.LogInformation("Token refreshed successfully on attempt {Attempt}. New token expires in {Minutes} minutes", 
+                                _logger.LogInformation("Token refreshed successfully on attempt {Attempt}. New token expires in {Minutes} minutes",
                                     attempt, refreshResponse.ExpiresIn / 60);
 
                                 // Notify that authentication state may have changed
@@ -435,14 +435,14 @@ namespace EventForge.Client.Services
                         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
                             response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                         {
-                            _logger.LogError("Token refresh denied by server (status {StatusCode}). User may need to re-login.", 
+                            _logger.LogError("Token refresh denied by server (status {StatusCode}). User may need to re-login.",
                                 response.StatusCode);
                             return false;
                         }
                     }
                     catch (Exception attemptEx)
                     {
-                        _logger.LogError(attemptEx, "Error during token refresh attempt {Attempt}/{MaxRetries}", 
+                        _logger.LogError(attemptEx, "Error during token refresh attempt {Attempt}/{MaxRetries}",
                             attempt, maxRetries);
 
                         if (attempt < maxRetries)

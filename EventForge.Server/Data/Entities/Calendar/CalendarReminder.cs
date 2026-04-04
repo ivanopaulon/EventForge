@@ -1,6 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using EventForge.DTOs.Common;
-using EventForge.Server.Data.Entities.Events;
 
 namespace EventForge.Server.Data.Entities.Calendar;
 

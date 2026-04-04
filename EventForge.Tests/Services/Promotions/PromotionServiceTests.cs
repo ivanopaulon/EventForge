@@ -1,7 +1,4 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Promotions;
-using DtoPromotionRuleType = EventForge.DTOs.Common.PromotionRuleType;
-using EntityPromotionRuleType = EventForge.Server.Data.Entities.Promotions.PromotionRuleType;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Promotions;
 using EventForge.Server.Services.Audit;
@@ -12,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
+using DtoPromotionRuleType = EventForge.DTOs.Common.PromotionRuleType;
+using EntityPromotionRuleType = EventForge.Server.Data.Entities.Promotions.PromotionRuleType;
 
 namespace EventForge.Tests.Services.Promotions
 {

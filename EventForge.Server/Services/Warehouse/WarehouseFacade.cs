@@ -408,7 +408,7 @@ public class WarehouseFacade : IWarehouseFacade
 
         stopwatch.Stop();
         _logger.LogInformation(
-            "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. "+
+            "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. " +
             "Unique products: {ProductCount}, locations: {LocationCount}, stocks: {StockCount}",
             rowsList.Count, stopwatch.ElapsedMilliseconds,
             productsDict.Count, locationsDict.Count, stocksDict.Count);

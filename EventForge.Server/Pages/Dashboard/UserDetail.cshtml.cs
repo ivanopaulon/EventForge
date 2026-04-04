@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Services.Auth;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Pages.Dashboard;
@@ -283,8 +280,8 @@ public class UserDetailModel : PageModel
         for (int i = 4; i < password.Length; i++)
         {
             var useSymbol = randomBytes[i] % 10 == 0;
-            password[i] = useSymbol 
-                ? symbols[randomBytes[i] % symbols.Length] 
+            password[i] = useSymbol
+                ? symbols[randomBytes[i] % symbols.Length]
                 : chars[randomBytes[i] % chars.Length];
         }
 

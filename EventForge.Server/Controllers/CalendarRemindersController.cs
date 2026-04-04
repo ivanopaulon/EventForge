@@ -1,4 +1,3 @@
-using EventForge.DTOs.Calendar;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Calendar;

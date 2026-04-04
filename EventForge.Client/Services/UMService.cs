@@ -1,8 +1,8 @@
+using EventForge.Client.Helpers;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.UnitOfMeasures;
-using System.Net;
 using Microsoft.Extensions.Caching.Memory;
-using EventForge.Client.Helpers;
+using System.Net;
 
 namespace EventForge.Client.Services;
 
@@ -37,28 +37,28 @@ public class UMService : IUMService
             _logger.LogDebug("Cache HIT: Active units of measure ({Count} items)", cached.Count());
             return cached;
         }
-        
+
         // Cache miss - API call
         _logger.LogDebug("Cache MISS: Loading active units of measure from API");
-        
+
         try
         {
             var result = await GetUMsAsync(1, 100, ct);
             var activeUnits = result?.Items?.Where(um => um.IsActive) ?? Enumerable.Empty<UMDto>();
-            
+
             // Store in cache (30 minutes)
             _cache.Set(
-                CacheHelper.ACTIVE_UNITS_OF_MEASURE, 
-                activeUnits, 
+                CacheHelper.ACTIVE_UNITS_OF_MEASURE,
+                activeUnits,
                 CacheHelper.GetMediumCacheOptions()
             );
-            
+
             _logger.LogInformation(
-                "Cached {Count} active units of measure for {Minutes} minutes", 
-                activeUnits.Count(), 
+                "Cached {Count} active units of measure for {Minutes} minutes",
+                activeUnits.Count(),
                 CacheHelper.MediumCache.TotalMinutes
             );
-            
+
             return activeUnits;
         }
         catch (HttpRequestException)
@@ -76,22 +76,22 @@ public class UMService : IUMService
     public async Task<UMDto> CreateUMAsync(CreateUMDto createUMDto, CancellationToken ct = default)
     {
         var result = await _httpClientService.PostAsync<CreateUMDto, UMDto>(BaseUrl, createUMDto, ct);
-        
+
         // Invalidate cache
         _cache.Remove(CacheHelper.ACTIVE_UNITS_OF_MEASURE);
         _logger.LogDebug("Invalidated active units cache after create");
-        
+
         return result ?? throw new InvalidOperationException("Failed to create unit of measure");
     }
 
     public async Task<UMDto?> UpdateUMAsync(Guid id, UpdateUMDto updateUMDto, CancellationToken ct = default)
     {
         var result = await _httpClientService.PutAsync<UpdateUMDto, UMDto>($"{BaseUrl}/{id}", updateUMDto, ct);
-        
+
         // Invalidate cache
         _cache.Remove(CacheHelper.ACTIVE_UNITS_OF_MEASURE);
         _logger.LogDebug("Invalidated active units cache after update (ID: {Id})", id);
-        
+
         return result;
     }
 
@@ -100,11 +100,11 @@ public class UMService : IUMService
         try
         {
             await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
-            
+
             // Invalidate cache
             _cache.Remove(CacheHelper.ACTIVE_UNITS_OF_MEASURE);
             _logger.LogDebug("Invalidated active units cache after delete (ID: {Id})", id);
-            
+
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)

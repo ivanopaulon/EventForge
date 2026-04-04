@@ -1,9 +1,4 @@
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Notifications;
-using EventForge.Server.Data.Entities.PriceList;
-using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Data.Entities.Promotions;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
 

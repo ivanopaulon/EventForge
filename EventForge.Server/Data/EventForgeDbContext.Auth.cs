@@ -1,5 +1,3 @@
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Data.Entities.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;

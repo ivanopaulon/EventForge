@@ -1,5 +1,4 @@
 using EventForge.DTOs.Monitoring;
-using EventForge.Server.Services.Performance;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Monitoring;

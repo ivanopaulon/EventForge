@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
-using EventForge.Server.Services.Auth;
 
 namespace EventForge.Server.Pages.Dashboard;
 
@@ -21,13 +19,13 @@ public class UsersModel : PageModel
 
     public List<UserListItem> Users { get; set; } = new();
     public List<TenantOption> AvailableTenants { get; set; } = new();
-    
+
     [BindProperty(SupportsGet = true)]
     public string? SearchTerm { get; set; }
-    
+
     [BindProperty(SupportsGet = true)]
     public Guid? TenantFilter { get; set; }
-    
+
     [BindProperty(SupportsGet = true)]
     public string? StatusFilter { get; set; }
 
@@ -72,8 +70,8 @@ public class UsersModel : PageModel
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
             var search = SearchTerm.ToLower();
-            query = query.Where(u => 
-                u.Username.ToLower().Contains(search) || 
+            query = query.Where(u =>
+                u.Username.ToLower().Contains(search) ||
                 u.Email.ToLower().Contains(search) ||
                 u.FirstName.ToLower().Contains(search) ||
                 u.LastName.ToLower().Contains(search));
@@ -127,11 +125,11 @@ public class UsersModel : PageModel
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Password reset for user {UserId} by {Admin}", 
+        _logger.LogInformation("Password reset for user {UserId} by {Admin}",
             id, User.Identity?.Name);
 
         TempData["SuccessMessage"] = $"Password resettata per {user.Username}. Nuova password: {newPassword}";
-        
+
         return RedirectToPage();
     }
 
@@ -155,8 +153,8 @@ public class UsersModel : PageModel
         for (int i = 4; i < password.Length; i++)
         {
             var useSymbol = randomBytes[i] % 10 == 0;
-            password[i] = useSymbol 
-                ? symbols[randomBytes[i] % symbols.Length] 
+            password[i] = useSymbol
+                ? symbols[randomBytes[i] % symbols.Length]
                 : chars[randomBytes[i] % chars.Length];
         }
 

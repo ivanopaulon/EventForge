@@ -1,4 +1,3 @@
-using EventForge.Server.Data.Entities.Events;
 using EventForge.Server.Data.Entities.Calendar;
 using Microsoft.EntityFrameworkCore;
 

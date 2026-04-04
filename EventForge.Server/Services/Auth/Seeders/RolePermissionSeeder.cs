@@ -165,13 +165,13 @@ public static class RolePermissionSeeder
                     .Where(p => !existingPermIds.Contains(p.Id))
                     .Select(p => new RolePermission
                     {
-                        RoleId       = role.Id,
+                        RoleId = role.Id,
                         PermissionId = p.Id,
-                        GrantedBy    = "system",
-                        GrantedAt    = now,
-                        CreatedBy    = "system",
-                        CreatedAt    = now,
-                        TenantId     = Guid.Empty
+                        GrantedBy = "system",
+                        GrantedAt = now,
+                        CreatedBy = "system",
+                        CreatedAt = now,
+                        TenantId = Guid.Empty
                     })
                     .ToList();
 

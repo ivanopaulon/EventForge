@@ -9,22 +9,22 @@ public class ExportColumnConfig
     /// Nome della proprietà dell'entità.
     /// </summary>
     public string PropertyName { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Nome visualizzato nell'header.
     /// </summary>
     public string DisplayName { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Se true, questa colonna verrà inclusa nell'export.
     /// </summary>
     public bool IncludeInExport { get; set; } = true;
-    
+
     /// <summary>
     /// Formato numerico per Excel (es. "€#,##0.00", "dd/mm/yyyy").
     /// </summary>
     public string? NumberFormat { get; set; }
-    
+
     /// <summary>
     /// Ordine di visualizzazione.
     /// </summary>

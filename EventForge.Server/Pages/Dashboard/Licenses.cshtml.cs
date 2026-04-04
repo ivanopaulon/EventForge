@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
 
 namespace EventForge.Server.Pages.Dashboard;
 
@@ -17,7 +16,7 @@ public class LicensesModel : PageModel
     public int LicensesInUse { get; set; }
 
     public List<LicenseListItem> Licenses { get; set; } = new();
-    
+
     [BindProperty(SupportsGet = true)]
     public string? SearchTerm { get; set; }
 
@@ -48,8 +47,8 @@ public class LicensesModel : PageModel
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
             var search = SearchTerm.ToLower();
-            query = query.Where(l => 
-                l.Name.ToLower().Contains(search) || 
+            query = query.Where(l =>
+                l.Name.ToLower().Contains(search) ||
                 l.DisplayName.ToLower().Contains(search) ||
                 (l.Description != null && l.Description.ToLower().Contains(search)));
         }

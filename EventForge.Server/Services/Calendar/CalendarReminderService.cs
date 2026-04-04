@@ -1,5 +1,3 @@
-using EventForge.DTOs.Calendar;
-using EventForge.DTOs.Common;
 using EventForge.Server.Data.Entities.Calendar;
 using Microsoft.EntityFrameworkCore;
 

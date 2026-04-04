@@ -2662,7 +2662,7 @@ public class ProductService : IProductService
                 try
                 {
                     var newPrice = CalculateNewPrice(product.DefaultPrice ?? 0, bulkUpdateDto);
-                    
+
                     if (newPrice < 0)
                     {
                         errors.Add(new EventForge.DTOs.Bulk.BulkItemError
@@ -2742,13 +2742,13 @@ public class ProductService : IProductService
         return dto.UpdateType switch
         {
             EventForge.DTOs.Bulk.PriceUpdateType.Replace => dto.NewPrice ?? 0,
-            EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByPercentage => 
+            EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByPercentage =>
                 currentPrice * (1 + (dto.Percentage ?? 0) / 100),
-            EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByPercentage => 
+            EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByPercentage =>
                 currentPrice * (1 - (dto.Percentage ?? 0) / 100),
-            EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByAmount => 
+            EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByAmount =>
                 currentPrice + (dto.Amount ?? 0),
-            EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByAmount => 
+            EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByAmount =>
                 currentPrice - (dto.Amount ?? 0),
             _ => currentPrice
         };

@@ -679,9 +679,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     }
 
     public async Task<SaleSessionDto?> ApplyGlobalDiscountAsync(
-        Guid sessionId, 
-        ApplyGlobalDiscountDto discountDto, 
-        string currentUser, 
+        Guid sessionId,
+        ApplyGlobalDiscountDto discountDto,
+        string currentUser,
         CancellationToken cancellationToken = default)
     {
         try
@@ -713,14 +713,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             foreach (var item in session.Items)
             {
                 item.DiscountPercent = discountDto.DiscountPercent;
-                
+
                 // Recalculate item totals
                 var subtotal = item.UnitPrice * item.Quantity;
                 var discountAmount = subtotal * (discountDto.DiscountPercent / 100);
                 var subtotalAfterDiscount = subtotal - discountAmount;
                 item.TaxAmount = subtotalAfterDiscount * (item.TaxRate / 100);
                 item.TotalAmount = subtotalAfterDiscount + item.TaxAmount;
-                
+
                 item.ModifiedBy = currentUser;
                 item.ModifiedAt = DateTime.UtcNow;
             }
@@ -730,7 +730,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             session.DiscountAmount = session.Items.Sum(i => (i.UnitPrice * i.Quantity) * (i.DiscountPercent / 100));
             session.TaxAmount = session.Items.Sum(i => i.TaxAmount);
             session.FinalTotal = session.OriginalTotal - session.DiscountAmount + session.TaxAmount;
-            
+
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
@@ -738,14 +738,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             // Audit log
             await _auditLogService.LogEntityChangeAsync(
-                "SaleSession", 
-                session.Id, 
-                "DiscountAmount", 
-                "ApplyGlobalDiscount", 
-                null, 
-                $"{discountDto.DiscountPercent}% - {discountDto.Reason ?? "No reason"}", 
-                currentUser, 
-                "Sale Session", 
+                "SaleSession",
+                session.Id,
+                "DiscountAmount",
+                "ApplyGlobalDiscount",
+                null,
+                $"{discountDto.DiscountPercent}% - {discountDto.Reason ?? "No reason"}",
+                currentUser,
+                "Sale Session",
                 cancellationToken);
 
             _logger.LogInformation(
@@ -840,7 +840,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             // SaveChanges will handle transaction atomicity
             await _context.SaveChangesAsync(cancellationToken);
-            
+
             // Log audit entry (best effort - don't fail session close if audit fails)
             try
             {

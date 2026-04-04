@@ -1,10 +1,8 @@
+using EventForge.DTOs.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
-using EventForge.Server.Services.Configuration;
-using EventForge.DTOs.Configuration;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Pages.Dashboard;
@@ -19,10 +17,10 @@ public class BrandingModel : PageModel
     public BrandingConfigurationDto GlobalBranding { get; set; } = new();
     public List<TenantInfo> Tenants { get; set; } = new();
     public int TenantOverridesCount { get; set; }
-    
+
     [BindProperty]
     public GlobalBrandingForm GlobalForm { get; set; } = new();
-    
+
     public string? ErrorMessage { get; set; }
 
     public BrandingModel(
@@ -41,25 +39,25 @@ public class BrandingModel : PageModel
         {
             // Load global branding
             GlobalBranding = await _brandingService.GetBrandingAsync(null);
-            
+
             // Populate form
             GlobalForm.ApplicationName = GlobalBranding.ApplicationName;
             GlobalForm.LogoHeight = GlobalBranding.LogoHeight;
             GlobalForm.FaviconUrl = GlobalBranding.FaviconUrl;
-            
+
             // Load tenants
             Tenants = await _context.Tenants
                 .Where(t => !t.IsDeleted)
-                .Select(t => new TenantInfo 
-                { 
-                    Id = t.Id, 
+                .Select(t => new TenantInfo
+                {
+                    Id = t.Id,
                     DisplayName = t.DisplayName,
                     Code = t.Code,
                     HasCustomBranding = !string.IsNullOrWhiteSpace(t.CustomLogoUrl)
                 })
                 .OrderBy(t => t.DisplayName)
                 .ToListAsync();
-            
+
             // Count tenant overrides
             TenantOverridesCount = Tenants.Count(t => t.HasCustomBranding);
         }
@@ -93,7 +91,7 @@ public class BrandingModel : PageModel
 
             _logger.LogInformation("Global branding updated by {User}", username);
             TempData["SuccessMessage"] = "Configurazione globale salvata con successo!";
-            
+
             return RedirectToPage();
         }
         catch (Exception ex)
@@ -126,7 +124,7 @@ public class BrandingModel : PageModel
 
             _logger.LogInformation("Tenant branding updated for {TenantId} by {User}", tenantId, username);
             TempData["SuccessMessage"] = "Branding tenant salvato con successo!";
-            
+
             return RedirectToPage();
         }
         catch (Exception ex)
@@ -143,10 +141,10 @@ public class BrandingModel : PageModel
         try
         {
             await _brandingService.DeleteTenantBrandingAsync(tenantId);
-            
+
             _logger.LogInformation("Tenant branding reset for {TenantId}", tenantId);
             TempData["SuccessMessage"] = "Branding tenant resettato a globale!";
-            
+
             return RedirectToPage();
         }
         catch (Exception ex)

@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Pages.Dashboard;

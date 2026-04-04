@@ -125,7 +125,7 @@ public class BrandingController : BaseApiController
             // Validate tenant access
             if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("User {Username} attempted to update branding for unauthorized tenant {TenantId}", 
+                _logger.LogWarning("User {Username} attempted to update branding for unauthorized tenant {TenantId}",
                     GetCurrentUser(), tenantId);
                 return CreateForbiddenProblem("You do not have permission to update branding for this tenant.");
             }
@@ -133,7 +133,7 @@ public class BrandingController : BaseApiController
             var username = GetCurrentUser();
             var branding = await _brandingService.UpdateTenantBrandingAsync(tenantId, updateDto, username, ct);
 
-            _logger.LogInformation("Tenant branding updated for TenantId: {TenantId} by user: {Username}", 
+            _logger.LogInformation("Tenant branding updated for TenantId: {TenantId} by user: {Username}",
                 tenantId, username);
 
             return Ok(branding);
@@ -171,14 +171,14 @@ public class BrandingController : BaseApiController
             // Validate tenant access
             if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("User {Username} attempted to delete branding for unauthorized tenant {TenantId}", 
+                _logger.LogWarning("User {Username} attempted to delete branding for unauthorized tenant {TenantId}",
                     GetCurrentUser(), tenantId);
                 return CreateForbiddenProblem("You do not have permission to delete branding for this tenant.");
             }
 
             await _brandingService.DeleteTenantBrandingAsync(tenantId, ct);
 
-            _logger.LogInformation("Tenant branding deleted for TenantId: {TenantId} by user: {Username}", 
+            _logger.LogInformation("Tenant branding deleted for TenantId: {TenantId} by user: {Username}",
                 tenantId, GetCurrentUser());
 
             return NoContent();
@@ -221,7 +221,7 @@ public class BrandingController : BaseApiController
             {
                 if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
                 {
-                    _logger.LogWarning("User {Username} attempted to upload logo for unauthorized tenant {TenantId}", 
+                    _logger.LogWarning("User {Username} attempted to upload logo for unauthorized tenant {TenantId}",
                         GetCurrentUser(), tenantId);
                     return CreateForbiddenProblem("You do not have permission to upload logo for this tenant.");
                 }
@@ -231,7 +231,7 @@ public class BrandingController : BaseApiController
                 // Global upload requires SuperAdmin
                 if (!_tenantContext.IsSuperAdmin)
                 {
-                    _logger.LogWarning("Non-SuperAdmin user {Username} attempted to upload global logo", 
+                    _logger.LogWarning("Non-SuperAdmin user {Username} attempted to upload global logo",
                         GetCurrentUser());
                     return CreateForbiddenProblem("Only SuperAdmin can upload global logos.");
                 }
@@ -239,7 +239,7 @@ public class BrandingController : BaseApiController
 
             var logoUrl = await _brandingService.UploadLogoAsync(file, tenantId, ct);
 
-            _logger.LogInformation("Logo uploaded successfully: {LogoUrl} by user: {Username}", 
+            _logger.LogInformation("Logo uploaded successfully: {LogoUrl} by user: {Username}",
                 logoUrl, GetCurrentUser());
 
             return Ok(new { logoUrl });

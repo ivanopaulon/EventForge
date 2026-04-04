@@ -1,5 +1,3 @@
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -88,7 +86,7 @@ public class LogsModel : PageModel
     public string GetFilterQueryString()
     {
         var parts = new List<string>();
-        if (!string.IsNullOrEmpty(SearchTerm))   parts.Add($"SearchTerm={Uri.EscapeDataString(SearchTerm)}");
+        if (!string.IsNullOrEmpty(SearchTerm)) parts.Add($"SearchTerm={Uri.EscapeDataString(SearchTerm)}");
         if (!string.IsNullOrEmpty(SeverityFilter)) parts.Add($"SeverityFilter={SeverityFilter}");
         if (!string.IsNullOrEmpty(CategoryFilter)) parts.Add($"CategoryFilter={CategoryFilter}");
         if (ErrorsOnly) parts.Add("ErrorsOnly=true");

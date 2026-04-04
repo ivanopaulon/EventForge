@@ -167,13 +167,13 @@ namespace EventForge.Client.Services
                 // SLIDING EXPIRATION: Always refresh when authenticated, regardless of time remaining
                 // This ensures the session never expires as long as the user is active
                 var timeToExpiry = await _authService.GetTokenTimeToExpiryAsync();
-                
-                _logger.LogInformation("🔄 Starting token refresh cycle. Time to expiry: {TimeToExpiry:F1} minutes", 
+
+                _logger.LogInformation("🔄 Starting token refresh cycle. Time to expiry: {TimeToExpiry:F1} minutes",
                     timeToExpiry?.TotalMinutes ?? -1);
-                
+
                 if (timeToExpiry.HasValue)
                 {
-                    _logger.LogDebug("Token expires in {Minutes:F1} minutes. Performing sliding expiration refresh.", 
+                    _logger.LogDebug("Token expires in {Minutes:F1} minutes. Performing sliding expiration refresh.",
                         timeToExpiry.Value.TotalMinutes);
                 }
                 else
@@ -192,12 +192,12 @@ namespace EventForge.Client.Services
 
                     if (attempt > 1)
                     {
-                        _logger.LogInformation("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)", 
+                        _logger.LogInformation("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)",
                             attempt, MAX_RETRIES);
                     }
                     else
                     {
-                        _logger.LogDebug("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)", 
+                        _logger.LogDebug("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)",
                             attempt, MAX_RETRIES);
                     }
 
@@ -214,18 +214,18 @@ namespace EventForge.Client.Services
                         }
                         else
                         {
-                            _logger.LogWarning("⚠️ Token refresh returned false on attempt {Attempt}/{MaxRetries}. Check server endpoint availability.", 
+                            _logger.LogWarning("⚠️ Token refresh returned false on attempt {Attempt}/{MaxRetries}. Check server endpoint availability.",
                                 attempt, MAX_RETRIES);
                         }
                     }
                     catch (HttpRequestException httpEx)
                     {
-                        _logger.LogError(httpEx, "🌐 Network error during token refresh attempt {Attempt}: {Message}", 
+                        _logger.LogError(httpEx, "🌐 Network error during token refresh attempt {Attempt}: {Message}",
                             attempt, httpEx.Message);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "💥 Unexpected exception during token refresh attempt {Attempt}: {ExceptionType}", 
+                        _logger.LogError(ex, "💥 Unexpected exception during token refresh attempt {Attempt}: {ExceptionType}",
                             attempt, ex.GetType().Name);
                     }
 
@@ -247,7 +247,7 @@ namespace EventForge.Client.Services
                 // If we have too many consecutive failures, log critically but keep the service running
                 if (_consecutiveFailures >= 5)
                 {
-                    _logger.LogCritical("Too many consecutive failures ({Count}), but SessionKeepaliveService will keep retrying", 
+                    _logger.LogCritical("Too many consecutive failures ({Count}), but SessionKeepaliveService will keep retrying",
                         _consecutiveFailures);
                 }
 

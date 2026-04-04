@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
 
 namespace EventForge.Server.Pages.Dashboard;
 
@@ -130,7 +128,7 @@ public class RolePermissionsModel : PageModel
         {
             _logger.LogError(ex, "Error updating role permissions");
             ErrorMessage = $"Errore durante l'aggiornamento: {ex.Message}";
-            
+
             // Reload data
             await OnGetAsync();
             return Page();

@@ -1,5 +1,3 @@
-using EventForge.DTOs.SuperAdmin;
-using EventForge.Server.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -13,30 +11,30 @@ public class SettingsModel : PageModel
     private readonly ILogger<SettingsModel> _logger;
 
     // ── SMTP ──────────────────────────────────────────────────────────
-    [BindProperty] public string SmtpServer    { get; set; } = string.Empty;
-    [BindProperty] public int    SmtpPort      { get; set; } = 587;
-    [BindProperty] public bool   SmtpUseSsl    { get; set; } = true;
-    [BindProperty] public string SmtpUsername  { get; set; } = string.Empty;
-    [BindProperty] public string SmtpPassword  { get; set; } = string.Empty;
+    [BindProperty] public string SmtpServer { get; set; } = string.Empty;
+    [BindProperty] public int SmtpPort { get; set; } = 587;
+    [BindProperty] public bool SmtpUseSsl { get; set; } = true;
+    [BindProperty] public string SmtpUsername { get; set; } = string.Empty;
+    [BindProperty] public string SmtpPassword { get; set; } = string.Empty;
     [BindProperty] public string SmtpFromEmail { get; set; } = string.Empty;
-    [BindProperty] public string SmtpFromName  { get; set; } = string.Empty;
+    [BindProperty] public string SmtpFromName { get; set; } = string.Empty;
 
     // ── Logging ───────────────────────────────────────────────────────
-    [BindProperty] public string LogLevel         { get; set; } = "Information";
-    [BindProperty] public int    LogRetentionDays { get; set; } = 30;
+    [BindProperty] public string LogLevel { get; set; } = "Information";
+    [BindProperty] public int LogRetentionDays { get; set; } = 30;
 
     // ── Rate limiting ─────────────────────────────────────────────────
-    [BindProperty] public int LoginLimit        { get; set; } = 5;
-    [BindProperty] public int ApiLimit          { get; set; } = 100;
+    [BindProperty] public int LoginLimit { get; set; } = 5;
+    [BindProperty] public int ApiLimit { get; set; } = 100;
     [BindProperty] public int TokenRefreshLimit { get; set; } = 1;
 
     // ── Feature flags ─────────────────────────────────────────────────
     [BindProperty] public bool FeatureDocumentCollaboration { get; set; } = true;
-    [BindProperty] public bool FeatureAdvancedReporting     { get; set; } = true;
-    [BindProperty] public bool FeatureDetailedAudit         { get; set; } = false;
+    [BindProperty] public bool FeatureAdvancedReporting { get; set; } = true;
+    [BindProperty] public bool FeatureDetailedAudit { get; set; } = false;
 
     public string? SuccessMessage { get; set; }
-    public string? ErrorMessage   { get; set; }
+    public string? ErrorMessage { get; set; }
     public SmtpTestResultDto? SmtpTestResult { get; set; }
 
     public SettingsModel(IConfigurationService configService, ILogger<SettingsModel> logger)
@@ -47,8 +45,8 @@ public class SettingsModel : PageModel
 
     public async Task OnGetAsync()
     {
-        if (TempData["SuccessMessage"] is string ok)  SuccessMessage = ok;
-        if (TempData["ErrorMessage"]   is string err) ErrorMessage   = err;
+        if (TempData["SuccessMessage"] is string ok) SuccessMessage = ok;
+        if (TempData["ErrorMessage"] is string err) ErrorMessage = err;
 
         await LoadAllSettingsAsync();
     }
@@ -59,12 +57,12 @@ public class SettingsModel : PageModel
         try
         {
             var ct = HttpContext.RequestAborted;
-            await _configService.SetValueAsync("SMTP_Server",    SmtpServer,    null, ct);
-            await _configService.SetValueAsync("SMTP_Port",      SmtpPort.ToString(), null, ct);
+            await _configService.SetValueAsync("SMTP_Server", SmtpServer, null, ct);
+            await _configService.SetValueAsync("SMTP_Port", SmtpPort.ToString(), null, ct);
             await _configService.SetValueAsync("SMTP_EnableSSL", SmtpUseSsl.ToString().ToLower(), null, ct);
-            await _configService.SetValueAsync("SMTP_Username",  SmtpUsername,  null, ct);
+            await _configService.SetValueAsync("SMTP_Username", SmtpUsername, null, ct);
             await _configService.SetValueAsync("SMTP_FromEmail", SmtpFromEmail, null, ct);
-            await _configService.SetValueAsync("SMTP_FromName",  SmtpFromName,  null, ct);
+            await _configService.SetValueAsync("SMTP_FromName", SmtpFromName, null, ct);
 
             // Password only if filled in (avoid overwriting with blank)
             if (!string.IsNullOrWhiteSpace(SmtpPassword))
@@ -90,7 +88,7 @@ public class SettingsModel : PageModel
             {
                 ToEmail = testEmail,
                 Subject = "EventForge SMTP Test",
-                Body    = "Questo è un messaggio di test inviato da EventForge Server Dashboard."
+                Body = "Questo è un messaggio di test inviato da EventForge Server Dashboard."
             };
             SmtpTestResult = await _configService.TestSmtpAsync(testDto, HttpContext.RequestAborted);
         }
@@ -107,7 +105,7 @@ public class SettingsModel : PageModel
         try
         {
             var ct = HttpContext.RequestAborted;
-            await _configService.SetValueAsync("Logging_Level",         LogLevel,                  null, ct);
+            await _configService.SetValueAsync("Logging_Level", LogLevel, null, ct);
             await _configService.SetValueAsync("Logging_RetentionDays", LogRetentionDays.ToString(), null, ct);
 
             _logger.LogInformation("Logging settings updated by {User}", User.Identity?.Name);
@@ -127,8 +125,8 @@ public class SettingsModel : PageModel
         try
         {
             var ct = HttpContext.RequestAborted;
-            await _configService.SetValueAsync("RateLimiting_LoginLimit",        LoginLimit.ToString(),        null, ct);
-            await _configService.SetValueAsync("RateLimiting_ApiLimit",          ApiLimit.ToString(),          null, ct);
+            await _configService.SetValueAsync("RateLimiting_LoginLimit", LoginLimit.ToString(), null, ct);
+            await _configService.SetValueAsync("RateLimiting_ApiLimit", ApiLimit.ToString(), null, ct);
             await _configService.SetValueAsync("RateLimiting_TokenRefreshLimit", TokenRefreshLimit.ToString(), null, ct);
 
             _logger.LogInformation("Rate limiting settings updated by {User}", User.Identity?.Name);
@@ -149,8 +147,8 @@ public class SettingsModel : PageModel
         {
             var ct = HttpContext.RequestAborted;
             await _configService.SetValueAsync("Feature_DocumentCollaboration", FeatureDocumentCollaboration.ToString().ToLower(), null, ct);
-            await _configService.SetValueAsync("Feature_AdvancedReporting",     FeatureAdvancedReporting.ToString().ToLower(),     null, ct);
-            await _configService.SetValueAsync("Feature_DetailedAudit",         FeatureDetailedAudit.ToString().ToLower(),         null, ct);
+            await _configService.SetValueAsync("Feature_AdvancedReporting", FeatureAdvancedReporting.ToString().ToLower(), null, ct);
+            await _configService.SetValueAsync("Feature_DetailedAudit", FeatureDetailedAudit.ToString().ToLower(), null, ct);
 
             _logger.LogInformation("Feature flags updated by {User}", User.Identity?.Name);
             TempData["SuccessMessage"] = "Feature flags salvati.";
@@ -168,24 +166,24 @@ public class SettingsModel : PageModel
         var ct = HttpContext.RequestAborted;
         try
         {
-            SmtpServer    = await _configService.GetValueAsync("SMTP_Server",    "smtp.example.com", ct);
-            SmtpPort      = int.TryParse(await _configService.GetValueAsync("SMTP_Port", "587", ct), out var p) ? p : 587;
-            SmtpUseSsl    = (await _configService.GetValueAsync("SMTP_EnableSSL", "true", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
-            SmtpUsername  = await _configService.GetValueAsync("SMTP_Username",  "", ct);
+            SmtpServer = await _configService.GetValueAsync("SMTP_Server", "smtp.example.com", ct);
+            SmtpPort = int.TryParse(await _configService.GetValueAsync("SMTP_Port", "587", ct), out var p) ? p : 587;
+            SmtpUseSsl = (await _configService.GetValueAsync("SMTP_EnableSSL", "true", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
+            SmtpUsername = await _configService.GetValueAsync("SMTP_Username", "", ct);
             SmtpFromEmail = await _configService.GetValueAsync("SMTP_FromEmail", "noreply@eventforge.com", ct);
-            SmtpFromName  = await _configService.GetValueAsync("SMTP_FromName",  "EventForge", ct);
+            SmtpFromName = await _configService.GetValueAsync("SMTP_FromName", "EventForge", ct);
             // Password not loaded on GET for security
 
-            LogLevel         = await _configService.GetValueAsync("Logging_Level",         "Information", ct);
+            LogLevel = await _configService.GetValueAsync("Logging_Level", "Information", ct);
             LogRetentionDays = int.TryParse(await _configService.GetValueAsync("Logging_RetentionDays", "30", ct), out var r) ? r : 30;
 
-            LoginLimit        = int.TryParse(await _configService.GetValueAsync("RateLimiting_LoginLimit",        "5",   ct), out var l1) ? l1 : 5;
-            ApiLimit          = int.TryParse(await _configService.GetValueAsync("RateLimiting_ApiLimit",          "100", ct), out var l2) ? l2 : 100;
-            TokenRefreshLimit = int.TryParse(await _configService.GetValueAsync("RateLimiting_TokenRefreshLimit", "1",   ct), out var l3) ? l3 : 1;
+            LoginLimit = int.TryParse(await _configService.GetValueAsync("RateLimiting_LoginLimit", "5", ct), out var l1) ? l1 : 5;
+            ApiLimit = int.TryParse(await _configService.GetValueAsync("RateLimiting_ApiLimit", "100", ct), out var l2) ? l2 : 100;
+            TokenRefreshLimit = int.TryParse(await _configService.GetValueAsync("RateLimiting_TokenRefreshLimit", "1", ct), out var l3) ? l3 : 1;
 
-            FeatureDocumentCollaboration = (await _configService.GetValueAsync("Feature_DocumentCollaboration", "true",  ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
-            FeatureAdvancedReporting     = (await _configService.GetValueAsync("Feature_AdvancedReporting",     "true",  ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
-            FeatureDetailedAudit         = (await _configService.GetValueAsync("Feature_DetailedAudit",         "false", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
+            FeatureDocumentCollaboration = (await _configService.GetValueAsync("Feature_DocumentCollaboration", "true", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
+            FeatureAdvancedReporting = (await _configService.GetValueAsync("Feature_AdvancedReporting", "true", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
+            FeatureDetailedAudit = (await _configService.GetValueAsync("Feature_DetailedAudit", "false", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {

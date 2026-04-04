@@ -81,13 +81,13 @@ public class UserSeeder : IUserSeeder
             {
                 var userRole = new UserRole
                 {
-                    UserId    = superAdminUser.Id,
-                    RoleId    = superAdminRole.Id,
+                    UserId = superAdminUser.Id,
+                    RoleId = superAdminRole.Id,
                     GrantedBy = "system",
                     GrantedAt = DateTime.UtcNow,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow,
-                    TenantId  = tenantId
+                    TenantId = tenantId
                 };
 
                 _ = _dbContext.UserRoles.Add(userRole);
@@ -110,7 +110,7 @@ public class UserSeeder : IUserSeeder
     public async Task<User?> CreateDefaultManagerUserAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         const string managerUsername = "manager";
-        const string managerEmail    = "manager@localhost";
+        const string managerEmail = "manager@localhost";
 
         try
         {
@@ -150,13 +150,13 @@ public class UserSeeder : IUserSeeder
             {
                 var userRole = new UserRole
                 {
-                    UserId    = managerUser.Id,
-                    RoleId    = managerRole.Id,
+                    UserId = managerUser.Id,
+                    RoleId = managerRole.Id,
                     GrantedBy = "system",
                     GrantedAt = DateTime.UtcNow,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow,
-                    TenantId  = tenantId
+                    TenantId = tenantId
                 };
 
                 _ = _dbContext.UserRoles.Add(userRole);
