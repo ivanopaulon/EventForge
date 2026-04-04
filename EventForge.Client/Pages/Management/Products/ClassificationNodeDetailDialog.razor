@@ -1,72 +1,36 @@
-@page "/management/classification-nodes/new/{ParentId:guid?}"
-@page "/management/classification-nodes/{NodeId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IEntityManagementService EntityManagementService
-@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<ClassificationNodeDetail> Logger
+@inject ILogger<ClassificationNodeDetailDialog> Logger
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading || _isSaving"
-                        Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
-
-    @if (!_isLoading)
-    {
-        <MudPaper Elevation="2" Class="pa-4 mb-4">
-            <div class="d-flex justify-space-between align-center">
-                <div>
-                    <div class="d-flex align-center gap-2 mb-2">
-                        <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack"
-                                       Color="Color.Default"
-                                       OnClick="@(() => TryNavigateAway("/management/classification-nodes"))"
-                                       Size="Size.Small" />
-                        <MudText Typo="Typo.h4">
-                            <MudIcon Icon="@Icons.Material.Outlined.AccountTree" Class="mr-2" />
-                            @(_isCreateMode ? TranslationService.GetTranslation("classificationNode.create", "Crea Nodo di Classificazione") : _node?.Name)
-                        </MudText>
-
-                        @if (!_isCreateMode && _node != null)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_node.Status)">
-                                @GetStatusDisplayName(_node.Status)
-                            </MudChip>
-                        }
-
-                        @if (HasUnsavedChanges())
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
-                                @TranslationService.GetTranslation("classificationNode.unsavedChanges", "Modifiche non salvate")
-                            </MudChip>
-                        }
-                    </div>
-
-                    @if (!_isCreateMode && _node != null)
-                    {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            @TranslationService.GetTranslation("field.parentNode", "Nodo Padre"): @(_node.ParentName ?? TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice"))
-                        </MudText>
-                    }
-                </div>
-
-                <div class="d-flex gap-2">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Outlined.Save"
-                               OnClick="SaveAsync"
-                               Disabled="_isSaving">
-                        @TranslationService.GetTranslation("common.save", "Salva")
-                    </MudButton>
-                </div>
+<EFDialog Icon="@Icons.Material.Outlined.AccountTree"
+          Title="@(_isCreateMode ? TranslationService.GetTranslation("classificationNode.create", "Crea Nodo di Classificazione") : (_node?.Name ?? string.Empty))"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
             </div>
-        </MudPaper>
+        }
+        else if (!_isCreateMode && _node == null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @TranslationService.GetTranslation("classificationNode.notFound", "Nodo di classificazione non trovato")
+            </MudAlert>
+        }
+        else
+        {
+            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" @bind-ActivePanelIndex="_activeTab">
 
-        <MudPaper Elevation="2" Class="pa-2">
-            <MudTabs Elevation="0" Rounded="false" TabPanelsClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
                 <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.generalInfo", "Informazioni")" Icon="@Icons.Material.Outlined.Info">
                     <MudForm @ref="_form" Class="pa-2">
                         <MudGrid>
@@ -131,7 +95,7 @@
                                                    Clearable="true"
                                                    OnClose="@(()=> MarkChanged())">
                                             <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice")</MudSelectItem>
-                                            @foreach (var p in _availableParentNodes.Where(p => !_isCreateMode || p.Id != NodeId && !IsDescendant(p.Id, NodeId)))
+                                            @foreach (var p in _availableParentNodes.Where(p => _isCreateMode || (p.Id != (EntityId ?? Guid.Empty) && !IsDescendant(p.Id, EntityId ?? Guid.Empty))))
                                             {
                                                 <MudSelectItem T="Guid?" Value="@((Guid?)p.Id)">@GetNodeDisplayName(p)</MudSelectItem>
                                             }
@@ -166,7 +130,7 @@
                             <MudButton Variant="Variant.Outlined"
                                        Color="Color.Primary"
                                        StartIcon="@Icons.Material.Outlined.AddCircleOutline"
-                                       OnClick="@(() => NavigationManager.NavigateTo($"/management/classification-nodes/new/{_node.Id}"))">
+                                       OnClick="@OpenCreateChildDialogAsync">
                                 @TranslationService.GetTranslation("classificationNode.addChild", "Aggiungi figlio")
                             </MudButton>
                         </div>
@@ -204,7 +168,7 @@
                                 </MudTd>
                                 <MudTd Class="text-right">
                                     <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Info"
-                                                   OnClick="@(() => NavigationManager.NavigateTo($"/management/classification-nodes/{child.Id}"))" />
+                                                   OnClick="@(() => OpenChildDetailDialogAsync(child.Id))" />
                                 </MudTd>
                             </RowTemplate>
                             <NoRecordsContent>
@@ -218,8 +182,8 @@
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.audit", "Audit")" Icon="@Icons.Material.Outlined.History">
                     <MudText Typo="Typo.body2">@TranslationService.GetTranslation("messages.auditFullscreen", "Storia modifiche disponibile in modalità fullscreen")</MudText>
-                    <MudButton Class="mt-3" 
-                               Variant="Variant.Filled" 
+                    <MudButton Class="mt-3"
+                               Variant="Variant.Filled"
                                Color="Color.Primary"
                                StartIcon="@Icons.Material.Outlined.History"
                                OnClick="@OpenAuditDialog">
@@ -227,20 +191,29 @@
                     </MudButton>
                 </MudTabPanel>
             </MudTabs>
-        </MudPaper>
-    }
-</MudContainer>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Save"
+                   OnClick="SaveAsync" Disabled="_isSaving || _isLoading">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
 
 @code {
-    // Dialog options for fullscreen audit dialog
-    private readonly DialogOptions _auditDialogOptions = new() 
-    { 
-        FullScreen = true, 
+    private readonly DialogOptions _auditDialogOptions = new()
+    {
+        FullScreen = true,
         CloseButton = true,
         MaxWidth = MaxWidth.False
     };
-    
-    [Parameter] public Guid NodeId { get; set; }
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? EntityId { get; set; }
     [Parameter] public Guid? ParentId { get; set; }
 
     private bool _isLoading = true;
@@ -254,11 +227,9 @@
     private UpdateClassificationNodeDto _updateModel = new();
     private IEntityManagementService _ems => EntityManagementService;
 
-    // data lists
     private List<ClassificationNodeDto> _availableParentNodes = new();
     private IEnumerable<ClassificationNodeDto>? _children;
 
-    // unsaved snapshot
     private string _originalSnapshot = string.Empty;
     private bool _hasLocalChanges = false;
     private static readonly System.Text.Json.JsonSerializerOptions _json_options = new()
@@ -269,10 +240,9 @@
 
     private MudForm? _form;
 
-    // Binding adapters (avoid dynamic in markup)
     private string NodeName
     {
-        get => _isCreateMode ? (_create_model_get_name_create()) : (_update_model_get_name());
+        get => _isCreateMode ? (_createModel.Name ?? string.Empty) : (_updateModel.Name ?? string.Empty);
         set
         {
             if (_isCreateMode)
@@ -282,9 +252,6 @@
             MarkChanged();
         }
     }
-
-    private string _create_model_get_name_create() => _createModel.Name ?? string.Empty;
-    private string _update_model_get_name() => _updateModel.Name ?? string.Empty;
 
     private string? NodeCode => _isCreateMode ? _createModel.Code : _updateModel.Code;
 
@@ -335,29 +302,25 @@
             if (_isCreateMode)
             {
                 _createModel.ParentId = value;
-
-                // If creating a child, inherit Type and Level from selected parent (if available)
                 if (value.HasValue)
                 {
                     var parent = _availableParentNodes.FirstOrDefault(p => p.Id == value.Value);
                     if (parent != null)
                     {
                         _createModel.Type = parent.Type;
-                        _create_model_set_level(parent.Level +1);
+                        _createModel.Level = parent.Level + 1;
                     }
                 }
                 else
                 {
-                    // no parent -> root defaults
                     _createModel.Type = ProductClassificationType.Category;
-                    _create_model_set_level(0);
+                    _createModel.Level = 0;
                 }
             }
             else
             {
                 _updateModel.ParentId = value;
             }
-
             MarkChanged();
         }
     }
@@ -377,7 +340,7 @@
 
     private int NodeOrder
     {
-        get => _isCreateMode ? _createModel.Order : _update_model_get_order();
+        get => _isCreateMode ? _createModel.Order : _updateModel.Order;
         set
         {
             if (_isCreateMode)
@@ -388,11 +351,9 @@
         }
     }
 
-    private int _update_model_get_order() => _updateModel.Order;
-
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
-        _isCreateMode = ParentId.HasValue && ParentId != Guid.Empty;
+        _isCreateMode = EntityId == null || EntityId == Guid.Empty;
         _isLoading = true;
         try
         {
@@ -431,31 +392,27 @@
             if (parent != null)
             {
                 _createModel.Type = parent.Type;
-                _create_model_set_level(parent.Level + 1);
+                _createModel.Level = parent.Level + 1;
             }
         }
 
         _originalSnapshot = SerializeCurrentModel();
-        _has_local_changes_reset();
+        _hasLocalChanges = false;
     }
-
-    private void _create_model_set_level(int v) => _createModel.Level = v;
-    private void _has_local_changes_reset() => _hasLocalChanges = false;
 
     private async Task LoadNodeAsync()
     {
         _isLoading = true;
         try
         {
-            // correct interface method (existing service)
-            _node = await _ems.GetClassificationNodeAsync(NodeId);
+            if (!EntityId.HasValue) return;
+            _node = await _ems.GetClassificationNodeAsync(EntityId.Value);
             if (_node == null)
             {
                 Snackbar.Add(TranslationService.GetTranslation("classificationNode.notFound", "Nodo di classificazione non trovato"), Severity.Error);
                 return;
             }
 
-            // map to update model
             _updateModel = new UpdateClassificationNodeDto
             {
                 Code = _node.Code,
@@ -475,7 +432,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading node {NodeId}", NodeId);
+            Logger.LogError(ex, "Error loading node {EntityId}", EntityId);
             Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento del nodo"), Severity.Error);
             _node = null;
         }
@@ -508,7 +465,6 @@
         _childrenLoading = true;
         try
         {
-            // correct interface method (existing service)
             _children = await _ems.GetChildrenClassificationNodesAsync(_node.Id);
         }
         catch (Exception ex)
@@ -554,7 +510,8 @@
                 if (created != null)
                 {
                     Snackbar.Add(TranslationService.GetTranslation("classificationNode.created", "Nodo creato con successo"), Severity.Success);
-                    NavigationManager.NavigateTo($"/management/classification-nodes/{created.Id}");
+                    _hasLocalChanges = false;
+                    MudDialog.Close(DialogResult.Ok(true));
                     return;
                 }
                 Snackbar.Add(TranslationService.GetTranslation("classificationNode.createError", "Errore nella creazione del nodo"), Severity.Error);
@@ -565,7 +522,8 @@
                 if (updated != null)
                 {
                     Snackbar.Add(TranslationService.GetTranslation("classificationNode.updated", "Nodo aggiornato con successo"), Severity.Success);
-                    await LoadNodeAsync();
+                    _hasLocalChanges = false;
+                    MudDialog.Close(DialogResult.Ok(true));
                 }
                 else
                 {
@@ -604,38 +562,32 @@
         return !string.Equals(current, _originalSnapshot, StringComparison.Ordinal);
     }
 
-    private async Task TryNavigateAway(string target)
+    private async Task OpenCreateChildDialogAsync()
     {
-        if (!HasUnsavedChanges())
+        if (_node == null) return;
+        var p = new DialogParameters
         {
-            NavigationManager.NavigateTo(target);
-            return;
-        }
+            [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)null,
+            [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)_node.Id
+        };
+        var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
+        if (!(await d.Result).Canceled) await LoadChildrenAsync();
+    }
 
-        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var message = TranslationService.GetTranslation("classificationNode.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
-        var saveText = TranslationService.GetTranslation("common.save", "Salva");
-        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
-        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
-
-        var result = await DialogService.ShowMessageBoxAsync(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
-
-        if (result == true)
+    private async Task OpenChildDetailDialogAsync(Guid childId)
+    {
+        var p = new DialogParameters
         {
-            await SaveAsync();
-            NavigationManager.NavigateTo(target);
-        }
-        else if (result == false)
-        {
-            NavigationManager.NavigateTo(target);
-        }
-        // else cancel
+            [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)childId
+        };
+        var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
+        if (!(await d.Result).Canceled) await LoadChildrenAsync();
     }
 
     private async Task OpenAuditDialog()
     {
         if (_node == null || _isCreateMode) return;
-        
+
         var parameters = new DialogParameters<AuditHistoryDialog>
         {
             { x => x.EntityType, "ClassificationNode" },
@@ -647,6 +599,22 @@
             TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
             parameters,
             _auditDialogOptions);
+    }
+
+    private async Task Cancel()
+    {
+        if (HasUnsavedChanges())
+        {
+            var result = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("classificationNode.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (result == null) return;
+            if (result == true) { await SaveAsync(); return; }
+        }
+        MudDialog.Close();
     }
 
     private string GetNodeDisplayName(ClassificationNodeDto node)
