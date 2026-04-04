@@ -18,6 +18,9 @@ public partial class EventForgeDbContext
 
     private static void ConfigureDecimalPrecision(ModelBuilder modelBuilder)
     {
+        // RowVersion (optimistic concurrency) is configured via [Timestamp] on AuditableEntity — no
+        // explicit .IsRowVersion() call needed here; EF Core recognises the [Timestamp] data annotation.
+
         // Default: set precision(18,6) for all decimal and nullable decimal properties
         var decimalProperties = modelBuilder.Model.GetEntityTypes()
             .SelectMany(t => t.GetProperties())
