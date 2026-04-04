@@ -12,8 +12,8 @@ public class BrandManagementService : IEntityManagementService<BrandDto>
         => _brandService = brandService;
 
     public async Task<PagedResult<BrandDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
-        => await _brandService.GetBrandsAsync(page, pageSize);
+        => await _brandService.GetBrandsAsync(page, pageSize, ct);
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
-        => await _brandService.DeleteBrandAsync(id);
+        => await _brandService.DeleteBrandAsync(id, ct);
 }

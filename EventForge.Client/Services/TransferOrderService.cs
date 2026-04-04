@@ -52,11 +52,11 @@ public class TransferOrderService : ITransferOrderService
         }
     }
 
-    public async Task<TransferOrderDto?> GetTransferOrderAsync(Guid id)
+    public async Task<TransferOrderDto?> GetTransferOrderAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.GetAsync<TransferOrderDto>($"{BaseUrl}/{id}");
+            return await _httpClientService.GetAsync<TransferOrderDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
@@ -65,11 +65,11 @@ public class TransferOrderService : ITransferOrderService
         }
     }
 
-    public async Task<TransferOrderDto?> CreateTransferOrderAsync(CreateTransferOrderDto dto)
+    public async Task<TransferOrderDto?> CreateTransferOrderAsync(CreateTransferOrderDto dto, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateTransferOrderDto, TransferOrderDto>(BaseUrl, dto);
+            return await _httpClientService.PostAsync<CreateTransferOrderDto, TransferOrderDto>(BaseUrl, dto, ct);
         }
         catch (Exception ex)
         {
@@ -78,11 +78,11 @@ public class TransferOrderService : ITransferOrderService
         }
     }
 
-    public async Task<TransferOrderDto?> ShipTransferOrderAsync(Guid id, ShipTransferOrderDto dto)
+    public async Task<TransferOrderDto?> ShipTransferOrderAsync(Guid id, ShipTransferOrderDto dto, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<ShipTransferOrderDto, TransferOrderDto>($"{BaseUrl}/{id}/ship", dto);
+            return await _httpClientService.PostAsync<ShipTransferOrderDto, TransferOrderDto>($"{BaseUrl}/{id}/ship", dto, ct);
         }
         catch (Exception ex)
         {
@@ -91,11 +91,11 @@ public class TransferOrderService : ITransferOrderService
         }
     }
 
-    public async Task<TransferOrderDto?> ReceiveTransferOrderAsync(Guid id, ReceiveTransferOrderDto dto)
+    public async Task<TransferOrderDto?> ReceiveTransferOrderAsync(Guid id, ReceiveTransferOrderDto dto, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<ReceiveTransferOrderDto, TransferOrderDto>($"{BaseUrl}/{id}/receive", dto);
+            return await _httpClientService.PostAsync<ReceiveTransferOrderDto, TransferOrderDto>($"{BaseUrl}/{id}/receive", dto, ct);
         }
         catch (Exception ex)
         {
@@ -104,11 +104,11 @@ public class TransferOrderService : ITransferOrderService
         }
     }
 
-    public async Task<bool> CancelTransferOrderAsync(Guid id)
+    public async Task<bool> CancelTransferOrderAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}/cancel");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}/cancel", ct);
             return true;
         }
         catch (Exception ex)

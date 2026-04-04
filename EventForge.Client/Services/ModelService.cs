@@ -23,11 +23,11 @@ public class ModelService : IModelService
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
-    public async Task<PagedResult<ModelDto>> GetModelsAsync(int page = 1, int pageSize = 100)
+    public async Task<PagedResult<ModelDto>> GetModelsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
-            var result = await _httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            var result = await _httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
             return result ?? new PagedResult<ModelDto> { Items = new List<ModelDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
         }
         catch (Exception ex)
@@ -37,11 +37,11 @@ public class ModelService : IModelService
         }
     }
 
-    public async Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 100)
+    public async Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
-            var result = await _httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?brandId={brandId}&page={page}&pageSize={pageSize}");
+            var result = await _httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?brandId={brandId}&page={page}&pageSize={pageSize}", ct);
             return result ?? new PagedResult<ModelDto> { Items = new List<ModelDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
         }
         catch (Exception ex)
@@ -69,7 +69,7 @@ public class ModelService : IModelService
         
         try
         {
-            var result = await GetModelsByBrandIdAsync(brandId, 1, 100);
+            var result = await GetModelsByBrandIdAsync(brandId, 1, 100, ct);
             var models = result?.Items ?? Enumerable.Empty<ModelDto>();
             
             // Store in cache (15 minutes)
@@ -94,11 +94,11 @@ public class ModelService : IModelService
         }
     }
 
-    public async Task<ModelDto?> GetModelByIdAsync(Guid id)
+    public async Task<ModelDto?> GetModelByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.GetAsync<ModelDto>($"{BaseUrl}/{id}");
+            return await _httpClientService.GetAsync<ModelDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
@@ -107,11 +107,11 @@ public class ModelService : IModelService
         }
     }
 
-    public async Task<ModelDto> CreateModelAsync(CreateModelDto createModelDto)
+    public async Task<ModelDto> CreateModelAsync(CreateModelDto createModelDto, CancellationToken ct = default)
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreateModelDto, ModelDto>(BaseUrl, createModelDto);
+            var result = await _httpClientService.PostAsync<CreateModelDto, ModelDto>(BaseUrl, createModelDto, ct);
             
             // Invalidate cache for specific brand
             if (result != null)
@@ -130,11 +130,11 @@ public class ModelService : IModelService
         }
     }
 
-    public async Task<ModelDto?> UpdateModelAsync(Guid id, UpdateModelDto updateModelDto)
+    public async Task<ModelDto?> UpdateModelAsync(Guid id, UpdateModelDto updateModelDto, CancellationToken ct = default)
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateModelDto, ModelDto>($"{BaseUrl}/{id}", updateModelDto);
+            var result = await _httpClientService.PutAsync<UpdateModelDto, ModelDto>($"{BaseUrl}/{id}", updateModelDto, ct);
             
             // Invalidate cache for brand
             if (result != null)
@@ -154,14 +154,14 @@ public class ModelService : IModelService
         }
     }
 
-    public async Task<bool> DeleteModelAsync(Guid id)
+    public async Task<bool> DeleteModelAsync(Guid id, CancellationToken ct = default)
     {
         // Problem: We don't know BrandId before delete
         // Solution: GET model first (+1 API call, acceptable trade-off)
         ModelDto? model = null;
         try
         {
-            model = await GetModelByIdAsync(id);
+            model = await GetModelByIdAsync(id, ct);
         }
         catch (Exception ex)
         {
@@ -170,7 +170,7 @@ public class ModelService : IModelService
         
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             
             // Invalidate if model existed
             if (model != null)

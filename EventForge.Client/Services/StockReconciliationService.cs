@@ -17,12 +17,12 @@ public class StockReconciliationService : IStockReconciliationService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<StockReconciliationResultDto?> CalculateReconciliationAsync(StockReconciliationRequestDto request)
+    public async Task<StockReconciliationResultDto?> CalculateReconciliationAsync(StockReconciliationRequestDto request, CancellationToken ct = default)
     {
         try
         {
             return await _httpClientService.PostAsync<StockReconciliationRequestDto, StockReconciliationResultDto>(
-                $"{BaseUrl}/calculate", request);
+                $"{BaseUrl}/calculate", request, ct);
         }
         catch (Exception ex)
         {
@@ -31,12 +31,12 @@ public class StockReconciliationService : IStockReconciliationService
         }
     }
 
-    public async Task<StockReconciliationApplyResultDto?> ApplyReconciliationAsync(StockReconciliationApplyRequestDto request)
+    public async Task<StockReconciliationApplyResultDto?> ApplyReconciliationAsync(StockReconciliationApplyRequestDto request, CancellationToken ct = default)
     {
         try
         {
             return await _httpClientService.PostAsync<StockReconciliationApplyRequestDto, StockReconciliationApplyResultDto>(
-                $"{BaseUrl}/apply", request);
+                $"{BaseUrl}/apply", request, ct);
         }
         catch (Exception ex)
         {
@@ -45,7 +45,7 @@ public class StockReconciliationService : IStockReconciliationService
         }
     }
 
-    public async Task<byte[]?> ExportReconciliationAsync(StockReconciliationRequestDto request)
+    public async Task<byte[]?> ExportReconciliationAsync(StockReconciliationRequestDto request, CancellationToken ct = default)
     {
         try
         {
@@ -72,7 +72,7 @@ public class StockReconciliationService : IStockReconciliationService
             var query = string.Join("&", queryParams);
             var url = queryParams.Count > 0 ? $"{BaseUrl}/export?{query}" : $"{BaseUrl}/export";
 
-            return await _httpClientService.GetAsync<byte[]>(url);
+            return await _httpClientService.GetAsync<byte[]>(url, ct);
         }
         catch (Exception ex)
         {
@@ -86,7 +86,7 @@ public class StockReconciliationService : IStockReconciliationService
         try
         {
             return await _httpClientService.PostAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
-                $"{BaseUrl}/rebuild-movements/preview", request);
+                $"{BaseUrl}/rebuild-movements/preview", request, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -100,7 +100,7 @@ public class StockReconciliationService : IStockReconciliationService
         try
         {
             return await _httpClientService.PostLongRunningAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
-                $"{BaseUrl}/rebuild-movements/execute", request);
+                $"{BaseUrl}/rebuild-movements/execute", request, cancellationToken);
         }
         catch (Exception ex)
         {

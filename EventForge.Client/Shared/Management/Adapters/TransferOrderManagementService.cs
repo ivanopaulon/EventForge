@@ -32,7 +32,7 @@ public class TransferOrderManagementService : IEntityManagementService<TransferO
     /// </summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var success = await _service.CancelTransferOrderAsync(id);
+        var success = await _service.CancelTransferOrderAsync(id, ct);
         if (!success)
             throw new InvalidOperationException("Impossibile annullare l'ordine di trasferimento.");
     }

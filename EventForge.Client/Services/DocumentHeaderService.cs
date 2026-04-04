@@ -18,12 +18,12 @@ public class DocumentHeaderService : IDocumentHeaderService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<DocumentHeaderDto>?> GetPagedDocumentHeadersAsync(DocumentHeaderQueryParameters queryParameters)
+    public async Task<PagedResult<DocumentHeaderDto>?> GetPagedDocumentHeadersAsync(DocumentHeaderQueryParameters queryParameters, CancellationToken ct = default)
     {
         try
         {
             var queryString = BuildQueryString(queryParameters);
-            return await _httpClientService.GetAsync<PagedResult<DocumentHeaderDto>>($"{BaseUrl}?{queryString}");
+            return await _httpClientService.GetAsync<PagedResult<DocumentHeaderDto>>($"{BaseUrl}?{queryString}", ct);
         }
         catch (Exception ex)
         {
@@ -32,11 +32,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<DocumentHeaderDto?> GetDocumentHeaderByIdAsync(Guid id, bool includeRows = false)
+    public async Task<DocumentHeaderDto?> GetDocumentHeaderByIdAsync(Guid id, bool includeRows = false, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.GetAsync<DocumentHeaderDto>($"{BaseUrl}/{id}?includeRows={includeRows}");
+            return await _httpClientService.GetAsync<DocumentHeaderDto>($"{BaseUrl}/{id}?includeRows={includeRows}", ct);
         }
         catch (Exception ex)
         {
@@ -45,11 +45,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<DocumentHeaderDto?> CreateDocumentHeaderAsync(CreateDocumentHeaderDto createDto)
+    public async Task<DocumentHeaderDto?> CreateDocumentHeaderAsync(CreateDocumentHeaderDto createDto, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateDocumentHeaderDto, DocumentHeaderDto>(BaseUrl, createDto);
+            return await _httpClientService.PostAsync<CreateDocumentHeaderDto, DocumentHeaderDto>(BaseUrl, createDto, ct);
         }
         catch (Exception ex)
         {
@@ -58,11 +58,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<DocumentHeaderDto?> UpdateDocumentHeaderAsync(Guid id, UpdateDocumentHeaderDto updateDto)
+    public async Task<DocumentHeaderDto?> UpdateDocumentHeaderAsync(Guid id, UpdateDocumentHeaderDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateDocumentHeaderDto, DocumentHeaderDto>($"{BaseUrl}/{id}", updateDto);
+            return await _httpClientService.PutAsync<UpdateDocumentHeaderDto, DocumentHeaderDto>($"{BaseUrl}/{id}", updateDto, ct);
         }
         catch (Exception ex)
         {
@@ -71,11 +71,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<bool> DeleteDocumentHeaderAsync(Guid id)
+    public async Task<bool> DeleteDocumentHeaderAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
         catch (Exception ex)
@@ -85,11 +85,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<DocumentHeaderDto?> ApproveDocumentAsync(Guid id)
+    public async Task<DocumentHeaderDto?> ApproveDocumentAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/approve", new { });
+            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/approve", new { }, ct);
         }
         catch (Exception ex)
         {
@@ -98,11 +98,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<DocumentHeaderDto?> CloseDocumentAsync(Guid id)
+    public async Task<DocumentHeaderDto?> CloseDocumentAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/close", new { });
+            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/close", new { }, ct);
         }
         catch (Exception ex)
         {
@@ -111,13 +111,13 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<DocumentRowDto?> AddDocumentRowAsync(CreateDocumentRowDto createRowDto)
+    public async Task<DocumentRowDto?> AddDocumentRowAsync(CreateDocumentRowDto createRowDto, CancellationToken ct = default)
     {
         try
         {
             // The AddDocumentRow is exposed via DocumentHeaderService on the server
             // We need to check the actual endpoint - it might be in a different controller
-            return await _httpClientService.PostAsync<CreateDocumentRowDto, DocumentRowDto>("api/v1/documents/rows", createRowDto);
+            return await _httpClientService.PostAsync<CreateDocumentRowDto, DocumentRowDto>("api/v1/documents/rows", createRowDto, ct);
         }
         catch (Exception ex)
         {
@@ -126,11 +126,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<DocumentRowDto?> UpdateDocumentRowAsync(Guid rowId, UpdateDocumentRowDto updateRowDto)
+    public async Task<DocumentRowDto?> UpdateDocumentRowAsync(Guid rowId, UpdateDocumentRowDto updateRowDto, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateDocumentRowDto, DocumentRowDto>($"api/v1/documents/rows/{rowId}", updateRowDto);
+            return await _httpClientService.PutAsync<UpdateDocumentRowDto, DocumentRowDto>($"api/v1/documents/rows/{rowId}", updateRowDto, ct);
         }
         catch (Exception ex)
         {
@@ -139,11 +139,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<bool> DeleteDocumentRowAsync(Guid rowId)
+    public async Task<bool> DeleteDocumentRowAsync(Guid rowId, CancellationToken ct = default)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"api/v1/documents/rows/{rowId}");
+            await _httpClientService.DeleteAsync($"api/v1/documents/rows/{rowId}", ct);
             return true;
         }
         catch (Exception ex)
@@ -153,11 +153,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
-    public async Task<DocumentHeaderDto?> CalculateDocumentTotalsAsync(Guid documentId)
+    public async Task<DocumentHeaderDto?> CalculateDocumentTotalsAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<object?, DocumentHeaderDto>($"{BaseUrl}/{documentId}/calculate-totals", null);
+            return await _httpClientService.PostAsync<object?, DocumentHeaderDto>($"{BaseUrl}/{documentId}/calculate-totals", null, ct);
         }
         catch (Exception ex)
         {
