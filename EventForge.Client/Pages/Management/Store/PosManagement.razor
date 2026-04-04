@@ -1,13 +1,18 @@
 @page "/store/pos"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Store
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject EventForge.Client.Services.Store.IStorePosService StorePosService
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 <EntityManagementPage TEntity="StorePosDto"
+                      @ref="_entityPage"
                       Config="_config"
-                      Service="_service">
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -92,6 +97,7 @@
 </EntityManagementPage>
 
 @code {
+    private EntityManagementPage<StorePosDto>? _entityPage;
     private IEntityManagementService<StorePosDto> _service = null!;
     private EntityManagementConfig<StorePosDto> _config = null!;
 
@@ -160,4 +166,13 @@
         CashRegisterStatus.Disabled => TranslationService.GetTranslation("status.disabled", "Disabilitato"),
         _ => status.ToString()
     };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters { [nameof(PosDetailDialog.EntityId)] = id };
+        var dialog = await DialogService.ShowAsync<PosDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
 }

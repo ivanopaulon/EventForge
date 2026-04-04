@@ -4,6 +4,7 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.Shared.Management
 @using EventForge.Client.Shared.Management.Adapters
 @using EventForge.Client.Extensions
@@ -21,7 +22,8 @@
                       Config="_config"
                       Service="_service"
                       AdditionalFilter="@_urlFilter"
-                      OnCreateOverride="@CreateBusinessPartyAsync">
+                      OnCreateOverride="@CreateBusinessPartyAsync"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <AdditionalToolbarContent>
         <MudTooltip Text="@(_entityPage?.EFTableRef?.SelectedItems.Count > 0
                             ? $"Aggiorna da P.IVA ({_entityPage.EFTableRef.SelectedItems.Count(p => !string.IsNullOrWhiteSpace(p.VatNumber))} selezionati con P.IVA)"
@@ -353,6 +355,19 @@
 
         NavigationManager.NavigateTo(route);
         return Task.CompletedTask;
+    }
+
+    private async Task OpenDetailDialogAsync(Guid id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(BusinessPartyDetailDialog.EntityId)] = (Guid?)id,
+            [nameof(BusinessPartyDetailDialog.IsSupplierMode)] = false
+        };
+        var dialog = await DialogService.ShowAsync<BusinessPartyDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await _entityPage.RefreshAsync();
     }
 
     private void EditBusinessParty(BusinessPartyDto businessParty)

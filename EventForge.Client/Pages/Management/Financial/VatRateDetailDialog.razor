@@ -1,60 +1,35 @@
-@page "/financial/vat-rates/new"
-@page "/financial/vat-rates/{VatRateId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.VatRates
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IFinancialService FinancialService
-@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<VatRateDetail> Logger
+@inject ILogger<VatRateDetailDialog> Logger
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading || _isSaving"
-                         Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
-
-    @if (!_isLoading)
-    {
-        <!-- Page Header -->
-        <MudPaper Elevation="2" Class="pa-4 mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                           Color="Color.Primary"
-                           OnClick="@(() => TryNavigateAway("/financial/vat-rates"))"
-                           Size="Size.Small" />
-            <MudText Typo="Typo.h4">
-                <MudIcon Icon="@Icons.Material.Outlined.Percent" Class="mr-2" />
-                @(_isCreateMode
-                            ? TranslationService.GetTranslation("drawer.title.creaAliquotaIva", "Crea Nuova Aliquota IVA")
-                            : _vatRate?.Name)
-            </MudText>
-
-            @if (HasUnsavedChanges())
-            {
-                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
-                    @TranslationService.GetTranslation("vatRate.unsavedChanges", "Modifiche non salvate")
-                </MudChip>
-            }
-            @if (!_isCreateMode && _vatRate != null)
-            {
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                    @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_vatRate.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                </MudText>
-            }
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Save"
-                       OnClick="SaveVatRateAsync"
-                       Disabled="_isSaving"
-                       Size="Size.Small">
-                @TranslationService.GetTranslation("common.save", "Salva")
-            </MudButton>
-        </MudPaper>
-
-        <!-- Form Section -->
-        <MudPaper Elevation="2" Class="pa-4">
+<EFDialog Icon="@Icons.Material.Outlined.Percent"
+          Title="@(_isCreateMode ? TranslationService.GetTranslation("drawer.title.creaAliquotaIva", "Crea Nuova Aliquota IVA") : (_vatRate?.Name ?? string.Empty))"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (!_isCreateMode && _vatRate == null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @TranslationService.GetTranslation("vatRate.notFound", "Aliquota IVA non trovata")
+            </MudAlert>
+        }
+        else
+        {
             <MudForm @ref="_form">
                 <MudGrid>
                     <MudItem xs="12" md="6">
@@ -116,7 +91,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudSelect T="Guid?" 
+                        <MudSelect T="Guid?"
                                    @bind-Value="_vatRate!.VatNatureId"
                                    Label="@TranslationService.GetTranslation("drawer.field.naturaIva", "Natura IVA")"
                                    Variant="Variant.Outlined"
@@ -142,16 +117,26 @@
                     </MudItem>
                 </MudGrid>
             </MudForm>
-        </MudPaper>
-    }
-</MudContainer>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveVatRateAsync" Disabled="_isSaving || _isLoading || _vatRate == null">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
 
 @code {
-    [Parameter] public Guid? VatRateId { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? EntityId { get; set; }
 
     private VatRateDto? _vatRate;
     private bool _isLoading = true;
-    private bool _isCreateMode => VatRateId == null || VatRateId == Guid.Empty;
+    private bool _isCreateMode => EntityId == null || EntityId == Guid.Empty;
     private bool _isSaving = false;
     private MudForm? _form;
     private DateTime? _validFrom;
@@ -173,12 +158,6 @@
         await LoadVatRateAsync();
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_vatRate?.Id != VatRateId)
-            await LoadVatRateAsync();
-    }
-
     private async Task LoadVatRateAsync()
     {
         _isLoading = true;
@@ -191,9 +170,9 @@
                 _validTo = null;
                 _originalVatRateSnapshot = SerializeVatRate(_vatRate);
             }
-            else if (VatRateId.HasValue)
+            else if (EntityId.HasValue)
             {
-                var vatRate = await FinancialService.GetVatRateAsync(VatRateId.Value);
+                var vatRate = await FinancialService.GetVatRateAsync(EntityId.Value);
                 _vatRate = vatRate;
                 if (_vatRate != null)
                 {
@@ -205,7 +184,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading VAT rate {VatRateId}", VatRateId);
+            Logger.LogError(ex, "Error loading VAT rate {EntityId}", EntityId);
             Snackbar.Add(TranslationService.GetTranslation("vatRate.loadError", "Errore nel caricamento dell'aliquota IVA"), Severity.Error);
         }
         finally
@@ -238,7 +217,6 @@
         _isSaving = true;
         try
         {
-            // Update model with date picker values
             _vatRate.ValidFrom = _validFrom;
             _vatRate.ValidTo = _validTo;
 
@@ -254,11 +232,10 @@
                     Notes = _vatRate.Notes,
                     VatNatureId = _vatRate.VatNatureId
                 };
-                var created = await FinancialService.CreateVatRateAsync(createDto);
+                await FinancialService.CreateVatRateAsync(createDto);
                 Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"), Severity.Success);
-                NavigationManager.NavigateTo($"/financial/vat-rates/{created.Id}");
             }
-            else if (VatRateId.HasValue)
+            else if (EntityId.HasValue)
             {
                 var updateDto = new UpdateVatRateDto
                 {
@@ -270,10 +247,12 @@
                     Notes = _vatRate.Notes,
                     VatNatureId = _vatRate.VatNatureId
                 };
-                await FinancialService.UpdateVatRateAsync(VatRateId.Value, updateDto);
+                await FinancialService.UpdateVatRateAsync(EntityId.Value, updateDto);
                 Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"), Severity.Success);
-                await LoadVatRateAsync();
             }
+
+            _hasLocalChanges = false;
+            MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
@@ -289,13 +268,11 @@
     private void MarkChanged()
     {
         _hasLocalChanges = true;
-        StateHasChanged();
     }
 
     private string SerializeVatRate(VatRateDto? vatRate)
     {
         if (vatRate == null) return string.Empty;
-        // Create a copy with date picker values for comparison
         var snapshot = new
         {
             vatRate.Name,
@@ -317,30 +294,19 @@
         return !string.Equals(current, _originalVatRateSnapshot, StringComparison.Ordinal);
     }
 
-    private async Task TryNavigateAway(string target)
+    private async Task Cancel()
     {
-        if (!HasUnsavedChanges())
+        if (HasUnsavedChanges())
         {
-            NavigationManager.NavigateTo(target);
-            return;
+            var result = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("vatRate.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (result == null) return;
+            if (result == true) { await SaveVatRateAsync(); return; }
         }
-
-        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var message = TranslationService.GetTranslation("vatRate.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
-        var saveText = TranslationService.GetTranslation("common.save", "Salva");
-        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
-        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
-
-        var result = await DialogService.ShowMessageBoxAsync(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
-
-        if (result == true)
-        {
-            await SaveVatRateAsync();
-            NavigationManager.NavigateTo(target);
-        }
-        else if (result == false)
-        {
-            NavigationManager.NavigateTo(target);
-        }
+        MudDialog.Close();
     }
 }
