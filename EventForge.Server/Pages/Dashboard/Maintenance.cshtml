@@ -1,12 +1,18 @@
 @page
 @model EventForge.Server.Pages.Dashboard.MaintenanceModel
 @{
-    ViewData["Title"] = "Maintenance";
+    ViewData["Title"] = "Manutenzione";
     ViewData["PageSection"] = "Monitoring";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-tools me-2"></i>Manutenzione server</h2>
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon @(Model.IsMaintenanceMode ? "warning" : "settings")"><i class="bi bi-tools"></i></div>
+        <div>
+            <h1>Manutenzione server</h1>
+            <p class="ef-page-subtitle">Strumenti operativi, cache e pulizia database</p>
+        </div>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.SuccessMessage))
@@ -28,27 +34,29 @@
 
     <!-- Maintenance Mode -->
     <div class="col-md-6">
-        <div class="card border-0 shadow-sm h-100 @(Model.IsMaintenanceMode ? "border-warning border-2" : "")">
-            <div class="card-header bg-transparent fw-semibold">
-                <i class="bi bi-cone-striped me-2 text-warning"></i>Modalità manutenzione
+        <div class="ef-card h-100" style="@(Model.IsMaintenanceMode ? "border-left:3px solid var(--ef-warning)" : "")">
+            <div class="ef-card-header">
+                <i class="bi bi-cone-striped text-warning"></i>Modalità manutenzione
+                @if (Model.IsMaintenanceMode)
+                {
+                    <span class="ef-badge ef-badge-warning ms-auto">ATTIVA</span>
+                }
+                else
+                {
+                    <span class="ef-badge ef-badge-success ms-auto">Disattiva</span>
+                }
             </div>
-            <div class="card-body">
-                <p class="text-muted small">
+            <div class="ef-card-body">
+                <p style="font-size:.82rem;color:var(--ef-text-muted)">
                     Quando attiva, blocca l'accesso di tutti gli utenti (eccetto SuperAdmin).
-                    Usare per operazioni di manutenzione critica.
+                    Usare per operazioni critiche di manutenzione.
                 </p>
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <span class="badge @(Model.IsMaintenanceMode ? "bg-warning text-dark" : "bg-success") fs-6">
-                        <i class="bi @(Model.IsMaintenanceMode ? "bi-cone-striped" : "bi-check-circle-fill") me-1"></i>
-                        @(Model.IsMaintenanceMode ? "ATTIVA" : "Disattiva")
-                    </span>
-                </div>
                 <form method="post" asp-page-handler="ToggleMaintenance">
                     @Html.AntiForgeryToken()
                     <button type="submit"
-                            class="btn @(Model.IsMaintenanceMode ? "btn-success" : "btn-warning") btn-sm"
+                            class="btn @(Model.IsMaintenanceMode ? "btn-success" : "btn-warning")"
                             onclick="return confirm('@(Model.IsMaintenanceMode ? "Disattivare la modalità manutenzione?" : "Attivare la modalità manutenzione? Gli utenti non potranno accedere.")')">
-                        <i class="bi @(Model.IsMaintenanceMode ? "bi-play-fill" : "bi-pause-fill") me-1"></i>
+                        <i class="bi @(Model.IsMaintenanceMode ? "bi-play-fill" : "bi-pause-fill")"></i>
                         @(Model.IsMaintenanceMode ? "Disattiva manutenzione" : "Attiva manutenzione")
                     </button>
                 </form>
@@ -56,95 +64,82 @@
         </div>
     </div>
 
-    <!-- Cache Management -->
+    <!-- Cache + GC -->
     <div class="col-md-6">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent fw-semibold">
-                <i class="bi bi-memory me-2 text-info"></i>Gestione cache
+        <div class="ef-card h-100">
+            <div class="ef-card-header">
+                <i class="bi bi-memory text-info"></i>Gestione memoria
             </div>
-            <div class="card-body">
-                <p class="text-muted small">
-                    Svuota la cache in memoria. Può causare un temporaneo calo delle performance
-                    finché la cache non si ripopola.
-                </p>
-                <form method="post" asp-page-handler="ClearMemoryCache" class="mb-2">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-outline-info btn-sm"
-                            onclick="return confirm('Svuotare tutta la cache in memoria?')">
-                        <i class="bi bi-trash me-1"></i>Svuota cache memoria
-                    </button>
-                </form>
-                <form method="post" asp-page-handler="ForceGc">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-recycle me-1"></i>Forza Garbage Collection
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Log Cleanup -->
-    <div class="col-md-6">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent fw-semibold">
-                <i class="bi bi-archive me-2 text-danger"></i>Pulizia log
-            </div>
-            <div class="card-body">
-                <p class="text-muted small">
-                    Elimina i log di sistema più vecchi di N giorni per liberare spazio nel database.
-                    Attualmente ci sono <strong>@Model.LogCount.ToString("N0")</strong> voci di log.
-                </p>
-                <form method="post" asp-page-handler="PurgeOldLogs" class="row g-2 align-items-end">
-                    @Html.AntiForgeryToken()
-                    <div class="col-auto">
-                        <label class="form-label small mb-1">Elimina log più vecchi di (giorni)</label>
-                        <input type="number" name="days" value="30" min="1" max="365" class="form-control form-control-sm" style="width:100px" />
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-outline-danger btn-sm"
-                                onclick="return confirm('Eliminare definitivamente i log più vecchi del numero di giorni indicato?')">
-                            <i class="bi bi-trash me-1"></i>Pulisci log
+            <div class="ef-card-body d-flex flex-column gap-3">
+                <div>
+                    <p class="mb-2" style="font-size:.82rem;color:var(--ef-text-muted)">
+                        Svuota la cache in memoria. Può causare un breve calo delle performance.
+                    </p>
+                    <form method="post" asp-page-handler="ClearMemoryCache">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-info"
+                                onclick="return confirm('Svuotare tutta la cache in memoria?')">
+                            <i class="bi bi-trash3"></i>Svuota cache
                         </button>
+                    </form>
+                </div>
+                <div style="border-top:1px solid var(--ef-border);padding-top:1rem">
+                    <p class="mb-2" style="font-size:.82rem;color:var(--ef-text-muted)">
+                        Forza il garbage collector a raccogliere gli oggetti inutilizzati.
+                    </p>
+                    <form method="post" asp-page-handler="ForceGc">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="bi bi-recycle"></i>Forza GC
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log cleanup -->
+    <div class="col-md-6">
+        <div class="ef-card h-100">
+            <div class="ef-card-header">
+                <i class="bi bi-archive text-danger"></i>Pulizia log
+            </div>
+            <div class="ef-card-body">
+                <p style="font-size:.82rem;color:var(--ef-text-muted)">
+                    Elimina i log di sistema più vecchi di N giorni.
+                    Attualmente ci sono <strong>@Model.LogCount.ToString("N0")</strong> voci.
+                </p>
+                <form method="post" asp-page-handler="PurgeOldLogs" class="d-flex align-items-end gap-2">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <label class="form-label">Più vecchi di (giorni)</label>
+                        <input type="number" name="days" value="30" min="1" max="365"
+                               class="form-control" style="width:100px" />
                     </div>
+                    <button type="submit" class="btn btn-outline-danger"
+                            onclick="return confirm('Eliminare definitivamente i log più vecchi?')">
+                        <i class="bi bi-trash3"></i>Pulisci
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- System Info -->
+    <!-- System stats -->
     <div class="col-md-6">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent fw-semibold">
-                <i class="bi bi-info-circle me-2 text-primary"></i>Statistiche database
+        <div class="ef-card h-100">
+            <div class="ef-card-header">
+                <i class="bi bi-bar-chart-fill text-primary"></i>Statistiche runtime
             </div>
-            <div class="card-body">
-                <table class="table table-sm table-borderless mb-0">
+            <div class="ef-card-body p-0">
+                <table class="ef-table">
                     <tbody>
-                        <tr>
-                            <td class="text-muted">Log di sistema</td>
-                            <td class="fw-medium">@Model.LogCount.ToString("N0")</td>
-                        </tr>
-                        <tr class="table-light">
-                            <td class="text-muted">Voci audit trail</td>
-                            <td class="fw-medium">@Model.AuditCount.ToString("N0")</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">GC Gen0 collections</td>
-                            <td class="fw-medium">@GC.CollectionCount(0).ToString("N0")</td>
-                        </tr>
-                        <tr class="table-light">
-                            <td class="text-muted">GC Gen1 collections</td>
-                            <td class="fw-medium">@GC.CollectionCount(1).ToString("N0")</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">GC Gen2 collections</td>
-                            <td class="fw-medium">@GC.CollectionCount(2).ToString("N0")</td>
-                        </tr>
-                        <tr class="table-light">
-                            <td class="text-muted">Memoria allocata (GC)</td>
-                            <td class="fw-medium">@(GC.GetTotalMemory(false) / 1024 / 1024) MB</td>
-                        </tr>
+                        <tr><td class="ps-3" style="color:var(--ef-text-muted)">Log di sistema</td>      <td class="fw-semibold">@Model.LogCount.ToString("N0")</td></tr>
+                        <tr><td class="ps-3" style="color:var(--ef-text-muted)">Voci audit trail</td>    <td class="fw-semibold">@Model.AuditCount.ToString("N0")</td></tr>
+                        <tr><td class="ps-3" style="color:var(--ef-text-muted)">GC Gen0 collections</td> <td class="fw-semibold">@GC.CollectionCount(0).ToString("N0")</td></tr>
+                        <tr><td class="ps-3" style="color:var(--ef-text-muted)">GC Gen1 collections</td> <td class="fw-semibold">@GC.CollectionCount(1).ToString("N0")</td></tr>
+                        <tr><td class="ps-3" style="color:var(--ef-text-muted)">GC Gen2 collections</td> <td class="fw-semibold">@GC.CollectionCount(2).ToString("N0")</td></tr>
+                        <tr><td class="ps-3" style="color:var(--ef-text-muted)">Memoria allocata</td>    <td class="fw-semibold">@(GC.GetTotalMemory(false) / 1024 / 1024) MB</td></tr>
                     </tbody>
                 </table>
             </div>
