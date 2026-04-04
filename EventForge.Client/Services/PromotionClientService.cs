@@ -170,4 +170,82 @@ public class PromotionClientService : IPromotionClientService
             throw;
         }
     }
+
+    public async Task<IEnumerable<PromotionRuleProductDto>> GetRuleProductsAsync(Guid promotionId, Guid ruleId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.GetAsync<IEnumerable<PromotionRuleProductDto>>($"{BaseUrl}/{promotionId}/rules/{ruleId}/products", ct);
+            return result ?? Enumerable.Empty<PromotionRuleProductDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving products for rule {RuleId}", ruleId);
+            throw;
+        }
+    }
+
+    public async Task<PromotionRuleProductDto> AddRuleProductAsync(Guid promotionId, Guid ruleId, CreatePromotionRuleProductDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<CreatePromotionRuleProductDto, PromotionRuleProductDto>($"{BaseUrl}/{promotionId}/rules/{ruleId}/products", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to add product to rule");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding product to rule {RuleId}", ruleId);
+            throw;
+        }
+    }
+
+    public async Task<bool> RemoveRuleProductAsync(Guid promotionId, Guid ruleId, Guid productId, CancellationToken ct = default)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{promotionId}/rules/{ruleId}/products/{productId}", ct);
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing product from rule {RuleId}", ruleId);
+            throw;
+        }
+    }
+
+    public async Task<PromotionDto?> ValidateCouponCodeAsync(string couponCode, CancellationToken ct = default)
+    {
+        try
+        {
+            var dto = new ValidateCouponRequestDto { CouponCode = couponCode };
+            return await _httpClientService.PostAsync<ValidateCouponRequestDto, PromotionDto>($"{BaseUrl}/validate-coupon", dto, ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound || ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating coupon code");
+            throw;
+        }
+    }
+
+    public async Task<PromotionApplicationResultDto> ApplyPromotionsAsync(ApplyPromotionRulesDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<ApplyPromotionRulesDto, PromotionApplicationResultDto>($"{BaseUrl}/apply", dto, ct);
+            return result ?? new PromotionApplicationResultDto { Success = false };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying promotions");
+            throw;
+        }
+    }
 }

@@ -36,6 +36,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ILocalStorageService LocalStorage { get; set; } = null!;
     [Inject] private IDocumentRowValidator _validator { get; set; } = null!;
+    [Inject] private IPromotionClientService PromotionClientService { get; set; } = null!;
 
     #endregion
 
@@ -151,6 +152,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     // Price list metadata - PriceResolutionService integration
     private string? _appliedPriceListName;
+    private string? _appliedPromotionsSummary;
     private bool _isLoadingProductData = false;
     private bool _isApplyingPrice = false;
 
@@ -1066,95 +1068,76 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
         try
         {
-            // 1. Determine price list direction based on document type
-            // Check document type name for purchase/sales indicators
-            PriceListDirection direction = PriceListDirection.Output; // Default to sales
+            // ── 1. Respect PriceApplicationModeOverride from the document header ──────
+            var priceMode = _state.DocumentHeader?.PriceApplicationModeOverride;
 
-            if (_state.DocumentHeader?.DocumentTypeName != null)
+            if (priceMode == PriceApplicationMode.Manual)
             {
-                var typeName = _state.DocumentHeader.DocumentTypeName.ToLower();
-                // Check if document type indicates a purchase (stock increase)
-                if (typeName.Contains("acquisto") ||
-                    typeName.Contains("ddt ingresso") ||
-                    typeName.Contains("carico") ||
-                    typeName.Contains("purchase") ||
-                    typeName.Contains("receipt"))
-                {
-                    direction = PriceListDirection.Input; // Purchase
-                    Logger.LogDebug("Document type '{TypeName}' detected as purchase, using Input direction", _state.DocumentHeader.DocumentTypeName);
-                }
-                else
-                {
-                    Logger.LogDebug("Document type '{TypeName}' detected as sales, using Output direction", _state.DocumentHeader.DocumentTypeName);
-                }
-            }
-            else
-            {
-                Logger.LogDebug("No document type name available, defaulting to Output (sales) direction");
+                // Manual mode: use product DefaultPrice without calling the price resolution service
+                Logger.LogDebug("PriceApplicationMode=Manual: skipping price resolution for product {ProductId}", product.Id);
+
+                var (manualPrice, manualVat) = ResolveVatForProduct(product, product.DefaultPrice ?? 0m, ref vatRate);
+                _state.Model.IsPriceManual = true;
+                _state.Model.AppliedPriceListId = null;
+                _state.Model.OriginalPriceFromPriceList = null;
+                return (manualPrice, manualVat);
             }
 
-            // 2. Call PriceResolutionService
+            // ── 2. Determine direction via IsDocumentTypeStockIncrease ────────────────
+            // Uses the server-side boolean flag instead of fragile name-based text matching
+            var direction = (_state.DocumentHeader?.IsDocumentTypeStockIncrease ?? false)
+                ? PriceListDirection.Input
+                : PriceListDirection.Output;
+
+            Logger.LogDebug(
+                "Price direction: {Direction} (IsStockIncrease={IsStockIncrease}, DocumentType='{TypeName}')",
+                direction,
+                _state.DocumentHeader?.IsDocumentTypeStockIncrease,
+                _state.DocumentHeader?.DocumentTypeName);
+
+            // ── 3. Determine forced price list ────────────────────────────────────────
+            Guid? forcedPriceListId = null;
+            if (priceMode == PriceApplicationMode.ForcedPriceList || priceMode == PriceApplicationMode.HybridForcedWithOverrides)
+            {
+                forcedPriceListId = _state.DocumentHeader?.PriceListId;
+                Logger.LogDebug("PriceApplicationMode={Mode}: forcing price list {PriceListId}", priceMode, forcedPriceListId);
+            }
+
+            // ── 4. Call PriceResolutionService ────────────────────────────────────────
             var priceResult = await PriceResolutionService.ResolvePriceAsync(
                 productId: product.Id,
                 documentHeaderId: DocumentHeaderId,
                 businessPartyId: _state.DocumentHeader?.BusinessPartyId,
+                forcedPriceListId: forcedPriceListId,
                 direction: direction,
                 quantity: _model.Quantity
             );
 
-            // 3. Populate metadata in document row
+            // ── 5. Populate row metadata ──────────────────────────────────────────────
             _state.Model.AppliedPriceListId = priceResult.AppliedPriceListId;
             _state.Model.OriginalPriceFromPriceList = priceResult.OriginalPrice;
             _state.Model.IsPriceManual = false;
 
-            // 4. Show feedback to user
             if (priceResult.IsPriceFromList)
             {
                 _appliedPriceListName = priceResult.PriceListName;
-
-                Snackbar.Add(
-                    $"📋 {TranslationService.GetTranslation("documents.priceFromList", "Prezzo da listino")}: {priceResult.PriceListName} - {priceResult.Price:C2}",
-                    Severity.Info,
-                    config => config.VisibleStateDuration = 3000
-                );
-
                 Logger.LogInformation(
-                    "Price resolved from price list: {PriceListName} (ID: {PriceListId}), Price: {Price}, Source: {Source}",
-                    priceResult.PriceListName,
-                    priceResult.AppliedPriceListId,
-                    priceResult.Price,
-                    priceResult.Source
-                );
+                    "Price resolved from price list '{PriceListName}' (ID={PriceListId}), Price={Price}, Source={Source}",
+                    priceResult.PriceListName, priceResult.AppliedPriceListId, priceResult.Price, priceResult.Source);
             }
             else
             {
-                Logger.LogInformation(
-                    "Price resolved from default: {Price}, Source: {Source}",
-                    priceResult.Price,
-                    priceResult.Source
-                );
+                _appliedPriceListName = null;
+                Logger.LogInformation("Price resolved from default: {Price}, Source={Source}", priceResult.Price, priceResult.Source);
             }
 
             decimal productPrice = priceResult.Price;
 
-            // 5. Handle VAT rate (existing logic)
-            if (product.VatRateId.HasValue)
-            {
-                _state.SelectedVatRateId = product.VatRateId;
-                var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
-                if (vatRateDto != null)
-                {
-                    vatRate = vatRateDto.Percentage;
-                    _state.Model.VatRate = vatRate;
-                    _state.Model.VatDescription = vatRateDto.Name;
-                }
-            }
+            // ── 6. Resolve VAT rate ───────────────────────────────────────────────────
+            (productPrice, vatRate) = ResolveVatForProduct(product, productPrice, ref vatRate);
 
-            // 6. Handle VAT-included pricing (existing logic)
-            if (product.IsVatIncluded && vatRate > 0)
-            {
-                productPrice = productPrice / (1 + vatRate / 100m);
-            }
+            // ── 7. Apply active promotions ────────────────────────────────────────────
+            productPrice = await ApplyPromotionsToRowAsync(product, productPrice, vatRate);
 
             return (productPrice, vatRate);
         }
@@ -1162,27 +1145,127 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             Logger.LogError(ex, "Error calculating price for product {ProductId}, falling back to DefaultPrice", product.Id);
 
-            // Fallback to default price on error
+            // Fallback: use product default price
             decimal productPrice = product.DefaultPrice ?? 0m;
+            (productPrice, vatRate) = ResolveVatForProduct(product, productPrice, ref vatRate);
+            return (productPrice, vatRate);
+        }
+    }
 
-            if (product.VatRateId.HasValue)
+    /// <summary>
+    /// Resolves the VAT rate for the product and strips VAT from the price if the product price is VAT-inclusive.
+    /// </summary>
+    private (decimal price, decimal vatRate) ResolveVatForProduct(ProductDto product, decimal price, ref decimal vatRate)
+    {
+        if (product.VatRateId.HasValue)
+        {
+            _state.SelectedVatRateId = product.VatRateId;
+            var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
+            if (vatRateDto != null)
             {
-                _state.SelectedVatRateId = product.VatRateId;
-                var vatRateDto = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
-                if (vatRateDto != null)
+                vatRate = vatRateDto.Percentage;
+                _state.Model.VatRate = vatRate;
+                _state.Model.VatDescription = vatRateDto.Name;
+            }
+        }
+
+        if (product.IsVatIncluded && vatRate > 0)
+            price = price / (1m + vatRate / 100m);
+
+        return (price, vatRate);
+    }
+
+    /// <summary>
+    /// Applies active promotion rules to the current document row.
+    /// Updates <see cref="DocumentRowCalculationModels.DocumentRowState.Model"/>.AppliedPromotionsJSON
+    /// and returns the net unit price after the promotional discount.
+    /// On any failure (e.g. service unreachable) the original price is returned without interrupting the flow.
+    /// </summary>
+    private async Task<decimal> ApplyPromotionsToRowAsync(ProductDto product, decimal netPrice, decimal vatRate)
+    {
+        try
+        {
+            // Build the payload with a single item representing the current row
+            var applyDto = new EventForge.DTOs.Promotions.ApplyPromotionRulesDto
+            {
+                CartItems = new List<EventForge.DTOs.Promotions.CartItemDto>
                 {
-                    vatRate = vatRateDto.Percentage;
-                    _state.Model.VatRate = vatRate;
-                    _state.Model.VatDescription = vatRateDto.Name;
+                    new()
+                    {
+                        ProductId = product.Id,
+                        ProductCode = product.Code,
+                        ProductName = product.Name ?? string.Empty,
+                        UnitPrice = netPrice,
+                        Quantity = (int)Math.Ceiling(_model.Quantity),
+                        CategoryIds = product.CategoryNodeId.HasValue
+                            ? new List<Guid> { product.CategoryNodeId.Value }
+                            : null,
+                        ExistingLineDiscount = _state.Model.LineDiscount
+                    }
+                },
+                CustomerId = _state.DocumentHeader?.BusinessPartyId,
+                OrderDateTime = DateTime.UtcNow,
+                Currency = "EUR"
+            };
+
+            var result = await PromotionClientService.ApplyPromotionsAsync(applyDto);
+
+            if (result?.Success == true && result.CartItems.Count > 0)
+            {
+                var itemResult = result.CartItems[0];
+
+                if (itemResult.AppliedPromotions.Count > 0)
+                {
+                    // Serialize applied promotions as JSON for persistence
+                    _state.Model.AppliedPromotionsJSON = System.Text.Json.JsonSerializer.Serialize(
+                        itemResult.AppliedPromotions.Select(ap => new
+                        {
+                            ap.PromotionId,
+                            ap.PromotionName,
+                            ap.RuleType,
+                            ap.DiscountAmount,
+                            ap.DiscountPercentage,
+                            ap.Description
+                        }));
+
+                    // Apply the promotion discount only when no manual discount is already set
+                    if (itemResult.EffectiveDiscountPercentage > 0 && _state.Model.LineDiscount == 0m)
+                    {
+                        _state.Model.LineDiscount = itemResult.EffectiveDiscountPercentage;
+                        _state.Model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
+                    }
+
+                    _appliedPromotionsSummary = string.Join(", ", itemResult.AppliedPromotions.Select(ap => ap.PromotionName));
+
+                    Snackbar.Add(
+                        $"🏷️ {TranslationService.GetTranslation("documents.promotionsApplied", "Promozioni applicate")}: {_appliedPromotionsSummary}",
+                        Severity.Success,
+                        config => config.VisibleStateDuration = 4000);
+
+                    Logger.LogInformation(
+                        "Promotions applied to product {ProductId}: [{Promotions}], EffectiveDiscount={Discount}%",
+                        product.Id, _appliedPromotionsSummary, itemResult.EffectiveDiscountPercentage);
+
+                    // Return the final unit price (with promotion discount already factored into FinalLineTotal)
+                    return itemResult.OriginalLineTotal > 0
+                        ? itemResult.FinalLineTotal / (decimal)Math.Ceiling(_model.Quantity)
+                        : netPrice;
+                }
+                else
+                {
+                    _state.Model.AppliedPromotionsJSON = null;
+                    _appliedPromotionsSummary = null;
                 }
             }
 
-            if (product.IsVatIncluded && vatRate > 0)
-            {
-                productPrice = productPrice / (1 + vatRate / 100m);
-            }
-
-            return (productPrice, vatRate);
+            return netPrice;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not apply promotions for product {ProductId}; proceeding without promotion discount", product.Id);
+            _state.Model.AppliedPromotionsJSON = null;
+            _appliedPromotionsSummary = null;
+            return netPrice;
         }
     }
 

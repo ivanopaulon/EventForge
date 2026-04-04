@@ -45,6 +45,12 @@ public static class MappingExtensions
             Id = entity.Id,
             DocumentTypeId = entity.DocumentTypeId,
             DocumentTypeName = entity.DocumentType?.Name,
+            IsDocumentTypeStockIncrease = entity.DocumentType?.IsStockIncrease ?? false,
+            PriceApplicationModeOverride = entity.PriceApplicationModeOverride.HasValue
+                ? (EventForge.DTOs.Common.PriceApplicationMode)entity.PriceApplicationModeOverride.Value
+                : null,
+            PriceListId = entity.PriceListId,
+            PriceListName = entity.PriceList?.Name,
             Series = entity.Series,
             Number = entity.Number,
             Date = entity.Date,

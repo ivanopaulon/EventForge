@@ -134,6 +134,8 @@ public class PromotionService : IPromotionService
                 CouponCode = createDto.CouponCode,
                 Priority = createDto.Priority,
                 IsCombinable = createDto.IsCombinable,
+                MaxTotalDiscountPercentage = createDto.MaxTotalDiscountPercentage,
+                MaxUsesPerCustomer = createDto.MaxUsesPerCustomer,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser,
                 IsActive = true
@@ -195,6 +197,8 @@ public class PromotionService : IPromotionService
             promotion.CouponCode = updateDto.CouponCode;
             promotion.Priority = updateDto.Priority;
             promotion.IsCombinable = updateDto.IsCombinable;
+            promotion.MaxTotalDiscountPercentage = updateDto.MaxTotalDiscountPercentage;
+            promotion.MaxUsesPerCustomer = updateDto.MaxUsesPerCustomer;
             promotion.ModifiedAt = DateTime.UtcNow;
             promotion.ModifiedBy = currentUser;
 
@@ -296,6 +300,8 @@ public class PromotionService : IPromotionService
             CouponCode = promotion.CouponCode,
             Priority = promotion.Priority,
             IsCombinable = promotion.IsCombinable,
+            MaxTotalDiscountPercentage = promotion.MaxTotalDiscountPercentage,
+            MaxUsesPerCustomer = promotion.MaxUsesPerCustomer,
             CreatedAt = promotion.CreatedAt,
             CreatedBy = promotion.CreatedBy,
             ModifiedAt = promotion.ModifiedAt,
@@ -384,6 +390,36 @@ public class PromotionService : IPromotionService
             // Step 7: Calculate final totals
             result.FinalTotal = result.CartItems.Sum(item => item.FinalLineTotal);
             result.TotalDiscountAmount = result.OriginalTotal - result.FinalTotal;
+
+            // Enforce MaxTotalDiscountPercentage cap if set
+            if (result.OriginalTotal > 0)
+            {
+                foreach (var promotion in orderedPromotions.Where(p => p.MaxTotalDiscountPercentage.HasValue))
+                {
+                    var maxDiscount = result.OriginalTotal * promotion.MaxTotalDiscountPercentage!.Value / 100m;
+                    var currentDiscount = result.OriginalTotal - result.FinalTotal;
+                    if (currentDiscount > maxDiscount)
+                    {
+                        var excessDiscount = currentDiscount - maxDiscount;
+                        // Redistribute excess back to items proportionally
+                        var eligibleItems = result.CartItems.Where(ci => ci.PromotionDiscount > 0).ToList();
+                        var totalPromotionDiscount = eligibleItems.Sum(ci => ci.PromotionDiscount);
+                        if (totalPromotionDiscount > 0)
+                        {
+                            foreach (var cartItem in eligibleItems)
+                            {
+                                var proportion = cartItem.PromotionDiscount / totalPromotionDiscount;
+                                var reduction = RoundCurrency(excessDiscount * proportion);
+                                cartItem.FinalLineTotal = RoundCurrency(cartItem.FinalLineTotal + reduction);
+                                cartItem.PromotionDiscount = RoundCurrency(cartItem.PromotionDiscount - reduction);
+                            }
+                        }
+                        result.FinalTotal = result.CartItems.Sum(item => item.FinalLineTotal);
+                        result.TotalDiscountAmount = result.OriginalTotal - result.FinalTotal;
+                        result.Messages.Add($"Discount capped at {promotion.MaxTotalDiscountPercentage.Value}% by promotion '{promotion.Name}'");
+                    }
+                }
+            }
 
             _logger.LogInformation("Promotion application completed. Original: {Original}, Final: {Final}, Discount: {Discount}",
                 result.OriginalTotal, result.FinalTotal, result.TotalDiscountAmount);
@@ -1165,7 +1201,7 @@ public class PromotionService : IPromotionService
 
             // TODO: Implement proper DTO mapping for PromotionRule
             // For now, return empty collection to avoid compilation errors
-            return new List<PromotionRuleDto>();
+            return rules.Select(MapToPromotionRuleDto).ToList();
         }
         catch (Exception ex)
         {
@@ -1322,6 +1358,8 @@ public class PromotionService : IPromotionService
         try
         {
             var rules = await _context.PromotionRules
+                .Include(r => r.Products.Where(p => !p.IsDeleted))
+                    .ThenInclude(p => p.Product)
                 .Where(r => r.PromotionId == promotionId && !r.IsDeleted)
                 .OrderBy(r => r.CreatedAt)
                 .ToListAsync(cancellationToken);
@@ -1369,12 +1407,36 @@ public class PromotionService : IPromotionService
                 FixedPrice = createDto.FixedPrice,
                 MinOrderAmount = createDto.MinOrderAmount,
                 IsCombinable = createDto.IsCombinable,
+                CategoryIds = createDto.CategoryIds,
+                BusinessPartyGroupIds = createDto.BusinessPartyGroupIds,
+                SalesChannels = createDto.SalesChannels,
+                ValidDays = createDto.ValidDays,
+                StartTime = createDto.StartTime,
+                EndTime = createDto.EndTime,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
 
             _context.PromotionRules.Add(rule);
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Add product associations
+            if (createDto.ProductIds != null && createDto.ProductIds.Any())
+            {
+                foreach (var productId in createDto.ProductIds.Distinct())
+                {
+                    _context.PromotionRuleProducts.Add(new Data.Entities.Promotions.PromotionRuleProduct
+                    {
+                        Id = Guid.NewGuid(),
+                        PromotionRuleId = rule.Id,
+                        ProductId = productId,
+                        TenantId = currentTenantId.Value,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = currentUser
+                    });
+                }
+                await _context.SaveChangesAsync(cancellationToken);
+            }
 
             InvalidatePromotionCache();
             _logger.LogInformation("Rule {RuleId} added to promotion {PromotionId} by {User}.", rule.Id, promotionId, currentUser);
@@ -1416,10 +1478,45 @@ public class PromotionService : IPromotionService
             rule.FixedPrice = updateDto.FixedPrice;
             rule.MinOrderAmount = updateDto.MinOrderAmount;
             rule.IsCombinable = updateDto.IsCombinable;
+            rule.CategoryIds = updateDto.CategoryIds;
+            rule.BusinessPartyGroupIds = updateDto.BusinessPartyGroupIds;
+            rule.SalesChannels = updateDto.SalesChannels;
+            rule.ValidDays = updateDto.ValidDays;
+            rule.StartTime = updateDto.StartTime;
+            rule.EndTime = updateDto.EndTime;
             rule.ModifiedAt = DateTime.UtcNow;
             rule.ModifiedBy = currentUser;
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Update product associations if provided
+            if (updateDto.ProductIds != null)
+            {
+                var existingProducts = await _context.PromotionRuleProducts
+                    .Where(rp => rp.PromotionRuleId == ruleId && !rp.IsDeleted)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var ep in existingProducts)
+                {
+                    ep.IsDeleted = true;
+                    ep.ModifiedAt = DateTime.UtcNow;
+                    ep.ModifiedBy = currentUser;
+                }
+
+                foreach (var productId in updateDto.ProductIds.Distinct())
+                {
+                    _context.PromotionRuleProducts.Add(new Data.Entities.Promotions.PromotionRuleProduct
+                    {
+                        Id = Guid.NewGuid(),
+                        PromotionRuleId = ruleId,
+                        ProductId = productId,
+                        TenantId = rule.TenantId,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = currentUser
+                    });
+                }
+                await _context.SaveChangesAsync(cancellationToken);
+            }
 
             InvalidatePromotionCache();
             _logger.LogInformation("Rule {RuleId} for promotion {PromotionId} updated by {User}.", ruleId, promotionId, currentUser);
@@ -1481,10 +1578,151 @@ public class PromotionService : IPromotionService
             FixedPrice = rule.FixedPrice,
             MinOrderAmount = rule.MinOrderAmount,
             IsCombinable = rule.IsCombinable,
+            Products = rule.Products
+                .Where(p => !p.IsDeleted)
+                .Select(p => new PromotionRuleProductDto
+                {
+                    Id = p.Id,
+                    PromotionRuleId = p.PromotionRuleId,
+                    ProductId = p.ProductId,
+                    ProductName = p.Product?.Name,
+                    ProductCode = p.Product?.Code,
+                    CreatedAt = p.CreatedAt,
+                    CreatedBy = p.CreatedBy,
+                    ModifiedAt = p.ModifiedAt,
+                    ModifiedBy = p.ModifiedBy
+                }).ToList(),
+            CategoryIds = rule.CategoryIds,
+            BusinessPartyGroupIds = rule.BusinessPartyGroupIds,
+            SalesChannels = rule.SalesChannels,
+            ValidDays = rule.ValidDays,
+            StartTime = rule.StartTime,
+            EndTime = rule.EndTime,
             CreatedAt = rule.CreatedAt,
             CreatedBy = rule.CreatedBy,
             ModifiedAt = rule.ModifiedAt,
             ModifiedBy = rule.ModifiedBy
         };
+    }
+
+    public async Task<IEnumerable<PromotionRuleProductDto>> GetRuleProductsAsync(Guid promotionId, Guid ruleId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var products = await _context.PromotionRuleProducts
+                .Include(rp => rp.Product)
+                .Where(rp => rp.PromotionRuleId == ruleId && !rp.IsDeleted &&
+                             _context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted))
+                .OrderBy(rp => rp.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            return products.Select(p => new PromotionRuleProductDto
+            {
+                Id = p.Id,
+                PromotionRuleId = p.PromotionRuleId,
+                ProductId = p.ProductId,
+                ProductName = p.Product?.Name,
+                ProductCode = p.Product?.Code,
+                CreatedAt = p.CreatedAt,
+                CreatedBy = p.CreatedBy,
+                ModifiedAt = p.ModifiedAt,
+                ModifiedBy = p.ModifiedBy
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving products for rule {RuleId}.", ruleId);
+            throw;
+        }
+    }
+
+    public async Task<PromotionRuleProductDto> AddRuleProductAsync(Guid promotionId, Guid ruleId, CreatePromotionRuleProductDto createDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(createDto);
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+                throw new InvalidOperationException("Tenant context is required.");
+
+            var rule = await _context.PromotionRules
+                .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (rule == null)
+                throw new InvalidOperationException($"Rule {ruleId} not found for promotion {promotionId}.");
+
+            // Avoid duplicates
+            var existing = await _context.PromotionRuleProducts
+                .FirstOrDefaultAsync(rp => rp.PromotionRuleId == ruleId && rp.ProductId == createDto.ProductId && !rp.IsDeleted, cancellationToken);
+            if (existing != null)
+                return new PromotionRuleProductDto
+                {
+                    Id = existing.Id,
+                    PromotionRuleId = existing.PromotionRuleId,
+                    ProductId = existing.ProductId,
+                    CreatedAt = existing.CreatedAt,
+                    CreatedBy = existing.CreatedBy
+                };
+
+            var ruleProduct = new Data.Entities.Promotions.PromotionRuleProduct
+            {
+                Id = Guid.NewGuid(),
+                PromotionRuleId = ruleId,
+                ProductId = createDto.ProductId,
+                TenantId = currentTenantId.Value,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUser
+            };
+
+            _context.PromotionRuleProducts.Add(ruleProduct);
+            await _context.SaveChangesAsync(cancellationToken);
+            InvalidatePromotionCache();
+
+            var product = await _context.Set<Data.Entities.Products.Product>()
+                .Where(p => p.Id == createDto.ProductId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new PromotionRuleProductDto
+            {
+                Id = ruleProduct.Id,
+                PromotionRuleId = ruleProduct.PromotionRuleId,
+                ProductId = ruleProduct.ProductId,
+                ProductName = product?.Name,
+                ProductCode = product?.Code,
+                CreatedAt = ruleProduct.CreatedAt,
+                CreatedBy = ruleProduct.CreatedBy
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding product {ProductId} to rule {RuleId}.", createDto?.ProductId, ruleId);
+            throw;
+        }
+    }
+
+    public async Task<bool> RemoveRuleProductAsync(Guid promotionId, Guid ruleId, Guid productId, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var ruleProduct = await _context.PromotionRuleProducts
+                .Where(rp => rp.PromotionRuleId == ruleId && rp.ProductId == productId && !rp.IsDeleted &&
+                             _context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (ruleProduct == null)
+                return false;
+
+            ruleProduct.IsDeleted = true;
+            ruleProduct.ModifiedAt = DateTime.UtcNow;
+            ruleProduct.ModifiedBy = currentUser;
+            await _context.SaveChangesAsync(cancellationToken);
+            InvalidatePromotionCache();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing product {ProductId} from rule {RuleId}.", productId, ruleId);
+            throw;
+        }
     }
 }

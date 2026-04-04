@@ -294,6 +294,19 @@ namespace EventForge.DTOs.Documents
         public string? PriceListName { get; set; }
 
         /// <summary>
+        /// Indicates whether the document type represents a stock increase (purchase/inbound).
+        /// When true the price list direction is Input; when false it is Output (sale).
+        /// Populated from DocumentType.IsStockIncrease to avoid client-side name-matching.
+        /// </summary>
+        public bool IsDocumentTypeStockIncrease { get; set; }
+
+        /// <summary>
+        /// Optional price application mode override set on the document header.
+        /// When null the default Automatic mode applies.
+        /// </summary>
+        public PriceApplicationMode? PriceApplicationModeOverride { get; set; }
+
+        /// <summary>
         /// Date and time when the document was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

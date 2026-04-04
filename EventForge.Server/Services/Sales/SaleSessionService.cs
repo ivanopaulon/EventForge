@@ -1,7 +1,9 @@
 using EventForge.DTOs.Documents;
+using EventForge.DTOs.Promotions;
 using EventForge.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
 using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +20,7 @@ public class SaleSessionService : ISaleSessionService
     private readonly ILogger<SaleSessionService> _logger;
     private readonly IDocumentHeaderService _documentHeaderService;
     private readonly IStockMovementService _stockMovementService;
+    private readonly IPromotionService _promotionService;
 
     /// <summary>
     /// Tolerance for percentage sum validation (allows for rounding errors).
@@ -30,7 +33,8 @@ public class SaleSessionService : ISaleSessionService
         ITenantContext tenantContext,
         ILogger<SaleSessionService> logger,
         IDocumentHeaderService documentHeaderService,
-        IStockMovementService stockMovementService)
+        IStockMovementService stockMovementService,
+        IPromotionService promotionService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
@@ -38,6 +42,7 @@ public class SaleSessionService : ISaleSessionService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
         _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
+        _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
     }
 
     public async Task<SaleSessionDto> CreateSessionAsync(CreateSaleSessionDto createDto, string currentUser, CancellationToken cancellationToken = default)
@@ -144,6 +149,13 @@ public class SaleSessionService : ISaleSessionService
             if (updateDto.Status.HasValue)
             {
                 session.Status = (SaleSessionStatus)updateDto.Status.Value;
+            }
+
+            if (updateDto.CouponCodes != null)
+            {
+                session.CouponCodes = updateDto.CouponCodes.Count > 0
+                    ? string.Join(",", updateDto.CouponCodes.Select(c => c.Trim().ToUpperInvariant()))
+                    : null;
             }
 
             session.ModifiedBy = currentUser;
@@ -332,6 +344,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     return null;
                 }
 
+                // Apply promotions to all items in the session and recalculate totals
+                await ApplyPromotionsToSessionItemsAsync(reloadedSession, currentUser, cancellationToken);
+
                 return await MapToDtoAsync(reloadedSession, cancellationToken);
             }
             catch
@@ -401,6 +416,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "UpdateItem", item.Quantity.ToString(), updateItemDto.Quantity.ToString(), currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Updated item {ItemId} in sale session {SessionId}", itemId, sessionId);
+
+            // Apply promotions to all items in the session after a manual update
+            await ApplyPromotionsToSessionItemsAsync(session, currentUser, cancellationToken);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
@@ -2164,5 +2182,107 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         session.TaxAmount = items.Sum(i => i.TaxAmount);
         session.FinalTotal = items.Sum(i => i.TotalAmount);
         session.DiscountAmount = session.OriginalTotal - session.FinalTotal;
+    }
+
+    /// <summary>
+    /// Applies active promotion rules to all non-deleted items of the session.
+    /// Updates <see cref="SaleItem.DiscountPercent"/> and <see cref="SaleItem.PromotionId"/>
+    /// for items that receive a promotional discount, then recalculates session totals.
+    /// Any failure (e.g. promotion service unavailable) is logged and silently ignored
+    /// so it never prevents the item from being saved.
+    /// </summary>
+    private async Task ApplyPromotionsToSessionItemsAsync(
+        SaleSession session,
+        string currentUser,
+        CancellationToken cancellationToken)
+    {
+        var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
+        if (activeItems.Count == 0)
+            return;
+
+        try
+        {
+            // Parse coupon codes stored as comma-separated string
+            var couponCodes = string.IsNullOrWhiteSpace(session.CouponCodes)
+                ? null
+                : session.CouponCodes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+            // Fetch product category info for all products in one query
+            var productIds = activeItems.Select(i => i.ProductId).Distinct().ToList();
+            var productCategories = await _context.Products
+                .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
+                .Select(p => new { p.Id, p.CategoryNodeId })
+                .ToDictionaryAsync(p => p.Id, p => p.CategoryNodeId, cancellationToken);
+
+            var applyDto = new ApplyPromotionRulesDto
+            {
+                CartItems = activeItems.Select(item => new CartItemDto
+                {
+                    ProductId = item.ProductId,
+                    ProductCode = item.ProductCode,
+                    ProductName = item.ProductName,
+                    UnitPrice = item.UnitPrice,
+                    Quantity = (int)Math.Ceiling(item.Quantity),
+                    CategoryIds = productCategories.TryGetValue(item.ProductId, out var catId) && catId.HasValue
+                        ? new List<Guid> { catId.Value }
+                        : null,
+                    ExistingLineDiscount = item.DiscountPercent
+                }).ToList(),
+                CustomerId = session.CustomerId,
+                CouponCodes = couponCodes,
+                OrderDateTime = DateTime.UtcNow,
+                Currency = session.Currency ?? "EUR"
+            };
+
+            var result = await _promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
+
+            if (!result.Success || result.CartItems.Count == 0)
+                return;
+
+            bool anyChanged = false;
+
+            for (int i = 0; i < activeItems.Count && i < result.CartItems.Count; i++)
+            {
+                var saleItem = activeItems[i];
+                var promoItem = result.CartItems[i];
+
+                if (promoItem.AppliedPromotions.Count == 0)
+                    continue;
+
+                // Use the effective discount from the promotion engine if it's greater than existing
+                var promoDiscount = promoItem.EffectiveDiscountPercentage;
+                if (promoDiscount > saleItem.DiscountPercent)
+                {
+                    saleItem.DiscountPercent = promoDiscount;
+                    saleItem.PromotionId = promoItem.AppliedPromotions[0].PromotionId;
+
+                    var subtotal = saleItem.UnitPrice * saleItem.Quantity;
+                    var discountAmount = subtotal * (saleItem.DiscountPercent / 100m);
+                    saleItem.TotalAmount = subtotal - discountAmount;
+                    saleItem.TaxAmount = saleItem.TotalAmount * (saleItem.TaxRate / 100m);
+                    saleItem.ModifiedAt = DateTime.UtcNow;
+                    saleItem.ModifiedBy = currentUser;
+                    anyChanged = true;
+                }
+            }
+
+            if (anyChanged)
+            {
+                CalculateSessionTotals(session);
+                session.ModifiedAt = DateTime.UtcNow;
+                session.ModifiedBy = currentUser;
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Promotions applied to session {SessionId}: {PromotionCount} promotion(s), TotalDiscount={TotalDiscount:C2}",
+                    session.Id, result.AppliedPromotions.Count, result.TotalDiscountAmount);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to apply promotions to session {SessionId}; items saved without promotion discount",
+                session.Id);
+        }
     }
 }

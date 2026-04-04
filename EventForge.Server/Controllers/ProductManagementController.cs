@@ -1886,6 +1886,37 @@ public class ProductManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Applies promotions and coupon codes to a cart and returns the updated prices and discounts.
+    /// </summary>
+    /// <param name="applyDto">Cart items and context required for promotion evaluation</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Promotion application result with updated line prices and applied discount details</returns>
+    /// <response code="200">Returns the promotion application result</response>
+    /// <response code="400">If the request payload is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("promotions/apply")]
+    [ProducesResponseType(typeof(PromotionApplicationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PromotionApplicationResultDto>> ApplyPromotions(
+        [FromBody] ApplyPromotionRulesDto applyDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid) return CreateValidationProblemDetails();
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+        try
+        {
+            var result = await _promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while applying promotions.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets all rules for a promotion.
     /// </summary>
     /// <param name="id">Promotion ID</param>
@@ -2049,6 +2080,85 @@ public class ProductManagementController : BaseApiController
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while deleting the promotion rule.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets all products associated with a promotion rule.
+    /// </summary>
+    [HttpGet("promotions/{id:guid}/rules/{ruleId:guid}/products")]
+    [ProducesResponseType(typeof(IEnumerable<PromotionRuleProductDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<PromotionRuleProductDto>>> GetRuleProducts(
+        Guid id, Guid ruleId, CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+        try
+        {
+            var products = await _promotionService.GetRuleProductsAsync(id, ruleId, cancellationToken);
+            return Ok(products);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving rule products.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Adds a product to a promotion rule.
+    /// </summary>
+    [HttpPost("promotions/{id:guid}/rules/{ruleId:guid}/products")]
+    [ProducesResponseType(typeof(PromotionRuleProductDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PromotionRuleProductDto>> AddRuleProduct(
+        Guid id, Guid ruleId, [FromBody] CreatePromotionRuleProductDto createDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid) return CreateValidationProblemDetails();
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var result = await _promotionService.AddRuleProductAsync(id, ruleId, createDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetRuleProducts), new { id, ruleId }, result);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while adding the product to the rule.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Removes a product from a promotion rule.
+    /// </summary>
+    [HttpDelete("promotions/{id:guid}/rules/{ruleId:guid}/products/{productId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveRuleProduct(
+        Guid id, Guid ruleId, Guid productId, CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _promotionService.RemoveRuleProductAsync(id, ruleId, productId, currentUser, cancellationToken);
+            if (!success) return CreateNotFoundProblem($"Product {productId} not found in rule {ruleId}.");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while removing the product from the rule.", ex);
         }
     }
 
