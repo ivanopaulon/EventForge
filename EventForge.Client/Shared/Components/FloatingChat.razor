@@ -502,6 +502,11 @@
             _currentTenantId = user.TenantId;
         }
 
+        if (!RealtimeService.IsChatConnected)
+        {
+            await RealtimeService.StartChatConnectionAsync();
+        }
+
         ChatService.ChatCreated += OnChatCreated;
         ChatService.MessageReceived += OnMessageReceived;
         ChatService.TypingIndicator += OnTypingIndicator;

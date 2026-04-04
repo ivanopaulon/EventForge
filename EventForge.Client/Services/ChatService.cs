@@ -11,6 +11,7 @@ public interface IChatService
 {
     Task<List<ChatResponseDto>> GetChatsAsync(int page = 1, int pageSize = 50, string? filter = null, CancellationToken cancellationToken = default);
     Task<ChatResponseDto?> GetChatByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<List<ChatMemberDto>> GetChatMembersAsync(Guid chatId, CancellationToken cancellationToken = default);
     Task<ChatResponseDto> CreateChatAsync(CreateChatDto createDto, CancellationToken cancellationToken = default);
     Task<List<ChatMessageDto>> GetMessagesAsync(Guid chatId, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
     Task<ChatMessageDto> SendMessageAsync(SendMessageDto messageDto, CancellationToken cancellationToken = default);
@@ -119,6 +120,20 @@ public class ChatService : IChatService
         {
             _logger.LogError(ex, "Error getting chat {Id}", id);
             return null;
+        }
+    }
+
+    public async Task<List<ChatMemberDto>> GetChatMembersAsync(Guid chatId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var chat = await GetChatByIdAsync(chatId, cancellationToken);
+            return chat?.Members ?? new List<ChatMemberDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting members for chat {ChatId}", chatId);
+            return new List<ChatMemberDto>();
         }
     }
 
@@ -295,6 +310,8 @@ public class ChatService : IChatService
 
     private void OnChatCreated(ChatResponseDto chat)
     {
+        // Invalidate the chat list cache so the next GetChatsAsync call returns fresh data
+        _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
         ChatCreated?.Invoke(chat);
     }
 

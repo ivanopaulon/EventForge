@@ -25,7 +25,7 @@
 @inject ILogger<GenericDocumentProcedure> Logger
 @inject NavigationManager NavigationManager
 @inject IFilterStateService FilterStateService
-@inject SignalRService? SignalRService
+@inject IRealtimeService RealtimeService
 
 <PageTitle>@_pageTitle</PageTitle>
 
@@ -711,19 +711,18 @@
             }
 
             // Setup SignalR for document collaboration
-            if (SignalRService != null)
             {
-                SignalRService.DocumentLocked += OnDocumentLocked;
-                SignalRService.DocumentUnlocked += OnDocumentUnlocked;
+                RealtimeService.DocumentLocked += OnDocumentLocked;
+                RealtimeService.DocumentUnlocked += OnDocumentUnlocked;
                 
-                await SignalRService.StartDocumentCollaborationConnectionAsync();
+                await RealtimeService.StartDocumentCollaborationConnectionAsync();
                 
-                await SignalRService.JoinDocumentAsync(DocumentId.Value);
+                await RealtimeService.JoinDocumentAsync(DocumentId.Value);
                 
                 // Try to acquire lock if in edit mode
                 try
                 {
-                    _hasEditLock = await SignalRService.RequestDocumentEditLockAsync(DocumentId.Value);
+                    _hasEditLock = await RealtimeService.RequestDocumentEditLockAsync(DocumentId.Value);
                     
                     if (!_hasEditLock)
                     {
@@ -1568,19 +1567,18 @@
     {
         try
         {
-            if (_hasEditLock && DocumentId.HasValue && SignalRService != null)
+            if (_hasEditLock && DocumentId.HasValue)
             {
-                await SignalRService.ReleaseDocumentEditLockAsync(DocumentId.Value);
+                await RealtimeService.ReleaseDocumentEditLockAsync(DocumentId.Value);
             }
 
-            if (SignalRService != null)
             {
-                SignalRService.DocumentLocked -= OnDocumentLocked;
-                SignalRService.DocumentUnlocked -= OnDocumentUnlocked;
+                RealtimeService.DocumentLocked -= OnDocumentLocked;
+                RealtimeService.DocumentUnlocked -= OnDocumentUnlocked;
                 
                 if (DocumentId.HasValue)
                 {
-                    await SignalRService.LeaveDocumentAsync(DocumentId.Value);
+                    await RealtimeService.LeaveDocumentAsync(DocumentId.Value);
                 }
             }
         }

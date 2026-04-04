@@ -1,4 +1,5 @@
 using EventForge.DTOs.Chat;
+using EventForge.DTOs.Documents;
 using EventForge.DTOs.Notifications;
 
 namespace EventForge.Client.Services;
@@ -40,6 +41,11 @@ public interface IRealtimeService
     /// Gets whether the chat connection is active.
     /// </summary>
     bool IsChatConnected { get; }
+
+    /// <summary>
+    /// Gets whether the document collaboration connection is active.
+    /// </summary>
+    bool IsDocumentCollaborationConnected { get; }
 
     #endregion
 
@@ -212,6 +218,74 @@ public interface IRealtimeService
     /// Starts chat connection.
     /// </summary>
     Task StartChatConnectionAsync();
+
+    /// <summary>
+    /// Starts the document collaboration connection.
+    /// </summary>
+    Task StartDocumentCollaborationConnectionAsync();
+
+    #endregion
+
+    #region Document Collaboration Events
+
+    /// <summary>
+    /// Fired when a document is locked by another user.
+    /// </summary>
+    event Action<object>? DocumentLocked;
+
+    /// <summary>
+    /// Fired when a document lock is released.
+    /// </summary>
+    event Action<object>? DocumentUnlocked;
+
+    /// <summary>
+    /// Fired when a user joins a document collaboration session.
+    /// </summary>
+    event Action<object>? UserJoinedDocument;
+
+    /// <summary>
+    /// Fired when a user leaves a document collaboration session.
+    /// </summary>
+    event Action<object>? UserLeftDocument;
+
+    /// <summary>
+    /// Fired when a typing indicator is received for a document.
+    /// </summary>
+    event Action<object>? DocumentTypingIndicator;
+
+    /// <summary>
+    /// Fired when a new comment is created on a document.
+    /// </summary>
+    event Action<DocumentCommentDto>? CommentCreated;
+
+    /// <summary>
+    /// Fired when a comment is updated on a document.
+    /// </summary>
+    event Action<DocumentCommentDto>? CommentUpdated;
+
+    #endregion
+
+    #region Document Collaboration Methods
+
+    /// <summary>
+    /// Joins a document collaboration room to receive real-time updates.
+    /// </summary>
+    Task JoinDocumentAsync(Guid documentId);
+
+    /// <summary>
+    /// Leaves a document collaboration room.
+    /// </summary>
+    Task LeaveDocumentAsync(Guid documentId);
+
+    /// <summary>
+    /// Requests an exclusive edit lock for a document.
+    /// </summary>
+    Task<bool> RequestDocumentEditLockAsync(Guid documentId);
+
+    /// <summary>
+    /// Releases the edit lock for a document.
+    /// </summary>
+    Task ReleaseDocumentEditLockAsync(Guid documentId);
 
     #endregion
 }
