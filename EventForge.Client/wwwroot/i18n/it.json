@@ -783,7 +783,7 @@
     "visibility": "Visibilità",
     "assignedTo": "Assegna a (username)",
     "dueDate": "Scadenza",
-    "title": "Titolo",
+    "dueTime": "Orario scadenza",
     "longDescription": "Descrizione estesa",
     "dateOfBirth": "Data di nascita"
   },

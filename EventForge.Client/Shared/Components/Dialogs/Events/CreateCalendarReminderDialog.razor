@@ -70,17 +70,33 @@
                     </MudText>
                     <MudGrid Spacing="2">
                         <MudItem xs="12" sm="6">
-                            <MudDateTimePicker @bind-DateTime="_dueDate"
-                                               Label="@($"{TranslationService.GetTranslation("field.dueDate", "Scadenza")} *")"
-                                               Variant="Variant.Outlined" Margin="Margin.Dense"
-                                               Required="true" DateFormat="dd/MM/yyyy" />
+                            <MudDatePicker @bind-Date="_dueDateOnly"
+                                           Label="@($"{TranslationService.GetTranslation("field.dueDate", "Scadenza")} *")"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           Required="true"
+                                           RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                           DateFormat="dd/MM/yyyy"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
                         </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudCheckBox @bind-Value="_model.IsAllDay"
+                        <MudItem xs="12" sm="6" Class="d-flex align-center">
+                            <MudCheckBox T="bool"
+                                         @bind-Value="_model.IsAllDay"
                                          Label="@TranslationService.GetTranslation("events.allDay", "Tutto il giorno")"
                                          Color="Color.Primary" />
                         </MudItem>
-                        <MudItem xs="12" sm="6">
+                        @if (!_model.IsAllDay)
+                        {
+                            <MudItem xs="12" sm="6">
+                                <MudTimePicker @bind-Time="_dueTime"
+                                               Label="@TranslationService.GetTranslation("field.dueTime", "Orario scadenza")"
+                                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                                               AmPm="false"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.AccessTime" />
+                            </MudItem>
+                        }
+                        <MudItem xs="12" sm="@(_model.IsAllDay ? 12 : 6)">
                             <MudSelect @bind-Value="_model.Priority"
                                        Label="@TranslationService.GetTranslation("field.priority", "Priorità")"
                                        Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -195,7 +211,7 @@
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton OnClick="CreateAsync" Variant="Variant.Filled" Color="Color.Primary"
-                   Disabled="@(!_isFormValid || _isLoading || !_dueDate.HasValue)"
+                   Disabled="@(!_isFormValid || _isLoading || !_dueDateOnly.HasValue)"
                    StartIcon="@Icons.Material.Outlined.Save">
             @TranslationService.GetTranslation("common.create", "Crea")
         </MudButton>
@@ -215,7 +231,8 @@
     private bool _typeFixed;
 
     private CalendarItemType _itemType = CalendarItemType.Reminder;
-    private DateTime? _dueDate;
+    private DateTime? _dueDateOnly;
+    private TimeSpan? _dueTime;
     private DateTime? _recurrenceEndDate;
 
     private readonly string[] _presetColors = ["#FF9800", "#F44336", "#9C27B0", "#2196F3", "#4CAF50", "#00BCD4", "#795548", "#607D8B"];
@@ -235,7 +252,9 @@
             _itemType = ItemType.Value;
             _typeFixed = true;
         }
-        _dueDate = PrefilledDueDate ?? DateTime.Now.AddHours(1);
+        var prefilled = PrefilledDueDate ?? DateTime.Now.AddHours(1);
+        _dueDateOnly = prefilled.Date;
+        _dueTime = prefilled.TimeOfDay != TimeSpan.Zero ? prefilled.TimeOfDay : new TimeSpan(prefilled.Hour, 0, 0);
         _model.ItemType = _itemType;
     }
 
@@ -249,13 +268,19 @@
     private async Task CreateAsync()
     {
         await _form.Validate();
-        if (!_isFormValid || !_dueDate.HasValue) return;
+        if (!_isFormValid || !_dueDateOnly.HasValue) return;
 
         try
         {
             _isLoading = true;
             _model.ItemType = _itemType;
-            _model.DueDate = _dueDate.Value.ToUniversalTime();
+
+            // Combine the date part with the time (or use midnight for all-day events)
+            var date = _dueDateOnly.Value.Date;
+            _model.DueDate = _model.IsAllDay
+                ? date.ToUniversalTime()
+                : (date + (_dueTime ?? TimeSpan.Zero)).ToUniversalTime();
+
             _model.RecurrenceEndDate = _recurrenceEndDate?.ToUniversalTime();
 
             var result = await CalendarReminderService.CreateCalendarReminderAsync(_model);
