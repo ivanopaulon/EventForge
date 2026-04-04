@@ -39,6 +39,9 @@ public class BusinessPartyService : IBusinessPartyService
 
             var totalCount = await query.CountAsync(cancellationToken);
             var businessParties = await query
+                .Include(bp => bp.DefaultSalesPriceList)
+                .Include(bp => bp.DefaultPurchasePriceList)
+                .Include(bp => bp.ForcedPriceList)
                 .OrderBy(bp => bp.Name)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
@@ -98,6 +101,9 @@ public class BusinessPartyService : IBusinessPartyService
             }
 
             var businessParty = await _context.BusinessParties
+                .Include(bp => bp.DefaultSalesPriceList)
+                .Include(bp => bp.DefaultPurchasePriceList)
+                .Include(bp => bp.ForcedPriceList)
                 .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -146,6 +152,9 @@ public class BusinessPartyService : IBusinessPartyService
             }
 
             var businessParties = await _context.BusinessParties
+                .Include(bp => bp.DefaultSalesPriceList)
+                .Include(bp => bp.DefaultPurchasePriceList)
+                .Include(bp => bp.ForcedPriceList)
                 .Where(bp => bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType)
                 .WhereActiveTenant(currentTenantId.Value)
                 .OrderBy(bp => bp.Name)
@@ -229,6 +238,9 @@ public class BusinessPartyService : IBusinessPartyService
             }
 
             var businessParties = await query
+                .Include(bp => bp.DefaultSalesPriceList)
+                .Include(bp => bp.DefaultPurchasePriceList)
+                .Include(bp => bp.ForcedPriceList)
                 .OrderBy(bp => bp.Name)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
@@ -291,6 +303,10 @@ public class BusinessPartyService : IBusinessPartyService
                 Pec = createBusinessPartyDto.Pec,
                 Notes = createBusinessPartyDto.Notes,
                 DateOfBirth = createBusinessPartyDto.DateOfBirth,
+                DefaultSalesPriceListId = createBusinessPartyDto.DefaultSalesPriceListId,
+                DefaultPurchasePriceListId = createBusinessPartyDto.DefaultPurchasePriceListId,
+                DefaultPriceApplicationMode = createBusinessPartyDto.DefaultPriceApplicationMode,
+                ForcedPriceListId = createBusinessPartyDto.ForcedPriceListId,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -331,6 +347,9 @@ public class BusinessPartyService : IBusinessPartyService
                 return null;
 
             var businessParty = await _context.BusinessParties
+                .Include(bp => bp.DefaultSalesPriceList)
+                .Include(bp => bp.DefaultPurchasePriceList)
+                .Include(bp => bp.ForcedPriceList)
                 .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -345,10 +364,27 @@ public class BusinessPartyService : IBusinessPartyService
             businessParty.Pec = updateBusinessPartyDto.Pec;
             businessParty.Notes = updateBusinessPartyDto.Notes;
             businessParty.DateOfBirth = updateBusinessPartyDto.DateOfBirth;
+            businessParty.DefaultSalesPriceListId = updateBusinessPartyDto.DefaultSalesPriceListId;
+            businessParty.DefaultPurchasePriceListId = updateBusinessPartyDto.DefaultPurchasePriceListId;
+            businessParty.DefaultPriceApplicationMode = updateBusinessPartyDto.DefaultPriceApplicationMode;
+            businessParty.ForcedPriceListId = updateBusinessPartyDto.ForcedPriceListId;
             businessParty.ModifiedAt = DateTime.UtcNow;
             businessParty.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            // Apply optimistic concurrency: if client provided a RowVersion, use it as the
+            // expected original value so EF Core detects concurrent modifications.
+            if (updateBusinessPartyDto.RowVersion != null && updateBusinessPartyDto.RowVersion.Length > 0)
+                _context.Entry(businessParty).Property(bp => bp.RowVersion).OriginalValue = updateBusinessPartyDto.RowVersion;
+
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating business party {BusinessPartyId}.", id);
+                throw new InvalidOperationException("Il record è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Update", currentUser, originalBusinessParty, cancellationToken);
 
@@ -416,13 +452,25 @@ public class BusinessPartyService : IBusinessPartyService
             businessParty.ModifiedAt = DateTime.UtcNow;
             businessParty.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting business party {BusinessPartyId}.", id);
+                throw new InvalidOperationException("L'anagrafica è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Delete", currentUser, originalBusinessParty, cancellationToken);
 
             _logger.LogInformation("Business party {BusinessPartyId} deleted by {User}", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -610,7 +658,15 @@ public class BusinessPartyService : IBusinessPartyService
             businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
             businessPartyAccounting.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating business party accounting {BusinessPartyAccountingId}.", id);
+                throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Update", currentUser, originalBusinessPartyAccounting, cancellationToken);
 
@@ -628,6 +684,10 @@ public class BusinessPartyService : IBusinessPartyService
                 .FirstOrDefaultAsync(cancellationToken);
 
             return MapToBusinessPartyAccountingDto(updatedBusinessPartyAccounting, businessPartyName);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -661,13 +721,25 @@ public class BusinessPartyService : IBusinessPartyService
             businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
             businessPartyAccounting.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting business party accounting {BusinessPartyAccountingId}.", id);
+                throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Delete", currentUser, originalBusinessPartyAccounting, cancellationToken);
 
             _logger.LogInformation("Business party accounting {BusinessPartyAccountingId} deleted by {User}", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -748,7 +820,15 @@ public class BusinessPartyService : IBusinessPartyService
             CreatedAt = businessParty.CreatedAt,
             CreatedBy = businessParty.CreatedBy,
             ModifiedAt = businessParty.ModifiedAt,
-            ModifiedBy = businessParty.ModifiedBy
+            ModifiedBy = businessParty.ModifiedBy,
+            DefaultSalesPriceListId = businessParty.DefaultSalesPriceListId,
+            DefaultSalesPriceListName = businessParty.DefaultSalesPriceList?.Name,
+            DefaultPurchasePriceListId = businessParty.DefaultPurchasePriceListId,
+            DefaultPurchasePriceListName = businessParty.DefaultPurchasePriceList?.Name,
+            DefaultPriceApplicationMode = businessParty.DefaultPriceApplicationMode,
+            ForcedPriceListId = businessParty.ForcedPriceListId,
+            ForcedPriceListName = businessParty.ForcedPriceList?.Name,
+            RowVersion = businessParty.RowVersion
         };
     }
 
@@ -1230,7 +1310,13 @@ public class BusinessPartyService : IBusinessPartyService
             ModifiedAt = businessParty.ModifiedAt,
             ModifiedBy = businessParty.ModifiedBy,
             DefaultSalesPriceListId = businessParty.DefaultSalesPriceListId,
-            DefaultPurchasePriceListId = businessParty.DefaultPurchasePriceListId
+            DefaultSalesPriceListName = businessParty.DefaultSalesPriceList?.Name,
+            DefaultPurchasePriceListId = businessParty.DefaultPurchasePriceListId,
+            DefaultPurchasePriceListName = businessParty.DefaultPurchasePriceList?.Name,
+            DefaultPriceApplicationMode = businessParty.DefaultPriceApplicationMode,
+            ForcedPriceListId = businessParty.ForcedPriceListId,
+            ForcedPriceListName = businessParty.ForcedPriceList?.Name,
+            RowVersion = businessParty.RowVersion
         };
     }
 

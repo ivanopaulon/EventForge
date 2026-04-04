@@ -68,26 +68,4 @@ public class SystemConfiguration : AuditableEntity
     [Display(Name = "Version", Description = "Version number for tracking changes.")]
     public int Version { get; set; } = 1;
 
-    /// <summary>
-    /// Indicates if this configuration version is active.
-    /// </summary>
-    [Display(Name = "Is Active", Description = "Indicates if this version is active.")]
-    public bool IsActive { get; set; } = true;
-
-    /// <summary>
-    /// User who created this configuration.
-    /// </summary>
-    [MaxLength(100)]
-    public string? CreatedBy { get; set; }
-
-    /// <summary>
-    /// User who last modified this configuration.
-    /// </summary>
-    [MaxLength(100)]
-    public string? ModifiedBy { get; set; }
-
-    /// <summary>
-    /// Date when this configuration was last modified.
-    /// </summary>
-    public DateTime? ModifiedAt { get; set; }
 }

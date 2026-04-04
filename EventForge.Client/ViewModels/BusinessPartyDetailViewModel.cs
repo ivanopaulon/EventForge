@@ -184,7 +184,13 @@ public class BusinessPartyDetailViewModel : BaseEntityDetailViewModel<BusinessPa
             VatNumber = entity.VatNumber,
             SdiCode = entity.SdiCode,
             Pec = entity.Pec,
-            Notes = entity.Notes
+            Notes = entity.Notes,
+            DateOfBirth = entity.DateOfBirth,
+            DefaultSalesPriceListId = entity.DefaultSalesPriceListId,
+            DefaultPurchasePriceListId = entity.DefaultPurchasePriceListId,
+            DefaultPriceApplicationMode = entity.DefaultPriceApplicationMode,
+            ForcedPriceListId = entity.ForcedPriceListId,
+            RowVersion = entity.RowVersion
         };
     }
 

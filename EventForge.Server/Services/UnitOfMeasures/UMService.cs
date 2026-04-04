@@ -156,13 +156,25 @@ public class UMService : IUMService
             um.ModifiedAt = DateTime.UtcNow;
             um.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating UM {UMId}.", id);
+                throw new InvalidOperationException("L'unità di misura è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(um, "Update", currentUser, originalUM, cancellationToken);
 
             _logger.LogInformation("Unit of measure {UMId} updated by {User}.", um.Id, currentUser);
 
             return MapToUMDto(um);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -194,13 +206,25 @@ public class UMService : IUMService
             um.ModifiedAt = DateTime.UtcNow;
             um.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting UM {UMId}.", id);
+                throw new InvalidOperationException("L'unità di misura è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(um, "Delete", currentUser, originalUM, cancellationToken);
 
             _logger.LogInformation("Unit of measure {UMId} deleted by {User}.", um.Id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

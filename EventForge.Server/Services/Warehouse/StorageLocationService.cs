@@ -386,13 +386,25 @@ public class StorageLocationService : IStorageLocationService
             location.ModifiedAt = DateTime.UtcNow;
             location.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating StorageLocation {StorageLocationId}.", id);
+                throw new InvalidOperationException("La posizione di magazzino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(location, "Update", currentUser, originalLocation, cancellationToken);
 
             _logger.LogInformation("Updated storage location: {Id} - {Code}", location.Id, location.Code);
 
             return await GetStorageLocationByIdAsync(id, cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -432,12 +444,24 @@ public class StorageLocationService : IStorageLocationService
             location.ModifiedAt = DateTime.UtcNow;
             location.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting StorageLocation {StorageLocationId}.", id);
+                throw new InvalidOperationException("La posizione di magazzino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(location, "Delete", currentUser, originalLocation, cancellationToken);
 
             _logger.LogInformation("Deleted storage location: {Id}", id);
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

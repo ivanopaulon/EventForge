@@ -166,7 +166,15 @@ public class VatNatureService : IVatNatureService
             vatNature.ModifiedAt = DateTime.UtcNow;
             vatNature.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating VatNature {VatNatureId}.", id);
+                throw new InvalidOperationException("La natura IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Update", currentUser, originalVatNature, cancellationToken);
 
@@ -176,6 +184,10 @@ public class VatNatureService : IVatNatureService
             _logger.LogInformation("VAT nature {VatNatureId} updated by {User}.", vatNature.Id, currentUser);
 
             return MapToVatNatureDto(vatNature);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -207,7 +219,15 @@ public class VatNatureService : IVatNatureService
             vatNature.ModifiedAt = DateTime.UtcNow;
             vatNature.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting VatNature {VatNatureId}.", id);
+                throw new InvalidOperationException("La natura IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Delete", currentUser, originalVatNature, cancellationToken);
 
@@ -217,6 +237,10 @@ public class VatNatureService : IVatNatureService
             _logger.LogInformation("VAT nature {VatNatureId} deleted by {User}.", vatNature.Id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

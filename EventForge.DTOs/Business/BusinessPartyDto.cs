@@ -142,5 +142,27 @@ namespace EventForge.DTOs.Business
         /// Null or empty when groups are not loaded/available.
         /// </summary>
         public List<BusinessPartyGroupDto>? Groups { get; set; }
+
+        /// <summary>
+        /// Default price application mode for this business party.
+        /// Controls how the system selects the price list for sales documents.
+        /// </summary>
+        public PriceApplicationMode DefaultPriceApplicationMode { get; set; } = PriceApplicationMode.Automatic;
+
+        /// <summary>
+        /// Forced price list ID (used when DefaultPriceApplicationMode is ForcedPriceList or HybridForcedWithOverrides).
+        /// </summary>
+        public Guid? ForcedPriceListId { get; set; }
+
+        /// <summary>
+        /// Name of the forced price list (display only).
+        /// </summary>
+        public string? ForcedPriceListName { get; set; }
+
+        /// <summary>
+        /// Row version for optimistic concurrency. Returned by the server so clients can
+        /// include it in update requests to detect concurrent modifications.
+        /// </summary>
+        public byte[]? RowVersion { get; set; }
     }
 }

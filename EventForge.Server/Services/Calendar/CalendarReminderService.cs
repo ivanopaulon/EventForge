@@ -37,7 +37,7 @@ public class CalendarReminderService : ICalendarReminderService
 
             var query = _context.CalendarReminders
                 .AsNoTracking()
-                .Where(r => !r.IsDeleted && r.TenantId == currentTenantId.Value);
+                .Where(r => r.TenantId == currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var items = await query
@@ -72,7 +72,7 @@ public class CalendarReminderService : ICalendarReminderService
 
             var items = await _context.CalendarReminders
                 .AsNoTracking()
-                .Where(r => !r.IsDeleted && r.TenantId == currentTenantId.Value
+                .Where(r => r.TenantId == currentTenantId.Value
                             && r.DueDate >= startDate && r.DueDate <= endDate)
                 .OrderBy(r => r.DueDate)
                 .ThenBy(r => r.Title)
@@ -97,7 +97,7 @@ public class CalendarReminderService : ICalendarReminderService
 
             var items = await _context.CalendarReminders
                 .AsNoTracking()
-                .Where(r => !r.IsDeleted && r.TenantId == currentTenantId.Value
+                .Where(r => r.TenantId == currentTenantId.Value
                             && r.Status == DTOs.Common.ReminderStatus.Active
                             && !r.IsCompleted)
                 .OrderBy(r => r.DueDate)
@@ -123,7 +123,7 @@ public class CalendarReminderService : ICalendarReminderService
 
             var entity = await _context.CalendarReminders
                 .AsNoTracking()
-                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value && !r.IsDeleted)
+                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (entity == null)
@@ -202,7 +202,7 @@ public class CalendarReminderService : ICalendarReminderService
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
             var entity = await _context.CalendarReminders
-                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value && !r.IsDeleted)
+                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (entity == null)
@@ -270,7 +270,7 @@ public class CalendarReminderService : ICalendarReminderService
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
             var entity = await _context.CalendarReminders
-                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value && !r.IsDeleted)
+                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (entity == null)
@@ -290,13 +290,25 @@ public class CalendarReminderService : ICalendarReminderService
             entity.ModifiedBy = currentUser;
             entity.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict completing calendar reminder {ReminderId}.", id);
+                throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
             _logger.LogInformation("Calendar reminder {ReminderId} completed by {User}.", id, currentUser);
 
             return MapToDto(entity);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -316,7 +328,7 @@ public class CalendarReminderService : ICalendarReminderService
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
             var entity = await _context.CalendarReminders
-                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value && !r.IsDeleted)
+                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (entity == null)
@@ -332,13 +344,25 @@ public class CalendarReminderService : ICalendarReminderService
             entity.DeletedBy = currentUser;
             entity.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting calendar reminder {ReminderId}.", id);
+                throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
 
             _logger.LogInformation("Calendar reminder {ReminderId} deleted by {User}.", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -283,7 +283,15 @@ public class LotService : ILotService
             var originalCode = lot.Code;
             LotMapper.UpdateEntity(lot, updateDto, currentUser);
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Lot {LotId}.", id);
+                throw new InvalidOperationException("Il lotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Log audit event
             _ = await _auditLogService.LogEntityChangeAsync(
@@ -298,6 +306,10 @@ public class LotService : ILotService
             _logger.LogInformation("Updated lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
 
             return await GetLotByIdAsync(lot.Id, cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -338,7 +350,15 @@ public class LotService : ILotService
             lot.DeletedAt = DateTime.UtcNow;
             lot.DeletedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting Lot {LotId}.", id);
+                throw new InvalidOperationException("Il lotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Log audit event
             _ = await _auditLogService.LogEntityChangeAsync(
@@ -352,6 +372,10 @@ public class LotService : ILotService
 
             _logger.LogInformation("Deleted lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

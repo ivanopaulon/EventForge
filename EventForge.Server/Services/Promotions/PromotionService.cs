@@ -202,7 +202,20 @@ public class PromotionService : IPromotionService
             promotion.ModifiedAt = DateTime.UtcNow;
             promotion.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            // Apply optimistic concurrency: if client provided a RowVersion, use it as the
+            // expected original value so EF Core detects concurrent modifications.
+            if (updateDto.RowVersion != null && updateDto.RowVersion.Length > 0)
+                _context.Entry(promotion).Property(p => p.RowVersion).OriginalValue = updateDto.RowVersion;
+
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating promotion {PromotionId}.", id);
+                throw new InvalidOperationException("La promozione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Invalidate cache after updating promotion
             InvalidatePromotionCache();
@@ -305,7 +318,8 @@ public class PromotionService : IPromotionService
             CreatedAt = promotion.CreatedAt,
             CreatedBy = promotion.CreatedBy,
             ModifiedAt = promotion.ModifiedAt,
-            ModifiedBy = promotion.ModifiedBy
+            ModifiedBy = promotion.ModifiedBy,
+            RowVersion = promotion.RowVersion
         };
     }
 

@@ -67,5 +67,12 @@ namespace EventForge.DTOs.Promotions
         /// Maximum number of times this promotion can be used per individual customer. Null = no per-customer limit.
         /// </summary>
         public int? MaxUsesPerCustomer { get; set; }
+
+        /// <summary>
+        /// Row version for optimistic concurrency control. Send the value received from the
+        /// GET response to detect concurrent modifications. Null disables the check.
+        /// </summary>
+        [Timestamp]
+        public byte[]? RowVersion { get; set; }
     }
 }

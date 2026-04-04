@@ -215,13 +215,25 @@ public class NoteFlagService : INoteFlagService
             noteFlag.ModifiedBy = currentUser;
             noteFlag.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating NoteFlag {NoteFlagId}.", id);
+                throw new InvalidOperationException("Il flag nota è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Name", "Update", null, updateDto.Name, currentUser, "Note Flag", cancellationToken);
 
             _logger.LogInformation("Updated note flag {NoteFlagId}", id);
 
             return MapToDto(noteFlag);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -252,13 +264,25 @@ public class NoteFlagService : INoteFlagService
             noteFlag.DeletedAt = DateTime.UtcNow;
             noteFlag.DeletedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting NoteFlag {NoteFlagId}.", id);
+                throw new InvalidOperationException("Il flag nota è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Note Flag", cancellationToken);
 
             _logger.LogInformation("Deleted note flag {NoteFlagId}", id);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

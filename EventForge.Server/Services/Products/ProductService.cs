@@ -518,7 +518,15 @@ public class ProductService : IProductService
             _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, IsVatIncluded value before SaveChanges: {IsVatIncludedBeforeSave}",
                 id, product.IsVatIncluded);
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating product {ProductId}.", id);
+                throw new InvalidOperationException("Il prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log for the updated product
             _ = await _auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
@@ -527,6 +535,10 @@ public class ProductService : IProductService
                 id, currentUser, originalProduct.IsVatIncluded, product.IsVatIncluded);
 
             return MapToProductDto(product);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -612,7 +624,15 @@ public class ProductService : IProductService
                 bundleItem.DeletedAt = DateTime.UtcNow;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting product {ProductId}.", id);
+                throw new InvalidOperationException("Il prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log for the deleted product
             _ = await _auditLogService.TrackEntityChangesAsync(product, "Delete", currentUser, originalProduct, cancellationToken);
@@ -620,6 +640,10 @@ public class ProductService : IProductService
             _logger.LogInformation("Product {ProductId} deleted by user {User}.", id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

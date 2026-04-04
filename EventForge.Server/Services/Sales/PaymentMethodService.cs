@@ -272,7 +272,15 @@ public class PaymentMethodService : IPaymentMethodService
             paymentMethod.ModifiedAt = DateTime.UtcNow;
             paymentMethod.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating PaymentMethod {PaymentMethodId}.", id);
+                throw new InvalidOperationException("Il metodo di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "PaymentMethod",
@@ -291,6 +299,10 @@ public class PaymentMethodService : IPaymentMethodService
             _logger.LogInformation("Payment method {Name} updated by {User}.", paymentMethod.Name, currentUser);
 
             return MapToDto(paymentMethod);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -325,7 +337,15 @@ public class PaymentMethodService : IPaymentMethodService
             paymentMethod.DeletedAt = DateTime.UtcNow;
             paymentMethod.DeletedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting PaymentMethod {PaymentMethodId}.", id);
+                throw new InvalidOperationException("Il metodo di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "PaymentMethod",
@@ -344,6 +364,10 @@ public class PaymentMethodService : IPaymentMethodService
             _logger.LogInformation("Payment method {Name} deleted by {User}.", paymentMethod.Name, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

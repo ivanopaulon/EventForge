@@ -1,4 +1,4 @@
-﻿using EventForge.Server.Data.Entities;
+using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Calendar;
 using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
@@ -219,846 +219,15 @@ public partial class EventForgeDbContext : DbContext
         ConfigureProductAndPriceListRelationships(modelBuilder);
         ConfigureAlertRelationships(modelBuilder);
         ConfigureStoreAndTeamRelationships(modelBuilder);
-        ConfigureSalesAndOtherRelationships(modelBuilder);
+        ConfigureWarehouseAndSalesRelationships(modelBuilder);
+        ConfigureAuthRelationships(modelBuilder);
+        ConfigureChatRelationships(modelBuilder);
         ConfigureDailySequence(modelBuilder);
         ConfigurePriceApplicationMode(modelBuilder);
         ConfigurePerformanceIndexes(modelBuilder);
         ConfigureCalendarReminderRelationships(modelBuilder);
         ConfigureEventTimeSlotRelationships(modelBuilder);
-    }
-
-    private static void ConfigureTenantEntity(ModelBuilder modelBuilder)
-    {
-        // Configure Tenant entity to never generate Id values automatically
-        // This allows us to explicitly set Id = Guid.Empty for the System tenant
-        _ = modelBuilder.Entity<Tenant>()
-            .Property(t => t.Id)
-            .ValueGeneratedNever();
-    }
-
-    private static void ConfigureDecimalPrecision(ModelBuilder modelBuilder)
-    {
-        // Default: set precision(18,6) for all decimal and nullable decimal properties
-        var decimalProperties = modelBuilder.Model.GetEntityTypes()
-            .SelectMany(t => t.GetProperties())
-            .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?));
-
-        foreach (var prop in decimalProperties)
-        {
-            prop.SetPrecision(18);
-            prop.SetScale(6);
-        }
-
-        // Override common percentage/ratio properties to precision(5,2)
-        var percentagePropertyNames = new[]
-        {
-            "DiscountPercent",
-            "DiscountPercentage",
-            "VatRate",
-            "TaxRate",
-            "LineDiscount",
-            "RecyclingRatePercentage",
-            "Percentage"
-        };
-
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            foreach (var p in entityType.GetProperties().Where(p => percentagePropertyNames.Contains(p.Name)))
-            {
-                p.SetPrecision(5);
-                p.SetScale(2);
-            }
-        }
-
-        // Specific known overrides for decimal fields that should have higher precision can be added here
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.AmountPaid).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.BaseCurrencyAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.ExchangeRate).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscountAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalGrossAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalNetAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.VatAmount).HasPrecision(18, 6);
-
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.UnitPrice).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.Quantity).HasPrecision(18, 4);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.BaseQuantity).HasPrecision(18, 4);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.BaseUnitPrice).HasPrecision(18, 4);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.LineDiscount).HasPrecision(5, 2);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.VatRate).HasPrecision(5, 2);
-
-        _ = modelBuilder.Entity<PriceListEntry>().Property(x => x.Price).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Product>().Property(x => x.DefaultPrice).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Promotion>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Promotion>().Property(x => x.RowVersion).IsRowVersion();
-        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountPercentage).HasPrecision(5, 2);
-        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.FixedPrice).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<VatRate>().Property(x => x.Percentage).HasPrecision(5, 2);
-
-        _ = modelBuilder.Entity<SaleSession>().Property(x => x.OriginalTotal).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SaleSession>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SaleSession>().Property(x => x.FinalTotal).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SaleSession>().Property(x => x.TaxAmount).HasPrecision(18, 6);
-
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.UnitPrice).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.Quantity).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.DiscountPercent).HasPrecision(5, 2);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TaxRate).HasPrecision(5, 2);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TaxAmount).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TotalAmount).HasPrecision(18, 6);
-
-        _ = modelBuilder.Entity<SalePayment>().Property(x => x.Amount).HasPrecision(18, 6);
-
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.Quantity).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.WeightKg).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.DisposalCost).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.RecoveryValue).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.RecyclingRatePercentage).HasPrecision(5, 2);
-    }
-
-    private static void ConfigureGlobalQueryFilters(ModelBuilder modelBuilder)
-    {
-        // Apply soft delete filter to all entities that inherit from AuditableEntity
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (typeof(AuditableEntity).IsAssignableFrom(entityType.ClrType))
-            {
-                var method = typeof(EventForgeDbContext)
-                    .GetMethod(nameof(GetSoftDeleteFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                    ?.MakeGenericMethod(entityType.ClrType);
-
-                var filter = method?.Invoke(null, new object[] { });
-                if (filter != null)
-                {
-                    _ = modelBuilder.Entity(entityType.ClrType).HasQueryFilter((System.Linq.Expressions.LambdaExpression)filter);
-                }
-
-                // Note: tenant filtering is applied in services/repositories for clarity
-            }
-        }
-    }
-
-    private static void ConfigureDocumentRelationships(ModelBuilder modelBuilder)
-    {
-        // DocumentCounter → DocumentType
-        _ = modelBuilder.Entity<DocumentCounter>()
-            .HasOne(dc => dc.DocumentType)
-            .WithMany()
-            .HasForeignKey(dc => dc.DocumentTypeId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Unique constraint on DocumentType + Series + Year
-        _ = modelBuilder.Entity<DocumentCounter>()
-            .HasIndex(dc => new { dc.DocumentTypeId, dc.Series, dc.Year })
-            .IsUnique()
-            .HasDatabaseName("IX_DocumentCounters_DocumentTypeId_Series_Year");
-
-        // DocumentHeader → BusinessParty
-        _ = modelBuilder.Entity<DocumentHeader>()
-            .HasOne(d => d.BusinessParty)
-            .WithMany()
-            .HasForeignKey(d => d.BusinessPartyId);
-
-        // DocumentHeader → Address (BusinessPartyAddress)
-        _ = modelBuilder.Entity<DocumentHeader>()
-            .HasOne(d => d.BusinessPartyAddress)
-            .WithMany()
-            .HasForeignKey(d => d.BusinessPartyAddressId);
-
-        // DocumentSummaryLink → DocumentHeader (Summary and Detailed)
-        _ = modelBuilder.Entity<DocumentSummaryLink>()
-            .HasOne(l => l.SummaryDocument)
-            .WithMany(h => h.SummaryDocuments)
-            .HasForeignKey(l => l.SummaryDocumentId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<DocumentSummaryLink>()
-            .HasOne(l => l.DetailedDocument)
-            .WithMany(h => h.IncludedInSummaries)
-            .HasForeignKey("DetailedDocumentId")
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Document header current workflow execution (optional navigation)
-        _ = modelBuilder.Entity<DocumentHeader>()
-            .HasOne(dh => dh.CurrentWorkflowExecution)
-            .WithMany() // current workflow execution is a single reference, no inverse collection
-            .HasForeignKey(dh => dh.CurrentWorkflowExecutionId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        _ = modelBuilder.Entity<DocumentHeader>()
-            .HasIndex(dh => dh.CurrentWorkflowExecutionId)
-            .HasDatabaseName("IX_DocumentHeaders_CurrentWorkflowExecutionId");
-
-        // DocumentWorkflowExecution → DocumentHeader (history)
-        _ = modelBuilder.Entity<DocumentWorkflowExecution>()
-            .HasOne(dwe => dwe.DocumentHeader)
-            .WithMany(dh => dh.WorkflowExecutions)
-            .HasForeignKey(dwe => dwe.DocumentHeaderId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<DocumentWorkflowExecution>()
-            .HasIndex(dwe => dwe.DocumentHeaderId)
-            .HasDatabaseName("IX_DocumentWorkflowExecutions_DocumentHeaderId");
-
-        // DocumentVersion and reminders/schedules
-        _ = modelBuilder.Entity<DocumentVersion>()
-            .HasOne(dv => dv.DocumentHeader)
-            .WithMany(dh => dh.Versions)
-            .HasForeignKey(dv => dv.DocumentHeaderId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<DocumentVersion>()
-            .HasIndex(dv => dv.DocumentHeaderId)
-            .HasDatabaseName("IX_DocumentVersions_DocumentHeaderId");
-
-        _ = modelBuilder.Entity<DocumentReminder>()
-            .HasOne(dr => dr.DocumentHeader)
-            .WithMany(dh => dh.Reminders)
-            .HasForeignKey(dr => dr.DocumentHeaderId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<DocumentReminder>()
-            .HasIndex(dr => dr.DocumentHeaderId)
-            .HasDatabaseName("IX_DocumentReminders_DocumentHeaderId");
-
-        _ = modelBuilder.Entity<DocumentSchedule>()
-            .HasOne(ds => ds.DocumentHeader)
-            .WithMany(dh => dh.Schedules)
-            .HasForeignKey(ds => ds.DocumentHeaderId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        _ = modelBuilder.Entity<DocumentSchedule>()
-            .HasOne(ds => ds.DocumentType)
-            .WithMany()
-            .HasForeignKey(ds => ds.DocumentTypeId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        _ = modelBuilder.Entity<DocumentSchedule>()
-            .HasIndex(ds => ds.DocumentHeaderId)
-            .HasDatabaseName("IX_DocumentSchedules_DocumentHeaderId");
-
-        _ = modelBuilder.Entity<DocumentSchedule>()
-            .HasIndex(ds => ds.NextExecutionDate)
-            .HasDatabaseName("IX_DocumentSchedules_NextExecutionDate");
-
-        // DocumentAccessLog → DocumentHeader: optional to avoid global filter conflicts
-        _ = modelBuilder.Entity<DocumentAccessLog>()
-            .HasOne(dal => dal.DocumentHeader)
-            .WithMany()
-            .HasForeignKey(dal => dal.DocumentHeaderId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        _ = modelBuilder.Entity<DocumentAccessLog>()
-            .HasIndex(dal => dal.DocumentHeaderId)
-            .HasDatabaseName("IX_DocumentAccessLogs_DocumentHeaderId");
-
-        // DocumentReference: ignore polymorphic navigation to keep model simple
-        _ = modelBuilder.Entity<DocumentReference>()
-            .Ignore(d => d.Team)
-            .Ignore(d => d.TeamMember);
-
-        // MembershipCard → DocumentReference
-        _ = modelBuilder.Entity<MembershipCard>()
-            .HasOne(mc => mc.DocumentReference)
-            .WithMany()
-            .HasForeignKey(mc => mc.DocumentReferenceId)
-            .OnDelete(DeleteBehavior.SetNull);
-    }
-
-    private static void ConfigureProductAndPriceListRelationships(ModelBuilder modelBuilder)
-    {
-        // PriceList → PriceListEntry
-        _ = modelBuilder.Entity<PriceListEntry>()
-            .HasOne(e => e.PriceList)
-            .WithMany(l => l.ProductPrices)
-            .HasForeignKey(e => e.PriceListId);
-
-        // Product → ProductUnit
-        _ = modelBuilder.Entity<ProductUnit>()
-            .HasOne(u => u.Product)
-            .WithMany(p => p.Units)
-            .HasForeignKey(u => u.ProductId);
-
-        // Product → ProductCode
-        _ = modelBuilder.Entity<ProductCode>()
-            .HasOne(c => c.Product)
-            .WithMany(p => p.Codes)
-            .HasForeignKey(c => c.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<ProductCode>()
-            .HasOne(c => c.ProductUnit)
-            .WithMany()
-            .HasForeignKey(c => c.ProductUnitId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        // ProductBundleItem
-        _ = modelBuilder.Entity<ProductBundleItem>()
-            .HasOne(b => b.BundleProduct)
-            .WithMany(p => p.BundleItems)
-            .HasForeignKey(b => b.BundleProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<ProductBundleItem>()
-            .HasOne(b => b.ComponentProduct)
-            .WithMany(p => p.IncludedInBundles)
-            .HasForeignKey(b => b.ComponentProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Brand / Model / Product / ProductSupplier
-        _ = modelBuilder.Entity<Model>()
-            .HasOne(m => m.Brand)
-            .WithMany(b => b.Models)
-            .HasForeignKey(m => m.BrandId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<Product>()
-            .HasOne(p => p.Brand)
-            .WithMany(b => b.Products)
-            .HasForeignKey(p => p.BrandId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<Product>()
-            .HasOne(p => p.Model)
-            .WithMany(m => m.Products)
-            .HasForeignKey(p => p.ModelId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<ProductSupplier>()
-            .HasOne(ps => ps.Product)
-            .WithMany(p => p.Suppliers)
-            .HasForeignKey(ps => ps.ProductId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<ProductSupplier>()
-            .HasOne(ps => ps.Supplier)
-            .WithMany()
-            .HasForeignKey(ps => ps.SupplierId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<ProductSupplier>().HasIndex(ps => ps.ProductId).HasDatabaseName("IX_ProductSupplier_ProductId");
-        _ = modelBuilder.Entity<ProductSupplier>().HasIndex(ps => ps.SupplierId).HasDatabaseName("IX_ProductSupplier_SupplierId");
-        _ = modelBuilder.Entity<ProductSupplier>().HasIndex(ps => new { ps.ProductId, ps.Preferred }).HasDatabaseName("IX_ProductSupplier_ProductId_Preferred");
-
-        _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.UnitCost).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.LastPurchasePrice).HasPrecision(18, 6);
-
-        // SupplierProductPriceHistory relationships
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>()
-            .HasOne(h => h.ProductSupplier)
-            .WithMany()
-            .HasForeignKey(h => h.ProductSupplierId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>()
-            .HasOne(h => h.Supplier)
-            .WithMany()
-            .HasForeignKey(h => h.SupplierId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>()
-            .HasOne(h => h.Product)
-            .WithMany()
-            .HasForeignKey(h => h.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>()
-            .HasOne(h => h.ChangedByUser)
-            .WithMany()
-            .HasForeignKey(h => h.ChangedByUserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // SupplierProductPriceHistory indexes for performance
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => h.SupplierId).HasDatabaseName("IX_SupplierProductPriceHistory_SupplierId");
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => h.ProductId).HasDatabaseName("IX_SupplierProductPriceHistory_ProductId");
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => h.ChangedAt).HasDatabaseName("IX_SupplierProductPriceHistory_ChangedAt");
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => h.ProductSupplierId).HasDatabaseName("IX_SupplierProductPriceHistory_ProductSupplierId");
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => new { h.SupplierId, h.ChangedAt }).HasDatabaseName("IX_SupplierProductPriceHistory_SupplierId_ChangedAt");
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().HasIndex(h => new { h.ProductId, h.ChangedAt }).HasDatabaseName("IX_SupplierProductPriceHistory_ProductId_ChangedAt");
-
-        // SupplierProductPriceHistory decimal precision
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().Property(h => h.OldUnitCost).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().Property(h => h.NewUnitCost).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().Property(h => h.PriceChange).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<SupplierProductPriceHistory>().Property(h => h.PriceChangePercentage).HasPrecision(18, 6);
-
-        _ = modelBuilder.Entity<Product>().HasIndex(p => p.BrandId).HasDatabaseName("IX_Product_BrandId");
-        _ = modelBuilder.Entity<Product>().HasIndex(p => p.ModelId).HasDatabaseName("IX_Product_ModelId");
-        _ = modelBuilder.Entity<Product>().HasIndex(p => p.PreferredSupplierId).HasDatabaseName("IX_Product_PreferredSupplierId");
-
-        _ = modelBuilder.Entity<Product>().Property(p => p.ReorderPoint).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Product>().Property(p => p.SafetyStock).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Product>().Property(p => p.TargetStockLevel).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Product>().Property(p => p.AverageDailyDemand).HasPrecision(18, 6);
-
-        _ = modelBuilder.Entity<Product>()
-            .HasOne(p => p.ImageDocument)
-            .WithMany()
-            .HasForeignKey(p => p.ImageDocumentId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<Product>().HasIndex(p => p.ImageDocumentId).HasDatabaseName("IX_Product_ImageDocumentId");
-
-        // PriceListBusinessParty → PriceList
-        _ = modelBuilder.Entity<PriceListBusinessParty>()
-            .HasKey(plbp => new { plbp.PriceListId, plbp.BusinessPartyId });
-
-        _ = modelBuilder.Entity<PriceListBusinessParty>()
-            .HasOne(plbp => plbp.PriceList)
-            .WithMany(pl => pl.BusinessParties)
-            .HasForeignKey(plbp => plbp.PriceListId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // PriceListBusinessParty → BusinessParty
-        _ = modelBuilder.Entity<PriceListBusinessParty>()
-            .HasOne(plbp => plbp.BusinessParty)
-            .WithMany()
-            .HasForeignKey(plbp => plbp.BusinessPartyId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // PriceListBusinessParty indexes
-        _ = modelBuilder.Entity<PriceListBusinessParty>().HasIndex(plbp => plbp.Status)
-            .HasDatabaseName("IX_PriceListBusinessParties_Status");
-
-        _ = modelBuilder.Entity<PriceListBusinessParty>().HasIndex(plbp => plbp.IsPrimary)
-            .HasDatabaseName("IX_PriceListBusinessParties_IsPrimary");
-
-        _ = modelBuilder.Entity<PriceListBusinessParty>().HasIndex(plbp => new { plbp.BusinessPartyId, plbp.Status })
-            .HasDatabaseName("IX_PriceListBusinessParties_BusinessPartyId_Status");
-
-        // PriceListBusinessParty decimal precision
-        _ = modelBuilder.Entity<PriceListBusinessParty>().Property(plbp => plbp.GlobalDiscountPercentage)
-            .HasPrecision(5, 2);
-
-        // PriceList indexes
-        _ = modelBuilder.Entity<PriceList>().HasIndex(pl => new { pl.Type, pl.Direction })
-            .HasDatabaseName("IX_PriceLists_Type_Direction");
-
-        _ = modelBuilder.Entity<PriceList>().HasIndex(pl => pl.EventId)
-            .HasDatabaseName("IX_PriceLists_EventId");
-
-        // PriceList property configurations for document generation (FASE 2C - PR #4)
-        _ = modelBuilder.Entity<PriceList>()
-            .Property(p => p.IsGeneratedFromDocuments)
-            .IsRequired();
-
-        _ = modelBuilder.Entity<PriceList>()
-            .Property(p => p.GenerationMetadata)
-            .HasMaxLength(4000);
-
-        _ = modelBuilder.Entity<PriceList>()
-            .Property(p => p.LastSyncedBy)
-            .HasMaxLength(256);
-
-        // PriceListEntry → UnitOfMeasure
-        _ = modelBuilder.Entity<PriceListEntry>()
-            .HasOne(e => e.UnitOfMeasure)
-            .WithMany()
-            .HasForeignKey(e => e.UnitOfMeasureId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<PriceListEntry>().HasIndex(e => e.UnitOfMeasureId)
-            .HasDatabaseName("IX_PriceListEntries_UnitOfMeasureId");
-    }
-
-    private static void ConfigureAlertRelationships(ModelBuilder modelBuilder)
-    {
-        // SupplierPriceAlert relationships
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>()
-            .HasOne(a => a.Product)
-            .WithMany()
-            .HasForeignKey(a => a.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>()
-            .HasOne(a => a.Supplier)
-            .WithMany()
-            .HasForeignKey(a => a.SupplierId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // SupplierPriceAlert indexes for performance
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.TenantId).HasDatabaseName("IX_SupplierPriceAlert_TenantId");
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.ProductId).HasDatabaseName("IX_SupplierPriceAlert_ProductId");
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.SupplierId).HasDatabaseName("IX_SupplierPriceAlert_SupplierId");
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.Status).HasDatabaseName("IX_SupplierPriceAlert_Status");
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => a.CreatedAt).HasDatabaseName("IX_SupplierPriceAlert_CreatedAt");
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => new { a.TenantId, a.Status }).HasDatabaseName("IX_SupplierPriceAlert_TenantId_Status");
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().HasIndex(a => new { a.TenantId, a.Status, a.CreatedAt }).HasDatabaseName("IX_SupplierPriceAlert_TenantId_Status_CreatedAt");
-
-        // SupplierPriceAlert decimal precision
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().Property(a => a.OldPrice).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().Property(a => a.NewPrice).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().Property(a => a.PriceChangePercentage).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Entities.Alerts.SupplierPriceAlert>().Property(a => a.PotentialSavings).HasPrecision(18, 6);
-
-        // AlertConfiguration indexes
-        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().HasIndex(ac => ac.TenantId).HasDatabaseName("IX_AlertConfiguration_TenantId");
-        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().HasIndex(ac => new { ac.TenantId, ac.UserId }).HasDatabaseName("IX_AlertConfiguration_TenantId_UserId").IsUnique();
-
-        // AlertConfiguration decimal precision
-        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().Property(ac => ac.PriceIncreaseThresholdPercentage).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().Property(ac => ac.PriceDecreaseThresholdPercentage).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<Entities.Alerts.AlertConfiguration>().Property(ac => ac.VolatilityThresholdPercentage).HasPrecision(18, 6);
-    }
-
-    private static void ConfigureStoreAndTeamRelationships(ModelBuilder modelBuilder)
-    {
-        _ = modelBuilder.Entity<StoreUserGroup>()
-            .HasMany(g => g.Privileges)
-            .WithMany(p => p.Groups);
-
-        _ = modelBuilder.Entity<StoreUser>()
-            .HasOne(u => u.CashierGroup)
-            .WithMany(g => g.Cashiers)
-            .HasForeignKey(u => u.CashierGroupId);
-
-        _ = modelBuilder.Entity<StoreUser>()
-            .HasOne(u => u.PhotoDocument)
-            .WithMany()
-            .HasForeignKey(u => u.PhotoDocumentId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<StoreUser>().HasIndex(u => u.PhotoDocumentId).HasDatabaseName("IX_StoreUser_PhotoDocumentId");
-
-        _ = modelBuilder.Entity<StoreUserGroup>()
-            .HasOne(g => g.LogoDocument)
-            .WithMany()
-            .HasForeignKey(g => g.LogoDocumentId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<StoreUserGroup>().HasIndex(g => g.LogoDocumentId).HasDatabaseName("IX_StoreUserGroup_LogoDocumentId");
-
-        _ = modelBuilder.Entity<StorePos>()
-            .HasOne(p => p.ImageDocument)
-            .WithMany()
-            .HasForeignKey(p => p.ImageDocumentId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<StorePos>().HasIndex(p => p.ImageDocumentId).HasDatabaseName("IX_StorePos_ImageDocumentId");
-
-        _ = modelBuilder.Entity<Printer>()
-            .HasOne(p => p.Station)
-            .WithMany(s => s.Printers)
-            .HasForeignKey(p => p.StationId);
-    }
-
-    private static void ConfigureSalesAndOtherRelationships(ModelBuilder modelBuilder)
-    {
-        _ = modelBuilder.Entity<StorageLocation>()
-            .HasOne(l => l.Warehouse)
-            .WithMany(f => f.Locations)
-            .HasForeignKey(l => l.WarehouseId);
-
-        // TransferOrder relationships: esplicite, nessun cascade per evitare percorsi multipli/cicli
-        _ = modelBuilder.Entity<TransferOrder>()
-            .HasOne(t => t.SourceWarehouse)
-            .WithMany()
-            .HasForeignKey(t => t.SourceWarehouseId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        _ = modelBuilder.Entity<TransferOrder>()
-            .HasOne(t => t.DestinationWarehouse)
-            .WithMany()
-            .HasForeignKey(t => t.DestinationWarehouseId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        _ = modelBuilder.Entity<TransferOrder>().HasIndex(t => t.SourceWarehouseId).HasDatabaseName("IX_TransferOrders_SourceWarehouseId");
-        _ = modelBuilder.Entity<TransferOrder>().HasIndex(t => t.DestinationWarehouseId).HasDatabaseName("IX_TransferOrders_DestinationWarehouseId");
-
-        _ = modelBuilder.Entity<PromotionRule>()
-            .HasOne(r => r.Promotion)
-            .WithMany(p => p.Rules)
-            .HasForeignKey(r => r.PromotionId);
-
-        _ = modelBuilder.Entity<PromotionRuleProduct>()
-            .HasOne(rp => rp.PromotionRule)
-            .WithMany(r => r.Products)
-            .HasForeignKey(rp => rp.PromotionRuleId);
-
-        _ = modelBuilder.Entity<PromotionRuleProduct>()
-            .HasOne(rp => rp.Product)
-            .WithMany()
-            .HasForeignKey(rp => rp.ProductId);
-
-        _ = modelBuilder.Entity<User>()
-            .HasIndex(u => new { u.Username, u.TenantId })
-            .IsUnique();
-
-        _ = modelBuilder.Entity<User>()
-            .HasIndex(u => new { u.Email, u.TenantId })
-            .IsUnique();
-
-        _ = modelBuilder.Entity<User>()
-            .HasOne(u => u.Tenant)
-            .WithMany()
-            .HasForeignKey(u => u.TenantId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<UserRole>()
-            .HasOne(ur => ur.User)
-            .WithMany(u => u.UserRoles)
-            .HasForeignKey(ur => ur.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<UserRole>()
-            .HasOne(ur => ur.Role)
-            .WithMany(r => r.UserRoles)
-            .HasForeignKey(ur => ur.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<RolePermission>()
-            .HasOne(rp => rp.Role)
-            .WithMany(r => r.RolePermissions)
-            .HasForeignKey(rp => rp.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<RolePermission>()
-            .HasOne(rp => rp.Permission)
-            .WithMany(p => p.RolePermissions)
-            .HasForeignKey(rp => rp.PermissionId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<LoginAudit>()
-            .HasOne(la => la.User)
-            .WithMany(u => u.LoginAudits)
-            .HasForeignKey(la => la.UserId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        _ = modelBuilder.Entity<AdminTenant>()
-            .HasOne(at => at.User)
-            .WithMany(u => u.AdminTenants)
-            .HasForeignKey(at => at.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<AdminTenant>()
-            .HasOne(at => at.ManagedTenant)
-            .WithMany(t => t.AdminTenants)
-            .HasForeignKey(at => at.ManagedTenantId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<AdminTenant>()
-            .HasIndex(at => new { at.UserId, at.ManagedTenantId })
-            .IsUnique();
-
-        _ = modelBuilder.Entity<AuditTrail>()
-            .HasOne(at => at.PerformedByUser)
-            .WithMany(u => u.PerformedAuditTrails)
-            .HasForeignKey(at => at.PerformedByUserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<AuditTrail>()
-            .HasOne(at => at.SourceTenant)
-            .WithMany()
-            .HasForeignKey(at => at.SourceTenantId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<AuditTrail>()
-            .HasOne(at => at.TargetTenant)
-            .WithMany()
-            .HasForeignKey(at => at.TargetTenantId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<AuditTrail>()
-            .HasOne(at => at.TargetUser)
-            .WithMany(u => u.TargetedAuditTrails)
-            .HasForeignKey(at => at.TargetUserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<NotificationRecipient>()
-            .HasOne(nr => nr.Notification)
-            .WithMany(n => n.Recipients)
-            .HasForeignKey(nr => nr.NotificationId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<NotificationRecipient>()
-            .HasIndex(nr => nr.UserId)
-            .HasDatabaseName("IX_NotificationRecipients_UserId");
-
-        _ = modelBuilder.Entity<ChatMember>()
-            .HasOne(cm => cm.ChatThread)
-            .WithMany(ct => ct.Members)
-            .HasForeignKey(cm => cm.ChatThreadId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<ChatMember>()
-            .HasIndex(cm => cm.UserId)
-            .HasDatabaseName("IX_ChatMembers_UserId");
-
-        _ = modelBuilder.Entity<ChatMessage>()
-            .HasOne(cm => cm.ChatThread)
-            .WithMany(ct => ct.Messages)
-            .HasForeignKey(cm => cm.ChatThreadId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<ChatMessage>()
-            .HasIndex(cm => cm.SenderId)
-            .HasDatabaseName("IX_ChatMessages_SenderId");
-
-        _ = modelBuilder.Entity<ChatMessage>()
-            .HasOne(cm => cm.ReplyToMessage)
-            .WithMany(m => m.Replies)
-            .HasForeignKey(cm => cm.ReplyToMessageId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        _ = modelBuilder.Entity<MessageAttachment>()
-            .HasOne(ma => ma.Message)
-            .WithMany(m => m.Attachments)
-            .HasForeignKey(ma => ma.MessageId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<MessageReadReceipt>()
-            .HasOne(mrr => mrr.Message)
-            .WithMany(m => m.ReadReceipts)
-            .HasForeignKey(mrr => mrr.MessageId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<MessageReadReceipt>()
-            .HasIndex(mrr => new { mrr.MessageId, mrr.UserId })
-            .IsUnique();
-
-        // SaleSession parent-child self-referencing relationship for split/merge
-        _ = modelBuilder.Entity<SaleSession>()
-            .HasOne(s => s.ParentSession)
-            .WithMany(s => s.ChildSessions)
-            .HasForeignKey(s => s.ParentSessionId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<SaleSession>()
-            .HasIndex(s => s.ParentSessionId);
-
-        // SaleSession split/merge fields configuration
-        _ = modelBuilder.Entity<SaleSession>()
-            .Property(s => s.SplitType)
-            .HasMaxLength(50)
-            .IsRequired(false);
-
-        _ = modelBuilder.Entity<SaleSession>()
-            .Property(s => s.SplitPercentage)
-            .HasPrecision(5, 2)
-            .IsRequired(false);
-
-        _ = modelBuilder.Entity<SaleSession>()
-            .Property(s => s.MergeReason)
-            .HasMaxLength(500)
-            .IsRequired(false);
-    }
-
-    private static void ConfigureDailySequence(ModelBuilder modelBuilder)
-    {
-        // Configure DailySequence
-        _ = modelBuilder.Entity<DailySequence>()
-            .HasKey(ds => ds.Date);
-
-        _ = modelBuilder.Entity<DailySequence>()
-            .Property(ds => ds.Date)
-            .HasColumnType("date");
-
-        // Add unique constraint on Products.Code
-        _ = modelBuilder.Entity<Product>()
-            .HasIndex(p => p.Code)
-            .IsUnique()
-            .HasDatabaseName("UQ_Products_Code");
-    }
-
-    private static void ConfigurePriceApplicationMode(ModelBuilder modelBuilder)
-    {
-        // BusinessParty price application mode configuration
-        _ = modelBuilder.Entity<BusinessParty>()
-            .Property(bp => bp.DefaultPriceApplicationMode)
-            .HasConversion<int>()
-            .IsRequired();
-
-        _ = modelBuilder.Entity<BusinessParty>()
-            .HasOne(bp => bp.ForcedPriceList)
-            .WithMany()
-            .HasForeignKey(bp => bp.ForcedPriceListId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<BusinessParty>()
-            .HasIndex(bp => bp.ForcedPriceListId)
-            .HasDatabaseName("IX_BusinessParties_ForcedPriceListId");
-
-        // DocumentHeader price application mode override configuration
-        _ = modelBuilder.Entity<DocumentHeader>()
-            .Property(dh => dh.PriceApplicationModeOverride)
-            .HasConversion<int?>();
-
-        // DocumentRow price tracking configuration
-        _ = modelBuilder.Entity<DocumentRow>()
-            .Property(dr => dr.IsPriceManual)
-            .IsRequired();
-
-        _ = modelBuilder.Entity<DocumentRow>()
-            .Property(dr => dr.OriginalPriceFromPriceList)
-            .HasPrecision(18, 4);
-
-        _ = modelBuilder.Entity<DocumentRow>()
-            .Property(dr => dr.PriceNotes)
-            .HasMaxLength(500);
-
-        _ = modelBuilder.Entity<DocumentRow>()
-            .HasOne(dr => dr.AppliedPriceList)
-            .WithMany()
-            .HasForeignKey(dr => dr.AppliedPriceListId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        _ = modelBuilder.Entity<DocumentRow>()
-            .HasIndex(dr => dr.AppliedPriceListId)
-            .HasDatabaseName("IX_DocumentRows_AppliedPriceListId");
-
-        _ = modelBuilder.Entity<DocumentRow>()
-            .Property(dr => dr.AppliedPromotionsJSON)
-            .HasMaxLength(4000)
-            .IsRequired(false);
-    }
-
-    /// <summary>
-    /// Configures performance-oriented indexes for Sprint 4 — Optimization (Fase 6).
-    /// These composite and filtered indexes accelerate multi-tenant queries on hot paths.
-    /// </summary>
-    private static void ConfigurePerformanceIndexes(ModelBuilder modelBuilder)
-    {
-        // DocumentHeaders: composite index on TenantId + Date for date-range queries per tenant
-        _ = modelBuilder.Entity<DocumentHeader>()
-            .HasIndex(dh => new { dh.TenantId, dh.Date })
-            .HasDatabaseName("IX_DocumentHeaders_TenantId_Date");
-
-        // DocumentRows: composite indexes for multi-tenant lookups by parent document and product
-        _ = modelBuilder.Entity<DocumentRow>()
-            .HasIndex(dr => new { dr.TenantId, dr.DocumentHeaderId })
-            .HasDatabaseName("IX_DocumentRows_TenantId_DocumentHeaderId");
-
-        _ = modelBuilder.Entity<DocumentRow>()
-            .HasIndex(dr => new { dr.TenantId, dr.ProductId })
-            .HasDatabaseName("IX_DocumentRows_TenantId_ProductId");
-
-        // DocumentRows: index on IsPriceManual for pricing audit queries
-        _ = modelBuilder.Entity<DocumentRow>()
-            .HasIndex(dr => dr.IsPriceManual)
-            .HasDatabaseName("IX_DocumentRows_IsPriceManual");
-
-        // DocumentRows: partial/filtered index for rows with applied promotions
-        _ = modelBuilder.Entity<DocumentRow>()
-            .HasIndex(dr => new { dr.TenantId, dr.DocumentHeaderId })
-            .HasDatabaseName("IX_DocumentRows_AppliedPromotionsJSON_NotNull")
-            .HasFilter("[AppliedPromotionsJSON] IS NOT NULL");
-
-        // Promotions: composite indexes for active-promotion lookups and date-range checks
-        _ = modelBuilder.Entity<Promotion>()
-            .HasIndex(p => new { p.TenantId, p.IsActive })
-            .HasDatabaseName("IX_Promotions_TenantId_IsActive");
-
-        _ = modelBuilder.Entity<Promotion>()
-            .HasIndex(p => new { p.TenantId, p.StartDate, p.EndDate })
-            .HasDatabaseName("IX_Promotions_TenantId_StartDate_EndDate");
-
-        // PriceLists: composite index for priority-ordered lookups per tenant
-        _ = modelBuilder.Entity<PriceList>()
-            .HasIndex(pl => new { pl.TenantId, pl.Priority })
-            .HasDatabaseName("IX_PriceLists_TenantId_Priority");
+        ConfigureEntityChangeLog(modelBuilder);
     }
 
     /// <summary>
@@ -1105,7 +274,6 @@ public partial class EventForgeDbContext : DbContext
                     entity.CreatedAt = DateTime.UtcNow;
                     entity.CreatedBy = currentUser;
                     entity.IsActive = true;
-                    // TODO: Set TenantId from ITenantContext when implemented
                     break;
 
                 case EntityState.Modified:
@@ -1198,7 +366,37 @@ public partial class EventForgeDbContext : DbContext
     }
 
     /// <summary>
+    /// Properties that are excluded from Insert audit logging because they either have a fixed
+    /// default value on every insert (IsDeleted=false, IsActive=true), are null (ModifiedAt/By),
+    /// or are infrastructure columns (RowVersion) whose binary representation adds noise.
+    /// </summary>
+    private static readonly HashSet<string> AuditInsertNoiseProperties = new(StringComparer.Ordinal)
+    {
+        "RowVersion",    // byte[] — binary, meaningless as a log value
+        "IsDeleted",     // always false on insert — zero information
+        "IsActive",      // always true on insert — zero information
+        "DeletedAt",     // always null on insert
+        "DeletedBy",     // always null on insert
+        "ModifiedAt",    // always null on insert
+        "ModifiedBy",    // always null on insert
+    };
+
+    private const int AuditValueMaxLength = 2000;
+
+    /// <summary>
+    /// Truncates a value string to the maximum allowed length for audit columns,
+    /// appending an ellipsis marker when truncation occurs.
+    /// </summary>
+    private static string? TruncateAuditValue(string? value)
+    {
+        if (value == null || value.Length <= AuditValueMaxLength) return value;
+        return string.Concat(value.AsSpan(0, AuditValueMaxLength - 3), "...");
+    }
+
+    /// <summary>
     /// Creates audit log entries for an entity change.
+    /// Insert events exclude noise properties (see AuditInsertNoiseProperties).
+    /// All values are truncated to 2000 characters.
     /// </summary>
     private List<EntityChangeLog> CreateAuditEntries(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<AuditableEntity> entry, string currentUser)
     {
@@ -1206,6 +404,8 @@ public partial class EventForgeDbContext : DbContext
         var entity = entry.Entity;
         var entityName = entity.GetType().Name;
         var entityId = entity.Id;
+        var tenantId = entity.TenantId == Guid.Empty ? (Guid?)null : entity.TenantId;
+        var changedAt = DateTime.UtcNow;
 
         string operationType = entry.State switch
         {
@@ -1217,101 +417,64 @@ public partial class EventForgeDbContext : DbContext
 
         if (entry.State == EntityState.Added)
         {
-            // For new entities, log all properties
+            // For new entities log only meaningful business properties (skip noise defaults).
             foreach (var property in entry.Properties)
             {
-                if (property.CurrentValue != null)
+                if (property.CurrentValue == null) continue;
+                if (AuditInsertNoiseProperties.Contains(property.Metadata.Name)) continue;
+
+                auditEntries.Add(new EntityChangeLog
                 {
-                    auditEntries.Add(new EntityChangeLog
-                    {
-                        EntityName = entityName,
-                        EntityId = entityId,
-                        PropertyName = property.Metadata.Name,
-                        OperationType = operationType,
-                        OldValue = null,
-                        NewValue = property.CurrentValue.ToString(),
-                        ChangedBy = currentUser,
-                        ChangedAt = DateTime.UtcNow
-                    });
-                }
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    TenantId = tenantId,
+                    PropertyName = property.Metadata.Name,
+                    OperationType = operationType,
+                    OldValue = null,
+                    NewValue = TruncateAuditValue(property.CurrentValue.ToString()),
+                    ChangedBy = currentUser,
+                    ChangedAt = changedAt
+                });
             }
         }
         else if (entry.State == EntityState.Modified)
         {
-            // For modified entities, log only changed properties
+            // For modified entities log only actually changed properties.
             foreach (var property in entry.Properties)
             {
-                if (property.IsModified)
+                if (!property.IsModified) continue;
+
+                auditEntries.Add(new EntityChangeLog
                 {
-                    auditEntries.Add(new EntityChangeLog
-                    {
-                        EntityName = entityName,
-                        EntityId = entityId,
-                        PropertyName = property.Metadata.Name,
-                        OperationType = operationType,
-                        OldValue = property.OriginalValue?.ToString(),
-                        NewValue = property.CurrentValue?.ToString(),
-                        ChangedBy = currentUser,
-                        ChangedAt = DateTime.UtcNow
-                    });
-                }
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    TenantId = tenantId,
+                    PropertyName = property.Metadata.Name,
+                    OperationType = operationType,
+                    OldValue = TruncateAuditValue(property.OriginalValue?.ToString()),
+                    NewValue = TruncateAuditValue(property.CurrentValue?.ToString()),
+                    ChangedBy = currentUser,
+                    ChangedAt = changedAt
+                });
             }
         }
         else if (entry.State == EntityState.Deleted)
         {
-            // For deleted entities, log the deletion
+            // For deleted entities log a single deletion record.
             auditEntries.Add(new EntityChangeLog
             {
                 EntityName = entityName,
                 EntityId = entityId,
+                TenantId = tenantId,
                 PropertyName = "Entity",
                 OperationType = operationType,
                 OldValue = "Active",
                 NewValue = "Deleted",
                 ChangedBy = currentUser,
-                ChangedAt = DateTime.UtcNow
+                ChangedAt = changedAt
             });
         }
 
         return auditEntries;
-    }
-
-private static void ConfigureEventTimeSlotRelationships(ModelBuilder modelBuilder)
-    {
-        _ = modelBuilder.Entity<EventTimeSlot>()
-            .HasOne(s => s.Event)
-            .WithMany(e => e.TimeSlots)
-            .HasForeignKey(s => s.EventId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<EventTimeSlot>()
-            .HasIndex(s => s.EventId)
-            .HasDatabaseName("IX_EventTimeSlots_EventId");
-
-        _ = modelBuilder.Entity<EventTimeSlot>()
-            .HasIndex(s => new { s.EventId, s.SortOrder })
-            .HasDatabaseName("IX_EventTimeSlots_EventId_SortOrder");
-    }
-
-    private static void ConfigureCalendarReminderRelationships(ModelBuilder modelBuilder)
-    {
-        _ = modelBuilder.Entity<CalendarReminder>()
-            .HasIndex(r => r.TenantId)
-            .HasDatabaseName("IX_CalendarReminders_TenantId");
-
-        _ = modelBuilder.Entity<CalendarReminder>()
-            .HasIndex(r => r.DueDate)
-            .HasDatabaseName("IX_CalendarReminders_DueDate");
-
-        _ = modelBuilder.Entity<CalendarReminder>()
-            .HasIndex(r => new { r.TenantId, r.Status })
-            .HasDatabaseName("IX_CalendarReminders_TenantId_Status");
-
-        _ = modelBuilder.Entity<CalendarReminder>()
-            .HasOne(r => r.Event)
-            .WithMany()
-            .HasForeignKey(r => r.EventId)
-            .OnDelete(DeleteBehavior.SetNull)
-            .IsRequired(false);
     }
 }

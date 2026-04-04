@@ -421,7 +421,15 @@ public class TenantService : ITenantService
             tenant.SubscriptionExpiresAt = updateDto.SubscriptionExpiresAt;
             tenant.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync();
+            try
+            {
+                _ = await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating Tenant {TenantId}.", tenantId);
+                throw new InvalidOperationException("Il tenant è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             // Audit log
             try
@@ -449,6 +457,10 @@ public class TenantService : ITenantService
             }
 
             return TenantMapper.ToServerResponseDto(tenant);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

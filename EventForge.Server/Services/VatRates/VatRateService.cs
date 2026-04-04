@@ -150,13 +150,25 @@ public class VatRateService : IVatRateService
             vatRate.ModifiedAt = DateTime.UtcNow;
             vatRate.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating VatRate {VatRateId}.", id);
+                throw new InvalidOperationException("L'aliquota IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(vatRate, "Update", currentUser, originalVatRate, cancellationToken);
 
             _logger.LogInformation("VAT rate {VatRateId} updated by {User}.", vatRate.Id, currentUser);
 
             return MapToVatRateDto(vatRate);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -185,13 +197,25 @@ public class VatRateService : IVatRateService
             vatRate.ModifiedAt = DateTime.UtcNow;
             vatRate.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting VatRate {VatRateId}.", id);
+                throw new InvalidOperationException("L'aliquota IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(vatRate, "Delete", currentUser, originalVatRate, cancellationToken);
 
             _logger.LogInformation("VAT rate {VatRateId} deleted by {User}.", vatRate.Id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

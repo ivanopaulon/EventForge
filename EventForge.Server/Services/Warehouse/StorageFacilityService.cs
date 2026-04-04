@@ -187,7 +187,15 @@ public class StorageFacilityService : IStorageFacilityService
             facility.ModifiedAt = DateTime.UtcNow;
             facility.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict updating StorageFacility {StorageFacilityId}.", id);
+                throw new InvalidOperationException("Il magazzino è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(facility, "Update", currentUser, originalFacility, cancellationToken);
 
@@ -197,6 +205,10 @@ public class StorageFacilityService : IStorageFacilityService
             _logger.LogInformation("Storage facility {FacilityId} updated by {User}.", facility.Id, currentUser);
 
             return MapToStorageFacilityDto(facility);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -230,7 +242,15 @@ public class StorageFacilityService : IStorageFacilityService
             facility.ModifiedAt = DateTime.UtcNow;
             facility.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _ = await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict deleting StorageFacility {StorageFacilityId}.", id);
+                throw new InvalidOperationException("Il magazzino è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
 
             _ = await _auditLogService.TrackEntityChangesAsync(facility, "Delete", currentUser, originalFacility, cancellationToken);
 
@@ -240,6 +260,10 @@ public class StorageFacilityService : IStorageFacilityService
             _logger.LogInformation("Storage facility {FacilityId} deleted by {User}.", facility.Id, currentUser);
 
             return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

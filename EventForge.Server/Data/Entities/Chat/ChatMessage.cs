@@ -68,11 +68,6 @@ public class ChatMessage : AuditableEntity
     public DateTime? EditedAt { get; set; }
 
     /// <summary>
-    /// When the message was deleted.
-    /// </summary>
-    public new DateTime? DeletedAt { get; set; }
-
-    /// <summary>
     /// Whether the message has been edited.
     /// </summary>
     public bool IsEdited { get; set; } = false;
