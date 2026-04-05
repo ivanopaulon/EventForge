@@ -40,7 +40,6 @@
     <PackageReference Include="FreeSpire.Barcode" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
-    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <!-- Health Checks and Resiliency packages -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
@@ -64,15 +63,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Content Include="private-key.pem">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="digital-certificate.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   
   <ItemGroup>

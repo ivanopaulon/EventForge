@@ -197,16 +197,6 @@ builder.Services.AddSwaggerGen(c =>
             return $"{genericName}Of{genericArgs}";
         }
 
-        // Known conflicting types: use namespace prefix to avoid Swagger schema conflicts
-        // PrinterDto exists in both EventForge.DTOs.Printing and EventForge.DTOs.Station
-        if (type.Name == "PrinterDto")
-        {
-            var namespacePrefix = type.Namespace?
-                .Replace("EventForge.DTOs.", "")
-                .Replace(".", "") ?? "";
-            return $"{namespacePrefix}{type.Name}";
-        }
-
         // For non-generic, non-conflicting types, use simple class name
         // This makes Swagger UI much more readable and performant
         return type.Name;
