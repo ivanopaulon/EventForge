@@ -1,97 +1,20 @@
 @namespace EventForge.Client.Shared.Components
-@using MudBlazor
-@using EventForge.Client.Services
 @inject IConnectionMonitorService ConnectionMonitor
-@inject IServerConfigOverlayService ServerConfigOverlayService
+@inject IDialogService DialogService
 @implements IDisposable
 
-<EFOverlay Visible="@_showOverlay"
-           TopBar="@_efTopBar"
-           LogoAnim="@_efLogoAnim"
-           Subtitle="@(_restored ? "Connessione ripristinata" : null)">
-
-    @* API status row *@
-    <div class="clo-status-row">
-        <span class="clo-dot @(_apiOk ? "clo-dot-green" : "clo-dot-red")"></span>
-        <span class="clo-label">API</span>
-        <span class="clo-value @(_apiOk ? "clo-ok" : "clo-err")">
-            @(_apiOk ? "Raggiungibile" : "Non raggiungibile")
-        </span>
-    </div>
-
-    @* SignalR status row *@
-    <div class="clo-status-row">
-        <span class="clo-dot @(_signalrOk ? "clo-dot-green" : "clo-dot-red")"></span>
-        <span class="clo-label">Real-time</span>
-        <span class="clo-value @(_signalrOk ? "clo-ok" : "clo-err")">
-            @(_signalrOk ? "Connesso" : "Disconnesso")
-        </span>
-    </div>
-
-    @if (_restored)
-    {
-        <div class="clo-restored">✓ Connessione ripristinata</div>
-    }
-    else if (!string.IsNullOrEmpty(_statusMessage))
-    {
-        <div class="clo-message">@_statusMessage</div>
-    }
-
-    @if (_disconnectedSince.HasValue && !_restored)
-    {
-        var elapsed = (int)(DateTimeOffset.UtcNow - _disconnectedSince.Value).TotalSeconds;
-        <div class="clo-elapsed">⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")</div>
-    }
-
-    @if (!_restored)
-    {
-        <div class="clo-action-row">
-            <MudButton Variant="Variant.Outlined"
-                       Size="Size.Small"
-                       Color="Color.Warning"
-                       OnClick="@RetryNowAsync"
-                       Disabled="@_retrying"
-                       StartIcon="@Icons.Material.Outlined.Refresh"
-                       Class="clo-retry-btn">
-                @(_retrying ? "Verifica in corso…" : "Riprova ora")
-            </MudButton>
-            <MudTooltip Text="Configura URL Server">
-                <MudIconButton Icon="@Icons.Material.Outlined.Settings"
-                               Size="Size.Small"
-                               Color="Color.Default"
-                               OnClick="@OpenServerConfig"
-                               Class="clo-settings-btn"
-                               aria-label="Configura URL Server" />
-            </MudTooltip>
-        </div>
-    }
-
-</EFOverlay>
-
 @code {
-    private bool _showOverlay = false;
-    private bool _restored = false;
-    private bool _retrying = false;
+    private static readonly DialogOptions _options = new()
+    {
+        BackdropClick = false,
+        CloseButton = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center,
+    };
 
-    private bool _apiOk = true;
-    private bool _signalrOk = true;
-    private string? _statusMessage;
-    private DateTimeOffset? _disconnectedSince;
-    private DateTimeOffset? _problemDetectedAt;
-
-    private System.Threading.Timer? _elapsedTimer;
+    private IDialogReference? _dialogRef;
     private System.Threading.Timer? _visibilityDelayTimer;
-    private System.Threading.Timer? _restoredHideTimer;
-
-    private EFOverlay.EFOverlayTopBar _efTopBar => _restored
-        ? EFOverlay.EFOverlayTopBar.Success
-        : ConnectionMonitor.Status == ConnectionStatus.Disconnected
-            ? EFOverlay.EFOverlayTopBar.Error
-            : EFOverlay.EFOverlayTopBar.Warning;
-
-    private EFOverlay.EFOverlayLogoAnim _efLogoAnim => _restored
-        ? EFOverlay.EFOverlayLogoAnim.PulseGreen
-        : EFOverlay.EFOverlayLogoAnim.PulseRed;
+    private DateTimeOffset? _problemDetectedAt;
 
     protected override void OnInitialized()
     {
@@ -103,94 +26,38 @@
     {
         InvokeAsync(() =>
         {
-            SyncState(newStatus);
-            StateHasChanged();
-        });
-    }
-
-    private void SyncState(ConnectionStatus status)
-    {
-        _apiOk = ConnectionMonitor.IsApiReachable;
-        _signalrOk = ConnectionMonitor.IsSignalRConnected;
-        _statusMessage = ConnectionMonitor.StatusMessage;
-        _disconnectedSince = ConnectionMonitor.DisconnectedSince;
-
-        if (status == ConnectionStatus.Unknown)
-        {
-            _showOverlay = false;
-            _problemDetectedAt = null;
-            StopTimers();
-            return;
-        }
-
-        if (status == ConnectionStatus.Connected)
-        {
-            if (_showOverlay)
+            if (newStatus == ConnectionStatus.Connected || newStatus == ConnectionStatus.Unknown)
             {
-                _restored = true;
-                _problemDetectedAt = null;
                 StopVisibilityDelayTimer();
-                StartRestoredHideTimer();
-            }
-            else
-            {
-                _restored = false;
                 _problemDetectedAt = null;
-                StopTimers();
             }
-            return;
-        }
-
-        _restored = false;
-        StopRestoredHideTimer();
-
-        if (_problemDetectedAt == null)
-        {
-            _problemDetectedAt = DateTimeOffset.UtcNow;
-            StartVisibilityDelayTimer();
-        }
+            else if (_dialogRef is null && _problemDetectedAt is null)
+            {
+                _problemDetectedAt = DateTimeOffset.UtcNow;
+                StartVisibilityDelayTimer();
+            }
+        });
     }
 
     private void StartVisibilityDelayTimer()
     {
         StopVisibilityDelayTimer();
-        _visibilityDelayTimer = new System.Threading.Timer(_ =>
+        _visibilityDelayTimer = new System.Threading.Timer(async _ =>
         {
-            InvokeAsync(() =>
+            await InvokeAsync(async () =>
             {
                 var s = ConnectionMonitor.Status;
-                if (s == ConnectionStatus.Degraded || s == ConnectionStatus.Disconnected)
+                if ((s == ConnectionStatus.Degraded || s == ConnectionStatus.Disconnected) && _dialogRef is null)
                 {
-                    _showOverlay = true;
-                    StartElapsedTimer();
-                    StateHasChanged();
+                    _dialogRef = await DialogService.ShowAsync<ConnectionLostSystemDialog>(string.Empty, _options);
+                    _ = _dialogRef.Result.ContinueWith(_ =>
+                    {
+                        _dialogRef = null;
+                        _problemDetectedAt = null;
+                    });
                 }
             });
         }, null, TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
-    }
-
-    private void StartRestoredHideTimer()
-    {
-        StopRestoredHideTimer();
-        _restoredHideTimer = new System.Threading.Timer(_ =>
-        {
-            InvokeAsync(() =>
-            {
-                _showOverlay = false;
-                _restored = false;
-                StopElapsedTimer();
-                StateHasChanged();
-            });
-        }, null, TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
-    }
-
-    private void StartElapsedTimer()
-    {
-        StopElapsedTimer();
-        _elapsedTimer = new System.Threading.Timer(_ =>
-        {
-            _ = InvokeAsync(StateHasChanged);
-        }, null, 1000, 1000);
     }
 
     private void StopVisibilityDelayTimer()
@@ -200,128 +67,9 @@
         _visibilityDelayTimer = null;
     }
 
-    private void StopRestoredHideTimer()
-    {
-        _restoredHideTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-        _restoredHideTimer?.Dispose();
-        _restoredHideTimer = null;
-    }
-
-    private void StopElapsedTimer()
-    {
-        _elapsedTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-        _elapsedTimer?.Dispose();
-        _elapsedTimer = null;
-    }
-
-    private void StopTimers()
-    {
-        StopElapsedTimer();
-        StopVisibilityDelayTimer();
-        StopRestoredHideTimer();
-    }
-
-    private async Task RetryNowAsync()
-    {
-        _retrying = true;
-        StateHasChanged();
-        await ConnectionMonitor.CheckNowAsync();
-        _retrying = false;
-        SyncState(ConnectionMonitor.Status);
-        StateHasChanged();
-    }
-
-    private void OpenServerConfig()
-    {
-        ServerConfigOverlayService.Show();
-    }
-
     public void Dispose()
     {
         ConnectionMonitor.StatusChanged -= OnStatusChanged;
-        StopTimers();
+        StopVisibilityDelayTimer();
     }
 }
-
-<style>
-    /* ── Status rows ── */
-    .clo-status-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.85rem;
-    }
-
-    .clo-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        flex-shrink: 0;
-    }
-
-    .clo-dot-green {
-        background: #66bb6a;
-        box-shadow: 0 0 6px rgba(102, 187, 106, 0.7);
-    }
-
-    .clo-dot-red {
-        background: #ef5350;
-        box-shadow: 0 0 6px rgba(239, 83, 80, 0.7);
-    }
-
-    .clo-label {
-        color: rgba(255, 255, 255, 0.55);
-        min-width: 60px;
-    }
-
-    .clo-value {
-        font-weight: 600;
-    }
-
-    .clo-ok  { color: #66bb6a; }
-    .clo-err { color: #ef5350; }
-
-    /* ── Messages ── */
-    .clo-message {
-        color: rgba(255, 255, 255, 0.82);
-        font-size: 0.9rem;
-        font-weight: 500;
-        line-height: 1.4;
-    }
-
-    .clo-restored {
-        color: #66bb6a;
-        font-size: 0.95rem;
-        font-weight: 700;
-    }
-
-    .clo-elapsed {
-        color: rgba(255, 255, 255, 0.45);
-        font-size: 0.72rem;
-    }
-
-    /* ── Action row ── */
-    .clo-action-row {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 2px;
-    }
-
-    .clo-retry-btn {
-        font-size: 0.8rem !important;
-    }
-
-    .clo-settings-btn {
-        opacity: 0.65;
-    }
-
-    .clo-settings-btn:hover {
-        opacity: 1;
-    }
-
-    @@media (max-width: 480px) {
-        .clo-status-row { justify-content: center; }
-        .clo-action-row { justify-content: center; }
-    }
-</style>
