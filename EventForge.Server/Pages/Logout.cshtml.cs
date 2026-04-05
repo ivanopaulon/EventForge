@@ -1,26 +1,26 @@
+using EventForge.Server.Auth;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventForge.Server.Pages;
 
 /// <summary>
-/// Logout page - clears JWT token and redirects to landing page.
+/// Logout page — signs out the server cookie authentication session and redirects to login.
 /// </summary>
 public class LogoutModel : PageModel
 {
-    public IActionResult OnGet()
+    public async Task<IActionResult> OnGetAsync()
     {
-        // Return the page which handles client-side token removal
-        return Page();
+        await HttpContext.SignOutAsync(AuthenticationSchemes.ServerCookie);
+        HttpContext.Session.Clear();
+        return RedirectToPage("/ServerAuth/Login");
     }
 
-    public IActionResult OnPost()
+    public async Task<IActionResult> OnPostAsync()
     {
-        // Handle POST request (from form submission)
-        // Clear any server-side session if exists
+        await HttpContext.SignOutAsync(AuthenticationSchemes.ServerCookie);
         HttpContext.Session.Clear();
-
-        // Return the page which handles client-side token removal
-        return Page();
+        return RedirectToPage("/ServerAuth/Login");
     }
 }

@@ -1,85 +1,63 @@
+using EventForge.DTOs.SuperAdmin;
+using EventForge.Server.Services.Logs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Pages.Dashboard;
 
 /// <summary>
-/// Server logs page - displays and allows searching through system operation logs.
+/// Server logs page — displays Serilog application logs stored in the EventLogger database.
+/// Uses <see cref="ILogManagementService"/> (backed by Dapper + LogDb connection string) to
+/// read the real log data instead of the mostly-empty SystemOperationLogs table.
 /// </summary>
 [Authorize(Roles = "SuperAdmin")]
-public class LogsModel : PageModel
+public class LogsModel(ILogManagementService logManagementService, ILogger<LogsModel> logger) : PageModel
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<LogsModel> _logger;
-
-    public List<SystemOperationLog> Logs { get; set; } = new();
+    public List<SystemLogDto> Logs { get; set; } = [];
     public int TotalCount { get; set; }
     public int TotalPages { get; set; }
     public int PageSize { get; set; } = 50;
 
     [BindProperty(SupportsGet = true)] public int CurrentPage { get; set; } = 1;
     [BindProperty(SupportsGet = true)] public string? SearchTerm { get; set; }
-    [BindProperty(SupportsGet = true)] public string? SeverityFilter { get; set; }
-    [BindProperty(SupportsGet = true)] public string? CategoryFilter { get; set; }
+    [BindProperty(SupportsGet = true)] public string? LevelFilter { get; set; }
     [BindProperty(SupportsGet = true)] public bool ErrorsOnly { get; set; }
 
-    public List<string> AvailableCategories { get; set; } = new();
     public string? ErrorMessage { get; set; }
-
-    public LogsModel(EventForgeDbContext context, ILogger<LogsModel> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
 
     public async Task OnGetAsync()
     {
         try
         {
-            AvailableCategories = await _context.SystemOperationLogs
-                .Where(l => l.Category != null)
-                .Select(l => l.Category!)
-                .Distinct()
-                .OrderBy(c => c)
-                .ToListAsync(HttpContext.RequestAborted);
-
-            var query = _context.SystemOperationLogs.AsNoTracking().AsQueryable();
+            var queryParams = new ApplicationLogQueryParameters
+            {
+                Page = CurrentPage,
+                PageSize = PageSize,
+                SortBy = "Timestamp",
+                SortDirection = "desc"
+            };
 
             if (!string.IsNullOrWhiteSpace(SearchTerm))
-            {
-                var term = SearchTerm.ToLower();
-                query = query.Where(l =>
-                    (l.Description != null && l.Description.ToLower().Contains(term)) ||
-                    (l.Operation != null && l.Operation.ToLower().Contains(term)) ||
-                    l.ExecutedBy.ToLower().Contains(term) ||
-                    l.Action.ToLower().Contains(term));
-            }
+                queryParams.Message = SearchTerm;
 
-            if (!string.IsNullOrWhiteSpace(SeverityFilter))
-                query = query.Where(l => l.Severity == SeverityFilter);
-
-            if (!string.IsNullOrWhiteSpace(CategoryFilter))
-                query = query.Where(l => l.Category == CategoryFilter);
+            if (!string.IsNullOrWhiteSpace(LevelFilter))
+                queryParams.Level = LevelFilter;
 
             if (ErrorsOnly)
-                query = query.Where(l => !l.Success || l.Severity == "Error" || l.Severity == "Critical");
+                queryParams.HasException = true;
 
-            TotalCount = await query.CountAsync(HttpContext.RequestAborted);
+            var result = await logManagementService.GetApplicationLogsAsync(queryParams, HttpContext.RequestAborted);
+
+            Logs = result.Items?.ToList() ?? [];
+            TotalCount = result.TotalCount;
             TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
             CurrentPage = Math.Max(1, Math.Min(CurrentPage, Math.Max(1, TotalPages)));
-
-            Logs = await query
-                .OrderByDescending(l => l.CreatedAt)
-                .Skip((CurrentPage - 1) * PageSize)
-                .Take(PageSize)
-                .ToListAsync(HttpContext.RequestAborted);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading system operation logs");
-            ErrorMessage = "Impossibile caricare i log. Verificare la connessione al database.";
+            logger.LogError(ex, "Error loading application logs");
+            ErrorMessage = "Impossibile caricare i log. Verificare la connessione al database EventLogger.";
         }
     }
 
@@ -87,8 +65,7 @@ public class LogsModel : PageModel
     {
         var parts = new List<string>();
         if (!string.IsNullOrEmpty(SearchTerm)) parts.Add($"SearchTerm={Uri.EscapeDataString(SearchTerm)}");
-        if (!string.IsNullOrEmpty(SeverityFilter)) parts.Add($"SeverityFilter={SeverityFilter}");
-        if (!string.IsNullOrEmpty(CategoryFilter)) parts.Add($"CategoryFilter={CategoryFilter}");
+        if (!string.IsNullOrEmpty(LevelFilter)) parts.Add($"LevelFilter={LevelFilter}");
         if (ErrorsOnly) parts.Add("ErrorsOnly=true");
         return parts.Any() ? "&" + string.Join("&", parts) : "";
     }

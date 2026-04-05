@@ -8,7 +8,7 @@
 <div class="ef-page-header">
     <div class="ef-page-title">
         <div class="ef-page-title-icon monitoring"><i class="bi bi-journals"></i></div>
-        <div><h1>Log di sistema</h1><p class="ef-page-subtitle">Operazioni registrate dal server</p></div>
+        <div><h1>Log di sistema</h1><p class="ef-page-subtitle">Log applicativi Serilog dal database EventLogger</p></div>
     </div>
     <span class="ef-badge ef-badge-neutral" style="font-size:.78rem;padding:.35rem .8rem">
         @Model.TotalCount.ToString("N0") voci
@@ -24,38 +24,30 @@
 <div class="ef-card mb-4">
     <div class="ef-card-body">
         <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">Ricerca</label>
+            <div class="col-md-5">
+                <label class="form-label">Ricerca nel messaggio</label>
                 <input type="text" asp-for="SearchTerm" class="form-control"
-                       placeholder="Descrizione, operazione, utente..." />
+                       placeholder="Testo del messaggio..." />
             </div>
             <div class="col-md-2">
-                <label class="form-label">Severità</label>
-                <select asp-for="SeverityFilter" class="form-select">
-                    <option value="">Tutte</option>
+                <label class="form-label">Livello</label>
+                <select asp-for="LevelFilter" class="form-select">
+                    <option value="">Tutti</option>
+                    <option value="Verbose">Verbose</option>
+                    <option value="Debug">Debug</option>
                     <option value="Information">Information</option>
                     <option value="Warning">Warning</option>
                     <option value="Error">Error</option>
-                    <option value="Critical">Critical</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Categoria</label>
-                <select asp-for="CategoryFilter" class="form-select">
-                    <option value="">Tutte</option>
-                    @foreach (var cat in Model.AvailableCategories)
-                    {
-                        <option value="@cat">@cat</option>
-                    }
+                    <option value="Fatal">Fatal</option>
                 </select>
             </div>
             <div class="col-md-2 pt-3">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" asp-for="ErrorsOnly" />
-                    <label class="form-check-label" style="font-size:.82rem">Solo errori</label>
+                    <label class="form-check-label" style="font-size:.82rem">Solo con eccezioni</label>
                 </div>
             </div>
-            <div class="col-md-2 d-flex gap-2">
+            <div class="col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-primary flex-fill">
                     <i class="bi bi-search"></i>Cerca
                 </button>
@@ -83,63 +75,49 @@
                 <table class="ef-table">
                     <thead>
                         <tr>
-                            <th style="width:140px">Timestamp</th>
-                            <th style="width:95px">Severità</th>
-                            <th style="width:115px">Categoria</th>
-                            <th>Operazione / Descrizione</th>
-                            <th style="width:115px">Eseguito da</th>
-                            <th style="width:90px">Durata</th>
-                            <th style="width:70px">Stato</th>
+                            <th style="width:145px">Timestamp</th>
+                            <th style="width:100px">Livello</th>
+                            <th style="width:130px">Sorgente</th>
+                            <th>Messaggio</th>
+                            <th style="width:110px">Utente</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var log in Model.Logs)
                         {
-                            string rowCls = (!log.Success || log.Severity is "Error" or "Critical") ? "row-danger"
-                                          : log.Severity == "Warning" ? "row-warning" : "";
-                            string sevCls = log.Severity switch
+                            bool hasException = !string.IsNullOrEmpty(log.Exception);
+                            string rowCls = log.Level is "Error" or "Fatal" or "Critical"
+                                          ? "row-danger"
+                                          : log.Level == "Warning" ? "row-warning" : "";
+                            string levelCls = log.Level switch
                             {
+                                "Fatal"    => "ef-badge-danger",
                                 "Critical" => "ef-badge-danger",
                                 "Error"    => "ef-badge-danger",
                                 "Warning"  => "ef-badge-warning",
+                                "Debug"    => "ef-badge-neutral",
+                                "Verbose"  => "ef-badge-neutral",
                                 _          => "ef-badge-neutral"
                             };
                             <tr class="@rowCls">
-                                <td style="font-size:.75rem;color:var(--ef-text-muted)">@log.CreatedAt.ToString("dd/MM HH:mm:ss")</td>
+                                <td style="font-size:.75rem;color:var(--ef-text-muted)">@log.Timestamp.ToLocalTime().ToString("dd/MM HH:mm:ss")</td>
                                 <td>
-                                    @if (!string.IsNullOrEmpty(log.Severity))
+                                    @if (!string.IsNullOrEmpty(log.Level))
                                     {
-                                        <span class="ef-badge @sevCls">@log.Severity</span>
+                                        <span class="ef-badge @levelCls">@log.Level</span>
                                     }
                                 </td>
-                                <td style="font-size:.75rem;color:var(--ef-text-muted)">@log.Category</td>
+                                <td style="font-size:.75rem;color:var(--ef-text-muted);word-break:break-all">@(log.Source ?? log.Category)</td>
                                 <td>
-                                    <div style="font-size:.8rem;font-weight:550">@(log.Operation ?? log.Action)</div>
-                                    @if (!string.IsNullOrEmpty(log.Description))
-                                    {
-                                        <div style="font-size:.73rem;color:var(--ef-text-muted)">@log.Description</div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(log.ErrorMessage))
+                                    <div style="font-size:.8rem;font-weight:550">@log.Message</div>
+                                    @if (hasException)
                                     {
                                         <div style="font-size:.73rem;color:var(--ef-danger)">
-                                            <i class="bi bi-bug me-1"></i>@log.ErrorMessage
+                                            <i class="bi bi-bug me-1"></i>@log.Exception
                                         </div>
                                     }
                                 </td>
-                                <td style="font-size:.75rem;color:var(--ef-text-muted)">@log.ExecutedBy</td>
-                                <td style="font-size:.75rem;color:var(--ef-text-muted)">
-                                    @(log.DurationMs.HasValue ? $"{log.DurationMs.Value:N0} ms" : "—")
-                                </td>
-                                <td>
-                                    @if (log.Success)
-                                    {
-                                        <span class="ef-badge ef-badge-success">OK</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="ef-badge ef-badge-danger">Fail</span>
-                                    }
-                                </td>
+                                <td style="font-size:.75rem;color:var(--ef-text-muted)">@log.Username</td>
                             </tr>
                         }
                     </tbody>

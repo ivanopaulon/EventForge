@@ -98,6 +98,7 @@
                             </label>
                             <input type="password" asp-for="SmtpPassword" class="form-control"
                                    placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                            <small class="text-muted">Per sicurezza, la password salvata non viene visualizzata. Lasciare vuoto per non modificare il valore corrente.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Email mittente</label>
@@ -196,6 +197,10 @@
                 <small class="text-muted ms-2">(riavvio necessario per applicare)</small>
             </div>
             <div class="card-body">
+                <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+                    Le modifiche ai limiti di rate limiting vengono salvate nel database ma richiedono il <strong>riavvio del server</strong> per essere applicate a runtime.
+                </div>
                 <form method="post" asp-page-handler="UpdateRateLimit">
                     @Html.AntiForgeryToken()
                     <div class="row g-3">
@@ -231,6 +236,10 @@
 
     <!-- ── Feature Flags Tab ────────────────────────────────────── -->
     <div class="tab-pane fade @featuresActive" id="features">
+        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+            Le modifiche alle feature flags vengono salvate nel database ma richiedono il <strong>riavvio del server</strong> per essere applicate a runtime.
+        </div>
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-transparent fw-semibold">
                 <i class="bi bi-toggles me-2 text-success"></i>Feature flags
