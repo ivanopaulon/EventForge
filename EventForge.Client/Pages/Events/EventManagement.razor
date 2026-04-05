@@ -64,7 +64,7 @@
                         <MudChip T="string"
                                  Color="@(cat.Enabled ? cat.ChipColor : Color.Default)"
                                  Variant="@(cat.Enabled ? Variant.Filled : Variant.Outlined)"
-                                 OnClick="@(() => ToggleCategory(cat))"
+                                 OnClick="@(() => ToggleCategoryAsync(cat))"
                                  Size="Size.Small"
                                  Icon="@cat.Icon">
                             @cat.Label @(cat.Count > 0 ? $"({cat.Count})" : "")
@@ -78,7 +78,7 @@
                             <MudChip T="string"
                                      Color="@(sf.Active ? sf.Color : Color.Default)"
                                      Variant="@(sf.Active ? Variant.Filled : Variant.Outlined)"
-                                     OnClick="@(() => ToggleEventStatusFilter(sf))"
+                                     OnClick="@(() => ToggleEventStatusFilterAsync(sf))"
                                      Size="Size.Small">
                                 @sf.Label
                             </MudChip>
@@ -99,9 +99,13 @@
                                    Style="position:absolute;top:0;left:0;right:0;z-index:10;" />
             }
             <SfSchedule TValue="SchedulerItem"
+                        @ref="_schedulerRef"
+                        Width="100%"
                         Height="640px"
                         @bind-SelectedDate="_currentDate"
                         @bind-CurrentView="_currentView"
+                        EnableAutoRowHeight="true"
+                        ShowQuickInfo="false"
                         AllowResizing="false"
                         AllowDragAndDrop="false">
                 <ScheduleViews>
@@ -111,20 +115,10 @@
                     <ScheduleView Option="View.Day" />
                     <ScheduleView Option="View.Agenda" />
                 </ScheduleViews>
-                <ScheduleEventSettings DataSource="@FilteredItems">
-                    <ScheduleField Id="Id">
-                        <FieldSubject Name="Subject" />
-                        <FieldStartTime Name="StartTime" />
-                        <FieldEndTime Name="EndTime" />
-                        <FieldIsAllDay Name="IsAllDay" />
-                        <FieldLocation Name="Location" />
-                        <FieldDescription Name="Description" />
-                        <FieldRecurrenceRule Name="RecurrenceRule" />
-                    </ScheduleField>
-                </ScheduleEventSettings>
-                <ScheduleEvents TValue="SchedulerItem" PopupOpen="OnSchedulerPopupOpen" />
+                <ScheduleEventSettings DataSource="@_filteredItems"></ScheduleEventSettings>
+                <ScheduleEvents TValue="SchedulerItem" OnPopupOpen="OnSchedulerPopupOpen" EventRendered="OnEventRendered" />
             </SfSchedule>
-        </MudPaper>
+            </MudPaper>
 
         <!-- Active reminders / tasks below -->
         @if (_activeReminders.Count > 0 || _activeTasks.Count > 0)
@@ -213,8 +207,12 @@
     private DateTime _currentDate = DateTime.Today;
     private View _currentView = View.Month;
 
+    private SfSchedule<SchedulerItem>? _schedulerRef;
+
     private List<SchedulerItem> _allItems = new();
+    private List<SchedulerItem> _filteredItems = new();
     private Dictionary<Guid, EventDto> _eventsMap = new();
+    private Dictionary<Guid, CalendarReminderDto> _remindersMap = new();
     private List<CalendarReminderDto> _activeReminders = new();
     private List<CalendarReminderDto> _activeTasks = new();
     private List<SchedulerCategory> _categories = new();
@@ -239,11 +237,12 @@
 
     public class SchedulerItem
     {
-        public string       Id             { get; set; } = string.Empty;
+        public int          Id             { get; set; }
+        public string       EntityId       { get; set; } = string.Empty;
         public string       Subject        { get; set; } = string.Empty;
         public DateTime     StartTime      { get; set; }
         public DateTime     EndTime        { get; set; }
-        public bool         IsAllDay       { get; set; }
+        public bool?        IsAllDay       { get; set; }
         public string?      Location       { get; set; }
         public string?      Description    { get; set; }
         public string?      RecurrenceRule { get; set; }
@@ -254,19 +253,19 @@
         public bool         IsPrivate      { get; set; }
     }
 
-    private List<SchedulerItem> FilteredItems
+    private void RefreshFilteredItems()
     {
-        get
+        var active = _categories.Where(c => c.Enabled).Select(c => c.Key).ToHashSet();
+        var filtered = _allItems.Where(item =>
         {
-            var active = _categories.Where(c => c.Enabled).Select(c => c.Key).ToHashSet();
-            return _allItems.Where(item =>
-            {
-                if (!active.Contains(item.CategoryKey)) return false;
-                if (item.CategoryKey != "events") return true;
-                if (!item.EventStatus.HasValue) return true;
-                return _eventStatusFilters.Where(f => f.Active).Any(f => f.Status == item.EventStatus.Value);
-            }).ToList();
-        }
+            if (!active.Contains(item.CategoryKey)) return false;
+            if (item.CategoryKey != "events") return true;
+            if (!item.EventStatus.HasValue) return true;
+            return _eventStatusFilters.Where(f => f.Active).Any(f => f.Status == item.EventStatus.Value);
+        }).ToList();
+        for (var i = 0; i < filtered.Count; i++)
+            filtered[i].Id = i + 1;
+        _filteredItems = filtered;
     }
 
     protected override async Task OnInitializedAsync()
@@ -343,6 +342,7 @@
         finally
         {
             _isLoading = false;
+            RefreshFilteredItems();
             StateHasChanged();
         }
     }
@@ -358,7 +358,7 @@
         _eventsMap = items.ToDictionary(e => e.Id);
         ReplaceCategory("events", items.Select(e => new SchedulerItem
         {
-            Id = $"ev_{e.Id}", Subject = e.Name,
+            EntityId = $"ev_{e.Id}", Subject = e.Name,
             StartTime = e.StartDate.ToLocalTime(),
             EndTime = (e.EndDate ?? e.StartDate.AddHours(1)).ToLocalTime(),
             Location = e.Location, Description = e.ShortDescription,
@@ -373,6 +373,7 @@
         var startRange = DateTime.UtcNow.AddMonths(-12);
         var endRange   = DateTime.UtcNow.AddMonths(12);
         var items = (await CalendarReminderService.GetCalendarRemindersByDateRangeAsync(startRange, endRange)).ToList();
+        _remindersMap    = items.ToDictionary(r => r.Id);
         _activeReminders = items.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
         _activeTasks     = items.Where(r => r.ItemType == CalendarItemType.Task      && !r.IsCompleted).ToList();
         ReplaceCategory("reminders", items.Where(r => r.ItemType == CalendarItemType.Reminder).Select(r => ToSchedulerItem(r, "reminders")));
@@ -381,7 +382,7 @@
 
     private static SchedulerItem ToSchedulerItem(CalendarReminderDto r, string cat) => new()
     {
-        Id = $"rem_{r.Id}", Subject = r.Title,
+        EntityId = $"rem_{r.Id}", Subject = r.Title,
         StartTime = r.DueDate.ToLocalTime(),
         EndTime = r.IsAllDay ? r.DueDate.ToLocalTime().AddDays(1) : r.DueDate.ToLocalTime().AddMinutes(30),
         IsAllDay = r.IsAllDay, Description = r.Description,
@@ -395,7 +396,7 @@
         var result = await PriceListService.GetPagedAsync(1, 100);
         ReplaceCategory("pricelists", result.Items.Where(pl => pl.ValidFrom.HasValue || pl.ValidTo.HasValue).Select(pl => new SchedulerItem
         {
-            Id = $"pl_{pl.Id}", Subject = $"\U0001f4cb {pl.Name}",
+            EntityId = $"pl_{pl.Id}", Subject = $"\U0001f4cb {pl.Name}",
             StartTime = (pl.ValidFrom ?? pl.ValidTo!.Value.AddDays(-1)).ToLocalTime(),
             EndTime   = (pl.ValidTo   ?? pl.ValidFrom!.Value.AddDays(1)).ToLocalTime(),
             IsAllDay  = true, Description = $"Listino: {pl.Name}",
@@ -409,7 +410,7 @@
         var promos = await PromotionService.GetActiveAsync();
         ReplaceCategory("promotions", promos.Select(p => new SchedulerItem
         {
-            Id = $"promo_{p.Id}", Subject = $"\U0001f3f7\ufe0f {p.Name}",
+            EntityId = $"promo_{p.Id}", Subject = $"\U0001f3f7\ufe0f {p.Name}",
             StartTime = p.StartDate.ToLocalTime(), EndTime = p.EndDate.ToLocalTime(),
             IsAllDay = true, Description = p.Name,
             Color = "#34A853", CategoryKey = "promotions"
@@ -421,7 +422,7 @@
         var lots = await LotService.GetExpiringLotsAsync(365);
         ReplaceCategory("lots", (lots ?? Enumerable.Empty<LotDto>()).Where(l => l.ExpiryDate.HasValue).Select(l => new SchedulerItem
         {
-            Id = $"lot_{l.Id}", Subject = $"\u26a0\ufe0f {l.Code}",
+            EntityId = $"lot_{l.Id}", Subject = $"\u26a0\ufe0f {l.Code}",
             StartTime = l.ExpiryDate!.Value.ToLocalTime(),
             EndTime   = l.ExpiryDate!.Value.ToLocalTime().AddHours(1),
             IsAllDay  = true, Description = $"Lotto {l.Code} | {l.ProductCode}",
@@ -456,7 +457,7 @@
             var bd = new DateTime(year, dob.Month, day);
             yield return new SchedulerItem
             {
-                Id = $"bd_{idPrefix}_{year}", Subject = $"\U0001f382 {name}",
+                EntityId = $"bd_{idPrefix}_{year}", Subject = $"\U0001f382 {name}",
                 StartTime = bd, EndTime = bd.AddDays(1), IsAllDay = true,
                 Description = $"Compleanno di {name} ({today.Year - dob.Year} anni)",
                 Color = "#E91E63", CategoryKey = "birthdays"
@@ -481,8 +482,8 @@
         return rule;
     }
 
-    private void ToggleCategory(SchedulerCategory cat) { cat.Enabled = !cat.Enabled; StateHasChanged(); }
-    private void ToggleEventStatusFilter(EventStatusFilter sf) { sf.Active = !sf.Active; StateHasChanged(); }
+    private async Task ToggleCategoryAsync(SchedulerCategory cat) { cat.Enabled = !cat.Enabled; await RefreshSchedulerAsync(); }
+    private async Task ToggleEventStatusFilterAsync(EventStatusFilter sf) { sf.Active = !sf.Active; await RefreshSchedulerAsync(); }
 
     private async Task OpenCreateEventDialog(DateTime? start = null, DateTime? end = null)
     {
@@ -499,7 +500,7 @@
             _eventsMap[created.Id] = created;
             _allItems.Add(new SchedulerItem
             {
-                Id = $"ev_{created.Id}", Subject = created.Name,
+                EntityId = $"ev_{created.Id}", Subject = created.Name,
                 StartTime = created.StartDate.ToLocalTime(),
                 EndTime = (created.EndDate ?? created.StartDate.AddHours(1)).ToLocalTime(),
                 Location = created.Location, Description = created.ShortDescription,
@@ -507,7 +508,7 @@
                 EventStatus = created.Status, AssignedTo = created.AssignedToUserId,
                 IsPrivate = created.Visibility == CalendarVisibility.Private
             });
-            UpdateCount("events"); StateHasChanged();
+            UpdateCount("events"); await RefreshSchedulerAsync();
         }
     }
 
@@ -523,10 +524,10 @@
         if (res is { Canceled: false, Data: EventDto updated })
         {
             _eventsMap[updated.Id] = updated;
-            var idx = _allItems.FindIndex(i => i.Id == $"ev_{updated.Id}");
+            var idx = _allItems.FindIndex(i => i.EntityId == $"ev_{updated.Id}");
             var item = new SchedulerItem
             {
-                Id = $"ev_{updated.Id}", Subject = updated.Name,
+                EntityId = $"ev_{updated.Id}", Subject = updated.Name,
                 StartTime = updated.StartDate.ToLocalTime(),
                 EndTime = (updated.EndDate ?? updated.StartDate.AddHours(1)).ToLocalTime(),
                 Location = updated.Location, Description = updated.ShortDescription,
@@ -536,7 +537,7 @@
             };
             if (idx >= 0) _allItems[idx] = item;
             else _allItems.Add(item);
-            UpdateCount("events"); StateHasChanged();
+            UpdateCount("events"); await RefreshSchedulerAsync();
         }
     }
 
@@ -554,31 +555,42 @@
         {
             var cat = itemType == CalendarItemType.Task ? "tasks" : "reminders";
             _allItems.Add(ToSchedulerItem(created, cat));
+            _remindersMap[created.Id] = created;
             if (itemType == CalendarItemType.Reminder && !created.IsCompleted) _activeReminders.Insert(0, created);
             else if (itemType == CalendarItemType.Task && !created.IsCompleted) _activeTasks.Insert(0, created);
-            UpdateCount(cat); StateHasChanged();
+            UpdateCount(cat); await RefreshSchedulerAsync();
         }
     }
 
-    private async void OnSchedulerPopupOpen(PopupOpenEventArgs<SchedulerItem> args)
+    private async Task OnSchedulerPopupOpen(PopupOpenEventArgs<SchedulerItem> args)
     {
-        if (args.Type == PopupType.Editor)
-        {
+        if (args.Type is PopupType.QuickInfo or PopupType.Editor)
             args.Cancel = true;
-            var itemId = args.Data?.Id;
-            // Existing event (id starts with "ev_") → open edit dialog
-            if (itemId != null && itemId.StartsWith("ev_", StringComparison.Ordinal)
-                && Guid.TryParse(itemId[3..], out var eventId)
-                && _eventsMap.TryGetValue(eventId, out var ev))
-            {
-                await InvokeAsync(async () => await OpenEditEventDialog(ev));
-            }
-            else
-            {
-                var s = args.Data?.StartTime;
-                var e = args.Data?.EndTime;
-                await InvokeAsync(async () => await OpenCreateEventDialog(s, e));
-            }
+
+        if (args.Type != PopupType.Editor) return;
+
+        var itemId = args.Data?.EntityId ?? string.Empty;
+
+        if (itemId.StartsWith("ev_", StringComparison.Ordinal)
+            && Guid.TryParse(itemId[3..], out var eventId)
+            && _eventsMap.TryGetValue(eventId, out var ev))
+        {
+            await OpenEditEventDialog(ev);
+        }
+        else if (itemId.StartsWith("rem_", StringComparison.Ordinal)
+            && Guid.TryParse(itemId[4..], out var remId)
+            && _remindersMap.TryGetValue(remId, out var rem))
+        {
+            await OpenEditReminderDialog(rem);
+        }
+        else if (!itemId.StartsWith("pl_", StringComparison.Ordinal)
+              && !itemId.StartsWith("promo_", StringComparison.Ordinal)
+              && !itemId.StartsWith("lot_", StringComparison.Ordinal)
+              && !itemId.StartsWith("bd_", StringComparison.Ordinal))
+        {
+            var s = args.Data?.StartTime;
+            var e = args.Data?.EndTime;
+            await OpenCreateEventDialog(s, e);
         }
     }
 
@@ -589,10 +601,11 @@
             await CalendarReminderService.CompleteCalendarReminderAsync(id);
             _activeReminders.RemoveAll(r => r.Id == id);
             _activeTasks.RemoveAll(t => t.Id == id);
-            _allItems.RemoveAll(i => i.Id == $"rem_{id}");
+            _allItems.RemoveAll(i => i.EntityId == $"rem_{id}");
+            _remindersMap.Remove(id);
             UpdateCount("reminders"); UpdateCount("tasks");
             Snackbar.Add(TranslationService.GetTranslation("events.completed", "Completato"), Severity.Success);
-            StateHasChanged();
+            await RefreshSchedulerAsync();
         }
         catch (Exception ex)
         {
@@ -601,9 +614,60 @@
         }
     }
 
+    private Task RefreshSchedulerAsync()
+    {
+        RefreshFilteredItems();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task OpenEditReminderDialog(CalendarReminderDto reminder)
+    {
+        var p = new DialogParameters<CreateCalendarReminderDialog>
+        {
+            { x => x.ExistingReminder, reminder }
+        };
+        var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+        var dlg  = await DialogService.ShowAsync<CreateCalendarReminderDialog>(string.Empty, p, opts);
+        var res  = await dlg.Result;
+        if (res is { Canceled: false, Data: CalendarReminderDto updated })
+        {
+            _remindersMap[updated.Id] = updated;
+            var cat = updated.ItemType == CalendarItemType.Task ? "tasks" : "reminders";
+            var idx = _allItems.FindIndex(i => i.EntityId == $"rem_{updated.Id}");
+            var item = ToSchedulerItem(updated, cat);
+            if (idx >= 0) _allItems[idx] = item;
+            else _allItems.Add(item);
+            if (!updated.IsCompleted)
+            {
+                if (updated.ItemType == CalendarItemType.Reminder)
+                {
+                    var ri = _activeReminders.FindIndex(r => r.Id == updated.Id);
+                    if (ri >= 0) _activeReminders[ri] = updated; else _activeReminders.Insert(0, updated);
+                }
+                else
+                {
+                    var ti = _activeTasks.FindIndex(t => t.Id == updated.Id);
+                    if (ti >= 0) _activeTasks[ti] = updated; else _activeTasks.Insert(0, updated);
+                }
+            }
+            UpdateCount(cat); await RefreshSchedulerAsync();
+        }
+    }
+
+    private void OnEventRendered(EventRenderedArgs<SchedulerItem> args)
+    {
+        if (!string.IsNullOrEmpty(args.Data.Color))
+            args.Attributes = new Dictionary<string, object>
+            {
+                ["style"] = $"background:{args.Data.Color}!important;border-color:{args.Data.Color}!important;"
+            };
+    }
+
     private void UpdateCount(string key)
     {
         var cat = _categories.FirstOrDefault(c => c.Key == key);
         if (cat != null) cat.Count = _allItems.Count(i => i.CategoryKey == key);
     }
-}
+
+    }
